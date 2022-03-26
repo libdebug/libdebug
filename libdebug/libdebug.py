@@ -6,6 +6,7 @@ import errno
 import collections
 import os
 import signal 
+import time
 
 class DebugFail(Exception):
     pass
@@ -90,36 +91,65 @@ class Debugger:
 
 
     ### Attach/Detach
-    def run(self, path):
+    def run(self, path, sleep=None):
+        """
+        Run a program from the start using th epat as input
+        """
         #TODO implement as a execve that start with a stopped program
         self.process = subprocess.Popen([path,])
+        if sleep is not None:
+            time.sleep(sleep)
         self.attach(self.process.pid)
 
+
     def attach(self, pid):
+        """
+        Attach to a process using the pid
+        """
+        
         self.pid = pid
         self.libc.ptrace.argtypes = self.args_int
         if (self.libc.ptrace(PTRACE_ATTACH, self.pid, NULL, NULL) == -1):
             raise DebugFail("Attach Failed. Do you have permisions? Running as sudo?")
         self.libc.waitpid(pid, NULL, 0)
     
+
     def reattach(self):
+        """
+        Reattach to the last process. This works only after detach.
+        """
+        
         if self.old_pid is None:
             raise DebugFail("ReAttach Failed. You never attached before! Use attach or run first. and detach")
         self.attach(self.old_pid)
 
+
     def detach(self):
+        """
+        Detach the current process
+        """
+        
         self.libc.ptrace.argtypes = self.args_int
         if (self.libc.ptrace(PTRACE_DETACH, self.pid, NULL, NULL) == -1):
             raise DebugFail("Detach Failed. Do you have permisio? Running as sudo?")
         self.old_pid = self.pid
         self.pid = None
 
+
     def stop(self):
+        """
+        This sto the execution of the process executed with `run`
+        """
+
         if self.process is not None:
             self.process.terminate()
             self.process.kill()
 
+
     def gdb(self):
+        """
+        Migrate the dubugging to gdb
+        """
 
         #Stop the process so you can continue exactly form where you let in the script
         os.kill(self.pid, signal.SIGSTOP)
@@ -138,6 +168,7 @@ class Debugger:
     ## Registers
 
     def get_reg(self, name):
+        #This is an helping function to generate properties to access registers        
         def getter(self):
             #reload registers
             self.get_regs()
@@ -217,6 +248,10 @@ class Debugger:
             self.breakpoints[b] = None
 
     def step(self):
+        """
+        Execute the next instruction (Step Into)
+        """
+        
         self.libc.ptrace.argtypes = self.args_int
         if (self.libc.ptrace(PTRACE_SINGLESTEP, self.pid, NULL, NULL) == -1):
             raise DebugFail("Step Failed. Do you have permisions? Running as sudo?")
@@ -224,13 +259,21 @@ class Debugger:
 
 
     def step_until(self, rip):
+        """
+        Execute using single step until the value of rip is equal to the argument
+        """
+
         #Maybe punt a max stept or a timeout
         while True:
             self.step()
             if self.rip == rip:
                 break
 
-    def cont(self):
+    def cont(self, blocking=True):
+        """
+        Continue the execution until the next breakpoint is hitted or the program is stopped
+        """
+
         #I need to execute at least another instruction otherwise I get always in the same bp
         self.step()
         self._set_breakpoints()
@@ -238,12 +281,20 @@ class Debugger:
         # Probably should implement a timeout
         if (self.libc.ptrace(PTRACE_CONT, self.pid, NULL, NULL) == -1):
             raise DebugFail("Continue Failed. Do you have permisions? Running as sudo?")
-        self.libc.waitpid(self.pid, self.buf, 0)
-        self._retore_breakpoints()
+        if blocking:
+            self.libc.waitpid(self.pid, self.buf, 0)
+            self._retore_breakpoints()
 
     def bp(self, addr):
-        self.breakpoints[addr] = None
+        """
+        Set a breakpoint to specific address
+        """
+        if addr not in self.breakpoints:
+            self.breakpoints[addr] = None
 
     def del_bp(self, addr):
+        """
+        Remove the breakpoint
+        """
         if addr in self.breakpoints:
             del self.breakpoints[addr]
