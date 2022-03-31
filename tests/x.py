@@ -35,7 +35,7 @@ print("rip: %#x" % d.rip)
 d.step()
 print("rip: %#x" % d.rip)
 
-d.gdb()
+# d.gdb()
 
 # input("reattach?")
 # d.reattach()
@@ -48,6 +48,8 @@ d.gdb()
 # print("rip: %#x" % d.rip)
 
 # d.gdb()
+import IPython
+IPython.embed()
 
 d.detach()
 d.stop()
