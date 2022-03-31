@@ -1,6 +1,11 @@
 # libdebug
 libdebug is a python library to automate the debugging of a binary executable.
 
+## Install
+```bash
+pip install git+https://github.com/JinBlack/libdebug
+```
+
 ## Attach/Detach
 You can use the method `run` to start a binary using the path to the binary
 ```python
