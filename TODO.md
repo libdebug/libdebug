@@ -5,7 +5,6 @@
 - check if allignement is really needed
 ## Control Flow
 - run until ret
-- finish
 - break point hw
 - watch points
 - catch syscall

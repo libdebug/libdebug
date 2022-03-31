@@ -170,13 +170,18 @@ class Debugger:
         pid = self.pid
         self.detach()
         #correctly identify the binary
-        #if i have the bianry file set it to gdb as well
-        # set up a startup script to continue?
-        # powndbg example startup
+        # pwndbg example startup
         # gdb -q /home/jinblack/guesser/guesser 2312 -x "/tmp/tmp.Zo2Rv6ane"
-        os.execv('/bin/gdb', ['-q', "--pid", "%d" % pid])
+        
+        # Signal is already stopped but gdb send another SIGSTOP `-ex continue` 
+        # will get read of on STOP with a continue
+        os.execv('/bin/gdb', ['-q', "--pid", "%d" % pid, "-ex", "continue"])
 
 
+    ## Utils
+    @staticmethod
+    def _u64(value):
+        return struct.unpack("<Q", value)[0]
 
     ## Registers
 
@@ -367,6 +372,21 @@ class Debugger:
         if blocking:
             self._wait_process()
             self._retore_breakpoints()
+
+    def finish(self):
+        """
+        Execute until the end of the current function.
+        This works only if the program use the rbp register as base address.
+        """
+        # This works only if the binary use the baseptr for the frames
+        if not self._check_mem_address(self.rbp):
+            logging.error("rbp %#x is not a valid frame. Impossible to execute finish", self.rbp)
+            raise DebugFail("Finish Failed. Frame not found")
+        ret_addr = Debugger._u64(self.mem[self.rbp+0x8: self.rbp+0x10])
+        logging.info("finish executing until Return Address found at %#x", ret_addr)
+        self.bp(ret_addr)
+        self.cont()
+        self.del_bp(ret_addr)
 
     def bp(self, addr):
         """
