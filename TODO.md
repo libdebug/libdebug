@@ -8,10 +8,12 @@
 - break point hw
 - watch points
 - catch syscall
+## Signals
+- set mask
+- get mask
 ## MultiThread
 
 ## GDB
-- implement gdb auto remove of STOP
 - Implement go back gdb command
 ## Ideas
 ### Snapshotting

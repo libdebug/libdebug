@@ -9,6 +9,7 @@ pip install git+https://github.com/JinBlack/libdebug
 ## Attach/Detach
 You can use the method `run` to start a binary using the path to the binary
 ```python
+from libdebug import Debugger
 d = Debugger()
 d.run("./test")
 ```
@@ -46,5 +47,20 @@ d.mem[d.rsp:d.rsp+0x10] = b"AAAAAAABC"
 
 ## Control Flow
 `step()` will execute a single instruction `cont()` wil continue the execution.
-`bp(<address>)` to set a breakpoint. `del_bp(<address>)` to remove the break point.
 
+`breakpoint(<address>, [<libname>])` to set a breakpoint. 
+
+`del_bp(<address>)` to remove the break point.
+
+```python
+bp = d.breakpoint(0x1234, "libc")
+d.cont()
+d.del_bp(dp)
+```
+
+## GDB
+Migrate debugging to gdb
+
+```python
+d.gdb()
+```
