@@ -1,7 +1,7 @@
 import unittest
 from libdebug import Debugger
 
-class Debugger_(unittest.TestCase):
+class Debugger_read(unittest.TestCase):
     def setUp(self):
         self.d = Debugger()
         self.d.run("./read_test", sleep=0.1)
@@ -37,6 +37,42 @@ class Debugger_(unittest.TestCase):
         rip = self.d.rip
         value = self.d.bases['main'] + 0x10e2
         self.assertEqual (rip, value)
+
+    def test_step(self):
+        b = self.d.breakpoint(0x10e2)
+        self.d.cont()
+        rip = self.d.rip
+        value = self.d.bases['main'] + 0x10ec
+        self.d.step()
+        rip = self.d.rip
+        self.assertEqual (rip, value)
+
+
+# This is bugged I do not understand yet.
+# class Debugger_write(unittest.TestCase):
+#     def setUp(self):
+#         self.d = Debugger()
+#         self.d.run("./write_test", sleep=0.1, pipeout=True)
+
+#     def tearDown(self):
+#         self.d.stop()
+
+#     def test_write_memory(self):
+#         b = self.d.breakpoint(0x1056)
+#         print("%#x" % self.d.rip)
+#         for i in range(100):
+#             print(i)
+#             self.d.step()
+
+#         strings_addr = self.d.bases['main']  + 0x2ff8 + 0x1041
+#         test_string = b"AAAABBBBCCCCDDDD"
+#         self.d.mem[strings_addr:strings_addr+len(test_string)] = test_string
+#         # self.d.cont(blocking=False)
+#         for i in range(100):
+#             self.d.step()
+#         data = self.d.process.stdout.read()
+#         print("data", data)
+#         self.assertTrue(test_string in data) 
 
 if __name__ == '__main__':
     unittest.main()

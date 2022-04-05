@@ -131,13 +131,16 @@ class Debugger:
             self._stop_process()
 
     ### Attach/Detach
-    def run(self, path, sleep=None):
+    def run(self, path, sleep=None, pipeout=False):
         """
         Run a program from the start using th epat as input
         """
         #TODO implement as a execve that start with a stopped program
         args = [path,]
-        self.process = subprocess.Popen(args)
+        if pipeout:
+            self.process = subprocess.Popen(args, stdout=subprocess.PIPE)
+        else:
+            self.process = subprocess.Popen(args)
         logging.info("new process <%d> %r", self.process.pid, args)
         if sleep is not None:
             time.sleep(sleep)
@@ -185,8 +188,10 @@ class Debugger:
         """
 
         if self.process is not None:
+            self.detach()
             self.process.terminate()
             self.process.kill()
+            os.kill(self.old_pid, signal.SIGKILL)
 
 
     def gdb(self):
@@ -360,9 +365,9 @@ class Debugger:
             for l in f.readlines():
                 m = re.match(l_regx, l)
                 md = m.groupdict()
-                perm = 4 if md['read'] == 'r' else 0 \
+                perm = 4 if md['read']  == 'r' else 0 \
                      + 2 if md['write'] == 'w' else 0 \
-                     + 1 if md['exec'] == 'x' else 0
+                     + 1 if md['exec']  == 'x' else 0
                 start = int(md['start'], 16)
                 stop = int(md['stop'], 16)
                 offset = int(md['offset'], 16)
