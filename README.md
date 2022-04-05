@@ -58,6 +58,15 @@ d.cont()
 d.del_bp(dp)
 ```
 
+### Non Blocking Continue
+`cont` can be nonblocking. In this case the waitpid is avoided. The library will stop the process when there is an operation that require the process to be stopped.
+```python
+for i in range(10):
+    d.cont(blocking=False)
+    time.sleep(0.1)
+    print("rip: %#x" % d.rip)
+```
+
 ## GDB
 Migrate debugging to gdb
 

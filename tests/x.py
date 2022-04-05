@@ -1,4 +1,5 @@
 from libdebug import Debugger
+import time
 
 d = Debugger()
 d.run("./test")
@@ -35,6 +36,12 @@ print("rip: %#x" % d.rip)
 d.step()
 print("rip: %#x" % d.rip)
 
+for i in range(10):
+    d.cont(blocking=False)
+    time.sleep(0.1)
+    print("rip: %#x" % d.rip)
+
+# d.finish()
 # d.gdb()
 
 # input("reattach?")
@@ -47,9 +54,7 @@ print("rip: %#x" % d.rip)
 # d.step()
 # print("rip: %#x" % d.rip)
 
-# d.gdb()
-import IPython
-IPython.embed()
+d.gdb()
 
 d.detach()
 d.stop()

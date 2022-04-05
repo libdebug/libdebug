@@ -32,10 +32,11 @@ class Debugger_(unittest.TestCase):
         self.assertEqual(self.d.mem[self.mem_addr: self.mem_addr+10], b"\xff\xfe\xfd\xfc\xfb\xfa\xf9\xf8\xf7\xf6")
 
     def test_brekpoint_relative(self):
-        self.d.breakpoint(0x10e2)
+        b = self.d.breakpoint(0x10e2)
         self.d.cont()
+        rip = self.d.rip
         value = self.d.bases['main'] + 0x10e2
-        self.assertEqual(self.d.rip, value)
+        self.assertEqual (rip, value)
 
 if __name__ == '__main__':
     unittest.main()

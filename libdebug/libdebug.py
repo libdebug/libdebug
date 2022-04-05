@@ -74,6 +74,8 @@ class Debugger:
         self.pid = None
         self.old_pid = None
         self.process = None
+        #According to ptrace manual we need to keep track od the running state to discern if ESRCH is becouse the process is running or dead
+        self.running = True
         self.libc = CDLL("libc.so.6", use_errno=True)
         self.args_ptr = [c_int, c_long, c_long, c_char_p]
         self.args_int = [c_int, c_long, c_long, c_long]
@@ -95,10 +97,38 @@ class Debugger:
         if pid is not None:
             self.attach(pid)
 
-    def _wait_process(self):
-        self.libc.waitpid(self.pid, NULL, 0)
-        self._retrieve_maps()
+    ## Utils
+    @staticmethod
+    def _u64(value):
+        return struct.unpack("<Q", value)[0]
 
+    @staticmethod
+    def _u32(value):
+        return struct.unpack("<I", value)[0]
+
+    def _sig_stop(self):
+        os.kill(self.pid, signal.SIGSTOP)
+
+    def _wait_process(self):
+        options = 0
+        for i in range(8):
+            self.buf[i] = b"\x00"
+        r = self.libc.waitpid(self.pid, self.buf, options)
+        status = self._u32(self.buf[:4])
+        logging.debug("waitpid status: %#x, ret: %d", status, r)
+        self._retrieve_maps()
+        self.running = False
+
+    def _stop_process(self):
+        logging.debug("Stopping the process")
+        self._sig_stop()
+        self._wait_process()
+        self.running = False
+
+    def _enforce_stop(self):
+        # Can we trust self.running without any check?
+        if self._test_execution() == False:
+            self._stop_process()
 
     ### Attach/Detach
     def run(self, path, sleep=None):
@@ -165,7 +195,7 @@ class Debugger:
         """
 
         #Stop the process so you can continue exactly form where you let in the script
-        os.kill(self.pid, signal.SIGSTOP)
+        self._sig_stop()
         #detach
         pid = self.pid
         self.detach()
@@ -178,10 +208,6 @@ class Debugger:
         os.execv('/bin/gdb', ['-q', "--pid", "%d" % pid, "-ex", "continue"])
 
 
-    ## Utils
-    @staticmethod
-    def _u64(value):
-        return struct.unpack("<Q", value)[0]
 
     ## Registers
 
@@ -197,6 +223,8 @@ class Debugger:
         return property(getter, setter, None, name)
 
     def set_regs(self):
+        self._enforce_stop()
+
         regs_values = []
         for name in self.regs_names:
             regs_values.append(self.regs[name])
@@ -208,10 +236,44 @@ class Debugger:
         if (self.libc.ptrace(PTRACE_SETREGS, self.pid, NULL, bdata) == -1):
             raise DebugFail("SetRegs Failed. Do you have permisio? Running as sudo?")
 
-    def get_regs(self):
+
+    def _test_execution(self):
+
         self.libc.ptrace.argtypes = self.args_ptr
+        set_errno(0)
         if (self.libc.ptrace(PTRACE_GETREGS, self.pid, NULL, self.buf) == -1):
-            raise DebugFail("GetRegs Failed. Do you have permisio? Running as sudo?")
+            err = get_errno()
+            #We use geT_regs as test for the process if it is running we may stoppit before executing something
+            # ether the process is dead or is running
+            if err == errno.ESRCH and self.running:
+                #we should stop the process.
+                return False
+            elif err == errno.ESRCH and not self.running:
+                logging.critical("The proccess is dead!")
+            else:
+                logging.debug("getregs error: %d", err)
+                raise DebugFail("GetRegs Failed. Do you have permisio? Running as sudo?")
+
+        return True
+
+    def get_regs(self):
+        self._enforce_stop()
+
+        self.libc.ptrace.argtypes = self.args_ptr
+        set_errno(0)
+        if (self.libc.ptrace(PTRACE_GETREGS, self.pid, NULL, self.buf) == -1):
+            err = get_errno()
+            #We use geT_regs as test for the process if it is running we may stoppit before executing something
+            # ether the process is dead or is running
+            if err == errno.ESRCH and self.running:
+                #we should stop the process.
+                return None
+            elif err == errno.ESRCH and not self.running:
+                logging.critical("The proccess is dead!")
+            else:
+                logging.debug("getregs error: %d", err)
+                raise DebugFail("GetRegs Failed. Do you have permisio? Running as sudo?")
+
         buf_size = len(self.regs_names) * self.reg_size 
         regs = struct.unpack("<" + "Q"*len(self.regs_names), self.buf[:buf_size])
  
@@ -225,7 +287,7 @@ class Debugger:
 
     def peek(self, addr):
         self._check_mem_address(addr)
-
+        self._enforce_stop()
         # according to man ptrace no difference for PTRACE_PEEKTEXT and PTRACE_PEEKDATA on linux
         set_errno(0)
 
@@ -242,6 +304,7 @@ class Debugger:
     
     def poke(self, addr, value):
         self._check_mem_address(addr)
+        self._enforce_stop()
 
         # according to man ptrace no difference for PTRACE_POKETEXT and PTRACE_POKEDATA on linux
         set_errno(0)
@@ -339,7 +402,8 @@ class Debugger:
         """
         Execute the next instruction (Step Into)
         """
-        
+        self._enforce_stop()
+
         self.libc.ptrace.argtypes = self.args_int
         if (self.libc.ptrace(PTRACE_SINGLESTEP, self.pid, NULL, NULL) == -1):
             raise DebugFail("Step Failed. Do you have permisions? Running as sudo?")
@@ -366,14 +430,16 @@ class Debugger:
         self.step()
         self._set_breakpoints()
         self.libc.ptrace.argtypes = self.args_int
+        self.running = True
         # Probably should implement a timeout
         if (self.libc.ptrace(PTRACE_CONT, self.pid, NULL, NULL) == -1):
             raise DebugFail("Continue Failed. Do you have permisions? Running as sudo?")
         if blocking:
             self._wait_process()
             self._retore_breakpoints()
+            logging.debug("Continue Stopped")
 
-    def finish(self):
+    def finish(self, blocking=True):
         """
         Execute until the end of the current function.
         This works only if the program use the rbp register as base address.
@@ -385,7 +451,7 @@ class Debugger:
         ret_addr = Debugger._u64(self.mem[self.rbp+0x8: self.rbp+0x10])
         logging.info("finish executing until Return Address found at %#x", ret_addr)
         self.bp(ret_addr)
-        self.cont()
+        self.cont(blocking)
         self.del_bp(ret_addr)
 
     def bp(self, addr):
