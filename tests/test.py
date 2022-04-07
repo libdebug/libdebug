@@ -1,6 +1,8 @@
 import unittest
 from libdebug import Debugger
-
+from subprocess import TimeoutExpired
+from pwn import process
+import time
 class Debugger_read(unittest.TestCase):
     def setUp(self):
         self.d = Debugger()
@@ -49,30 +51,30 @@ class Debugger_read(unittest.TestCase):
 
 
 # This is bugged I do not understand yet.
-# class Debugger_write(unittest.TestCase):
-#     def setUp(self):
-#         self.d = Debugger()
-#         self.d.run("./write_test", sleep=0.1, pipeout=True)
+class Debugger_write(unittest.TestCase):
+    def setUp(self):
+        self.d = Debugger()
+        self.p = process("./write_test")
+        self.d.attach(self.p.pid)
 
-#     def tearDown(self):
-#         self.d.stop()
+    def tearDown(self):
+        self.d.stop()
 
-#     def test_write_memory(self):
-#         b = self.d.breakpoint(0x1056)
-#         print("%#x" % self.d.rip)
-#         for i in range(100):
-#             print(i)
-#             self.d.step()
+    def test_write_memory(self):
+        b = self.d.breakpoint(0x1073)
 
-#         strings_addr = self.d.bases['main']  + 0x2ff8 + 0x1041
-#         test_string = b"AAAABBBBCCCCDDDD"
-#         self.d.mem[strings_addr:strings_addr+len(test_string)] = test_string
-#         # self.d.cont(blocking=False)
-#         for i in range(100):
-#             self.d.step()
-#         data = self.d.process.stdout.read()
-#         print("data", data)
-#         self.assertTrue(test_string in data) 
+        strings_addr = self.d.bases['main']  + 0x2004
+        test_string = b"AAAABBBB"
+        self.d.mem[strings_addr:strings_addr+len(test_string)] = test_string
+
+        #print 8 strings
+        for i in range(8):
+            self.d.cont()
+
+        data = self.p.recv(3000)
+
+
+        self.assertTrue(test_string in data) 
 
 if __name__ == '__main__':
     unittest.main()

@@ -15,6 +15,7 @@ logging = logging.getLogger("libdebug")
 class DebugFail(Exception):
     pass
 
+#to deal with libc buffer we need a pty (idea stolen from pwnlib)
 class Memory(collections.abc.MutableSequence):
 
     def __init__(self, getter, setter):
@@ -38,6 +39,7 @@ class Memory(collections.abc.MutableSequence):
             return (self.getword(index) & 0xff).to_bytes(1, 'little')
 
     def _set_data(self, start, value):
+        logging.debug("writing @%#x <- %s", start, value)
         for i in range(start, (start + len(value)), self.word_size):
             chunk = value[(i-start) : (i+self.word_size-start)]
             data = struct.unpack("<Q", chunk)[0]
@@ -50,13 +52,13 @@ class Memory(collections.abc.MutableSequence):
             stop = (index.start + len(value) + self.word_size) // self.word_size * self.word_size
             index = index.start
         else:
-            start = index
+            start = index // self.word_size * self.word_size
             stop = (index + len(value) + self.word_size) // self.word_size * self.word_size
-
         #Maybe all this alligment stuff is useless if I can do writes allinge per byte.
+        logging.debug("mem index:%#x, value: %s, start:%#x, stop:%x", index, value, start, stop)
         orig_data = self._retrive_data(start, stop)
         new_data = orig_data[0:index-start] + value + orig_data[index-start+len(value):]
-        self._set_data(index, new_data)
+        self._set_data(start, new_data)
 
 
     def __len__(self):
@@ -130,17 +132,15 @@ class Debugger:
         if self._test_execution() == False:
             self._stop_process()
 
+
     ### Attach/Detach
-    def run(self, path, sleep=None, pipeout=False):
+    def run(self, path, sleep=None):
         """
         Run a program from the start using th epat as input
         """
         #TODO implement as a execve that start with a stopped program
         args = [path,]
-        if pipeout:
-            self.process = subprocess.Popen(args, stdout=subprocess.PIPE)
-        else:
-            self.process = subprocess.Popen(args)
+        self.process = subprocess.Popen(args)
         logging.info("new process <%d> %r", self.process.pid, args)
         if sleep is not None:
             time.sleep(sleep)
@@ -154,7 +154,9 @@ class Debugger:
         logging.info("attaching to pid %d", pid)      
         self.pid = pid
         self.libc.ptrace.argtypes = self.args_int
-        if (self.libc.ptrace(PTRACE_ATTACH, self.pid, NULL, NULL) == -1):
+        r = self.libc.ptrace(PTRACE_ATTACH, self.pid, NULL, NULL)
+        logging.debug("attached %d", r)
+        if (r == -1):
             raise DebugFail("Attach Failed. Do you have permisions? Running as sudo?")
         self._wait_process()
 
@@ -383,7 +385,7 @@ class Debugger:
 
     def _check_mem_address(self, addr, warn=True):
         for m in self.map:
-            if self.map[m]['start'] < addr < self.map[m]['stop']:
+            if self.map[m]['start'] <= addr < self.map[m]['stop']:
                 return True
         if warn:
             logging.warning("The address %#x is outside any memory reagion", addr)
@@ -408,7 +410,8 @@ class Debugger:
         Execute the next instruction (Step Into)
         """
         self._enforce_stop()
-
+        #Step can stuck running into syscalls
+        self.running = True
         self.libc.ptrace.argtypes = self.args_int
         if (self.libc.ptrace(PTRACE_SINGLESTEP, self.pid, NULL, NULL) == -1):
             raise DebugFail("Step Failed. Do you have permisions? Running as sudo?")

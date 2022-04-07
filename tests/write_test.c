@@ -14,6 +14,7 @@ int main(void){
     while (1){
         puts(strings[i]);
         i = (i+1) % 4;
+        usleep(100);
     }
 
 }
