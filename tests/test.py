@@ -50,6 +50,17 @@ class Debugger_read(unittest.TestCase):
         self.assertEqual (rip, value)
 
 
+
+# This is bugged I do not understand yet.
+class Debugger_write(unittest.TestCase):
+    def setUp(self):
+        self.d = Debugger()
+        self.p = process("./write_test")
+        self.d.attach(self.p.pid)
+
+    def tearDown(self):
+        self.d.stop()
+
     def test_write_register(self):
 
         self.d.rax = 0x1234567890abcdef
@@ -87,16 +98,6 @@ class Debugger_read(unittest.TestCase):
         self.assertEqual(self.d.r14, 0x1234567890abcdef)
         self.assertEqual(self.d.r15, 0x1234567890abcdef)
 
-
-# This is bugged I do not understand yet.
-class Debugger_write(unittest.TestCase):
-    def setUp(self):
-        self.d = Debugger()
-        self.p = process("./write_test")
-        self.d.attach(self.p.pid)
-
-    def tearDown(self):
-        self.d.stop()
 
     def test_write_memory(self):
         b = self.d.breakpoint(0x1073)
