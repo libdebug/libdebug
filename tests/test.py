@@ -50,6 +50,44 @@ class Debugger_read(unittest.TestCase):
         self.assertEqual (rip, value)
 
 
+    def test_write_register(self):
+
+        self.d.rax = 0x1234567890abcdef
+        self.d.rbx = 0x1234567890abcdef
+        self.d.rcx = 0x1234567890abcdef
+        self.d.rdx = 0x1234567890abcdef
+        self.d.rdi = 0x1234567890abcdef
+        self.d.rsi = 0x1234567890abcdef
+        self.d.rsp = 0x1234567890abcdef
+        self.d.rbp = 0x1234567890abcdef
+        self.d.r8  = 0x1234567890abcdef
+        self.d.r9  = 0x1234567890abcdef
+        self.d.r10 = 0x1234567890abcdef
+        self.d.r11 = 0x1234567890abcdef
+        self.d.r12 = 0x1234567890abcdef
+        self.d.r13 = 0x1234567890abcdef
+        self.d.r14 = 0x1234567890abcdef
+        self.d.r15 = 0x1234567890abcdef
+
+
+        self.assertEqual(self.d.rax, 0x1234567890abcdef)
+        self.assertEqual(self.d.rbx, 0x1234567890abcdef)
+        self.assertEqual(self.d.rcx, 0x1234567890abcdef)
+        self.assertEqual(self.d.rdx, 0x1234567890abcdef)
+        self.assertEqual(self.d.rdi, 0x1234567890abcdef)
+        self.assertEqual(self.d.rsi, 0x1234567890abcdef)
+        self.assertEqual(self.d.rsp, 0x1234567890abcdef)
+        self.assertEqual(self.d.rbp, 0x1234567890abcdef)
+        self.assertEqual(self.d.r8 , 0x1234567890abcdef)
+        self.assertEqual(self.d.r9 , 0x1234567890abcdef)
+        self.assertEqual(self.d.r10, 0x1234567890abcdef)
+        self.assertEqual(self.d.r11, 0x1234567890abcdef)
+        self.assertEqual(self.d.r12, 0x1234567890abcdef)
+        self.assertEqual(self.d.r13, 0x1234567890abcdef)
+        self.assertEqual(self.d.r14, 0x1234567890abcdef)
+        self.assertEqual(self.d.r15, 0x1234567890abcdef)
+
+
 # This is bugged I do not understand yet.
 class Debugger_write(unittest.TestCase):
     def setUp(self):

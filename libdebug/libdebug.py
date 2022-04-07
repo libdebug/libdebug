@@ -15,7 +15,6 @@ logging = logging.getLogger("libdebug")
 class DebugFail(Exception):
     pass
 
-#to deal with libc buffer we need a pty (idea stolen from pwnlib)
 class Memory(collections.abc.MutableSequence):
 
     def __init__(self, getter, setter):
@@ -225,6 +224,7 @@ class Debugger:
             self.get_regs()
             return self.regs[name]
         def setter(self, value):
+            self.get_regs()
             self.regs[name] = value
             self.set_regs()
         return property(getter, setter, None, name)
