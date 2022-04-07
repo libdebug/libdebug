@@ -40,3 +40,8 @@ PTRACE_EVENT_EXIT        = 6
 WNOHANG = 1
 
 AMD64_REGS = ["r15", "r14", "r13", "r12", "rbp", "rbx", "r11", "r10", "r9", "r8", "rax", "rcx", "rdx", "rsi", "rdi", "orig_rax", "rip", "cs", "eflags", "rsp", "ss", "fs_base", "gs_base", "ds", "es", "fs", "gs"]
+FPREGS_SHORT = ["cwd", "swd", "ftw", "fop"]
+FPREGS_LONG  = ["rip", "rdp"]
+FPREGS_INT   = ["mxcsr", "mxcr_mask"]
+FPREGS_80    = ["st%d" %i for i in range(8)]
+FPREGS_128   = ["xmm%d" %i for i in range(16)]

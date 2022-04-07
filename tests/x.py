@@ -40,6 +40,12 @@ for i in range(10):
     d.cont(blocking=False)
     time.sleep(0.1)
     print("rip: %#x" % d.rip)
+fpregs = d.get_fpregs()
+for r in fpregs:
+    print("%s: %#x" % (r,fpregs[r]))
+
+import IPython
+IPython.embed()
 
 # d.finish()
 # d.gdb()
@@ -57,4 +63,4 @@ for i in range(10):
 d.gdb()
 
 d.detach()
-d.stop()
+d.shutdown()

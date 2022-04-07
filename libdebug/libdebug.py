@@ -86,6 +86,7 @@ class Debugger:
         self.regs_names = AMD64_REGS
         self.reg_size = 8
         self.regs = {}
+        self.fpregs = {}
         self.mem = Memory(self.peek, self.poke)
         self.breakpoints = {}
         self.map = {}
@@ -94,7 +95,13 @@ class Debugger:
         #create property for registers
         for r in self.regs_names:
             setattr(Debugger, r, self._get_reg(r))
-        
+
+
+        #create property for fpregisters. Avoid Long because conaint rip and we do not want to overload rip
+        for r in FPREGS_SHORT+FPREGS_INT+FPREGS_80+FPREGS_128:
+            setattr(Debugger, r, self._get_fpreg(r))
+
+
         if pid is not None:
             self.attach(pid)
 
@@ -244,25 +251,6 @@ class Debugger:
             raise DebugFail("SetRegs Failed. Do you have permisio? Running as sudo?")
 
 
-    def _test_execution(self):
-
-        self.libc.ptrace.argtypes = self.args_ptr
-        set_errno(0)
-        if (self.libc.ptrace(PTRACE_GETREGS, self.pid, NULL, self.buf) == -1):
-            err = get_errno()
-            #We use geT_regs as test for the process if it is running we may stoppit before executing something
-            # ether the process is dead or is running
-            if err == errno.ESRCH and self.running:
-                #we should stop the process.
-                return False
-            elif err == errno.ESRCH and not self.running:
-                logging.critical("The proccess is dead!")
-            else:
-                logging.debug("getregs error: %d", err)
-                raise DebugFail("GetRegs Failed. Do you have permisio? Running as sudo?")
-
-        return True
-
     def get_regs(self):
         self._enforce_stop()
 
@@ -288,7 +276,126 @@ class Debugger:
             self.regs[name] = value
  
         return self.regs
-    
+
+    def _get_fpreg(self, name):
+        #This is an helping function to generate properties to access fp registers        
+        def getter(self):
+            #reload registers
+            self.get_fpregs()
+            return self.fpregs[name]
+        def setter(self, value):
+            self.get_fpregs()
+            self.fpregs[name] = value
+            self.set_fpregs()
+        return property(getter, setter, None, name)
+   
+
+    def get_fpregs(self):
+        self._enforce_stop()
+
+        self.libc.ptrace.argtypes = self.args_ptr
+        set_errno(0)
+        if (self.libc.ptrace(PTRACE_GETFPREGS, self.pid, NULL, self.buf) == -1):
+            err = get_errno()
+            #We use geT_regs as test for the process if it is running we may stoppit before executing something
+            # ether the process is dead or is running
+            if err == errno.ESRCH and self.running:
+                #we should stop the process.
+                return None
+            elif err == errno.ESRCH and not self.running:
+                logging.critical("The proccess is dead!")
+            else:
+                logging.debug("getregs error: %d", err)
+                raise DebugFail("GetRegs Failed. Do you have permisio? Running as sudo?")
+
+        # FPREGS_SHORT = ["cwd", "swd", "ftw", "fop"]
+        # FPREGS_LONG  = ["rip", "rdp"]
+        # FPREGS_INT   = ["mxcsr", "mxcr_mask"]
+        # FPREGS_64    = ["fp%d" %i for i in range(16)]
+        # FPREGS_128   = ["xmm%d" %i for i in range(16)]
+
+        buf_start = 0
+        # SHORTS
+        buf_size = len(FPREGS_SHORT) * 2
+        regs = struct.unpack("<" + "H"*len(FPREGS_SHORT), self.buf[buf_start:buf_start+buf_size])
+        for name, value in zip(FPREGS_SHORT, regs):
+            self.fpregs[name] = value
+        buf_start += buf_size
+
+        # LONG
+        buf_size = len(FPREGS_LONG) * 8
+        regs = struct.unpack("<" + "Q"*len(FPREGS_LONG), self.buf[buf_start:buf_start+buf_size])
+        for name, value in zip(FPREGS_LONG, regs):
+            self.fpregs[name] = value
+        buf_start += buf_size
+
+        # INT
+        buf_size = len(FPREGS_INT) * 4
+        regs = struct.unpack("<" + "I"*len(FPREGS_INT), self.buf[buf_start:buf_start+buf_size])
+        for name, value in zip(FPREGS_INT, regs):
+            self.fpregs[name] = value
+        buf_start += buf_size
+
+
+        # ST 80bits
+        for r in FPREGS_80:
+            a, b =  struct.unpack("<QQ", self.buf[buf_start:buf_start+16])
+            value = (b << 64) | a
+            self.fpregs[r] = value
+            buf_start += 16
+
+        # XMM 128bits
+        for r in FPREGS_128:
+            a, b =  struct.unpack("<QQ", self.buf[buf_start:buf_start+16])
+            value = (b << 64) | a
+            self.fpregs[r] = value
+            buf_start += 16
+
+        return self.fpregs
+
+
+    def set_fpregs(self):
+        self._enforce_stop()
+
+        data = b""
+        for r in FPREGS_SHORT:
+            data += struct.pack("<H", self.fpregs[r])
+        for r in FPREGS_LONG:
+            data += struct.pack("<Q", self.fpregs[r])
+        for r in FPREGS_INT:
+            data += struct.pack("<I", self.fpregs[r])
+        for r in FPREGS_80:
+            data += struct.pack("<QQ", self.fpregs[r] & 0xffffffffffffffff, self.fpregs[r] >> 64)
+        for r in FPREGS_128:
+            data += struct.pack("<QQ", self.fpregs[r] & 0xffffffffffffffff, self.fpregs[r] >> 64)
+
+        bdata = create_string_buffer(data)
+
+        self.libc.ptrace.argtypes = self.args_ptr
+        if (self.libc.ptrace(PTRACE_SETFPREGS, self.pid, NULL, bdata) == -1):
+            raise DebugFail("SetRegs Failed. Do you have permisio? Running as sudo?")
+
+
+
+
+    def _test_execution(self):
+
+        self.libc.ptrace.argtypes = self.args_ptr
+        set_errno(0)
+        if (self.libc.ptrace(PTRACE_GETREGS, self.pid, NULL, self.buf) == -1):
+            err = get_errno()
+            #We use geT_regs as test for the process if it is running we may stoppit before executing something
+            # ether the process is dead or is running
+            if err == errno.ESRCH and self.running:
+                #we should stop the process.
+                return False
+            elif err == errno.ESRCH and not self.running:
+                logging.critical("The proccess is dead!")
+            else:
+                logging.debug("getregs error: %d", err)
+                raise DebugFail("GetRegs Failed. Do you have permisio? Running as sudo?")
+
+        return True
 
     ## Memory
 

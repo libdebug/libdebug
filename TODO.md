@@ -1,5 +1,5 @@
 ## Registers
-- floating points
+- floating points (get ymm register using PTRACE_GETREGSET)
 - rip read and write with pie support
 ## Memory Access
 - check if allignement is really needed
