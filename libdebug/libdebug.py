@@ -128,7 +128,7 @@ class Debugger:
 
     def _enforce_stop(self):
         # Can we trust self.running without any check?
-        if self._test_execution() == False:
+        if self.running and self._test_execution() == False:
             self._stop_process()
 
 
@@ -183,7 +183,7 @@ class Debugger:
         self.pid = None
 
 
-    def stop(self):
+    def shutdown(self):
         """
         This sto the execution of the process executed with `run`
         """

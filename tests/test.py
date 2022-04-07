@@ -10,7 +10,7 @@ class Debugger_read(unittest.TestCase):
         self.mem_addr = 0x1aabbcc1000
 
     def tearDown(self):
-        self.d.stop()
+        self.d.shutdown()
 
     def test_read_register(self):
         self.assertEqual(self.d.rax, 0x0011223344556677)
@@ -59,7 +59,8 @@ class Debugger_write(unittest.TestCase):
         self.d.attach(self.p.pid)
 
     def tearDown(self):
-        self.d.stop()
+        self.d.shutdown()
+        self.p.close()
 
     def test_write_register(self):
 
