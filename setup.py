@@ -2,8 +2,11 @@ import setuptools
 
 setuptools.setup(
     name="libdebug",
-    version="0.2",
+    version="0.3",
     author="JinBlack",
     description="A library to debug binary programs",
-    packages=["libdebug"]
+    packages=["libdebug"],
+    install_requires=[
+        'capstone',
+    ]
 )

@@ -9,6 +9,7 @@ import signal
 import time
 import logging
 import re
+from capstone import Cs, CS_ARCH_X86, CS_MODE_64
 
 logging = logging.getLogger("libdebug")
 
@@ -140,6 +141,17 @@ class Debugger:
         if self.running and self._test_execution() == False:
             self._stop_process()
 
+
+    def _is_next_instr_call(self):
+        rip = self.rip
+        #fetch 6 bytes. 5 should be enough
+        code = self.mem[rip: rip+6]
+        #maybe we should check if it is 32 or 64 mode
+        md = Cs(CS_ARCH_X86, CS_MODE_64)
+        (address, size, mnemonic, op_str) = next(md.disasm_lite(code, 0x1000))
+        if mnemonic == "call":
+            return True
+        return False
 
     ### Attach/Detach
     def run(self, path, sleep=None):
@@ -539,6 +551,20 @@ class Debugger:
             raise DebugFail("Step Failed. Do you have permisions? Running as sudo?")
         self._wait_process()
 
+    def next(self):
+        self._enforce_stop()
+        if not self._is_next_instr_call():
+            return self.step()
+        self.step()
+        #if 32 bits this do not works
+        saved_rip = self._u64(self.mem[self.rsp:self.rsp+self.reg_size])
+        logging.debug("next on a call instruction, executing until %#x", saved_rip)
+        #should we have a separate set of breakpoints?
+        bp = self.breakpoint(saved_rip)
+        self.cont()
+        #this will couse the remove of an old break point placed in that part
+        self.del_bp(bp)
+        # input("next real done")
 
     def step_until(self, rip):
         """

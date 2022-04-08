@@ -31,18 +31,24 @@ print("rip: %#x" % d.rip)
 #     d.gdb()
 # d.del_bp(r)
 
-d.step()
-print("rip: %#x" % d.rip)
-d.step()
-print("rip: %#x" % d.rip)
+# d.step()
+# print("rip: %#x" % d.rip)
+# d.step()
+# print("rip: %#x" % d.rip)
 
+# for i in range(10):
+#     d.cont(blocking=False)
+#     time.sleep(0.1)
+#     print("rip: %#x" % d.rip)
+# fpregs = d.get_fpregs()
+# for r in fpregs:
+#     print("%s: %#x" % (r,fpregs[r]))
+
+bp = d.breakpoint(0x1074)
+d.cont()
 for i in range(10):
-    d.cont(blocking=False)
-    time.sleep(0.1)
-    print("rip: %#x" % d.rip)
-fpregs = d.get_fpregs()
-for r in fpregs:
-    print("%s: %#x" % (r,fpregs[r]))
+    d.next()
+    print("next rip: %#x" % d.rip)
 
 
 # d.finish()
