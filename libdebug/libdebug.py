@@ -91,6 +91,7 @@ class Debugger:
         self.breakpoints = {}
         self.map = {}
         self.bases = {}
+        self.terminal = ['tmux', 'splitw', '-h']
 
         #create property for registers
         for r in self.regs_names:
@@ -117,11 +118,12 @@ class Debugger:
     def _sig_stop(self):
         os.kill(self.pid, signal.SIGSTOP)
 
-    def _wait_process(self):
+    def _wait_process(self, pid=None):
+        pid = self.pid if pid is None else pid
         options = 0
         for i in range(8):
             self.buf[i] = b"\x00"
-        r = self.libc.waitpid(self.pid, self.buf, options)
+        r = self.libc.waitpid(pid, self.buf, options)
         status = self._u32(self.buf[:4])
         logging.debug("waitpid status: %#x, ret: %d", status, r)
         self._retrieve_maps()
@@ -174,8 +176,13 @@ class Debugger:
         logging.debug("RE-attaching to pid %d", self.old_pid)             
         if self.old_pid is None:
             raise DebugFail("ReAttach Failed. You never attached before! Use attach or run first. and detach")
-        self.attach(self.old_pid)
-
+        while True:
+            try:
+                self.attach(self.old_pid)
+                return
+            except:
+                logging.debug("Failed to attach")
+                time.sleep(0.5)
 
     def detach(self):
         """
@@ -202,7 +209,7 @@ class Debugger:
             os.kill(self.old_pid, signal.SIGKILL)
 
 
-    def gdb(self):
+    def gdb(self, spawn=False):
         """
         Migrate the dubugging to gdb
         """
@@ -218,7 +225,15 @@ class Debugger:
         
         # Signal is already stopped but gdb send another SIGSTOP `-ex continue` 
         # will get read of on STOP with a continue
-        os.execv('/bin/gdb', ['-q', "--pid", "%d" % pid, "-ex", "continue"])
+        bin = '/bin/gdb'
+        args = ['-q', "--pid", "%d" % pid, "-ex", "continue"]
+        if spawn:
+            cmd_arr =  self.terminal + ["sudo", bin] + args
+            cmd = " ".join(cmd_arr)
+            logging.debug("system %s", cmd)
+            os.system(cmd)
+        else:
+            os.execv(bin, args)
 
 
 

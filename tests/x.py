@@ -44,8 +44,6 @@ fpregs = d.get_fpregs()
 for r in fpregs:
     print("%s: %#x" % (r,fpregs[r]))
 
-import IPython
-IPython.embed()
 
 # d.finish()
 # d.gdb()
@@ -60,7 +58,14 @@ IPython.embed()
 # d.step()
 # print("rip: %#x" % d.rip)
 
-d.gdb()
+d.gdb(spawn=True)
+input("finish_with_gdb?")
+d.reattach()
+print("rip: %#x" % d.rip)
+
+import IPython
+IPython.embed()
+
 
 d.detach()
 d.shutdown()
