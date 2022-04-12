@@ -154,18 +154,27 @@ class Debugger:
         return False
 
     ### Attach/Detach
-    def run(self, path, sleep=None):
-        """
-        Run a program from the start using th epat as input
-        """
-        #TODO implement as a execve that start with a stopped program
-        args = [path,]
-        self.process = subprocess.Popen(args)
-        logging.info("new process <%d> %r", self.process.pid, args)
+    def run(self, path, args=[], sleep=None):
+        # Gdb does tons of configuration when setting up a new process start
+        # For now this is a simple as I can write it
+        pid = os.fork()
+        if pid == 0:
+            #child process
+            # PTRACE ME
+            self.libc.ptrace.argtypes = self.args_int
+            r = self.libc.ptrace(PTRACE_TRACEME, NULL, NULL, NULL)
+            # logging.debug("attached %d", r)
+            args = [path,] + args
+            os.execv(path, args)
+            raise DebugFail("Exec of new process failed")
+        self.pid = pid
+        logging.info("new process <%d> %r", self.pid, args)
+        logging.debug("waiting for child process %d", self.pid)
+        self._wait_process()
         if sleep is not None:
+            self.cont(blocking=False)
             time.sleep(sleep)
-        self.attach(self.process.pid)
-
+            self._sig_stop()
 
     def attach(self, pid):
         """
@@ -216,8 +225,8 @@ class Debugger:
 
         if self.process is not None:
             self.detach()
-            self.process.terminate()
-            self.process.kill()
+            # self.process.terminate()
+            # self.process.kill()
             os.kill(self.old_pid, signal.SIGKILL)
 
 
