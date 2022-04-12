@@ -112,9 +112,29 @@ class Debugger_write(unittest.TestCase):
             self.d.cont()
 
         data = self.p.recv(3000)
-
-
         self.assertTrue(test_string in data) 
+
+
+class Debugger_cf(unittest.TestCase):
+    def setUp(self):
+        self.d = Debugger()
+        self.binary = "./read_test"
+
+    def tearDown(self):
+        self.d.shutdown()
+
+
+    def test_start_in_ld(self):
+        self.d.run(self.binary)
+        ip = self.d.rip
+        for m in self.d.map:
+            if "ld-linux-x86-64.so" in self.d.map[m]['file']:
+                if self.d.map[m]['start'] <= ip <= self.d.map[m]['stop']:
+                    self.assertTrue(True)
+                    return
+        #rip was not in ld.so
+        self.assertTrue(False)
+
 
 if __name__ == '__main__':
     unittest.main()
