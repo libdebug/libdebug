@@ -244,10 +244,10 @@ class Debugger:
         # pwndbg example startup
         # gdb -q /home/jinblack/guesser/guesser 2312 -x "/tmp/tmp.Zo2Rv6ane"
         
-        # Signal is already stopped but gdb send another SIGSTOP `-ex continue` 
+        # Signal is already stopped but gdb send another SIGSTOP `-ex signal SIGCONT` 
         # will get read of on STOP with a continue
         bin = '/bin/gdb'
-        args = ['-q', "--pid", "%d" % pid, "-ex", "continue"]
+        args = ['-q', "--pid", "%d" % pid, "-ex", "signal SIGCONT"]
         if spawn:
             cmd_arr =  self.terminal + ["sudo", bin] + args
             cmd = " ".join(cmd_arr)

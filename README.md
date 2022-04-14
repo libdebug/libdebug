@@ -46,7 +46,16 @@ d.mem[d.rsp:d.rsp+0x10] = b"AAAAAAABC"
 ```
 
 ## Control Flow
-`step()` will execute a single instruction `cont()` wil continue the execution.
+`step()` will execute a single instruction stepping into function calls
+
+`step_until(<addr>)` keep executing `step()` untill `rip == <addr>` .
+
+`cont()` will continue the execution.
+
+`next()` will execute a single instruction but wil step over the function calls. Indeed, this is implemented checking id the next instruction is a `call` instruction and setting a beakpoints on the return address of the called function.
+
+`finish()` will continue the execution until the return from the current function. (The return is computed retriving the return address from `rbp+8`)
+
 
 `breakpoint(<address>, [<libname>])` to set a breakpoint. 
 
@@ -73,3 +82,14 @@ Migrate debugging to gdb
 ```python
 d.gdb()
 ```
+
+with default option gdb is executed using `execve`. This means that the python script does not exists anymore after the spawn of gdb.
+
+It is possible to spwn gdb in a differen shell keeping the script alive:
+```python
+d.gdb(spawn=True)
+```
+`spawn=True` option will execute gdb without eliminating the current process. In this case the library will use the content of `d.terminal` to spawn a new terminal emulator to handle the new gdb process. The default option fo `d.terminal` is `['tmux', 'splitw', '-h']`. This option will create a vertical separation in a `tmux` shell.
+
+
+
