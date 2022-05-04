@@ -70,193 +70,28 @@ class Memory(collections.abc.MutableSequence):
     def insert(self, index, value):
         self.__setitem__(self, index, value)
 
-class Debugger:
-
-    def __init__(self, pid=None):
-        self.pid = None
-        self.old_pid = None
-        self.process = None
-        #According to ptrace manual we need to keep track od the running state to discern if ESRCH is becouse the process is running or dead
-        self.running = True
+class ThreadDebug():
+    def __init__(self, tid=None):
+        self.tid = tid
+        self.regs = {}
+        self.fpregs = {}
+        self.regs_names = AMD64_REGS
+        self.reg_size = 8
         self.libc = CDLL("libc.so.6", use_errno=True)
         self.args_ptr = [c_int, c_long, c_long, c_char_p]
         self.args_int = [c_int, c_long, c_long, c_long]
         self.libc.ptrace.argtypes = self.args_ptr
         self.libc.ptrace.restype = c_long
         self.buf = create_string_buffer(1000)
-        self.regs_names = AMD64_REGS
-        self.reg_size = 8
-        self.regs = {}
-        self.fpregs = {}
-        self.mem = Memory(self.peek, self.poke)
-        self.breakpoints = {}
-        self.map = {}
-        self.bases = {}
-        self.terminal = ['tmux', 'splitw', '-h']
+        self.running = True
 
         #create property for registers
         for r in self.regs_names:
-            setattr(Debugger, r, self._get_reg(r))
-
+            setattr(ThreadDebug, r, self._get_reg(r))
 
         #create property for fpregisters. Avoid Long because conaint rip and we do not want to overload rip
         for r in FPREGS_SHORT+FPREGS_INT+FPREGS_80+FPREGS_128:
-            setattr(Debugger, r, self._get_fpreg(r))
-
-
-        if pid is not None:
-            self.attach(pid)
-
-    ## Utils
-    @staticmethod
-    def _u64(value):
-        return struct.unpack("<Q", value)[0]
-
-    @staticmethod
-    def _u32(value):
-        return struct.unpack("<I", value)[0]
-
-    def _sig_stop(self):
-        os.kill(self.pid, signal.SIGSTOP)
-
-    def _wait_process(self, pid=None):
-        pid = self.pid if pid is None else pid
-        options = 0
-        for i in range(8):
-            self.buf[i] = b"\x00"
-        r = self.libc.waitpid(pid, self.buf, options)
-        status = self._u32(self.buf[:4])
-        logging.debug("waitpid status: %#x, ret: %d", status, r)
-        self._retrieve_maps()
-        self.running = False
-
-    def _stop_process(self):
-        logging.debug("Stopping the process")
-        self._sig_stop()
-        self._wait_process()
-        self.running = False
-
-    def _enforce_stop(self):
-        # Can we trust self.running without any check?
-        if self.running and self._test_execution() == False:
-            self._stop_process()
-
-
-    def _is_next_instr_call(self):
-        rip = self.rip
-        #fetch 6 bytes. 5 should be enough
-        code = self.mem[rip: rip+6]
-        #maybe we should check if it is 32 or 64 mode
-        md = Cs(CS_ARCH_X86, CS_MODE_64)
-        (address, size, mnemonic, op_str) = next(md.disasm_lite(code, 0x1000))
-        if mnemonic == "call":
-            return True
-        return False
-
-    ### Attach/Detach
-    def run(self, path, args=[], sleep=None):
-        # Gdb does tons of configuration when setting up a new process start
-        # For now this is a simple as I can write it
-        pid = os.fork()
-        if pid == 0:
-            #child process
-            # PTRACE ME
-            self.libc.ptrace.argtypes = self.args_int
-            r = self.libc.ptrace(PTRACE_TRACEME, NULL, NULL, NULL)
-            # logging.debug("attached %d", r)
-            args = [path,] + args
-            os.execv(path, args)
-            raise DebugFail("Exec of new process failed")
-        self.pid = pid
-        logging.info("new process <%d> %r", self.pid, args)
-        logging.debug("waiting for child process %d", self.pid)
-        self._wait_process()
-        if sleep is not None:
-            self.cont(blocking=False)
-            time.sleep(sleep)
-            self._sig_stop()
-
-    def attach(self, pid):
-        """
-        Attach to a process using the pid
-        """
-        logging.info("attaching to pid %d", pid)      
-        self.pid = pid
-        self.libc.ptrace.argtypes = self.args_int
-        r = self.libc.ptrace(PTRACE_ATTACH, self.pid, NULL, NULL)
-        logging.debug("attached %d", r)
-        if (r == -1):
-            raise DebugFail("Attach Failed. Do you have permisions? Running as sudo?")
-        self._wait_process()
-
-    def reattach(self):
-        """
-        Reattach to the last process. This works only after detach.
-        """
-
-        logging.debug("RE-attaching to pid %d", self.old_pid)             
-        if self.old_pid is None:
-            raise DebugFail("ReAttach Failed. You never attached before! Use attach or run first. and detach")
-        while True:
-            try:
-                self.attach(self.old_pid)
-                return
-            except:
-                logging.debug("Failed to attach")
-                time.sleep(0.5)
-
-    def detach(self):
-        """
-        Detach the current process
-        """
-
-        logging.info("Detach pid %d", self.pid)      
-        self.libc.ptrace.argtypes = self.args_int
-        if (self.libc.ptrace(PTRACE_DETACH, self.pid, NULL, NULL) == -1):
-            raise DebugFail("Detach Failed. Do you have permisio? Running as sudo?")
-        self.old_pid = self.pid
-        self.pid = None
-
-
-    def shutdown(self):
-        """
-        This sto the execution of the process executed with `run`
-        """
-
-        if self.process is not None:
-            self.detach()
-            # self.process.terminate()
-            # self.process.kill()
-            os.kill(self.old_pid, signal.SIGKILL)
-
-
-    def gdb(self, spawn=False):
-        """
-        Migrate the dubugging to gdb
-        """
-
-        #Stop the process so you can continue exactly form where you let in the script
-        self._sig_stop()
-        #detach
-        pid = self.pid
-        self.detach()
-        #correctly identify the binary
-        # pwndbg example startup
-        # gdb -q /home/jinblack/guesser/guesser 2312 -x "/tmp/tmp.Zo2Rv6ane"
-        
-        # Signal is already stopped but gdb send another SIGSTOP `-ex signal SIGCONT` 
-        # will get read of on STOP with a continue
-        bin = '/bin/gdb'
-        args = ['-q', "--pid", "%d" % pid, "-ex", "signal SIGCONT"]
-        if spawn:
-            cmd_arr =  self.terminal + ["sudo", bin] + args
-            cmd = " ".join(cmd_arr)
-            logging.debug("system %s", cmd)
-            os.system(cmd)
-        else:
-            os.execv(bin, args)
-
-
+            setattr(ThreadDebug, r, self._get_fpreg(r))
 
     ## Registers
 
@@ -283,7 +118,7 @@ class Debugger:
         bdata = create_string_buffer(data)
 
         self.libc.ptrace.argtypes = self.args_ptr
-        if (self.libc.ptrace(PTRACE_SETREGS, self.pid, NULL, bdata) == -1):
+        if (self.libc.ptrace(PTRACE_SETREGS, self.tid, NULL, bdata) == -1):
             raise DebugFail("SetRegs Failed. Do you have permisio? Running as sudo?")
 
 
@@ -292,7 +127,7 @@ class Debugger:
 
         self.libc.ptrace.argtypes = self.args_ptr
         set_errno(0)
-        if (self.libc.ptrace(PTRACE_GETREGS, self.pid, NULL, self.buf) == -1):
+        if (self.libc.ptrace(PTRACE_GETREGS, self.tid, NULL, self.buf) == -1):
             err = get_errno()
             #We use geT_regs as test for the process if it is running we may stoppit before executing something
             # ether the process is dead or is running
@@ -300,17 +135,17 @@ class Debugger:
                 #we should stop the process.
                 return None
             elif err == errno.ESRCH and not self.running:
-                logging.critical("The proccess is dead!")
+                logging.critical("The proccess %d is dead!", self.tid)
             else:
                 logging.debug("getregs error: %d", err)
                 raise DebugFail("GetRegs Failed. Do you have permisio? Running as sudo?")
 
         buf_size = len(self.regs_names) * self.reg_size 
         regs = struct.unpack("<" + "Q"*len(self.regs_names), self.buf[:buf_size])
- 
+
         for name, value in zip(self.regs_names, regs):
             self.regs[name] = value
- 
+        logging.debug("TID[%d] %#x", self.tid, self.regs['rax'])
         return self.regs
 
     def _get_fpreg(self, name):
@@ -412,13 +247,11 @@ class Debugger:
             raise DebugFail("SetRegs Failed. Do you have permisio? Running as sudo?")
 
 
-
-
     def _test_execution(self):
 
         self.libc.ptrace.argtypes = self.args_ptr
         set_errno(0)
-        if (self.libc.ptrace(PTRACE_GETREGS, self.pid, NULL, self.buf) == -1):
+        if (self.libc.ptrace(PTRACE_GETREGS, self.tid, NULL, self.buf) == -1):
             err = get_errno()
             #We use geT_regs as test for the process if it is running we may stoppit before executing something
             # ether the process is dead or is running
@@ -426,12 +259,298 @@ class Debugger:
                 #we should stop the process.
                 return False
             elif err == errno.ESRCH and not self.running:
-                logging.critical("The proccess is dead!")
+                logging.critical("[TID %d] The proccess is dead!", self.tid)
             else:
                 logging.debug("getregs error: %d", err)
                 raise DebugFail("GetRegs Failed. Do you have permisio? Running as sudo?")
 
         return True
+
+    @staticmethod
+    def _u64(value):
+        return struct.unpack("<Q", value)[0]
+
+    @staticmethod
+    def _u32(value):
+        return struct.unpack("<I", value)[0]
+
+
+    def _sig_stop(self):
+        os.kill(self.tid, signal.SIGSTOP)
+
+
+    def _wait_process(self):
+        pid = self.tid
+        options = 0x40000000
+        for i in range(8):
+            self.buf[i] = b"\x00"
+        r = self.libc.waitpid(pid, self.buf, options)
+        status = self._u32(self.buf[:4])
+        logging.debug("[TID %d] waitpid status: %#x, ret: %d", self.tid, status, r)
+        self.running = False
+
+    def _stop_process(self):
+        logging.debug("[TID %d] Stopping the process", self.tid)
+        self._sig_stop(self.pid)
+        self._wait_process()
+        self.running = False
+
+    def _enforce_stop(self):
+        # Can we trust self.running without any check?
+        if self.running and self._test_execution() == False:
+            #this should be a PTRACE_INTERRUPT
+            self._stop_process()
+
+
+    def step(self):
+        """
+        Execute the next instruction (Step Into)
+        """
+        #Step can stuck running into syscalls
+        self.running = True
+        self.libc.ptrace.argtypes = self.args_int
+        if (self.libc.ptrace(PTRACE_SINGLESTEP, self.tid, NULL, NULL) == -1):
+            raise DebugFail("Step Failed. Do you have permisions? Running as sudo?")
+
+    def cont(self):
+        """
+        Continue the execution until the next breakpoint is hitted or the program is stopped
+        """
+
+        #I need to execute at least another instruction otherwise I get always in the same bp
+        self.libc.ptrace.argtypes = self.args_int
+        self.running = True
+        # Probably should implement a timeout
+        if (self.libc.ptrace(PTRACE_CONT, self.tid, NULL, NULL) == -1):
+            raise DebugFail("[%d] Continue Failed. Do you have permisions? Running as sudo?" % self.tid)
+
+
+class Debugger:
+
+    def __init__(self, pid=None):
+        self.pid = None
+        self.threads = {}
+        self.cur_tid = None
+        self.old_pid = None
+        self.process = None
+        #According to ptrace manual we need to keep track od the running state to discern if ESRCH is becouse the process is running or dead
+        self.running = True
+        self.libc = CDLL("libc.so.6", use_errno=True)
+        self.args_ptr = [c_int, c_long, c_long, c_char_p]
+        self.args_int = [c_int, c_long, c_long, c_long]
+        self.libc.ptrace.argtypes = self.args_ptr
+        self.libc.ptrace.restype = c_long
+        self.buf = create_string_buffer(1000)
+        self.regs_names = AMD64_REGS
+        self.reg_size = 8
+        self.mem = Memory(self.peek, self.poke)
+        self.breakpoints = {}
+        self.map = {}
+        self.bases = {}
+        self.terminal = ['tmux', 'splitw', '-h']
+
+        #create property for registers
+        for r in AMD64_REGS+FPREGS_SHORT+FPREGS_INT+FPREGS_80+FPREGS_128:
+            setattr(Debugger, r, self._get_reg(r))
+
+        if pid is not None:
+            self.attach(pid)
+
+
+    def _get_reg(self, name):
+        #This is an helping function to generate properties to access registers        
+        def getter(self):
+            #reload registers
+            r = self.threads[self.cur_tid].get_regs()
+            return r[name]
+        def setter(self, value):
+            self.threads[self.cur_tid].get_regs()
+            self.threads[self.cur_tid].regs[name] = value
+            self.threads[self.cur_tid].set_regs()
+        return property(getter, setter, None, name)
+
+    ## Utils
+    @staticmethod
+    def _u64(value):
+        return struct.unpack("<Q", value)[0]
+
+    @staticmethod
+    def _u32(value):
+        return struct.unpack("<I", value)[0]
+
+    def _sig_stop(self, pid):
+        os.kill(pid, signal.SIGSTOP)
+
+    def _find_new_tids(self):
+        #identify threads for the current process
+        path = "/proc/%d/task/" % self.pid
+        tids = list(map(int, os.listdir(path)))
+        logging.debug("tids: %r", tids)
+        for t in tids:
+            if t not in self.threads:
+                logging.debug("New Thread %d", t)
+                self.threads = ThreadDebug(t)
+                # self._sig_stop(t)
+                # self.attach(t)
+
+    def _wait_process(self, pid=None):
+        pid = self.pid if pid is None else pid
+        options = 0x40000000
+        for i in range(8):
+            self.buf[i] = b"\x00"
+        r = self.libc.waitpid(pid, self.buf, options)
+        status = self._u32(self.buf[:4])
+        logging.debug("waitpid status: %#x, ret: %d", status, r)
+        self._retrieve_maps()
+        self._find_new_tids()
+        self.running = False
+
+    def _stop_process(self):
+        logging.debug("Stopping the process")
+        self._sig_stop(self.pid)
+        self._wait_process()
+        self.running = False
+
+    def _enforce_stop(self):
+        # Can we trust self.running without any check?
+        for tid, t in self.threads.items():
+            t._enforce_stop()
+
+
+    def _is_next_instr_call(self):
+        rip = self.rip
+        #fetch 6 bytes. 5 should be enough
+        code = self.mem[rip: rip+6]
+        #maybe we should check if it is 32 or 64 mode
+        md = Cs(CS_ARCH_X86, CS_MODE_64)
+        (address, size, mnemonic, op_str) = next(md.disasm_lite(code, 0x1000))
+        if mnemonic == "call":
+            return True
+        return False
+
+    def _option_setup(self):
+        #PTRACE_O_TRACEFORK, PTRACE_O_TRACEVFORK, PTRACE_O_TRACECLONE and PTRACE_O_TRACEEXIT
+        self.libc.ptrace.argtypes = self.args_int
+        r = self.libc.ptrace(PTRACE_SETOPTIONS, self.pid, NULL, PTRACE_O_TRACEFORK | PTRACE_O_TRACEVFORK | PTRACE_O_TRACECLONE | PTRACE_O_TRACEEXIT)
+        if (r == -1):
+            raise DebugFail("Option Setup Failed. Do you have permisions? Running as sudo?")
+
+    ### Attach/Detach
+    def run(self, path, args=[], sleep=None):
+        # Gdb does tons of configuration when setting up a new process start
+        # For now this is a simple as I can write it
+        pid = os.fork()
+        if pid == 0:
+            #child process
+            # PTRACE ME
+            self.libc.ptrace.argtypes = self.args_int
+            r = self.libc.ptrace(PTRACE_TRACEME, NULL, NULL, NULL)
+            # logging.debug("attached %d", r)
+            args = [path,] + args
+            os.execv(path, args)
+            raise DebugFail("Exec of new process failed")
+        self.pid = pid
+        self.cur_tid = pid
+        t = ThreadDebug(pid)
+        self.threads[pid] = t
+        logging.info("new process <%d> %r", self.pid, args)
+        logging.debug("waiting for child process %d", self.pid)
+        self._wait_process()
+        self._option_setup()
+        if sleep is not None:
+            self.cont(blocking=False)
+            time.sleep(sleep)
+            self._sig_stop(self.pid)
+
+    def attach(self, pid):
+        """
+        Attach to a process using the pid
+        """
+        logging.info("attaching to pid %d", pid)      
+        self.pid = pid
+        self.cur_tid = pid
+        self.libc.ptrace.argtypes = self.args_int
+        set_errno(0)
+        r = self.libc.ptrace(PTRACE_ATTACH, pid, NULL, NULL)
+        logging.debug("attached %d", r)
+        if (r == -1):
+            err = get_errno()
+            raise DebugFail("Attach Failed. Err:%d Do you have permisions? Running as sudo?" % err)
+        t = ThreadDebug(pid)
+        self.threads[pid] = t
+        self._wait_process()
+        self._option_setup()
+
+    def reattach(self):
+        """
+        Reattach to the last process. This works only after detach.
+        """
+
+        logging.debug("RE-attaching to pid %d", self.old_pid)             
+        if self.old_pid is None:
+            raise DebugFail("ReAttach Failed. You never attached before! Use attach or run first. and detach")
+        while True:
+            try:
+                self.attach(self.old_pid)
+                self._option_setup()
+                return
+            except:
+                logging.debug("Failed to attach")
+                time.sleep(0.5)
+
+    def detach(self):
+        """
+        Detach the current process
+        """
+
+        logging.info("Detach pid %d", self.pid)      
+        self.libc.ptrace.argtypes = self.args_int
+        if (self.libc.ptrace(PTRACE_DETACH, self.pid, NULL, NULL) == -1):
+            raise DebugFail("Detach Failed. Do you have permisio? Running as sudo?")
+        self.old_pid = self.pid
+        self.pid = None
+
+
+    def shutdown(self):
+        """
+        This sto the execution of the process executed with `run`
+        """
+
+        if self.process is not None:
+            self.detach()
+            # self.process.terminate()
+            # self.process.kill()
+            os.kill(self.old_pid, signal.SIGKILL)
+
+
+    def gdb(self, spawn=False):
+        """
+        Migrate the dubugging to gdb
+        """
+
+        #Stop the process so you can continue exactly form where you let in the script
+        self._sig_stop(self.pid)
+        #detach
+        pid = self.pid
+        self.detach()
+        #correctly identify the binary
+        # pwndbg example startup
+        # gdb -q /home/jinblack/guesser/guesser 2312 -x "/tmp/tmp.Zo2Rv6ane"
+        
+        # Signal is already stopped but gdb send another SIGSTOP `-ex signal SIGCONT` 
+        # will get read of on STOP with a continue
+        bin = '/bin/gdb'
+        args = ['-q', "--pid", "%d" % pid, "-ex", "signal SIGCONT"]
+        if spawn:
+            cmd_arr =  self.terminal + ["sudo", bin] + args
+            cmd = " ".join(cmd_arr)
+            logging.debug("system %s", cmd)
+            os.system(cmd)
+        else:
+            os.execv(bin, args)
+
+
+
 
     ## Memory
 
@@ -553,11 +672,8 @@ class Debugger:
         Execute the next instruction (Step Into)
         """
         self._enforce_stop()
-        #Step can stuck running into syscalls
-        self.running = True
-        self.libc.ptrace.argtypes = self.args_int
-        if (self.libc.ptrace(PTRACE_SINGLESTEP, self.pid, NULL, NULL) == -1):
-            raise DebugFail("Step Failed. Do you have permisions? Running as sudo?")
+        for tid, t in self.threads.items():
+            t.step()
         self._wait_process()
 
     def next(self):
@@ -594,11 +710,10 @@ class Debugger:
         #I need to execute at least another instruction otherwise I get always in the same bp
         self.step()
         self._set_breakpoints()
-        self.libc.ptrace.argtypes = self.args_int
         self.running = True
         # Probably should implement a timeout
-        if (self.libc.ptrace(PTRACE_CONT, self.pid, NULL, NULL) == -1):
-            raise DebugFail("Continue Failed. Do you have permisions? Running as sudo?")
+        for tid, t in self.threads.items():
+            t.cont()
         if blocking:
             self._wait_process()
             self._retore_breakpoints()
@@ -656,3 +771,34 @@ class Debugger:
         if addr in self.breakpoints:
             logging.info("delete BreakPoint at %#x", addr)
             del self.breakpoints[addr]
+
+    ## THREADS
+    # https://stackoverflow.com/questions/7290018/ptrace-and-threads
+    # https://stackoverflow.com/questions/18577956/how-to-use-ptrace-to-get-a-consistent-view-of-multiple-threads
+    def _get_thread_area(self, tid):
+        
+        self._enforce_stop()
+
+        self.libc.ptrace.argtypes = self.args_ptr
+
+        #clean buffer. Probably there is a better way.
+        for x in range(100):
+             self.buf[x] = b"\x00"
+
+        set_errno(0)
+        if (self.libc.ptrace(PTRACE_GET_THREAD_AREA, self.pid, tid, self.buf) == -1):
+            for x in range(100):
+                print(self.buf[x])
+            err = get_errno()
+            #We use geT_regs as test for the process if it is running we may stoppit before executing something
+            # ether the process is dead or is running
+            if err == errno.ESRCH and self.running:
+                #we should stop the process.
+                return None
+            elif err == errno.ESRCH and not self.running:
+                logging.critical("The proccess is dead!")
+            else:
+                logging.debug("getregs error: %d", err)
+                raise DebugFail("GetThreadArea Failed. is tid correct?")
+        print(self.buf)
+        return self.buf
