@@ -291,7 +291,7 @@ class ThreadDebug():
 
     def _stop_process(self):
         logging.debug("[TID %d] Stopping the process", self.tid)
-        self._sig_stop(self.tid)
+        self._sig_stop()
         self._wait_process()
         self.running = False
 
