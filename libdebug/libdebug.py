@@ -1,4 +1,3 @@
-from ctypes import CDLL, create_string_buffer, POINTER, c_void_p, c_int, c_long, c_char_p, get_errno, set_errno
 from .ptrace import *
 import struct
 import subprocess
@@ -10,6 +9,7 @@ import time
 import logging
 import re
 from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+from .utils import u64, u32
 
 logging = logging.getLogger("libdebug")
 
@@ -77,13 +77,8 @@ class ThreadDebug():
         self.fpregs = {}
         self.regs_names = AMD64_REGS
         self.reg_size = 8
-        self.libc = CDLL("libc.so.6", use_errno=True)
-        self.args_ptr = [c_int, c_long, c_long, c_char_p]
-        self.args_int = [c_int, c_long, c_long, c_long]
-        self.libc.ptrace.argtypes = self.args_ptr
-        self.libc.ptrace.restype = c_long
-        self.buf = create_string_buffer(1000)
         self.running = True
+        self.ptrace = Ptrace()
 
         #create property for registers
         for r in self.regs_names:
@@ -115,19 +110,13 @@ class ThreadDebug():
             regs_values.append(self.regs[name])
  
         data = struct.pack("<" + "Q"*len(self.regs_names), *regs_values)
-        bdata = create_string_buffer(data)
-
-        self.libc.ptrace.argtypes = self.args_ptr
-        if (self.libc.ptrace(PTRACE_SETREGS, self.tid, NULL, bdata) == -1):
-            raise DebugFail("SetRegs Failed. Do you have permisio? Running as sudo?")
-
+        self.ptrace.setregs(self.tid, data)
 
     def get_regs(self):
         self._enforce_stop()
 
-        self.libc.ptrace.argtypes = self.args_ptr
-        set_errno(0)
-        if (self.libc.ptrace(PTRACE_GETREGS, self.tid, NULL, self.buf) == -1):
+        buf = self.ptrace.getregs(self.tid)
+        if buf is None:
             err = get_errno()
             #We use geT_regs as test for the process if it is running we may stoppit before executing something
             # ether the process is dead or is running
@@ -138,10 +127,10 @@ class ThreadDebug():
                 logging.critical("The proccess %d is dead!", self.tid)
             else:
                 logging.debug("getregs error: %d", err)
-                raise DebugFail("GetRegs Failed. Do you have permisio? Running as sudo?")
+                raise PtraceFail("GetRegs Failed. Do you have permisio? Running as sudo?")
 
         buf_size = len(self.regs_names) * self.reg_size 
-        regs = struct.unpack("<" + "Q"*len(self.regs_names), self.buf[:buf_size])
+        regs = struct.unpack("<" + "Q"*len(self.regs_names), buf[:buf_size])
 
         for name, value in zip(self.regs_names, regs):
             self.regs[name] = value
@@ -163,10 +152,8 @@ class ThreadDebug():
 
     def get_fpregs(self):
         self._enforce_stop()
-
-        self.libc.ptrace.argtypes = self.args_ptr
-        set_errno(0)
-        if (self.libc.ptrace(PTRACE_GETFPREGS, self.pid, NULL, self.buf) == -1):
+        buf = self.ptrace.getfpregs(self.tid)
+        if buf is None:
             err = get_errno()
             #We use geT_regs as test for the process if it is running we may stoppit before executing something
             # ether the process is dead or is running
@@ -177,7 +164,7 @@ class ThreadDebug():
                 logging.critical("The proccess is dead!")
             else:
                 logging.debug("getregs error: %d", err)
-                raise DebugFail("GetRegs Failed. Do you have permisio? Running as sudo?")
+                raise PtraceFail("GetRegs Failed. Do you have permisio? Running as sudo?")
 
         # FPREGS_SHORT = ["cwd", "swd", "ftw", "fop"]
         # FPREGS_LONG  = ["rip", "rdp"]
@@ -239,53 +226,25 @@ class ThreadDebug():
             data += struct.pack("<QQ", self.fpregs[r] & 0xffffffffffffffff, self.fpregs[r] >> 64)
         for r in FPREGS_128:
             data += struct.pack("<QQ", self.fpregs[r] & 0xffffffffffffffff, self.fpregs[r] >> 64)
-
-        bdata = create_string_buffer(data)
-
-        self.libc.ptrace.argtypes = self.args_ptr
-        if (self.libc.ptrace(PTRACE_SETFPREGS, self.pid, NULL, bdata) == -1):
-            raise DebugFail("SetRegs Failed. Do you have permisio? Running as sudo?")
-
+        self.ptrace.setfpregs(data)
 
     def _test_execution(self):
-
-        self.libc.ptrace.argtypes = self.args_ptr
-        set_errno(0)
-        if (self.libc.ptrace(PTRACE_GETREGS, self.tid, NULL, self.buf) == -1):
-            err = get_errno()
-            #We use geT_regs as test for the process if it is running we may stoppit before executing something
-            # ether the process is dead or is running
-            if err == errno.ESRCH and self.running:
-                #we should stop the process.
-                return False
-            elif err == errno.ESRCH and not self.running:
-                logging.critical("[TID %d] The proccess is dead!", self.tid)
-            else:
-                logging.debug("getregs error: %d", err)
-                raise DebugFail("GetRegs Failed. Do you have permisio? Running as sudo?")
-
-        return True
-
-    @staticmethod
-    def _u64(value):
-        return struct.unpack("<Q", value)[0]
-
-    @staticmethod
-    def _u32(value):
-        return struct.unpack("<I", value)[0]
-
+        # Test if the program is running or not.
+        # If we are not able to get regs. The program is still running.
+        regs = self.ptrace.getregs(self.tid)
+        return not(regs is None)
 
     def _sig_stop(self):
         os.kill(self.tid, signal.SIGSTOP)
 
 
     def _wait_process(self):
-        pid = self.tid
         options = 0x40000000
+        buf = create_string_buffer(100)
         for i in range(8):
-            self.buf[i] = b"\x00"
-        r = self.libc.waitpid(pid, self.buf, options)
-        status = self._u32(self.buf[:4])
+            buf[i] = b"\x00"
+        r = self.ptrace.waitpid(self.tid, buf, options)
+        status = u32(buf[:4])
         logging.debug("[TID %d] waitpid status: %#x, ret: %d", self.tid, status, r)
         self.running = False
 
@@ -308,22 +267,17 @@ class ThreadDebug():
         """
         #Step can stuck running into syscalls
         self.running = True
-        self.libc.ptrace.argtypes = self.args_int
-        if (self.libc.ptrace(PTRACE_SINGLESTEP, self.tid, NULL, NULL) == -1):
-            raise DebugFail("Step Failed. Do you have permisions? Running as sudo?")
+        self.ptrace.singlestep(self.tid)
+
 
     def cont(self):
         """
         Continue the execution until the next breakpoint is hitted or the program is stopped
         """
-
         #I need to execute at least another instruction otherwise I get always in the same bp
-        self.libc.ptrace.argtypes = self.args_int
         self.running = True
         # Probably should implement a timeout
-        if (self.libc.ptrace(PTRACE_CONT, self.tid, NULL, NULL) == -1):
-            raise DebugFail("[%d] Continue Failed. Do you have permisions? Running as sudo?" % self.tid)
-
+        self.ptrace.cont(self.tid)
 
 class Debugger:
 
@@ -335,12 +289,7 @@ class Debugger:
         self.process = None
         #According to ptrace manual we need to keep track od the running state to discern if ESRCH is becouse the process is running or dead
         self.running = True
-        self.libc = CDLL("libc.so.6", use_errno=True)
-        self.args_ptr = [c_int, c_long, c_long, c_char_p]
-        self.args_int = [c_int, c_long, c_long, c_long]
-        self.libc.ptrace.argtypes = self.args_ptr
-        self.libc.ptrace.restype = c_long
-        self.buf = create_string_buffer(1000)
+        self.ptrace = Ptrace()
         self.regs_names = AMD64_REGS
         self.reg_size = 8
         self.mem = Memory(self.peek, self.poke)
@@ -396,10 +345,9 @@ class Debugger:
     def _wait_process(self, pid=None):
         pid = self.pid if pid is None else pid
         options = 0x40000000
-        for i in range(8):
-            self.buf[i] = b"\x00"
-        r = self.libc.waitpid(pid, self.buf, options)
-        status = self._u32(self.buf[:4])
+        buf = create_string_buffer(100)
+        r = self.ptrace.waitpid(pid, buf, options)
+        status = self._u32(buf[:4])
         logging.debug("waitpid status: %#x, ret: %d", status, r)
         self._retrieve_maps()
         self._find_new_tids()
@@ -430,10 +378,7 @@ class Debugger:
 
     def _option_setup(self):
         #PTRACE_O_TRACEFORK, PTRACE_O_TRACEVFORK, PTRACE_O_TRACECLONE and PTRACE_O_TRACEEXIT
-        self.libc.ptrace.argtypes = self.args_int
-        r = self.libc.ptrace(PTRACE_SETOPTIONS, self.pid, NULL, PTRACE_O_TRACEFORK | PTRACE_O_TRACEVFORK | PTRACE_O_TRACECLONE | PTRACE_O_TRACEEXIT)
-        if (r == -1):
-            raise DebugFail("Option Setup Failed. Do you have permisions? Running as sudo?")
+        self.ptrace.setoptions(self.pid, PTRACE_O_TRACEFORK | PTRACE_O_TRACEVFORK | PTRACE_O_TRACECLONE | PTRACE_O_TRACEEXIT)
 
     ### Attach/Detach
     def run(self, path, args=[], sleep=None):
@@ -443,8 +388,7 @@ class Debugger:
         if pid == 0:
             #child process
             # PTRACE ME
-            self.libc.ptrace.argtypes = self.args_int
-            r = self.libc.ptrace(PTRACE_TRACEME, NULL, NULL, NULL)
+            self.ptrace.traceme()
             # logging.debug("attached %d", r)
             args = [path,] + args
             os.execv(path, args)
@@ -469,13 +413,9 @@ class Debugger:
         logging.info("attaching to pid %d", pid)      
         self.pid = pid
         self.cur_tid = pid
-        self.libc.ptrace.argtypes = self.args_int
-        set_errno(0)
-        r = self.libc.ptrace(PTRACE_ATTACH, pid, NULL, NULL)
-        logging.debug("attached %d", r)
-        if (r == -1):
-            err = get_errno()
-            raise DebugFail("Attach Failed. Err:%d Do you have permisions? Running as sudo?" % err)
+
+        self.ptrace.attach(pid)
+
         t = ThreadDebug(pid)
         self.threads[pid] = t
         self._wait_process()
@@ -504,9 +444,7 @@ class Debugger:
         """
 
         logging.info("Detach pid %d", self.pid)      
-        self.libc.ptrace.argtypes = self.args_int
-        if (self.libc.ptrace(PTRACE_DETACH, self.pid, NULL, NULL) == -1):
-            raise DebugFail("Detach Failed. Do you have permisio? Running as sudo?")
+        self.ptrace.detach(self.pid)
         self.old_pid = self.pid
         self.pid = None
 
@@ -517,6 +455,7 @@ class Debugger:
         """
 
         if self.process is not None:
+            os.kill(self.old_pid, signal.SIGKILL)
             self.detach()
             # self.process.terminate()
             # self.process.kill()
@@ -558,35 +497,16 @@ class Debugger:
         self._check_mem_address(addr)
         self._enforce_stop()
         # according to man ptrace no difference for PTRACE_PEEKTEXT and PTRACE_PEEKDATA on linux
-        set_errno(0)
-
-        self.libc.ptrace.argtypes = self.args_int
-        data = self.libc.ptrace(PTRACE_PEEKDATA, self.pid, addr, NULL)
-
-        # This errno is a libc artifact. The syscall return errno as return value and the value in the data parameter
-        # We may considere to do direct syscall to avoid errno of libc
-        err = get_errno()
-        if err == errno.EIO:
-            raise DebugFail("Peek Failed. Are you accessing a valid address?")
-
+        data = self.ptrace.peek(self.pid, addr)
         return data
     
     def poke(self, addr, value):
         self._check_mem_address(addr)
         self._enforce_stop()
-
         # according to man ptrace no difference for PTRACE_POKETEXT and PTRACE_POKEDATA on linux
-        set_errno(0)
+        self.ptrace.poke(self.pid, addr, value)
 
-        self.libc.ptrace.argtypes = self.args_int
-        data = self.libc.ptrace(PTRACE_POKEDATA, self.pid, addr, value)
-
-        # This errno is a libc artifact. The syscall return errno as return value and the value in the data parameter
-        # We may considere to do direct syscall to avoid errno of libc
-        err = get_errno()
-        if err == errno.EIO:
-            raise DebugFail("Poke Failed. Are you accessing a valid address?")
-
+ 
     def _base_guess(self):
         self.bases["main"] = min([m for m in self.map if self.map[m]['file'] is not None])
         logging.debug("new base main guessed at %#x", self.bases["main"])
