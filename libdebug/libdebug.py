@@ -298,7 +298,7 @@ class ThreadDebug():
     def _enforce_stop(self):
         # Can we trust self.running without any check?
         if self.running and self._test_execution() == False:
-            #this should be a PTRACE_INTERRUPT
+            #this should be a PTRACE_INTERRUPT # PTRACE_INTERRUPT causes issues
             self._stop_process()
 
 
