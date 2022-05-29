@@ -541,7 +541,7 @@ class Debugger:
         # 7ffcc2fab000-7ffcc2faf000 r--p 00000000 00:00 0                          [vvar]
         # 7ffcc2faf000-7ffcc2fb1000 r-xp 00000000 00:00 0                          [vdso]
         # ffffffffff600000-ffffffffff601000 --xp 00000000 00:00 0                  [vsyscall]
-        l_regx = "(?P<start>[0-9a-f]+)-(?P<stop>[0-9a-f]+)\s+(?P<read>[r-])(?P<write>[w-])(?P<exec>[x-])([p-])\s+(?P<offset>[0-9a-f]+)\s+\d\d:\d\d\s+(?P<inode>[0-9]+)\s+(?P<pathname>\/.*[\w:]+|\[\w+\])?"
+        l_regx = "(?P<start>[0-9a-f]+)-(?P<stop>[0-9a-f]+)\s+(?P<read>[r-])(?P<write>[w-])(?P<exec>[x-])([p-])\s+(?P<offset>[0-9a-f]+)\s+\d+:\d+\s+(?P<inode>[0-9]+)\s+(?P<pathname>\/.*[\w:]+|\[\w+\])?"
         pid = self.pid
         logging.debug("Retrieving mem maps")
         with open(f"/proc/{pid}/maps", 'r') as f:
