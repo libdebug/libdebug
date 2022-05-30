@@ -15,6 +15,7 @@
 
 ## GDB
 - Implement go back gdb command
+- set current breakpoints into gdb
 ## Ideas
 ### Snapshotting
  Can I snapshot the program? 
