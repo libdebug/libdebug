@@ -318,15 +318,6 @@ class Debugger:
             self.threads[self.cur_tid].set_regs()
         return property(getter, setter, None, name)
 
-    ## Utils
-    @staticmethod
-    def _u64(value):
-        return struct.unpack("<Q", value)[0]
-
-    @staticmethod
-    def _u32(value):
-        return struct.unpack("<I", value)[0]
-
     def _sig_stop(self, pid):
         os.kill(pid, signal.SIGSTOP)
 
@@ -347,7 +338,7 @@ class Debugger:
         options = 0x40000000
         buf = create_string_buffer(100)
         r = self.ptrace.waitpid(pid, buf, options)
-        status = self._u32(buf[:4])
+        status = u32(buf[:4])
         logging.debug("waitpid status: %#x, ret: %d", status, r)
         self._retrieve_maps()
         self._find_new_tids()
@@ -602,7 +593,7 @@ class Debugger:
             return self.step()
         self.step()
         #if 32 bits this do not works
-        saved_rip = self._u64(self.mem[self.rsp:self.rsp+self.reg_size])
+        saved_rip = u64(self.mem[self.rsp:self.rsp+self.reg_size])
         logging.debug("next on a call instruction, executing until %#x", saved_rip)
         #should we have a separate set of breakpoints?
         bp = self.breakpoint(saved_rip)
@@ -648,7 +639,7 @@ class Debugger:
         if not self._check_mem_address(self.rbp):
             logging.error("rbp %#x is not a valid frame. Impossible to execute finish", self.rbp)
             raise DebugFail("Finish Failed. Frame not found")
-        ret_addr = Debugger._u64(self.mem[self.rbp+0x8: self.rbp+0x10])
+        ret_addr = u64(self.mem[self.rbp+0x8: self.rbp+0x10])
         logging.info("finish executing until Return Address found at %#x", ret_addr)
         self.bp(ret_addr)
         self.cont(blocking)
