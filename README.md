@@ -57,7 +57,7 @@ d.mem[d.rsp:d.rsp+0x10] = b"AAAAAAABC"
 `finish()` will continue the execution until the return from the current function. (The return is computed retriving the return address from `rbp+8`)
 
 
-`breakpoint(<address>, [<libname>])` to set a breakpoint. 
+`breakpoint(<address>, [name=<libname>], [hw=False])` to set a breakpoint, name is part of the string to search for relative breakpoints, hw is a bool to specify if you want to use hardware breakpoint. 
 
 `del_bp(<address>)` to remove the break point.
 
