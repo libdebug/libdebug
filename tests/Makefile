@@ -1,7 +1,7 @@
-.PHONY: all test read_test write_test
+.PHONY: all test read_test write_test read_test_mem
 FLAG = -O2 -g
 
-all: test read_test write_test
+all: test read_test write_test read_test_mem
 
 test: test.c
 	gcc $(FLAG) -o $@ $<
@@ -10,4 +10,7 @@ read_test: read_test.c
 	gcc $(FLAG) -o $@ $<
 
 write_test: write_test.c
+	gcc $(FLAG) -o $@ $<
+
+read_test_mem: read_test_mem.c
 	gcc $(FLAG) -o $@ $<

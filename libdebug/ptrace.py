@@ -195,3 +195,7 @@ FPREGS_80    = ["st%d" %i for i in range(8)]
 FPREGS_128   = ["xmm%d" %i for i in range(16)]
 AMD64_DBGREGS_OFF = {'DR0': 0x350, 'DR1': 0x358, 'DR2': 0x360, 'DR3': 0x368, 'DR4': 0x370, 'DR5': 0x378, 'DR6': 0x380, 'DR7': 0x388}
 AMD64_DBGREGS_CTRL_LOCAL = {'DR0': 1<<0, 'DR1': 1<<2, 'DR2': 1<<4, 'DR3': 1<<6}
+AMD64_DBGREGS_CTRL_COND  = {'DR0': 16, 'DR1': 20, 'DR2': 24, 'DR3': 28}
+AMD64_DBGREGS_CTRL_COND_VAL  = {'X': 0, 'W': 1, 'IO': 2, 'RW': 3}
+AMD64_DBGREGS_CTRL_LEN   = {'DR0': 18, 'DR1': 22, 'DR2': 26, 'DR3': 30}
+AMD64_DBGREGS_CTRL_LEN_VAL  = {1: 0, 2: 1, 8: 2, 4: 3}

@@ -292,7 +292,7 @@ class ThreadDebug():
         data = self.ptrace.poke_user(self.tid, addr, data)
 
     #HW BreakPoints
-    def hw_bp(self, addr):
+    def hw_bp(self, addr, cond='X', length=8):
         #find first empty register
         for r in self.hw_breakpoints:
             if self.hw_breakpoints[r] is None:
@@ -303,10 +303,27 @@ class ThreadDebug():
         logging.debug("Setting bp %#lx in register %r", addr, r)
         #write value in the register
         self._poke_user(AMD64_DBGREGS_OFF[r], addr)
+
+
         #enable the register from the ctrl
         ctrl_reg = self._peek_user(AMD64_DBGREGS_OFF['DR7'])
         ctrl_reg |= AMD64_DBGREGS_CTRL_LOCAL[r]
+        # If the corresponding RWn field in register DR7 is 00 (instruction execution), then the
+        # LENn field should also be 00. The effect of using other lengths is undefined. See
+        # Section 18.2.5, “Breakpoint Field Recognition,” below
+        # https://www.intel.com/content/dam/support/us/en/documents/processors/pentium4/sb/253669.pdf
+
+        #clear condition values
+        ctrl_reg &= ~(3 << AMD64_DBGREGS_CTRL_COND[r])
+        ctrl_reg |= (AMD64_DBGREGS_CTRL_COND_VAL[cond] << AMD64_DBGREGS_CTRL_COND[r])
+
+        #clear len values
+        ctrl_reg &= ~(3 << AMD64_DBGREGS_CTRL_LEN[r])
+        if cond != 'X':
+            ctrl_reg |= (AMD64_DBGREGS_CTRL_LEN_VAL[length] << AMD64_DBGREGS_CTRL_LEN[r])
+
         self._poke_user(AMD64_DBGREGS_OFF['DR7'], ctrl_reg)
+
         #store that is in place        
         self.hw_breakpoints[r] = addr
         return True
@@ -707,9 +724,9 @@ class Debugger:
             self.breakpoints[addr] = None
         return addr
 
-    def breakpoint(self, addr, name=None, hw=False):
+    def _resolve_relative_address(self, addr, name):
         if name is None and self._check_mem_address(addr, warn=False):
-            return self.bp(addr)
+            return addr
         # BP not found as valid address.
         if name is None:
             name = "main"
@@ -721,15 +738,38 @@ class Debugger:
                     break
         # did not find any valid region. Try standard bp
         if name not in self.bases:
-            return self.bp(addr)
+            return addr
         # compute and set the bp
-        logging.info("relative BreakPoint, region: %s, start:%#x", name, self.bases[name])
-        real_address = self.bases[name] + addr
+        logging.info("relative address, region: %s, start:%#x", name, self.bases[name])
+        return self.bases[name] + addr
+
+    def watch(self, addr, cond='W', length=8, name=None):
+        #normalize the condition
+        if "W" in cond or "w" in cond:
+            cond = "W"
+        if "R" in cond or "r" in cond:
+            cond = "RW"
+
+        real_address = self._resolve_relative_address(addr, name)
+        logging.info("Watchpoint: %#lx, cond %s", real_address, cond)
+        if len(self.threads) > 1:
+            logging.warning("There are more threads. I am setting the BP only for the main thread.")
+        t = self.threads[self.pid]
+        if t.hw_bp(real_address, cond=cond, length=length):
+            return real_address
+        logging.info("Failed to set hw breakpoint. Watchpoint was not setup")
+
+    def del_watch(self, addr):
+        self.del_bp(addr)
+
+    def breakpoint(self, addr, name=None, hw=False):
+        real_address = self._resolve_relative_address(addr, name)
+        logging.info("Breakpoint: %#lx", real_address)
         if hw:
             if len(self.threads) > 1:
                 logging.warning("There are more threads. I am setting the BP only for the main thread.")
             t = self.threads[self.pid]
-            if t.hw_bp(real_address):
+            if t.hw_bp(real_address, cond='X'):
                 return real_address
             logging.info("Failed to set hw breakpoint. Fall back to memory bp.")
         return self.bp(real_address)
