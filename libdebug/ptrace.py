@@ -161,6 +161,31 @@ class Ptrace():
         self.libc.ptrace.argtypes = self.args_int
         r = self.libc.ptrace(PTRACE_TRACEME, NULL, NULL, NULL)
 
+    #USER struct
+    def poke_user(self, tid, addr, value):
+        set_errno(0)
+        self.libc.ptrace.argtypes = self.args_int
+        data = self.libc.ptrace(PTRACE_POKEUSER, tid, addr, value)
+
+        # This errno is a libc artifact. The syscall return errno as return value and the value in the data parameter
+        # We may considere to do direct syscall to avoid errno of libc
+        err = get_errno()
+        if err == errno.EIO:
+            raise PtraceFail("Poke User Failed. Are you accessing a valid address?")
+
+
+    def peek_user(self, tid, addr):
+        set_errno(0)
+        self.libc.ptrace.argtypes = self.args_int
+        data = self.libc.ptrace(PTRACE_PEEKUSER, tid, addr, NULL)
+
+        # This errno is a libc artifact. The syscall return errno as return value and the value in the data parameter
+        # We may considere to do direct syscall to avoid errno of libc
+        err = get_errno()
+        if err == errno.EIO:
+            raise PtraceFail("Peek User Failed. Are you accessing a valid address?")
+        return data
+
 
 AMD64_REGS = ["r15", "r14", "r13", "r12", "rbp", "rbx", "r11", "r10", "r9", "r8", "rax", "rcx", "rdx", "rsi", "rdi", "orig_rax", "rip", "cs", "eflags", "rsp", "ss", "fs_base", "gs_base", "ds", "es", "fs", "gs"]
 FPREGS_SHORT = ["cwd", "swd", "ftw", "fop"]
@@ -168,3 +193,5 @@ FPREGS_LONG  = ["rip", "rdp"]
 FPREGS_INT   = ["mxcsr", "mxcr_mask"]
 FPREGS_80    = ["st%d" %i for i in range(8)]
 FPREGS_128   = ["xmm%d" %i for i in range(16)]
+AMD64_DBGREGS_OFF = {'DR0': 0x350, 'DR1': 0x358, 'DR2': 0x360, 'DR3': 0x368, 'DR4': 0x370, 'DR5': 0x378, 'DR6': 0x380, 'DR7': 0x388}
+AMD64_DBGREGS_CTRL_LOCAL = {'DR0': 1<<0, 'DR1': 1<<2, 'DR2': 1<<4, 'DR3': 1<<6}

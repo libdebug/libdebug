@@ -79,6 +79,8 @@ class ThreadDebug():
         self.reg_size = 8
         self.running = True
         self.ptrace = Ptrace()
+        #This is specific to intel x86_64
+        self.hw_breakpoints = {'DR0': None, 'DR1': None, 'DR2': None, 'DR3': None,}
 
         #create property for registers
         for r in self.regs_names:
@@ -278,6 +280,56 @@ class ThreadDebug():
         self.running = True
         # Probably should implement a timeout
         self.ptrace.cont(self.tid)
+
+    #Struct User
+    def _peek_user(self, addr):
+        self._enforce_stop()
+        data = self.ptrace.peek_user(self.tid, addr)
+        return data
+
+    def _poke_user(self, addr, data):
+        self._enforce_stop()
+        data = self.ptrace.poke_user(self.tid, addr, data)
+
+    #HW BreakPoints
+    def hw_bp(self, addr):
+        #find first empty register
+        for r in self.hw_breakpoints:
+            if self.hw_breakpoints[r] is None:
+                break
+        if self.hw_breakpoints[r] is not None:
+            logging.error("Failed to set hw_bp %#lx. All hw register are used!", addr)
+            return False
+        logging.debug("Setting bp %#lx in register %r", addr, r)
+        #write value in the register
+        self._poke_user(AMD64_DBGREGS_OFF[r], addr)
+        #enable the register from the ctrl
+        ctrl_reg = self._peek_user(AMD64_DBGREGS_OFF['DR7'])
+        ctrl_reg |= AMD64_DBGREGS_CTRL_LOCAL[r]
+        self._poke_user(AMD64_DBGREGS_OFF['DR7'], ctrl_reg)
+        #store that is in place        
+        self.hw_breakpoints[r] = addr
+        return True
+
+
+    def del_hw_bp(self, addr):
+        #find register containing the bp
+        for r in self.hw_breakpoints:
+            if self.hw_breakpoints[r] == addr:
+                break
+        if self.hw_breakpoints[r] != addr:
+            logging.error("Failed to find a hw_bp for %#lx.", addr)
+            return False
+        logging.debug("Stopping bp %#lx in register %r", addr, r)
+        #write value in the register (Not necessary to be onest)
+        self._poke_user(AMD64_DBGREGS_OFF[r], 0x0)
+        #enable the register from the ctrl
+        ctrl_reg = self._peek_user(AMD64_DBGREGS_OFF['DR7'])
+        ctrl_reg &= ~AMD64_DBGREGS_CTRL_LOCAL[r]
+        self._poke_user(AMD64_DBGREGS_OFF['DR7'], ctrl_reg)
+        #store that is in place        
+        self.hw_breakpoints[r] = None
+        return True
 
 class Debugger:
 
@@ -655,7 +707,7 @@ class Debugger:
             self.breakpoints[addr] = None
         return addr
 
-    def breakpoint(self, addr, name=None):
+    def breakpoint(self, addr, name=None, hw=False):
         if name is None and self._check_mem_address(addr, warn=False):
             return self.bp(addr)
         # BP not found as valid address.
@@ -673,6 +725,13 @@ class Debugger:
         # compute and set the bp
         logging.info("relative BreakPoint, region: %s, start:%#x", name, self.bases[name])
         real_address = self.bases[name] + addr
+        if hw:
+            if len(self.threads) > 1:
+                logging.warning("There are more threads. I am setting the BP only for the main thread.")
+            t = self.threads[self.pid]
+            if t.hw_bp(real_address):
+                return real_address
+            logging.info("Failed to set hw breakpoint. Fall back to memory bp.")
         return self.bp(real_address)
 
     def del_bp(self, addr):
@@ -682,6 +741,9 @@ class Debugger:
         if addr in self.breakpoints:
             logging.info("delete BreakPoint at %#x", addr)
             del self.breakpoints[addr]
+        t = self.threads[self.pid]
+        t.del_hw_bp(addr)
+
 
     ## THREADS
     # https://stackoverflow.com/questions/7290018/ptrace-and-threads
