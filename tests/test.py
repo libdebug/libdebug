@@ -40,6 +40,14 @@ class Debugger_read(unittest.TestCase):
         value = self.d.bases['main'] + 0x10e2
         self.assertEqual (rip, value)
 
+    def test_brekpoint_relative_hw(self):
+        #Probably we should test the bp delete and so on
+        b = self.d.breakpoint(0x10e2, hw=True)
+        self.d.cont()
+        rip = self.d.rip
+        value = self.d.bases['main'] + 0x10e2
+        self.assertEqual (rip, value)
+
     def test_step(self):
         b = self.d.breakpoint(0x10e2)
         self.d.cont()
