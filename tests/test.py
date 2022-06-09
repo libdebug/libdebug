@@ -57,6 +57,39 @@ class Debugger_read(unittest.TestCase):
         rip = self.d.rip
         self.assertEqual (rip, value)
 
+class Debugger_read_mem(unittest.TestCase):
+    def setUp(self):
+        self.d = Debugger()
+        self.d.run("./read_test_mem")
+        self.mem_addr = 0x1aabbcc1000
+
+    def tearDown(self):
+        self.d.shutdown()
+
+    def test_watchpoint_hw(self):
+
+        #Probably we should test the bp delete and so on
+        for x in self.d.map:
+            print("%#lx"%x,self.d.map[x]['file'])
+
+
+        bp = self.d.breakpoint(0x1088) #aftermmap
+        self.d.cont()
+        self.d.del_bp(bp)
+
+        #Probably we should test the bp delete and so on
+        for x in self.d.map:
+            print("%#lx"%x,self.d.map[x]['file'])
+        self.d.mem[self.mem_addr:self.mem_addr+8] = b"\x00" * 8
+        b = self.d.watch(self.mem_addr)
+        self.d.cont()
+
+        print("rip: %#lx" % self.d.rip)
+        print("rdi %#lx" % self.d.rdi)
+
+        # self.d.step()
+        value = self.d.mem[self.mem_addr:self.mem_addr+8]
+        self.assertNotEqual (b"\x00" * 8, value)
 
 
 # This is bugged I do not understand yet.
