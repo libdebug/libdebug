@@ -64,9 +64,16 @@ d.mem[d.rsp:d.rsp+0x10] = b"AAAAAAABC"
 ```python
 bp = d.breakpoint(0x1234, "libc")
 d.cont()
-d.del_bp(dp)
+d.del_bp(bp)
 ```
 
+`watch(<address>, [cond='W'|'RW'], length=[1,2,4,8] [name=<libname>])` to set an hardware breakpoint when there is a memory access to specific address.
+`cond` (default: `W`) specify the contition on which the breakpoint is triggered `'W'` only write or `'RW'` read and write. `length` (default: `8`) specify the size of the memory access.
+```python
+bp = d.watch(0x1234, "libc")
+d.cont()
+d.del_bp(bp)
+```
 ### Non Blocking Continue
 `cont` can be nonblocking. In this case the waitpid is avoided. The library will stop the process when there is an operation that require the process to be stopped.
 ```python
