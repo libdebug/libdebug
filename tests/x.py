@@ -2,7 +2,7 @@ from libdebug import Debugger
 import time
 
 d = Debugger()
-d.run("./test")
+d.run("./read_test_thread")
 
 print("rax: %#x" % d.rax)
 d.rax = 0
@@ -44,11 +44,11 @@ print("rip: %#x" % d.rip)
 # for r in fpregs:
 #     print("%s: %#x" % (r,fpregs[r]))
 
-bp = d.breakpoint(0x1074)
-d.cont()
-for i in range(10):
-    d.next()
-    print("next rip: %#x" % d.rip)
+# bp = d.breakpoint(0x1074)
+# d.cont()
+# for i in range(10):
+#     d.next()
+#     print("next rip: %#x" % d.rip)
 
 
 # d.finish()
@@ -64,10 +64,12 @@ for i in range(10):
 # d.step()
 # print("rip: %#x" % d.rip)
 
-d.gdb(spawn=True)
-input("finish_with_gdb?")
-d.reattach()
-print("rip: %#x" % d.rip)
+# d.gdb(spawn=True)
+# input("finish_with_gdb?")
+# d.reattach()
+# print("rip: %#x" % d.rip)
+print(d.map)
+b = d.breakpoint(0x12a6)
 
 import IPython
 IPython.embed()

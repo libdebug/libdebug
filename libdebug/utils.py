@@ -5,3 +5,6 @@ def u64(value):
 
 def u32(value):
     return struct.unpack("<I", value)[0]
+
+def inverse_mapping(f):
+    return f.__class__(map(reversed, f.items()))

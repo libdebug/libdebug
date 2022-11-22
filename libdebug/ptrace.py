@@ -2,6 +2,7 @@ from ctypes import CDLL, create_string_buffer, POINTER, c_void_p, c_int, c_long,
 import struct
 import logging
 import errno
+from .utils import inverse_mapping
 
 NULL = 0
 PTRACE_TRACEME = 0
@@ -48,6 +49,23 @@ PTRACE_EVENT_EXIT        = 6
 WNOHANG = 1
 
 
+TRACE_EVENT = {
+    "PTRACE_EVENT_FORK":         1,
+    "PTRACE_EVENT_VFORK":        2,
+    "PTRACE_EVENT_CLONE":        3,
+    "PTRACE_EVENT_EXEC":         4,
+    "PTRACE_EVENT_VFORK_DONE":   5,
+    "PTRACE_EVENT_EXIT":         6,
+}
+
+TRACE_EVENT_NUM = inverse_mapping(TRACE_EVENT)
+
+def ptrace_event_from_num(num):
+    if num in TRACE_EVENT_NUM:
+        return TRACE_EVENT_NUM[num]
+    return "%d" % num
+
+
 # /* If WIFEXITED(STATUS), the low-order 8 bits of the status.  */
 def WEXITSTATUS(status):
     return (((status) & 0xff00) >> 8)
@@ -66,13 +84,15 @@ def WIFEXITED(status):
 
 # /* Nonzero if STATUS indicates termination by a signal.  */
 def WIFSIGNALED(status):
-    return (((((status) & 0x7f) + 1) >> 1) > 0) #TODO convert to signed char
+    val = ((((status) & 0x7f) + 1) >> 1)
+    return (val < 128)
 
 # /* Nonzero if STATUS indicates the child is stopped.  */
 def WIFSTOPPED(status):
     return (((status) & 0xff) == 0x7f)
 class PtraceFail(Exception):
     pass
+
 
 
 class Ptrace():

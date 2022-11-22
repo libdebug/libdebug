@@ -10,6 +10,7 @@ import logging
 import re
 from capstone import Cs, CS_ARCH_X86, CS_MODE_64
 from .utils import u64, u32
+from .signal import *
 
 logging = logging.getLogger("libdebug")
 
@@ -90,6 +91,9 @@ class ThreadDebug():
         for r in FPREGS_SHORT+FPREGS_INT+FPREGS_80+FPREGS_128:
             setattr(ThreadDebug, r, self._get_fpreg(r))
 
+    def __repr__(self) -> str:
+        return "Thread [{}] <{:#x}>".format(self.tid, self.rip)
+
     ## Registers
 
     def _get_reg(self, name):
@@ -129,14 +133,14 @@ class ThreadDebug():
                 logging.critical("The proccess %d is dead!", self.tid)
             else:
                 logging.debug("getregs error: %d", err)
-                raise PtraceFail("GetRegs Failed. Do you have permisio? Running as sudo?")
+                raise PtraceFail("GetRegs Failed. Do you have permisions? Running as sudo?")
 
         buf_size = len(self.regs_names) * self.reg_size 
         regs = struct.unpack("<" + "Q"*len(self.regs_names), buf[:buf_size])
 
         for name, value in zip(self.regs_names, regs):
             self.regs[name] = value
-        logging.debug("TID[%d] %#x", self.tid, self.regs['rax'])
+        logging.debug("[TID %d] rax:%#x", self.tid, self.regs['rax'])
         return self.regs
 
     def _get_fpreg(self, name):
@@ -248,6 +252,11 @@ class ThreadDebug():
         r = self.ptrace.waitpid(self.tid, buf, options)
         status = u32(buf[:4])
         logging.debug("[TID %d] waitpid status: %#x, ret: %d", self.tid, status, r)
+
+        if WIFSTOPPED(status):
+            sig = WSTOPSIG(status)
+            logging.debug("[TID %d] wait stop, for %s(%#x)", self.tid, signal_from_num(sig), sig)
+
         self.running = False
 
     def _stop_process(self):
@@ -276,9 +285,9 @@ class ThreadDebug():
         """
         Continue the execution until the next breakpoint is hitted or the program is stopped
         """
-        #I need to execute at least another instruction otherwise I get always in the same bp
         self.running = True
         # Probably should implement a timeout
+        logging.debug("[TID %d] cont", self.tid)
         self.ptrace.cont(self.tid)
 
     #Struct User
@@ -374,6 +383,9 @@ class Debugger:
         if pid is not None:
             self.attach(pid)
 
+    def __repr__(self) -> str:
+        return "Debugger [{:d}]({:d}) <{:#x}>".format(self.pid, len(self.threads), self.rip)
+
 
     def _get_reg(self, name):
         #This is an helping function to generate properties to access registers        
@@ -402,28 +414,44 @@ class Debugger:
                 # self._sig_stop(t)
                 # self.attach(t)
 
+
     def _wait_process(self, pid=None):
+        should_continue = False
         pid = self.pid if pid is None else pid
         options = 0x40000000
         buf = create_string_buffer(100)
-        r = self.ptrace.waitpid(pid, buf, options)
+        r = self.ptrace.waitpid(-1, buf, options)
         status = u32(buf[:4])
-        logging.debug("waitpid status: %#x, ret: %d", status, r)
+        logging.debug("waitpid status: %#x, tid: %d, %s", status, r, WIFSTOPPED(status))
 
+        if WIFSTOPPED(status):
+            sig = WSTOPSIG(status)
+            logging.debug("wait stop, for %s(%#x)", signal_from_num(sig), sig)
+            if sig == SIGTRAP:
+                event = (status >> 16) & 0xff
+                logging.debug("wait stoped event %s(%#x)", ptrace_event_from_num(event), event)
+                if event == PTRACE_EVENT_CLONE:
+                    should_continue = True 
         if WIFEXITED(status):
             logging.info("Thread %d is dead", r)
             del self.threads[r]
             if len(self.threads) == 0:
                 raise DebugFail("All threads are dead")
+
         self._retrieve_maps()
         self._find_new_tids()
+        if should_continue:
+            #continue that thread
+            self.threads[r].cont()
         self.running = False
 
     def _stop_process(self):
         logging.debug("Stopping the process")
-        self._sig_stop(self.pid)
-        self._wait_process()
-        self.running = False
+        for tid, t in self.threads.items():
+            t._stop_process()
+        # self._sig_stop(self.pid)
+        # self._wait_process()
+        # self.running = False
 
     def _enforce_stop(self):
         # Can we trust self.running without any check?
@@ -661,8 +689,9 @@ class Debugger:
         if self.rip not in self.breakpoints and self.rip-1 in self.breakpoints:
             self.rip -= 1
         for b in self.breakpoints:
-            self.mem[b] = self.breakpoints[b]
-            self.breakpoints[b] = None
+            if self.breakpoints[b] != None:
+                self.mem[b] = self.breakpoints[b]
+                self.breakpoints[b] = None
 
     def step(self):
         """
@@ -709,6 +738,7 @@ class Debugger:
         self._set_breakpoints()
         self.running = True
         # Probably should implement a timeout
+        # while self.running:
         for tid, t in self.threads.items():
             t.cont()
         if blocking:
