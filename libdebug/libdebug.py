@@ -409,6 +409,12 @@ class Debugger:
         r = self.ptrace.waitpid(pid, buf, options)
         status = u32(buf[:4])
         logging.debug("waitpid status: %#x, ret: %d", status, r)
+
+        if WIFEXITED(status):
+            logging.info("Thread %d is dead", r)
+            del self.threads[r]
+            if len(self.threads) == 0:
+                raise DebugFail("All threads are dead")
         self._retrieve_maps()
         self._find_new_tids()
         self.running = False
@@ -451,8 +457,10 @@ class Debugger:
             self.ptrace.traceme()
             # logging.debug("attached %d", r)
             args = [path,] + args
-            os.execv(path, args)
-            raise DebugFail("Exec of new process failed")
+            try:
+                os.execv(path, args)
+            except Exception as e:
+                raise DebugFail("Exec of new process failed: %r" % e)
         self.pid = pid
         self.cur_tid = pid
         t = ThreadDebug(pid)
@@ -502,9 +510,9 @@ class Debugger:
         """
         Detach the current process
         """
-
-        logging.info("Detach pid %d", self.pid)      
-        self.ptrace.detach(self.pid)
+        for tid in self.threads:
+            logging.info("Detach tid %d", tid)      
+            self.ptrace.detach(tid)
         self.old_pid = self.pid
         self.pid = None
 
@@ -528,7 +536,8 @@ class Debugger:
         """
 
         #Stop the process so you can continue exactly form where you let in the script
-        self._sig_stop(self.pid)
+        for tid in self.threads:
+            self._sig_stop(tid)
         #detach
         pid = self.pid
         self.detach()
@@ -568,6 +577,10 @@ class Debugger:
 
  
     def _base_guess(self):
+        if len(self.map) == 0:
+            logging.warning("Failed to guess the bases.")
+            return
+
         self.bases["main"] = min([m for m in self.map if self.map[m]['file'] is not None])
         logging.debug("new base main guessed at %#x", self.bases["main"])
 
@@ -579,6 +592,7 @@ class Debugger:
 
     def _retrieve_maps(self):
         # map file example
+        # 560df069c000-560df069d000 r--p 00000000 fe:01 4859834                    /usr/bin/python3.10
         # 55c1b7eaf000-55c1b7eb0000 r--p 00000000 00:19 28246290                   /home/jinblack/Projects/libdebug/tests/test
         # 55c1b7eb0000-55c1b7eb1000 r-xp 00001000 00:19 28246290                   /home/jinblack/Projects/libdebug/tests/test
         # 55c1b7eb1000-55c1b7eb2000 r--p 00002000 00:19 28246290                   /home/jinblack/Projects/libdebug/tests/test
@@ -601,13 +615,16 @@ class Debugger:
         # 7ffcc2fab000-7ffcc2faf000 r--p 00000000 00:00 0                          [vvar]
         # 7ffcc2faf000-7ffcc2fb1000 r-xp 00000000 00:00 0                          [vdso]
         # ffffffffff600000-ffffffffff601000 --xp 00000000 00:00 0                  [vsyscall]
-        l_regx = "(?P<start>[0-9a-f]+)-(?P<stop>[0-9a-f]+)\s+(?P<read>[r-])(?P<write>[w-])(?P<exec>[x-])([p-])\s+(?P<offset>[0-9a-f]+)\s+\d+:\d+\s+(?P<inode>[0-9]+)\s+(?P<pathname>\/.*[\w:]+|\[\w+\])?"
+        l_regx = "(?P<start>[0-9a-f]+)-(?P<stop>[0-9a-f]+)\s+(?P<read>[r-])(?P<write>[w-])(?P<exec>[x-])([p-])\s+(?P<offset>[0-9a-f]+)\s+[0-9a-f]+:[0-9a-f]+\s+(?P<inode>[0-9]+)\s+(?P<pathname>\/.*[\w:]+|\[\w+\])?"
         pid = self.pid
         logging.debug("Retrieving mem maps")
         with open(f"/proc/{pid}/maps", 'r') as f:
             self.map = {}
             for l in f.readlines():
                 m = re.match(l_regx, l)
+                if m is None:
+                    logging.warning("Failed loading map table: %s", l)
+                    continue
                 md = m.groupdict()
                 perm = 4 if md['read']  == 'r' else 0 \
                      + 2 if md['write'] == 'w' else 0 \

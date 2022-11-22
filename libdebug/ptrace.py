@@ -47,6 +47,30 @@ PTRACE_EVENT_EXIT        = 6
 
 WNOHANG = 1
 
+
+# /* If WIFEXITED(STATUS), the low-order 8 bits of the status.  */
+def WEXITSTATUS(status):
+    return (((status) & 0xff00) >> 8)
+
+# /* If WIFSIGNALED(STATUS), the terminating signal.  */
+def WTERMSIG(status):
+    return ((status) & 0x7f)
+
+# /* If WIFSTOPPED(STATUS), the signal that stopped the child.  */
+def WSTOPSIG(status):
+    return WEXITSTATUS(status)
+
+# /* Nonzero if STATUS indicates normal termination.  */
+def WIFEXITED(status):
+    return (WTERMSIG(status) == 0)
+
+# /* Nonzero if STATUS indicates termination by a signal.  */
+def WIFSIGNALED(status):
+    return (((((status) & 0x7f) + 1) >> 1) > 0) #TODO convert to signed char
+
+# /* Nonzero if STATUS indicates the child is stopped.  */
+def WIFSTOPPED(status):
+    return (((status) & 0xff) == 0x7f)
 class PtraceFail(Exception):
     pass
 
