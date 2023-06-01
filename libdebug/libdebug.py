@@ -913,8 +913,9 @@ class Debugger:
         if addr in self.breakpoints:
             logging.info("delete BreakPoint at %#x", addr)
             del self.breakpoints[addr]
-        t = self.threads[self.pid]
-        t.del_hw_bp(addr)
+        else:
+            t = self.threads[self.pid]
+            t.del_hw_bp(addr)
 
 
     ## THREADS
