@@ -544,9 +544,13 @@ class Debugger:
             return True
         return False
 
+    # I have to disable it for now... ToO active without handlers
     def _option_setup(self):
         #PTRACE_O_TRACEFORK, PTRACE_O_TRACEVFORK, PTRACE_O_TRACECLONE and PTRACE_O_TRACEEXIT
         self.ptrace.setoptions(self.pid, PTRACE_O_TRACEFORK | PTRACE_O_TRACEVFORK | PTRACE_O_TRACECLONE | PTRACE_O_TRACEEXIT)
+    
+    def set_option(self, option):
+        self.ptrace.setoptions(self.pid, option)
 
     ### Attach/Detach
     def run(self, path, args=[], sleep=None):
@@ -567,7 +571,7 @@ class Debugger:
             time.sleep(sleep)
             self._sig_stop(self.pid)
 
-    def attach(self, pid):
+    def attach(self, pid, options=True):
         """
         Attach to a process using the pid
         """
@@ -579,10 +583,11 @@ class Debugger:
 
         t = ThreadDebug(pid, self.ptrace)
         self.threads[pid] = t
-        self._option_setup()
         self.should_exit = False # Se per qualche ragione vorresti tenere lo stesso Debugger per più analisi
         Thread(target=self._constant_wait, daemon=True).start()
         self.wait()
+        if options:
+            self._option_setup()
 
     def reattach(self):
         """
