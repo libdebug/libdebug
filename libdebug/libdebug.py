@@ -11,7 +11,9 @@ import re
 from capstone import Cs, CS_ARCH_X86, CS_MODE_64
 from .utils import u64, u32
 from .signal import *
+from threading import Thread, Event
 
+#logging.basicConfig(level="DEBUG")
 logging = logging.getLogger("libdebug")
 
 class DebugFail(Exception):
@@ -72,14 +74,14 @@ class Memory(collections.abc.MutableSequence):
         self.__setitem__(self, index, value)
 
 class ThreadDebug():
-    def __init__(self, tid=None):
+    def __init__(self, tid, ptracer):
         self.tid = tid
         self.regs = {}
         self.fpregs = {}
         self.regs_names = AMD64_REGS
         self.reg_size = 8
         self.running = True
-        self.ptrace = Ptrace()
+        self.ptrace = ptracer
         #This is specific to intel x86_64
         self.hw_breakpoints = {'DR0': None, 'DR1': None, 'DR2': None, 'DR3': None,}
 
@@ -367,7 +369,8 @@ class Debugger:
         self.process = None
         #According to ptrace manual we need to keep track od the running state to discern if ESRCH is becouse the process is running or dead
         self.running = True
-        self.ptrace = Ptrace()
+        self.ptrace = Ptracer()
+        Thread(target=self.ptrace.start, daemon=True).start()
         self.regs_names = AMD64_REGS
         self.reg_size = 8
         self.mem = Memory(self.peek, self.poke)
@@ -410,7 +413,7 @@ class Debugger:
         for t in tids:
             if t not in self.threads:
                 logging.debug("New Thread %d", t)
-                self.threads[t] = ThreadDebug(t)
+                self.threads[t] = ThreadDebug(t, self.ptrace)
                 # self._sig_stop(t)
                 # self.attach(t)
 
@@ -478,21 +481,10 @@ class Debugger:
     def run(self, path, args=[], sleep=None):
         # Gdb does tons of configuration when setting up a new process start
         # For now this is a simple as I can write it
-        pid = os.fork()
-        if pid == 0:
-            #child process
-            # PTRACE ME
-            self.ptrace.traceme()
-            # logging.debug("attached %d", r)
-            args = [path,] + args
-            try:
-                os.execv(path, args)
-            except Exception as e:
-                raise DebugFail("Exec of new process failed: %r" % e)
-        self.pid = pid
-        self.cur_tid = pid
-        t = ThreadDebug(pid)
-        self.threads[pid] = t
+        self.pid = self.ptrace.run(path, args)
+        self.cur_tid = self.pid
+        t = ThreadDebug(self.pid, self.ptrace)
+        self.threads[self.pid] = t
         logging.info("new process <%d> %r", self.pid, args)
         logging.debug("waiting for child process %d", self.pid)
         self._wait_process()
@@ -512,7 +504,7 @@ class Debugger:
 
         self.ptrace.attach(pid)
 
-        t = ThreadDebug(pid)
+        t = ThreadDebug(pid, self.ptrace)
         self.threads[pid] = t
         self._wait_process()
         self._option_setup()

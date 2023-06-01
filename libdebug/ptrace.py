@@ -2,7 +2,12 @@ from ctypes import CDLL, create_string_buffer, POINTER, c_void_p, c_int, c_long,
 import struct
 import logging
 import errno
+import os
+from queue import Queue
+from threading import Lock
 from .utils import inverse_mapping
+
+logging = logging.getLogger("libdebug-ptrace")
 
 NULL = 0
 PTRACE_TRACEME = 0
@@ -205,7 +210,7 @@ class Ptrace():
         self.libc.ptrace.argtypes = self.args_int
         set_errno(0)
         r = self.libc.ptrace(PTRACE_ATTACH, tid, NULL, NULL)
-        logging.debug("attached %d", r)
+        logging.debug("attached %d", tid)
         if (r == -1):
             err = get_errno()
             raise PtraceFail("Attach Failed. Err:%d Do you have permisions? Running as sudo?" % err)
@@ -246,6 +251,205 @@ class Ptrace():
             raise PtraceFail("Peek User Failed. Are you accessing a valid address?")
         return data
 
+def debug_decorator(func):
+    def parse(self, *args, **kwargs):
+        logging.debug(f"calling {func.__name__}")
+        result = func(self, *args, **kwargs)
+        logging.debug(f"{func.__name__} returned {result}")
+        return result
+    return parse
+
+def lock_decorator(func):
+    def parse(self, *args, **kwargs):
+        with self.lock:
+            result = func(self, *args, **kwargs)
+        return result
+    return parse
+
+class Ptracer:
+        def __init__(self):
+            self.ptrace = Ptrace()
+            self.queries = Queue()
+            self.retval = Queue()
+            self.lock = Lock()
+
+        def start(self):
+            logging.debug("ptracer is running")
+            while True:
+                ptrace_request, tid, arg1, arg2 = self.queries.get()
+
+                # Brutto, ma dovrebbe funzionare
+                if type(ptrace_request) is str:
+                    # È una run
+                    path, args = ptrace_request, tid
+                    pid = self._run(path, args)
+                    self.retval.put(pid)
+
+                if ptrace_request == PTRACE_SETREGS:
+                    self.retval.put(self.ptrace.setregs(tid, arg2))
+                
+                if ptrace_request == PTRACE_GETREGS:
+                    self.retval.put(self.ptrace.getregs(tid))   
+
+                if ptrace_request == PTRACE_SETFPREGS:
+                    self.retval.put(self.ptrace.setfpregs(tid, arg2))
+
+                if ptrace_request == PTRACE_GETFPREGS:
+                    self.retval.put(self.ptrace.getfpregs(tid))
+
+                if ptrace_request == PTRACE_SINGLESTEP:
+                    self.retval.put(self.ptrace.singlestep(tid))
+
+                if ptrace_request == PTRACE_CONT:
+                    self.retval.put(self.ptrace.cont(tid))
+
+                if ptrace_request == PTRACE_POKEDATA:
+                    self.retval.put(self.ptrace.poke(tid, arg1, arg2))
+
+                if ptrace_request == PTRACE_PEEKDATA:
+                    self.retval.put(self.ptrace.peek(tid, arg1))
+
+                if ptrace_request == PTRACE_SETOPTIONS:
+                    self.retval.put(self.ptrace.setoptions(tid, arg2))
+
+                if ptrace_request == PTRACE_ATTACH:
+                    self.retval.put(self.ptrace.attach(tid))
+
+                if ptrace_request == PTRACE_SEIZE:
+                    self.retval.put(self.ptrace.seize(tid, arg2))
+
+                if ptrace_request == PTRACE_DETACH:
+                    self.retval.put(self.ptrace.detach(tid))
+
+                if ptrace_request == PTRACE_INTERRUPT:
+                    self.retval.put(self.ptrace.interrupt(tid))
+
+                if ptrace_request == PTRACE_POKEUSER:
+                    self.retval.put(self.ptrace.poke_user(tid, arg1, arg2))
+
+                if ptrace_request == PTRACE_PEEKUSER:
+                    self.retval.put(self.ptrace.peek_user(tid, arg1))
+
+        @lock_decorator
+        @debug_decorator
+        def run(self, path, args):
+            self.queries.put((path, args, NULL, NULL))
+            return self.retval.get()
+
+        @lock_decorator
+        def setregs(self, tid, data):
+           self.queries.put((PTRACE_SETREGS, tid, NULL, data))
+           return self.retval.get()
+
+        @lock_decorator
+        def getregs(self, tid):
+            self.queries.put((PTRACE_GETREGS, tid, NULL, NULL))
+            return self.retval.get()
+
+        @lock_decorator
+        @debug_decorator
+        def setfpregs(self, tid, data):
+            self.queries.put((PTRACE_SETFPREGS, tid, NULL, data))
+            return self.retval.get()
+
+        @lock_decorator
+        @debug_decorator
+        def getfpregs(self, tid):
+            self.queries.put((PTRACE_GETFPREGS, tid, NULL, NULL))
+            return self.retval.get()
+
+        @lock_decorator
+        @debug_decorator
+        def singlestep(self, tid):
+            self.queries.put((PTRACE_SINGLESTEP, tid, NULL, NULL))
+            return self.retval.get()
+
+        @lock_decorator
+        @debug_decorator
+        def cont(self, tid):
+            self.queries.put((PTRACE_CONT, tid, NULL, NULL))
+            return self.retval.get()
+
+        @lock_decorator
+        @debug_decorator
+        def poke(self, tid, addr, value):
+            self.queries.put((PTRACE_POKEDATA, tid, addr, value))
+            return self.retval.get()
+
+        @lock_decorator
+        @debug_decorator
+        def peek(self, tid, addr):
+            self.queries.put((PTRACE_PEEKDATA, tid, addr, NULL))
+            return self.retval.get()
+                
+        @lock_decorator
+        @debug_decorator
+        def setoptions(self, tid, options):
+            self.queries.put((PTRACE_SETOPTIONS, tid, NULL, options))
+            return self.retval.get()
+
+        @lock_decorator
+        @debug_decorator
+        def attach(self, tid):
+            self.queries.put((PTRACE_ATTACH, tid, NULL, NULL))
+            return self.retval.get()
+            
+        @lock_decorator
+        @debug_decorator
+        def seize(self, tid, options=NULL):
+            self.queries.put((PTRACE_SEIZE, tid, NULL, options))
+            return self.retval.get()
+
+        @lock_decorator
+        @debug_decorator
+        def detach(self, tid):
+            self.queries.put((PTRACE_DETACH, tid, NULL, NULL))
+            return self.retval.get()
+
+
+        @lock_decorator
+        @debug_decorator
+        def interrupt(self, tid):
+            self.queries.put((PTRACE_INTERRUPT, tid, NULL, NULL))
+            return self.retval.get()
+
+        @lock_decorator
+        @debug_decorator
+        def poke_user(self, tid, addr, value):
+            self.queries.put((PTRACE_POKEUSER, tid, addr, value))
+            return self.retval.get()
+
+        @lock_decorator
+        @debug_decorator
+        def peek_user(self, tid, addr):
+            self.queries.put((PTRACE_PEEKUSER, tid, addr, NULL))
+            return self.retval.get()
+        
+
+        # A parte perchè non hanno devono essere eseguiti dentro al thread
+        
+        def traceme(self):
+            self.ptrace.traceme()
+
+        def waitpid(self, tid, buf, options):
+            return self.ptrace.waitpid(tid, buf, options)
+
+        def _run(self, path, args):
+            pid = os.fork()
+            if pid == 0:
+                #child process
+                # PTRACE ME
+                # Ho provato a fare stop e seize che permetterebbe di non avere una funzione run qui e di usare ptrace_interrupt, ma ho avuto un comportamento diverso da quello che si aspettavano i test quindi ho lasciato perdere, ma potrebbe essere interessante
+                #pid = os.getpid()
+                #self._sig_stop(pid)
+                self.ptrace.traceme()
+                # logging.debug("attached %d", r)
+                args = [path,] + args
+                try:
+                    os.execv(path, args)
+                except Exception as e:
+                    raise PtraceFail("Exec of new process failed: %r" % e)
+            return pid
 
 AMD64_REGS = ["r15", "r14", "r13", "r12", "rbp", "rbx", "r11", "r10", "r9", "r8", "rax", "rcx", "rdx", "rsi", "rdi", "orig_rax", "rip", "cs", "eflags", "rsp", "ss", "fs_base", "gs_base", "ds", "es", "fs", "gs"]
 FPREGS_SHORT = ["cwd", "swd", "ftw", "fop"]
