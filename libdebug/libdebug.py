@@ -11,7 +11,9 @@ import re
 from capstone import Cs, CS_ARCH_X86, CS_MODE_64
 from .utils import u64, u32
 from .signal import *
+from threading import Thread, Event
 
+#logging.basicConfig(level="DEBUG")
 logging = logging.getLogger("libdebug")
 
 class DebugFail(Exception):
@@ -72,16 +74,17 @@ class Memory(collections.abc.MutableSequence):
         self.__setitem__(self, index, value)
 
 class ThreadDebug():
-    def __init__(self, tid=None):
+    def __init__(self, tid, ptracer):
         self.tid = tid
         self.regs = {}
         self.fpregs = {}
         self.regs_names = AMD64_REGS
         self.reg_size = 8
         self.running = True
-        self.ptrace = Ptrace()
+        self.ptrace = ptracer
         #This is specific to intel x86_64
         self.hw_breakpoints = {'DR0': None, 'DR1': None, 'DR2': None, 'DR3': None,}
+        self.stopped = Event()
 
         #create property for registers
         for r in self.regs_names:
@@ -243,26 +246,19 @@ class ThreadDebug():
     def _sig_stop(self):
         os.kill(self.tid, signal.SIGSTOP)
 
-
-    def _wait_process(self):
-        options = 0x40000000
-        buf = create_string_buffer(100)
-        for i in range(8):
-            buf[i] = b"\x00"
-        r = self.ptrace.waitpid(self.tid, buf, options)
-        status = u32(buf[:4])
-        logging.debug("[TID %d] waitpid status: %#x, ret: %d", self.tid, status, r)
-
-        if WIFSTOPPED(status):
-            sig = WSTOPSIG(status)
-            logging.debug("[TID %d] wait stop, for %s(%#x)", self.tid, signal_from_num(sig), sig)
-
-        self.running = False
+    # Per il momento penso di usare callback per interrompere tutti i thread appena si ferma uno dopo una wait globale [03/04/23]
+    def wait(self, callback=None): 
+        logging.debug(f"thread [{self.tid}] will wait")
+        self.stopped.wait()
+        logging.debug(f"thread [{self.tid}] finished waiting")
+        if callback is not None:
+            callback()
+        logging.debug("finished waiting thread")
 
     def _stop_process(self):
         logging.debug("[TID %d] Stopping the process", self.tid)
         self._sig_stop()
-        self._wait_process()
+        self.wait()
         self.running = False
 
     def _enforce_stop(self):
@@ -277,7 +273,9 @@ class ThreadDebug():
         Execute the next instruction (Step Into)
         """
         #Step can stuck running into syscalls
+        logging.debug(f"[TID {self.tid}] Step")
         self.running = True
+        self.stopped.clear()
         self.ptrace.singlestep(self.tid)
 
 
@@ -286,6 +284,7 @@ class ThreadDebug():
         Continue the execution until the next breakpoint is hitted or the program is stopped
         """
         self.running = True
+        self.stopped.clear()
         # Probably should implement a timeout
         logging.debug("[TID %d] cont", self.tid)
         self.ptrace.cont(self.tid)
@@ -367,7 +366,8 @@ class Debugger:
         self.process = None
         #According to ptrace manual we need to keep track od the running state to discern if ESRCH is becouse the process is running or dead
         self.running = True
-        self.ptrace = Ptrace()
+        self.ptrace = Ptracer()
+        Thread(target=self.ptrace.start, daemon=True).start()
         self.regs_names = AMD64_REGS
         self.reg_size = 8
         self.mem = Memory(self.peek, self.poke)
@@ -376,6 +376,11 @@ class Debugger:
         self.bases = {}
         self.terminal = ['tmux', 'splitw', '-h']
 
+        self.should_exit = False
+        self.stopped = Event()
+        self.stop_status = 0
+        self.__flag_hidden_step = False
+        
         #create property for registers
         for r in AMD64_REGS+FPREGS_SHORT+FPREGS_INT+FPREGS_80+FPREGS_128:
             setattr(Debugger, r, self._get_reg(r))
@@ -385,7 +390,6 @@ class Debugger:
 
     def __repr__(self) -> str:
         return "Debugger [{:d}]({:d}) <{:#x}>".format(self.pid, len(self.threads), self.rip)
-
 
     def _get_reg(self, name):
         #This is an helping function to generate properties to access registers        
@@ -410,19 +414,45 @@ class Debugger:
         for t in tids:
             if t not in self.threads:
                 logging.debug("New Thread %d", t)
-                self.threads[t] = ThreadDebug(t)
+                self.threads[t] = ThreadDebug(t, self.ptrace)
                 # self._sig_stop(t)
                 # self.attach(t)
 
+    def _constant_wait(self):
+        while self._wait_process():
+            if self.should_exit: break
+        logging.debug(f"libdebug [{self.pid}/{self.old_pid}] won't wait any more")
 
     def _wait_process(self, pid=None):
         should_continue = False
-        pid = self.pid if pid is None else pid
         options = 0x40000000
         buf = create_string_buffer(100)
-        r = self.ptrace.waitpid(-1, buf, options)
+        # Ho paura che -1 crei grossi problemi quando vuoi debuggere diversi programmi nello stesso script. Già lo script dei test ha problemi perchè catcha l'exit di processi precedenti. Quando trovo il tempo miglioro questa parte, ma saranno grosse modifiche :(
+        logging.debug("waiting...")
+        r = self.ptrace.waitpid(-1, buf, options) 
+
+        # In qualche modo evita molti problemi...
+        time.sleep(0.02)
+
+        # Significa che ho fatto detach
+        if self.pid is None:
+            logging.debug(f"exiting wait because you detached from {self.old_pid}")
+            return False
+
         status = u32(buf[:4])
         logging.debug("waitpid status: %#x, tid: %d, %s", status, r, WIFSTOPPED(status))
+
+        # Da chiamare prima per poter controllare se r è nostro o meno
+        self._retrieve_maps()
+        self._find_new_tids()
+
+        # Potrebbe essere fork, come potrebbe essere altro processo nello stesso script
+        if r not in self.threads:
+            if status == 0:
+                logging.info(f"I think the process [{self.pid}] forked -> [{r}]")
+            else:
+                logging.warning(f"process [{r}] as been caught by debugger [{self.pid}] but is not a known thread")
+            return True
 
         if WIFSTOPPED(status):
             sig = WSTOPSIG(status)
@@ -431,27 +461,71 @@ class Debugger:
                 event = (status >> 16) & 0xff
                 logging.debug("wait stoped event %s(%#x)", ptrace_event_from_num(event), event)
                 if event == PTRACE_EVENT_CLONE:
+                    self.__last_action = "continue" # Not sure, but I keep the hold behaviour just in case
                     should_continue = True 
+
+            elif sig == SIGCHLD:
+                logging.debug("signal SIGCHLD received. We will ignore it and continue")
+                should_continue = True
+
+        if WTERMSIG(status) == SIGKILL:
+            logging.debug("process [{r}] received SIGKILL")
+            return False
+
         if WIFEXITED(status):
             logging.info("Thread %d is dead", r)
             del self.threads[r]
             if len(self.threads) == 0:
+                self.handle_exit()
                 raise DebugFail("All threads are dead")
+                return False
+            return True
 
-        self._retrieve_maps()
-        self._find_new_tids()
         if should_continue:
             #continue that thread
-            self.threads[r].cont()
-        self.running = False
+            if self.__last_action == "continue":
+                self.threads[r].cont()
+            elif self.__last_action == "step":
+                self.threads[r].step()
+        else:
+        # I need to set back the instruction pointer before claiming that the process has stopped
+            # Bugged
+            #self.cur_tid = r
+            self.stop_status = status
+            self._retore_breakpoints()
+            self.threads[r].stopped.set()
+            if self.__flag_hidden_step:
+                self.__flag_hidden_step = False
+            else:
+                # Can't be blocking
+                Thread(target=self.handle_stop).start()
+            self.stopped.set()
+            self.running = False
+        return True
+
+    # Come facciamo quando ci sono più thread ? Interrompo tutti gli altri appena uno raggiunge un breakpoint ? [03/04/23]
+    #def wait(self):
+    #    for thread in self.threads.values():
+    #        # Sarebbero da parallelizzare tutte
+    #        thread.wait(callback=lambda: self._enforce_stop("wait"))
+    #    logging.debug("finished waiting global")
+    # Direi di si, ma per il momento te lo lascio più simile possibile a come funzionava prima
+    def wait(self):
+        self.stopped.wait()
 
     def _stop_process(self):
         logging.debug("Stopping the process")
         for tid, t in self.threads.items():
             t._stop_process()
         # self._sig_stop(self.pid)
-        # self._wait_process()
+        # self.wait()
         # self.running = False
+
+    def handle_stop(self):
+        pass
+
+    def handle_exit(self):
+        pass
 
     def _enforce_stop(self):
         # Can we trust self.running without any check?
@@ -470,39 +544,34 @@ class Debugger:
             return True
         return False
 
+    # I have to disable it for now... ToO active without handlers
     def _option_setup(self):
         #PTRACE_O_TRACEFORK, PTRACE_O_TRACEVFORK, PTRACE_O_TRACECLONE and PTRACE_O_TRACEEXIT
         self.ptrace.setoptions(self.pid, PTRACE_O_TRACEFORK | PTRACE_O_TRACEVFORK | PTRACE_O_TRACECLONE | PTRACE_O_TRACEEXIT)
+    
+    def set_option(self, option):
+        self.ptrace.setoptions(self.pid, option)
 
     ### Attach/Detach
     def run(self, path, args=[], sleep=None):
         # Gdb does tons of configuration when setting up a new process start
         # For now this is a simple as I can write it
-        pid = os.fork()
-        if pid == 0:
-            #child process
-            # PTRACE ME
-            self.ptrace.traceme()
-            # logging.debug("attached %d", r)
-            args = [path,] + args
-            try:
-                os.execv(path, args)
-            except Exception as e:
-                raise DebugFail("Exec of new process failed: %r" % e)
-        self.pid = pid
-        self.cur_tid = pid
-        t = ThreadDebug(pid)
-        self.threads[pid] = t
+        self.pid = self.ptrace.run(path, args)
+        self.cur_tid = self.pid
+        t = ThreadDebug(self.pid, self.ptrace)
+        self.threads[self.pid] = t
         logging.info("new process <%d> %r", self.pid, args)
         logging.debug("waiting for child process %d", self.pid)
-        self._wait_process()
+        self.should_exit = False # Se per qualche ragione vorresti tenere lo stesso Debugger per più analisi
+        Thread(target=self._constant_wait, daemon=True).start() 
+        self.wait()
         self._option_setup()
         if sleep is not None:
             self.cont(blocking=False)
             time.sleep(sleep)
             self._sig_stop(self.pid)
 
-    def attach(self, pid):
+    def attach(self, pid, options=True):
         """
         Attach to a process using the pid
         """
@@ -512,10 +581,13 @@ class Debugger:
 
         self.ptrace.attach(pid)
 
-        t = ThreadDebug(pid)
+        t = ThreadDebug(pid, self.ptrace)
         self.threads[pid] = t
-        self._wait_process()
-        self._option_setup()
+        self.should_exit = False # Se per qualche ragione vorresti tenere lo stesso Debugger per più analisi
+        Thread(target=self._constant_wait, daemon=True).start()
+        self.wait()
+        if options:
+            self._option_setup()
 
     def reattach(self):
         """
@@ -549,7 +621,10 @@ class Debugger:
         """
         This sto the execution of the process executed with `run`
         """
-
+        # Mi devo assicurare che il thread di wait noti che siamo usciti. Quindi deve ricevere almeno un segnale dopo aver settato should_exit
+        self.should_exit = True
+        self.detach()
+        os.kill(self.old_pid, signal.SIGKILL)
         if self.process is not None:
             os.kill(self.old_pid, signal.SIGKILL)
             self.detach()
@@ -693,19 +768,27 @@ class Debugger:
                 self.mem[b] = self.breakpoints[b]
                 self.breakpoints[b] = None
 
+    # step that won't send a message to the user.
+    def __hidden_step(self):
+        self.__flag_hidden_step = True
+        self.step()
+
+    #** Non ho capito perchè fai step di tutti i thread e non solo di quello su cui stai lavorando
     def step(self):
         """
         Execute the next instruction (Step Into)
         """
         self._enforce_stop()
+        self.stopped.clear()    
+        self.__last_action = "step"
         for tid, t in self.threads.items():
             t.step()
-        self._wait_process()
+        self.wait() # Non dovrebbe stare dentro al loop per essere sicuri che si siano fermati tutti i thread ?
 
     def next(self):
         self._enforce_stop()
         if not self._is_next_instr_call():
-            return self.step()
+            return self.__hidden_step()
         self.step()
         #if 32 bits this do not works
         saved_rip = u64(self.mem[self.rsp:self.rsp+self.reg_size])
@@ -734,16 +817,18 @@ class Debugger:
         """
 
         #I need to execute at least another instruction otherwise I get always in the same bp
-        self.step()
+        self.__hidden_step()
         self._set_breakpoints()
         self.running = True
+        self.stopped.clear()
+        self.__last_action = "continue"
         # Probably should implement a timeout
         # while self.running:
         for tid, t in self.threads.items():
-            t.cont()
+            if t.stopped.is_set(): # if not t.running: 
+                t.cont()
         if blocking:
-            self._wait_process()
-            self._retore_breakpoints()
+            self.wait()
             logging.debug("Continue Stopped")
 
     def finish(self, blocking=True):
@@ -828,8 +913,9 @@ class Debugger:
         if addr in self.breakpoints:
             logging.info("delete BreakPoint at %#x", addr)
             del self.breakpoints[addr]
-        t = self.threads[self.pid]
-        t.del_hw_bp(addr)
+        else:
+            t = self.threads[self.pid]
+            t.del_hw_bp(addr)
 
 
     ## THREADS
