@@ -16,6 +16,8 @@ from threading import Thread, Event
 #logging.basicConfig(level="DEBUG")
 logging = logging.getLogger("libdebug")
 
+BITS = 64 # Te lo lascio qui per non hardcodare la dipendenza da binary 64 bit
+
 class DebugFail(Exception):
     pass
 
@@ -239,7 +241,7 @@ class ThreadDebug():
 
     def _test_execution(self):
         # Test if the program is running or not.
-        # If we are not able to get regs. The program is still running.
+        # If we are not able to get regs. The program is still running OR WE ARE NOT ATTACHED TO IT ANYMORE.
         regs = self.ptrace.getregs(self.tid)
         return not(regs is None)
 
@@ -356,14 +358,22 @@ class ThreadDebug():
         self.hw_breakpoints[r] = None
         return True
 
+    # Ci sono casi in cui ptrace(detach) non viene eseguito correttamente https://stackoverflow.com/questions/20510300/ptrace-detach-fails-after-ptrace-cont-with-errno-esrch
+    def detach(self):
+        logging.info("Detach tid %d", self.tid)   
+        self._enforce_stop()
+        self.step()
+        self.ptrace.detach(self.tid)
+        
 class Debugger:
 
-    def __init__(self, pid=None):
+    def __init__(self, pid=None, multithread=True):
         self.pid = None
         self.threads = {}
         self.cur_tid = None
         self.old_pid = None
         self.process = None
+        self.multithread = multithread
         #According to ptrace manual we need to keep track od the running state to discern if ESRCH is becouse the process is running or dead
         self.running = True
         self.ptrace = Ptracer()
@@ -399,7 +409,7 @@ class Debugger:
             return r[name]
         def setter(self, value):
             self.threads[self.cur_tid].get_regs()
-            self.threads[self.cur_tid].regs[name] = value
+            self.threads[self.cur_tid].regs[name] = value % 2**BITS
             self.threads[self.cur_tid].set_regs()
         return property(getter, setter, None, name)
 
@@ -429,7 +439,10 @@ class Debugger:
         buf = create_string_buffer(100)
         # Ho paura che -1 crei grossi problemi quando vuoi debuggere diversi programmi nello stesso script. Già lo script dei test ha problemi perchè catcha l'exit di processi precedenti. Quando trovo il tempo miglioro questa parte, ma saranno grosse modifiche :(
         logging.debug("waiting...")
-        r = self.ptrace.waitpid(-1, buf, options) 
+        if self.multithread:
+            r = self.ptrace.waitpid(-1, buf, options) 
+        else:
+            r = self.ptrace.waitpid(self.pid, buf, options) 
 
         # In qualche modo evita molti problemi...
         time.sleep(0.02)
@@ -610,11 +623,13 @@ class Debugger:
         """
         Detach the current process
         """
-        for tid in self.threads:
-            logging.info("Detach tid %d", tid)      
-            self.ptrace.detach(tid)
-        self.old_pid = self.pid
-        self.pid = None
+        for tid, thread in list(self.threads.items()):
+            thread.detach()
+            # Controlla che ti vada bene questo. Il mio obbiettivo è evitare che self.shutdown dopo un detach possa hangare. Il problema viene dal fatto che test_running non fa la differenza tra un processo che runna e un processo che non tracci.
+            del self.threads[tid]
+        if self.pid is not None:
+            self.old_pid = self.pid
+            self.pid = None
 
 
     def shutdown(self):

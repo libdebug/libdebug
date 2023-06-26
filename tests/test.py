@@ -5,7 +5,7 @@ from pwn import process
 import time
 class Debugger_read(unittest.TestCase):
     def setUp(self):
-        self.d = Debugger()
+        self.d = Debugger(multithread=False)
         self.d.run("./read_test", sleep=0.1)
         self.mem_addr = 0x1aabbcc1000
 
@@ -57,9 +57,18 @@ class Debugger_read(unittest.TestCase):
         rip = self.d.rip
         self.assertEqual (rip, value)
 
+    def test_detach(self):
+        pid = self.d.pid
+        b = self.d.breakpoint(0x10e2)
+        self.d.cont()
+        self.d.detach()
+        self.d.attach(pid)
+        self.d.cont(blocking=False)
+        self.d.detach()
+
 class Debugger_read_mem(unittest.TestCase):
     def setUp(self):
-        self.d = Debugger()
+        self.d = Debugger(multithread=False)
         self.d.run("./read_test_mem")
         self.mem_addr = 0x1aabbcc1000
 
@@ -95,7 +104,7 @@ class Debugger_read_mem(unittest.TestCase):
 # This is bugged I do not understand yet.
 class Debugger_write(unittest.TestCase):
     def setUp(self):
-        self.d = Debugger()
+        self.d = Debugger(multithread=False)
         self.p = process("./write_test")
         self.d.attach(self.p.pid)
 
@@ -158,7 +167,7 @@ class Debugger_write(unittest.TestCase):
 
 class Debugger_cf(unittest.TestCase):
     def setUp(self):
-        self.d = Debugger()
+        self.d = Debugger(multithread=False)
         self.binary = "./read_test"
 
     def tearDown(self):
