@@ -1,4 +1,4 @@
-from .libdebug import Debugger
+from .libdebug import Debugger, PtraceFail, DebugFail
 
 # Set default logging handler to avoid "No handler found" warnings.
 import logging
