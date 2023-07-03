@@ -358,12 +358,13 @@ class ThreadDebug():
 
 class Debugger:
 
-    def __init__(self, pid=None):
+    def __init__(self, pid=None, multithread=True):
         self.pid = None
         self.threads = {}
         self.cur_tid = None
         self.old_pid = None
         self.process = None
+        self.multithread = multithread
         #According to ptrace manual we need to keep track od the running state to discern if ESRCH is becouse the process is running or dead
         self.running = True
         self.ptrace = Ptracer()
@@ -429,7 +430,10 @@ class Debugger:
         buf = create_string_buffer(100)
         # Ho paura che -1 crei grossi problemi quando vuoi debuggere diversi programmi nello stesso script. Già lo script dei test ha problemi perchè catcha l'exit di processi precedenti. Quando trovo il tempo miglioro questa parte, ma saranno grosse modifiche :(
         logging.debug("waiting...")
-        r = self.ptrace.waitpid(-1, buf, options) 
+        if self.multithread:
+            r = self.ptrace.waitpid(-1, buf, options) 
+        else:
+            r = self.ptrace.waitpid(self.pid, buf, options) 
 
         # In qualche modo evita molti problemi...
         time.sleep(0.02)
