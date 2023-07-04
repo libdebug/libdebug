@@ -239,7 +239,7 @@ class ThreadDebug():
 
     def _test_execution(self):
         # Test if the program is running or not.
-        # If we are not able to get regs. The program is still running.
+        # If we are not able to get regs. The program is still running OR WE ARE NOT ATTACHED TO IT ANYMORE.
         regs = self.ptrace.getregs(self.tid)
         return not(regs is None)
 
@@ -266,6 +266,9 @@ class ThreadDebug():
         if self.running and self._test_execution() == False:
             #this should be a PTRACE_INTERRUPT # PTRACE_INTERRUPT causes issues
             self._stop_process()
+            return True
+        else:
+            return False
 
 
     def step(self):
@@ -356,6 +359,28 @@ class ThreadDebug():
         self.hw_breakpoints[r] = None
         return True
 
+    # Devo gestire due casi: ptrace.detach non può essere chiamato mentre il processo sta runnando e devo garantire che una volta fatto detach da tutti i thread waitpid non sarà più chiamato
+    def detach(self):
+        """
+        Detach from a thread
+
+        If the thread isn't running when the function is called the process won't resume after behing detached
+        """
+        logging.info("Detach tid %d", self.tid)   
+        stopped = self._enforce_stop()
+        # Se stava runnando il thread si è fermato e abbiamo chiuso constant_wait.
+        # Nel caso contrario è necessario triggerare una nuova interuzione. Questo però ci impedisce di sapere se l'utente ha mandato un SIGSTOP per evitare che il processo continui, quindi per default mi assicuro che rimanga fermo
+        if not stopped:
+            # send signal to prevent step from executing an instruction
+            self._sig_stop()
+            # Catch signal and close waitpid
+            self.step()
+            # send signal to stop the execution as soon as we detach
+            self._sig_stop()
+        # I still have to find out why this sleep is needed...
+        time.sleep(0.5)
+        self.ptrace.detach(self.tid)
+        
 class Debugger:
 
     def __init__(self, pid=None, multithread=True):
@@ -381,6 +406,8 @@ class Debugger:
         self.stopped = Event()
         self.stop_status = 0
         self.__flag_hidden_step = False
+        self.exited = Event()
+        self.exited.set()
         
         #create property for registers
         for r in AMD64_REGS+FPREGS_SHORT+FPREGS_INT+FPREGS_80+FPREGS_128:
@@ -423,6 +450,8 @@ class Debugger:
         while self._wait_process():
             if self.should_exit: break
         logging.debug(f"libdebug [{self.pid}/{self.old_pid}] won't wait any more")
+        self.stopped.set()
+        self.exited.set()
 
     def _wait_process(self, pid=None):
         should_continue = False
@@ -437,11 +466,6 @@ class Debugger:
 
         # In qualche modo evita molti problemi...
         time.sleep(0.02)
-
-        # Significa che ho fatto detach
-        if self.pid is None:
-            logging.debug(f"exiting wait because you detached from {self.old_pid}")
-            return False
 
         status = u32(buf[:4])
         logging.debug("waitpid status: %#x, tid: %d, %s", status, r, WIFSTOPPED(status))
@@ -533,9 +557,10 @@ class Debugger:
 
     def _enforce_stop(self):
         # Can we trust self.running without any check?
+        stopped = False
         for tid, t in self.threads.items():
-            t._enforce_stop()
-
+            stopped |= t._enforce_stop()
+        return stopped
 
     def _is_next_instr_call(self):
         rip = self.rip
@@ -567,6 +592,7 @@ class Debugger:
         logging.info("new process <%d> %r", self.pid, args)
         logging.debug("waiting for child process %d", self.pid)
         self.should_exit = False # Se per qualche ragione vorresti tenere lo stesso Debugger per più analisi
+        self.exited.clear()
         Thread(target=self._constant_wait, daemon=True).start() 
         self.wait()
         self._option_setup()
@@ -583,15 +609,20 @@ class Debugger:
         self.pid = pid
         self.cur_tid = pid
 
-        self.ptrace.attach(pid)
+        try:
+            self.ptrace.attach(pid)
+        except PtraceFail:
+            return False
 
         t = ThreadDebug(pid, self.ptrace)
         self.threads[pid] = t
         self.should_exit = False # Se per qualche ragione vorresti tenere lo stesso Debugger per più analisi
+        self.exited.clear()
         Thread(target=self._constant_wait, daemon=True).start()
         self.wait()
         if options:
             self._option_setup()
+        return True
 
     def reattach(self):
         """
@@ -613,20 +644,26 @@ class Debugger:
     def detach(self):
         """
         Detach the current process
-        """
-        for tid in self.threads:
-            logging.info("Detach tid %d", tid)      
-            self.ptrace.detach(tid)
-        self.old_pid = self.pid
-        self.pid = None
 
+        The process dosn't restart if detach is called while at a stop.
+        """
+        # Mi devo assicurare che il thread di wait noti che siamo usciti altrimenti non potrò fare un nuovo attach. Quindi il processo deve interrompersi una volta dopo aver settato should_exit
+        # Per il momento funziona bene solo in siglethread. Per farlo funzionare su più thread ci sono due strade: trovare come implementare un waitpid in ogni ThreadDebugger identificando correttamente i nuovi thread oppure tenendo l'ultimo thread e chiudere constant_wait solo quando facciamo detach di quel thread.
+        self.should_exit = True
+        for tid, thread in list(self.threads.items()):
+            thread.detach()
+            # Controlla che ti vada bene questo. Il mio obbiettivo è evitare che self.shutdown dopo un detach possa hangare. Il problema viene dal fatto che test_running non fa la differenza tra un processo che runna e un processo che non tracci.
+            del self.threads[tid]
+        # Settare pid = None troppo presto rompe waitpid
+        self.exited.wait()
+        if self.pid is not None:
+            self.old_pid = self.pid
+            self.pid = None
 
     def shutdown(self):
         """
         This sto the execution of the process executed with `run`
         """
-        # Mi devo assicurare che il thread di wait noti che siamo usciti. Quindi deve ricevere almeno un segnale dopo aver settato should_exit
-        self.should_exit = True
         self.detach()
         os.kill(self.old_pid, signal.SIGKILL)
         if self.process is not None:
@@ -644,6 +681,7 @@ class Debugger:
 
         #Stop the process so you can continue exactly form where you let in the script
         for tid in self.threads:
+            # thread._enforce_stop() would be enough with the new detach(), but since multiple signals are blocked sending SIGSTOP if we are already at a stop won't bother us. 
             self._sig_stop(tid)
         #detach
         pid = self.pid

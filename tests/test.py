@@ -57,6 +57,26 @@ class Debugger_read(unittest.TestCase):
         rip = self.d.rip
         self.assertEqual (rip, value)
 
+    def test_detach(self):
+        pid = self.d.pid
+        b = self.d.breakpoint(0x10e2)
+        self.d.cont()
+        self.d.del_bp(b)
+        self.d.detach()
+        self.d.attach(pid)
+        self.d.step() # Catch the sigstop from the attach
+        self.assertEqual(self.d.stop_status, 0x137f)
+        self.assertEqual(self.d.rip, self.d.bases['main'] + 0x10e2)
+        self.d.cont(blocking=False)
+        # Be sure that we are running
+        self.assertFalse(self.d.threads[self.d.pid]._test_execution())
+        self.d.detach()
+        self.d.attach(pid)
+        self.assertNotEqual(self.d.rip, self.d.bases['main'] + 0x10e2)
+        self.d.cont(blocking=False)
+        self.assertFalse(self.d.threads[self.d.pid]._test_execution())
+        self.d.detach()
+
 class Debugger_read_mem(unittest.TestCase):
     def setUp(self):
         self.d = Debugger(multithread=False)
