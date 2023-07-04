@@ -280,6 +280,7 @@ class ThreadDebug():
         self.running = True
         self.stopped.clear()
         self.ptrace.singlestep(self.tid)
+        self.wait()
 
 
     def cont(self):
@@ -377,8 +378,6 @@ class ThreadDebug():
             self.step()
             # send signal to stop the execution as soon as we detach
             self._sig_stop()
-        # I still have to find out why this sleep is needed...
-        time.sleep(0.5)
         self.ptrace.detach(self.tid)
         
 class Debugger:
@@ -825,7 +824,6 @@ class Debugger:
         self.__last_action = "step"
         for tid, t in self.threads.items():
             t.step()
-        self.wait() # Non dovrebbe stare dentro al loop per essere sicuri che si siano fermati tutti i thread ?
 
     def next(self):
         self._enforce_stop()
