@@ -162,9 +162,9 @@ class Ptrace():
         return buf
 
 
-    def singlestep(self, tid):
+    def singlestep(self, tid, signal=0x0):
         self.libc.ptrace.argtypes = self.args_int
-        if (self.libc.ptrace(PTRACE_SINGLESTEP, tid, NULL, NULL) == -1):
+        if (self.libc.ptrace(PTRACE_SINGLESTEP, tid, NULL, signal) == -1):
             raise PtraceFail("Step Failed. Do you have permisions? Running as sudo?")
 
 
@@ -301,7 +301,7 @@ class Ptracer:
                         self.retval.put(self.ptrace.getfpregs(tid))
 
                     if ptrace_request == PTRACE_SINGLESTEP:
-                        self.retval.put(self.ptrace.singlestep(tid))
+                        self.retval.put(self.ptrace.singlestep(tid, arg2))
 
                     if ptrace_request == PTRACE_CONT:
                         self.retval.put(self.ptrace.cont(tid, arg2))
@@ -366,8 +366,8 @@ class Ptracer:
 
         @lock_decorator
         @debug_decorator
-        def singlestep(self, tid):
-            self.queries.put((PTRACE_SINGLESTEP, tid, NULL, NULL))
+        def singlestep(self, tid, signal=0x0):
+            self.queries.put((PTRACE_SINGLESTEP, tid, NULL, signal))
             return self.retval.get()
 
         @lock_decorator

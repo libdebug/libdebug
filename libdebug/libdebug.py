@@ -271,7 +271,7 @@ class ThreadDebug():
             return False
 
 
-    def step(self):
+    def step(self, signal=0x0):
         """
         Execute the next instruction (Step Into)
         """
@@ -279,7 +279,7 @@ class ThreadDebug():
         logging.debug(f"[TID {self.tid}] Step")
         self.running = True
         self.stopped.clear()
-        self.ptrace.singlestep(self.tid)
+        self.ptrace.singlestep(self.tid, signal=signal)
         self.wait()
 
 
@@ -810,12 +810,12 @@ class Debugger:
                 self.breakpoints[b] = None
 
     # step that won't send a message to the user.
-    def __hidden_step(self):
+    def __hidden_step(self, signal=0x0):
         self.__flag_hidden_step = True
-        self.step()
+        self.step(signal=signal)
 
     #** Non ho capito perchè fai step di tutti i thread e non solo di quello su cui stai lavorando
-    def step(self):
+    def step(self, signal=0x0):
         """
         Execute the next instruction (Step Into)
         """
@@ -823,7 +823,7 @@ class Debugger:
         self.stopped.clear()    
         self.__last_action = "step"
         for tid, t in self.threads.items():
-            t.step()
+            t.step(signal=signal)
 
     def next(self):
         self._enforce_stop()
@@ -857,7 +857,7 @@ class Debugger:
         """
 
         #I need to execute at least another instruction otherwise I get always in the same bp
-        self.__hidden_step()
+        self.__hidden_step(signal=signal)
         self._set_breakpoints()
         self.running = True
         self.stopped.clear()
@@ -866,7 +866,7 @@ class Debugger:
         # while self.running:
         for tid, t in self.threads.items():
             if t.stopped.is_set(): # if not t.running: 
-                t.cont(signal=signal)
+                t.cont()
         if blocking:
             self.wait()
             logging.debug("Continue Stopped")
