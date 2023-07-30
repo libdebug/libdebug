@@ -283,7 +283,7 @@ class ThreadDebug():
         self.wait()
 
 
-    def cont(self):
+    def cont(self, signal=0x0):
         """
         Continue the execution until the next breakpoint is hitted or the program is stopped
         """
@@ -291,7 +291,7 @@ class ThreadDebug():
         self.stopped.clear()
         # Probably should implement a timeout
         logging.debug("[TID %d] cont", self.tid)
-        self.ptrace.cont(self.tid)
+        self.ptrace.cont(self.tid, signal)
 
     #Struct User
     def _peek_user(self, addr):
@@ -851,7 +851,7 @@ class Debugger:
             if self.rip == rip:
                 break
 
-    def cont(self, blocking=True):
+    def cont(self, blocking=True, signal=0x0):
         """
         Continue the execution until the next breakpoint is hitted or the program is stopped
         """
@@ -866,7 +866,7 @@ class Debugger:
         # while self.running:
         for tid, t in self.threads.items():
             if t.stopped.is_set(): # if not t.running: 
-                t.cont()
+                t.cont(signal=signal)
         if blocking:
             self.wait()
             logging.debug("Continue Stopped")

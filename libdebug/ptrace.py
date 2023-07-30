@@ -168,9 +168,9 @@ class Ptrace():
             raise PtraceFail("Step Failed. Do you have permisions? Running as sudo?")
 
 
-    def cont(self, tid):
+    def cont(self, tid, signal):
         self.libc.ptrace.argtypes = self.args_int
-        if (self.libc.ptrace(PTRACE_CONT, tid, NULL, NULL) == -1):
+        if (self.libc.ptrace(PTRACE_CONT, tid, NULL, signal) == -1):
             raise PtraceFail("[%d] Continue Failed. Do you have permisions? Running as sudo?" % tid)
 
 
@@ -304,7 +304,7 @@ class Ptracer:
                         self.retval.put(self.ptrace.singlestep(tid))
 
                     if ptrace_request == PTRACE_CONT:
-                        self.retval.put(self.ptrace.cont(tid))
+                        self.retval.put(self.ptrace.cont(tid, arg2))
 
                     if ptrace_request == PTRACE_POKEDATA:
                         self.retval.put(self.ptrace.poke(tid, arg1, arg2))
@@ -372,8 +372,8 @@ class Ptracer:
 
         @lock_decorator
         @debug_decorator
-        def cont(self, tid):
-            self.queries.put((PTRACE_CONT, tid, NULL, NULL))
+        def cont(self, tid, signal=0x0):
+            self.queries.put((PTRACE_CONT, tid, NULL, signal))
             return self.retval.get()
 
         @lock_decorator
