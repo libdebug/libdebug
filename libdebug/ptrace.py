@@ -162,15 +162,15 @@ class Ptrace():
         return buf
 
 
-    def singlestep(self, tid):
+    def singlestep(self, tid, signal=0x0):
         self.libc.ptrace.argtypes = self.args_int
-        if (self.libc.ptrace(PTRACE_SINGLESTEP, tid, NULL, NULL) == -1):
+        if (self.libc.ptrace(PTRACE_SINGLESTEP, tid, NULL, signal) == -1):
             raise PtraceFail("Step Failed. Do you have permisions? Running as sudo?")
 
 
-    def cont(self, tid):
+    def cont(self, tid, signal):
         self.libc.ptrace.argtypes = self.args_int
-        if (self.libc.ptrace(PTRACE_CONT, tid, NULL, NULL) == -1):
+        if (self.libc.ptrace(PTRACE_CONT, tid, NULL, signal) == -1):
             raise PtraceFail("[%d] Continue Failed. Do you have permisions? Running as sudo?" % tid)
 
 
@@ -263,6 +263,8 @@ def lock_decorator(func):
     def parse(self, *args, **kwargs):
         with self.lock:
             result = func(self, *args, **kwargs)
+            if type(result) is PtraceFail:
+                raise result
         return result
     return parse
 
@@ -278,57 +280,61 @@ class Ptracer:
             while True:
                 ptrace_request, tid, arg1, arg2 = self.queries.get()
 
-                # Brutto, ma dovrebbe funzionare
-                if type(ptrace_request) is str:
-                    # È una run
-                    path, args = ptrace_request, tid
-                    pid = self._run(path, args)
-                    self.retval.put(pid)
+                try:
+                    # Brutto, ma dovrebbe funzionare
+                    if type(ptrace_request) is str:
+                        # È una run
+                        path, args = ptrace_request, tid
+                        pid = self._run(path, args)
+                        self.retval.put(pid)
 
-                if ptrace_request == PTRACE_SETREGS:
-                    self.retval.put(self.ptrace.setregs(tid, arg2))
+                    if ptrace_request == PTRACE_SETREGS:
+                        self.retval.put(self.ptrace.setregs(tid, arg2))
+                    
+                    if ptrace_request == PTRACE_GETREGS:
+                        self.retval.put(self.ptrace.getregs(tid))   
+
+                    if ptrace_request == PTRACE_SETFPREGS:
+                        self.retval.put(self.ptrace.setfpregs(tid, arg2))
+
+                    if ptrace_request == PTRACE_GETFPREGS:
+                        self.retval.put(self.ptrace.getfpregs(tid))
+
+                    if ptrace_request == PTRACE_SINGLESTEP:
+                        self.retval.put(self.ptrace.singlestep(tid, arg2))
+
+                    if ptrace_request == PTRACE_CONT:
+                        self.retval.put(self.ptrace.cont(tid, arg2))
+
+                    if ptrace_request == PTRACE_POKEDATA:
+                        self.retval.put(self.ptrace.poke(tid, arg1, arg2))
+
+                    if ptrace_request == PTRACE_PEEKDATA:
+                        self.retval.put(self.ptrace.peek(tid, arg1))
+
+                    if ptrace_request == PTRACE_SETOPTIONS:
+                        self.retval.put(self.ptrace.setoptions(tid, arg2))
+
+                    if ptrace_request == PTRACE_ATTACH:
+                        self.retval.put(self.ptrace.attach(tid))
+
+                    if ptrace_request == PTRACE_SEIZE:
+                        self.retval.put(self.ptrace.seize(tid, arg2))
+
+                    if ptrace_request == PTRACE_DETACH:
+                        self.retval.put(self.ptrace.detach(tid))
+
+                    if ptrace_request == PTRACE_INTERRUPT:
+                        self.retval.put(self.ptrace.interrupt(tid))
+
+                    if ptrace_request == PTRACE_POKEUSER:
+                        self.retval.put(self.ptrace.poke_user(tid, arg1, arg2))
+
+                    if ptrace_request == PTRACE_PEEKUSER:
+                        self.retval.put(self.ptrace.peek_user(tid, arg1))
                 
-                if ptrace_request == PTRACE_GETREGS:
-                    self.retval.put(self.ptrace.getregs(tid))   
-
-                if ptrace_request == PTRACE_SETFPREGS:
-                    self.retval.put(self.ptrace.setfpregs(tid, arg2))
-
-                if ptrace_request == PTRACE_GETFPREGS:
-                    self.retval.put(self.ptrace.getfpregs(tid))
-
-                if ptrace_request == PTRACE_SINGLESTEP:
-                    self.retval.put(self.ptrace.singlestep(tid))
-
-                if ptrace_request == PTRACE_CONT:
-                    self.retval.put(self.ptrace.cont(tid))
-
-                if ptrace_request == PTRACE_POKEDATA:
-                    self.retval.put(self.ptrace.poke(tid, arg1, arg2))
-
-                if ptrace_request == PTRACE_PEEKDATA:
-                    self.retval.put(self.ptrace.peek(tid, arg1))
-
-                if ptrace_request == PTRACE_SETOPTIONS:
-                    self.retval.put(self.ptrace.setoptions(tid, arg2))
-
-                if ptrace_request == PTRACE_ATTACH:
-                    self.retval.put(self.ptrace.attach(tid))
-
-                if ptrace_request == PTRACE_SEIZE:
-                    self.retval.put(self.ptrace.seize(tid, arg2))
-
-                if ptrace_request == PTRACE_DETACH:
-                    self.retval.put(self.ptrace.detach(tid))
-
-                if ptrace_request == PTRACE_INTERRUPT:
-                    self.retval.put(self.ptrace.interrupt(tid))
-
-                if ptrace_request == PTRACE_POKEUSER:
-                    self.retval.put(self.ptrace.poke_user(tid, arg1, arg2))
-
-                if ptrace_request == PTRACE_PEEKUSER:
-                    self.retval.put(self.ptrace.peek_user(tid, arg1))
+                except Exception as e:
+                    self.retval.put(e)
 
         @lock_decorator
         @debug_decorator
@@ -360,14 +366,14 @@ class Ptracer:
 
         @lock_decorator
         @debug_decorator
-        def singlestep(self, tid):
-            self.queries.put((PTRACE_SINGLESTEP, tid, NULL, NULL))
+        def singlestep(self, tid, signal=0x0):
+            self.queries.put((PTRACE_SINGLESTEP, tid, NULL, signal))
             return self.retval.get()
 
         @lock_decorator
         @debug_decorator
-        def cont(self, tid):
-            self.queries.put((PTRACE_CONT, tid, NULL, NULL))
+        def cont(self, tid, signal=0x0):
+            self.queries.put((PTRACE_CONT, tid, NULL, signal))
             return self.retval.get()
 
         @lock_decorator
