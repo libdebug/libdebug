@@ -1,23 +1,25 @@
-from .ptrace import *
-import struct
-import subprocess
-import errno
 import collections
-import os
-import signal 
-import time
+import errno
 import logging
+import os
 import re
-from capstone import Cs, CS_ARCH_X86, CS_MODE_64
-from .utils import u64, u32
+import signal
+import struct
+import time
+
+from capstone import CS_ARCH_X86, CS_MODE_64, Cs
+
+from .ptrace import *
+from .utils import u32, u64
 
 logging = logging.getLogger("libdebug")
+
 
 class DebugFail(Exception):
     pass
 
-class Memory(collections.abc.MutableSequence):
 
+class Memory(collections.abc.MutableSequence):
     def __init__(self, getter, setter):
         self.getword = getter
         self.setword = setter
@@ -34,43 +36,57 @@ class Memory(collections.abc.MutableSequence):
         if isinstance(index, slice):
             start = index.start // self.word_size * self.word_size
             stop = (index.stop + self.word_size) // self.word_size * self.word_size
-            return self._retrive_data(start, stop)[index.start-start: index.stop-start]
+            return self._retrive_data(start, stop)[
+                index.start - start : index.stop - start
+            ]
         else:
-            return (self.getword(index) & 0xff).to_bytes(1, 'little')
+            return (self.getword(index) & 0xFF).to_bytes(1, "little")
 
     def _set_data(self, start, value):
         logging.debug("writing @%#x <- %s", start, value)
         for i in range(start, (start + len(value)), self.word_size):
-            chunk = value[(i-start) : (i+self.word_size-start)]
+            chunk = value[(i - start) : (i + self.word_size - start)]
             data = struct.unpack("<Q", chunk)[0]
             self.setword(i, data)
 
     def __setitem__(self, index, value):
         if isinstance(index, slice):
             start = index.start // self.word_size * self.word_size
-            #TODO if is a slice ensure that value is not going after the end
-            stop = (index.start + len(value) + self.word_size) // self.word_size * self.word_size
+            # TODO if is a slice ensure that value is not going after the end
+            stop = (
+                (index.start + len(value) + self.word_size)
+                // self.word_size
+                * self.word_size
+            )
             index = index.start
         else:
             start = index // self.word_size * self.word_size
-            stop = (index + len(value) + self.word_size) // self.word_size * self.word_size
-        #Maybe all this alligment stuff is useless if I can do writes allinge per byte.
-        logging.debug("mem index:%#x, value: %s, start:%#x, stop:%x", index, value, start, stop)
+            stop = (
+                (index + len(value) + self.word_size) // self.word_size * self.word_size
+            )
+        # Maybe all this alligment stuff is useless if I can do writes allinge per byte.
+        logging.debug(
+            "mem index:%#x, value: %s, start:%#x, stop:%x", index, value, start, stop
+        )
         orig_data = self._retrive_data(start, stop)
-        new_data = orig_data[0:index-start] + value + orig_data[index-start+len(value):]
+        new_data = (
+            orig_data[0 : index - start]
+            + value
+            + orig_data[index - start + len(value) :]
+        )
         self._set_data(start, new_data)
-
 
     def __len__(self):
         return 0
 
     def __delitem__(self, index):
-        self.__setitem__(self, index, b'\x00')
+        self.__setitem__(self, index, b"\x00")
 
     def insert(self, index, value):
         self.__setitem__(self, index, value)
 
-class ThreadDebug():
+
+class ThreadDebug:
     def __init__(self, tid=None):
         self.tid = tid
         self.regs = {}
@@ -79,29 +95,36 @@ class ThreadDebug():
         self.reg_size = 8
         self.running = True
         self.ptrace = Ptrace()
-        #This is specific to intel x86_64
-        self.hw_breakpoints = {'DR0': None, 'DR1': None, 'DR2': None, 'DR3': None,}
+        # This is specific to intel x86_64
+        self.hw_breakpoints = {
+            "DR0": None,
+            "DR1": None,
+            "DR2": None,
+            "DR3": None,
+        }
 
-        #create property for registers
+        # create property for registers
         for r in self.regs_names:
             setattr(ThreadDebug, r, self._get_reg(r))
 
-        #create property for fpregisters. Avoid Long because conaint rip and we do not want to overload rip
-        for r in FPREGS_SHORT+FPREGS_INT+FPREGS_80+FPREGS_128:
+        # create property for fpregisters. Avoid Long because conaint rip and we do not want to overload rip
+        for r in FPREGS_SHORT + FPREGS_INT + FPREGS_80 + FPREGS_128:
             setattr(ThreadDebug, r, self._get_fpreg(r))
 
     ## Registers
 
     def _get_reg(self, name):
-        #This is an helping function to generate properties to access registers        
+        # This is an helping function to generate properties to access registers
         def getter(self):
-            #reload registers
+            # reload registers
             self.get_regs()
             return self.regs[name]
+
         def setter(self, value):
             self.get_regs()
             self.regs[name] = value
             self.set_regs()
+
         return property(getter, setter, None, name)
 
     def set_regs(self):
@@ -110,8 +133,8 @@ class ThreadDebug():
         regs_values = []
         for name in self.regs_names:
             regs_values.append(self.regs[name])
- 
-        data = struct.pack("<" + "Q"*len(self.regs_names), *regs_values)
+
+        data = struct.pack("<" + "Q" * len(self.regs_names), *regs_values)
         self.ptrace.setregs(self.tid, data)
 
     def get_regs(self):
@@ -120,53 +143,58 @@ class ThreadDebug():
         buf = self.ptrace.getregs(self.tid)
         if buf is None:
             err = get_errno()
-            #We use geT_regs as test for the process if it is running we may stoppit before executing something
+            # We use geT_regs as test for the process if it is running we may stoppit before executing something
             # ether the process is dead or is running
             if err == errno.ESRCH and self.running:
-                #we should stop the process.
+                # we should stop the process.
                 return None
             elif err == errno.ESRCH and not self.running:
                 logging.critical("The proccess %d is dead!", self.tid)
             else:
                 logging.debug("getregs error: %d", err)
-                raise PtraceFail("GetRegs Failed. Do you have permisio? Running as sudo?")
+                raise PtraceFail(
+                    "GetRegs Failed. Do you have permisio? Running as sudo?"
+                )
 
-        buf_size = len(self.regs_names) * self.reg_size 
-        regs = struct.unpack("<" + "Q"*len(self.regs_names), buf[:buf_size])
+        buf_size = len(self.regs_names) * self.reg_size
+        regs = struct.unpack("<" + "Q" * len(self.regs_names), buf[:buf_size])
 
         for name, value in zip(self.regs_names, regs):
             self.regs[name] = value
-        logging.debug("TID[%d] %#x", self.tid, self.regs['rax'])
+        logging.debug("TID[%d] %#x", self.tid, self.regs["rax"])
         return self.regs
 
     def _get_fpreg(self, name):
-        #This is an helping function to generate properties to access fp registers        
+        # This is an helping function to generate properties to access fp registers
         def getter(self):
-            #reload registers
+            # reload registers
             self.get_fpregs()
             return self.fpregs[name]
+
         def setter(self, value):
             self.get_fpregs()
             self.fpregs[name] = value
             self.set_fpregs()
+
         return property(getter, setter, None, name)
-   
 
     def get_fpregs(self):
         self._enforce_stop()
         buf = self.ptrace.getfpregs(self.tid)
         if buf is None:
             err = get_errno()
-            #We use geT_regs as test for the process if it is running we may stoppit before executing something
+            # We use geT_regs as test for the process if it is running we may stoppit before executing something
             # ether the process is dead or is running
             if err == errno.ESRCH and self.running:
-                #we should stop the process.
+                # we should stop the process.
                 return None
             elif err == errno.ESRCH and not self.running:
                 logging.critical("The proccess is dead!")
             else:
                 logging.debug("getregs error: %d", err)
-                raise PtraceFail("GetRegs Failed. Do you have permisio? Running as sudo?")
+                raise PtraceFail(
+                    "GetRegs Failed. Do you have permisio? Running as sudo?"
+                )
 
         # FPREGS_SHORT = ["cwd", "swd", "ftw", "fop"]
         # FPREGS_LONG  = ["rip", "rdp"]
@@ -177,42 +205,46 @@ class ThreadDebug():
         buf_start = 0
         # SHORTS
         buf_size = len(FPREGS_SHORT) * 2
-        regs = struct.unpack("<" + "H"*len(FPREGS_SHORT), self.buf[buf_start:buf_start+buf_size])
+        regs = struct.unpack(
+            "<" + "H" * len(FPREGS_SHORT), self.buf[buf_start : buf_start + buf_size]
+        )
         for name, value in zip(FPREGS_SHORT, regs):
             self.fpregs[name] = value
         buf_start += buf_size
 
         # LONG
         buf_size = len(FPREGS_LONG) * 8
-        regs = struct.unpack("<" + "Q"*len(FPREGS_LONG), self.buf[buf_start:buf_start+buf_size])
+        regs = struct.unpack(
+            "<" + "Q" * len(FPREGS_LONG), self.buf[buf_start : buf_start + buf_size]
+        )
         for name, value in zip(FPREGS_LONG, regs):
             self.fpregs[name] = value
         buf_start += buf_size
 
         # INT
         buf_size = len(FPREGS_INT) * 4
-        regs = struct.unpack("<" + "I"*len(FPREGS_INT), self.buf[buf_start:buf_start+buf_size])
+        regs = struct.unpack(
+            "<" + "I" * len(FPREGS_INT), self.buf[buf_start : buf_start + buf_size]
+        )
         for name, value in zip(FPREGS_INT, regs):
             self.fpregs[name] = value
         buf_start += buf_size
 
-
         # ST 80bits
         for r in FPREGS_80:
-            a, b =  struct.unpack("<QQ", self.buf[buf_start:buf_start+16])
+            a, b = struct.unpack("<QQ", self.buf[buf_start : buf_start + 16])
             value = (b << 64) | a
             self.fpregs[r] = value
             buf_start += 16
 
         # XMM 128bits
         for r in FPREGS_128:
-            a, b =  struct.unpack("<QQ", self.buf[buf_start:buf_start+16])
+            a, b = struct.unpack("<QQ", self.buf[buf_start : buf_start + 16])
             value = (b << 64) | a
             self.fpregs[r] = value
             buf_start += 16
 
         return self.fpregs
-
 
     def set_fpregs(self):
         self._enforce_stop()
@@ -225,20 +257,23 @@ class ThreadDebug():
         for r in FPREGS_INT:
             data += struct.pack("<I", self.fpregs[r])
         for r in FPREGS_80:
-            data += struct.pack("<QQ", self.fpregs[r] & 0xffffffffffffffff, self.fpregs[r] >> 64)
+            data += struct.pack(
+                "<QQ", self.fpregs[r] & 0xFFFFFFFFFFFFFFFF, self.fpregs[r] >> 64
+            )
         for r in FPREGS_128:
-            data += struct.pack("<QQ", self.fpregs[r] & 0xffffffffffffffff, self.fpregs[r] >> 64)
+            data += struct.pack(
+                "<QQ", self.fpregs[r] & 0xFFFFFFFFFFFFFFFF, self.fpregs[r] >> 64
+            )
         self.ptrace.setfpregs(data)
 
     def _test_execution(self):
         # Test if the program is running or not.
         # If we are not able to get regs. The program is still running.
         regs = self.ptrace.getregs(self.tid)
-        return not(regs is None)
+        return regs is not None
 
     def _sig_stop(self):
         os.kill(self.tid, signal.SIGSTOP)
-
 
     def _wait_process(self):
         options = 0x40000000
@@ -259,29 +294,27 @@ class ThreadDebug():
     def _enforce_stop(self):
         # Can we trust self.running without any check?
         if self.running and self._test_execution() == False:
-            #this should be a PTRACE_INTERRUPT # PTRACE_INTERRUPT causes issues
+            # this should be a PTRACE_INTERRUPT # PTRACE_INTERRUPT causes issues
             self._stop_process()
-
 
     def step(self):
         """
         Execute the next instruction (Step Into)
         """
-        #Step can stuck running into syscalls
+        # Step can stuck running into syscalls
         self.running = True
         self.ptrace.singlestep(self.tid)
-
 
     def cont(self):
         """
         Continue the execution until the next breakpoint is hitted or the program is stopped
         """
-        #I need to execute at least another instruction otherwise I get always in the same bp
+        # I need to execute at least another instruction otherwise I get always in the same bp
         self.running = True
         # Probably should implement a timeout
         self.ptrace.cont(self.tid)
 
-    #Struct User
+    # Struct User
     def _peek_user(self, addr):
         self._enforce_stop()
         data = self.ptrace.peek_user(self.tid, addr)
@@ -291,9 +324,9 @@ class ThreadDebug():
         self._enforce_stop()
         data = self.ptrace.poke_user(self.tid, addr, data)
 
-    #HW BreakPoints
-    def hw_bp(self, addr, cond='X', length=8):
-        #find first empty register
+    # HW BreakPoints
+    def hw_bp(self, addr, cond="X", length=8):
+        # find first empty register
         for r in self.hw_breakpoints:
             if self.hw_breakpoints[r] is None:
                 break
@@ -301,36 +334,34 @@ class ThreadDebug():
             logging.error("Failed to set hw_bp %#lx. All hw register are used!", addr)
             return False
         logging.debug("Setting bp %#lx in register %r", addr, r)
-        #write value in the register
+        # write value in the register
         self._poke_user(AMD64_DBGREGS_OFF[r], addr)
 
-
-        #enable the register from the ctrl
-        ctrl_reg = self._peek_user(AMD64_DBGREGS_OFF['DR7'])
+        # enable the register from the ctrl
+        ctrl_reg = self._peek_user(AMD64_DBGREGS_OFF["DR7"])
         ctrl_reg |= AMD64_DBGREGS_CTRL_LOCAL[r]
         # If the corresponding RWn field in register DR7 is 00 (instruction execution), then the
         # LENn field should also be 00. The effect of using other lengths is undefined. See
         # Section 18.2.5, “Breakpoint Field Recognition,” below
         # https://www.intel.com/content/dam/support/us/en/documents/processors/pentium4/sb/253669.pdf
 
-        #clear condition values
+        # clear condition values
         ctrl_reg &= ~(3 << AMD64_DBGREGS_CTRL_COND[r])
-        ctrl_reg |= (AMD64_DBGREGS_CTRL_COND_VAL[cond] << AMD64_DBGREGS_CTRL_COND[r])
+        ctrl_reg |= AMD64_DBGREGS_CTRL_COND_VAL[cond] << AMD64_DBGREGS_CTRL_COND[r]
 
-        #clear len values
+        # clear len values
         ctrl_reg &= ~(3 << AMD64_DBGREGS_CTRL_LEN[r])
-        if cond != 'X':
-            ctrl_reg |= (AMD64_DBGREGS_CTRL_LEN_VAL[length] << AMD64_DBGREGS_CTRL_LEN[r])
+        if cond != "X":
+            ctrl_reg |= AMD64_DBGREGS_CTRL_LEN_VAL[length] << AMD64_DBGREGS_CTRL_LEN[r]
 
-        self._poke_user(AMD64_DBGREGS_OFF['DR7'], ctrl_reg)
+        self._poke_user(AMD64_DBGREGS_OFF["DR7"], ctrl_reg)
 
-        #store that is in place        
+        # store that is in place
         self.hw_breakpoints[r] = addr
         return True
 
-
     def del_hw_bp(self, addr):
-        #find register containing the bp
+        # find register containing the bp
         for r in self.hw_breakpoints:
             if self.hw_breakpoints[r] == addr:
                 break
@@ -338,25 +369,25 @@ class ThreadDebug():
             logging.error("Failed to find a hw_bp for %#lx.", addr)
             return False
         logging.debug("Stopping bp %#lx in register %r", addr, r)
-        #write value in the register (Not necessary to be onest)
+        # write value in the register (Not necessary to be onest)
         self._poke_user(AMD64_DBGREGS_OFF[r], 0x0)
-        #enable the register from the ctrl
-        ctrl_reg = self._peek_user(AMD64_DBGREGS_OFF['DR7'])
+        # enable the register from the ctrl
+        ctrl_reg = self._peek_user(AMD64_DBGREGS_OFF["DR7"])
         ctrl_reg &= ~AMD64_DBGREGS_CTRL_LOCAL[r]
-        self._poke_user(AMD64_DBGREGS_OFF['DR7'], ctrl_reg)
-        #store that is in place        
+        self._poke_user(AMD64_DBGREGS_OFF["DR7"], ctrl_reg)
+        # store that is in place
         self.hw_breakpoints[r] = None
         return True
 
-class Debugger:
 
+class Debugger:
     def __init__(self, pid=None):
         self.pid = None
         self.threads = {}
         self.cur_tid = None
         self.old_pid = None
         self.process = None
-        #According to ptrace manual we need to keep track od the running state to discern if ESRCH is becouse the process is running or dead
+        # According to ptrace manual we need to keep track od the running state to discern if ESRCH is becouse the process is running or dead
         self.running = True
         self.ptrace = Ptrace()
         self.regs_names = AMD64_REGS
@@ -365,33 +396,34 @@ class Debugger:
         self.breakpoints = {}
         self.map = {}
         self.bases = {}
-        self.terminal = ['tmux', 'splitw', '-h']
+        self.terminal = ["tmux", "splitw", "-h"]
 
-        #create property for registers
-        for r in AMD64_REGS+FPREGS_SHORT+FPREGS_INT+FPREGS_80+FPREGS_128:
+        # create property for registers
+        for r in AMD64_REGS + FPREGS_SHORT + FPREGS_INT + FPREGS_80 + FPREGS_128:
             setattr(Debugger, r, self._get_reg(r))
 
         if pid is not None:
             self.attach(pid)
 
-
     def _get_reg(self, name):
-        #This is an helping function to generate properties to access registers        
+        # This is an helping function to generate properties to access registers
         def getter(self):
-            #reload registers
+            # reload registers
             r = self.threads[self.cur_tid].get_regs()
             return r[name]
+
         def setter(self, value):
             self.threads[self.cur_tid].get_regs()
             self.threads[self.cur_tid].regs[name] = value
             self.threads[self.cur_tid].set_regs()
+
         return property(getter, setter, None, name)
 
     def _sig_stop(self, pid):
         os.kill(pid, signal.SIGSTOP)
 
     def _find_new_tids(self):
-        #identify threads for the current process
+        # identify threads for the current process
         path = "/proc/%d/task/" % self.pid
         tids = list(map(int, os.listdir(path)))
         logging.debug("tids: %r", tids)
@@ -430,12 +462,11 @@ class Debugger:
         for tid, t in self.threads.items():
             t._enforce_stop()
 
-
     def _is_next_instr_call(self):
         rip = self.rip
-        #fetch 6 bytes. 5 should be enough
-        code = self.mem[rip: rip+6]
-        #maybe we should check if it is 32 or 64 mode
+        # fetch 6 bytes. 5 should be enough
+        code = self.mem[rip : rip + 6]
+        # maybe we should check if it is 32 or 64 mode
         md = Cs(CS_ARCH_X86, CS_MODE_64)
         (address, size, mnemonic, op_str) = next(md.disasm_lite(code, 0x1000))
         if mnemonic == "call":
@@ -443,8 +474,14 @@ class Debugger:
         return False
 
     def _option_setup(self):
-        #PTRACE_O_TRACEFORK, PTRACE_O_TRACEVFORK, PTRACE_O_TRACECLONE and PTRACE_O_TRACEEXIT
-        self.ptrace.setoptions(self.pid, PTRACE_O_TRACEFORK | PTRACE_O_TRACEVFORK | PTRACE_O_TRACECLONE | PTRACE_O_TRACEEXIT)
+        # PTRACE_O_TRACEFORK, PTRACE_O_TRACEVFORK, PTRACE_O_TRACECLONE and PTRACE_O_TRACEEXIT
+        self.ptrace.setoptions(
+            self.pid,
+            PTRACE_O_TRACEFORK
+            | PTRACE_O_TRACEVFORK
+            | PTRACE_O_TRACECLONE
+            | PTRACE_O_TRACEEXIT,
+        )
 
     ### Attach/Detach
     def run(self, path, args=[], sleep=None):
@@ -452,11 +489,13 @@ class Debugger:
         # For now this is a simple as I can write it
         pid = os.fork()
         if pid == 0:
-            #child process
+            # child process
             # PTRACE ME
             self.ptrace.traceme()
             # logging.debug("attached %d", r)
-            args = [path,] + args
+            args = [
+                path,
+            ] + args
             try:
                 os.execv(path, args)
             except Exception as e:
@@ -478,7 +517,7 @@ class Debugger:
         """
         Attach to a process using the pid
         """
-        logging.info("attaching to pid %d", pid)      
+        logging.info("attaching to pid %d", pid)
         self.pid = pid
         self.cur_tid = pid
 
@@ -494,9 +533,11 @@ class Debugger:
         Reattach to the last process. This works only after detach.
         """
 
-        logging.debug("RE-attaching to pid %d", self.old_pid)             
+        logging.debug("RE-attaching to pid %d", self.old_pid)
         if self.old_pid is None:
-            raise DebugFail("ReAttach Failed. You never attached before! Use attach or run first. and detach")
+            raise DebugFail(
+                "ReAttach Failed. You never attached before! Use attach or run first. and detach"
+            )
         while True:
             try:
                 self.attach(self.old_pid)
@@ -511,11 +552,10 @@ class Debugger:
         Detach the current process
         """
         for tid in self.threads:
-            logging.info("Detach tid %d", tid)      
+            logging.info("Detach tid %d", tid)
             self.ptrace.detach(tid)
         self.old_pid = self.pid
         self.pid = None
-
 
     def shutdown(self):
         """
@@ -529,36 +569,32 @@ class Debugger:
             # self.process.kill()
             os.kill(self.old_pid, signal.SIGKILL)
 
-
     def gdb(self, spawn=False):
         """
         Migrate the dubugging to gdb
         """
 
-        #Stop the process so you can continue exactly form where you let in the script
+        # Stop the process so you can continue exactly form where you let in the script
         for tid in self.threads:
             self._sig_stop(tid)
-        #detach
+        # detach
         pid = self.pid
         self.detach()
-        #correctly identify the binary
+        # correctly identify the binary
         # pwndbg example startup
         # gdb -q /home/jinblack/guesser/guesser 2312 -x "/tmp/tmp.Zo2Rv6ane"
-        
-        # Signal is already stopped but gdb send another SIGSTOP `-ex signal SIGCONT` 
+
+        # Signal is already stopped but gdb send another SIGSTOP `-ex signal SIGCONT`
         # will get read of on STOP with a continue
-        bin = '/bin/gdb'
-        args = ['-q', "--pid", "%d" % pid, "-ex", "signal SIGCONT"]
+        bin = "/bin/gdb"
+        args = ["-q", "--pid", "%d" % pid, "-ex", "signal SIGCONT"]
         if spawn:
-            cmd_arr =  self.terminal + ["sudo", bin] + args
+            cmd_arr = self.terminal + ["sudo", bin] + args
             cmd = " ".join(cmd_arr)
             logging.debug("system %s", cmd)
             os.system(cmd)
         else:
             os.execv(bin, args)
-
-
-
 
     ## Memory
 
@@ -568,25 +604,26 @@ class Debugger:
         # according to man ptrace no difference for PTRACE_PEEKTEXT and PTRACE_PEEKDATA on linux
         data = self.ptrace.peek(self.pid, addr)
         return data
-    
+
     def poke(self, addr, value):
         self._check_mem_address(addr)
         self._enforce_stop()
         # according to man ptrace no difference for PTRACE_POKETEXT and PTRACE_POKEDATA on linux
         self.ptrace.poke(self.pid, addr, value)
 
- 
     def _base_guess(self):
         if len(self.map) == 0:
             logging.warning("Failed to guess the bases.")
             return
 
-        self.bases["main"] = min([m for m in self.map if self.map[m]['file'] is not None])
+        self.bases["main"] = min(
+            [m for m in self.map if self.map[m]["file"] is not None]
+        )
         logging.debug("new base main guessed at %#x", self.bases["main"])
 
         for m in self.map:
-            if self.map[m]['offset'] == 0 and self.map[m]['file'] is not None:
-                name = self.map[m]['file']
+            if self.map[m]["offset"] == 0 and self.map[m]["file"] is not None:
+                name = self.map[m]["file"]
                 self.bases[name] = m
                 logging.debug("new base %s guessed at %#x", name, m)
 
@@ -598,14 +635,14 @@ class Debugger:
         # 55c1b7eb1000-55c1b7eb2000 r--p 00002000 00:19 28246290                   /home/jinblack/Projects/libdebug/tests/test
         # 55c1b7eb2000-55c1b7eb3000 r--p 00002000 00:19 28246290                   /home/jinblack/Projects/libdebug/tests/test
         # 55c1b7eb3000-55c1b7eb4000 rw-p 00003000 00:19 28246290                   /home/jinblack/Projects/libdebug/tests/test
-        # 7f7fd6b48000-7f7fd6b4a000 rw-p 00000000 00:00 0 
+        # 7f7fd6b48000-7f7fd6b4a000 rw-p 00000000 00:00 0
         # 7f7fd6b4a000-7f7fd6b76000 r--p 00000000 00:19 9051255                    /usr/lib/libc.so.6
         # 7f7fd6b76000-7f7fd6cec000 r-xp 0002c000 00:19 9051255                    /usr/lib/libc.so.6
         # 7f7fd6cec000-7f7fd6d40000 r--p 001a2000 00:19 9051255                    /usr/lib/libc.so.6
         # 7f7fd6d40000-7f7fd6d41000 ---p 001f6000 00:19 9051255                    /usr/lib/libc.so.6
         # 7f7fd6d41000-7f7fd6d44000 r--p 001f6000 00:19 9051255                    /usr/lib/libc.so.6
         # 7f7fd6d44000-7f7fd6d47000 rw-p 001f9000 00:19 9051255                    /usr/lib/libc.so.6
-        # 7f7fd6d47000-7f7fd6d56000 rw-p 00000000 00:00 0 
+        # 7f7fd6d47000-7f7fd6d56000 rw-p 00000000 00:00 0
         # 7f7fd6d96000-7f7fd6d98000 r--p 00000000 00:19 9051246                    /usr/lib/ld-linux-x86-64.so.2
         # 7f7fd6d98000-7f7fd6dbf000 r-xp 00002000 00:19 9051246                    /usr/lib/ld-linux-x86-64.so.2
         # 7f7fd6dbf000-7f7fd6dca000 r--p 00029000 00:19 9051246                    /usr/lib/ld-linux-x86-64.so.2
@@ -618,7 +655,7 @@ class Debugger:
         l_regx = "(?P<start>[0-9a-f]+)-(?P<stop>[0-9a-f]+)\s+(?P<read>[r-])(?P<write>[w-])(?P<exec>[x-])([p-])\s+(?P<offset>[0-9a-f]+)\s+[0-9a-f]+:[0-9a-f]+\s+(?P<inode>[0-9]+)\s+(?P<pathname>\/.*[\w:]+|\[\w+\])?"
         pid = self.pid
         logging.debug("Retrieving mem maps")
-        with open(f"/proc/{pid}/maps", 'r') as f:
+        with open(f"/proc/{pid}/maps", "r") as f:
             self.map = {}
             for l in f.readlines():
                 m = re.match(l_regx, l)
@@ -626,25 +663,35 @@ class Debugger:
                     logging.warning("Failed loading map table: %s", l)
                     continue
                 md = m.groupdict()
-                perm = 4 if md['read']  == 'r' else 0 \
-                     + 2 if md['write'] == 'w' else 0 \
-                     + 1 if md['exec']  == 'x' else 0
-                start = int(md['start'], 16)
-                stop = int(md['stop'], 16)
-                offset = int(md['offset'], 16)
+                perm = (
+                    4
+                    if md["read"] == "r"
+                    else 0 + 2
+                    if md["write"] == "w"
+                    else 0 + 1
+                    if md["exec"] == "x"
+                    else 0
+                )
+                start = int(md["start"], 16)
+                stop = int(md["stop"], 16)
+                offset = int(md["offset"], 16)
 
-                segment = {"start": start, 
-                           "stop": stop,
-                           "perms": perm,
-                           "offset": offset, 
-                           "pathname": md['pathname'],
-                           "file": os.path.basename(md['pathname'])  if md['pathname'] is not None else None}
+                segment = {
+                    "start": start,
+                    "stop": stop,
+                    "perms": perm,
+                    "offset": offset,
+                    "pathname": md["pathname"],
+                    "file": os.path.basename(md["pathname"])
+                    if md["pathname"] is not None
+                    else None,
+                }
                 self.map[start] = segment
         self._base_guess()
 
     def _check_mem_address(self, addr, warn=True):
         for m in self.map:
-            if self.map[m]['start'] <= addr < self.map[m]['stop']:
+            if self.map[m]["start"] <= addr < self.map[m]["stop"]:
                 return True
         if warn:
             logging.warning("The address %#x is outside any memory reagion", addr)
@@ -658,7 +705,7 @@ class Debugger:
 
     def _retore_breakpoints(self):
         # Some time this stop exactly before the execution of the bp some time after.
-        if self.rip not in self.breakpoints and self.rip-1 in self.breakpoints:
+        if self.rip not in self.breakpoints and self.rip - 1 in self.breakpoints:
             self.rip -= 1
         for b in self.breakpoints:
             self.mem[b] = self.breakpoints[b]
@@ -678,13 +725,13 @@ class Debugger:
         if not self._is_next_instr_call():
             return self.step()
         self.step()
-        #if 32 bits this do not works
-        saved_rip = u64(self.mem[self.rsp:self.rsp+self.reg_size])
+        # if 32 bits this do not works
+        saved_rip = u64(self.mem[self.rsp : self.rsp + self.reg_size])
         logging.debug("next on a call instruction, executing until %#x", saved_rip)
-        #should we have a separate set of breakpoints?
+        # should we have a separate set of breakpoints?
         bp = self.breakpoint(saved_rip)
         self.cont()
-        #this will couse the remove of an old break point placed in that part
+        # this will couse the remove of an old break point placed in that part
         self.del_bp(bp)
         # input("next real done")
 
@@ -693,7 +740,7 @@ class Debugger:
         Execute using single step until the value of rip is equal to the argument
         """
 
-        #Maybe punt a max stept or a timeout
+        # Maybe punt a max stept or a timeout
         while True:
             self.step()
             if self.rip == rip:
@@ -704,7 +751,7 @@ class Debugger:
         Continue the execution until the next breakpoint is hitted or the program is stopped
         """
 
-        #I need to execute at least another instruction otherwise I get always in the same bp
+        # I need to execute at least another instruction otherwise I get always in the same bp
         self.step()
         self._set_breakpoints()
         self.running = True
@@ -723,9 +770,11 @@ class Debugger:
         """
         # This works only if the binary use the baseptr for the frames
         if not self._check_mem_address(self.rbp):
-            logging.error("rbp %#x is not a valid frame. Impossible to execute finish", self.rbp)
+            logging.error(
+                "rbp %#x is not a valid frame. Impossible to execute finish", self.rbp
+            )
             raise DebugFail("Finish Failed. Frame not found")
-        ret_addr = u64(self.mem[self.rbp+0x8: self.rbp+0x10])
+        ret_addr = u64(self.mem[self.rbp + 0x8 : self.rbp + 0x10])
         logging.info("finish executing until Return Address found at %#x", ret_addr)
         self.bp(ret_addr)
         self.cont(blocking)
@@ -747,7 +796,7 @@ class Debugger:
         # BP not found as valid address.
         if name is None:
             name = "main"
-        #Look for the lib that start with that name
+        # Look for the lib that start with that name
         if name not in self.bases:
             for x in self.bases:
                 if x.startwith(name):
@@ -760,8 +809,8 @@ class Debugger:
         logging.info("relative address, region: %s, start:%#x", name, self.bases[name])
         return self.bases[name] + addr
 
-    def watch(self, addr, cond='W', length=8, name=None):
-        #normalize the condition
+    def watch(self, addr, cond="W", length=8, name=None):
+        # normalize the condition
         if "W" in cond or "w" in cond:
             cond = "W"
         if "R" in cond or "r" in cond:
@@ -770,7 +819,9 @@ class Debugger:
         real_address = self._resolve_relative_address(addr, name)
         logging.info("Watchpoint: %#lx, cond %s", real_address, cond)
         if len(self.threads) > 1:
-            logging.warning("There are more threads. I am setting the BP only for the main thread.")
+            logging.warning(
+                "There are more threads. I am setting the BP only for the main thread."
+            )
         t = self.threads[self.pid]
         if t.hw_bp(real_address, cond=cond, length=length):
             return real_address
@@ -784,9 +835,11 @@ class Debugger:
         logging.info("Breakpoint: %#lx", real_address)
         if hw:
             if len(self.threads) > 1:
-                logging.warning("There are more threads. I am setting the BP only for the main thread.")
+                logging.warning(
+                    "There are more threads. I am setting the BP only for the main thread."
+                )
             t = self.threads[self.pid]
-            if t.hw_bp(real_address, cond='X'):
+            if t.hw_bp(real_address, cond="X"):
                 return real_address
             logging.info("Failed to set hw breakpoint. Fall back to memory bp.")
         return self.bp(real_address)
@@ -801,29 +854,27 @@ class Debugger:
         t = self.threads[self.pid]
         t.del_hw_bp(addr)
 
-
     ## THREADS
     # https://stackoverflow.com/questions/7290018/ptrace-and-threads
     # https://stackoverflow.com/questions/18577956/how-to-use-ptrace-to-get-a-consistent-view-of-multiple-threads
     def _get_thread_area(self, tid):
-        
         self._enforce_stop()
 
         self.libc.ptrace.argtypes = self.args_ptr
 
-        #clean buffer. Probably there is a better way.
+        # clean buffer. Probably there is a better way.
         for x in range(100):
-             self.buf[x] = b"\x00"
+            self.buf[x] = b"\x00"
 
         set_errno(0)
-        if (self.libc.ptrace(PTRACE_GET_THREAD_AREA, self.pid, tid, self.buf) == -1):
+        if self.libc.ptrace(PTRACE_GET_THREAD_AREA, self.pid, tid, self.buf) == -1:
             for x in range(100):
                 print(self.buf[x])
             err = get_errno()
-            #We use geT_regs as test for the process if it is running we may stoppit before executing something
+            # We use geT_regs as test for the process if it is running we may stoppit before executing something
             # ether the process is dead or is running
             if err == errno.ESRCH and self.running:
-                #we should stop the process.
+                # we should stop the process.
                 return None
             elif err == errno.ESRCH and not self.running:
                 logging.critical("The proccess is dead!")
