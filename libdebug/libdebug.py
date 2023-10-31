@@ -506,6 +506,7 @@ class Debugger:
         self.threads[pid] = t
         logging.info("new process <%d> %r", self.pid, args)
         logging.debug("waiting for child process %d", self.pid)
+        self.process = True
         self._wait_process()
         self._option_setup()
         if sleep is not None:
@@ -563,11 +564,12 @@ class Debugger:
         """
 
         if self.process is not None:
-            os.kill(self.old_pid, signal.SIGKILL)
+            if self.old_pid:
+                os.kill(self.old_pid, signal.SIGKILL)
+
             self.detach()
-            # self.process.terminate()
-            # self.process.kill()
             os.kill(self.old_pid, signal.SIGKILL)
+            os.wait() # remove zombie process entry from the process table
 
     def gdb(self, spawn=False):
         """
