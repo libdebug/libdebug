@@ -6,6 +6,7 @@ import re
 import signal
 import struct
 import time
+import select
 
 from capstone import CS_ARCH_X86, CS_MODE_64, Cs
 
@@ -487,6 +488,12 @@ class Debugger:
     def run(self, path, args=[], sleep=None):
         # Gdb does tons of configuration when setting up a new process start
         # For now this is a simple as I can write it
+        
+        # Creating pipes for stdin, stdout, stderr
+        self.stdin_read, self.stdin_write = os.pipe()
+        self.stdout_read, self.stdout_write = os.pipe()
+        self.stderr_read, self.stderr_write = os.pipe()
+        
         pid = os.fork()
         if pid == 0:
             # child process
@@ -497,22 +504,55 @@ class Debugger:
                 path,
             ] + args
             try:
+                # Close the write end for stdin and the read ends for stdout and stderr
+                # in the child process since it is going to read from stdin and write to
+                # stdout and stderr
+                os.close(self.stdin_write)
+                os.close(self.stdout_read)
+                os.close(self.stderr_read)
+
+                # Redirect stdin, stdout, and stderr of child process
+                os.dup2(self.stdin_read, 0)
+                os.dup2(self.stdout_write, 1)
+                os.dup2(self.stderr_write, 2)
+
+                # Close the original fds in the child process since now they are duplicated
+                # by 0, 1, and 2 (they point to the same location)
+                os.close(self.stdin_read)
+                os.close(self.stdout_write)
+                os.close(self.stderr_write)
+            except Exception as e:
+                raise DebugFail("Redirecting stdin, stdout, and stderr failed: %r" % e)
+            try:
                 os.execv(path, args)
             except Exception as e:
                 raise DebugFail("Exec of new process failed: %r" % e)
-        self.pid = pid
-        self.cur_tid = pid
-        t = ThreadDebug(pid)
-        self.threads[pid] = t
-        logging.info("new process <%d> %r", self.pid, args)
-        logging.debug("waiting for child process %d", self.pid)
-        self.process = True
-        self._wait_process()
-        self._option_setup()
-        if sleep is not None:
-            self.cont(blocking=False)
-            time.sleep(sleep)
-            self._sig_stop(self.pid)
+        else:
+            # parent process
+
+            # Close the read end for stdin and the write ends for stdout and stderr
+            # in the parent process since we are going to write to stdin and read from
+            # stdout and stderr
+            try:
+                os.close(self.stdin_read)
+                os.close(self.stdout_write)
+                os.close(self.stderr_write)
+            except Exception as e:
+                raise DebugFail("Closing fds failed: %r" % e)
+
+            self.pid = pid
+            self.cur_tid = pid
+            t = ThreadDebug(pid)
+            self.threads[pid] = t
+            logging.info("new process <%d> %r", self.pid, args)
+            logging.debug("waiting for child process %d", self.pid)
+            self.process = True
+            self._wait_process()
+            self._option_setup()
+            if sleep is not None:
+                self.cont(blocking=False)
+                time.sleep(sleep)
+                self._sig_stop(self.pid)
 
     def attach(self, pid):
         """
@@ -885,3 +925,32 @@ class Debugger:
                 raise DebugFail("GetThreadArea Failed. is tid correct?")
         print(self.buf)
         return self.buf
+    
+
+    def recv(self, numb=None, timeout=None):
+        # This is the smallest version to test the pipe
+
+        if not self.stdout_write:
+            raise DebugFail("No stdout pipe of the child process. Use run")
+
+        if numb is None and timeout is None:
+            raise DebugFail("You must specify at least one of number of bytes to receive or timeout")
+
+        #if timeout is not None:
+        #    # Set the alarm signal and schedule it
+        #    signal.signal(signal.SIGALRM, self._timeout_handler)
+        #    signal.alarm(timeout)
+
+        output = []
+        while True:
+            rlist, _, _ = select.select([self.stdout_read], [], [], 1)
+            if rlist:
+                data = os.read(self.stdout_read, 1)
+                if not data:
+                    pass
+                output.append(data.decode())
+                # Print in real-time (the space are intended and are for debug purposes)
+                # The final version will return the string
+                print(' ', data.decode(), end='')  
+            else:
+                break
