@@ -22,7 +22,13 @@ from dataclasses import dataclass
 class RegisterHolder:
     """An abstract class that holds the state of the registers of a process, providing setters and getters for them."""
 
-    pass
+    def apply_on(self, target, target_class):
+        """Applies the current register values to the specified target.
+
+        Args:
+            target (object): The object to which the register values should be applied.
+        """
+        pass
 
 
 @dataclass

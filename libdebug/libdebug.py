@@ -45,6 +45,11 @@ class Debugger:
     def __exit__(self, exc_type, exc_value, traceback):
         self.kill()
         return False
+    
+    def _poll_registers(self):
+        """Updates the register values."""
+        self.registers = self.interface.get_register_holder()
+        self.registers.apply_on(self, Debugger)
 
     def start(self):
         """Starts the process. This method must be called before any other method, and any time the process needs to be restarted."""
@@ -52,6 +57,7 @@ class Debugger:
             self.kill()
         self.interface = debugging_interface_provider(self.argv)
         self.interface.run(self.argv)
+        self._poll_registers()
         self.instanced = True
 
     def kill(self):
