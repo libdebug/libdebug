@@ -20,4 +20,19 @@ from dataclasses import dataclass
 
 @dataclass
 class RegisterHolder:
+    """An abstract class that holds the state of the registers of a process, providing setters and getters for them."""
+
     pass
+
+
+@dataclass
+class PtraceRegisterHolder(RegisterHolder):
+    """An abstract class that holds the state of the registers of a process, specifically for the `ptrace` debugging backend.
+
+    This class should not be instantiated directly, but rather through the `register_holder_provider` function.
+
+    Attributes:
+        register_file (bytes): The content of the register file of the process, as returned by `ptrace`.
+    """
+
+    register_file: bytes

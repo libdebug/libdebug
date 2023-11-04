@@ -15,17 +15,15 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libdebug.interfaces.debugging_interface import DebuggingInterface
-from libdebug.interfaces.interfaces import AvailableInterfaces
-from libdebug.interfaces.ptrace_interface import PtraceInterface
+from libdebug.architectures.register_holder import RegisterHolder
+from libdebug.architectures.amd64_register_holder import Amd64PtraceRegisterHolder
 
-
-def debugging_interface_provider(
-    _: str | list[str], interface: AvailableInterfaces = AvailableInterfaces.PTRACE
-) -> DebuggingInterface:
-    """Returns an instance of the debugging interface to be used by the `Debugger` class."""
-    match interface:
-        case AvailableInterfaces.PTRACE:
-            return PtraceInterface()
+def register_holder_provider(
+    register_file: bytes, architecture: str = "amd64"
+) -> RegisterHolder:
+    """Returns an instance of the register holder to be used by the `Debugger` class."""
+    match architecture:
+        case "amd64":
+            return Amd64PtraceRegisterHolder(register_file)
         case _:
-            raise NotImplementedError(f"Interface {interface} not available.")
+            raise NotImplementedError(f"Architecture {architecture} not available.")

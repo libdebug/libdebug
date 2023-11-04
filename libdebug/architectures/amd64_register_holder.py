@@ -15,17 +15,11 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libdebug.interfaces.debugging_interface import DebuggingInterface
-from libdebug.interfaces.interfaces import AvailableInterfaces
-from libdebug.interfaces.ptrace_interface import PtraceInterface
+from dataclasses import dataclass
+from libdebug.architectures.register_holder import PtraceRegisterHolder
 
+@dataclass
+class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
+    """A class that provides views and setters for the registers of an x86_64 process, specifically for the `ptrace` debugging backend."""
 
-def debugging_interface_provider(
-    _: str | list[str], interface: AvailableInterfaces = AvailableInterfaces.PTRACE
-) -> DebuggingInterface:
-    """Returns an instance of the debugging interface to be used by the `Debugger` class."""
-    match interface:
-        case AvailableInterfaces.PTRACE:
-            return PtraceInterface()
-        case _:
-            raise NotImplementedError(f"Interface {interface} not available.")
+    

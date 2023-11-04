@@ -20,8 +20,16 @@ from dataclasses import dataclass
 
 @dataclass
 class Breakpoint:
-    """A breakpoint in the target process."""
+    """A breakpoint in the target process.
+    
+    Attributes:
+        address (int): The address of the breakpoint in the target process.
+        symbol (bytes): The symbol, if available, of the breakpoint in the target process.
+        hit_count (int): The number of times this specific breakpoint has been hit.
+        hardware (bool): Whether the breakpoint is a hardware breakpoint or not.
+    """
 
     address: int = 0
     symbol: bytes = b""
     hit_count: int = 0
+    hardware: bool = False

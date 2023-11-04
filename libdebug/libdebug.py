@@ -16,7 +16,7 @@
 #
 
 from libdebug.data.breakpoint import Breakpoint
-from libdebug.interfaces.interface_helper import instantiate_preferred_interface
+from libdebug.interfaces.interface_helper import debugging_interface_provider
 from typing import Callable, Self
 
 
@@ -50,7 +50,7 @@ class Debugger:
         """Starts the process. This method must be called before any other method, and any time the process needs to be restarted."""
         if self.instanced:
             self.kill()
-        self.interface = instantiate_preferred_interface(self.argv)
+        self.interface = debugging_interface_provider(self.argv)
         self.interface.run(self.argv)
         self.instanced = True
 

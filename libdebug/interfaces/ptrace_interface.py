@@ -20,16 +20,20 @@ from ctypes import (
     c_char_p,
     c_int,
     c_long,
+    create_string_buffer,
     get_errno,
     set_errno,
 )
 import errno
 from libdebug.interfaces.debugging_interface import DebuggingInterface
+from libdebug.architectures.register_helper import register_holder_provider
+from libdebug.architectures.register_holder import RegisterHolder
 import logging
 from libdebug.utils.ptrace_constants import (
     PTRACE_ATTACH,
     PTRACE_CONT,
     PTRACE_DETACH,
+    PTRACE_GETREGS,
     PTRACE_SETOPTIONS,
     PTRACE_SINGLESTEP,
     PTRACE_TRACEME,
@@ -44,12 +48,11 @@ import os
 class PtraceInterface(DebuggingInterface):
     """The interface used by `Debugger` to communicate with the `ptrace` debugging backend."""
 
+    args_ptr = [c_int, c_long, c_long, c_char_p]
+    args_int = [c_int, c_long, c_long, c_long]
+
     def __init__(self):
         self.libc = CDLL("libc.so.6", use_errno=True)
-        self.args_ptr = [c_int, c_long, c_long, c_char_p]
-        self.args_int = [c_int, c_long, c_long, c_long]
-        self.libc.ptrace.argtypes = self.args_ptr
-        self.libc.ptrace.restype = c_long
 
         # The PID of the process being traced
         self.process_id = None
@@ -153,11 +156,21 @@ class PtraceInterface(DebuggingInterface):
         os.wait()
         self.process_id = None
 
-    def get_register_holder(self):
+    def get_register_holder(self) -> RegisterHolder:
         """Returns the current value of all the available registers.
         Note: the register holder should then be used to automatically setup getters and setters for each register.
         """
-        pass
+        # TODO: investigate size of register file
+        register_file = create_string_buffer(1024)
+        self.libc.ptrace.argtypes = self.args_ptr
+        self.libc.ptrace.restype = c_int
+        # TODO: investigate errno handling
+        set_errno(0)
+        result = self.libc.ptrace(PTRACE_GETREGS, self.process_id, 0, register_file)
+        if result == -1:
+            raise OSError(get_errno(), errno.errorcode[get_errno()])
+        else:
+            return register_holder_provider(register_file)
 
     def wait_for_child(self):
         """Waits for the child process to be ready for commands."""
