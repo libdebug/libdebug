@@ -84,7 +84,10 @@ class PipeManager:
         return data_buffer
     
 
-    def _recvuntil(self, delims: bytes, drop: bool=False, timeout: int=timeout_default) -> bytes:
+    def _recvuntil(self, 
+                   delims: bytes, 
+                   drop: bool=False, 
+                   timeout: int=timeout_default) -> bytes:
         """Receives data from the child process stdout until the delimiters are found.
         
         Args:
@@ -126,7 +129,10 @@ class PipeManager:
         return data_buffer
 
 
-    def recvuntil(self, delims: bytes, occurences: int = 1, drop: bool=False, timeout: int=timeout_default) -> bytes:
+    def recvuntil(self, delims: bytes, 
+                  occurences: int = 1, 
+                  drop: bool=False, 
+                  timeout: int=timeout_default) -> bytes:
         """Receives data from the child process stdout until the delimiters are found.
         
         Args:
@@ -157,7 +163,9 @@ class PipeManager:
         return data_buffer
 
 
-    def recvline(self, numlines: int=1, drop: bool=True, timeout: int=timeout_default) -> bytes:
+    def recvline(self, numlines: int=1, 
+                 drop: bool=True, 
+                 timeout: int=timeout_default) -> bytes:
         """Receives numlines lines from the child process stdout.
         
         Args:
@@ -201,4 +209,59 @@ class PipeManager:
             int: number of bytes sent.
         """
 
-        return self.send(data + b'\n')
+        return self.send(data = data+b'\n')
+    
+
+    def sendafter(self, delims: bytes, 
+                  data: bytes, occurences: int = 1, 
+                  drop: bool=False, 
+                  timeout: int=timeout_default) -> int:
+        """Sends data to the child process stdin after the delimiters are found.
+        
+        Args:
+            delims (bytes): delimiters where stop.
+            data (bytes): data to send.
+            occurences (int, optional): number of delimiters to find. Defaults to 1.
+            drop (bool, optional): drop the delimiter. Defaults to False.
+            timeout (int, optional): timeout in seconds. Defaults to timeout_default.
+
+        Returns:
+            bytes: received data from the child process stdout.
+            int: number of bytes sent.
+        """
+
+        received = self.recvuntil(delims = delims,
+                                  occurences = occurences, 
+                                  drop = drop, 
+                                  timeout = timeout
+                                  )
+        sent = self.send(data)
+        return (received, sent)
+    
+
+    def sendlineafter(self, delims: bytes, 
+                  data: bytes, occurences: int = 1, 
+                  drop: bool=False, 
+                  timeout: int=timeout_default) -> int:
+        """Sends line to the child process stdin after the delimiters are found.
+        
+        Args:
+            delims (bytes): delimiters where stop.
+            data (bytes): data to send.
+            occurences (int, optional): number of delimiters to find. Defaults to 1.
+            drop (bool, optional): drop the delimiter. Defaults to False.
+            timeout (int, optional): timeout in seconds. Defaults to timeout_default.
+
+        Returns:
+            bytes: received data from the child process stdout.
+            int: number of bytes sent.
+        """
+
+        received = self.recvuntil(delims = delims,
+                                  occurences = occurences, 
+                                  drop = drop, 
+                                  timeout = timeout
+                                  )
+        sent = self.sendline(data)
+        return (received, sent)
+    
