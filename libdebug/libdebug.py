@@ -12,6 +12,7 @@ from capstone import CS_ARCH_X86, CS_MODE_64, Cs
 
 from .ptrace import *
 from .utils import u32, u64
+from .pipe_manager import PipeManager
 
 logging = logging.getLogger("libdebug")
 
@@ -539,7 +540,8 @@ class Debugger:
                 os.close(self.stderr_write)
             except Exception as e:
                 raise DebugFail("Closing fds failed: %r" % e)
-
+            
+            # Attach to the child process
             self.pid = pid
             self.cur_tid = pid
             t = ThreadDebug(pid)
@@ -553,6 +555,9 @@ class Debugger:
                 self.cont(blocking=False)
                 time.sleep(sleep)
                 self._sig_stop(self.pid)
+
+            # Set up pipes for the child process
+            return PipeManager(self.stdin_write, self.stdout_read, self.stderr_read)
 
     def attach(self, pid):
         """
@@ -926,31 +931,6 @@ class Debugger:
         print(self.buf)
         return self.buf
     
-
-    def recv(self, numb=None, timeout=None):
-        # This is the smallest version to test the pipe
-
-        if not self.stdout_write:
-            raise DebugFail("No stdout pipe of the child process. Use run")
-
-        if numb is None and timeout is None:
-            raise DebugFail("You must specify at least one of number of bytes to receive or timeout")
-
-        #if timeout is not None:
-        #    # Set the alarm signal and schedule it
-        #    signal.signal(signal.SIGALRM, self._timeout_handler)
-        #    signal.alarm(timeout)
-
-        output = []
-        while True:
-            rlist, _, _ = select.select([self.stdout_read], [], [], 1)
-            if rlist:
-                data = os.read(self.stdout_read, 1)
-                if not data:
-                    pass
-                output.append(data.decode())
-                # Print in real-time (the space are intended and are for debug purposes)
-                # The final version will return the string
-                print(' ', data.decode(), end='')  
-            else:
-                break
+    def _timeout_handler(self, signum, frame):
+        # TODO find better location for this
+        raise TimeoutError("Timeout reached")
