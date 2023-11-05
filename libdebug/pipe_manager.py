@@ -84,17 +84,19 @@ class PipeManager:
         return data_buffer
     
 
-    def _recvline(self, keepends: bool=False, timeout: int=timeout_default) -> bytes:
-        """Receives a line from the child process stdout.
+    def _recvuntil(self, delims: bytes, drop: bool=False, timeout: int=timeout_default) -> bytes:
+        """Receives data from the child process stdout until the delimiters are found.
         
         Args:
-            keepends (bool, optional): keep the line ending. Defaults to False.
+            delims (bytes): delimiters where stop.
+            drop (bool, optional): drop the delimiter. Defaults to False.
             timeout (int, optional): timeout in seconds. Defaults to timeout_default.
 
         Returns:
-            bytes: received line from the child process stdout.
+            bytes: received data from the child process stdout.
 
         Raises:
+            PipeFail: no stdout pipe of the child process.
             TimeoutError: timeout reached.
         """
 
@@ -112,37 +114,32 @@ class PipeManager:
             remaining_time = None if end_time is None else max(0, end_time - time.time())
             
             data = self.recv(1, remaining_time)
+
+            data_buffer += data
             
-            if data != b'\n':
-                data_buffer += data
-            else:
-                # End of line reached
-                if keepends:
-                    data_buffer += data
+            if delims in data_buffer:
+                # Delims reached
+                if drop:
+                    data_buffer = data_buffer[:-len(delims)]
                 break
             
-
         return data_buffer
 
-
-    def recvline(self, numlines: int=1, keepends: bool=False, timeout: int=timeout_default) -> bytes:
-        """Receives numlines lines from the child process stdout.
+    def recvuntil(self, delims: bytes, occurences: int = 1, drop: bool=False, timeout: int=timeout_default) -> bytes:
+        """Receives data from the child process stdout until the delimiters are found.
         
         Args:
-            numlines (int, optional): number of lines to receive. Defaults to 1.
-            keepends (bool, optional): keep the line ending. Defaults to False.
+            delims (bytes): delimiters where stop.
+            occurences (int, optional): number of delimiters to find. Defaults to 1.
+            drop (bool, optional): drop the delimiter. Defaults to False.
             timeout (int, optional): timeout in seconds. Defaults to timeout_default.
 
         Returns:
-            bytes: received lines from the child process stdout.
-
-        Raises:
-            ValueError: numlines is negative.
-            TimeoutError: timeout reached.
+            bytes: received data from the child process stdout.
         """
 
-        if numlines <= 0:
-            raise ValueError("The number of lines to receive must be positive")
+        if occurences <= 0:
+            raise ValueError("The number of occurences to receive must be positive")
 
         # Buffer for the received data
         data_buffer = b''
@@ -150,10 +147,25 @@ class PipeManager:
         # Setting the alarm
         end_time = time.time() + timeout
 
-        for _ in range(numlines):
+        for _ in range(occurences):
             # Adjust the timeout for select to the remaining time
             remaining_time = None if end_time is None else max(0, end_time - time.time())
 
-            data_buffer += self._recvline(keepends, remaining_time)
+            data_buffer += self._recvuntil(delims, drop, remaining_time)
 
         return data_buffer
+
+
+    def recvline(self, numlines: int=1, drop: bool=True, timeout: int=timeout_default) -> bytes:
+        """Receives numlines lines from the child process stdout.
+        
+        Args:
+            numlines (int, optional): number of lines to receive. Defaults to 1.
+            drop (bool, optional): drop the line ending. Defaults to True.
+            timeout (int, optional): timeout in seconds. Defaults to timeout_default.
+
+        Returns:
+            bytes: received lines from the child process stdout.
+        """
+
+        return self.recvuntil(b'\n', numlines, drop, timeout)
