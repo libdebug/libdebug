@@ -9,8 +9,8 @@ class PipeFail(Exception):
 class PipeManager:
     """Class for managing pipes of the child process"""
 
-
     timeout_default: int = 2
+
 
     def __init__(self, stdin_write: int, stdout_read: int, stderr_read: int):
         """Constructor for PipeManager class.
@@ -23,8 +23,8 @@ class PipeManager:
         self.stdin_write: int = stdin_write
         self.stdout_read: int = stdout_read
         self.stderr_read: int = stderr_read
-    
-    
+
+
     def recv(self, numb: int=None, timeout: int=timeout_default) -> bytes:
         """Receives at most numb bytes from the child process stdout.
         
@@ -125,6 +125,7 @@ class PipeManager:
             
         return data_buffer
 
+
     def recvuntil(self, delims: bytes, occurences: int = 1, drop: bool=False, timeout: int=timeout_default) -> bytes:
         """Receives data from the child process stdout until the delimiters are found.
         
@@ -169,3 +170,35 @@ class PipeManager:
         """
 
         return self.recvuntil(b'\n', numlines, drop, timeout)
+    
+
+    def send(self, data: bytes) -> int:
+        """Sends data to the child process stdin.
+        
+        Args:
+            data (bytes): data to send.
+
+        Returns:
+            int: number of bytes sent.
+
+        Raises:
+            PipeFail: no stdin pipe of the child process.
+        """
+
+        if not self.stdin_write:
+            raise PipeFail("No stdin pipe of the child process")
+
+        return os.write(self.stdin_write, data)
+    
+
+    def sendline(self, data: bytes) -> int:
+        """Sends data to the child process stdin and append a newline.
+        
+        Args:
+            data (bytes): data to send.
+
+        Returns:
+            int: number of bytes sent.
+        """
+
+        return self.send(data + b'\n')
