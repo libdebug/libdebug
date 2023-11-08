@@ -15,6 +15,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+
 import os
 import select
 import time
@@ -31,7 +32,7 @@ class PipeManager:
 
 
     def __init__(self, stdin_write: int, stdout_read: int, stderr_read: int):
-        """Constructor for PipeManager class.
+        """Initialization for PipeManager class.
         
         Args:
             stdin_write (int): file descriptor for stdin write.
@@ -346,7 +347,7 @@ class PipeManager:
     def sendafter(self, delims: bytes, 
                   data: bytes, occurences: int = 1, 
                   drop: bool=False, 
-                  timeout: int=timeout_default) -> int:
+                  timeout: int=timeout_default) -> (bytes, int):
         """Sends data to the child process stdin after the delimiters are found.
         
         Args:
@@ -373,7 +374,7 @@ class PipeManager:
     def sendlineafter(self, delims: bytes, 
                   data: bytes, occurences: int = 1, 
                   drop: bool=False, 
-                  timeout: int=timeout_default) -> int:
+                  timeout: int=timeout_default) -> (bytes, int):
         """Sends line to the child process stdin after the delimiters are found.
         
         Args:
