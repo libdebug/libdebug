@@ -45,11 +45,11 @@ class LibLog:
 
         # Adjust log levels based on command-line arguments
         if len(sys.argv) > 1:
-            if "DEBUGGER" in sys.argv:
+            if "debugger" in sys.argv:
                 self.debugger_logger.setLevel(logging.DEBUG)
-            elif "PIPE" in sys.argv:
+            elif "pipe" in sys.argv:
                 self.pipe_logger.setLevel(logging.DEBUG)
-            elif "DBG" in sys.argv:
+            elif "dbg" in sys.argv:
                 self._set_debug_level_for_all()
 
         self._initialized = True
