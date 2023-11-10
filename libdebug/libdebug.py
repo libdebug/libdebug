@@ -22,7 +22,7 @@ from libdebug.utils.elf_utils import get_symbol_address
 import logging
 from queue import Queue
 from typing import Callable, Self
-from threading import Thread, Event
+from threading import Thread
 
 
 class Debugger:
@@ -32,7 +32,10 @@ class Debugger:
         """Do not use this constructor directly.
         Use the `debugger` function instead.
         """
-        self.argv: str | list[str] = argv
+        if isinstance(argv, str):
+            self.argv = [argv]
+        else:
+            self.argv = argv
 
         # running is True if and only if the process is currently running
         self.running = False
@@ -43,7 +46,6 @@ class Debugger:
 
         # threading utilities
         self.polling_thread: Thread | None = None
-        self.polling_thread_start_event: Event = Event()
         self.polling_thread_command_queue: Queue = Queue()
 
         # additional attributes
@@ -69,6 +71,14 @@ class Debugger:
     def _flush_registers(self):
         self.registers.flush(self)
 
+    def _start_process(self):
+        assert self.starting
+        logging.debug("Starting process %s", self.argv[0])
+        self.interface.run(self.argv)
+        self._poll_registers()
+        self.starting = False
+        self.instanced = True
+
     def start(self):
         """Starts the process. This method must be called before any other method, and any time the process needs to be restarted."""
         if self.instanced:
@@ -77,7 +87,7 @@ class Debugger:
         self.interface = debugging_interface_provider(self.argv)
         self._setup_polling_thread()
         self.starting = True
-        self.polling_thread_start_event.set()
+        self.polling_thread_command_queue.put((self._start_process, ()))
 
         while self.starting and not self.instanced:
             pass
@@ -120,6 +130,7 @@ class Debugger:
         """Continues the execution of the process."""
         if self.running:
             raise RuntimeError("Cannot continue while the process is running.")
+
         self.polling_thread_command_queue.put((self._flush_and_cont, ()))
 
     def block(self):
@@ -129,9 +140,8 @@ class Debugger:
     def step(self):
         """Executes a single instruction before stopping again."""
         if self.running:
-            raise RuntimeError(
-                "Cannot step while the process is running. Block it first."
-            )
+            raise RuntimeError("Cannot step while the process is running.")
+
         self.polling_thread_command_queue.put((self._flush_and_step, ()))
 
     def b(
@@ -179,53 +189,54 @@ class Debugger:
         """Returns the file descriptors of the process."""
         return self.interface.fds()
 
+    def _poll_and_run_on_process(self) -> bool:
+        """Polls the process for changes and runs the callbacks on the process.
+
+        Returns:
+            bool: True if the process is still running, False otherwise.
+        """
+        logging.debug("Polling process %s for state change", self.argv[0])
+
+        if not self.interface.wait_for_child():
+            # The process has exited
+            return False
+
+        self.running = False
+        self._poll_registers()
+
+        # TODO: this -1 is dependent on the architecture's instruction size and investigate this behavior
+        # Sometimes the process stops at the instruction after the breakpoint
+        if self.rip not in self.breakpoints and (self.rip - 1) in self.breakpoints:
+            address = self.rip - 1
+        else:
+            address = self.rip
+
+        if address in self.breakpoints:
+            breakpoint = self.breakpoints[address]
+            breakpoint.hit_count += 1
+
+            # Restore RIP
+            self.rip = address
+
+            if breakpoint._callback:
+                breakpoint._callback(self, breakpoint)
+
+            self._flush_and_cont_after_bp(breakpoint)
+        else:
+            logging.debug("Stopped at %x but no breakpoint set, continuing", self.rip)
+            self._flush_and_cont()
+
+        return True
+
     def _polling_thread_function(self):
         """The function executed by the polling thread."""
         while True:
             if not self.polling_thread_command_queue.empty():
                 command, args = self.polling_thread_command_queue.get()
                 command(*args)
-            elif self.polling_thread_start_event.is_set():
-                assert self.starting
-                self.polling_thread_start_event.clear()
-                logging.debug("Starting process %s", self.argv[0])
-                self.interface.run(self.argv)
-                self._poll_registers()
-                self.starting = False
-                self.instanced = True
             elif self.running:
-                logging.debug("Polling process %s for state change", self.argv[0])
-
-                if not self.interface.wait_for_child():
-                    # The process has exited
+                if not self._poll_and_run_on_process():
                     break
-
-                self.running = False
-                self._poll_registers()
-
-                # TODO: this -1 is dependent on the architecture's instruction size
-                if (
-                    self.rip not in self.breakpoints
-                    and (self.rip - 1) in self.breakpoints
-                ):
-                    # Sometimes the process stops at the instruction after the breakpoint
-                    # TODO: investigate why
-                    address = self.rip - 1
-                else:
-                    address = self.rip
-
-                if address in self.breakpoints:
-                    breakpoint = self.breakpoints[address]
-                    # Restore RIP
-                    self.rip = address
-                    if breakpoint._callback:
-                        breakpoint._callback(self, breakpoint)
-                    self._flush_and_cont_after_bp(breakpoint)
-                else:
-                    logging.debug(
-                        "Stopped at: %x but no breakpoint set, continuing", self.rip
-                    )
-                    self._flush_and_cont()
 
     def _setup_polling_thread(self):
         """Sets up the thread that polls the process for changes."""

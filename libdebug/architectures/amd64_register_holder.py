@@ -172,10 +172,10 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
             name_8h = name + "h"
 
             setattr(target_class, name_64, get_property_64(name_64))
-            setattr(target_class, name_32, get_property_32(name_32))
-            setattr(target_class, name_16, get_property_16(name_16))
-            setattr(target_class, name_8l, get_property_8l(name_8l))
-            setattr(target_class, name_8h, get_property_8h(name_8h))
+            setattr(target_class, name_32, get_property_32(name_64))
+            setattr(target_class, name_16, get_property_16(name_64))
+            setattr(target_class, name_8l, get_property_8l(name_64))
+            setattr(target_class, name_8h, get_property_8h(name_64))
 
         for name in AMD64_BASE_REGS:
             name_64 = "r" + name
@@ -184,9 +184,9 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
             name_8l = name + "l"
 
             setattr(target_class, name_64, get_property_64(name_64))
-            setattr(target_class, name_32, get_property_32(name_32))
-            setattr(target_class, name_16, get_property_16(name_16))
-            setattr(target_class, name_8l, get_property_8l(name_8l))
+            setattr(target_class, name_32, get_property_32(name_64))
+            setattr(target_class, name_16, get_property_16(name_64))
+            setattr(target_class, name_8l, get_property_8l(name_64))
 
         for name in AMD64_EXT_REGS:
             name_64 = name
@@ -195,9 +195,9 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
             name_8l = name + "b"
 
             setattr(target_class, name_64, get_property_64(name_64))
-            setattr(target_class, name_32, get_property_32(name_32))
-            setattr(target_class, name_16, get_property_16(name_16))
-            setattr(target_class, name_8l, get_property_8l(name_8l))
+            setattr(target_class, name_32, get_property_32(name_64))
+            setattr(target_class, name_16, get_property_16(name_64))
+            setattr(target_class, name_8l, get_property_8l(name_64))
 
         # setup special registers
         setattr(target_class, "rip", get_property_64("rip"))
