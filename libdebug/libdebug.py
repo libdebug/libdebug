@@ -39,6 +39,7 @@ class Debugger:
 
         # instanced is True if and only if the process has been started and has not been killed yet
         self.instanced = False
+        self.starting = False
 
         # threading utilities
         self.polling_thread: Thread | None = None
@@ -75,8 +76,11 @@ class Debugger:
 
         self.interface = debugging_interface_provider(self.argv)
         self._setup_polling_thread()
+        self.starting = True
         self.polling_thread_start_event.set()
-        self.instanced = True
+
+        while self.starting and not self.instanced:
+            pass
 
     def kill(self):
         """Kills the process."""
@@ -182,10 +186,13 @@ class Debugger:
                 command, args = self.polling_thread_command_queue.get()
                 command(*args)
             elif self.polling_thread_start_event.is_set():
+                assert self.starting
                 self.polling_thread_start_event.clear()
                 logging.debug("Starting process %s", self.argv[0])
                 self.interface.run(self.argv)
                 self._poll_registers()
+                self.starting = False
+                self.instanced = True
             elif self.running:
                 logging.debug("Polling process %s for state change", self.argv[0])
 
