@@ -17,7 +17,7 @@
 
 from dataclasses import dataclass
 from libdebug.architectures.register_holder import PtraceRegisterHolder
-from libdebug.utils.packing_utils import u64
+from libdebug.utils.packing_utils import u64, p64
 from libdebug.utils.register_utils import (
     get_reg_64,
     get_reg_32,
@@ -81,65 +81,95 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
         def get_property_64(name):
             def getter(self):
                 if self.running:
-                    raise RuntimeError("Cannot access registers while the process is running.")
+                    raise RuntimeError(
+                        "Cannot access registers while the process is running."
+                    )
                 return get_reg_64(self.regs, name)
+
             def setter(self, value):
                 if self.running:
-                    raise RuntimeError("Cannot access registers while the process is running.")
+                    raise RuntimeError(
+                        "Cannot access registers while the process is running."
+                    )
                 set_reg_64(self.regs, name, value)
+
             return property(getter, setter, None, name)
-        
+
         def get_property_32(name):
             def getter(self):
                 if self.running:
-                    raise RuntimeError("Cannot access registers while the process is running.")
+                    raise RuntimeError(
+                        "Cannot access registers while the process is running."
+                    )
                 return get_reg_32(self.regs, name)
+
             def setter(self, value):
                 if self.running:
-                    raise RuntimeError("Cannot access registers while the process is running.")
+                    raise RuntimeError(
+                        "Cannot access registers while the process is running."
+                    )
                 set_reg_32(self.regs, name, value)
+
             return property(getter, setter, None, name)
-        
+
         def get_property_16(name):
             def getter(self):
                 if self.running:
-                    raise RuntimeError("Cannot access registers while the process is running.")
+                    raise RuntimeError(
+                        "Cannot access registers while the process is running."
+                    )
                 return get_reg_16(self.regs, name)
+
             def setter(self, value):
                 if self.running:
-                    raise RuntimeError("Cannot access registers while the process is running.")
+                    raise RuntimeError(
+                        "Cannot access registers while the process is running."
+                    )
                 set_reg_16(self.regs, name, value)
+
             return property(getter, setter, None, name)
-        
+
         def get_property_8l(name):
             def getter(self):
                 if self.running:
-                    raise RuntimeError("Cannot access registers while the process is running.")
+                    raise RuntimeError(
+                        "Cannot access registers while the process is running."
+                    )
                 return get_reg_8l(self.regs, name)
+
             def setter(self, value):
                 if self.running:
-                    raise RuntimeError("Cannot access registers while the process is running.")
+                    raise RuntimeError(
+                        "Cannot access registers while the process is running."
+                    )
                 set_reg_8l(self.regs, name, value)
+
             return property(getter, setter, None, name)
-        
+
         def get_property_8h(name):
             def getter(self):
                 if self.running:
-                    raise RuntimeError("Cannot access registers while the process is running.")
+                    raise RuntimeError(
+                        "Cannot access registers while the process is running."
+                    )
                 return get_reg_8h(self.regs, name)
+
             def setter(self, value):
                 if self.running:
-                    raise RuntimeError("Cannot access registers while the process is running.")
+                    raise RuntimeError(
+                        "Cannot access registers while the process is running."
+                    )
                 set_reg_8h(self.regs, name, value)
+
             return property(getter, setter, None, name)
 
         # setup accessors
         for name in AMD64_GP_REGS:
-            name_64 = 'r' + name + 'x'
-            name_32 = 'e' + name + 'x'
-            name_16 = name + 'x'
-            name_8l = name + 'l'
-            name_8h = name + 'h'
+            name_64 = "r" + name + "x"
+            name_32 = "e" + name + "x"
+            name_16 = name + "x"
+            name_8l = name + "l"
+            name_8h = name + "h"
 
             setattr(target_class, name_64, get_property_64(name_64))
             setattr(target_class, name_32, get_property_32(name_32))
@@ -148,21 +178,21 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
             setattr(target_class, name_8h, get_property_8h(name_8h))
 
         for name in AMD64_BASE_REGS:
-            name_64 = 'r' + name
-            name_32 = 'e' + name
+            name_64 = "r" + name
+            name_32 = "e" + name
             name_16 = name
-            name_8l = name + 'l'
-            
+            name_8l = name + "l"
+
             setattr(target_class, name_64, get_property_64(name_64))
             setattr(target_class, name_32, get_property_32(name_32))
             setattr(target_class, name_16, get_property_16(name_16))
             setattr(target_class, name_8l, get_property_8l(name_8l))
-        
+
         for name in AMD64_EXT_REGS:
             name_64 = name
-            name_32 = name + 'd'
-            name_16 = name + 'w'
-            name_8l = name + 'b'
+            name_32 = name + "d"
+            name_16 = name + "w"
+            name_8l = name + "b"
 
             setattr(target_class, name_64, get_property_64(name_64))
             setattr(target_class, name_32, get_property_32(name_32))
@@ -170,4 +200,11 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
             setattr(target_class, name_8l, get_property_8l(name_8l))
 
         # setup special registers
-        setattr(target_class, 'rip', get_property_64('rip'))
+        setattr(target_class, "rip", get_property_64("rip"))
+
+    def flush(self, source):
+        """Flushes the register values to the target process."""
+        buffer = b""
+        for name in AMD64_REGS:
+            buffer += p64(source.regs[name])
+        self.ptrace_setter(buffer)

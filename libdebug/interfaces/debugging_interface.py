@@ -41,14 +41,52 @@ class DebuggingInterface:
         """Shuts down the debugging backend."""
         pass
 
-    def wait_for_child(self):
-        """Waits for the child process to be ready for commands."""
+    def wait_for_child(self) -> bool:
+        """Waits for the child process to be ready for commands.
+
+        Returns:
+            bool: Whether the child process is still alive.
+        """
+        pass
+
+    def fds(self):
+        """Returns the file descriptors of the process."""
+        pass
+
+    def maps(self):
+        """Returns the memory maps of the process."""
+        pass
+
+    def base_address(self):
+        """Returns the base address of the process."""
         pass
 
     def get_register_holder(self) -> RegisterHolder:
         """Returns the current value of all the available registers.
         Note: the register holder should then be used to automatically setup getters and setters for each register.
         """
+        pass
+
+    def set_breakpoint(self, address: int, hardware_assisted: bool):
+        """Sets a breakpoint at the specified address.
+
+        Args:
+            address (int): The address where the breakpoint should be set.
+            hardware_assisted (bool): Whether the breakpoint should be hardware-assisted or purely software.
+        """
+        pass
+
+    def restore_breakpoint(self, address: int, hardware: bool):
+        """Restores the original instruction flow at the specified address.
+
+        Args:
+            address (int): The address at which the breakpoint was set.
+            hardware (bool): Whether the breakpoint was hardware or software.
+        """
+        pass
+
+    def ensure_stopped(self):
+        """Ensures that the process is stopped."""
         pass
 
     def continue_execution(self):

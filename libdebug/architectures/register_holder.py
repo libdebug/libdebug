@@ -16,6 +16,7 @@
 #
 
 from dataclasses import dataclass
+from typing import Callable
 
 
 @dataclass
@@ -27,6 +28,15 @@ class RegisterHolder:
 
         Args:
             target (object): The object to which the register values should be applied.
+            target_class (type): The class of the target object, needed to set the attributes.
+        """
+        pass
+
+    def flush(self, source):
+        """Flushes the register values from the specified source.
+
+        Args:
+            source (object): The object from which the register values should be flushed.
         """
         pass
 
@@ -42,3 +52,4 @@ class PtraceRegisterHolder(RegisterHolder):
     """
 
     register_file: bytes
+    ptrace_setter: Callable[[bytes], None]

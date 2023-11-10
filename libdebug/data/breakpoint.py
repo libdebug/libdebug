@@ -16,12 +16,12 @@
 #
 
 from dataclasses import dataclass
-
+from typing import Callable, Self
 
 @dataclass
 class Breakpoint:
     """A breakpoint in the target process.
-    
+
     Attributes:
         address (int): The address of the breakpoint in the target process.
         symbol (bytes): The symbol, if available, of the breakpoint in the target process.
@@ -33,3 +33,4 @@ class Breakpoint:
     symbol: bytes = b""
     hit_count: int = 0
     hardware: bool = False
+    _callback: None | Callable[['Debugger', Self], None] = None

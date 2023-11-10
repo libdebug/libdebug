@@ -28,13 +28,21 @@ import errno
 from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.architectures.register_helper import register_holder_provider
 from libdebug.architectures.register_holder import RegisterHolder
+from libdebug.utils.process_utils import (
+    get_process_maps,
+    get_open_fds,
+    guess_base_address,
+)
 import logging
 from libdebug.utils.ptrace_constants import (
     PTRACE_ATTACH,
     PTRACE_CONT,
     PTRACE_DETACH,
     PTRACE_GETREGS,
+    PTRACE_PEEKDATA,
+    PTRACE_POKEDATA,
     PTRACE_SETOPTIONS,
+    PTRACE_SETREGS,
     PTRACE_SINGLESTEP,
     PTRACE_TRACEME,
     PTRACE_O_TRACEFORK,
@@ -43,6 +51,7 @@ from libdebug.utils.ptrace_constants import (
     PTRACE_O_TRACEEXIT,
 )
 import os
+import signal
 
 
 class PtraceInterface(DebuggingInterface):
@@ -56,6 +65,7 @@ class PtraceInterface(DebuggingInterface):
 
         # The PID of the process being traced
         self.process_id = None
+        self.software_breakpoints = {}
 
     def _set_options(self):
         """Sets the tracer options."""
@@ -116,7 +126,7 @@ class PtraceInterface(DebuggingInterface):
         self.wait_for_child()
         logging.debug("Child process ready, setting options")
         self._set_options()
-        logging.debug("Options set, continuing execution")
+        logging.debug("Options set")
 
     def attach(self, process_id: int):
         """Attaches to the specified process.
@@ -148,12 +158,11 @@ class PtraceInterface(DebuggingInterface):
         self.libc.ptrace.argtypes = self.args_int
         self.libc.ptrace.restype = c_int
         result = self.libc.ptrace(PTRACE_DETACH, self.process_id, 0, 0)
-
-        # TODO: investigate errno handling
-        if result == -1:
-            raise OSError(get_errno(), errno.errorcode[get_errno()])
-
-        os.wait()
+        if result != -1:
+            logging.debug("Detached PtraceInterface from process %d", self.process_id)
+            os.wait()
+        else:
+            logging.debug("Unable to detach, process %d already dead", self.process_id)
         self.process_id = None
 
     def get_register_holder(self) -> RegisterHolder:
@@ -166,14 +175,30 @@ class PtraceInterface(DebuggingInterface):
         self.libc.ptrace.restype = c_int
         # TODO: investigate errno handling
         set_errno(0)
+        logging.debug("Getting registers from process %d", self.process_id)
         result = self.libc.ptrace(PTRACE_GETREGS, self.process_id, 0, register_file)
         if result == -1:
             raise OSError(get_errno(), errno.errorcode[get_errno()])
         else:
-            return register_holder_provider(register_file)
+            return register_holder_provider(
+                register_file, ptrace_setter=self._set_registers
+            )
+
+    def _set_registers(self, buffer):
+        """Sets the value of all the available registers."""
+        self.libc.ptrace.argtypes = self.args_ptr
+        self.libc.ptrace.restype = c_int
+        native_buffer = create_string_buffer(buffer)
+        result = self.libc.ptrace(PTRACE_SETREGS, self.process_id, 0, native_buffer)
+        if result == -1:
+            raise OSError(get_errno(), errno.errorcode[get_errno()])
 
     def wait_for_child(self):
-        """Waits for the child process to be ready for commands."""
+        """Waits for the child process to be ready for commands.
+
+        Returns:
+            bool: Whether the child process is still alive.
+        """
         assert self.process_id is not None
         # TODO: check what option this is, because I can't find it anywhere
         pid, status = os.waitpid(self.process_id, 1 << 30)
@@ -181,6 +206,12 @@ class PtraceInterface(DebuggingInterface):
 
         if os.WIFEXITED(status):
             logging.debug("Child process %d exited with status %d", pid, status)
+
+        return os.WIFSTOPPED(status)
+
+    def ensure_stopped(self):
+        """Ensures that the process is stopped."""
+        os.kill(self.process_id, signal.SIGSTOP)
 
     def continue_execution(self):
         """Continues the execution of the process."""
@@ -192,6 +223,50 @@ class PtraceInterface(DebuggingInterface):
         if result == -1:
             raise OSError(get_errno(), errno.errorcode[get_errno()])
 
+    def _set_sw_breakpoint(self, address: int):
+        """Sets a software breakpoint at the specified address.
+
+        Args:
+            address (int): The address where the breakpoint should be set.
+        """
+        assert self.process_id is not None
+        instruction = self._peek_mem(address)
+        self.software_breakpoints[address] = instruction
+        # TODO: this is not correct for all architectures
+        self._poke_mem(address, (instruction & ((2**56 - 1) << 8)) | 0xCC)
+
+    def _unset_sw_breakpoint(self, address: int):
+        """Unsets a software breakpoint at the specified address.
+
+        Args:
+            address (int): The address where the breakpoint should be unset.
+        """
+        assert self.process_id is not None
+        self._poke_mem(address, self.software_breakpoints[address])
+
+    def set_breakpoint(self, address: int, hardware: bool):
+        """Sets a breakpoint at the specified address.
+
+        Args:
+            address (int): The address where the breakpoint should be set.
+            hardware (bool): Whether the breakpoint should be hardware or software.
+        """
+        if hardware:
+            raise NotImplementedError("Hardware breakpoints are not supported yet")
+        else:
+            self._set_sw_breakpoint(address)
+
+    def restore_breakpoint(self, address: int, hardware: bool):
+        """Restores the breakpoint at the specified address.
+
+        Args:
+            address (int): The address where the breakpoint should be restored.
+        """
+        if hardware:
+            pass
+        else:
+            self._unset_sw_breakpoint(address)
+
     def step_execution(self):
         """Executes a single instruction before stopping again."""
         assert self.process_id is not None
@@ -201,3 +276,48 @@ class PtraceInterface(DebuggingInterface):
         # TODO: investigate errno handling
         if result == -1:
             raise OSError(get_errno(), errno.errorcode[get_errno()])
+
+    def _peek_mem(self, address: int) -> int:
+        """Reads the memory at the specified address."""
+        assert self.process_id is not None
+        self.libc.ptrace.argtypes = self.args_int
+        self.libc.ptrace.restype = c_long
+        set_errno(0)
+
+        result = self.libc.ptrace(PTRACE_PEEKDATA, self.process_id, address, 0)
+        logging.debug("Peeking at address %d returned with result %x", address, result)
+
+        error = get_errno()
+        if error == errno.EIO:
+            raise OSError(error, errno.errorcode[error])
+
+        return result
+
+    def _poke_mem(self, address: int, value: int):
+        """Writes the memory at the specified address."""
+        assert self.process_id is not None
+        self.libc.ptrace.argtypes = self.args_int
+        self.libc.ptrace.restype = c_long
+        set_errno(0)
+
+        result = self.libc.ptrace(PTRACE_POKEDATA, self.process_id, address, value)
+        logging.debug("Poking at address %d returned with result %d", address, result)
+
+        error = get_errno()
+        if error == errno.EIO:
+            raise OSError(error, errno.errorcode[error])
+
+    def fds(self):
+        """Returns the file descriptors of the process."""
+        assert self.process_id is not None
+        return get_open_fds(self.process_id)
+
+    def maps(self):
+        """Returns the memory maps of the process."""
+        assert self.process_id is not None
+        return get_process_maps(self.process_id)
+
+    def base_address(self):
+        """Returns the base address of the process."""
+        assert self.process_id is not None
+        return guess_base_address(self.process_id)

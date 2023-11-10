@@ -17,13 +17,17 @@
 
 from libdebug.architectures.register_holder import RegisterHolder
 from libdebug.architectures.amd64_register_holder import Amd64PtraceRegisterHolder
+from typing import Callable
+
 
 def register_holder_provider(
-    register_file: bytes, architecture: str = "amd64"
+    register_file: bytes,
+    architecture: str = "amd64",
+    ptrace_setter: Callable[[bytes], None] = None,
 ) -> RegisterHolder:
     """Returns an instance of the register holder to be used by the `Debugger` class."""
     match architecture:
         case "amd64":
-            return Amd64PtraceRegisterHolder(register_file)
+            return Amd64PtraceRegisterHolder(register_file, ptrace_setter)
         case _:
             raise NotImplementedError(f"Architecture {architecture} not available.")
