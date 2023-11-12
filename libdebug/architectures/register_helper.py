@@ -16,7 +16,7 @@
 #
 
 from libdebug.architectures.register_holder import RegisterHolder
-from libdebug.architectures.amd64_register_holder import Amd64PtraceRegisterHolder
+from libdebug.architectures.amd64_ptrace_register_holder import Amd64PtraceRegisterHolder
 from typing import Callable
 
 
