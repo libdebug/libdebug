@@ -37,7 +37,7 @@ class BasicTest(unittest.TestCase):
         global hit_bp
         hit_bp = 0
 
-        def bp_64(d, breakpoint):
+        def bp_64(d, _):
             global hit_bp
 
             self.assertTrue(d.rax == 0x0011223344556677)
@@ -58,7 +58,7 @@ class BasicTest(unittest.TestCase):
 
             hit_bp += 1
 
-        def bp_32(d, breakpoint):
+        def bp_32(d, _):
             global hit_bp
 
             self.assertTrue(d.eax == 0x11223344)
@@ -79,7 +79,7 @@ class BasicTest(unittest.TestCase):
 
             hit_bp += 1
 
-        def bp_16(d, breakpoint):
+        def bp_16(d, _):
             global hit_bp
 
             self.assertTrue(d.ax == 0x1122)
@@ -100,7 +100,7 @@ class BasicTest(unittest.TestCase):
 
             hit_bp += 1
 
-        def bp_8l(d, breakpoint):
+        def bp_8l(d, _):
             global hit_bp
 
             self.assertTrue(d.al == 0x11)
@@ -121,7 +121,7 @@ class BasicTest(unittest.TestCase):
 
             hit_bp += 1
 
-        def bp_8h(d, breakpoint):
+        def bp_8h(d, _):
             global hit_bp
 
             self.assertTrue(d.ah == 0x11)
@@ -140,3 +140,22 @@ class BasicTest(unittest.TestCase):
         self.d.cont()
         self.d.kill()
         self.assertTrue(hit_bp == 5)
+
+class BasicPieTest(unittest.TestCase):
+    def setUp(self):
+        self.d = debugger("binaries/basic_test_pie")
+
+    def test_basic(self):
+        global called
+        called = False
+
+        def bp(d, _):
+            global called
+            self.assertTrue(d.rdi == 0xaabbccdd11223344)
+            called = True
+
+        self.d.start()
+        self.d.b("register_test", bp)
+        self.d.cont()
+        self.d.kill()
+        self.assertTrue(called)

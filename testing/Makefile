@@ -3,27 +3,18 @@
 # Compiler and compiler flags
 CC := gcc
 CFLAGS := -Wall -Wextra -std=gnu11
+LDFLAGS :=
 
 # Directories
 SRC_DIR := srcs
 BIN_DIR := binaries
 
-# Source files
-SRC_FILES := $(wildcard $(SRC_DIR)/*.c)
-
-# Target executables (one for each source file)
-TARGETS := $(patsubst $(SRC_DIR)/%.c,$(BIN_DIR)/%,$(SRC_FILES))
-
 # Default target to build all executables
-all: $(TARGETS)
-
-# Rule to build each executable
-$(BIN_DIR)/%: $(SRC_DIR)/%.c | $(BIN_DIR)
-	$(CC) $(CFLAGS) $< -o $@
-
-# Create the binaries directory if it doesn't exist
-$(BIN_DIR):
+all:
 	mkdir -p $(BIN_DIR)
+	$(CC) $(CFLAGS) $(SRC_DIR)/basic_test.c -o $(BIN_DIR)/basic_test $(LDFLAGS)
+	$(CC) $(CFLAGS) $(SRC_DIR)/breakpoint_test.c -o $(BIN_DIR)/breakpoint_test $(LDFLAGS)
+	$(CC) $(CFLAGS) -fPIE -pie $(SRC_DIR)/basic_test_pie.c -o $(BIN_DIR)/basic_test_pie $(LDFLAGS)
 
 # Clean rule to remove compiled files
 clean:

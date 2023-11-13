@@ -16,13 +16,14 @@
 #
 
 import unittest
-from tests.basic_test import BasicTest
+from tests.basic_test import BasicTest, BasicPieTest
 from tests.breakpoint_test import BreakpointTest
 
 def suite():
     suite = unittest.TestSuite()
     suite.addTest(BasicTest('test_basic'))
     suite.addTest(BasicTest('test_registers'))
+    suite.addTest(BasicPieTest('test_basic'))
     suite.addTest(BreakpointTest('test_bps'))
     return suite
 
