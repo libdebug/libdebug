@@ -41,7 +41,7 @@ def parse_elf_symbols(path: str) -> dict[str, int]:
     return symbols
 
 
-def get_symbol_address(path: str, symbol: str) -> int:
+def resolve_symbol(path: str, symbol: str) -> int:
     """Returns the address of the specified symbol in the specified ELF file.
 
     Args:
@@ -53,5 +53,23 @@ def get_symbol_address(path: str, symbol: str) -> int:
     """
     symbols = parse_elf_symbols(path)
     if symbol not in symbols:
-        raise ValueError(f"Symbol {symbol} not found in {path}. Please specify a valid symbol.")
+        raise ValueError(
+            f"Symbol {symbol} not found in {path}. Please specify a valid symbol."
+        )
     return symbols[symbol]
+
+
+@functools.cache
+def is_pie(path: str) -> bool:
+    """Returns True if the specified ELF file is position independent, False otherwise.
+
+    Args:
+        path (str): The path to the ELF file.
+
+    Returns:
+        bool: True if the specified ELF file is position independent, False otherwise.
+    """
+    with open(path, "rb") as elf_file:
+        elf = ELFFile(elf_file)
+
+    return elf.header.e_type == "ET_DYN"

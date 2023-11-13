@@ -16,8 +16,12 @@
 #
 
 import os
+import functools
+from libdebug.data.memory_map import MemoryMap
 
-def get_process_maps(process_id):
+
+@functools.cache
+def get_process_maps(process_id) -> list[str]:
     """Returns the memory maps of the specified process.
 
     Args:
@@ -28,9 +32,14 @@ def get_process_maps(process_id):
     """
     with open(f"/proc/{process_id}/maps", "r") as maps_file:
         maps = maps_file.readlines()
-    return maps
 
-def guess_base_address(process_id):
+    parsed_maps = [MemoryMap.parse(map) for map in maps]
+
+    return parsed_maps
+
+
+@functools.cache
+def guess_base_address(process_id) -> int:
     """Returns the base address of the specified process.
 
     Args:
@@ -42,7 +51,9 @@ def guess_base_address(process_id):
     maps = get_process_maps(process_id)
     return int(maps[0].split("-")[0], 16)
 
-def get_open_fds(process_id):
+
+@functools.cache
+def get_open_fds(process_id) -> list[str]:
     """Returns the file descriptors of the specified process.
 
     Args:
@@ -55,3 +66,10 @@ def get_open_fds(process_id):
     for fd in os.listdir(f"/proc/{process_id}/fd"):
         fds.append(fd)
     return fds
+
+
+def invalidate_process_cache():
+    """Invalidates the cache of the functions in this module. Must be executed any time the process executes code."""
+    get_process_maps.cache_clear()
+    guess_base_address.cache_clear()
+    get_open_fds.cache_clear()

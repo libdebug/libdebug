@@ -15,32 +15,42 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-def get_reg_64(dict, name):
+
+def get_reg_64(dict: dict, name: str) -> int:
     return dict[name]
 
-def get_reg_32(dict, name):
-    return dict[name] & 0xffffffff
 
-def get_reg_16(dict, name):
-    return dict[name] & 0xffff
+def get_reg_32(dict: dict, name: str) -> int:
+    return dict[name] & 0xFFFFFFFF
 
-def get_reg_8l(dict, name):
-    return dict[name] & 0xff
 
-def get_reg_8h(dict, name):
-    return (dict[name] >> 8) & 0xff
+def get_reg_16(dict: dict, name: str) -> int:
+    return dict[name] & 0xFFFF
 
-def set_reg_64(dict, name, value):
+
+def get_reg_8l(dict: dict, name: str) -> int:
+    return dict[name] & 0xFF
+
+
+def get_reg_8h(dict: dict, name: str) -> int:
+    return (dict[name] >> 8) & 0xFF
+
+
+def set_reg_64(dict: dict, name: str, value: int):
     dict[name] = value
 
-def set_reg_32(dict, name, value):
-    dict[name] = (dict[name] & 0xffffffff00000000) | (value & 0xffffffff)
 
-def set_reg_16(dict, name, value):
-    dict[name] = (dict[name] & 0xffffffffffff0000) | (value & 0xffff)
+def set_reg_32(dict: dict, name: str, value: int):
+    dict[name] = (dict[name] & 0xFFFFFFFF00000000) | (value & 0xFFFFFFFF)
 
-def set_reg_8l(dict, name, value):
-    dict[name] = (dict[name] & 0xffffffffffffff00) | (value & 0xff)
 
-def set_reg_8h(dict, name, value):
-    dict[name] = (dict[name] & 0xffffffffffff00ff) | ((value & 0xff) << 8)
+def set_reg_16(dict: dict, name: str, value: int):
+    dict[name] = (dict[name] & 0xFFFFFFFFFFFF0000) | (value & 0xFFFF)
+
+
+def set_reg_8l(dict: dict, name: str, value: int):
+    dict[name] = (dict[name] & 0xFFFFFFFFFFFFFF00) | (value & 0xFF)
+
+
+def set_reg_8h(dict: dict, name: str, value: int):
+    dict[name] = (dict[name] & 0xFFFFFFFFFFFF00FF) | ((value & 0xFF) << 8)

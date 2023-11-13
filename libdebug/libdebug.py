@@ -18,7 +18,7 @@
 from libdebug.architectures.register_holder import RegisterHolder
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.interfaces.interface_helper import debugging_interface_provider
-from libdebug.utils.elf_utils import get_symbol_address
+from libdebug.utils.elf_utils import resolve_symbol
 import logging
 from queue import Queue
 from typing import Callable, Self
@@ -146,7 +146,7 @@ class Debugger:
 
     def b(
         self,
-        location: int | str,
+        position: int | str,
         callback: None | Callable[[Self, Breakpoint], None] = None,
         hardware_assisted: bool = False,
     ):
@@ -160,12 +160,15 @@ class Debugger:
         if self.running:
             raise RuntimeError("Cannot set a breakpoint while the process is running.")
 
-        if isinstance(location, str):
-            address = get_symbol_address(self.argv[0], location)
-            breakpoint = Breakpoint(address, location, 0, hardware_assisted, callback)
+        if isinstance(position, str):
+            address = resolve_symbol(self.argv[0], position)
         else:
-            address = location
-            breakpoint = Breakpoint(location, None, 0, hardware_assisted, callback)
+            address = position
+            position = None
+
+        address = self.interface.resolve_address(address)
+
+        breakpoint = Breakpoint(address, position, 0, hardware_assisted, callback)
 
         self.breakpoints[address] = breakpoint
 
@@ -188,6 +191,10 @@ class Debugger:
     def fds(self):
         """Returns the file descriptors of the process."""
         return self.interface.fds()
+
+    def base_address(self):
+        """Returns the base address of the process."""
+        return self.interface.base_address()
 
     def _poll_and_run_on_process(self) -> bool:
         """Polls the process for changes and runs the callbacks on the process.

@@ -61,6 +61,10 @@ class DebuggingInterface:
         """Returns the base address of the process."""
         pass
 
+    def is_pie(self):
+        """Returns whether the executable is PIE or not."""
+        pass
+
     def get_register_holder(self) -> RegisterHolder:
         """Returns the current value of all the available registers.
         Note: the register holder should then be used to automatically setup getters and setters for each register.
@@ -95,4 +99,18 @@ class DebuggingInterface:
 
     def step_execution(self):
         """Executes a single instruction before stopping again."""
+        pass
+
+    def resolve_address(self, address: int) -> int:
+        """Normalizes and validates the specified address.
+
+        Args:
+            address (int): The address to normalize and validate.
+
+        Returns:
+            int: The normalized and validated address.
+
+        Throws:
+            ValueError: If the address is not valid.
+        """
         pass

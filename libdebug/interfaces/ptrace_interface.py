@@ -28,12 +28,14 @@ import errno
 from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.architectures.register_helper import register_holder_provider
 from libdebug.architectures.register_holder import RegisterHolder
+from libdebug.utils.elf_utils import is_pie
+from libdebug.utils.debugging_utils import normalize_and_validate_address
 from libdebug.utils.process_utils import (
     get_process_maps,
     get_open_fds,
     guess_base_address,
+    invalidate_process_cache,
 )
-import logging
 from libdebug.utils.ptrace_constants import (
     PTRACE_ATTACH,
     PTRACE_CONT,
@@ -50,6 +52,7 @@ from libdebug.utils.ptrace_constants import (
     PTRACE_O_TRACECLONE,
     PTRACE_O_TRACEEXIT,
 )
+import logging
 import os
 import signal
 
@@ -127,6 +130,7 @@ class PtraceInterface(DebuggingInterface):
         logging.debug("Child process ready, setting options")
         self._set_options()
         logging.debug("Options set")
+        invalidate_process_cache()
 
     def attach(self, process_id: int):
         """Attaches to the specified process.
@@ -222,6 +226,7 @@ class PtraceInterface(DebuggingInterface):
         # TODO: investigate errno handling
         if result == -1:
             raise OSError(get_errno(), errno.errorcode[get_errno()])
+        invalidate_process_cache()
 
     def _set_sw_breakpoint(self, address: int):
         """Sets a software breakpoint at the specified address.
@@ -276,6 +281,7 @@ class PtraceInterface(DebuggingInterface):
         # TODO: investigate errno handling
         if result == -1:
             raise OSError(get_errno(), errno.errorcode[get_errno()])
+        invalidate_process_cache()
 
     def _peek_mem(self, address: int) -> int:
         """Reads the memory at the specified address."""
@@ -321,3 +327,23 @@ class PtraceInterface(DebuggingInterface):
         """Returns the base address of the process."""
         assert self.process_id is not None
         return guess_base_address(self.process_id)
+
+    def is_pie(self):
+        """Returns whether the executable is PIE or not."""
+        assert self.process_id is not None
+        return is_pie(self.argv[0])
+
+    def resolve_address(self, address: int) -> int:
+        """Normalizes and validates the specified address.
+
+        Args:
+            address (int): The address to normalize and validate.
+
+        Returns:
+            int: The normalized and validated address.
+
+        Throws:
+            ValueError: If the address is not valid.
+        """
+        maps = self.maps()
+        return normalize_and_validate_address(address, maps)
