@@ -18,6 +18,7 @@
 import unittest
 from tests.basic_test import BasicTest, BasicPieTest
 from tests.breakpoint_test import BreakpointTest
+from tests.memory_test import MemoryTest
 
 def suite():
     suite = unittest.TestSuite()
@@ -25,6 +26,7 @@ def suite():
     suite.addTest(BasicTest('test_registers'))
     suite.addTest(BasicPieTest('test_basic'))
     suite.addTest(BreakpointTest('test_bps'))
+    suite.addTest(MemoryTest('test_memory'))
     return suite
 
 if __name__ == '__main__':
