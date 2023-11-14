@@ -16,6 +16,7 @@
 #
 
 from libdebug.architectures.register_holder import RegisterHolder
+from libdebug.data.memory_view import MemoryView
 
 
 class DebuggingInterface:
@@ -47,6 +48,10 @@ class DebuggingInterface:
         Returns:
             bool: Whether the child process is still alive.
         """
+        pass
+
+    def provide_memory_view(self) -> MemoryView:
+        """Returns a memory view of the process."""
         pass
 
     def fds(self):

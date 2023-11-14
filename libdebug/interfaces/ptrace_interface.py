@@ -28,6 +28,7 @@ import errno
 from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.architectures.register_helper import register_holder_provider
 from libdebug.architectures.register_holder import RegisterHolder
+from libdebug.data.memory_view import MemoryView
 from libdebug.utils.elf_utils import is_pie
 from libdebug.utils.debugging_utils import normalize_and_validate_address
 from libdebug.utils.process_utils import (
@@ -212,6 +213,18 @@ class PtraceInterface(DebuggingInterface):
             logging.debug("Child process %d exited with status %d", pid, status)
 
         return os.WIFSTOPPED(status)
+
+    def provide_memory_view(self) -> MemoryView:
+        """Returns a memory view of the process."""
+        assert self.process_id is not None
+
+        def getter(address) -> bytes:
+            return self._peek_mem(address).to_bytes(8, "little", signed=True)
+
+        def setter(address, value):
+            self._poke_mem(address, int.from_bytes(value, "little", signed=True))
+
+        return MemoryView(getter, setter)
 
     def ensure_stopped(self):
         """Ensures that the process is stopped."""

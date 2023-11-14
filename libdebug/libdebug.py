@@ -17,6 +17,7 @@
 
 from libdebug.architectures.register_holder import RegisterHolder
 from libdebug.data.breakpoint import Breakpoint
+from libdebug.data.memory_view import MemoryView
 from libdebug.interfaces.interface_helper import debugging_interface_provider
 from libdebug.utils.elf_utils import resolve_symbol
 import logging
@@ -28,6 +29,17 @@ from threading import Thread
 class Debugger:
     """The Debugger class is the main class of `libdebug`. It contains all the methods needed to run and interact with the process."""
 
+    registers: RegisterHolder | None = None
+    """The register holder object. It provides access to all the registers of the stopped process."""
+
+    breakpoints: dict[int, Breakpoint] = None
+    """A dictionary of all the breakpoints set on the process. The keys are the absolute addresses of the breakpoints."""
+
+    running: bool = False
+    """True if and only if the process is currently running."""
+
+    memory: MemoryView = None
+
     def __init__(self, argv):
         """Do not use this constructor directly.
         Use the `debugger` function instead.
@@ -37,9 +49,6 @@ class Debugger:
         else:
             self.argv = argv
 
-        # running is True if and only if the process is currently running
-        self.running = False
-
         # instanced is True if and only if the process has been started and has not been killed yet
         self.instanced = False
         self.starting = False
@@ -48,9 +57,8 @@ class Debugger:
         self.polling_thread: Thread | None = None
         self.polling_thread_command_queue: Queue = Queue()
 
-        # additional attributes
-        self.registers: RegisterHolder = None
-        self.breakpoints: dict[int, Breakpoint] = {}
+        # instance breakpoints dict
+        self.breakpoints = {}
 
     def __del__(self):
         self.kill()
@@ -76,6 +84,7 @@ class Debugger:
         logging.debug("Starting process %s", self.argv[0])
         self.interface.run(self.argv)
         self._poll_registers()
+        self.memory = self.interface.provide_memory_view()
         self.starting = False
         self.instanced = True
 
@@ -99,6 +108,7 @@ class Debugger:
         self.interface.shutdown()
         self.polling_thread.join(timeout=5.0)
         self.instanced = False
+        self.memory = None
 
     def _flush_and_cont_after_bp(self, breakpoint: Breakpoint):
         """Flushes the registers, resumes the execution of the process, and re-sets the breakpoint at the specified address."""
