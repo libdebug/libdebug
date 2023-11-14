@@ -1,5 +1,5 @@
 #
-# This file is part of libdebug Python library (https://github.com/gabriele180698/libdebug).
+# This file is part of libdebug Python library (https://github.com/io-no/libdebug).
 # Copyright (c) 2023 Roberto Alessandro Bertolini.
 #
 # This program is free software: you can redistribute it and/or modify
