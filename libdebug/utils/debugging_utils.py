@@ -16,6 +16,8 @@
 #
 
 from libdebug.data.memory_map import MemoryMap
+from libdebug.utils.elf_utils import resolve_symbol, is_pie
+import logging
 
 
 def normalize_and_validate_address(address: int, maps: list[MemoryMap]) -> int:
@@ -36,3 +38,40 @@ def normalize_and_validate_address(address: int, maps: list[MemoryMap]) -> int:
             return address
     else:
         raise ValueError(f"Address {hex(address)} does not belong to any memory map.")
+
+
+def resolve_symbol_in_maps(symbol: str, maps: list[MemoryMap]) -> int:
+    """Returns the address of the specified symbol in the specified memory maps.
+
+    Args:
+        maps (list[MemoryMap]): The memory maps.
+        symbol (str): The symbol whose address should be returned.
+
+    Returns:
+        int: The address of the specified symbol in the specified memory maps.
+
+    Throws:
+        ValueError: If the specified symbol does not belong to any memory map.
+    """
+    mapped_files = {}
+
+    for map in maps:
+        if map.backing_file and map.backing_file not in mapped_files:
+            mapped_files[map.backing_file] = map.start
+
+    for file, base_address in mapped_files.items():
+        try:
+            address = resolve_symbol(file, symbol)
+
+            if is_pie(file):
+                address += base_address
+
+            return address
+        except OSError as e:
+            logging.debug(f"Error while resolving symbol {symbol} in {file}: {e}")
+        except ValueError:
+            pass
+    else:
+        raise ValueError(
+            f"Symbol {symbol} not found in any mapped file. Please specify a valid symbol."
+        )

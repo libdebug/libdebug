@@ -19,7 +19,7 @@ from libdebug.architectures.register_holder import RegisterHolder
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
 from libdebug.interfaces.interface_helper import debugging_interface_provider
-from libdebug.utils.elf_utils import resolve_symbol
+from libdebug.utils.debugging_utils import resolve_symbol_in_maps
 import logging
 from queue import Queue
 from typing import Callable, Self
@@ -171,7 +171,7 @@ class Debugger:
             raise RuntimeError("Cannot set a breakpoint while the process is running.")
 
         if isinstance(position, str):
-            address = resolve_symbol(self.argv[0], position)
+            address = resolve_symbol_in_maps(position, self.maps())
         else:
             address = position
             position = None

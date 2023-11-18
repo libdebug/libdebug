@@ -59,6 +59,7 @@ class MemoryMap:
             end = int(address.split("-")[1], 16)
             size = end - start
             offset = int(offset, 16)
+            backing_file = backing_file.strip()
         except ValueError:
             raise ValueError(
                 f"Invalid memory map: {map}. Please specify a valid memory map."
