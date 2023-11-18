@@ -36,6 +36,7 @@ from libdebug.utils.process_utils import (
     get_open_fds,
     guess_base_address,
     invalidate_process_cache,
+    disable_self_aslr,
 )
 from libdebug.utils.ptrace_constants import (
     PTRACE_ATTACH,
@@ -95,11 +96,12 @@ class PtraceInterface(DebuggingInterface):
         if result == -1:
             raise OSError(get_errno(), errno.errorcode[get_errno()])
 
-    def run(self, argv: str | list[str]) -> int:
+    def run(self, argv: str | list[str], enable_aslr: bool) -> int:
         """Runs the specified process.
 
         Args:
             argv (str | list[str]): The command line to execute.
+            enable_aslr (bool): Whether to enable ASLR or not.
 
         Returns:
             int: The PID of the process.
@@ -107,18 +109,21 @@ class PtraceInterface(DebuggingInterface):
         logging.debug("Running %s", argv)
         child_pid = os.fork()
         if child_pid == 0:
-            self._setup_child(argv)
+            self._setup_child(argv, enable_aslr)
             assert False
         else:
             self.process_id = child_pid
             return self._setup_parent()
 
-    def _setup_child(self, argv):
+    def _setup_child(self, argv, enable_aslr):
         self._trace_self()
 
         try:
             if isinstance(argv, str):
                 argv = [argv]
+
+            if not enable_aslr:
+                disable_self_aslr()
 
             os.execv(argv[0], argv)
         except OSError as e:

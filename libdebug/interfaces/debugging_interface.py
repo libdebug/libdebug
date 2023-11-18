@@ -22,11 +22,12 @@ from libdebug.data.memory_view import MemoryView
 class DebuggingInterface:
     """The interface used by `Debugger` to communicate with the available debugging backends, such as `ptrace` or `gdb`."""
 
-    def run(self, argv: str | list[str]):
+    def run(self, argv: str | list[str], enable_aslr: bool):
         """Runs the specified process.
 
         Args:
             argv (str | list[str]): The command line to execute.
+            enable_aslr (bool): Whether to enable ASLR or not.
         """
         pass
 

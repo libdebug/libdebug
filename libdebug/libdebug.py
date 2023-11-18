@@ -40,7 +40,7 @@ class Debugger:
 
     memory: MemoryView = None
 
-    def __init__(self, argv):
+    def __init__(self, argv, enable_aslr):
         """Do not use this constructor directly.
         Use the `debugger` function instead.
         """
@@ -48,6 +48,8 @@ class Debugger:
             self.argv = [argv]
         else:
             self.argv = argv
+
+        self.enable_aslr = enable_aslr
 
         # instanced is True if and only if the process has been started and has not been killed yet
         self.instanced = False
@@ -82,7 +84,7 @@ class Debugger:
     def _start_process(self):
         assert self.starting
         logging.debug("Starting process %s", self.argv[0])
-        self.interface.run(self.argv)
+        self.interface.run(self.argv, self.enable_aslr)
         self._poll_registers()
         self.memory = self.interface.provide_memory_view()
         self.starting = False
@@ -261,14 +263,15 @@ class Debugger:
         self.polling_thread.start()
 
 
-def debugger(argv: str | list[str]) -> Debugger:
+def debugger(argv: str | list[str], enable_aslr: bool = False) -> Debugger:
     """This function is used to create a new `Debugger` object. It takes as input the location of the binary to debug and returns a `Debugger` object.
 
     Args:
         argv (str | list[str]): The location of the binary to debug, and any additional arguments to pass to it.
+        enable_aslr (bool, optional): Whether to enable ASLR. Defaults to False.
 
     Returns:
         Debugger: The `Debugger` object.
     """
 
-    return Debugger(argv)
+    return Debugger(argv, enable_aslr)

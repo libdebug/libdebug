@@ -15,6 +15,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+from ctypes import CDLL, c_ulong, c_int
 import os
 import functools
 from libdebug.data.memory_map import MemoryMap
@@ -73,3 +74,23 @@ def invalidate_process_cache():
     get_process_maps.cache_clear()
     guess_base_address.cache_clear()
     get_open_fds.cache_clear()
+
+
+def disable_self_aslr():
+    """Disables ASLR for the current process."""
+    libc = CDLL("libc.so.6")
+
+    libc.personality.argtypes = [c_ulong]
+    libc.personality.restype = c_int
+
+    personality = libc.personality(0xFFFFFFFF)
+
+    ADDR_NO_RANDOMIZE = 0x0040000
+
+    if personality & ADDR_NO_RANDOMIZE == ADDR_NO_RANDOMIZE:
+        return
+
+    retval = libc.personality(personality | ADDR_NO_RANDOMIZE)
+
+    if retval == -1:
+        raise RuntimeError("Failed to disable ASLR.")
