@@ -41,8 +41,6 @@ class MemoryTest(unittest.TestCase):
 
             self.assertTrue(d.memory[address : address + 256] == prev)
 
-            print(d.memory["main_arena", 128])
-
         def bp_validate(d, _):
             global validated
             validated = True
@@ -57,7 +55,6 @@ class MemoryTest(unittest.TestCase):
     def test_mem_access_libs(self):
         def bp_leak_address(d, _):
             address = d.rdi
-            print(hex(address))
             arena = self.d.memory["main_arena", 256]
 
             self.assertTrue(p64(address - 0x10) in arena)
