@@ -18,6 +18,13 @@ void validate_setter(char *address)
     return;
 }
 
+void leak_address(char* address)
+{
+    (void) address;
+
+    return;
+}
+
 int main()
 {
     char *buffer = malloc(256);
@@ -32,4 +39,14 @@ int main()
     }
 
     free(buffer);
+
+    buffer = malloc(2048);
+    char *useless = malloc(32); // avoid consolidate
+    (void) useless;
+
+    free(buffer);
+
+    leak_address(buffer);
+
+    return 0;
 }

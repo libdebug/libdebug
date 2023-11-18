@@ -17,6 +17,8 @@
 
 import unittest
 from libdebug import debugger
+from libdebug.utils.packing_utils import p64
+
 
 class MemoryTest(unittest.TestCase):
     def setUp(self) -> None:
@@ -31,13 +33,15 @@ class MemoryTest(unittest.TestCase):
             address = d.rdi
             prev = bytes(range(256))
 
-            self.assertTrue(d.memory[address:address + 256] == prev)
+            self.assertTrue(d.memory[address : address + 256] == prev)
 
-            d.memory[address + 128:] = b'abcd123456'
+            d.memory[address + 128 :] = b"abcd123456"
 
-            prev = prev[:128] + b'abcd123456' + prev[138:]
+            prev = prev[:128] + b"abcd123456" + prev[138:]
 
-            self.assertTrue(d.memory[address:address + 256] == prev)
+            self.assertTrue(d.memory[address : address + 256] == prev)
+
+            print(d.memory["main_arena", 128])
 
         def bp_validate(d, _):
             global validated
@@ -46,6 +50,20 @@ class MemoryTest(unittest.TestCase):
         self.d.start()
         self.d.b("change_memory", bp_change_memory)
         self.d.b("validate_setter", bp_validate)
+        self.d.cont()
+        self.d.kill()
+        self.assertTrue(validated)
+
+    def test_mem_access_libs(self):
+        def bp_leak_address(d, _):
+            address = d.rdi
+            print(hex(address))
+            arena = self.d.memory["main_arena", 256]
+
+            self.assertTrue(p64(address - 0x10) in arena)
+
+        self.d.start()
+        self.d.b("leak_address", bp_leak_address)
         self.d.cont()
         self.d.kill()
         self.assertTrue(validated)

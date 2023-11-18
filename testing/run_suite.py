@@ -15,20 +15,26 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+import logging
 import unittest
 from tests.basic_test import BasicTest, BasicPieTest
 from tests.breakpoint_test import BreakpointTest
 from tests.memory_test import MemoryTest
 
+
 def suite():
     suite = unittest.TestSuite()
-    suite.addTest(BasicTest('test_basic'))
-    suite.addTest(BasicTest('test_registers'))
-    suite.addTest(BasicPieTest('test_basic'))
-    suite.addTest(BreakpointTest('test_bps'))
-    suite.addTest(MemoryTest('test_memory'))
+    suite.addTest(BasicTest("test_basic"))
+    suite.addTest(BasicTest("test_registers"))
+    suite.addTest(BasicPieTest("test_basic"))
+    suite.addTest(BreakpointTest("test_bps"))
+    suite.addTest(MemoryTest("test_memory"))
+    suite.addTest(MemoryTest("test_mem_access_libs"))
     return suite
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
+
     runner = unittest.TextTestRunner()
     runner.run(suite())
