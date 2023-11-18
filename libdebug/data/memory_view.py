@@ -15,8 +15,10 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from typing import Callable
 from collections.abc import MutableSequence
+from libdebug.data.memory_map import MemoryMap
+from libdebug.utils.debugging_utils import resolve_symbol_in_maps
+from typing import Callable
 
 
 class MemoryView(MutableSequence):
@@ -26,6 +28,7 @@ class MemoryView(MutableSequence):
     Attributes:
             getter (Callable[[int], bytes]): A function that reads memory from the target process.
             setter (Callable[[int, bytes], None]): A function that writes memory to the target process.
+            maps_provider (Callable[[], list[MemoryMap]]): A function that returns the memory maps of the target process.
             unit_size (int, optional): The data size used by the getter and setter functions. Defaults to 8.
             align_to (int, optional): The address alignment that must be used when reading and writing memory. Defaults to 1.
     """
@@ -34,11 +37,13 @@ class MemoryView(MutableSequence):
         self,
         getter: Callable[[int], bytes],
         setter: Callable[[int, bytes], None],
+        maps_provider: Callable[[], list[MemoryMap]],
         unit_size: int = 8,
         align_to: int = 1,
     ):
         self.getter = getter
         self.setter = setter
+        self.maps_provider = maps_provider
         self.unit_size = unit_size
         self.align_to = align_to
 
@@ -120,6 +125,18 @@ class MemoryView(MutableSequence):
             return self.read(key, 1)
         elif isinstance(key, slice):
             return self.read(key.start, key.stop - key.start)
+        elif isinstance(key, str):
+            address = resolve_symbol_in_maps(key, self.maps_provider())
+            return self.read(address, self.unit_size)
+        elif isinstance(key, tuple):
+            address, size = key
+            if not isinstance(size, int):
+                raise TypeError("Invalid size type")
+
+            if isinstance(address, str):
+                address = resolve_symbol_in_maps(address, self.maps_provider())
+
+            return self.read(address, size)
         else:
             raise TypeError("Invalid key type")
 
@@ -128,6 +145,21 @@ class MemoryView(MutableSequence):
             self.write(key, value)
         elif isinstance(key, slice):
             self.write(key.start, value)
+        elif isinstance(key, str):
+            address = resolve_symbol_in_maps(key, self.maps_provider())
+            self.write(address, value)
+        elif isinstance(key, tuple):
+            address, size = key
+            if not isinstance(size, int):
+                raise TypeError("Invalid size type")
+
+            if isinstance(address, str):
+                address = resolve_symbol_in_maps(address, self.maps_provider())
+
+            if len(value) != size:
+                raise ValueError("Invalid size")
+
+            self.write(address, value)
         else:
             raise TypeError("Invalid key type")
 

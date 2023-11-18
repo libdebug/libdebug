@@ -224,7 +224,7 @@ class PtraceInterface(DebuggingInterface):
         def setter(address, value):
             self._poke_mem(address, int.from_bytes(value, "little", signed=True))
 
-        return MemoryView(getter, setter)
+        return MemoryView(getter, setter, self.maps)
 
     def ensure_stopped(self):
         """Ensures that the process is stopped."""
