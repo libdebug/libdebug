@@ -55,6 +55,12 @@ def resolve_symbol_in_maps(symbol: str, maps: list[MemoryMap]) -> int:
     """
     mapped_files = {}
 
+    if "+" in symbol:
+        symbol, offset = symbol.split("+")
+        offset = int(offset, 16)
+    else:
+        offset = 0
+
     for map in maps:
         if map.backing_file and map.backing_file not in mapped_files:
             mapped_files[map.backing_file] = map.start
@@ -66,7 +72,7 @@ def resolve_symbol_in_maps(symbol: str, maps: list[MemoryMap]) -> int:
             if is_pie(file):
                 address += base_address
 
-            return address
+            return address + offset
         except OSError as e:
             logging.debug(f"Error while resolving symbol {symbol} in {file}: {e}")
         except ValueError:
