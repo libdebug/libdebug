@@ -29,7 +29,7 @@ def normalize_and_validate_address(address: int, maps: list[MemoryMap]) -> int:
     """
     if address < maps[0].start:
         # The address is lower than the base address of the process. Suppose it is a relative address for a PIE binary.
-        return address + maps[0].start
+        address += maps[0].start
 
     for map in maps:
         if map.start <= address < map.end:
