@@ -11,7 +11,12 @@ import select
 from capstone import CS_ARCH_X86, CS_MODE_64, Cs
 
 from .ptrace import *
-from .utils import u32, u64
+
+def u32(data):
+    return struct.unpack("<I", data)[0]
+
+def u64(data):
+    return struct.unpack("<Q", data)[0]
 
 logging = logging.getLogger("libdebug")
 
