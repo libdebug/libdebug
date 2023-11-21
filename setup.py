@@ -7,6 +7,7 @@ setuptools.setup(
     description="A library to debug binary programs",
     packages=["libdebug"],
     install_requires=[
-        'capstone',
-    ]
+        "capstone",
+        "pyelftools",
+    ],
 )

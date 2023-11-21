@@ -2,6 +2,6 @@
 import logging
 from logging import NullHandler
 
-from .libdebug import Debugger
+from .libdebug import debugger
 
 logging.getLogger(__name__).addHandler(NullHandler())
