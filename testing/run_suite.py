@@ -17,7 +17,7 @@
 
 import logging
 import unittest
-from tests.basic_test import BasicTest, BasicPieTest
+from tests.basic_test import BasicTest, BasicPieTest, HwBasicTest
 from tests.breakpoint_test import BreakpointTest
 from tests.memory_test import MemoryTest
 
@@ -30,6 +30,8 @@ def suite():
     suite.addTest(BreakpointTest("test_bps"))
     suite.addTest(MemoryTest("test_memory"))
     suite.addTest(MemoryTest("test_mem_access_libs"))
+    suite.addTest(HwBasicTest("test_basic"))
+    suite.addTest(HwBasicTest("test_registers"))
     return suite
 
 
