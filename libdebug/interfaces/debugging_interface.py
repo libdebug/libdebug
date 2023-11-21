@@ -17,6 +17,7 @@
 
 from libdebug.architectures.register_holder import RegisterHolder
 from libdebug.data.memory_view import MemoryView
+from libdebug.data.breakpoint import Breakpoint
 
 
 class DebuggingInterface:
@@ -77,21 +78,19 @@ class DebuggingInterface:
         """
         pass
 
-    def set_breakpoint(self, address: int, hardware_assisted: bool):
+    def set_breakpoint(self, breakpoint: Breakpoint):
         """Sets a breakpoint at the specified address.
 
         Args:
-            address (int): The address where the breakpoint should be set.
-            hardware_assisted (bool): Whether the breakpoint should be hardware-assisted or purely software.
+            breakpoint (Breakpoint): The breakpoint to set.
         """
         pass
 
-    def restore_breakpoint(self, address: int, hardware: bool):
+    def restore_breakpoint(self, breakpoint: Breakpoint):
         """Restores the original instruction flow at the specified address.
 
         Args:
-            address (int): The address at which the breakpoint was set.
-            hardware (bool): Whether the breakpoint was hardware or software.
+            breakpoint (Breakpoint): The breakpoint to restore.
         """
         pass
 

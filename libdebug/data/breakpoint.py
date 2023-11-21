@@ -16,7 +16,8 @@
 #
 
 from dataclasses import dataclass
-from typing import Callable, Self
+from typing import Callable
+
 
 @dataclass
 class Breakpoint:
@@ -27,10 +28,14 @@ class Breakpoint:
         symbol (bytes): The symbol, if available, of the breakpoint in the target process.
         hit_count (int): The number of times this specific breakpoint has been hit.
         hardware (bool): Whether the breakpoint is a hardware breakpoint or not.
+        condition (str): The breakpoint condition. Available values are "X", "W", "RW". Supported only for hardware breakpoints.
+        length (int): The length of the breakpoint area. Supported only for hardware breakpoints.
     """
 
     address: int = 0
     symbol: bytes = b""
     hit_count: int = 0
     hardware: bool = False
-    _callback: None | Callable[['Debugger', Self], None] = None
+    _callback: None | Callable[["Debugger", "Breakpoint"], None] = None
+    condition: str = "X"
+    length: int = 1

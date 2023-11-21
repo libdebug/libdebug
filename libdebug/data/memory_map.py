@@ -16,7 +16,6 @@
 #
 
 from dataclasses import dataclass
-from typing import Self
 
 
 @dataclass(frozen=True)
@@ -44,7 +43,7 @@ class MemoryMap:
     """The backing file of the memory map, such as 'libc.so.6', or the symbolic name of the memory map, such as '[stack]'."""
 
     @staticmethod
-    def parse(map: str) -> Self:
+    def parse(map: str) -> "MemoryMap":
         """Parses a memory map from a /proc/pid/maps string representation.
 
         Args:

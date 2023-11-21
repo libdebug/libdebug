@@ -15,21 +15,23 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libdebug.architectures.register_holder import RegisterHolder
-from libdebug.architectures.amd64.amd64_ptrace_register_holder import (
-    Amd64PtraceRegisterHolder,
+from libdebug.architectures.ptrace_hardware_breakpoint_manager import (
+    PtraceHardwareBreakpointManager,
+)
+from libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper import (
+    Amd64PtraceHardwareBreakpointManager,
 )
 from typing import Callable
 
 
-def register_holder_provider(
-    register_file: bytes,
+def ptrace_hardware_breakpoint_manager_provider(
+    peek_mem: Callable[[int], int] = None,
+    poke_mem: Callable[[int, int], None] = None,
     architecture: str = "amd64",
-    ptrace_setter: Callable[[bytes], None] = None,
-) -> RegisterHolder:
-    """Returns an instance of the register holder to be used by the `Debugger` class."""
+) -> PtraceHardwareBreakpointManager:
+    """Returns an instance of the hardware breakpoint manager to be used by the `Debugger` class."""
     match architecture:
         case "amd64":
-            return Amd64PtraceRegisterHolder(register_file, ptrace_setter)
+            return Amd64PtraceHardwareBreakpointManager(peek_mem, poke_mem)
         case _:
             raise NotImplementedError(f"Architecture {architecture} not available.")

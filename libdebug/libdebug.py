@@ -22,7 +22,7 @@ from libdebug.interfaces.interface_helper import debugging_interface_provider
 from libdebug.utils.debugging_utils import resolve_symbol_in_maps
 import logging
 from queue import Queue
-from typing import Callable, Self
+from typing import Callable
 from threading import Thread
 
 
@@ -106,22 +106,28 @@ class Debugger:
     def kill(self):
         """Kills the process."""
         if self.polling_thread:
-            self.polling_thread.join(timeout=5.0)
+            self.polling_thread.join()
         self.interface.shutdown()
-        self.polling_thread.join(timeout=5.0)
+        self.polling_thread.join()
         self.instanced = False
         self.memory = None
 
     def _flush_and_cont_after_bp(self, breakpoint: Breakpoint):
         """Flushes the registers, resumes the execution of the process, and re-sets the breakpoint at the specified address."""
         self.registers.flush(self)
-        self.interface.restore_breakpoint(breakpoint.address, breakpoint.hardware)
-        # step over the breakpoint
-        self.interface.step_execution()
-        self.interface.wait_for_child()
-        self._poll_registers()
-        # re-set the breakpoint
-        self.interface.set_breakpoint(breakpoint.address, breakpoint.hardware)
+
+        if not breakpoint.hardware:
+            # restore the breakpoint
+            self.interface.restore_breakpoint(breakpoint)
+
+            # step over the breakpoint
+            self.interface.step_execution()
+            self.interface.wait_for_child()
+            self._poll_registers()
+
+            # re-set the breakpoint
+            self.interface.set_breakpoint(breakpoint)
+
         # continue the execution
         self.interface.continue_execution()
         self.running = True
@@ -159,7 +165,7 @@ class Debugger:
     def b(
         self,
         position: int | str,
-        callback: None | Callable[[Self, Breakpoint], None] = None,
+        callback: None | Callable[["Debugger", Breakpoint], None] = None,
         hardware_assisted: bool = False,
     ):
         """Sets a breakpoint at the specified location. The callback will be executed when the breakpoint is hit.
@@ -185,7 +191,7 @@ class Debugger:
         self.breakpoints[address] = breakpoint
 
         self.polling_thread_command_queue.put(
-            (self.interface.set_breakpoint, (address, hardware_assisted))
+            (self.interface.set_breakpoint, [breakpoint])
         )
 
     def jump(self, location: int | bytes):

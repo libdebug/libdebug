@@ -28,6 +28,10 @@ import errno
 from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.architectures.register_helper import register_holder_provider
 from libdebug.architectures.register_holder import RegisterHolder
+from libdebug.architectures.ptrace_hardware_breakpoint_provider import (
+    ptrace_hardware_breakpoint_manager_provider,
+)
+from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
 from libdebug.utils.elf_utils import is_pie
 from libdebug.utils.debugging_utils import normalize_and_validate_address
@@ -45,6 +49,8 @@ from libdebug.utils.ptrace_constants import (
     PTRACE_GETREGS,
     PTRACE_PEEKDATA,
     PTRACE_POKEDATA,
+    PTRACE_PEEKUSER,
+    PTRACE_POKEUSER,
     PTRACE_SETOPTIONS,
     PTRACE_SETREGS,
     PTRACE_SINGLESTEP,
@@ -71,6 +77,7 @@ class PtraceInterface(DebuggingInterface):
         # The PID of the process being traced
         self.process_id = None
         self.software_breakpoints = {}
+        self.hardware_bp_helper = None
 
     def _set_options(self):
         """Sets the tracer options."""
@@ -137,6 +144,9 @@ class PtraceInterface(DebuggingInterface):
         self._set_options()
         logging.debug("Options set")
         invalidate_process_cache()
+        self.hardware_bp_helper = ptrace_hardware_breakpoint_manager_provider(
+            self._peek_user, self._poke_user
+        )
 
     def attach(self, process_id: int):
         """Attaches to the specified process.
@@ -267,28 +277,27 @@ class PtraceInterface(DebuggingInterface):
         assert self.process_id is not None
         self._poke_mem(address, self.software_breakpoints[address])
 
-    def set_breakpoint(self, address: int, hardware: bool):
+    def set_breakpoint(self, breakpoint: Breakpoint):
         """Sets a breakpoint at the specified address.
 
         Args:
-            address (int): The address where the breakpoint should be set.
-            hardware (bool): Whether the breakpoint should be hardware or software.
+            breakpoint (Breakpoint): The breakpoint to set.
         """
-        if hardware:
-            raise NotImplementedError("Hardware breakpoints are not supported yet")
+        if breakpoint.hardware:
+            self.hardware_bp_helper.install_breakpoint(breakpoint)
         else:
-            self._set_sw_breakpoint(address)
+            self._set_sw_breakpoint(breakpoint.address)
 
-    def restore_breakpoint(self, address: int, hardware: bool):
+    def restore_breakpoint(self, breakpoint: Breakpoint):
         """Restores the breakpoint at the specified address.
 
         Args:
             address (int): The address where the breakpoint should be restored.
         """
-        if hardware:
-            pass
+        if breakpoint.hardware:
+            self.hardware_bp_helper.remove_breakpoint(breakpoint)
         else:
-            self._unset_sw_breakpoint(address)
+            self._unset_sw_breakpoint(breakpoint.address)
 
     def step_execution(self):
         """Executes a single instruction before stopping again."""
@@ -309,7 +318,7 @@ class PtraceInterface(DebuggingInterface):
         set_errno(0)
 
         result = self.libc.ptrace(PTRACE_PEEKDATA, self.process_id, address, 0)
-        logging.debug("Peeking at address %d returned with result %x", address, result)
+        logging.debug("PEEKDATA at address %d returned with result %x", address, result)
 
         error = get_errno()
         if error == errno.EIO:
@@ -325,7 +334,37 @@ class PtraceInterface(DebuggingInterface):
         set_errno(0)
 
         result = self.libc.ptrace(PTRACE_POKEDATA, self.process_id, address, value)
-        logging.debug("Poking at address %d returned with result %d", address, result)
+        logging.debug("POKEDATA at address %d returned with result %d", address, result)
+
+        error = get_errno()
+        if error == errno.EIO:
+            raise OSError(error, errno.errorcode[error])
+
+    def _peek_user(self, address: int) -> int:
+        """Reads the memory at the specified address."""
+        assert self.process_id is not None
+        self.libc.ptrace.argtypes = self.args_int
+        self.libc.ptrace.restype = c_long
+        set_errno(0)
+
+        result = self.libc.ptrace(PTRACE_PEEKUSER, self.process_id, address, 0)
+        logging.debug("PEEKUSER at address %d returned with result %x", address, result)
+
+        error = get_errno()
+        if error == errno.EIO:
+            raise OSError(error, errno.errorcode[error])
+
+        return result
+
+    def _poke_user(self, address: int, value: int):
+        """Writes the memory at the specified address."""
+        assert self.process_id is not None
+        self.libc.ptrace.argtypes = self.args_int
+        self.libc.ptrace.restype = c_long
+        set_errno(0)
+
+        result = self.libc.ptrace(PTRACE_POKEUSER, self.process_id, address, value)
+        logging.debug("POKEUSER at address %d returned with result %d", address, result)
 
         error = get_errno()
         if error == errno.EIO:
