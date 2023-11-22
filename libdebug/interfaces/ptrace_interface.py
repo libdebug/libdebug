@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/io-no/libdebug).
-# Copyright (c) 2023 Roberto Alessandro Bertolini.
+# Copyright (c) 2023 Roberto Alessandro Bertolini, Gabriele Digregorio.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@ from ctypes import (
     set_errno,
 )
 import errno
+from libdebug.utils.pipe_manager import PipeManager
 from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.architectures.register_helper import register_holder_provider
 from libdebug.architectures.register_holder import RegisterHolder
@@ -113,7 +114,14 @@ class PtraceInterface(DebuggingInterface):
         Returns:
             int: The PID of the process.
         """
+
         logging.debug("Running %s", argv)
+
+         # Creating pipes for stdin, stdout, stderr
+        self.stdin_read, self.stdin_write = os.pipe()
+        self.stdout_read, self.stdout_write = os.pipe()
+        self.stderr_read, self.stderr_write = os.pipe()
+
         child_pid = os.fork()
         if child_pid == 0:
             self._setup_child(argv, enable_aslr)
@@ -124,6 +132,28 @@ class PtraceInterface(DebuggingInterface):
 
     def _setup_child(self, argv, enable_aslr):
         self._trace_self()
+
+        try:
+            # Close the write end for stdin and the read ends for stdout and stderr
+            # in the child process since it is going to read from stdin and write to
+            # stdout and stderr
+            os.close(self.stdin_write)
+            os.close(self.stdout_read)
+            os.close(self.stderr_read)
+
+            # Redirect stdin, stdout, and stderr of child process
+            os.dup2(self.stdin_read, 0)
+            os.dup2(self.stdout_write, 1)
+            os.dup2(self.stderr_write, 2)
+
+            # Close the original fds in the child process since now they are duplicated
+            # by 0, 1, and 2 (they point to the same location)
+            os.close(self.stdin_read)
+            os.close(self.stdout_write)
+            os.close(self.stderr_write)
+        except Exception as e:
+            # TODO: custom exception
+            raise Exception("Redirecting stdin, stdout, and stderr failed: %r" % e)
 
         try:
             if isinstance(argv, str):
@@ -138,6 +168,17 @@ class PtraceInterface(DebuggingInterface):
             os._exit(1)
 
     def _setup_parent(self):
+        # Close the read end for stdin and the write ends for stdout and stderr
+        # in the parent process since we are going to write to stdin and read from
+        # stdout and stderr
+        try:
+            os.close(self.stdin_read)
+            os.close(self.stdout_write)
+            os.close(self.stderr_write)
+        except Exception as e:
+            # TODO: custom exception
+            raise Exception("Closing fds failed: %r" % e)
+
         logging.debug("Polling child process status")
         self.wait_for_child()
         logging.debug("Child process ready, setting options")
@@ -147,6 +188,10 @@ class PtraceInterface(DebuggingInterface):
         self.hardware_bp_helper = ptrace_hardware_breakpoint_manager_provider(
             self._peek_user, self._poke_user
         )
+
+        return PipeManager(self.stdin_write, self.stdout_read, self.stderr_read)
+
+        
 
     def attach(self, process_id: int):
         """Attaches to the specified process.

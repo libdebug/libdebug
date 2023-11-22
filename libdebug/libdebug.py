@@ -23,7 +23,6 @@ from libdebug.utils.debugging_utils import resolve_symbol_in_maps
 from queue import Queue
 from typing import Callable
 from threading import Thread
-from .pipe_manager import PipeManager
 
 
 class Debugger:
