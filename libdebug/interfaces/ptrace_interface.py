@@ -220,6 +220,13 @@ class PtraceInterface(DebuggingInterface):
         except OSError:
             logging.debug("Process %d already dead", self.process_id)
 
+        try:
+            os.close(self.stdin_write)
+            os.close(self.stdout_read)
+            os.close(self.stderr_read)
+        except Exception as e:
+            logging.debug("Closing fds failed: %r", e)
+
         self.libc.ptrace.argtypes = self.args_int
         self.libc.ptrace.restype = c_int
         result = self.libc.ptrace(PTRACE_DETACH, self.process_id, 0, 0)
