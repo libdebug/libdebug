@@ -20,6 +20,7 @@ from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
 from libdebug.interfaces.interface_helper import debugging_interface_provider
 from libdebug.utils.debugging_utils import resolve_symbol_in_maps
+import logging
 from queue import Queue
 from typing import Callable
 from threading import Thread
@@ -186,9 +187,9 @@ class Debugger:
         address = self.interface.resolve_address(address)
 
         breakpoint = Breakpoint(address, position, 0, hardware_assisted, callback)
-        
+
         self.breakpoints[address] = breakpoint
-        
+
         self.polling_thread_command_queue.put(
             (self.interface.set_breakpoint, [breakpoint])
         )
@@ -251,3 +252,32 @@ class Debugger:
             self._flush_and_cont()
 
         return True
+
+    def _polling_thread_function(self):
+        """The function executed by the polling thread."""
+        while True:
+            if not self.polling_thread_command_queue.empty():
+                command, args = self.polling_thread_command_queue.get()
+                command(*args)
+            elif self.running:
+                if not self._poll_and_run_on_process():
+                    break
+
+    def _setup_polling_thread(self):
+        """Sets up the thread that polls the process for changes."""
+        self.polling_thread = Thread(target=self._polling_thread_function)
+        self.polling_thread.start()
+
+
+def debugger(argv: str | list[str], enable_aslr: bool = False) -> Debugger:
+    """This function is used to create a new `Debugger` object. It takes as input the location of the binary to debug and returns a `Debugger` object.
+
+    Args:
+        argv (str | list[str]): The location of the binary to debug, and any additional arguments to pass to it.
+        enable_aslr (bool, optional): Whether to enable ASLR. Defaults to False.
+
+    Returns:
+        Debugger: The `Debugger` object.
+    """
+
+    return Debugger(argv, enable_aslr)
