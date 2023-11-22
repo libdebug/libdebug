@@ -20,6 +20,7 @@ from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
 from libdebug.interfaces.interface_helper import debugging_interface_provider
 from libdebug.utils.debugging_utils import resolve_symbol_in_maps
+from libdebug.utils.pipe_manager import PipeManager
 import logging
 from queue import Queue
 from typing import Callable
@@ -39,6 +40,8 @@ class Debugger:
     """True if and only if the process is currently running."""
 
     memory: MemoryView = None
+
+    pipe_manager = None
 
     def __init__(self, argv, enable_aslr):
         """Do not use this constructor directly.
@@ -84,11 +87,12 @@ class Debugger:
     def _start_process(self):
         assert self.starting
         logging.debug("Starting process %s", self.argv[0])
-        self.interface.run(self.argv, self.enable_aslr)
+        self.pipe_manager = self.interface.run(self.argv, self.enable_aslr)
         self._poll_registers()
         self.memory = self.interface.provide_memory_view()
         self.starting = False
         self.instanced = True
+
 
     def start(self):
         """Starts the process. This method must be called before any other method, and any time the process needs to be restarted."""
@@ -102,6 +106,8 @@ class Debugger:
 
         while self.starting and not self.instanced:
             pass
+
+        return self.pipe_manager
 
     def kill(self):
         """Kills the process."""
