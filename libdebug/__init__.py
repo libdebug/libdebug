@@ -1,1 +1,1 @@
-from .libdebug import Debugger
+from .libdebug import debugger
