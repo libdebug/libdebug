@@ -1,11 +1,11 @@
-import setuptools
+from setuptools import setup, find_packages
 
-setuptools.setup(
+setup(
     name="libdebug",
     version="0.3",
     author="JinBlack",
     description="A library to debug binary programs",
-    packages=["libdebug"],
+    packages=find_packages(include=["libdebug", "libdebug.*"]),
     install_requires=[
         "capstone",
         "pyelftools",
