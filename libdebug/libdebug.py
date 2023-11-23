@@ -115,21 +115,7 @@ class Debugger:
     def _flush_and_cont_after_bp(self, breakpoint: Breakpoint):
         """Flushes the registers, resumes the execution of the process, and re-sets the breakpoint at the specified address."""
         self.registers.flush(self)
-
-        if not breakpoint.hardware:
-            # restore the breakpoint
-            self.interface.restore_breakpoint(breakpoint)
-
-            # step over the breakpoint
-            self.interface.step_execution()
-            self.interface.wait_for_child()
-            self._poll_registers()
-
-            # re-set the breakpoint
-            self.interface.set_breakpoint(breakpoint)
-
-        # continue the execution
-        self.interface.continue_execution()
+        self.interface.continue_after_breakpoint(breakpoint)
         self.running = True
 
     def _flush_and_cont(self):

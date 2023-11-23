@@ -9,5 +9,8 @@ setup(
     install_requires=[
         "capstone",
         "pyelftools",
+        "cffi",
     ],
+    setup_requires=["cffi"],
+    cffi_modules=["./libdebug/cffi/ptrace_cffi_build.py:ffibuilder"],
 )
