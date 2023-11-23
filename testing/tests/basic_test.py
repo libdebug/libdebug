@@ -282,4 +282,5 @@ class HwBasicTest(unittest.TestCase):
         self.d.b(0x401296, bp_8h, hardware_assisted=True)
         self.d.cont()
         self.d.kill()
+
         self.assertTrue(hit_bp == 5)
