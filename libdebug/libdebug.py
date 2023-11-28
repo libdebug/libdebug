@@ -20,6 +20,7 @@ from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
 from libdebug.interfaces.interface_helper import debugging_interface_provider
 from libdebug.utils.debugging_utils import resolve_symbol_in_maps
+from libdebug.utils.pipe_manager import PipeManager
 import logging
 from queue import Queue
 from typing import Callable
@@ -40,7 +41,9 @@ class Debugger:
 
     memory: MemoryView = None
 
-    def __init__(self, argv, enable_aslr):
+    pipe_manager = None
+
+    def __init__(self, argv, enable_aslr, env):
         """Do not use this constructor directly.
         Use the `debugger` function instead.
         """
@@ -50,6 +53,7 @@ class Debugger:
             self.argv = argv
 
         self.enable_aslr = enable_aslr
+        self.env = env
 
         # instanced is True if and only if the process has been started and has not been killed yet
         self.instanced = False
@@ -84,11 +88,12 @@ class Debugger:
     def _start_process(self):
         assert self.starting
         logging.debug("Starting process %s", self.argv[0])
-        self.interface.run(self.argv, self.enable_aslr)
+        self.pipe_manager = self.interface.run(self.argv, self.enable_aslr, self.env)
         self._poll_registers()
         self.memory = self.interface.provide_memory_view()
         self.starting = False
         self.instanced = True
+
 
     def start(self):
         """Starts the process. This method must be called before any other method, and any time the process needs to be restarted."""
@@ -102,6 +107,8 @@ class Debugger:
 
         while self.starting and not self.instanced:
             pass
+
+        return self.pipe_manager
 
     def kill(self):
         """Kills the process."""
@@ -255,15 +262,16 @@ class Debugger:
         self.polling_thread.start()
 
 
-def debugger(argv: str | list[str], enable_aslr: bool = False) -> Debugger:
+def debugger(argv: str | list[str], enable_aslr: bool = False, env: dict[str, str] = None) -> Debugger:
     """This function is used to create a new `Debugger` object. It takes as input the location of the binary to debug and returns a `Debugger` object.
 
     Args:
         argv (str | list[str]): The location of the binary to debug, and any additional arguments to pass to it.
         enable_aslr (bool, optional): Whether to enable ASLR. Defaults to False.
+        env (dict[str, str], optional): The environment variables to use. Defaults to None.
 
     Returns:
         Debugger: The `Debugger` object.
     """
 
-    return Debugger(argv, enable_aslr)
+    return Debugger(argv, enable_aslr, env)

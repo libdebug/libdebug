@@ -23,12 +23,13 @@ from libdebug.data.breakpoint import Breakpoint
 class DebuggingInterface:
     """The interface used by `Debugger` to communicate with the available debugging backends, such as `ptrace` or `gdb`."""
 
-    def run(self, argv: str | list[str], enable_aslr: bool):
+    def run(self, argv: str | list[str], enable_aslr: bool, env: dict[str, str] = None):
         """Runs the specified process.
 
         Args:
             argv (str | list[str]): The command line to execute.
             enable_aslr (bool): Whether to enable ASLR or not.
+            env (dict[str, str], optional): The environment variables to use. Defaults to None.
         """
         pass
 
