@@ -104,33 +104,34 @@ class PtraceInterface(DebuggingInterface):
         if result == -1:
             raise OSError(get_errno(), errno.errorcode[get_errno()])
 
-    def run(self, argv: str | list[str], enable_aslr: bool) -> int:
+    def run(self, argv: str | list[str], enable_aslr: bool, env: dict[str, str] = None) -> int:
         """Runs the specified process.
 
         Args:
             argv (str | list[str]): The command line to execute.
             enable_aslr (bool): Whether to enable ASLR or not.
-
+            env (dict[str, str], optional): The environment variables to use. Defaults to None.
+            
         Returns:
             int: The PID of the process.
         """
 
         logging.debug("Running %s", argv)
 
-         # Creating pipes for stdin, stdout, stderr
+        # Creating pipes for stdin, stdout, stderr
         self.stdin_read, self.stdin_write = os.pipe()
         self.stdout_read, self.stdout_write = os.pipe()
         self.stderr_read, self.stderr_write = os.pipe()
 
         child_pid = os.fork()
         if child_pid == 0:
-            self._setup_child(argv, enable_aslr)
+            self._setup_child(argv, enable_aslr, env)
             assert False
         else:
             self.process_id = child_pid
             return self._setup_parent()
 
-    def _setup_child(self, argv, enable_aslr):
+    def _setup_child(self, argv, enable_aslr, env):
         self._trace_self()
 
         try:
@@ -161,8 +162,11 @@ class PtraceInterface(DebuggingInterface):
 
             if not enable_aslr:
                 disable_self_aslr()
-
-            os.execv(argv[0], argv)
+            
+            if env:
+                os.execve(argv[0], argv, env)
+            else:
+                os.execv(argv[0], argv)
         except OSError as e:
             logging.error("Unable to execute %s: %s", argv, e)
             os._exit(1)
