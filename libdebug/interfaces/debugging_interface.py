@@ -103,6 +103,10 @@ class DebuggingInterface:
         """Continues the execution of the process."""
         pass
 
+    def continue_after_breakpoint(self, breakpoint: Breakpoint):
+        """Continues the execution of the process after a breakpoint was hit."""
+        pass
+
     def step_execution(self):
         """Executes a single instruction before stopping again."""
         pass

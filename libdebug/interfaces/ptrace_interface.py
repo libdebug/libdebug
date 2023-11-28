@@ -15,15 +15,6 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from ctypes import (
-    CDLL,
-    c_char_p,
-    c_int,
-    c_long,
-    create_string_buffer,
-    get_errno,
-    set_errno,
-)
 import errno
 from libdebug.utils.pipe_manager import PipeManager
 from libdebug.interfaces.debugging_interface import DebuggingInterface
@@ -32,6 +23,7 @@ from libdebug.architectures.register_holder import RegisterHolder
 from libdebug.architectures.ptrace_hardware_breakpoint_provider import (
     ptrace_hardware_breakpoint_manager_provider,
 )
+from libdebug.cffi import _ptrace_cffi
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
 from libdebug.utils.elf_utils import is_pie
@@ -43,24 +35,6 @@ from libdebug.utils.process_utils import (
     invalidate_process_cache,
     disable_self_aslr,
 )
-from libdebug.utils.ptrace_constants import (
-    PTRACE_ATTACH,
-    PTRACE_CONT,
-    PTRACE_DETACH,
-    PTRACE_GETREGS,
-    PTRACE_PEEKDATA,
-    PTRACE_POKEDATA,
-    PTRACE_PEEKUSER,
-    PTRACE_POKEUSER,
-    PTRACE_SETOPTIONS,
-    PTRACE_SETREGS,
-    PTRACE_SINGLESTEP,
-    PTRACE_TRACEME,
-    PTRACE_O_TRACEFORK,
-    PTRACE_O_TRACEVFORK,
-    PTRACE_O_TRACECLONE,
-    PTRACE_O_TRACEEXIT,
-)
 import logging
 import os
 import signal
@@ -71,11 +45,9 @@ import tty
 class PtraceInterface(DebuggingInterface):
     """The interface used by `Debugger` to communicate with the `ptrace` debugging backend."""
 
-    args_ptr = [c_int, c_long, c_long, c_char_p]
-    args_int = [c_int, c_long, c_long, c_long]
-
     def __init__(self):
-        self.libc = CDLL("libc.so.6", use_errno=True)
+        self.lib_trace = _ptrace_cffi.lib
+        self.ffi = _ptrace_cffi.ffi
 
         # The PID of the process being traced
         self.process_id = None
@@ -84,27 +56,15 @@ class PtraceInterface(DebuggingInterface):
 
     def _set_options(self):
         """Sets the tracer options."""
-        self.libc.ptrace.argtypes = self.args_int
-        self.libc.ptrace.restype = c_int
-        options = (
-            PTRACE_O_TRACEFORK
-            | PTRACE_O_TRACEVFORK
-            | PTRACE_O_TRACECLONE
-            | PTRACE_O_TRACEEXIT
-        )
-        result = self.libc.ptrace(PTRACE_SETOPTIONS, self.process_id, 0, options)
-        # TODO: investigate errno handling
-        if result == -1:
-            raise OSError(get_errno(), errno.errorcode[get_errno()])
+        self.lib_trace.ptrace_set_options(self.process_id)
 
     def _trace_self(self):
         """Traces the current process."""
-        self.libc.ptrace.argtypes = self.args_int
-        self.libc.ptrace.restype = c_int
-        result = self.libc.ptrace(PTRACE_TRACEME, 0, 0, 0)
+        result = self.lib_trace.ptrace_trace_me()
         # TODO: investigate errno handling
         if result == -1:
-            raise OSError(get_errno(), errno.errorcode[get_errno()])
+            errno_val = self.ffi.errno
+            raise OSError(errno_val, errno.errorcode[errno_val])
 
     def run(self, argv: str | list[str], enable_aslr: bool, env: dict[str, str] = None) -> int:
         """Runs the specified process.
@@ -212,13 +172,11 @@ class PtraceInterface(DebuggingInterface):
         Args:
             process_id (int): The PID of the process to attach to.
         """
-        self.libc.ptrace.argtypes = self.args_int
-        self.libc.ptrace.restype = c_int
         # TODO: investigate errno handling
-        set_errno(0)
-        result = self.libc.ptrace(PTRACE_ATTACH, process_id, 0, 0)
+        result = self.lib_trace.ptrace_attach(process_id)
         if result == -1:
-            raise OSError(get_errno(), errno.errorcode[get_errno()])
+            errno_val = self.ffi.errno
+            raise OSError(errno_val, errno.errorcode[errno_val])
         else:
             self.process_id = process_id
             logging.debug("Attached PtraceInterface to process %d", process_id)
@@ -242,7 +200,8 @@ class PtraceInterface(DebuggingInterface):
 
         self.libc.ptrace.argtypes = self.args_int
         self.libc.ptrace.restype = c_int
-        result = self.libc.ptrace(PTRACE_DETACH, self.process_id, 0, 0)
+        result = self.lib_trace.ptrace_detach(self.process_id)
+
         if result != -1:
             logging.debug("Detached PtraceInterface from process %d", self.process_id)
             os.wait()
@@ -254,29 +213,25 @@ class PtraceInterface(DebuggingInterface):
         """Returns the current value of all the available registers.
         Note: the register holder should then be used to automatically setup getters and setters for each register.
         """
-        # TODO: investigate size of register file
-        register_file = create_string_buffer(1024)
-        self.libc.ptrace.argtypes = self.args_ptr
-        self.libc.ptrace.restype = c_int
-        # TODO: investigate errno handling
-        set_errno(0)
+        # TODO: this 512 is a magic number, it should be replaced with a constant
+        register_file = self.ffi.new("char[512]")
         logging.debug("Getting registers from process %d", self.process_id)
-        result = self.libc.ptrace(PTRACE_GETREGS, self.process_id, 0, register_file)
+        result = self.lib_trace.ptrace_getregs(self.process_id, register_file)
         if result == -1:
-            raise OSError(get_errno(), errno.errorcode[get_errno()])
+            errno_val = self.ffi.errno
+            raise OSError(errno_val, errno.errorcode[errno_val])
         else:
-            return register_holder_provider(
-                register_file, ptrace_setter=self._set_registers
-            )
+            buffer = self.ffi.unpack(register_file, 512)
+            return register_holder_provider(buffer, ptrace_setter=self._set_registers)
 
     def _set_registers(self, buffer):
         """Sets the value of all the available registers."""
-        self.libc.ptrace.argtypes = self.args_ptr
-        self.libc.ptrace.restype = c_int
-        native_buffer = create_string_buffer(buffer)
-        result = self.libc.ptrace(PTRACE_SETREGS, self.process_id, 0, native_buffer)
+        # TODO: this 512 is a magic number, it should be replaced with a constant
+        register_file = self.ffi.new("char[512]", buffer)
+        result = self.lib_trace.ptrace_setregs(self.process_id, register_file)
         if result == -1:
-            raise OSError(get_errno(), errno.errorcode[get_errno()])
+            errno_val = self.ffi.errno
+            raise OSError(errno_val, errno.errorcode[errno_val])
 
     def wait_for_child(self):
         """Waits for the child process to be ready for commands.
@@ -299,10 +254,10 @@ class PtraceInterface(DebuggingInterface):
         assert self.process_id is not None
 
         def getter(address) -> bytes:
-            return self._peek_mem(address).to_bytes(8, "little", signed=True)
+            return self._peek_mem(address).to_bytes(8, "little", signed=False)
 
         def setter(address, value):
-            self._poke_mem(address, int.from_bytes(value, "little", signed=True))
+            self._poke_mem(address, int.from_bytes(value, "little", signed=False))
 
         return MemoryView(getter, setter, self.maps)
 
@@ -313,12 +268,38 @@ class PtraceInterface(DebuggingInterface):
     def continue_execution(self):
         """Continues the execution of the process."""
         assert self.process_id is not None
-        self.libc.ptrace.argtypes = self.args_int
-        self.libc.ptrace.restype = c_int
-        result = self.libc.ptrace(PTRACE_CONT, self.process_id, 0, 0)
+        result = self.lib_trace.ptrace_cont(self.process_id)
+
         # TODO: investigate errno handling
         if result == -1:
-            raise OSError(get_errno(), errno.errorcode[get_errno()])
+            errno_val = self.ffi.errno
+            raise OSError(errno_val, errno.errorcode[errno_val])
+
+        invalidate_process_cache()
+
+    def continue_after_breakpoint(self, breakpoint: Breakpoint):
+        """Continues the execution of the process after a breakpoint was hit."""
+
+        if breakpoint.hardware:
+            self.continue_execution()
+            return
+
+        assert self.process_id is not None
+        assert breakpoint.address in self.software_breakpoints
+
+        instruction = self.software_breakpoints[breakpoint.address]
+
+        result = self.lib_trace.cont_after_bp(
+            self.process_id,
+            breakpoint.address,
+            instruction,
+            (instruction & ((2**56 - 1) << 8)) | 0xCC,
+        )
+
+        if result == -1:
+            errno_val = self.ffi.errno
+            raise OSError(errno_val, errno.errorcode[errno_val])
+
         invalidate_process_cache()
 
     def _set_sw_breakpoint(self, address: int):
@@ -367,25 +348,23 @@ class PtraceInterface(DebuggingInterface):
     def step_execution(self):
         """Executes a single instruction before stopping again."""
         assert self.process_id is not None
-        self.libc.ptrace.argtypes = self.args_int
-        self.libc.ptrace.restype = c_int
-        result = self.libc.ptrace(PTRACE_SINGLESTEP, self.process_id, 0, 0)
+
+        result = self.lib_trace.ptrace_singlestep(self.process_id)
         # TODO: investigate errno handling
         if result == -1:
-            raise OSError(get_errno(), errno.errorcode[get_errno()])
+            errno_val = self.ffi.errno
+            raise OSError(errno_val, errno.errorcode[errno_val])
+
         invalidate_process_cache()
 
     def _peek_mem(self, address: int) -> int:
         """Reads the memory at the specified address."""
         assert self.process_id is not None
-        self.libc.ptrace.argtypes = self.args_int
-        self.libc.ptrace.restype = c_long
-        set_errno(0)
 
-        result = self.libc.ptrace(PTRACE_PEEKDATA, self.process_id, address, 0)
+        result = self.lib_trace.ptrace_peekdata(self.process_id, address)
         logging.debug("PEEKDATA at address %d returned with result %x", address, result)
 
-        error = get_errno()
+        error = self.ffi.errno
         if error == errno.EIO:
             raise OSError(error, errno.errorcode[error])
 
@@ -394,28 +373,22 @@ class PtraceInterface(DebuggingInterface):
     def _poke_mem(self, address: int, value: int):
         """Writes the memory at the specified address."""
         assert self.process_id is not None
-        self.libc.ptrace.argtypes = self.args_int
-        self.libc.ptrace.restype = c_long
-        set_errno(0)
 
-        result = self.libc.ptrace(PTRACE_POKEDATA, self.process_id, address, value)
+        result = self.lib_trace.ptrace_pokedata(self.process_id, address, value)
         logging.debug("POKEDATA at address %d returned with result %d", address, result)
 
-        error = get_errno()
+        error = self.ffi.errno
         if error == errno.EIO:
             raise OSError(error, errno.errorcode[error])
 
     def _peek_user(self, address: int) -> int:
         """Reads the memory at the specified address."""
         assert self.process_id is not None
-        self.libc.ptrace.argtypes = self.args_int
-        self.libc.ptrace.restype = c_long
-        set_errno(0)
 
-        result = self.libc.ptrace(PTRACE_PEEKUSER, self.process_id, address, 0)
+        result = self.lib_trace.ptrace_peekuser(self.process_id, address)
         logging.debug("PEEKUSER at address %d returned with result %x", address, result)
 
-        error = get_errno()
+        error = self.ffi.errno
         if error == errno.EIO:
             raise OSError(error, errno.errorcode[error])
 
@@ -424,14 +397,11 @@ class PtraceInterface(DebuggingInterface):
     def _poke_user(self, address: int, value: int):
         """Writes the memory at the specified address."""
         assert self.process_id is not None
-        self.libc.ptrace.argtypes = self.args_int
-        self.libc.ptrace.restype = c_long
-        set_errno(0)
 
-        result = self.libc.ptrace(PTRACE_POKEUSER, self.process_id, address, value)
+        result = self.lib_trace.ptrace_pokeuser(self.process_id, address, value)
         logging.debug("POKEUSER at address %d returned with result %d", address, result)
 
-        error = get_errno()
+        error = self.ffi.errno
         if error == errno.EIO:
             raise OSError(error, errno.errorcode[error])
 

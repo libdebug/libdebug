@@ -20,7 +20,8 @@ from libdebug.oldlibdebug import Debugger as OldDebugger
 from pwn import ELF
 from time import perf_counter
 
-elf = ELF('./binaries/benchmark')
+elf = ELF("./binaries/benchmark", checksec=False)
+
 
 def benchmark_software():
     d = debugger("binaries/benchmark")
@@ -34,6 +35,7 @@ def benchmark_software():
     d.cont()
     d.kill()
 
+
 def benchmark_hardware():
     d = debugger("binaries/benchmark")
     d.start()
@@ -46,10 +48,11 @@ def benchmark_hardware():
     d.cont()
     d.kill()
 
+
 def benchmark_old_software():
     d = OldDebugger()
-    d.run('./binaries/benchmark')
-    addr = d.bp(elf.symbols['f'])
+    d.run("./binaries/benchmark")
+    addr = d.bp(elf.symbols["f"])
     d.cont()
 
     count = 0
@@ -64,11 +67,12 @@ def benchmark_old_software():
         d.cont()
 
     d.shutdown()
+
 
 def benchmark_old_hardware():
     d = OldDebugger()
-    d.run('./binaries/benchmark')
-    addr = d.breakpoint(elf.symbols['f'], hw=True)
+    d.run("./binaries/benchmark")
+    addr = d.breakpoint(elf.symbols["f"], hw=True)
     d.cont()
 
     count = 0
@@ -83,6 +87,7 @@ def benchmark_old_hardware():
         d.cont()
 
     d.shutdown()
+
 
 start = perf_counter()
 benchmark_old_software()
