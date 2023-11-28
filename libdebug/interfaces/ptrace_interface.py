@@ -64,6 +64,8 @@ from libdebug.utils.ptrace_constants import (
 import logging
 import os
 import signal
+import pty
+import tty
 
 
 class PtraceInterface(DebuggingInterface):
@@ -120,8 +122,15 @@ class PtraceInterface(DebuggingInterface):
 
         # Creating pipes for stdin, stdout, stderr
         self.stdin_read, self.stdin_write = os.pipe()
-        self.stdout_read, self.stdout_write = os.pipe()
-        self.stderr_read, self.stderr_write = os.pipe()
+        self.stdout_read, self.stdout_write = pty.openpty()
+        self.stderr_read, self.stderr_write = pty.openpty()
+
+        # Setting stdout, stderr to raw mode to avoid terminal control codes interfering with the 
+        # output
+        tty.setraw(self.stdout_read)
+        tty.setraw(self.stdout_write)
+        tty.setraw(self.stderr_read)
+        tty.setraw(self.stderr_write)
 
         child_pid = os.fork()
         if child_pid == 0:

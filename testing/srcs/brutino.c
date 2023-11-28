@@ -8,8 +8,8 @@ int main(int argc, char** argv)
     char buffer[64];
     int isCorrect = 1;
 
-    setvbuf(stdin, NULL, _IONBF, 0);
-    setvbuf(stdout, NULL, _IONBF, 0);
+    //setvbuf(stdin, NULL, _IONBF, 0);
+    //setvbuf(stdout, NULL, _IONBF, 0);
 
 
     printf("Write up to 64 chars\n");

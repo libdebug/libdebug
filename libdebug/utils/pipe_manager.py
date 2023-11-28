@@ -17,7 +17,7 @@
 
 
 import os
-import select
+import pty
 import time
 
 
@@ -94,7 +94,7 @@ class PipeManager:
         
         # Buffer for the received data
         data_buffer = b''
-
+        
         if numb:
             # Checking the numb
             if numb < 0:
@@ -109,7 +109,7 @@ class PipeManager:
 
                 # Adjust the timeout for select to the remaining time
                 remaining_time = None if end_time is None else max(0, end_time - time.time())
-                ready, _, _ = select.select([pipe_read], [], [], remaining_time)
+                ready, _, _ = pty.select([pipe_read], [], [], remaining_time)
 
                 if not ready:
                     # No data ready within the remaining timeout
@@ -123,7 +123,7 @@ class PipeManager:
                 numb -= len(data)
                 data_buffer += data
         else:
-            ready, _, _ = select.select([pipe_read], [], [], timeout)
+            ready, _, _ = pty.select([pipe_read], [], [], timeout)
             
             if ready:
                 # Read all available bytes up to 4096
