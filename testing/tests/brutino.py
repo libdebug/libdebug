@@ -1,8 +1,5 @@
 import sys
 import string
-
-sys.path.insert(0, '../../')
-
 from libdebug import debugger
 
 flag = ''
