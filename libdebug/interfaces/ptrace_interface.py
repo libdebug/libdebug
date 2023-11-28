@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/io-no/libdebug).
-# Copyright (c) 2023 Roberto Alessandro Bertolini.
+# Copyright (c) 2023 Roberto Alessandro Bertolini, Gabriele Digregorio.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@ from ctypes import (
     set_errno,
 )
 import errno
+from libdebug.utils.pipe_manager import PipeManager
 from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.architectures.register_helper import register_holder_provider
 from libdebug.architectures.register_holder import RegisterHolder
@@ -63,6 +64,8 @@ from libdebug.utils.ptrace_constants import (
 import logging
 import os
 import signal
+import pty
+import tty
 
 
 class PtraceInterface(DebuggingInterface):
@@ -103,27 +106,64 @@ class PtraceInterface(DebuggingInterface):
         if result == -1:
             raise OSError(get_errno(), errno.errorcode[get_errno()])
 
-    def run(self, argv: str | list[str], enable_aslr: bool) -> int:
+    def run(self, argv: str | list[str], enable_aslr: bool, env: dict[str, str] = None) -> int:
         """Runs the specified process.
 
         Args:
             argv (str | list[str]): The command line to execute.
             enable_aslr (bool): Whether to enable ASLR or not.
-
+            env (dict[str, str], optional): The environment variables to use. Defaults to None.
+            
         Returns:
             int: The PID of the process.
         """
+
         logging.debug("Running %s", argv)
+
+        # Creating pipes for stdin, stdout, stderr
+        self.stdin_read, self.stdin_write = os.pipe()
+        self.stdout_read, self.stdout_write = pty.openpty()
+        self.stderr_read, self.stderr_write = pty.openpty()
+
+        # Setting stdout, stderr to raw mode to avoid terminal control codes interfering with the 
+        # output
+        tty.setraw(self.stdout_read)
+        tty.setraw(self.stdout_write)
+        tty.setraw(self.stderr_read)
+        tty.setraw(self.stderr_write)
+
         child_pid = os.fork()
         if child_pid == 0:
-            self._setup_child(argv, enable_aslr)
+            self._setup_child(argv, enable_aslr, env)
             assert False
         else:
             self.process_id = child_pid
             return self._setup_parent()
 
-    def _setup_child(self, argv, enable_aslr):
+    def _setup_child(self, argv, enable_aslr, env):
         self._trace_self()
+
+        try:
+            # Close the write end for stdin and the read ends for stdout and stderr
+            # in the child process since it is going to read from stdin and write to
+            # stdout and stderr
+            os.close(self.stdin_write)
+            os.close(self.stdout_read)
+            os.close(self.stderr_read)
+
+            # Redirect stdin, stdout, and stderr of child process
+            os.dup2(self.stdin_read, 0)
+            os.dup2(self.stdout_write, 1)
+            os.dup2(self.stderr_write, 2)
+
+            # Close the original fds in the child process since now they are duplicated
+            # by 0, 1, and 2 (they point to the same location)
+            os.close(self.stdin_read)
+            os.close(self.stdout_write)
+            os.close(self.stderr_write)
+        except Exception as e:
+            # TODO: custom exception
+            raise Exception("Redirecting stdin, stdout, and stderr failed: %r" % e)
 
         try:
             if isinstance(argv, str):
@@ -131,13 +171,27 @@ class PtraceInterface(DebuggingInterface):
 
             if not enable_aslr:
                 disable_self_aslr()
-
-            os.execv(argv[0], argv)
+            
+            if env:
+                os.execve(argv[0], argv, env)
+            else:
+                os.execv(argv[0], argv)
         except OSError as e:
             logging.error("Unable to execute %s: %s", argv, e)
             os._exit(1)
 
     def _setup_parent(self):
+        # Close the read end for stdin and the write ends for stdout and stderr
+        # in the parent process since we are going to write to stdin and read from
+        # stdout and stderr
+        try:
+            os.close(self.stdin_read)
+            os.close(self.stdout_write)
+            os.close(self.stderr_write)
+        except Exception as e:
+            # TODO: custom exception
+            raise Exception("Closing fds failed: %r" % e)
+
         logging.debug("Polling child process status")
         self.wait_for_child()
         logging.debug("Child process ready, setting options")
@@ -147,6 +201,10 @@ class PtraceInterface(DebuggingInterface):
         self.hardware_bp_helper = ptrace_hardware_breakpoint_manager_provider(
             self._peek_user, self._poke_user
         )
+
+        return PipeManager(self.stdin_write, self.stdout_read, self.stderr_read)
+
+        
 
     def attach(self, process_id: int):
         """Attaches to the specified process.
@@ -174,6 +232,13 @@ class PtraceInterface(DebuggingInterface):
             os.kill(self.process_id, 9)
         except OSError:
             logging.debug("Process %d already dead", self.process_id)
+
+        try:
+            os.close(self.stdin_write)
+            os.close(self.stdout_read)
+            os.close(self.stderr_read)
+        except Exception as e:
+            logging.debug("Closing fds failed: %r", e)
 
         self.libc.ptrace.argtypes = self.args_int
         self.libc.ptrace.restype = c_int
