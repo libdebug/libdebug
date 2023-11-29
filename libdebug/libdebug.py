@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/io-no/libdebug).
-# Copyright (c) 2023 Roberto Alessandro Bertolini.
+# Copyright (c) 2023 Roberto Alessandro Bertolini, Gabriele Digregorio.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@ from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
 from libdebug.interfaces.interface_helper import debugging_interface_provider
 from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
-from libdebug.utils.debugging_utils import resolve_symbol_in_maps
+from libdebug.utils.debugging_utils import resolve_symbol_in_maps, resolve_address_in_maps
 import logging
 from queue import Queue
 from typing import Callable
@@ -200,7 +200,8 @@ class Debugger:
     
     def backtrace(self):
         """Returns the current backtrace of the process."""
-        return self.stack_unwinding.unwind(self, self.interface)
+        backtrace = self.stack_unwinding.unwind(self, self.interface)
+        return list(map(lambda x: resolve_address_in_maps(x, self.maps()), backtrace))
 
     def fds(self):
         """Returns the file descriptors of the process."""

@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/io-no/libdebug).
-# Copyright (c) 2023 Roberto Alessandro Bertolini.
+# Copyright (c) 2023 Roberto Alessandro Bertolini, Gabriele Digregorio.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@ def parse_elf_symbols(path: str) -> dict[str, int]:
         for section in elf.iter_sections():
             if section.name == ".symtab":
                 for symbol in section.iter_symbols():
-                    symbols[symbol.name] = symbol.entry.st_value
+                    symbols[symbol.name] = (symbol.entry.st_value, symbol.entry.st_size)
 
     return symbols
 
@@ -57,6 +57,25 @@ def resolve_symbol(path: str, symbol: str) -> int:
             f"Symbol {symbol} not found in {path}. Please specify a valid symbol."
         )
     return symbols[symbol]
+
+
+def resolve_address(path: str, address: int) -> str:
+    """Returns the symbol corresponding to the specified address in the specified ELF file.
+
+    Args:
+        path (str): The path to the ELF file.
+        address (int): The address whose symbol should be returned.
+
+    Returns:
+        str: The symbol corresponding to the specified address in the specified ELF file.
+    """
+    symbols = parse_elf_symbols(path)
+    for symbol, (symbol_address, symbol_size) in symbols.items():
+        if symbol_address <= address < symbol_address + symbol_size:
+            return f'{symbol}+{str(address-symbol_address)}'
+    raise ValueError(
+        f"Address {hex(address)} not found in {path}. Please specify a valid address."
+    )
 
 
 @functools.cache

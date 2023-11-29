@@ -12,7 +12,7 @@ class Amd64StackUnwinding():
         """
 
         current_rbp = target.rbp
-        stack_trace = []
+        stack_trace = [target.rip]
 
         while current_rbp:
             
@@ -22,8 +22,6 @@ class Amd64StackUnwinding():
             # Read the previous rbp and set it as the current one
             current_rbp = target_interface._peek_mem(current_rbp)
             
-            print(hex(current_rbp), hex(return_address))
-
             stack_trace.append(return_address)
 
             if current_rbp == 1:
