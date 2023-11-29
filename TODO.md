@@ -1,3 +1,6 @@
+## Run
+- setup args
+- setup env
 ## Registers
 - floating points (get ymm register using PTRACE_GETREGSET)
 - rip read and write with pie support
