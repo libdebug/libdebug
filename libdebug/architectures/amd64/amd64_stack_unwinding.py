@@ -16,15 +16,15 @@ class Amd64StackUnwinding():
 
         while current_rbp:
             
-            # Read the return address
-            return_address = target_interface._peek_mem(current_rbp + 8)
-            
-            # Read the previous rbp and set it as the current one
-            current_rbp = target_interface._peek_mem(current_rbp)
-            
-            stack_trace.append(return_address)
-
-            if current_rbp == 1:
+            try:
+                # Read the return address
+                return_address = target_interface._peek_mem(current_rbp + 8)
+                
+                # Read the previous rbp and set it as the current one
+                current_rbp = target_interface._peek_mem(current_rbp)
+                
+                stack_trace.append(return_address)
+            except OSError:
                 break
 
         return stack_trace

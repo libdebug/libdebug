@@ -56,7 +56,7 @@ def resolve_symbol(path: str, symbol: str) -> int:
         raise ValueError(
             f"Symbol {symbol} not found in {path}. Please specify a valid symbol."
         )
-    return symbols[symbol]
+    return symbols[symbol][0]
 
 
 def resolve_address(path: str, address: int) -> str:
