@@ -1,0 +1,32 @@
+from dataclasses import dataclass
+
+@dataclass
+class Amd64StackUnwinding():
+    """
+    Class that provides stack unwinding for the x86_64 architecture.
+    """
+
+    def unwind(self, target, target_interface):
+        """
+        Unwind the stack of a process.
+        """
+
+        current_rbp = target.rbp
+        stack_trace = []
+
+        while current_rbp:
+            
+            # Read the return address
+            return_address = target_interface._peek_mem(current_rbp + 8)
+            
+            # Read the previous rbp and set it as the current one
+            current_rbp = target_interface._peek_mem(current_rbp)
+            
+            print(hex(current_rbp), hex(return_address))
+
+            stack_trace.append(return_address)
+
+            if current_rbp == 1:
+                break
+
+        return stack_trace

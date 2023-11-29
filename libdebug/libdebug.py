@@ -19,8 +19,8 @@ from libdebug.architectures.register_holder import RegisterHolder
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
 from libdebug.interfaces.interface_helper import debugging_interface_provider
+from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
 from libdebug.utils.debugging_utils import resolve_symbol_in_maps
-from libdebug.utils.pipe_manager import PipeManager
 import logging
 from queue import Queue
 from typing import Callable
@@ -40,8 +40,6 @@ class Debugger:
     """True if and only if the process is currently running."""
 
     memory: MemoryView = None
-
-    pipe_manager = None
 
     def __init__(self, argv, enable_aslr, env):
         """Do not use this constructor directly.
@@ -101,6 +99,7 @@ class Debugger:
             self.kill()
 
         self.interface = debugging_interface_provider(self.argv)
+        self.stack_unwinding = stack_unwinding_provider()
         self._setup_polling_thread()
         self.starting = True
         self.polling_thread_command_queue.put((self._start_process, ()))
@@ -198,6 +197,10 @@ class Debugger:
     def maps(self):
         """Returns the memory maps of the process."""
         return self.interface.maps()
+    
+    def backtrace(self):
+        """Returns the current backtrace of the process."""
+        return self.stack_unwinding.unwind(self, self.interface)
 
     def fds(self):
         """Returns the file descriptors of the process."""
