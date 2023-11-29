@@ -198,8 +198,6 @@ class PtraceInterface(DebuggingInterface):
         except Exception as e:
             logging.debug("Closing fds failed: %r", e)
 
-        self.libc.ptrace.argtypes = self.args_int
-        self.libc.ptrace.restype = c_int
         result = self.lib_trace.ptrace_detach(self.process_id)
 
         if result != -1:
