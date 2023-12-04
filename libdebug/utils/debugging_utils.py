@@ -103,7 +103,6 @@ def resolve_address_in_maps(address: int, maps: list[MemoryMap]) -> str:
 
     for file, base_address in mapped_files.items():
         try:
-
             if is_pie(file):
                 symbol = resolve_address(file, address - base_address)
             else:
