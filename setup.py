@@ -12,5 +12,5 @@ setup(
         "cffi",
     ],
     setup_requires=["cffi"],
-    cffi_modules=["./libdebug/cffi/ptrace_cffi_build.py:ffibuilder"],
+    cffi_modules=["./libdebug/cffi/ptrace_cffi_build.py:ffibuilder", "./libdebug/cffi/debug_sym_cffi_build.py:ffibuilder"],
 )
