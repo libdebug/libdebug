@@ -182,10 +182,11 @@ def resolve_symbol(path: str, symbol: str) -> int:
         int: The address of the specified symbol in the specified ELF file.
     """
 
-    # Retrieve the symbols from the SymbolTableSection
-    symbols, buildid, debug_file = _parse_elf_file(path, debug_info_level)
-    if symbol in symbols:
-        return symbols[symbol][0]
+    if debug_info_level > 0:
+        # Retrieve the symbols from the SymbolTableSection
+        symbols, buildid, debug_file = _parse_elf_file(path, debug_info_level)
+        if symbol in symbols:
+            return symbols[symbol][0]
     
     # Retrieve the symbols from the external debuginfo file
     if buildid and debug_file and debug_info_level > 2:
@@ -221,11 +222,12 @@ def resolve_address(path: str, address: int) -> str:
         str: The symbol corresponding to the specified address in the specified ELF file.
     """
 
-    # Retrieve the symbols from the SymbolTableSection
-    symbols, buildid, debug_file = _parse_elf_file(path, debug_info_level)
-    for symbol, (symbol_start, symbol_end) in symbols.items():
-        if symbol_start <= address < symbol_end:
-            return f'{symbol}+{str(address-symbol_start)}'
+    if debug_info_level > 0:
+        # Retrieve the symbols from the SymbolTableSection
+        symbols, buildid, debug_file = _parse_elf_file(path, debug_info_level)
+        for symbol, (symbol_start, symbol_end) in symbols.items():
+            if symbol_start <= address < symbol_end:
+                return f'{symbol}+{str(address-symbol_start)}'
     
     # Retrieve the symbols from the external debuginfo file
     if buildid and debug_file and debug_info_level > 2:
