@@ -99,9 +99,15 @@ def resolve_address_in_maps(address: int, maps: list[MemoryMap]) -> str:
 
     for map in maps:
         if map.backing_file and map.backing_file not in mapped_files:
-            mapped_files[map.backing_file] = map.start
+            mapped_files[map.backing_file] = (map.start, map.end)
 
-    for file, base_address in mapped_files.items():
+
+    for file, (base_address, top_address) in mapped_files.items():
+        
+        # Check if the address is in the range of the current section
+        if address < base_address or address >= top_address:
+            continue
+
         try:
             if is_pie(file):
                 symbol = resolve_address(file, address - base_address)
