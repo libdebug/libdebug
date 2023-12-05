@@ -98,8 +98,14 @@ def resolve_address_in_maps(address: int, maps: list[MemoryMap]) -> str:
     mapped_files = {}
 
     for map in maps:
-        if map.backing_file and map.backing_file not in mapped_files:
-            mapped_files[map.backing_file] = (map.start, map.end)
+        file = map.backing_file
+        if not file:
+            continue
+            
+        if file not in mapped_files:
+            mapped_files[file] = (map.start, map.end)
+        else:
+            mapped_files[file] = (mapped_files[file][0], map.end)
 
 
     for file, (base_address, top_address) in mapped_files.items():
