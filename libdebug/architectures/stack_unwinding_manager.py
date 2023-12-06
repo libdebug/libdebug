@@ -22,4 +22,9 @@ class StackUnwindingManager():
     """
     An architecture-independent interface for stack unwinding.
     """
-    pass
+
+    def unwind(self, target, target_interface):
+        """
+        Unwind the stack of the target process.
+        """
+        pass
