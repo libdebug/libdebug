@@ -25,6 +25,7 @@ from elftools.elf.elffile import ELFFile
 import time
 import gc
 import yappi
+from .libcontext import libcontext
 
 DEBUGINFOD_PATH: Path = Path.home() / ".cache" / "debuginfod_client"
 LOCAL_DEBUG_PATH: str = '/usr/lib/debug/.build-id/'
@@ -32,7 +33,6 @@ LOCAL_DEBUG_PATH: str = '/usr/lib/debug/.build-id/'
 lib_sym = _debug_sym_cffi.lib
 ffi = _debug_sym_cffi.ffi
 
-debug_info_level = 4
 
 def _download_debuginfod(buildid: str, debuginfod_path: Path):
     """Downloads the debuginfo file corresponding to the specified buildid.
@@ -182,14 +182,19 @@ def resolve_symbol(path: str, symbol: str) -> int:
         int: The address of the specified symbol in the specified ELF file.
     """
 
-    if debug_info_level > 0:
+    if libcontext.sym_lvl == 0:
+        raise Exception(
+            "Symbol resolution is disabled. Please enable it by setting the sym_lvl parameter to a value greater than 0."
+            )
+
+    if libcontext.sym_lvl > 0:
         # Retrieve the symbols from the SymbolTableSection
-        symbols, buildid, debug_file = _parse_elf_file(path, debug_info_level)
+        symbols, buildid, debug_file = _parse_elf_file(path, libcontext.sym_lvl)
         if symbol in symbols:
             return symbols[symbol][0]
     
     # Retrieve the symbols from the external debuginfo file
-    if buildid and debug_file and debug_info_level > 2:
+    if buildid and debug_file and libcontext.sym_lvl > 2:
         folder = buildid[:2]
         absolute_debug_path = os.path.join(LOCAL_DEBUG_PATH, folder, debug_file)
         symbols = _collect_external_info(absolute_debug_path)
@@ -197,7 +202,7 @@ def resolve_symbol(path: str, symbol: str) -> int:
             return symbols[symbol][0]
         
     # Retrieve the symbols from debuginfod
-    if buildid and debug_info_level > 3:
+    if buildid and libcontext.sym_lvl > 3:
         absolute_debug_path = _debuginfod(buildid)
         if absolute_debug_path.exists():
             symbols = _collect_external_info(str(absolute_debug_path))
@@ -222,15 +227,18 @@ def resolve_address(path: str, address: int) -> str:
         str: The symbol corresponding to the specified address in the specified ELF file.
     """
 
-    if debug_info_level > 0:
+    if libcontext.sym_lvl == 0:
+        return hex(address)
+
+    if libcontext.sym_lvl > 0:
         # Retrieve the symbols from the SymbolTableSection
-        symbols, buildid, debug_file = _parse_elf_file(path, debug_info_level)
+        symbols, buildid, debug_file = _parse_elf_file(path, libcontext.sym_lvl)
         for symbol, (symbol_start, symbol_end) in symbols.items():
             if symbol_start <= address < symbol_end:
                 return f'{symbol}+{str(address-symbol_start)}'
     
     # Retrieve the symbols from the external debuginfo file
-    if buildid and debug_file and debug_info_level > 2:
+    if buildid and debug_file and libcontext.sym_lvl > 2:
         folder = buildid[:2]
         absolute_debug_path = os.path.join(LOCAL_DEBUG_PATH, folder, debug_file)
         symbols = _collect_external_info(absolute_debug_path)
@@ -239,7 +247,7 @@ def resolve_address(path: str, address: int) -> str:
                 return f'{symbol}+{str(address-symbol_start)}'
             
     # Retrieve the symbols from debuginfod      
-    if buildid and debug_info_level > 3:
+    if buildid and libcontext.sym_lvl > 3:
         absolute_debug_path = _debuginfod(buildid)
         if absolute_debug_path.exists():
             symbols = _collect_external_info(str(absolute_debug_path))

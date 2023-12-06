@@ -39,7 +39,7 @@ class LibLog:
         """Create a new instance of the class if it does not exist yet.
         
         Returns:
-            CustomLogger: the instance of the class.
+            LibLog: the instance of the class.
         """
 
         if cls._instance is None:
