@@ -15,11 +15,13 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+from libdebug.architectures.stack_unwinding_manager import StackUnwindingManager
+
 from libdebug.architectures.amd64.amd64_stack_unwinding import (
     Amd64StackUnwinding,
 )
 
-def stack_unwinding_provider(architecture: str = "amd64") -> Amd64StackUnwinding:
+def stack_unwinding_provider(architecture: str = "amd64") -> StackUnwindingManager:
     """Returns an instance of the stack unwinding provider to be used by the `Debugger` class."""
     match architecture:
         case "amd64":
