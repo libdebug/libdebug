@@ -17,7 +17,7 @@
 
 from dataclasses import dataclass
 
-@dataclass
+
 class Amd64StackUnwinding():
     """
     Class that provides stack unwinding for the x86_64 architecture.

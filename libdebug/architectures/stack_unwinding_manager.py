@@ -17,7 +17,7 @@
 
 from dataclasses import dataclass
 
-@dataclass
+
 class StackUnwindingManager():
     """
     An architecture-independent interface for stack unwinding.
