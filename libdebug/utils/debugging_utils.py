@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/io-no/libdebug).
-# Copyright (c) 2023 Roberto Alessandro Bertolini.
+# Copyright (c) 2023 Roberto Alessandro Bertolini, Gabriele Digregorio.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

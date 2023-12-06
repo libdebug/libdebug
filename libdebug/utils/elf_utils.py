@@ -15,7 +15,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libdebug.cffi import _debug_sym_cffi
+from libdebug.cffi._debug_sym_cffi import ffi, lib as lib_sym
 import functools
 import requests
 from pathlib import Path
@@ -29,9 +29,6 @@ from .libcontext import libcontext
 
 DEBUGINFOD_PATH: Path = Path.home() / ".cache" / "debuginfod_client"
 LOCAL_DEBUG_PATH: str = '/usr/lib/debug/.build-id/'
-
-lib_sym = _debug_sym_cffi.lib
-ffi = _debug_sym_cffi.ffi
 
 
 def _download_debuginfod(buildid: str, debuginfod_path: Path):
