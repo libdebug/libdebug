@@ -15,7 +15,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libdebug.cffi._debug_sym_cffi import ffi, lib as lib_sym
+from libdebug.cffi.debug_sym_cffi import ffi, lib as lib_sym
 import functools
 import requests
 from pathlib import Path

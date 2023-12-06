@@ -32,7 +32,7 @@ ffibuilder.cdef("""
 """)
 
 ffibuilder.set_source(
-    "libdebug.cffi._debug_sym_cffi",
+    "libdebug.cffi.debug_sym_cffi",
     """
 #include <stdio.h>
 #include <stdlib.h>
