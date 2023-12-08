@@ -22,13 +22,11 @@ from pathlib import Path
 from typing import IO
 import os
 from elftools.elf.elffile import ELFFile
-import time
-import gc
-import yappi
 from .libcontext import libcontext
 
 DEBUGINFOD_PATH: Path = Path.home() / ".cache" / "debuginfod_client"
-LOCAL_DEBUG_PATH: str = '/usr/lib/debug/.build-id/'
+LOCAL_DEBUG_PATH: str = "/usr/lib/debug/.build-id/"
+URL_BASE: str = "https://debuginfod.elfutils.org/buildid/{}/debuginfo"
 
 
 def _download_debuginfod(buildid: str, debuginfod_path: Path):
@@ -40,7 +38,7 @@ def _download_debuginfod(buildid: str, debuginfod_path: Path):
     """
 
     try:
-        url = f"https://debuginfod.elfutils.org/buildid/{buildid}/debuginfo"
+        url = URL_BASE.format(buildid)
         r = requests.get(url, allow_redirects=True)
 
         if r.status_code == 200:
@@ -50,7 +48,6 @@ def _download_debuginfod(buildid: str, debuginfod_path: Path):
                 f.write(r.content)
     except Exception as e:
         print('Exception in _download_debuginfod', e)
-        pass
 
 
 @functools.cache
@@ -61,7 +58,7 @@ def _debuginfod(buildid: str) -> Path:
         buildid (str): The buildid of the debuginfo file.
 
     Returns:
-        str: The path to the debuginfo file corresponding to the specified buildid.
+        debuginfod_path (Path): The path to the debuginfo file corresponding to the specified buildid.
     """
 
     debuginfod_path = Path.home() / ".cache" / "debuginfod_client" / buildid / "debuginfo"
@@ -130,11 +127,7 @@ def _parse_elf_file(path: str, debug_info_level: int) -> (dict[str, int], str, s
 
     if head != ffi.NULL:
         count = lib_sym.get_symbol_count(head)
-        #yappi.start()
-        #yappi.set_clock_type("cpu")
         for i in range(count):
-            #start = time.perf_counter()
-
             name = ffi.new("char **")
             low_pc = ffi.new("unsigned long long *")
             high_pc = ffi.new("unsigned long long *")
@@ -142,13 +135,6 @@ def _parse_elf_file(path: str, debug_info_level: int) -> (dict[str, int], str, s
             if lib_sym.get_symbol_data(head, i, name, low_pc, high_pc) == 0:
                 symbol_name = ffi.string(name[0]).decode("utf-8")
                 symbols[symbol_name] = (low_pc[0], high_pc[0])
-            
-            #end = time.perf_counter()
-            #print(f'get_symbol_data took {end-start} seconds')
-        #yappi.stop()
-        #print(yappi.get_thread_stats().print_all())
-        #yappi.get_func_stats().print_all()
-        #yappi.clear_stats()
         lib_sym.free_symbol_info(head)
 
     if debug_info_level > 2:
@@ -181,14 +167,14 @@ def resolve_symbol(path: str, symbol: str) -> int:
 
     if libcontext.sym_lvl == 0:
         raise Exception(
-            "Symbol resolution is disabled. Please enable it by setting the sym_lvl parameter to a value greater than 0."
+            """Symbol resolution is disabled. Please enable it by setting the sym_lvl libcontext parameter to a 
+            value greater than 0."""
             )
 
-    if libcontext.sym_lvl > 0:
-        # Retrieve the symbols from the SymbolTableSection
-        symbols, buildid, debug_file = _parse_elf_file(path, libcontext.sym_lvl)
-        if symbol in symbols:
-            return symbols[symbol][0]
+    # Retrieve the symbols from the SymbolTableSection
+    symbols, buildid, debug_file = _parse_elf_file(path, libcontext.sym_lvl)
+    if symbol in symbols:
+        return symbols[symbol][0]
     
     # Retrieve the symbols from the external debuginfo file
     if buildid and debug_file and libcontext.sym_lvl > 2:
@@ -227,12 +213,11 @@ def resolve_address(path: str, address: int) -> str:
     if libcontext.sym_lvl == 0:
         return hex(address)
 
-    if libcontext.sym_lvl > 0:
-        # Retrieve the symbols from the SymbolTableSection
-        symbols, buildid, debug_file = _parse_elf_file(path, libcontext.sym_lvl)
-        for symbol, (symbol_start, symbol_end) in symbols.items():
-            if symbol_start <= address < symbol_end:
-                return f'{symbol}+{str(address-symbol_start)}'
+    # Retrieve the symbols from the SymbolTableSection
+    symbols, buildid, debug_file = _parse_elf_file(path, libcontext.sym_lvl)
+    for symbol, (symbol_start, symbol_end) in symbols.items():
+        if symbol_start <= address < symbol_end:
+            return f'{symbol}+{str(address-symbol_start)}'
     
     # Retrieve the symbols from the external debuginfo file
     if buildid and debug_file and libcontext.sym_lvl > 2:

@@ -471,6 +471,5 @@ SymbolInfo *read_elf_info(const char *elf_file_path, int debug_info_level)
     libraries=["elf", "dwarf"],
 )
 
-
 if __name__ == "__main__":
     ffibuilder.compile(verbose=True)
