@@ -14,7 +14,6 @@ int main() {
     return 0;
 }
 
-// Implementations of functions
 int function1() {
     return function2(1);
 }
