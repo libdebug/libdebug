@@ -15,15 +15,12 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from dataclasses import dataclass
-
-
 class Amd64StackUnwinding():
     """
     Class that provides stack unwinding for the x86_64 architecture.
     """
 
-    def unwind(self, target, target_interface):
+    def unwind(self, target):
         """
         Unwind the stack of a process.
         """
@@ -35,10 +32,10 @@ class Amd64StackUnwinding():
             
             try:
                 # Read the return address
-                return_address = target_interface._peek_mem(current_rbp + 8)
+                return_address = int.from_bytes(target.memory[current_rbp + 8, 8], byteorder="little")
                 
                 # Read the previous rbp and set it as the current one
-                current_rbp = target_interface._peek_mem(current_rbp)
+                current_rbp = int.from_bytes(target.memory[current_rbp, 8], byteorder="little")
                 
                 stack_trace.append(return_address)
             except OSError:

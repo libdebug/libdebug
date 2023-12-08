@@ -200,7 +200,7 @@ class Debugger:
     
     def backtrace(self):
         """Returns the current backtrace of the process."""
-        backtrace = self.stack_unwinding.unwind(self, self.interface)
+        backtrace = self.stack_unwinding.unwind(self)
         return list(map(lambda x: resolve_address_in_maps(x, self.maps()), backtrace))
 
     def fds(self):
