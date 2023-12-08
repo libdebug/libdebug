@@ -62,7 +62,7 @@ def resolve_symbol_in_maps(symbol: str, maps: list[MemoryMap]) -> int:
         offset = 0
 
     for map in maps:
-        if map.backing_file and map.backing_file not in mapped_files:
+        if map.backing_file and map.backing_file not in mapped_files and map.backing_file[0] != "[":
             mapped_files[map.backing_file] = map.start
 
     for file, base_address in mapped_files.items():
@@ -99,7 +99,7 @@ def resolve_address_in_maps(address: int, maps: list[MemoryMap]) -> str:
 
     for map in maps:
         file = map.backing_file
-        if not file:
+        if not file or file[0] == "[":
             continue
             
         if file not in mapped_files:

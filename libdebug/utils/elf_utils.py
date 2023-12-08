@@ -164,7 +164,6 @@ def resolve_symbol(path: str, symbol: str) -> int:
     Returns:
         int: The address of the specified symbol in the specified ELF file.
     """
-
     if libcontext.sym_lvl == 0:
         raise Exception(
             """Symbol resolution is disabled. Please enable it by setting the sym_lvl libcontext parameter to a 
