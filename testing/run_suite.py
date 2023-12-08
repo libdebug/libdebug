@@ -20,6 +20,7 @@ import unittest
 from tests.basic_test import BasicTest, BasicPieTest, HwBasicTest
 from tests.breakpoint_test import BreakpointTest
 from tests.memory_test import MemoryTest
+from tests.backtrace_test import BacktraceTest
 
 
 def suite():
@@ -32,6 +33,7 @@ def suite():
     suite.addTest(MemoryTest("test_mem_access_libs"))
     suite.addTest(HwBasicTest("test_basic"))
     suite.addTest(HwBasicTest("test_registers"))
+    suite.addTest(BacktraceTest("test_backtrace"))
     return suite
 
 
@@ -39,4 +41,15 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
 
     runner = unittest.TextTestRunner()
-    runner.run(suite())
+    result = runner.run(suite())
+    
+    if result.wasSuccessful():
+        print("All tests passed")
+    else:
+        print("Some tests failed")
+        print("\nFailed Tests:")
+        for test, err in result.failures:
+            print(f"{test}: {err}")
+        print("\nErrors:")
+        for test, err in result.errors:
+            print(f"{test}: {err}")
