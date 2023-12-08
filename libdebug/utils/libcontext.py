@@ -66,7 +66,7 @@ class LibContext:
         Property setter for sym_lvl, ensuring it's between 0 and 4.
         """
         
-        if 0 <= value <= 4:
+        if 0 <= value <= 5:
             self._sym_lvl = value
         else:
             raise ValueError("sym_lvl must be between 0 and 4")

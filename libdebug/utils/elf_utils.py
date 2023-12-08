@@ -83,7 +83,7 @@ def _collect_external_info(path: str) -> dict[str, int]:
     symbols = {}
 
     c_file_path = ffi.new("char[]", path.encode('utf-8'))
-    head = lib_sym.collect_external_symbols(c_file_path)
+    head = lib_sym.collect_external_symbols(c_file_path, libcontext.sym_lvl)
 
     if head != ffi.NULL:
         count = lib_sym.get_symbol_count(head)
@@ -184,7 +184,7 @@ def resolve_symbol(path: str, symbol: str) -> int:
             return symbols[symbol][0]
         
     # Retrieve the symbols from debuginfod
-    if buildid and libcontext.sym_lvl > 3:
+    if buildid and libcontext.sym_lvl > 4:
         absolute_debug_path = _debuginfod(buildid)
         if absolute_debug_path.exists():
             symbols = _collect_external_info(str(absolute_debug_path))
@@ -228,7 +228,7 @@ def resolve_address(path: str, address: int) -> str:
                 return f'{symbol}+{str(address-symbol_start)}'
             
     # Retrieve the symbols from debuginfod      
-    if buildid and libcontext.sym_lvl > 3:
+    if buildid and libcontext.sym_lvl > 4:
         absolute_debug_path = _debuginfod(buildid)
         if absolute_debug_path.exists():
             symbols = _collect_external_info(str(absolute_debug_path))

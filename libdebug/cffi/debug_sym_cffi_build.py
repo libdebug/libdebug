@@ -22,7 +22,7 @@ ffibuilder = FFI()
 ffibuilder.cdef("""
     typedef struct SymbolInfo SymbolInfo;
 
-    SymbolInfo* collect_external_symbols(const char *debug_file_path);
+    SymbolInfo* collect_external_symbols(const char *debug_file_path, int debug_info_level);
     SymbolInfo* read_elf_info(const char *elf_file_path, int debug_info_level);
     char *get_build_id();
     char *get_debug_file();
@@ -255,11 +255,9 @@ void retrieve_from_dwarf(int fd)
 }
 
 // Function to collect external symbols from the debug file
-SymbolInfo *collect_external_symbols(const char *debug_file_path)
+SymbolInfo *collect_external_symbols(const char *debug_file_path, int debug_info_level)
 {
     Elf *elf;
-
-    head = NULL;
     int fd;
 
     // Initialize the ELF library
@@ -286,7 +284,12 @@ SymbolInfo *collect_external_symbols(const char *debug_file_path)
         return NULL;
     }
 
-    retrieve_from_dwarf(fd);
+    process_symbol_table(elf);
+
+    if (debug_info_level > 3)
+    {   
+        retrieve_from_dwarf(fd);
+    }
 
     elf_end(elf);
     close(fd);

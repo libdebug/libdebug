@@ -66,7 +66,7 @@ class MemoryTest(unittest.TestCase):
         def bp_leak_address(d, _):
             try:
                 address = d.rdi
-                arena = self.d.memory["main_arena", 256]
+                arena = d.memory["main_arena", 256]
 
                 self.assertTrue(p64(address - 0x10) in arena)
             except Exception as e:
