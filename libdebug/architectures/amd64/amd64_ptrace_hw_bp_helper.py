@@ -113,7 +113,7 @@ class Amd64PtraceHardwareBreakpointManager(PtraceHardwareBreakpointManager):
 
         # Find the breakpoint register
         register = next(
-            reg for reg, bp in self.breakpoint_registers.items() if bp == bp
+            reg for reg, bp_ in self.breakpoint_registers.items() if bp_ == bp
         )
 
         if register is None:
