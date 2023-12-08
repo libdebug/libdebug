@@ -15,14 +15,21 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+
 class Amd64StackUnwinding():
     """
     Class that provides stack unwinding for the x86_64 architecture.
     """
 
-    def unwind(self, target):
+    def unwind(self, target: "Debugger") -> list:
         """
         Unwind the stack of a process.
+
+        Args:
+            target (Debugger): The target Debugger.
+        
+        Returns:
+            list: A list of return addresses.
         """
 
         current_rbp = target.rbp

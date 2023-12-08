@@ -23,7 +23,7 @@ class StackUnwindingManager():
     An architecture-independent interface for stack unwinding.
     """
 
-    def unwind(self, target):
+    def unwind(self, target: "Debugger"):
         """
         Unwind the stack of the target process.
         """
