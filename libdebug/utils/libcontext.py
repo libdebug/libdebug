@@ -44,9 +44,32 @@ class LibContext:
         if self._initialized:
             return
         
-        self.sym_lvl = 3
+        self._sym_lvl = 3
 
         self._initialized = True
+
+
+    @property
+    def sym_lvl(self) -> int:
+        """
+        Property getter for sym_lvl.
+
+        Returns:
+            _sym_lvl (int): the current symbol level.
+        """
+        return self._sym_lvl
+
+
+    @sym_lvl.setter
+    def sym_lvl(self, value: int):
+        """
+        Property setter for sym_lvl, ensuring it's between 0 and 4.
+        """
+        
+        if 0 <= value <= 4:
+            self._sym_lvl = value
+        else:
+            raise ValueError("sym_lvl must be between 0 and 4")
 
 
     def update(self, **kwargs):
@@ -56,6 +79,7 @@ class LibContext:
         for key, value in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, value)
+
 
     @contextmanager
     def tmp(self, **kwargs):
