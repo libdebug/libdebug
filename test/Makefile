@@ -17,6 +17,9 @@ all:
 	$(CC) $(CFLAGS) $(SRC_DIR)/memory_test.c -o $(BIN_DIR)/memory_test $(LDFLAGS)
 	$(CC) $(CFLAGS) -fPIE -pie $(SRC_DIR)/basic_test_pie.c -o $(BIN_DIR)/basic_test_pie $(LDFLAGS)
 	$(CC) $(CFLAGS) $(SRC_DIR)/benchmark.c -o $(BIN_DIR)/benchmark $(LDFLAGS)
+	$(CC) $(CFLAGS) $(SRC_DIR)/backtrace.c -o $(BIN_DIR)/backtrace $(LDFLAGS)
+	$(CC) $(CFLAGS) $(SRC_DIR)/brute_test.c -o $(BIN_DIR)/brute_test $(LDFLAGS)
+	
 
 # Clean rule to remove compiled files
 clean:
