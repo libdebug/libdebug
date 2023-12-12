@@ -164,8 +164,6 @@ class PtraceInterface(DebuggingInterface):
 
         return PipeManager(self.stdin_write, self.stdout_read, self.stderr_read)
 
-        
-
     def attach(self, process_id: int):
         """Attaches to the specified process.
 
@@ -244,6 +242,17 @@ class PtraceInterface(DebuggingInterface):
 
         if os.WIFEXITED(status):
             logging.debug("Child process %d exited with status %d", pid, status)
+
+        if os.WIFSIGNALED(status):
+            logging.debug("Child process %d exited with signal %d", pid, status)
+
+        if os.WIFSTOPPED(status):
+            logging.debug("Child process %d stopped with signal %d", pid, status)
+            try:
+                exitcode = os.waitstatus_to_exitcode(status)
+                logging.debug("Child process %d exit code %d", pid, exitcode)
+            except ValueError:
+                pass
 
         return os.WIFSTOPPED(status)
 
@@ -360,6 +369,7 @@ class PtraceInterface(DebuggingInterface):
         assert self.process_id is not None
 
         result = self.lib_trace.ptrace_peekdata(self.process_id, address)
+        print(hex(address), hex(result))
         logging.debug("PEEKDATA at address %d returned with result %x", address, result)
 
         error = self.ffi.errno
