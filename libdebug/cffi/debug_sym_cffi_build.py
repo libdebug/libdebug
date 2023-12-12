@@ -284,7 +284,7 @@ SymbolInfo *collect_external_symbols(const char *debug_file_path, int debug_info
         return NULL;
     }
 
-    process_symbol_table(elf);
+    process_symbol_tables(elf);
 
     if (debug_info_level > 3)
     {   
@@ -297,8 +297,8 @@ SymbolInfo *collect_external_symbols(const char *debug_file_path, int debug_info
     return head;
 }
 
-// Function to process the symbol table
-void process_symbol_table(Elf *elf)
+// Function to process the symbol tables
+void process_symbol_tables(Elf *elf)
 {
     Elf_Scn *scn = NULL;
     GElf_Shdr shdr;
@@ -309,7 +309,7 @@ void process_symbol_table(Elf *elf)
     {
         if (gelf_getshdr(scn, &shdr) != &shdr)
             continue;
-        if (shdr.sh_type == SHT_SYMTAB)
+        if (shdr.sh_type == SHT_SYMTAB || shdr.sh_type == SHT_DYNSYM)
         {
             data = elf_getdata(scn, NULL);
             int count = shdr.sh_size / shdr.sh_entsize;
@@ -453,7 +453,7 @@ SymbolInfo *read_elf_info(const char *elf_file_path, int debug_info_level)
     }
 
     // read the symbol table
-    process_symbol_table(elf);
+    process_symbol_tables(elf);
 
     // read the build ID
     retrieve_build_id(elf);
