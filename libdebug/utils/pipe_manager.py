@@ -19,6 +19,7 @@
 import os
 import pty
 import time
+from libdebug.liblog import liblog
 
 
 class PipeFail(Exception):
@@ -129,7 +130,8 @@ class PipeManager:
                 # Read all available bytes up to 4096
                 data = os.read(pipe_read, 4096)
                 data_buffer += data
-                    
+        
+        liblog.pipe(f"Received {len(data_buffer)} bytes from the child process: {data_buffer}")
         return data_buffer
     
 
@@ -347,6 +349,7 @@ class PipeManager:
         if not self.stdin_write:
             raise PipeFail("No stdin pipe of the child process")
 
+        liblog.pipe(f"Sending {len(data)} bytes to the child process: {data}")
         return os.write(self.stdin_write, data)
     
 
