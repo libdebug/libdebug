@@ -15,8 +15,6 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-# TODO: add support for libdwarf-0
-
 from cffi import FFI
 
 ffibuilder = FFI()
@@ -42,8 +40,8 @@ ffibuilder.set_source(
 #include <string.h>
 #include <libelf.h>
 #include <gelf.h>
-#include <libdwarf-0/dwarf.h>
-#include <libdwarf-0/libdwarf.h>
+#include <libdwarf/dwarf.h>
+#include <libdwarf/libdwarf.h>
 #include <unistd.h>
 
 typedef struct SymbolInfo
