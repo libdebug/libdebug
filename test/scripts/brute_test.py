@@ -34,19 +34,17 @@ class BruteTest(unittest.TestCase):
         new_counter = 0
 
         def brute_force(d,b):
-            global new_counter
-            
+            global new_counter 
             try:
                 new_counter = b.hit_count
             except Exception as e:
                 self.exceptions.append(e)
 
-
         while True:
             end = False
 
             for c in string.printable:
-                d = debugger('../binaries/brute_test')
+                d = debugger('binaries/brute_test')
 
                 r = d.start()
 
@@ -60,19 +58,19 @@ class BruteTest(unittest.TestCase):
                     flag += c
                     counter = new_counter
                     d.kill()
-                    print(flag)
-                    break
-                
+                    break 
+                d.kill()
                 if message == b"Giusto!":
                     flag += c
                     end = True
-                    break
-                
-                d.kill()
-        
+                    break            
             if end:
                 break
+        
         assert flag == 'BRUTINOBRUTONE'
+
+        if self.exceptions:
+            raise self.exceptions[0]
 
 
 if __name__ == '__main__':

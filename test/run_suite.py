@@ -17,10 +17,14 @@
 
 import logging
 import unittest
-from tests.basic_test import BasicTest, BasicPieTest, HwBasicTest
-from tests.breakpoint_test import BreakpointTest
-from tests.memory_test import MemoryTest
-from tests.backtrace_test import BacktraceTest
+from scripts.basic_test import BasicTest, BasicPieTest, HwBasicTest
+from scripts.breakpoint_test import BreakpointTest
+from scripts.memory_test import MemoryTest
+from scripts.backtrace_test import BacktraceTest
+from scripts.brute_test import BruteTest
+from scripts.vmwhere1 import Vmwhere1
+from scripts.jumpout import Jumpout
+from scripts.ncuts import Ncuts
 
 
 def suite():
@@ -34,6 +38,10 @@ def suite():
     suite.addTest(HwBasicTest("test_basic"))
     suite.addTest(HwBasicTest("test_registers"))
     suite.addTest(BacktraceTest("test_backtrace"))
+    suite.addTest(BruteTest("test_bruteforce"))
+    suite.addTest(Vmwhere1("test_vmwhere1"))
+    suite.addTest(Jumpout("test_jumpout"))
+    suite.addTest(Ncuts("test_ncuts"))
     return suite
 
 

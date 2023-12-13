@@ -24,7 +24,7 @@ import string
 import unittest
 
 
-class vmwhere1(unittest.TestCase):
+class Vmwhere1(unittest.TestCase):
     def setUp(self):
         self.exceptions = []
 
@@ -53,7 +53,7 @@ class vmwhere1(unittest.TestCase):
             added = False
             stop = False
             for el in string.printable:
-                d = debugger(['../CTF/vmwhere1', '../CTF/vmwhere1_program'])
+                d = debugger(['CTF/vmwhere1', 'CTF/vmwhere1_program'])
 
                 r = d.start()
                 d.b(0x1587, brute_force, hardware_assisted=True)
