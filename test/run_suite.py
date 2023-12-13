@@ -17,6 +17,7 @@
 
 import logging
 import unittest
+import subprocess
 from scripts.basic_test import BasicTest, BasicPieTest, HwBasicTest
 from scripts.breakpoint_test import BreakpointTest
 from scripts.memory_test import MemoryTest
@@ -44,6 +45,14 @@ def suite():
     suite.addTest(Ncuts("test_ncuts"))
     return suite
 
+def profiling():
+    command = "py-spy record --format speedscope -o ./python_profiling.app -- python scripts/node.py"
+    result = subprocess.run(command, shell=True)
+
+    if result.returncode == 0:
+        print("Python profiling executed successfully!")
+    else:
+        print("Error occurred during python profiling. Return code:", result.returncode)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
@@ -52,12 +61,14 @@ if __name__ == "__main__":
     result = runner.run(suite())
     
     if result.wasSuccessful():
-        print("All tests passed")
+       print("All tests passed")
     else:
-        print("Some tests failed")
-        print("\nFailed Tests:")
-        for test, err in result.failures:
-            print(f"{test}: {err}")
-        print("\nErrors:")
-        for test, err in result.errors:
-            print(f"{test}: {err}")
+       print("Some tests failed")
+       print("\nFailed Tests:")
+       for test, err in result.failures:
+           print(f"{test}: {err}")
+       print("\nErrors:")
+       for test, err in result.errors:
+           print(f"{test}: {err}")
+    
+    profiling()
