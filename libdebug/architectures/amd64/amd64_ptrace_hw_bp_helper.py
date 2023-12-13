@@ -19,7 +19,7 @@ from libdebug.architectures.ptrace_hardware_breakpoint_manager import (
     PtraceHardwareBreakpointManager,
 )
 from libdebug.data.breakpoint import Breakpoint
-import logging
+from libdebug.liblog import liblog
 
 
 AMD64_DBGREGS_OFF = {
@@ -68,7 +68,7 @@ class Amd64PtraceHardwareBreakpointManager(PtraceHardwareBreakpointManager):
         register = next(
             reg for reg, bp in self.breakpoint_registers.items() if bp is None
         )
-        logging.debug(f"Installing hardware breakpoint on register {register}.")
+        liblog.debugger(f"Installing hardware breakpoint on register {register}.")
 
         # Write the breakpoint address in the register
         self.poke_mem(AMD64_DBGREGS_OFF[register], bp.address)
@@ -102,7 +102,7 @@ class Amd64PtraceHardwareBreakpointManager(PtraceHardwareBreakpointManager):
         # Save the breakpoint
         self.breakpoint_registers[register] = bp
 
-        logging.debug(f"Hardware breakpoint installed on register {register}.")
+        liblog.debugger(f"Hardware breakpoint installed on register {register}.")
 
         self.breakpoint_count += 1
 
@@ -119,7 +119,7 @@ class Amd64PtraceHardwareBreakpointManager(PtraceHardwareBreakpointManager):
         if register is None:
             raise RuntimeError("Hardware breakpoint not found.")
 
-        logging.debug(f"Removing hardware breakpoint on register {register}.")
+        liblog.debugger(f"Removing hardware breakpoint on register {register}.")
 
         # Clear the breakpoint address in the register
         self.poke_mem(AMD64_DBGREGS_OFF[register], 0)
@@ -136,7 +136,7 @@ class Amd64PtraceHardwareBreakpointManager(PtraceHardwareBreakpointManager):
         # Remove the breakpoint
         self.breakpoint_registers[register] = None
 
-        logging.debug(f"Hardware breakpoint removed from register {register}.")
+        liblog.debugger(f"Hardware breakpoint removed from register {register}.")
 
         self.breakpoint_count -= 1
 

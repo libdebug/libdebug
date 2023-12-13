@@ -21,7 +21,7 @@ from libdebug.data.memory_view import MemoryView
 from libdebug.interfaces.interface_helper import debugging_interface_provider
 from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
 from libdebug.utils.debugging_utils import resolve_symbol_in_maps, resolve_address_in_maps
-import logging
+from libdebug.liblog import liblog
 from queue import Queue
 from typing import Callable
 from threading import Thread
@@ -85,7 +85,7 @@ class Debugger:
 
     def _start_process(self):
         assert self.starting
-        logging.debug("Starting process %s", self.argv[0])
+        liblog.debugger("Starting process %s", self.argv[0])
         self.pipe_manager = self.interface.run(self.argv, self.enable_aslr, self.env)
         self._poll_registers()
         self.memory = self.interface.provide_memory_view()
@@ -217,7 +217,7 @@ class Debugger:
         Returns:
             bool: True if the process is still running, False otherwise.
         """
-        logging.debug("Polling process %s for state change", self.argv[0])
+        liblog.debugger("Polling process %s for state change", self.argv[0])
 
         if not self.interface.wait_for_child():
             # The process has exited
@@ -245,7 +245,7 @@ class Debugger:
 
             self._flush_and_cont_after_bp(breakpoint)
         else:
-            logging.debug("Stopped at %x but no breakpoint set, continuing", self.rip)
+            liblog.debugger("Stopped at %x but no breakpoint set, continuing", self.rip)
             self._flush_and_cont()
 
         return True

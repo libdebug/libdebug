@@ -17,7 +17,7 @@
 
 from libdebug.data.memory_map import MemoryMap
 from libdebug.utils.elf_utils import resolve_symbol, resolve_address, is_pie
-import logging
+from libdebug.liblog import liblog
 
 
 def normalize_and_validate_address(address: int, maps: list[MemoryMap]) -> int:
@@ -74,7 +74,7 @@ def resolve_symbol_in_maps(symbol: str, maps: list[MemoryMap]) -> int:
 
             return address + offset
         except OSError as e:
-            logging.debug(f"Error while resolving symbol {symbol} in {file}: {e}")
+            liblog.debugger(f"Error while resolving symbol {symbol} in {file}: {e}")
         except ValueError:
             pass
     else:
@@ -122,7 +122,7 @@ def resolve_address_in_maps(address: int, maps: list[MemoryMap]) -> str:
                 
             return symbol
         except OSError as e:
-            logging.debug(f"Error while resolving address {hex(address)} in {file}: {e}")
+            liblog.debugger(f"Error while resolving address {hex(address)} in {file}: {e}")
         except ValueError:
             pass
     else:

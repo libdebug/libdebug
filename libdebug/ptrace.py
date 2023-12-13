@@ -1,5 +1,5 @@
 import errno
-import logging
+from libdebug.liblog import liblog
 from ctypes import (
     CDLL,
     c_char_p,
@@ -177,7 +177,7 @@ class Ptrace:
         self.libc.ptrace.argtypes = self.args_int
         set_errno(0)
         r = self.libc.ptrace(PTRACE_ATTACH, tid, NULL, NULL)
-        logging.debug("attached %d", r)
+        liblog.debugger("attached %d", r)
         if r == -1:
             err = get_errno()
             raise PtraceFail(

@@ -35,7 +35,7 @@ from libdebug.utils.process_utils import (
     invalidate_process_cache,
     disable_self_aslr,
 )
-import logging
+from libdebug.liblog import liblog
 import os
 import signal
 import pty
@@ -78,7 +78,7 @@ class PtraceInterface(DebuggingInterface):
             int: The PID of the process.
         """
 
-        logging.debug("Running %s", argv)
+        liblog.debugger("Running %s", argv)
 
         # Creating pipes for stdin, stdout, stderr
         self.stdin_read, self.stdin_write = os.pipe()
@@ -152,11 +152,11 @@ class PtraceInterface(DebuggingInterface):
             # TODO: custom exception
             raise Exception("Closing fds failed: %r" % e)
 
-        logging.debug("Polling child process status")
+        liblog.debugger("Polling child process status")
         self.wait_for_child()
-        logging.debug("Child process ready, setting options")
+        liblog.debugger("Child process ready, setting options")
         self._set_options()
-        logging.debug("Options set")
+        liblog.debugger("Options set")
         invalidate_process_cache()
         self.hardware_bp_helper = ptrace_hardware_breakpoint_manager_provider(
             self._peek_user, self._poke_user
@@ -177,7 +177,7 @@ class PtraceInterface(DebuggingInterface):
             raise OSError(errno_val, errno.errorcode[errno_val])
         else:
             self.process_id = process_id
-            logging.debug("Attached PtraceInterface to process %d", process_id)
+            liblog.debugger("Attached PtraceInterface to process %d", process_id)
 
     def shutdown(self):
         """Shuts down the debugging backend."""
@@ -187,22 +187,22 @@ class PtraceInterface(DebuggingInterface):
         try:
             os.kill(self.process_id, 9)
         except OSError:
-            logging.debug("Process %d already dead", self.process_id)
+            liblog.debugger("Process %d already dead", self.process_id)
 
         try:
             os.close(self.stdin_write)
             os.close(self.stdout_read)
             os.close(self.stderr_read)
         except Exception as e:
-            logging.debug("Closing fds failed: %r", e)
+            liblog.debugger("Closing fds failed: %r", e)
 
         result = self.lib_trace.ptrace_detach(self.process_id)
 
         if result != -1:
-            logging.debug("Detached PtraceInterface from process %d", self.process_id)
+            liblog.debugger("Detached PtraceInterface from process %d", self.process_id)
             os.wait()
         else:
-            logging.debug("Unable to detach, process %d already dead", self.process_id)
+            liblog.debugger("Unable to detach, process %d already dead", self.process_id)
         self.process_id = None
 
     def get_register_holder(self) -> RegisterHolder:
@@ -211,7 +211,7 @@ class PtraceInterface(DebuggingInterface):
         """
         # TODO: this 512 is a magic number, it should be replaced with a constant
         register_file = self.ffi.new("char[512]")
-        logging.debug("Getting registers from process %d", self.process_id)
+        liblog.debugger("Getting registers from process %d", self.process_id)
         result = self.lib_trace.ptrace_getregs(self.process_id, register_file)
         if result == -1:
             errno_val = self.ffi.errno
@@ -238,19 +238,19 @@ class PtraceInterface(DebuggingInterface):
         assert self.process_id is not None
         # TODO: check what option this is, because I can't find it anywhere
         pid, status = os.waitpid(self.process_id, 1 << 30)
-        logging.debug("Child process %d reported status %d", pid, status)
+        liblog.debugger("Child process %d reported status %d", pid, status)
 
         if os.WIFEXITED(status):
-            logging.debug("Child process %d exited with status %d", pid, status)
+            liblog.debugger("Child process %d exited with status %d", pid, status)
 
         if os.WIFSIGNALED(status):
-            logging.debug("Child process %d exited with signal %d", pid, status)
+            liblog.debugger("Child process %d exited with signal %d", pid, status)
 
         if os.WIFSTOPPED(status):
-            logging.debug("Child process %d stopped with signal %d", pid, status)
+            liblog.debugger("Child process %d stopped with signal %d", pid, status)
             try:
                 exitcode = os.waitstatus_to_exitcode(status)
-                logging.debug("Child process %d exit code %d", pid, exitcode)
+                liblog.debugger("Child process %d exit code %d", pid, exitcode)
             except ValueError:
                 pass
 
@@ -369,8 +369,7 @@ class PtraceInterface(DebuggingInterface):
         assert self.process_id is not None
 
         result = self.lib_trace.ptrace_peekdata(self.process_id, address)
-        print(hex(address), hex(result))
-        logging.debug("PEEKDATA at address %d returned with result %x", address, result)
+        liblog.debugger("PEEKDATA at address %d returned with result %x", address, result)
 
         error = self.ffi.errno
         if error == errno.EIO:
@@ -383,7 +382,7 @@ class PtraceInterface(DebuggingInterface):
         assert self.process_id is not None
 
         result = self.lib_trace.ptrace_pokedata(self.process_id, address, value)
-        logging.debug("POKEDATA at address %d returned with result %d", address, result)
+        liblog.debugger("POKEDATA at address %d returned with result %d", address, result)
 
         error = self.ffi.errno
         if error == errno.EIO:
@@ -394,7 +393,7 @@ class PtraceInterface(DebuggingInterface):
         assert self.process_id is not None
 
         result = self.lib_trace.ptrace_peekuser(self.process_id, address)
-        logging.debug("PEEKUSER at address %d returned with result %x", address, result)
+        liblog.debugger("PEEKUSER at address %d returned with result %x", address, result)
 
         error = self.ffi.errno
         if error == errno.EIO:
@@ -407,7 +406,7 @@ class PtraceInterface(DebuggingInterface):
         assert self.process_id is not None
 
         result = self.lib_trace.ptrace_pokeuser(self.process_id, address, value)
-        logging.debug("POKEUSER at address %d returned with result %d", address, result)
+        liblog.debugger("POKEUSER at address %d returned with result %d", address, result)
 
         error = self.ffi.errno
         if error == errno.EIO:
