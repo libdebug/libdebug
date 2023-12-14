@@ -150,13 +150,13 @@ class LibContext:
         Context manager that temporarily changes the library context. Use "with" statement.
         """
         # Make a deep copy of the current state
-        old_context = deepcopy(self)  
+        old_context = deepcopy(self.__dict__)  
         self.update(**kwargs)
         try:
             yield
         finally:
             # Restore the original state
-            self.__dict__.update(old_context.__dict__)
+            self.__dict__.update(old_context)
             liblog.debugger_logger.setLevel(self.debugger_logger)
             liblog.pipe_logger.setLevel(self.pipe_logger)
     
