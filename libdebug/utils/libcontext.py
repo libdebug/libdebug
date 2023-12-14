@@ -17,6 +17,8 @@
 
 from contextlib import contextmanager
 from copy import deepcopy
+import sys
+from libdebug.liblog import liblog
 
 class LibContext:
     """
@@ -46,6 +48,21 @@ class LibContext:
         
         self._sym_lvl = 3
 
+        self._debugger_logger = 'INFO'
+        self._pipe_logger = 'INFO'
+        # Adjust log levels based on command-line arguments
+        if len(sys.argv) > 1:
+            if "debugger" in sys.argv:
+                liblog.debugger_logger.setLevel("DEBUG")
+                self._debugger_logger = 'DEBUG'
+            elif "pipe" in sys.argv:
+                liblog.pipe_logger.setLevel("DEBUG")
+                self._pipe_logger = 'DEBUG'
+            elif "dbg" in sys.argv:
+                liblog.set_debug_level_for_all()
+                self._debugger_logger = 'DEBUG'
+                self._pipe_logger = 'DEBUG'
+        
         self._initialized = True
 
 
@@ -72,6 +89,52 @@ class LibContext:
             raise ValueError("sym_lvl must be between 0 and 4")
 
 
+    @property
+    def debugger_logger(self) -> str:
+        """
+        Property getter for debugger_logger.
+
+        Returns:
+            _debugger_logger (str): the current debugger logger level.
+        """
+        return self._debugger_logger
+    
+
+    @debugger_logger.setter
+    def debugger_logger(self, value: str):
+        """
+        Property setter for debugger_logger, ensuring it's a valid logging level.
+        """
+        if value in ['DEBUG', 'INFO']:
+            self._debugger_logger = value
+            liblog.debugger_logger.setLevel(value)
+        else:
+            raise ValueError("debugger_logger must be a valid logging level")
+        
+    
+    @property
+    def pipe_logger(self) -> str:
+        """
+        Property getter for pipe_logger.
+
+        Returns:
+            _pipe_logger (str): the current pipe logger level.
+        """
+        return self._pipe_logger
+    
+
+    @pipe_logger.setter
+    def pipe_logger(self, value: str):
+        """
+        Property setter for pipe_logger, ensuring it's a valid logging level.
+        """
+        if value in ['DEBUG', 'INFO']:
+            self._pipe_logger = value
+            liblog.pipe_logger.setLevel(value)
+        else:
+            raise ValueError("pipe_logger must be a valid logging level")
+
+
     def update(self, **kwargs):
         """
         Update the context with the given values.
@@ -93,7 +156,9 @@ class LibContext:
             yield
         finally:
             # Restore the original state
-            self.__dict__.update(old_context.__dict__)  
+            self.__dict__.update(old_context.__dict__)
+            liblog.debugger_logger.setLevel(self.debugger_logger)
+            liblog.pipe_logger.setLevel(self.pipe_logger)
     
 
 # Global context instance

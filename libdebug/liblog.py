@@ -15,10 +15,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-
 import logging
-import sys
-
 
 class LogColors:
     RED = '\033[91m'
@@ -61,15 +58,6 @@ class LibLog:
         self.debugger_logger = self._setup_logger("debugger", logging.INFO)
         self.pipe_logger = self._setup_logger("pipe", logging.INFO)
 
-        # Adjust log levels based on command-line arguments
-        if len(sys.argv) > 1:
-            if "debugger" in sys.argv:
-                self.debugger_logger.setLevel(logging.DEBUG)
-            elif "pipe" in sys.argv:
-                self.pipe_logger.setLevel(logging.DEBUG)
-            elif "dbg" in sys.argv:
-                self._set_debug_level_for_all()
-
         self._initialized = True
 
 
@@ -94,7 +82,7 @@ class LibLog:
         return logger
 
 
-    def _set_debug_level_for_all(self):
+    def set_debug_level_for_all(self):
         """Set the debug level for all the loggers to DEBUG"""
 
         for logger in [self.general_logger, self.debugger_logger, self.pipe_logger]:
