@@ -42,8 +42,8 @@ ffibuilder.set_source(
 #include <string.h>
 #include <libelf.h>
 #include <gelf.h>
-#include <libdwarf-0/dwarf.h>
-#include <libdwarf-0/libdwarf.h>
+#include <dwarf.h>
+#include <libdwarf.h>
 #include <unistd.h>
 
 typedef struct SymbolInfo
@@ -197,16 +197,33 @@ int process_die(Dwarf_Debug dbg, Dwarf_Die the_die)
 // Function for symbol names
 int help_symbol_names(Dwarf_Debug dbg)
 {
-    Dwarf_Error err;
-    Dwarf_Unsigned cu_header_length, abbrev_offset, next_cu_header;
-    Dwarf_Half version_stamp, address_size;
-    Dwarf_Die no_die = 0, cu_die, child_die, sibling_die;
+    Dwarf_Unsigned abbrev_offset;
+    Dwarf_Half     address_size;
+    Dwarf_Half     version_stamp;
+    Dwarf_Half     offset_size;
+    Dwarf_Half     extension_size;
+    Dwarf_Sig8     signature;
+    Dwarf_Unsigned typeoffset;
+    Dwarf_Unsigned next_cu_header;
+    Dwarf_Half     header_cu_type;
+    Dwarf_Bool     is_info;
+    Dwarf_Die      cu_die;
+    Dwarf_Die      child_die;
+    Dwarf_Die      no_die;
+    Dwarf_Error    err;
+    Dwarf_Die      sibling_die;
+    Dwarf_Unsigned cu_header_length;
 
     // Loop through all the compilation units
-    while (dwarf_next_cu_header(dbg, &cu_header_length, &version_stamp, &abbrev_offset, &address_size, &next_cu_header, &err) == DW_DLV_OK)
+    while (dwarf_next_cu_header_d(dbg,is_info,&cu_header_length,
+            &version_stamp, &abbrev_offset,
+            &address_size, &offset_size,
+            &extension_size,&signature,
+            &typeoffset, &next_cu_header,
+            &header_cu_type,&err) == DW_DLV_OK)
     {   
         // Get the DIE for the current compilation unit
-        if (dwarf_siblingof(dbg, no_die, &cu_die, &err) != DW_DLV_OK)
+        if (dwarf_siblingof_b(dbg, no_die, is_info, &cu_die, &err) != DW_DLV_OK)
         {
             perror("Error getting sibling of CU");
             return -1;
@@ -221,7 +238,7 @@ int help_symbol_names(Dwarf_Debug dbg)
                     return -1;
                 }
                 // Get the next DIE (sibling)
-                if (dwarf_siblingof(dbg, child_die, &sibling_die, &err) != DW_DLV_OK)
+                if (dwarf_siblingof_b(dbg, no_die, is_info, &cu_die, &err) != DW_DLV_OK)
                 {
                     // If there's no sibling, we're done with this level
                     dwarf_dealloc(dbg, child_die, DW_DLA_DIE);
@@ -243,7 +260,7 @@ void retrieve_from_dwarf(int fd)
     Dwarf_Error err;
 
     // Initialize the DWARF library
-    if (dwarf_init(fd, DW_DLC_READ, NULL, NULL, &dbg, &err) != DW_DLV_OK)
+    if (dwarf_init_b(fd, DW_DLA_WEAK, NULL, NULL, &dbg, &err) != DW_DLV_OK)
     {
         perror("Failed DWARF initialization");
         return;
@@ -253,7 +270,41 @@ void retrieve_from_dwarf(int fd)
     {
         return;
     }
-    dwarf_finish(dbg, &err);
+    dwarf_finish(dbg);
+}
+
+// Function to process the symbol tables
+void process_symbol_tables(Elf *elf)
+{
+    Elf_Scn *scn = NULL;
+    GElf_Shdr shdr;
+    Elf_Data *data;
+    head = NULL;
+
+    while ((scn = elf_nextscn(elf, scn)) != NULL)
+    {
+        if (gelf_getshdr(scn, &shdr) != &shdr)
+            continue;
+        if (shdr.sh_type == SHT_SYMTAB || shdr.sh_type == SHT_DYNSYM)
+        {
+            data = elf_getdata(scn, NULL);
+            int count = shdr.sh_size / shdr.sh_entsize;
+
+            for (int i = 0; i < count; ++i)
+            {
+                GElf_Sym sym;
+                gelf_getsym(data, i, &sym);
+
+                const char *name = elf_strptr(elf, shdr.sh_link, sym.st_name);
+                if (name)
+                {
+                    Dwarf_Addr low_pc = sym.st_value;
+                    Dwarf_Addr high_pc = sym.st_value + sym.st_size;
+                    add_symbol_info(&head, name, low_pc, high_pc);
+                }
+            }
+        }
+    }
 }
 
 // Function to collect external symbols from the debug file
@@ -297,40 +348,6 @@ SymbolInfo *collect_external_symbols(const char *debug_file_path, int debug_info
     close(fd);
 
     return head;
-}
-
-// Function to process the symbol tables
-void process_symbol_tables(Elf *elf)
-{
-    Elf_Scn *scn = NULL;
-    GElf_Shdr shdr;
-    Elf_Data *data;
-    head = NULL;
-
-    while ((scn = elf_nextscn(elf, scn)) != NULL)
-    {
-        if (gelf_getshdr(scn, &shdr) != &shdr)
-            continue;
-        if (shdr.sh_type == SHT_SYMTAB || shdr.sh_type == SHT_DYNSYM)
-        {
-            data = elf_getdata(scn, NULL);
-            int count = shdr.sh_size / shdr.sh_entsize;
-
-            for (int i = 0; i < count; ++i)
-            {
-                GElf_Sym sym;
-                gelf_getsym(data, i, &sym);
-
-                const char *name = elf_strptr(elf, shdr.sh_link, sym.st_name);
-                if (name)
-                {
-                    Dwarf_Addr low_pc = sym.st_value;
-                    Dwarf_Addr high_pc = sym.st_value + sym.st_size;
-                    add_symbol_info(&head, name, low_pc, high_pc);
-                }
-            }
-        }
-    }
 }
 
 void retrieve_build_id(Elf *elf)
@@ -474,6 +491,7 @@ SymbolInfo *read_elf_info(const char *elf_file_path, int debug_info_level)
 }
 """,
     libraries=["elf", "dwarf"],
+    include_dirs=['/usr/include/libdwarf/libdwarf-0', '/usr/include/libdwarf-0'],
 )
 
 if __name__ == "__main__":
