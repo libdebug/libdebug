@@ -50,6 +50,8 @@ class LibContext:
 
         self._debugger_logger = 'INFO'
         self._pipe_logger = 'INFO'
+        self._general_logger = 'INFO'
+        
         # Adjust log levels based on command-line arguments
         if len(sys.argv) > 1:
             if "debugger" in sys.argv:
@@ -59,11 +61,17 @@ class LibContext:
                 liblog.pipe_logger.setLevel("DEBUG")
                 self._pipe_logger = 'DEBUG'
             elif "dbg" in sys.argv:
-                liblog.set_debug_level_for_all()
+                self._set_debug_level_for_all()
                 self._debugger_logger = 'DEBUG'
                 self._pipe_logger = 'DEBUG'
-        
+                self._general_logger = 'DEBUG'
         self._initialized = True
+
+
+    def _set_debug_level_for_all(self):
+        """Set the debug level for all the loggers to DEBUG"""
+        for logger in [liblog.general_logger, liblog.debugger_logger, liblog.pipe_logger]:
+            logger.setLevel("DEBUG")
 
 
     @property
@@ -133,6 +141,29 @@ class LibContext:
             liblog.pipe_logger.setLevel(value)
         else:
             raise ValueError("pipe_logger must be a valid logging level")
+
+
+    @property
+    def general_logger(self) -> str:
+        """
+        Property getter for general_logger.
+
+        Returns:
+            _general_logger (str): the current general logger level.
+        """
+        return self._general_logger
+    
+
+    @general_logger.setter
+    def general_logger(self, value: str):
+        """
+        Property setter for general_logger, ensuring it's a valid logging level.
+        """
+        if value in ['DEBUG', 'INFO']:
+            self._general_logger = value
+            liblog.general_logger.setLevel(value)
+        else:
+            raise ValueError("general_logger must be a valid logging level")
 
 
     def update(self, **kwargs):

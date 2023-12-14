@@ -81,13 +81,6 @@ class LibLog:
 
         return logger
 
-
-    def set_debug_level_for_all(self):
-        """Set the debug level for all the loggers to DEBUG"""
-
-        for logger in [self.general_logger, self.debugger_logger, self.pipe_logger]:
-            logger.setLevel(logging.DEBUG)
-
     
     def debugger(self, message: str, *args, **kwargs):
         """Log a message to the debugger logger.
