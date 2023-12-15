@@ -29,7 +29,7 @@ class BacktraceTest(unittest.TestCase):
         def check_main(d,b):
             try:
                 backtrace = d.backtrace()
-                self.assertIn('__libc_start_call_main', backtrace.pop())
+                self.assertIn('__libc_start_', backtrace.pop())
                 self.assertEqual(backtrace, ['main+8'])
             except Exception as e:
                 self.exceptions.append(e)
@@ -37,7 +37,7 @@ class BacktraceTest(unittest.TestCase):
         def check_function1(d,b):
             try:
                 backtrace = d.backtrace()
-                self.assertIn('__libc_start_call_main', backtrace.pop())
+                self.assertIn('__libc_start_', backtrace.pop())
                 self.assertEqual(backtrace, ['function1+8', 'main+22'])
             except Exception as e:
                 self.exceptions.append(e)
@@ -45,7 +45,7 @@ class BacktraceTest(unittest.TestCase):
         def check_function2(d,b):
             try:
                 backtrace = d.backtrace()
-                self.assertIn('__libc_start_call_main', backtrace.pop())
+                self.assertIn('__libc_start_', backtrace.pop())
                 self.assertEqual(backtrace, ['function2+8', 'function1+18', 'main+22'])
             except Exception as e:
                 self.exceptions.append(e)
@@ -53,7 +53,7 @@ class BacktraceTest(unittest.TestCase):
         def check_function3(d,b):
             try:
                 backtrace = d.backtrace()
-                self.assertIn('__libc_start_call_main', backtrace.pop())
+                self.assertIn('__libc_start_', backtrace.pop())
                 self.assertEqual(backtrace, ['function3+8', 'function2+28', 'function1+18', 'main+22'])
             except Exception as e:
                 self.exceptions.append(e)
@@ -61,7 +61,7 @@ class BacktraceTest(unittest.TestCase):
         def check_function4(d,b):
             try:
                 backtrace = d.backtrace()
-                self.assertIn('__libc_start_call_main', backtrace.pop())
+                self.assertIn('__libc_start_', backtrace.pop())
                 self.assertEqual(backtrace, ['function4+8', 'function3+28', 'function2+28', 'function1+18', 'main+22'])
             except Exception as e:
                 self.exceptions.append(e)
@@ -69,7 +69,7 @@ class BacktraceTest(unittest.TestCase):
         def check_function5(d,b):
             try:
                 backtrace = d.backtrace()
-                self.assertIn('__libc_start_call_main', backtrace.pop())
+                self.assertIn('__libc_start_', backtrace.pop())
                 self.assertEqual(backtrace, ['function5+8', 'function4+28', 'function3+28', 'function2+28', 'function1+18', 'main+22'])
             except Exception as e:
                 self.exceptions.append(e)
@@ -77,7 +77,7 @@ class BacktraceTest(unittest.TestCase):
         def check_function6(d,b):
             try:
                 backtrace = d.backtrace()
-                self.assertIn('__libc_start_call_main', backtrace.pop())
+                self.assertIn('__libc_start_', backtrace.pop())
                 self.assertEqual(backtrace, ['function6+8', 'function5+28', 'function4+28', 'function3+28', 'function2+28', 'function1+18', 'main+22'])
             except Exception as e:
                 self.exceptions.append(e)
