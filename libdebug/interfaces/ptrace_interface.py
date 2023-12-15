@@ -98,7 +98,8 @@ class PtraceInterface(DebuggingInterface):
             assert False
         else:
             self.process_id = child_pid
-            return self._setup_parent()
+            self._setup_parent()
+            return self._setup_pipe()
 
     def _setup_child(self, argv, enable_aslr, env):
         self._trace_self()
@@ -137,13 +138,18 @@ class PtraceInterface(DebuggingInterface):
             else:
                 os.execv(argv[0], argv)
         except OSError as e:
-            logging.error("Unable to execute %s: %s", argv, e)
+            liblog.debugger("Unable to execute %s: %s", argv, e)
             os._exit(1)
 
-    def _setup_parent(self):
-        # Close the read end for stdin and the write ends for stdout and stderr
-        # in the parent process since we are going to write to stdin and read from
-        # stdout and stderr
+    
+    def _setup_pipe(self):
+        """
+        Sets up the pipe manager for the child process.
+        
+        Close the read end for stdin and the write ends for stdout and stderr
+        in the parent process since we are going to write to stdin and read from
+        stdout and stderr
+        """
         try:
             os.close(self.stdin_read)
             os.close(self.stdout_write)
@@ -151,7 +157,12 @@ class PtraceInterface(DebuggingInterface):
         except Exception as e:
             # TODO: custom exception
             raise Exception("Closing fds failed: %r" % e)
+        return PipeManager(self.stdin_write, self.stdout_read, self.stderr_read)
 
+    def _setup_parent(self):
+        """
+        Sets up the parent process after the child process has been created or attached to.
+        """
         liblog.debugger("Polling child process status")
         self.wait_for_child()
         liblog.debugger("Child process ready, setting options")
@@ -161,8 +172,6 @@ class PtraceInterface(DebuggingInterface):
         self.hardware_bp_helper = ptrace_hardware_breakpoint_manager_provider(
             self._peek_user, self._poke_user
         )
-
-        return PipeManager(self.stdin_write, self.stdout_read, self.stderr_read)
 
     def attach(self, process_id: int):
         """Attaches to the specified process.
@@ -177,7 +186,9 @@ class PtraceInterface(DebuggingInterface):
             raise OSError(errno_val, errno.errorcode[errno_val])
         else:
             self.process_id = process_id
-            liblog.debugger("Attached PtraceInterface to process %d", process_id)
+            liblog.debugger("Attached PtraceInterface to process %d", process_id)    
+        self._setup_parent()
+
 
     def shutdown(self):
         """Shuts down the debugging backend."""

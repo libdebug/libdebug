@@ -21,7 +21,7 @@ from libdebug.interfaces.ptrace_interface import PtraceInterface
 
 
 def debugging_interface_provider(
-    _: str | list[str], interface: AvailableInterfaces = AvailableInterfaces.PTRACE
+    interface: AvailableInterfaces = AvailableInterfaces.PTRACE
 ) -> DebuggingInterface:
     """Returns an instance of the debugging interface to be used by the `Debugger` class."""
     match interface:

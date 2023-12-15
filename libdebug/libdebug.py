@@ -84,7 +84,11 @@ class Debugger:
         self.registers.flush(self)
 
     def _start_process(self):
+        """
+        Starts a new process.
+        """
         assert self.starting
+        assert self.argv is not None, "Process argv is empty"
         liblog.debugger("Starting process %s", self.argv[0])
         self.pipe_manager = self.interface.run(self.argv, self.enable_aslr, self.env)
         self._poll_registers()
@@ -94,11 +98,12 @@ class Debugger:
 
 
     def start(self):
-        """Starts the process. This method must be called before any other method, and any time the process needs to be restarted."""
+        """Starts the process. This method must be called before any other method, and any time the 
+        process needs to be restarted."""
         if self.instanced:
             self.kill()
 
-        self.interface = debugging_interface_provider(self.argv)
+        self.interface = debugging_interface_provider()
         self.stack_unwinding = stack_unwinding_provider()
         self._setup_polling_thread()
         self.starting = True
@@ -108,6 +113,36 @@ class Debugger:
             pass
 
         return self.pipe_manager
+    
+    
+    def _attach_process(self, process_id: int):
+        """
+        Attaches to an already running process.
+        """
+        assert self.starting
+        liblog.debugger("Attaching process %s", process_id)
+        self.interface.attach(process_id)
+        self._poll_registers()
+        self.memory = self.interface.provide_memory_view()
+        self.starting = False
+        self.instanced = True
+    
+    
+    def attach(self, process_id: int):
+        """Attaches to an already running process. This method or start must be called before any other 
+        method, and any time the process needs to be restarted."""
+        if self.instanced:
+            self.kill()
+        
+        self.interface = debugging_interface_provider()
+        self.stack_unwinding = stack_unwinding_provider()
+        self._setup_polling_thread()
+        self.starting = True
+        self.polling_thread_command_queue.put((self._attach_process, (process_id,)))
+
+        while self.starting and not self.instanced:
+            pass
+
 
     def kill(self):
         """Kills the process."""
@@ -217,7 +252,7 @@ class Debugger:
         Returns:
             bool: True if the process is still running, False otherwise.
         """
-        liblog.debugger("Polling process %s for state change", self.argv[0])
+        liblog.debugger("Polling process for state change")
 
         if not self.interface.wait_for_child():
             # The process has exited
@@ -266,7 +301,7 @@ class Debugger:
         self.polling_thread.start()
 
 
-def debugger(argv: str | list[str], enable_aslr: bool = False, env: dict[str, str] = None) -> Debugger:
+def debugger(argv: str | list[str] = None, enable_aslr: bool = False, env: dict[str, str] = None) -> Debugger:
     """This function is used to create a new `Debugger` object. It takes as input the location of the binary to debug and returns a `Debugger` object.
 
     Args:
