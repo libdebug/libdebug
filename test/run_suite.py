@@ -26,6 +26,7 @@ from scripts.brute_test import BruteTest
 from scripts.vmwhere1 import Vmwhere1
 from scripts.jumpout import Jumpout
 from scripts.ncuts import Ncuts
+from scripts.attach_test import AttachTest
 
 
 def suite():
@@ -43,6 +44,7 @@ def suite():
     suite.addTest(Vmwhere1("test_vmwhere1"))
     suite.addTest(Jumpout("test_jumpout"))
     suite.addTest(Ncuts("test_ncuts"))
+    suite.addTest(AttachTest("test_attach"))
     return suite
 
 def profiling():
