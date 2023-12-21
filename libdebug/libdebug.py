@@ -277,6 +277,7 @@ class Debugger:
 
             if breakpoint._callback:
                 breakpoint._callback(self, breakpoint)
+                self._empty_queue()
 
             self._flush_and_cont_after_bp(breakpoint)
         else:
@@ -284,6 +285,14 @@ class Debugger:
             self._flush_and_cont()
 
         return True
+    
+    def _empty_queue(self):
+        """
+        Empties the command queue.
+        """
+        while not self.polling_thread_command_queue.empty():
+            command, args = self.polling_thread_command_queue.get()
+            command(*args)
 
     def _polling_thread_function(self):
         """The function executed by the polling thread."""
