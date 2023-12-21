@@ -127,7 +127,7 @@ int process_die(Dwarf_Debug dbg, Dwarf_Die the_die)
     Dwarf_Error error;
     Dwarf_Half tag;
     char *die_name = 0;
-    Dwarf_Addr lowpc = 0xFFFFFFFFFFFFFFFF, highpc = 0xFFFFFFFFFFFFFFFF;
+    Dwarf_Addr lowpc = 0, highpc = 0;
     Dwarf_Attribute *attrs;
     Dwarf_Signed attrcount, i;
     int is_formaddr = -1;
@@ -176,7 +176,7 @@ int process_die(Dwarf_Debug dbg, Dwarf_Die the_die)
             }
         }
 
-        if (lowpc != 0xFFFFFFFFFFFFFFFF && highpc != 0xFFFFFFFFFFFFFFFF && die_name)
+        if (lowpc != 0 && highpc != 0 && die_name)
         {
             if (is_formaddr == 0)
             {
@@ -324,7 +324,9 @@ void process_symbol_tables(Elf *elf)
                 {
                     Dwarf_Addr low_pc = sym.st_value;
                     Dwarf_Addr high_pc = sym.st_value + sym.st_size;
-                    add_symbol_info(&head, name, low_pc, high_pc);
+                    if (high_pc != 0 && high_pc != 0){
+                        add_symbol_info(&head, name, low_pc, high_pc); 
+                    };
                 }
             }
         }
