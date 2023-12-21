@@ -40,11 +40,10 @@ class BruteTest(unittest.TestCase):
             except Exception as e:
                 self.exceptions.append(e)
 
+        d = debugger('binaries/brute_test')
         while True:
             end = False
-
             for c in string.printable:
-                d = debugger('binaries/brute_test')
 
                 r = d.start()
 

@@ -102,7 +102,9 @@ class Debugger:
         process needs to be restarted."""
         if self.instanced:
             self.kill()
-
+            self.instanced = False
+        
+        self.running = False
         self.interface = debugging_interface_provider()
         self.stack_unwinding = stack_unwinding_provider()
         self._setup_polling_thread()

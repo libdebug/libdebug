@@ -49,12 +49,11 @@ class Vmwhere1(unittest.TestCase):
             except Exception as e:
                 self.exceptions.append(e)
 
+        d = debugger(['CTF/vmwhere1', 'CTF/vmwhere1_program'])
         while True:
             added = False
             stop = False
             for el in string.printable:
-                d = debugger(['CTF/vmwhere1', 'CTF/vmwhere1_program'])
-
                 r = d.start()
                 d.b(0x1587, brute_force, hardware_assisted=True)
                 d.cont()
