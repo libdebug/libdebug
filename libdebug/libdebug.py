@@ -24,7 +24,7 @@ from libdebug.utils.debugging_utils import resolve_symbol_in_maps, resolve_addre
 from libdebug.liblog import liblog
 from queue import Queue
 from typing import Callable
-from threading import Thread
+from threading import Thread, Event
 
 
 class Debugger:
@@ -55,11 +55,11 @@ class Debugger:
 
         # instanced is True if and only if the process has been started and has not been killed yet
         self.instanced = False
-        self.starting = False
 
         # threading utilities
         self.polling_thread: Thread | None = None
         self.polling_thread_command_queue: Queue = Queue()
+        self.polling_thread_start_event: Event = Event()
 
         # instance breakpoints dict
         self.breakpoints = {}
@@ -87,14 +87,13 @@ class Debugger:
         """
         Starts a new process.
         """
-        assert self.starting
         assert self.argv is not None, "Process argv is empty"
         liblog.debugger("Starting process %s", self.argv[0])
         self.pipe_manager = self.interface.run(self.argv, self.enable_aslr, self.env)
         self._poll_registers()
         self.memory = self.interface.provide_memory_view()
-        self.starting = False
         self.instanced = True
+        self.polling_thread_start_event.set()
 
 
     def start(self):
@@ -108,11 +107,10 @@ class Debugger:
         self.interface = debugging_interface_provider()
         self.stack_unwinding = stack_unwinding_provider()
         self._setup_polling_thread()
-        self.starting = True
-        self.polling_thread_command_queue.put((self._start_process, ()))
 
-        while self.starting and not self.instanced:
-            pass
+        self.polling_thread_start_event.clear()
+        self.polling_thread_command_queue.put((self._start_process, ()))
+        self.polling_thread_start_event.wait()
 
         return self.pipe_manager
     
@@ -121,13 +119,12 @@ class Debugger:
         """
         Attaches to an already running process.
         """
-        assert self.starting
         liblog.debugger("Attaching process %s", process_id)
         self.interface.attach(process_id)
         self._poll_registers()
         self.memory = self.interface.provide_memory_view()
-        self.starting = False
         self.instanced = True
+        self.polling_thread_start_event.set()
     
     
     def attach(self, process_id: int):
@@ -139,11 +136,10 @@ class Debugger:
         self.interface = debugging_interface_provider()
         self.stack_unwinding = stack_unwinding_provider()
         self._setup_polling_thread()
-        self.starting = True
-        self.polling_thread_command_queue.put((self._attach_process, (process_id,)))
 
-        while self.starting and not self.instanced:
-            pass
+        self.polling_thread_start_event.clear()
+        self.polling_thread_command_queue.put((self._attach_process, (process_id,)))
+        self.polling_thread_start_event.wait()
 
 
     def kill(self):
