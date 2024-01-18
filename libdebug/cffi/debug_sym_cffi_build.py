@@ -22,14 +22,18 @@ from cffi import FFI
 ffibuilder = FFI()
 
 ffibuilder.cdef("""
-    typedef struct SymbolInfo SymbolInfo;
+    typedef struct SymbolInfo
+    {
+        char *name;
+        unsigned long long high_pc;
+        unsigned long low_pc;
+        struct SymbolInfo *next;
+    } SymbolInfo;
 
     SymbolInfo* collect_external_symbols(const char *debug_file_path, int debug_info_level);
     SymbolInfo* read_elf_info(const char *elf_file_path, int debug_info_level);
     char *get_build_id();
     char *get_debug_file();
-    int get_symbol_count(SymbolInfo *head);
-    int get_symbol_data(SymbolInfo *head, int index, char **name, unsigned long long *low_pc, unsigned long long *high_pc);
     void free_symbol_info(SymbolInfo *head);
 """)
 
@@ -49,8 +53,8 @@ ffibuilder.set_source(
 typedef struct SymbolInfo
 {
     char *name;
-    Dwarf_Addr high_pc;
-    Dwarf_Addr low_pc;
+    unsigned long long high_pc;
+    unsigned long low_pc;
     struct SymbolInfo *next;
 } SymbolInfo;
 
@@ -80,36 +84,6 @@ void free_symbol_info(SymbolInfo *head)
         free(tmp->name);
         free(tmp);
     }
-}
-
-// Function to get the number of symbols
-int get_symbol_count(SymbolInfo *head)
-{
-    int count = 0;
-    while (head != NULL)
-    {
-        count++;
-        head = head->next;
-    }
-    return count;
-}
-
-// Function to get symbol data by index
-int get_symbol_data(SymbolInfo *head, int index, char **name, Dwarf_Addr *low_pc, Dwarf_Addr *high_pc)
-{
-    while (index > 0 && head != NULL)
-    {
-        head = head->next;
-        index--;
-    }
-    if (head != NULL)
-    {
-        *name = head->name;
-        *low_pc = head->low_pc;
-        *high_pc = head->high_pc;
-        return 0;
-    }
-    return -1;
 }
 
 // Function to get the build ID
