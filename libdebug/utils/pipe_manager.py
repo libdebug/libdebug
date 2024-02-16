@@ -135,6 +135,14 @@ class PipeManager:
         return data_buffer
     
 
+    def close(self):
+        """Closes all the pipes of the child process.
+        """
+        os.close(self.stdin_write)
+        os.close(self.stdout_read)
+        os.close(self.stderr_read)
+
+
     def recv(self, numb: int=None, timeout: int=timeout_default) -> bytes:
         """Receives at most numb bytes from the child process stdout.
         

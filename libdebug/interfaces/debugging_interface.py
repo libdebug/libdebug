@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/io-no/libdebug).
-# Copyright (c) 2023 Roberto Alessandro Bertolini.
+# Copyright (c) 2023 - 2024 Roberto Alessandro Bertolini.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,12 +18,15 @@
 from libdebug.architectures.register_holder import RegisterHolder
 from libdebug.data.memory_view import MemoryView
 from libdebug.data.breakpoint import Breakpoint
+from libdebug.utils.pipe_manager import PipeManager
 
 
 class DebuggingInterface:
     """The interface used by `Debugger` to communicate with the available debugging backends, such as `ptrace` or `gdb`."""
 
-    def run(self, argv: str | list[str], enable_aslr: bool, env: dict[str, str] = None):
+    def run(
+        self, argv: str | list[str], enable_aslr: bool, env: dict[str, str] = None
+    ) -> PipeManager:
         """Runs the specified process.
 
         Args:
@@ -33,48 +36,28 @@ class DebuggingInterface:
         """
         pass
 
-    def attach(self, process_id: int):
-        """Attaches to the specified process.
-
-        Args:
-            process_id (int): The PID of the process to attach to.
-        """
+    def kill(self):
+        """Instantly terminates the process."""
         pass
 
-    def shutdown(self):
-        """Shuts down the debugging backend."""
+    def cont(self):
+        """Continues the execution of the process."""
         pass
 
-    def wait_for_child(self) -> bool:
-        """Waits for the child process to be ready for commands.
+    def wait(self):
+        """Waits for the process to stop."""
+        pass
 
-        Returns:
-            bool: Whether the child process is still alive.
-        """
+    def step(self):
+        """Executes a single instruction of the process."""
         pass
 
     def provide_memory_view(self) -> MemoryView:
         """Returns a memory view of the process."""
         pass
 
-    def fds(self):
-        """Returns the file descriptors of the process."""
-        pass
-
-    def maps(self):
-        """Returns the memory maps of the process."""
-        pass
-
-    def base_address(self):
-        """Returns the base address of the process."""
-        pass
-
-    def is_pie(self):
-        """Returns whether the executable is PIE or not."""
-        pass
-
-    def get_register_holder(self) -> RegisterHolder:
-        """Returns the current value of all the available registers.
+    def get_register_holder(self, thread_id: int) -> RegisterHolder:
+        """Returns the current value of all the available registers for the specified thread.
         Note: the register holder should then be used to automatically setup getters and setters for each register.
         """
         pass
@@ -92,35 +75,5 @@ class DebuggingInterface:
 
         Args:
             breakpoint (Breakpoint): The breakpoint to restore.
-        """
-        pass
-
-    def ensure_stopped(self):
-        """Ensures that the process is stopped."""
-        pass
-
-    def continue_execution(self):
-        """Continues the execution of the process."""
-        pass
-
-    def continue_after_breakpoint(self, breakpoint: Breakpoint):
-        """Continues the execution of the process after a breakpoint was hit."""
-        pass
-
-    def step_execution(self):
-        """Executes a single instruction before stopping again."""
-        pass
-
-    def resolve_address(self, address: int) -> int:
-        """Normalizes and validates the specified address.
-
-        Args:
-            address (int): The address to normalize and validate.
-
-        Returns:
-            int: The normalized and validated address.
-
-        Throws:
-            ValueError: If the address is not valid.
         """
         pass

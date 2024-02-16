@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/io-no/libdebug).
-# Copyright (c) 2023 - 2024 Gabriele Digregorio, Roberto Alessandro Bertolini.
+# Copyright (c) 2024 Roberto Alessandro Bertolini
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,14 +15,8 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+from libdebug.state.process_context import ProcessContext
 
-class StackUnwindingManager:
-    """
-    An architecture-independent interface for stack unwinding.
-    """
 
-    def unwind(self, target: "ThreadContext"):
-        """
-        Unwind the stack of the target process.
-        """
-        pass
+class GdbProcessContext(ProcessContext):
+    pass

@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/io-no/libdebug).
-# Copyright (c) 2023 Gabriele Digregorio.
+# Copyright (c) 2023 - 2024 Gabriele Digregorio, Roberto Alessandro Bertolini
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,14 +17,15 @@
 
 from libdebug.architectures.stack_unwinding_manager import StackUnwindingManager
 
-from libdebug.architectures.amd64.amd64_stack_unwinding import (
-    Amd64StackUnwinding,
+from libdebug.architectures.amd64.amd64_stack_unwinder import (
+    Amd64StackUnwinder,
 )
+
 
 def stack_unwinding_provider(architecture: str = "amd64") -> StackUnwindingManager:
     """Returns an instance of the stack unwinding provider to be used by the `Debugger` class."""
     match architecture:
         case "amd64":
-            return Amd64StackUnwinding()
+            return Amd64StackUnwinder()
         case _:
             raise NotImplementedError(f"Architecture {architecture} not available.")

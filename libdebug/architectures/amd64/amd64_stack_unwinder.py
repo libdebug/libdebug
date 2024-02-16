@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/io-no/libdebug).
-# Copyright (c) 2023 Gabriele Digregorio.
+# Copyright (c) 2023 - 2024 Gabriele Digregorio, Roberto Alessandro Bertolini
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,18 +16,18 @@
 #
 
 
-class Amd64StackUnwinding():
+class Amd64StackUnwinder:
     """
     Class that provides stack unwinding for the x86_64 architecture.
     """
 
-    def unwind(self, target: "Debugger") -> list:
+    def unwind(self, target: "ThreadContext") -> list:
         """
         Unwind the stack of a process.
 
         Args:
-            target (Debugger): The target Debugger.
-        
+            target (ThreadContext): The target ThreadContext.
+
         Returns:
             list: A list of return addresses.
         """
@@ -36,14 +36,17 @@ class Amd64StackUnwinding():
         stack_trace = [target.rip]
 
         while current_rbp:
-            
             try:
                 # Read the return address
-                return_address = int.from_bytes(target.memory[current_rbp + 8, 8], byteorder="little")
-                
+                return_address = int.from_bytes(
+                    target.memory[current_rbp + 8, 8], byteorder="little"
+                )
+
                 # Read the previous rbp and set it as the current one
-                current_rbp = int.from_bytes(target.memory[current_rbp, 8], byteorder="little")
-                
+                current_rbp = int.from_bytes(
+                    target.memory[current_rbp, 8], byteorder="little"
+                )
+
                 stack_trace.append(return_address)
             except OSError:
                 break

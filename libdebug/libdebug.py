@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/io-no/libdebug).
-# Copyright (c) 2023 Roberto Alessandro Bertolini, Gabriele Digregorio.
+# Copyright (c) 2023 - 2024 Roberto Alessandro Bertolini, Gabriele Digregorio.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,31 +15,35 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libdebug.architectures.register_holder import RegisterHolder
+from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
+from libdebug.state.process_context import ProcessContext
+from libdebug.state.thread_context import ThreadContext
+from libdebug.state.process.process_context_provider import provide_process_context
 from libdebug.interfaces.interface_helper import debugging_interface_provider
-from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
-from libdebug.utils.debugging_utils import resolve_symbol_in_maps, resolve_address_in_maps
 from libdebug.liblog import liblog
+from libdebug.utils.pipe_manager import PipeManager
+import os
 from queue import Queue
+from threading import Thread
 from typing import Callable
-from threading import Thread, Event
 
 
 class Debugger:
     """The Debugger class is the main class of `libdebug`. It contains all the methods needed to run and interact with the process."""
 
-    registers: RegisterHolder | None = None
-    """The register holder object. It provides access to all the registers of the stopped process."""
-
     breakpoints: dict[int, Breakpoint] = None
     """A dictionary of all the breakpoints set on the process. The keys are the absolute addresses of the breakpoints."""
 
-    running: bool = False
-    """True if and only if the process is currently running."""
-
     memory: MemoryView = None
+    """The memory view of the process."""
+
+    process_context: ProcessContext
+    """The process context object."""
+
+    threads: dict[int, ThreadContext]
+    """A dictionary of all the threads in the process. The keys are the thread IDs."""
 
     def __init__(self, argv, enable_aslr, env):
         """Do not use this constructor directly.
@@ -50,265 +54,214 @@ class Debugger:
         else:
             self.argv = argv
 
+        # validate that the binary exists
+        if not os.path.isfile(self.argv[0]):
+            raise RuntimeError("Binary file does not exist.")
+
         self.enable_aslr = enable_aslr
         self.env = env
 
         # instanced is True if and only if the process has been started and has not been killed yet
         self.instanced = False
+        self.interface = debugging_interface_provider()
+        self.stack_unwinder = stack_unwinding_provider()
 
         # threading utilities
-        self.polling_thread: Thread | None = None
-        self.polling_thread_command_queue: Queue = Queue()
-        self.polling_thread_start_event: Event = Event()
+        self._polling_thread: Thread | None = None
+        self._polling_thread_command_queue: Queue = Queue()
+
+        # TODO don't share this using a property
+        self._pipe_manager: PipeManager = None
 
         # instance breakpoints dict
         self.breakpoints = {}
 
-    def __del__(self):
-        self.kill()
+        self.process_context = None
+        self.threads = {}
 
-    def __enter__(self):
-        self.start()
-        return self
+        self._start_processing_thread()
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.kill()
-        return False
-
-    def _poll_registers(self):
-        """Updates the register values."""
-        self.registers = self.interface.get_register_holder()
-        self.registers.apply_on(self, Debugger)
-
-    def _flush_registers(self):
-        self.registers.flush(self)
-
-    def _start_process(self):
-        """
-        Starts a new process.
-        """
-        assert self.argv is not None, "Process argv is empty"
-        liblog.debugger("Starting process %s", self.argv[0])
-        self.pipe_manager = self.interface.run(self.argv, self.enable_aslr, self.env)
-        self._poll_registers()
-        self.memory = self.interface.provide_memory_view()
-        self.instanced = True
-        self.polling_thread_start_event.set()
-
-
-    def start(self):
-        """Starts the process. This method must be called before any other method, and any time the 
-        process needs to be restarted."""
+    def run(self):
+        """Starts the process and waits for it to stop."""
         if self.instanced:
+            liblog.debugger("Process already running, stopping it before restarting.")
             self.kill()
-            self.instanced = False
-        
-        self.running = False
-        self.interface = debugging_interface_provider()
-        self.stack_unwinding = stack_unwinding_provider()
-        self._setup_polling_thread()
 
-        self.polling_thread_start_event.clear()
-        self.polling_thread_command_queue.put((self._start_process, ()))
-        self.polling_thread_start_event.wait()
-
-        return self.pipe_manager
-    
-    
-    def _attach_process(self, process_id: int):
-        """
-        Attaches to an already running process.
-        """
-        liblog.debugger("Attaching process %s", process_id)
-        self.interface.attach(process_id)
-        self._poll_registers()
-        self.memory = self.interface.provide_memory_view()
         self.instanced = True
-        self.polling_thread_start_event.set()
-    
-    
-    def attach(self, process_id: int):
-        """Attaches to an already running process. This method or start must be called before any other 
-        method, and any time the process needs to be restarted."""
-        if self.instanced:
-            self.kill()
-        
-        self.interface = debugging_interface_provider()
-        self.stack_unwinding = stack_unwinding_provider()
-        self._setup_polling_thread()
 
-        self.polling_thread_start_event.clear()
-        self.polling_thread_command_queue.put((self._attach_process, (process_id,)))
-        self.polling_thread_start_event.wait()
+        if not self._polling_thread_command_queue.empty():
+            raise RuntimeError("Polling thread command queue not empty.")
 
+        self._polling_thread_command_queue.put((self.__threaded_run, ()))
+
+        # Wait for the background thread to signal "task done" before returning
+        # We don't want any asynchronous behaviour here
+        self._polling_thread_command_queue.join()
+
+        return self._pipe_manager
+
+    def _start_processing_thread(self):
+        """Starts the thread that will poll the traced process for state change."""
+        # Set as daemon so that the Python interpreter can exit even if the thread is still running
+        self._polling_thread = Thread(
+            target=self._polling_thread_function,
+            name="libdebug_polling_thread",
+            daemon=True,
+        )
+        self._polling_thread.start()
 
     def kill(self):
         """Kills the process."""
-        if self.polling_thread:
-            self.polling_thread.join()
-        self.interface.shutdown()
-        self.polling_thread.join()
-        self.instanced = False
+        if not self.instanced:
+            raise RuntimeError("Process not running, cannot kill.")
+
+        self._polling_thread_command_queue.put((self.__threaded_kill, ()))
+
+        # If the process is running, interrupt it
+        self.process_context.interrupt()
+
         self.memory = None
+        self.instanced = None
+        self.process_context = None
+        self._pipe_manager.close()
+        self._pipe_manager = None
 
-    def _flush_and_cont_after_bp(self, breakpoint: Breakpoint):
-        """Flushes the registers, resumes the execution of the process, and re-sets the breakpoint at the specified address."""
-        self.registers.flush(self)
-        self.interface.continue_after_breakpoint(breakpoint)
-        self.running = True
-
-    def _flush_and_cont(self):
-        """Flushes the registers and continues the execution of the process."""
-        self.registers.flush(self)
-        self.interface.continue_execution()
-        self.running = True
-
-    def _flush_and_step(self):
-        """Flushes the registers and executes a single instruction before stopping again."""
-        self.registers.flush(self)
-        self.interface.step_execution()
-        self.running = True
+        # Wait for the background thread to signal "task done" before returning
+        # We don't want any asynchronous behaviour here
+        self._polling_thread_command_queue.join()
 
     def cont(self):
-        """Continues the execution of the process."""
-        if self.running:
-            raise RuntimeError("Cannot continue while the process is running.")
+        """Continues the process."""
+        if not self.instanced:
+            raise RuntimeError("Process not running, cannot continue.")
 
-        self.polling_thread_command_queue.put((self._flush_and_cont, ()))
+        self._polling_thread_command_queue.put((self.__threaded_cont, ()))
 
-    def block(self):
-        """Stops the execution of the process."""
-        pass
+        # Wait for the background thread to signal "task done" before returning
+        # We don't want any asynchronous behaviour here
+        self._polling_thread_command_queue.join()
+
+    def wait(self):
+        """Waits for the process to stop."""
+        if not self.instanced:
+            raise RuntimeError("Process not running, cannot wait.")
+
+        self._polling_thread_command_queue.put((self.__threaded_wait, ()))
+
+        # Wait for the background thread to signal "task done" before returning
+        # We don't want any asynchronous behaviour here
+        self._polling_thread_command_queue.join()
 
     def step(self):
-        """Executes a single instruction before stopping again."""
-        if self.running:
-            raise RuntimeError("Cannot step while the process is running.")
+        """Executes a single instruction of the process."""
+        if not self.instanced:
+            raise RuntimeError("Process not running, cannot step.")
 
-        self.polling_thread_command_queue.put((self._flush_and_step, ()))
+        self._polling_thread_command_queue.put((self.__threaded_step, ()))
+        self._polling_thread_command_queue.put((self.__threaded_wait, ()))
 
-    def b(
+        # Wait for the background thread to signal "task done" before returning
+        # We don't want any asynchronous behaviour here
+        self._polling_thread_command_queue.join()
+
+    def breakpoint(
         self,
         position: int | str,
+        hardware: bool = False,
         callback: None | Callable[["Debugger", Breakpoint], None] = None,
-        hardware_assisted: bool = False,
-    ):
-        """Sets a breakpoint at the specified location. The callback will be executed when the breakpoint is hit.
+    ) -> Breakpoint:
+        """Sets a breakpoint at the specified location.
 
         Args:
-            location (int | bytes): The location of the breakpoint.
-            callback (None | callable, optional): The callback to call when the breakpoint is hit. Defaults to None.
-            hardware_assisted (bool, optional): Whether the breakpoint should be hardware-assisted or purely software. Defaults to False.
+            position (int | bytes): The location of the breakpoint.
+            hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software. Defaults to False.
         """
-        if self.running:
+        if self.process_context.running:
             raise RuntimeError("Cannot set a breakpoint while the process is running.")
 
         if isinstance(position, str):
-            address = resolve_symbol_in_maps(position, self.maps())
+            address = self.process_context.resolve_symbol(position)
         else:
-            address = position
-            position = None
+            address = self.process_context.resolve_address(position)
+            position = address
 
-        address = self.interface.resolve_address(address)
+        bp = Breakpoint(address, position, 0, hardware, callback)
 
-        breakpoint = Breakpoint(address, position, 0, hardware_assisted, callback)
+        self.breakpoints[address] = bp
 
-        self.breakpoints[address] = breakpoint
+        self._polling_thread_command_queue.put((self.__threaded_breakpoint, (bp,)))
 
-        self.polling_thread_command_queue.put(
-            (self.interface.set_breakpoint, [breakpoint])
-        )
+        # Wait for the background thread to signal "task done" before returning
+        # We don't want any asynchronous behaviour here
+        self._polling_thread_command_queue.join()
 
-    def jump(self, location: int | bytes):
-        """Jumps to the specified location.
-
-        Args:
-            location (int | bytes): The location to jump to.
-        """
-        pass
-
-    def maps(self):
-        """Returns the memory maps of the process."""
-        return self.interface.maps()
-    
-    def backtrace(self):
-        """Returns the current backtrace of the process."""
-        backtrace = self.stack_unwinding.unwind(self)
-        return list(map(lambda x: resolve_address_in_maps(x, self.maps()), backtrace))
-
-    def fds(self):
-        """Returns the file descriptors of the process."""
-        return self.interface.fds()
-
-    def base_address(self):
-        """Returns the base address of the process."""
-        return self.interface.base_address()
-
-    def _poll_and_run_on_process(self) -> bool:
-        """Polls the process for changes and runs the callbacks on the process.
-
-        Returns:
-            bool: True if the process is still running, False otherwise.
-        """
-        liblog.debugger("Polling process for state change")
-
-        if not self.interface.wait_for_child():
-            # The process has exited
-            return False
-
-        self.running = False
-        self._poll_registers()
-
-        # TODO: this -1 is dependent on the architecture's instruction size and investigate this behavior
-        # Sometimes the process stops at the instruction after the breakpoint
-        if self.rip not in self.breakpoints and (self.rip - 1) in self.breakpoints:
-            address = self.rip - 1
-        else:
-            address = self.rip
-
-        if address in self.breakpoints:
-            breakpoint = self.breakpoints[address]
-            breakpoint.hit_count += 1
-
-            # Restore RIP
-            self.rip = address
-
-            if breakpoint._callback:
-                breakpoint._callback(self, breakpoint)
-                self._empty_queue()
-
-            self._flush_and_cont_after_bp(breakpoint)
-        else:
-            liblog.debugger("Stopped at %x but no breakpoint set, continuing", self.rip)
-            self._flush_and_cont()
-
-        return True
-    
-    def _empty_queue(self):
-        """
-        Empties the command queue.
-        """
-        while not self.polling_thread_command_queue.empty():
-            command, args = self.polling_thread_command_queue.get()
-            command(*args)
+        return bp
 
     def _polling_thread_function(self):
-        """The function executed by the polling thread."""
+        """This function is run in a thread. It is used to poll the process for state change."""
         while True:
-            if not self.polling_thread_command_queue.empty():
-                command, args = self.polling_thread_command_queue.get()
-                command(*args)
-            elif self.running:
-                if not self._poll_and_run_on_process():
-                    break
+            # Wait for the main thread to signal a command to execute
+            command, args = self._polling_thread_command_queue.get()
 
-    def _setup_polling_thread(self):
-        """Sets up the thread that polls the process for changes."""
-        self.polling_thread = Thread(target=self._polling_thread_function)
-        self.polling_thread.start()
+            # Execute the command
+            command(*args)
+
+            # Signal that the command has been executed
+            self._polling_thread_command_queue.task_done()
+
+    def __threaded_run(self):
+        liblog.debugger("Starting process %s.", self.argv[0])
+        self._pipe_manager = self.interface.run(self.argv, self.enable_aslr, self.env)
+
+        self.process_context = provide_process_context(self.interface, self.argv)
+        self.process_context.set_stopped()
+
+        # create and update main thread context
+        main_thread = ThreadContext.new(self.process_context)
+        self.threads[main_thread.thread_id] = main_thread
+
+        liblog.debugger("Thread %d created.", main_thread.thread_id)
+
+        main_thread._poll_registers()
+
+        # create memory view
+        self.memory = self.interface.provide_memory_view()
+        if self.memory.maps_provider is None:
+            # TODO: not really the best way to do this
+            self.memory.maps_provider = self.process_context.maps
+
+    def __threaded_kill(self):
+        liblog.debugger("Killing process %s.", self.argv[0])
+        self.interface.kill()
+
+    def __threaded_cont(self):
+        liblog.debugger("Continuing process %s.", self.argv[0])
+        self.interface.cont()
+        self.process_context.set_running()
+
+    def __threaded_breakpoint(self, bp: Breakpoint):
+        liblog.debugger("Setting breakpoint at 0x%x.", bp.address)
+        self.interface.set_breakpoint(bp)
+
+    def __threaded_wait(self):
+        liblog.debugger("Waiting for process %s to stop.", self.argv[0])
+        self.interface.wait()
+
+        self.process_context.set_stopped()
+
+        # Update the state of the process and its threads
+        for thread in self.threads.values():
+            thread._poll_registers()
+
+    def __threaded_step(self):
+        liblog.debugger("Stepping process %s.", self.argv[0])
+        self.interface.step()
+        self.process_context.set_running()
 
 
-def debugger(argv: str | list[str] = None, enable_aslr: bool = False, env: dict[str, str] = None) -> Debugger:
+def debugger(
+    argv: str | list[str] = None, enable_aslr: bool = False, env: dict[str, str] = None
+) -> Debugger:
     """This function is used to create a new `Debugger` object. It takes as input the location of the binary to debug and returns a `Debugger` object.
 
     Args:

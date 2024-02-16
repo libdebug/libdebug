@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/io-no/libdebug).
-# Copyright (c) 2023 Roberto Alessandro Bertolini, Gabriele Digregorio.
+# Copyright (c) 2023 - 2024 Roberto Alessandro Bertolini, Gabriele Digregorio.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,18 +26,11 @@ from libdebug.architectures.ptrace_hardware_breakpoint_provider import (
 from libdebug.cffi import _ptrace_cffi
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
-from libdebug.utils.elf_utils import is_pie
-from libdebug.utils.debugging_utils import normalize_and_validate_address
-from libdebug.utils.process_utils import (
-    get_process_maps,
-    get_open_fds,
-    guess_base_address,
-    invalidate_process_cache,
-    disable_self_aslr,
-)
+from libdebug.utils.process_utils import invalidate_process_cache, disable_self_aslr
 from libdebug.liblog import liblog
 import os
 import signal
+import sys
 import pty
 import tty
 
@@ -51,6 +44,7 @@ class PtraceInterface(DebuggingInterface):
 
         # The PID of the process being traced
         self.process_id = None
+        self.thread_ids = []
         self.software_breakpoints = {}
         self.hardware_bp_helper = None
 
@@ -66,14 +60,16 @@ class PtraceInterface(DebuggingInterface):
             errno_val = self.ffi.errno
             raise OSError(errno_val, errno.errorcode[errno_val])
 
-    def run(self, argv: str | list[str], enable_aslr: bool, env: dict[str, str] = None) -> int:
+    def run(
+        self, argv: str | list[str], enable_aslr: bool, env: dict[str, str] = None
+    ) -> PipeManager:
         """Runs the specified process.
 
         Args:
             argv (str | list[str]): The command line to execute.
             enable_aslr (bool): Whether to enable ASLR or not.
             env (dict[str, str], optional): The environment variables to use. Defaults to None.
-            
+
         Returns:
             int: The PID of the process.
         """
@@ -85,21 +81,64 @@ class PtraceInterface(DebuggingInterface):
         self.stdout_read, self.stdout_write = pty.openpty()
         self.stderr_read, self.stderr_write = pty.openpty()
 
-        # Setting stdout, stderr to raw mode to avoid terminal control codes interfering with the 
-        # output
-        tty.setraw(self.stdout_read)
-        tty.setraw(self.stdout_write)
-        tty.setraw(self.stderr_read)
-        tty.setraw(self.stderr_write)
-
         child_pid = os.fork()
         if child_pid == 0:
+            # Setting stdout, stderr to raw mode to avoid terminal control codes interfering with the
+            # output
+            tty.setraw(self.stdout_write)
+            tty.setraw(self.stderr_write)
+
             self._setup_child(argv, enable_aslr, env)
-            assert False
+            sys.exit(-1)
         else:
+            # Setting stdout, stderr to raw mode to avoid terminal control codes interfering with the
+            # output
+            tty.setraw(self.stdout_read)
+            tty.setraw(self.stderr_read)
+
             self.process_id = child_pid
+            self.thread_ids = [child_pid]
             self._setup_parent()
             return self._setup_pipe()
+
+    def kill(self):
+        """Instantly terminates the process."""
+        assert self.process_id is not None
+
+        for thread_id in self.thread_ids:
+            result = self.lib_trace.ptrace_detach(thread_id)
+            if result == -1:
+                liblog.debugger("Detaching from thread %d failed", thread_id)
+            else:
+                liblog.debugger("Detached from thread %d", thread_id)
+
+        # send SIGKILL to the child process
+        try:
+            os.kill(self.process_id, signal.SIGKILL)
+        except OSError as e:
+            liblog.debugger("Killing process %d failed: %r", self.process_id, e)
+
+        # wait for the child process to terminate, otherwise it will become a zombie
+        os.wait()
+
+        self.process_id = None
+        self.thread_ids = []
+
+    def cont(self):
+        """Continues the execution of the process."""
+        assert self.process_id is not None
+        result = self.lib_trace.ptrace_cont(self.process_id)
+        if result == -1:
+            errno_val = self.ffi.errno
+            raise OSError(errno_val, errno.errorcode[errno_val])
+
+    def step(self):
+        """Executes a single instruction of the process."""
+        assert self.process_id is not None
+        result = self.lib_trace.ptrace_singlestep(self.process_id)
+        if result == -1:
+            errno_val = self.ffi.errno
+            raise OSError(errno_val, errno.errorcode[errno_val])
 
     def _setup_child(self, argv, enable_aslr, env):
         self._trace_self()
@@ -124,28 +163,23 @@ class PtraceInterface(DebuggingInterface):
             os.close(self.stderr_write)
         except Exception as e:
             # TODO: custom exception
-            raise Exception("Redirecting stdin, stdout, and stderr failed: %r" % e)
+            raise RuntimeError("Redirecting stdin, stdout, and stderr failed: %r" % e)
 
-        try:
-            if isinstance(argv, str):
-                argv = [argv]
+        if isinstance(argv, str):
+            argv = [argv]
 
-            if not enable_aslr:
-                disable_self_aslr()
-            
-            if env:
-                os.execve(argv[0], argv, env)
-            else:
-                os.execv(argv[0], argv)
-        except OSError as e:
-            liblog.debugger("Unable to execute %s: %s", argv, e)
-            os._exit(1)
+        if not enable_aslr:
+            disable_self_aslr()
 
-    
+        if env:
+            os.execve(argv[0], argv, env)
+        else:
+            os.execv(argv[0], argv)
+
     def _setup_pipe(self):
         """
         Sets up the pipe manager for the child process.
-        
+
         Close the read end for stdin and the write ends for stdout and stderr
         in the parent process since we are going to write to stdin and read from
         stdout and stderr
@@ -164,7 +198,7 @@ class PtraceInterface(DebuggingInterface):
         Sets up the parent process after the child process has been created or attached to.
         """
         liblog.debugger("Polling child process status")
-        self.wait_for_child()
+        self.wait()
         liblog.debugger("Child process ready, setting options")
         self._set_options()
         liblog.debugger("Options set")
@@ -173,57 +207,16 @@ class PtraceInterface(DebuggingInterface):
             self._peek_user, self._poke_user
         )
 
-    def attach(self, process_id: int):
-        """Attaches to the specified process.
-
-        Args:
-            process_id (int): The PID of the process to attach to.
-        """
-        # TODO: investigate errno handling
-        result = self.lib_trace.ptrace_attach(process_id)
-        if result == -1:
-            errno_val = self.ffi.errno
-            raise OSError(errno_val, errno.errorcode[errno_val])
-        else:
-            self.process_id = process_id
-            liblog.debugger("Attached PtraceInterface to process %d", process_id)    
-        self._setup_parent()
-
-
-    def shutdown(self):
-        """Shuts down the debugging backend."""
-        if self.process_id is None:
-            return
-
-        try:
-            os.kill(self.process_id, 9)
-        except OSError:
-            liblog.debugger("Process %d already dead", self.process_id)
-
-        try:
-            os.close(self.stdin_write)
-            os.close(self.stdout_read)
-            os.close(self.stderr_read)
-        except Exception as e:
-            liblog.debugger("Closing fds failed: %r", e)
-
-        result = self.lib_trace.ptrace_detach(self.process_id)
-
-        if result != -1:
-            liblog.debugger("Detached PtraceInterface from process %d", self.process_id)
-            os.wait()
-        else:
-            liblog.debugger("Unable to detach, process %d already dead", self.process_id)
-        self.process_id = None
-
-    def get_register_holder(self) -> RegisterHolder:
+    def get_register_holder(self, thread_id: int) -> RegisterHolder:
         """Returns the current value of all the available registers.
         Note: the register holder should then be used to automatically setup getters and setters for each register.
         """
         # TODO: this 512 is a magic number, it should be replaced with a constant
         register_file = self.ffi.new("char[512]")
-        liblog.debugger("Getting registers from process %d", self.process_id)
-        result = self.lib_trace.ptrace_getregs(self.process_id, register_file)
+        liblog.debugger(
+            "Getting registers from process %d, thread %d", self.process_id, thread_id
+        )
+        result = self.lib_trace.ptrace_getregs(thread_id, register_file)
         if result == -1:
             errno_val = self.ffi.errno
             raise OSError(errno_val, errno.errorcode[errno_val])
@@ -231,41 +224,35 @@ class PtraceInterface(DebuggingInterface):
             buffer = self.ffi.unpack(register_file, 512)
             return register_holder_provider(buffer, ptrace_setter=self._set_registers)
 
-    def _set_registers(self, buffer):
+    def _set_registers(self, buffer, thread_id: int):
         """Sets the value of all the available registers."""
         # TODO: this 512 is a magic number, it should be replaced with a constant
         register_file = self.ffi.new("char[512]", buffer)
-        result = self.lib_trace.ptrace_setregs(self.process_id, register_file)
+        result = self.lib_trace.ptrace_setregs(thread_id, register_file)
         if result == -1:
             errno_val = self.ffi.errno
             raise OSError(errno_val, errno.errorcode[errno_val])
 
-    def wait_for_child(self):
-        """Waits for the child process to be ready for commands.
+    def wait(self):
+        """Waits for the process to stop."""
 
-        Returns:
-            bool: Whether the child process is still alive.
-        """
         assert self.process_id is not None
-        # TODO: check what option this is, because I can't find it anywhere
-        pid, status = os.waitpid(self.process_id, 1 << 30)
+        # -1 means wait for any child process
+        pid, status = os.waitpid(-1, 0)
         liblog.debugger("Child process %d reported status %d", pid, status)
 
+        if os.WIFSTOPPED(status):
+            signum = os.WSTOPSIG(status)
+            signame = signal.Signals(signum).name
+            liblog.debugger("Child process %d stopped with signal %s", pid, signame)
+
         if os.WIFEXITED(status):
-            liblog.debugger("Child process %d exited with status %d", pid, status)
+            exitstatus = os.WEXITSTATUS(status)
+            liblog.debugger("Child process %d exited with status %d", pid, exitstatus)
 
         if os.WIFSIGNALED(status):
-            liblog.debugger("Child process %d exited with signal %d", pid, status)
-
-        if os.WIFSTOPPED(status):
-            liblog.debugger("Child process %d stopped with signal %d", pid, status)
-            try:
-                exitcode = os.waitstatus_to_exitcode(status)
-                liblog.debugger("Child process %d exit code %d", pid, exitcode)
-            except ValueError:
-                pass
-
-        return os.WIFSTOPPED(status)
+            termsig = os.WTERMSIG(status)
+            liblog.debugger("Child process %d exited with signal %d", pid, termsig)
 
     def provide_memory_view(self) -> MemoryView:
         """Returns a memory view of the process."""
@@ -277,23 +264,7 @@ class PtraceInterface(DebuggingInterface):
         def setter(address, value):
             self._poke_mem(address, int.from_bytes(value, "little", signed=False))
 
-        return MemoryView(getter, setter, self.maps)
-
-    def ensure_stopped(self):
-        """Ensures that the process is stopped."""
-        os.kill(self.process_id, signal.SIGSTOP)
-
-    def continue_execution(self):
-        """Continues the execution of the process."""
-        assert self.process_id is not None
-        result = self.lib_trace.ptrace_cont(self.process_id)
-
-        # TODO: investigate errno handling
-        if result == -1:
-            errno_val = self.ffi.errno
-            raise OSError(errno_val, errno.errorcode[errno_val])
-
-        invalidate_process_cache()
+        return MemoryView(getter, setter, None)
 
     def continue_after_breakpoint(self, breakpoint: Breakpoint):
         """Continues the execution of the process after a breakpoint was hit."""
@@ -363,24 +334,14 @@ class PtraceInterface(DebuggingInterface):
         else:
             self._unset_sw_breakpoint(breakpoint.address)
 
-    def step_execution(self):
-        """Executes a single instruction before stopping again."""
-        assert self.process_id is not None
-
-        result = self.lib_trace.ptrace_singlestep(self.process_id)
-        # TODO: investigate errno handling
-        if result == -1:
-            errno_val = self.ffi.errno
-            raise OSError(errno_val, errno.errorcode[errno_val])
-
-        invalidate_process_cache()
-
     def _peek_mem(self, address: int) -> int:
         """Reads the memory at the specified address."""
         assert self.process_id is not None
 
         result = self.lib_trace.ptrace_peekdata(self.process_id, address)
-        liblog.debugger("PEEKDATA at address %d returned with result %x", address, result)
+        liblog.debugger(
+            "PEEKDATA at address %d returned with result %x", address, result
+        )
 
         error = self.ffi.errno
         if error == errno.EIO:
@@ -393,7 +354,9 @@ class PtraceInterface(DebuggingInterface):
         assert self.process_id is not None
 
         result = self.lib_trace.ptrace_pokedata(self.process_id, address, value)
-        liblog.debugger("POKEDATA at address %d returned with result %d", address, result)
+        liblog.debugger(
+            "POKEDATA at address %d returned with result %d", address, result
+        )
 
         error = self.ffi.errno
         if error == errno.EIO:
@@ -404,7 +367,9 @@ class PtraceInterface(DebuggingInterface):
         assert self.process_id is not None
 
         result = self.lib_trace.ptrace_peekuser(self.process_id, address)
-        liblog.debugger("PEEKUSER at address %d returned with result %x", address, result)
+        liblog.debugger(
+            "PEEKUSER at address %d returned with result %x", address, result
+        )
 
         error = self.ffi.errno
         if error == errno.EIO:
@@ -417,43 +382,10 @@ class PtraceInterface(DebuggingInterface):
         assert self.process_id is not None
 
         result = self.lib_trace.ptrace_pokeuser(self.process_id, address, value)
-        liblog.debugger("POKEUSER at address %d returned with result %d", address, result)
+        liblog.debugger(
+            "POKEUSER at address %d returned with result %d", address, result
+        )
 
         error = self.ffi.errno
         if error == errno.EIO:
             raise OSError(error, errno.errorcode[error])
-
-    def fds(self):
-        """Returns the file descriptors of the process."""
-        assert self.process_id is not None
-        return get_open_fds(self.process_id)
-
-    def maps(self):
-        """Returns the memory maps of the process."""
-        assert self.process_id is not None
-        return get_process_maps(self.process_id)
-
-    def base_address(self):
-        """Returns the base address of the process."""
-        assert self.process_id is not None
-        return guess_base_address(self.process_id)
-
-    def is_pie(self):
-        """Returns whether the executable is PIE or not."""
-        assert self.process_id is not None
-        return is_pie(self.argv[0])
-
-    def resolve_address(self, address: int) -> int:
-        """Normalizes and validates the specified address.
-
-        Args:
-            address (int): The address to normalize and validate.
-
-        Returns:
-            int: The normalized and validated address.
-
-        Throws:
-            ValueError: If the address is not valid.
-        """
-        maps = self.maps()
-        return normalize_and_validate_address(address, maps)
