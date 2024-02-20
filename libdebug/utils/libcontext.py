@@ -177,7 +177,7 @@ class LibContext:
         """
         Property setter for arch, ensuring it's a valid architecture.
         """
-        if value in ["amd64", "i386"]:
+        if value in ["amd64"]:
             self._arch = value
         else:
             raise RuntimeError("The specified architecture is not supported")

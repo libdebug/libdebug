@@ -22,14 +22,16 @@ from libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper import (
     Amd64PtraceHardwareBreakpointManager,
 )
 from typing import Callable
+from libdebug.utils.libcontext import libcontext
 
 
 def ptrace_hardware_breakpoint_manager_provider(
     peek_mem: Callable[[int], int] = None,
     poke_mem: Callable[[int, int], None] = None,
-    architecture: str = "amd64",
 ) -> PtraceHardwareBreakpointManager:
     """Returns an instance of the hardware breakpoint manager to be used by the `Debugger` class."""
+    architecture = libcontext.arch
+
     match architecture:
         case "amd64":
             return Amd64PtraceHardwareBreakpointManager(peek_mem, poke_mem)

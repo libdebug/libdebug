@@ -16,17 +16,19 @@
 #
 
 from libdebug.architectures.stack_unwinding_manager import StackUnwindingManager
-
 from libdebug.architectures.amd64.amd64_stack_unwinder import (
     Amd64StackUnwinder,
 )
+from libdebug.utils.libcontext import libcontext
 
 
 _amd64_stack_unwinder = Amd64StackUnwinder()
 
 
-def stack_unwinding_provider(architecture: str = "amd64") -> StackUnwindingManager:
+def stack_unwinding_provider() -> StackUnwindingManager:
     """Returns an instance of the stack unwinding provider to be used by the `Debugger` class."""
+    architecture = libcontext.arch
+
     match architecture:
         case "amd64":
             return _amd64_stack_unwinder
