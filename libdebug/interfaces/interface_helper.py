@@ -24,7 +24,7 @@ from typing import Callable
 def debugging_interface_provider(
     _create_new_thread: Callable[[int], "ThreadContext"],
     _delete_thread: Callable[[int], None],
-    interface: AvailableInterfaces = AvailableInterfaces.PTRACE
+    interface: AvailableInterfaces = AvailableInterfaces.PTRACE,
 ) -> DebuggingInterface:
     """Returns an instance of the debugging interface to be used by the `Debugger` class."""
     match interface:

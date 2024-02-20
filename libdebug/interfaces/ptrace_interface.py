@@ -144,10 +144,14 @@ class PtraceInterface(DebuggingInterface):
         assert self.process_id is not None
 
         for thread_id in self.thread_ids:
+            liblog.debugger("Continuing thread %d", thread_id)
             result = self.lib_trace.ptrace_cont(thread_id)
             if result == -1:
                 errno_val = self.ffi.errno
-                raise OSError(errno_val, errno.errorcode[errno_val])
+                if errno_val == errno.ESRCH:
+                    pass
+                else:
+                    raise OSError(errno_val, errno.errorcode[errno_val])
 
     def step(self, thread_id: int):
         """Executes a single instruction of the process."""
@@ -237,8 +241,11 @@ class PtraceInterface(DebuggingInterface):
         result = self.lib_trace.ptrace_getregs(thread_id, register_file)
         if result == -1:
             errno_val = self.ffi.errno
-            # raise OSError(errno_val, errno.errorcode[errno_val])
-            return None
+            if errno_val == errno.ESRCH:
+                liblog.debugger("Thread %d not found", thread_id)
+                return None
+            else:
+                raise OSError(errno_val, errno.errorcode[errno_val])
         else:
             buffer = self.ffi.unpack(register_file, 512)
             return register_holder_provider(buffer, ptrace_setter=self._set_registers)
@@ -263,20 +270,8 @@ class PtraceInterface(DebuggingInterface):
 
         # interrupt any running thread
         for thread_id in self.thread_ids:
-            self.lib_trace.ptrace_interrupt(thread_id)
-
-        if os.WIFSTOPPED(status):
-            signum = os.WSTOPSIG(status)
-            signame = signal.Signals(signum).name
-            liblog.debugger("Child process %d stopped with signal %s", pid, signame)
-
-        if os.WIFEXITED(status):
-            exitstatus = os.WEXITSTATUS(status)
-            liblog.debugger("Child process %d exited with status %d", pid, exitstatus)
-
-        if os.WIFSIGNALED(status):
-            termsig = os.WTERMSIG(status)
-            liblog.debugger("Child process %d exited with signal %d", pid, termsig)
+            if thread_id != pid:
+                self.lib_trace.ptrace_interrupt(thread_id)
 
         self.status_handler.handle_change(pid, status)
 

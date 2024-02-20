@@ -17,9 +17,11 @@
 
 from libdebug.ptrace.ptrace_constants import StopEvents
 from libdebug.liblog import liblog
+import os
+import signal
+
 
 class PtraceStatusHandler:
-
     def __init__(self, ptrace_interface: "PtraceInterface"):
         self.ptrace_interface = ptrace_interface
 
@@ -33,18 +35,36 @@ class PtraceStatusHandler:
         event = status >> 8
         message = self.ptrace_interface._get_event_msg()
 
-        match event:
-            case StopEvents.CLONE_EVENT:
-                liblog.debugger("Process {} cloned, new thread_id: {}".format(pid, message))
-                self._handle_clone(message)
-            # case StopEvents.FORK_EVENT:
-            #     liblog.debugger("Process {} forked, new id: {}".format(pid, message))
-            # case StopEvents.VFORK_EVENT:
-            #     liblog.debugger("Process {} stopped for a vfork".format(pid))
-            # case StopEvents.VFORK_DONE_EVENT:
-            #     liblog.debugger("Process {} stopped for a vfork done".format(pid))
-            case StopEvents.SECCOMP_EVENT:
-                liblog.debugger("Process {} installed a seccomp, SECCOMP_RET_DATA: {}".format(pid, message))
-            case StopEvents.EXIT_EVENT:
-                liblog.debugger("Thread {} exited with status: {}".format(pid, message))
-                self._handle_exit(pid)
+        if os.WIFSTOPPED(status):
+            signum = os.WSTOPSIG(status)
+            signame = signal.Signals(signum).name
+            liblog.debugger("Child process %d stopped with signal %s", pid, signame)
+            match event:
+                case StopEvents.CLONE_EVENT:
+                    liblog.debugger(
+                        "Process {} cloned, new thread_id: {}".format(pid, message)
+                    )
+                    self._handle_clone(message)
+                case StopEvents.SECCOMP_EVENT:
+                    liblog.debugger(
+                        "Process {} installed a seccomp, SECCOMP_RET_DATA: {}".format(
+                            pid, message
+                        )
+                    )
+                case StopEvents.EXIT_EVENT:
+                    liblog.debugger(
+                        "Thread {} exited with status: {}".format(pid, message)
+                    )
+                    # The tracee is still alive; it needs
+                    # to be PTRACE_CONTed or PTRACE_DETACHed to finish exiting.
+                    # self._handle_exit(pid)
+
+        if os.WIFEXITED(status):
+            exitstatus = os.WEXITSTATUS(status)
+            liblog.debugger("Child process %d exited with status %d", pid, exitstatus)
+            self._handle_exit(pid)
+
+        if os.WIFSIGNALED(status):
+            termsig = os.WTERMSIG(status)
+            liblog.debugger("Child process %d exited with signal %d", pid, termsig)
+            self._handle_exit(pid)

@@ -137,6 +137,9 @@ class Debugger:
         if not self.instanced:
             raise RuntimeError("Process not running, cannot continue.")
 
+        if self.process_context.dead or self.process_context.running:
+            raise RuntimeError("Process is dead or already running.")
+
         self._polling_thread_command_queue.put((self.__threaded_cont, ()))
 
         # Wait for the background thread to signal "task done" before returning
@@ -147,6 +150,9 @@ class Debugger:
         """Waits for the process to stop."""
         if not self.instanced:
             raise RuntimeError("Process not running, cannot wait.")
+
+        if self.process_context.dead or not self.process_context.running:
+            raise RuntimeError("Process is dead or not running.")
 
         self._polling_thread_command_queue.put((self.__threaded_wait, ()))
 
@@ -222,9 +228,13 @@ class Debugger:
 
     def _delete_thread(self, thread_id: int):
         """Deletes a thread context object."""
-        del self.threads[thread_id]
+        if thread_id in self.threads:
+            del self.threads[thread_id]
 
-        liblog.debugger("Thread %d deleted.", thread_id)
+            liblog.debugger("Thread %d deleted.", thread_id)
+
+        if self.threads == {}:
+            self.process_context.set_dead()
 
     def __threaded_run(self):
         liblog.debugger("Starting process %s.", self.argv[0])
@@ -264,8 +274,10 @@ class Debugger:
         self.process_context.set_stopped()
 
         # Update the state of the process and its threads
-        for thread in self.threads.values():
-            thread._poll_registers()
+        keys = list(self.threads.keys())
+        for thread_id in keys:
+            if thread_id in self.threads:
+                self.threads[thread_id]._poll_registers()
 
     def __threaded_step(self):
         liblog.debugger("Stepping process %s.", self.argv[0])

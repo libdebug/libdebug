@@ -40,6 +40,9 @@ class ProcessContext:
     running: bool
     """True if and only if the process is currently running."""
 
+    dead: bool
+    """True if and only if the process is dead."""
+
     def __init__(
         self, process_id: int, interface: DebuggingInterface, argv: list = None
     ):
@@ -47,6 +50,7 @@ class ProcessContext:
         self.interface = interface
         self.argv = argv
         self.running = False
+        self.dead = False
 
     def set_running(self):
         """Sets the process as running."""
@@ -55,6 +59,10 @@ class ProcessContext:
     def set_stopped(self):
         """Sets the process as stopped."""
         self.running = False
+
+    def set_dead(self):
+        """Sets the process as dead."""
+        self.dead = True
 
     def interrupt(self):
         """Synchronously interrupts the process."""
