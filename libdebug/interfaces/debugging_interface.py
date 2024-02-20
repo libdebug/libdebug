@@ -90,3 +90,7 @@ class DebuggingInterface:
             breakpoint (Breakpoint): The breakpoint to restore.
         """
         pass
+
+    def disable_aslr(self):
+        """Disables ASLR for the current process."""
+        pass

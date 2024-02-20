@@ -18,6 +18,7 @@
 from libdebug.architectures.register_holder import RegisterHolder
 from libdebug.state.process_context import ProcessContext
 from libdebug.utils.debugging_utils import resolve_address_in_maps
+from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
 
 
 class ThreadContext:
@@ -56,19 +57,6 @@ class ThreadContext:
 
         return ThreadContext(thread_id, process_context)
 
-    @property
-    def running(self):
-        """True if and only if the thread is currently running."""
-        # TODO we might handle this differently in the future, where we can interrupt a single thread
-        # and/or have a single thread running
-        return self.process_context.running
-
-    def interrupt(self):
-        """Synchronously interrupts the thread."""
-        # TODO we might handle this differently in the future, where we can interrupt a single thread
-        # and/or have a single thread running
-        self.process_context.interrupt()
-
     def _poll_registers(self):
         """Updates the register values."""
         self.registers = self.interface.get_register_holder(self.thread_id)
@@ -80,7 +68,8 @@ class ThreadContext:
 
     def backtrace(self):
         """Returns the current backtrace of the thread."""
-        backtrace = self.stack_unwinding.unwind(self)
+        stack_unwinder = stack_unwinding_provider()
+        backtrace = stack_unwinder.unwind(self)
         return list(
             map(
                 lambda x: resolve_address_in_maps(x, self.process_context.maps()),

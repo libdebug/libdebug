@@ -190,9 +190,6 @@ class PtraceInterface(DebuggingInterface):
         if isinstance(argv, str):
             argv = [argv]
 
-        if not enable_aslr:
-            disable_self_aslr()
-
         if env:
             os.execve(argv[0], argv, env)
         else:
@@ -426,3 +423,7 @@ class PtraceInterface(DebuggingInterface):
         assert self.process_id is not None
 
         return self.lib_trace.ptrace_geteventmsg(self.process_id)
+
+    def disable_aslr(self):
+        """Disables ASLR for the current process."""
+        disable_self_aslr()

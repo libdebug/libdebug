@@ -68,6 +68,9 @@ class Debugger:
         )
         self.stack_unwinder = stack_unwinding_provider()
 
+        if not enable_aslr:
+            self.interface.disable_aslr()
+
         # threading utilities
         self._polling_thread: Thread | None = None
         self._polling_thread_command_queue: Queue = Queue()
