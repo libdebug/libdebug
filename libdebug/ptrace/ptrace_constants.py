@@ -15,6 +15,8 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+from enum import IntEnum
+
 NULL                    = 0
 PTRACE_TRACEME          = 0
 PTRACE_PEEKTEXT         = 1
@@ -56,5 +58,17 @@ PTRACE_EVENT_CLONE      = 3
 PTRACE_EVENT_EXEC       = 4
 PTRACE_EVENT_VFORK_DONE = 5
 PTRACE_EVENT_EXIT       = 6
+PTRACE_EVENT_SECCOMP    = 7
 
 WNOHANG                 = 1
+SIGTRAP                 = 5
+
+
+class StopEvents(IntEnum):
+    CLONE_EVENT = (SIGTRAP | (PTRACE_EVENT_CLONE << 8))
+    EXEC_EVENT = (SIGTRAP | (PTRACE_EVENT_EXEC << 8))
+    EXIT_EVENT = (SIGTRAP | (PTRACE_EVENT_EXIT << 8))
+    FORK_EVENT = (SIGTRAP | (PTRACE_EVENT_FORK << 8))
+    VFORK_EVENT = (SIGTRAP | (PTRACE_EVENT_VFORK << 8))
+    VFORK_DONE_EVENT = (SIGTRAP | (PTRACE_EVENT_VFORK_DONE << 8))
+    SECCOMP_EVENT = (SIGTRAP | (PTRACE_EVENT_SECCOMP << 8))

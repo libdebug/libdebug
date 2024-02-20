@@ -30,12 +30,14 @@ ffibuilder.cdef(
 
     int ptrace_cont(int pid);
     int ptrace_singlestep(int pid);
+    int ptrace_interrupt(int pid);
 
     uint64_t ptrace_peekdata(int pid, uint64_t addr);
     uint64_t ptrace_pokedata(int pid, uint64_t addr, uint64_t data);
     uint64_t ptrace_peekuser(int pid, uint64_t addr);
     uint64_t ptrace_pokeuser(int pid, uint64_t addr, uint64_t data);
 
+    uint64_t ptrace_geteventmsg(int pid);
 
     int cont_after_bp(int pid, uint64_t addr, uint64_t prev_data, uint64_t data);
 """
@@ -67,7 +69,9 @@ int ptrace_detach(int pid)
 
 void ptrace_set_options(int pid)
 {
-    int options = PTRACE_O_TRACEFORK | PTRACE_O_TRACEVFORK | PTRACE_O_TRACECLONE | PTRACE_O_TRACEEXEC | PTRACE_O_TRACEEXIT;
+    // int options = PTRACE_O_TRACEFORK | PTRACE_O_TRACEVFORK | PTRACE_O_TRACECLONE | PTRACE_O_TRACEEXEC | PTRACE_O_TRACEEXIT;
+
+    int options = PTRACE_O_TRACECLONE | PTRACE_O_TRACEEXEC | PTRACE_O_TRACEEXIT;
     ptrace(PTRACE_SETOPTIONS, pid, NULL, options);
 }
 
@@ -92,6 +96,11 @@ int ptrace_singlestep(int pid)
     return ptrace(PTRACE_SINGLESTEP, pid, NULL, NULL);
 }
 
+int ptrace_interrupt(int pid)
+{
+    return ptrace(PTRACE_INTERRUPT, pid, NULL, NULL);
+}
+
 uint64_t ptrace_peekdata(int pid, uint64_t addr)
 {
     return ptrace(PTRACE_PEEKDATA, pid, (void*) addr, NULL);
@@ -110,6 +119,15 @@ uint64_t ptrace_peekuser(int pid, uint64_t addr)
 uint64_t ptrace_pokeuser(int pid, uint64_t addr, uint64_t data)
 {
     return ptrace(PTRACE_POKEUSER, pid, addr, data);
+}
+
+uint64_t ptrace_geteventmsg(int pid)
+{
+    uint64_t data;
+
+    ptrace(PTRACE_GETEVENTMSG, pid, NULL, &data);
+
+    return data;
 }
 
 

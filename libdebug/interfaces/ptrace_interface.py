@@ -23,23 +23,34 @@ from libdebug.architectures.register_holder import RegisterHolder
 from libdebug.architectures.ptrace_hardware_breakpoint_provider import (
     ptrace_hardware_breakpoint_manager_provider,
 )
-from libdebug.architectures.ptrace_software_breakpoint_patcher import install_software_breakpoint
+from libdebug.architectures.ptrace_software_breakpoint_patcher import (
+    install_software_breakpoint,
+)
 from libdebug.cffi import _ptrace_cffi
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
 from libdebug.utils.process_utils import invalidate_process_cache, disable_self_aslr
 from libdebug.liblog import liblog
+from libdebug.state.thread_context import ThreadContext
+from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
 import os
 import signal
 import sys
 import pty
 import tty
+from typing import Callable
 
 
 class PtraceInterface(DebuggingInterface):
     """The interface used by `Debugger` to communicate with the `ptrace` debugging backend."""
 
-    def __init__(self):
+    def __init__(
+        self,
+        _create_new_thread: Callable[[int], ThreadContext],
+        _delete_thread: Callable[[int], None],
+    ):
+        super().__init__(_create_new_thread, _delete_thread)
+
         self.lib_trace = _ptrace_cffi.lib
         self.ffi = _ptrace_cffi.ffi
 
@@ -48,6 +59,9 @@ class PtraceInterface(DebuggingInterface):
         self.thread_ids = []
         self.software_breakpoints = {}
         self.hardware_bp_helper = None
+
+        # I hate that I have to have this circular dependency, TODO: fix my brain
+        self.status_handler = PtraceStatusHandler(self)
 
     def _set_options(self):
         """Sets the tracer options."""
@@ -128,15 +142,18 @@ class PtraceInterface(DebuggingInterface):
     def cont(self):
         """Continues the execution of the process."""
         assert self.process_id is not None
-        result = self.lib_trace.ptrace_cont(self.process_id)
-        if result == -1:
-            errno_val = self.ffi.errno
-            raise OSError(errno_val, errno.errorcode[errno_val])
 
-    def step(self):
+        for thread_id in self.thread_ids:
+            result = self.lib_trace.ptrace_cont(thread_id)
+            if result == -1:
+                errno_val = self.ffi.errno
+                raise OSError(errno_val, errno.errorcode[errno_val])
+
+    def step(self, thread_id: int):
         """Executes a single instruction of the process."""
         assert self.process_id is not None
-        result = self.lib_trace.ptrace_singlestep(self.process_id)
+
+        result = self.lib_trace.ptrace_singlestep(thread_id)
         if result == -1:
             errno_val = self.ffi.errno
             raise OSError(errno_val, errno.errorcode[errno_val])
@@ -220,7 +237,8 @@ class PtraceInterface(DebuggingInterface):
         result = self.lib_trace.ptrace_getregs(thread_id, register_file)
         if result == -1:
             errno_val = self.ffi.errno
-            raise OSError(errno_val, errno.errorcode[errno_val])
+            # raise OSError(errno_val, errno.errorcode[errno_val])
+            return None
         else:
             buffer = self.ffi.unpack(register_file, 512)
             return register_holder_provider(buffer, ptrace_setter=self._set_registers)
@@ -239,8 +257,13 @@ class PtraceInterface(DebuggingInterface):
 
         assert self.process_id is not None
         # -1 means wait for any child process
-        pid, status = os.waitpid(-1, 0)
+        # 1 << 30 is for __WALL, in order to wait for any child thread
+        pid, status = os.waitpid(-1, 1 << 30)
         liblog.debugger("Child process %d reported status %d", pid, status)
+
+        # interrupt any running thread
+        for thread_id in self.thread_ids:
+            self.lib_trace.ptrace_interrupt(thread_id)
 
         if os.WIFSTOPPED(status):
             signum = os.WSTOPSIG(status)
@@ -254,6 +277,18 @@ class PtraceInterface(DebuggingInterface):
         if os.WIFSIGNALED(status):
             termsig = os.WTERMSIG(status)
             liblog.debugger("Child process %d exited with signal %d", pid, termsig)
+
+        self.status_handler.handle_change(pid, status)
+
+    def register_new_thread(self, new_thread_id: int):
+        """Registers a new thread."""
+        self.thread_ids.append(new_thread_id)
+        self._create_new_thread(new_thread_id)
+
+    def unregister_thread(self, thread_id: int):
+        """Unregisters a thread."""
+        self.thread_ids.remove(thread_id)
+        self._delete_thread(thread_id)
 
     def provide_memory_view(self) -> MemoryView:
         """Returns a memory view of the process."""
@@ -390,3 +425,9 @@ class PtraceInterface(DebuggingInterface):
         error = self.ffi.errno
         if error == errno.EIO:
             raise OSError(error, errno.errorcode[error])
+
+    def _get_event_msg(self) -> int:
+        """Returns the event message."""
+        assert self.process_id is not None
+
+        return self.lib_trace.ptrace_geteventmsg(self.process_id)

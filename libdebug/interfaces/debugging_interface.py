@@ -19,10 +19,19 @@ from libdebug.architectures.register_holder import RegisterHolder
 from libdebug.data.memory_view import MemoryView
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.utils.pipe_manager import PipeManager
+from typing import Callable
 
 
 class DebuggingInterface:
     """The interface used by `Debugger` to communicate with the available debugging backends, such as `ptrace` or `gdb`."""
+
+    def __init__(
+        self,
+        _create_new_thread: Callable[[int], "ThreadContext"],
+        _delete_thread: Callable[[int], None],
+    ):
+        self._create_new_thread = _create_new_thread
+        self._delete_thread = _delete_thread
 
     def run(
         self, argv: str | list[str], enable_aslr: bool, env: dict[str, str] = None
@@ -48,8 +57,12 @@ class DebuggingInterface:
         """Waits for the process to stop."""
         pass
 
-    def step(self):
-        """Executes a single instruction of the process."""
+    def step(self, thread_id: int):
+        """Executes a single instruction of the specified thread.
+
+        Args:
+            thread_id (int): The thread to step.
+        """
         pass
 
     def provide_memory_view(self) -> MemoryView:

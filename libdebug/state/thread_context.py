@@ -72,7 +72,8 @@ class ThreadContext:
     def _poll_registers(self):
         """Updates the register values."""
         self.registers = self.interface.get_register_holder(self.thread_id)
-        self.registers.apply_on(self, ThreadContext)
+        if self.registers:
+            self.registers.apply_on(self, ThreadContext)
 
     def _flush_registers(self):
         self.registers.flush(self)

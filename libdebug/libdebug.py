@@ -63,7 +63,9 @@ class Debugger:
 
         # instanced is True if and only if the process has been started and has not been killed yet
         self.instanced = False
-        self.interface = debugging_interface_provider()
+        self.interface = debugging_interface_provider(
+            self._create_new_thread, self._delete_thread
+        )
         self.stack_unwinder = stack_unwinding_provider()
 
         # threading utilities
@@ -209,6 +211,21 @@ class Debugger:
             # Signal that the command has been executed
             self._polling_thread_command_queue.task_done()
 
+    def _create_new_thread(self, thread_id: int):
+        """Creates a new thread context object."""
+        thread = ThreadContext.new(self.process_context, thread_id)
+        self.threads[thread.thread_id] = thread
+
+        liblog.debugger("Thread %d created.", thread.thread_id)
+
+        return thread
+
+    def _delete_thread(self, thread_id: int):
+        """Deletes a thread context object."""
+        del self.threads[thread_id]
+
+        liblog.debugger("Thread %d deleted.", thread_id)
+
     def __threaded_run(self):
         liblog.debugger("Starting process %s.", self.argv[0])
         self._pipe_manager = self.interface.run(self.argv, self.enable_aslr, self.env)
@@ -217,10 +234,7 @@ class Debugger:
         self.process_context.set_stopped()
 
         # create and update main thread context
-        main_thread = ThreadContext.new(self.process_context)
-        self.threads[main_thread.thread_id] = main_thread
-
-        liblog.debugger("Thread %d created.", main_thread.thread_id)
+        main_thread = self._create_new_thread(None)
 
         main_thread._poll_registers()
 

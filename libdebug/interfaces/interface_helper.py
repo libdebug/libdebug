@@ -18,14 +18,17 @@
 from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.interfaces.interfaces import AvailableInterfaces
 from libdebug.interfaces.ptrace_interface import PtraceInterface
+from typing import Callable
 
 
 def debugging_interface_provider(
+    _create_new_thread: Callable[[int], "ThreadContext"],
+    _delete_thread: Callable[[int], None],
     interface: AvailableInterfaces = AvailableInterfaces.PTRACE
 ) -> DebuggingInterface:
     """Returns an instance of the debugging interface to be used by the `Debugger` class."""
     match interface:
         case AvailableInterfaces.PTRACE:
-            return PtraceInterface()
+            return PtraceInterface(_create_new_thread, _delete_thread)
         case _:
             raise NotImplementedError(f"Interface {interface} not available.")
