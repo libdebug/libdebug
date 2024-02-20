@@ -22,6 +22,7 @@ from pathlib import Path
 import os
 from elftools.elf.elffile import ELFFile
 from .libcontext import libcontext
+from typing import Tuple
 
 DEBUGINFOD_PATH: Path = Path.home() / ".cache" / "debuginfod_client"
 LOCAL_DEBUG_PATH: str = "/usr/lib/debug/.build-id/"
@@ -100,7 +101,7 @@ def _collect_external_info(path: str) -> dict[str, int]:
 
 
 @functools.cache
-def _parse_elf_file(path: str, debug_info_level: int) -> (dict[str, int], str, str):
+def _parse_elf_file(path: str, debug_info_level: int) -> Tuple[dict[str, int], str, str]:
     """Returns a dictionary containing the symbols of the specified ELF file and
     the buildid.
 

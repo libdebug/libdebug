@@ -120,6 +120,9 @@ class PtraceInterface(DebuggingInterface):
         """Instantly terminates the process."""
         assert self.process_id is not None
 
+        if not self.thread_ids:
+            return
+
         for thread_id in self.thread_ids:
             result = self.lib_trace.ptrace_detach(thread_id)
             if result == -1:
