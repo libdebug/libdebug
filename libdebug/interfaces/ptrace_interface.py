@@ -23,6 +23,7 @@ from libdebug.architectures.register_holder import RegisterHolder
 from libdebug.architectures.ptrace_hardware_breakpoint_provider import (
     ptrace_hardware_breakpoint_manager_provider,
 )
+from libdebug.architectures.ptrace_software_breakpoint_patcher import install_software_breakpoint
 from libdebug.cffi import _ptrace_cffi
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
@@ -282,7 +283,7 @@ class PtraceInterface(DebuggingInterface):
             self.process_id,
             breakpoint.address,
             instruction,
-            (instruction & ((2**56 - 1) << 8)) | 0xCC,
+            install_software_breakpoint(instruction),
         )
 
         if result == -1:
