@@ -302,7 +302,7 @@ class PtraceInterface(DebuggingInterface):
         instruction = self._peek_mem(address)
         self.software_breakpoints[address] = instruction
         # TODO: this is not correct for all architectures
-        self._poke_mem(address, (instruction & ((2**56 - 1) << 8)) | 0xCC)
+        self._poke_mem(address, install_software_breakpoint(instruction))
 
     def _unset_sw_breakpoint(self, address: int):
         """Unsets a software breakpoint at the specified address.
