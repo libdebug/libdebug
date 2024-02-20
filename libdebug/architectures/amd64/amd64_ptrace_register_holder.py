@@ -80,55 +80,45 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
 
         def get_property_64(name):
             def getter(self):
-                self.interrupt()
                 return get_reg_64(self.regs, name)
 
             def setter(self, value):
-                self.interrupt()
                 set_reg_64(self.regs, name, value)
 
             return property(getter, setter, None, name)
 
         def get_property_32(name):
             def getter(self):
-                self.interrupt()
                 return get_reg_32(self.regs, name)
 
             def setter(self, value):
-                self.interrupt()
                 set_reg_32(self.regs, name, value)
 
             return property(getter, setter, None, name)
 
         def get_property_16(name):
             def getter(self):
-                self.interrupt()
                 return get_reg_16(self.regs, name)
 
             def setter(self, value):
-                self.interrupt()
                 set_reg_16(self.regs, name, value)
 
             return property(getter, setter, None, name)
 
         def get_property_8l(name):
             def getter(self):
-                self.interrupt()
                 return get_reg_8l(self.regs, name)
 
             def setter(self, value):
-                self.interrupt()
                 set_reg_8l(self.regs, name, value)
 
             return property(getter, setter, None, name)
 
         def get_property_8h(name):
             def getter(self):
-                self.interrupt()
                 return get_reg_8h(self.regs, name)
 
             def setter(self, value):
-                self.interrupt()
                 set_reg_8h(self.regs, name, value)
 
             return property(getter, setter, None, name)

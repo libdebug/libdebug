@@ -22,10 +22,13 @@ from libdebug.architectures.amd64.amd64_stack_unwinder import (
 )
 
 
+_amd64_stack_unwinder = Amd64StackUnwinder()
+
+
 def stack_unwinding_provider(architecture: str = "amd64") -> StackUnwindingManager:
     """Returns an instance of the stack unwinding provider to be used by the `Debugger` class."""
     match architecture:
         case "amd64":
-            return Amd64StackUnwinder()
+            return _amd64_stack_unwinder
         case _:
             raise NotImplementedError(f"Architecture {architecture} not available.")
