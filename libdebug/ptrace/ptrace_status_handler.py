@@ -33,6 +33,14 @@ class PtraceStatusHandler:
     def _handle_clone(self, thread_id: int):
         self.ptrace_interface.register_new_thread(thread_id)
 
+        # https://go.googlesource.com/debug/+/a09ead70f05c87ad67bd9a131ff8352cf39a6082/doc/ptrace-nptl.txt
+        # "At this time, the new thread will exist, but will initially
+        # be stopped with a SIGSTOP.  The new thread will automatically be
+        # traced and will inherit the PTRACE_O_TRACECLONE option from its
+        # parent.  The attached process should wait on the new thread to receive
+        # the SIGSTOP notification."
+        os.waitpid(thread_id, 0)
+
     def _handle_exit(self, thread_id: int):
         self.ptrace_interface.unregister_thread(thread_id)
 
@@ -41,6 +49,7 @@ class PtraceStatusHandler:
 
         # force a register poll
         thread._poll_registers()
+        thread._needs_poll_registers = False
 
         if not hasattr(thread, "instruction_pointer"):
             # This is a signal trap hit on process startup
@@ -64,19 +73,18 @@ class PtraceStatusHandler:
                 liblog.debugger("Software breakpoint hit at 0x%x", ip)
                 bp = debugging_context.breakpoints[ip]
 
-                # Restore the original instruction
-                # self.ptrace_interface.unset_hit_software_breakpoint(bp)
+                # Restore the previous instruction
+                self.ptrace_interface.unset_hit_software_breakpoint(bp)
 
                 # Set the instruction pointer to the previous instruction
                 thread.instruction_pointer = ip
 
                 # Set the needs_restore flag to True and the needs_poll flag to False
                 bp._needs_restore = True
-                thread._needs_poll_registers = False
+                bp._linked_thread_ids.append(thread_id)
 
         if bp:
             bp.hit_count += 1
-
 
     def handle_change(self, pid: int, status: int):
         event = status >> 8
@@ -96,20 +104,22 @@ class PtraceStatusHandler:
                         "Process {} cloned, new thread_id: {}".format(pid, message)
                     )
                     self._handle_clone(message)
+
                 case StopEvents.SECCOMP_EVENT:
                     liblog.debugger(
                         "Process {} installed a seccomp, SECCOMP_RET_DATA: {}".format(
                             pid, message
                         )
                     )
+
                 case StopEvents.EXIT_EVENT:
-                    liblog.debugger(
-                        "Thread {} exited with status: {}".format(pid, message)
-                    )
                     # The tracee is still alive; it needs
                     # to be PTRACE_CONTed or PTRACE_DETACHed to finish exiting.
                     # so we don't call self._handle_exit(pid) here
                     # it will be called at the next wait (hopefully)
+                    liblog.debugger(
+                        "Thread {} exited with status: {}".format(pid, message)
+                    )
 
         if os.WIFEXITED(status):
             exitstatus = os.WEXITSTATUS(status)

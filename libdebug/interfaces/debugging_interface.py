@@ -54,11 +54,11 @@ class DebuggingInterface:
         """Waits for the process to stop."""
         pass
 
-    def step(self, thread_id: int):
+    def step(self, thread: ThreadContext):
         """Executes a single instruction of the specified thread.
 
         Args:
-            thread_id (int): The thread to step.
+            thread (ThreadContext): The thread to step.
         """
         pass
 

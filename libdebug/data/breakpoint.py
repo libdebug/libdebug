@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable
 
 
@@ -43,5 +43,11 @@ class Breakpoint:
     length: int = 1
 
     # Internal use only
-    _original_instruction: bytes = b"" # The original instruction at the breakpoint address
-    _needs_restore: bool = False # Whether the original instruction needs to be restored when continuing
+    _original_instruction: bytes = b""
+    # The original instruction at the breakpoint address
+
+    _needs_restore: bool = False
+    # Whether the original instruction needs to be restored when continuing
+
+    _linked_thread_ids: list[int] = field(default_factory=list)
+    # The thread ID that hit the breakpoint

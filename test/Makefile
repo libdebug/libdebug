@@ -19,6 +19,8 @@ all:
 	$(CC) $(CFLAGS) $(SRC_DIR)/benchmark.c -o $(BIN_DIR)/benchmark $(LDFLAGS)
 	$(CC) $(CFLAGS) $(SRC_DIR)/backtrace.c -o $(BIN_DIR)/backtrace $(LDFLAGS)
 	$(CC) $(CFLAGS) $(SRC_DIR)/brute_test.c -o $(BIN_DIR)/brute_test $(LDFLAGS)
+	$(CC) $(CFLAGS) $(SRC_DIR)/speed_test.c -o $(BIN_DIR)/speed_test $(LDFLAGS)
+	$(CC) $(CFLAGS) $(SRC_DIR)/thread_test.c -o $(BIN_DIR)/thread_test $(LDFLAGS)
 	
 
 # Clean rule to remove compiled files

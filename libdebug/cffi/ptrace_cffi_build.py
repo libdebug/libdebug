@@ -35,9 +35,7 @@ ffibuilder.cdef(
     int ptrace_getregs(int pid, void *regs);
     int ptrace_setregs(int pid, void *regs);
 
-    int ptrace_cont(int pid);
     int ptrace_singlestep(int pid);
-    int ptrace_interrupt(int pid);
 
     uint64_t ptrace_peekdata(int pid, uint64_t addr);
     uint64_t ptrace_pokedata(int pid, uint64_t addr, uint64_t data);
@@ -52,12 +50,19 @@ ffibuilder.cdef(
         size_t n_addrs,
         ptrace_hit_bp *bps
     );
+
+    int interrupt_other_threads(
+        int pid,
+        size_t n_tids,
+        int *tids
+    );
 """
 )
 
 ffibuilder.set_source(
     "libdebug.cffi._ptrace_cffi",
     """
+#include <signal.h>
 #include <sys/ptrace.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -106,19 +111,9 @@ int ptrace_setregs(int pid, void *regs)
     return ptrace(PTRACE_SETREGS, pid, NULL, regs);
 }
 
-int ptrace_cont(int pid)
-{
-    return ptrace(PTRACE_CONT, pid, NULL, NULL);
-}
-
 int ptrace_singlestep(int pid)
 {
     return ptrace(PTRACE_SINGLESTEP, pid, NULL, NULL);
-}
-
-int ptrace_interrupt(int pid)
-{
-    return ptrace(PTRACE_INTERRUPT, pid, NULL, NULL);
 }
 
 uint64_t ptrace_peekdata(int pid, uint64_t addr)
@@ -162,36 +157,38 @@ int cont_all_and_set_bps(
     // restore the previous instruction for any thread that hit a software breakpoint
     for (size_t i = 0; i < n_addrs; i++) {
         // restore the previous instruction
-        status = ptrace(PTRACE_POKEDATA, bps[i].pid, (void*) bps[i].addr, bps[i].prev_instruction);
-
-        if (status == -1)
-            return status;
+        if (ptrace(PTRACE_POKEDATA, bps[i].pid, (void*) bps[i].addr, bps[i].prev_instruction))
+            return -1;
 
         // step over the breakpoint
-        status = ptrace(PTRACE_SINGLESTEP, bps[i].pid, NULL, NULL);
-
-        if (status == -1)
-            return status;
+        if (ptrace(PTRACE_SINGLESTEP, bps[i].pid, NULL, NULL))
+            return -1;
 
         // wait for the child
         waitpid(bps[i].pid, &status, 0);
 
         // restore the breakpoint
-        status = ptrace(PTRACE_POKEDATA, bps[i].pid, (void*) bps[i].addr, bps[i].bp_instruction);
-
-        if (status == -1)
-            return status;
+        if (ptrace(PTRACE_POKEDATA, bps[i].pid, (void*) bps[i].addr, bps[i].bp_instruction))
+            return -1;
     }
 
     // continue the execution
     for (size_t i = 0; i < n_pids; i++) {
-        status = ptrace(PTRACE_CONT, pids[i], NULL, NULL);
-
-        if (status == -1)
-            return status;
+        status += ptrace(PTRACE_CONT, pids[i], NULL, NULL);
     }
 
     return status;
+}
+
+int interrupt_other_threads(
+    int pid,
+    size_t n_tids,
+    int *tids
+) {
+    for (int i = 0; i < n_tids; i++)
+        tgkill(pid, tids[i], SIGSTOP);
+
+    return 0;
 }
 """,
     libraries=[],

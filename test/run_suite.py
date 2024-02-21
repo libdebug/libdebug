@@ -28,6 +28,7 @@ from scripts.jumpout import Jumpout
 from scripts.memory_test import MemoryTest
 from scripts.ncuts import Ncuts
 from scripts.speed_test import SpeedTest
+from scripts.thread_test import ThreadTest
 from scripts.vmwhere1 import Vmwhere1
 
 
@@ -47,6 +48,7 @@ def suite():
     # suite.addTest(Jumpout("test_jumpout"))
     # suite.addTest(Ncuts("test_ncuts"))
     # suite.addTest(AttachTest("test_attach"))
+    suite.addTest(ThreadTest("test_thread"))
     suite.addTest(SpeedTest("test_speed"))
     suite.addTest(SpeedTest("test_speed_hardware"))
     return suite

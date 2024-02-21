@@ -149,7 +149,7 @@ class PtraceInterface(DebuggingInterface):
         except OSError as e:
             liblog.debugger("Killing process %d failed: %r", self.process_id, e)
 
-        liblog.debugger('Killed process %d' % self.process_id)
+        liblog.debugger("Killed process %d" % self.process_id)
 
         # wait for the child process to terminate, otherwise it will become a zombie
         os.wait()
@@ -162,43 +162,59 @@ class PtraceInterface(DebuggingInterface):
         for thread in self.threads.values():
             thread._flush_registers()
 
-        # Count the number of breakpoints that need to be restored
-        bp_count = len(
-            [bp for bp in debugging_context.breakpoints.values() if bp._needs_restore]
-        )
+        # Determine if any breakpoints need to be restored
+        bps_to_restore = [
+            bp for bp in debugging_context.breakpoints.values() if bp._needs_restore
+        ]
 
-        if bp_count > 0:
+        if bps_to_restore:
             # If any, allocate the cffi struct
             # and fill it with the information of the breakpoints that need to be restored
+            bp_count = sum(len(bp._linked_thread_ids) for bp in bps_to_restore)
             bps = self.ffi.new("ptrace_hit_bp[]", bp_count)
+
             i = 0
-            for bp in debugging_context.breakpoints.values():
-                if bp._needs_restore:
-                    bps[i].pid = self.process_id
+            while i < bp_count:
+                bp = bps_to_restore.pop(0)
+                for thread_id in bp._linked_thread_ids:
+                    liblog.debugger(
+                        "Restoring breakpoint at address %x, hit by thread %d",
+                        bp.address,
+                        thread_id,
+                    )
+                    bps[i].pid = thread_id
                     bps[i].addr = bp.address
                     bps[i].prev_instruction = bp._original_instruction
                     bps[i].bp_instruction = install_software_breakpoint(
                         bp._original_instruction
                     )
-                    bp._needs_restore = False
                     i += 1
+                bp._linked_thread_ids.clear()
+                bp._needs_restore = False
         else:
             # Otherwise, pass NULL
+            bp_count = 0
             bps = self.ffi.NULL
 
         # Construct the cffi array of pids
         pids = self.ffi.new("int[]", self.thread_ids)
         pid_count = len(self.thread_ids)
 
+        liblog.debugger(f"Continuing threads {self.thread_ids}")
+
         # Call the CFFI implementation
         result = self.lib_trace.cont_all_and_set_bps(pid_count, pids, bp_count, bps)
-        if result == -1:
+        if result < 0:
             errno_val = self.ffi.errno
             raise OSError(errno_val, errno.errorcode[errno_val])
 
-    def step(self, thread_id: int):
+    def step(self, thread: ThreadContext):
         """Executes a single instruction of the process."""
-        assert self.process_id is not None
+        # Set registers for all threads
+        for thread in self.threads.values():
+            thread._flush_registers()
+
+        thread_id = thread.thread_id
 
         result = self.lib_trace.ptrace_singlestep(thread_id)
         if result == -1:
@@ -298,23 +314,52 @@ class PtraceInterface(DebuggingInterface):
 
     def wait(self):
         """Waits for the process to stop."""
-
         assert self.process_id is not None
+
         # -1 means wait for any child process
         # 1 << 30 is for __WALL, in order to wait for any child thread
         pid, status = os.waitpid(-1, 1 << 30)
-        liblog.debugger("Child process %d reported status %d", pid, status)
+        liblog.debugger("Child thread %d reported status %d", pid, status)
 
-        # interrupt any running thread
-        for thread_id in self.thread_ids:
-            if thread_id != pid:
-                self.lib_trace.ptrace_interrupt(thread_id)
+        # Interrupt any other running thread
+        if len(self.thread_ids) > 1:
+            wait_results = [(pid, status)]
 
-        self.status_handler.handle_change(pid, status)
+            other_threads = [tid for tid in self.thread_ids if tid != pid]
+
+            # Send a process-wide SIGSTOP signal to stop all threads
+            os.kill(self.process_id, signal.SIGSTOP)
+
+            # Wait for the threads to stop and poll their status
+            for thread_id in other_threads:
+                liblog.debugger(f"Waiting for thread {thread_id}")
+                # threads might have more than one status change to report
+                while True:
+                    try:
+                        # 1 means WNOHANG, in order to return immediately if no result is available
+                        npid, nstatus = os.waitpid(thread_id, 1)
+                        if npid != 0:
+                            liblog.debugger(
+                                "Child process %d reported status %d", npid, nstatus
+                            )
+                            wait_results.append((npid, nstatus))
+                        else:
+                            break
+                    except ChildProcessError:
+                        liblog.debugger("Could not find thread %d", thread_id)
+                        break
+
+            liblog.debugger("All threads stopped")
+
+            for pid, status in wait_results:
+                self.status_handler.handle_change(pid, status)
+        else:
+            self.status_handler.handle_change(pid, status)
 
     def register_new_thread(self, new_thread_id: int):
         """Registers a new thread."""
-        debugging_context.insert_new_thread(new_thread_id)
+        thread = ThreadContext.new(new_thread_id)
+        debugging_context.insert_new_thread(thread)
 
     def unregister_thread(self, thread_id: int):
         """Unregisters a thread."""

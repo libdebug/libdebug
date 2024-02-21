@@ -164,12 +164,12 @@ class Debugger:
         # We don't want any asynchronous behaviour here
         self._polling_thread_command_queue.join()
 
-    def step(self):
+    def step(self, thread: ThreadContext):
         """Executes a single instruction of the process."""
         if not self.instanced:
             raise RuntimeError("Process not running, cannot step.")
 
-        self._polling_thread_command_queue.put((self.__threaded_step, ()))
+        self._polling_thread_command_queue.put((self.__threaded_step, (thread,)))
         self._polling_thread_command_queue.put((self.__threaded_wait, ()))
 
         # Wait for the background thread to signal "task done" before returning
@@ -285,9 +285,9 @@ class Debugger:
             if thread_id in self.threads:
                 self.threads[thread_id]._poll_registers()
 
-    def __threaded_step(self):
-        liblog.debugger("Stepping process %s.", self.argv[0])
-        self.interface.step()
+    def __threaded_step(self, thread: ThreadContext):
+        liblog.debugger("Stepping thread %s.", thread.thread_id)
+        self.interface.step(thread)
         debugging_context.set_running()
 
 

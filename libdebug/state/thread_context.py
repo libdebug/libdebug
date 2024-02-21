@@ -35,6 +35,9 @@ class ThreadContext:
     _needs_poll_registers: bool = True
     """Whether the registers need to be polled."""
 
+    _needs_sigcont: bool = False
+    """Whether the thread needs to be continued after a signal stop."""
+
     def __init__(self, thread_id: int):
         self.thread_id = thread_id
 
@@ -67,7 +70,8 @@ class ThreadContext:
             self.registers.apply_on(self, ThreadContext)
 
     def _flush_registers(self):
-        self.registers.flush(self)
+        if self.registers:
+            self.registers.flush(self)
 
     def backtrace(self):
         """Returns the current backtrace of the thread."""
