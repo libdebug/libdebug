@@ -15,6 +15,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+from libdebug.architectures.ptrace_software_breakpoint_patcher import software_breakpoint_byte_size
 from libdebug.state.debugging_context import debugging_context
 from libdebug.ptrace.ptrace_constants import StopEvents
 from libdebug.liblog import liblog
@@ -32,6 +33,48 @@ class PtraceStatusHandler:
     def _handle_exit(self, thread_id: int):
         self.ptrace_interface.unregister_thread(thread_id)
 
+    def _handle_trap(self, thread_id: int):
+        thread = debugging_context.threads[thread_id]
+
+        # force a register poll
+        thread._poll_registers()
+
+        if not hasattr(thread, "instruction_pointer"):
+            # This is a signal trap hit on process startup
+            return
+
+        ip = thread.instruction_pointer
+
+        bp = None
+
+        if ip in debugging_context.breakpoints:
+            # Hardware breakpoint hit
+            liblog.debugger("Hardware breakpoint hit at 0x%x", ip)
+            bp = debugging_context.breakpoints[ip]
+        else:
+            # If the trap was caused by a software breakpoint, we need to restore the original instruction
+            # and set the instruction pointer to the previous instruction.
+            ip -= software_breakpoint_byte_size()
+
+            if ip in debugging_context.breakpoints:
+                # Software breakpoint hit
+                liblog.debugger("Software breakpoint hit at 0x%x", ip)
+                bp = debugging_context.breakpoints[ip]
+
+                # Restore the original instruction
+                self.ptrace_interface.unset_hit_software_breakpoint(bp)
+
+                # Set the instruction pointer to the previous instruction
+                thread.instruction_pointer = ip
+
+                # Set the needs_restore flag to True and the needs_poll flag to False
+                bp._needs_restore = True
+                thread._needs_poll_registers = False
+
+        if bp:
+            bp.hit_count += 1
+
+
     def handle_change(self, pid: int, status: int):
         event = status >> 8
         message = self.ptrace_interface._get_event_msg()
@@ -40,6 +83,10 @@ class PtraceStatusHandler:
             signum = os.WSTOPSIG(status)
             signame = signal.Signals(signum).name
             liblog.debugger("Child process %d stopped with signal %s", pid, signame)
+
+            if signum == signal.SIGTRAP:
+                self._handle_trap(pid)
+
             match event:
                 case StopEvents.CLONE_EVENT:
                     liblog.debugger(

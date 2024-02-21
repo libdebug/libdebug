@@ -33,3 +33,13 @@ def install_software_breakpoint(code: int) -> int:
             return (code & (2**56 - 1) << 8) | 0xCC
         case "x86":
             return (code & (2**56 - 1) << 8) | 0xCC
+
+
+def software_breakpoint_byte_size() -> int:
+    """Return the size of a software breakpoint instruction."""
+
+    match libcontext.arch:
+        case "amd64":
+            return 1
+        case "x86":
+            return 1

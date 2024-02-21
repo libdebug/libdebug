@@ -162,6 +162,9 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
         # setup special registers
         setattr(target_class, "rip", get_property_64("rip"))
 
+        # setup generic "instruction_pointer" property
+        setattr(target_class, "instruction_pointer", get_property_64("rip"))
+
     def flush(self, source: "ThreadContext"):
         """Flushes the register values to the target process."""
         buffer = b""

@@ -20,6 +20,9 @@ from libdebug.utils.pipe_manager import PipeManager
 from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.architectures.register_helper import register_holder_provider
 from libdebug.data.register_holder import RegisterHolder
+from libdebug.architectures.ptrace_hardware_breakpoint_manager import (
+    PtraceHardwareBreakpointManager,
+)
 from libdebug.architectures.ptrace_hardware_breakpoint_provider import (
     ptrace_hardware_breakpoint_manager_provider,
 )
@@ -49,15 +52,14 @@ import tty
 class PtraceInterface(DebuggingInterface):
     """The interface used by `Debugger` to communicate with the `ptrace` debugging backend."""
 
+    hardware_bp_helper: PtraceHardwareBreakpointManager
+    """The hardware breakpoint manager."""
+
     def __init__(self):
         super().__init__()
 
         self.lib_trace = _ptrace_cffi.lib
         self.ffi = _ptrace_cffi.ffi
-
-        # The PID of the process being traced
-        self.process_id = None
-        self.hardware_bp_helper = None
 
         if not debugging_context.aslr_enabled:
             disable_self_aslr()
@@ -150,6 +152,12 @@ class PtraceInterface(DebuggingInterface):
     def cont(self):
         """Continues the execution of the process."""
         assert self.process_id is not None
+
+        # Before continuing, we must reset any software breakpoint that were hit
+        for breakpoint in debugging_context.breakpoints.values():
+            if breakpoint._needs_restore:
+                self._poke_mem(breakpoint.address, install_software_breakpoint(breakpoint.original_instruction))
+                breakpoint._needs_restore = False
 
         for thread_id in self.thread_ids:
             liblog.debugger("Continuing thread %d", thread_id)
@@ -304,10 +312,7 @@ class PtraceInterface(DebuggingInterface):
             self.continue_execution()
             return
 
-        assert self.process_id is not None
-        assert breakpoint.address in self.software_breakpoints
-
-        instruction = self.software_breakpoints[breakpoint.address]
+        instruction = breakpoint.original_instruction
 
         result = self.lib_trace.cont_after_bp(
             self.process_id,
@@ -322,26 +327,24 @@ class PtraceInterface(DebuggingInterface):
 
         invalidate_process_cache()
 
-    def _set_sw_breakpoint(self, address: int):
+    def _set_sw_breakpoint(self, breakpoint: Breakpoint):
         """Sets a software breakpoint at the specified address.
 
         Args:
-            address (int): The address where the breakpoint should be set.
+            breakpoint (Breakpoint): The breakpoint to set.
         """
         assert self.process_id is not None
-        instruction = self._peek_mem(address)
-        self.software_breakpoints[address] = instruction
-        # TODO: this is not correct for all architectures
-        self._poke_mem(address, install_software_breakpoint(instruction))
+        instruction = self._peek_mem(breakpoint.address)
+        breakpoint.original_instruction = instruction
+        self._poke_mem(breakpoint.address, install_software_breakpoint(instruction))
 
-    def _unset_sw_breakpoint(self, address: int):
+    def _unset_sw_breakpoint(self, breakpoint: Breakpoint):
         """Unsets a software breakpoint at the specified address.
 
         Args:
-            address (int): The address where the breakpoint should be unset.
+            breakpoint (Breakpoint): The breakpoint to unset.
         """
-        assert self.process_id is not None
-        self._poke_mem(address, self.software_breakpoints[address])
+        self._poke_mem(breakpoint.address, breakpoint.original_instruction)
 
     def set_breakpoint(self, breakpoint: Breakpoint):
         """Sets a breakpoint at the specified address.
@@ -352,7 +355,7 @@ class PtraceInterface(DebuggingInterface):
         if breakpoint.hardware:
             self.hardware_bp_helper.install_breakpoint(breakpoint)
         else:
-            self._set_sw_breakpoint(breakpoint.address)
+            self._set_sw_breakpoint(breakpoint)
 
         debugging_context.insert_new_breakpoint(breakpoint)
 
@@ -360,14 +363,22 @@ class PtraceInterface(DebuggingInterface):
         """Restores the breakpoint at the specified address.
 
         Args:
-            address (int): The address where the breakpoint should be restored.
+            breakpoint (Breakpoint): The breakpoint to unset.
         """
         if breakpoint.hardware:
             self.hardware_bp_helper.remove_breakpoint(breakpoint)
         else:
-            self._unset_sw_breakpoint(breakpoint.address)
+            self._unset_sw_breakpoint(breakpoint)
 
         debugging_context.remove_breakpoint(breakpoint)
+
+    def unset_hit_software_breakpoint(self, breakpoint: Breakpoint):
+        """Unsets a software breakpoint at the specified address.
+
+        Args:
+            breakpoint (Breakpoint): The breakpoint to unset.
+        """
+        return self._unset_sw_breakpoint(breakpoint)
 
     def _peek_mem(self, address: int) -> int:
         """Reads the memory at the specified address."""

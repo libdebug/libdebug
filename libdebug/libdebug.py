@@ -209,13 +209,20 @@ class Debugger:
     def __getattr__(self, name: str) -> object:
         """This function is called when an attribute is not found in the `Debugger` object.
         It is used to forward the call to the first `ThreadContext` object."""
+        if not self.threads:
+            raise AttributeError(f"'Debugger' object has no attribute '{name}'")
+
         thread_context = next(iter(self.threads.values()))
+
+        if not hasattr(thread_context, name):
+            raise AttributeError(f"'Debugger' object has no attribute '{name}'")
+
         return getattr(thread_context, name)
 
     def __setattr__(self, name: str, value: object) -> None:
         """This function is called when an attribute is set in the `Debugger` object.
         It is used to forward the call to the first `ThreadContext` object."""
-        # let's check if the attribute is available in the `Debugger` object
+        # First we check if the attribute is available in the `Debugger` object
         if hasattr(Debugger, name):
             super().__setattr__(name, value)
         else:

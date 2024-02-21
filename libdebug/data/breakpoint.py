@@ -37,6 +37,10 @@ class Breakpoint:
     symbol: bytes = b""
     hit_count: int = 0
     hardware: bool = False
-    _callback: None | Callable[["Debugger", Breakpoint], None] = None
+    callback: None | Callable[["Debugger", Breakpoint], None] = None
     condition: str = "X"
     length: int = 1
+
+    # Internal use only
+    _original_instruction: bytes = b"" # The original instruction at the breakpoint address
+    _needs_restore: bool = False # Whether the original instruction needs to be restored when continuing

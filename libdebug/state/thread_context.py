@@ -32,6 +32,9 @@ class ThreadContext:
     thread_id: int
     """The thread's ID."""
 
+    _needs_poll_registers: bool = True
+    """Whether the registers need to be polled."""
+
     def __init__(self, thread_id: int):
         self.thread_id = thread_id
 
@@ -53,6 +56,10 @@ class ThreadContext:
 
     def _poll_registers(self):
         """Updates the register values."""
+        if not self._needs_poll_registers:
+            self._needs_poll_registers = True
+            return
+
         self.registers = debugging_context.debugging_interface.get_register_holder(
             self.thread_id
         )
