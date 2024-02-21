@@ -21,44 +21,39 @@ from libdebug import debugger
 class BreakpointTest(unittest.TestCase):
     def setUp(self):
         self.d = debugger('binaries/breakpoint_test')
-        self.exceptions = []
 
     def test_bps(self):
-        def bp_random_function(d, bp):
-            try:
-                self.assertTrue(d.rip == 0x401136)
-            except Exception as e:
-                self.exceptions.append(e)
+        d = self.d
 
-        global counter
+        d.run()
+
+        bp1 = d.breakpoint("random_function")
+        bp2 = d.breakpoint(0x401154)
+        bp3 = d.breakpoint(0x401166)
+
         counter = 1
 
-        def bp_loop(d, bp):
-            try:
-                global counter
-                self.assertTrue(bp.hit_count == counter)
-                counter += 1
-            except Exception as e:
-                self.exceptions.append(e)
+        d.cont()
 
-        def bp_loop_end(d, bp):
-            try:
+        while True:
+            d.wait()
+
+            if d.rip == bp1.address:
+                self.assertTrue(bp1.hit_count == 1)
+            elif d.rip == bp2.address:
+                self.assertTrue(bp2.hit_count == counter)
+                counter += 1
+            elif d.rip == bp3.address:
+                self.assertTrue(bp3.hit_count == 1)
                 self.assertTrue(d.rsi == 45)
                 self.assertTrue(d.esi == 45)
                 self.assertTrue(d.si == 45)
                 self.assertTrue(d.sil == 45)
-            except Exception as e:
-                self.exceptions.append(e)
+                break
 
-        self.d.start()
-        self.d.b("random_function", bp_random_function)
-        self.d.b(0x401154, bp_loop)
-        self.d.b(0x401166, bp_loop_end)
-        self.d.cont()
+            d.cont()
+
         self.d.kill()
-        self.assertTrue(True)
-        if self.exceptions:
-            raise self.exceptions[0]
 
 if __name__ == '__main__':
     unittest.main()

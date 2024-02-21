@@ -34,7 +34,7 @@ def suite():
     suite.addTest(BasicTest("test_basic"))
     suite.addTest(BasicTest("test_registers"))
     suite.addTest(BasicPieTest("test_basic"))
-    # suite.addTest(BreakpointTest("test_bps"))
+    suite.addTest(BreakpointTest("test_bps"))
     # suite.addTest(MemoryTest("test_memory"))
     # suite.addTest(MemoryTest("test_mem_access_libs"))
     suite.addTest(HwBasicTest("test_basic"))
