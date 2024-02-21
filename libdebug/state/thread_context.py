@@ -15,10 +15,10 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libdebug.architectures.register_holder import RegisterHolder
-from libdebug.state.process_context import ProcessContext
+from libdebug.data.register_holder import RegisterHolder
 from libdebug.utils.debugging_utils import resolve_address_in_maps
 from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
+from libdebug.state.debugging_context import debugging_context
 
 
 class ThreadContext:
@@ -32,20 +32,14 @@ class ThreadContext:
     thread_id: int
     """The thread's ID."""
 
-    process_context: ProcessContext
-    """The process context object."""
-
-    def __init__(self, thread_id: int, process_context: ProcessContext):
+    def __init__(self, thread_id: int):
         self.thread_id = thread_id
-        self.process_context = process_context
-        self.interface = process_context.interface
 
     @staticmethod
-    def new(process_context: ProcessContext, thread_id: int = None):
+    def new(thread_id: int = None):
         """Creates a new thread context object.
 
         Args:
-            process_context (ProcessContext): The process context object.
             thread_id (int, optional): The thread's ID. Defaults to None.
 
         Returns:
@@ -53,13 +47,15 @@ class ThreadContext:
         """
         if thread_id is None:
             # If no thread ID is specified, we assume the main thread which has tid = pid
-            thread_id = process_context.process_id
+            thread_id = debugging_context.process_id
 
-        return ThreadContext(thread_id, process_context)
+        return ThreadContext(thread_id)
 
     def _poll_registers(self):
         """Updates the register values."""
-        self.registers = self.interface.get_register_holder(self.thread_id)
+        self.registers = debugging_context.debugging_interface.get_register_holder(
+            self.thread_id
+        )
         if self.registers:
             self.registers.apply_on(self, ThreadContext)
 
@@ -72,7 +68,9 @@ class ThreadContext:
         backtrace = stack_unwinder.unwind(self)
         return list(
             map(
-                lambda x: resolve_address_in_maps(x, self.process_context.maps()),
+                lambda x: resolve_address_in_maps(
+                    x, debugging_context.debugging_interface.maps()
+                ),
                 backtrace,
             )
         )

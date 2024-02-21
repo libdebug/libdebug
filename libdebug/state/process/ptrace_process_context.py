@@ -15,34 +15,28 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libdebug.interfaces.ptrace_interface import PtraceInterface
 from libdebug.state.process_context import ProcessContext
 from libdebug.utils.process_utils import (
     get_open_fds,
-    get_process_maps,
     guess_base_address,
 )
 import os
 import signal
+from libdebug.state.debugging_context import debugging_context
 
 
 class PtraceProcessContext(ProcessContext):
-    interface: PtraceInterface
     """The debugging interface object."""
 
     def interrupt(self):
         """Synchronously interrupts the process."""
-        if self.running:
-            os.kill(self.process_id, signal.SIGSTOP)
-            self.running = False
+        if debugging_context.running:
+            os.kill(debugging_context.process_id, signal.SIGSTOP)
+            debugging_context.set_stopped()
 
     def fds(self):
         """Returns the file descriptors of the process."""
         return get_open_fds(self.process_id)
-
-    def maps(self):
-        """Returns the memory maps of the process."""
-        return get_process_maps(self.process_id)
 
     def base_address(self):
         """Returns the base address of the process."""

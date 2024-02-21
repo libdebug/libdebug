@@ -15,14 +15,14 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libdebug.state.process.gdb_process_context import GdbProcessContext
 from libdebug.state.process.ptrace_process_context import PtraceProcessContext
-from libdebug.interfaces.debugging_interface import DebuggingInterface
-from libdebug.interfaces.gdb_interface import GdbInterface
 from libdebug.interfaces.ptrace_interface import PtraceInterface
+from libdebug.interfaces.gdb_interface import GdbInterface
+from libdebug.state.process.gdb_process_context import GdbProcessContext
+from libdebug.state.debugging_context import debugging_context
 
 
-def provide_process_context(interface: DebuggingInterface, argv: list = None):
+def provide_process_context():
     """Provides a process context object.
 
     Args:
@@ -32,11 +32,9 @@ def provide_process_context(interface: DebuggingInterface, argv: list = None):
     Returns:
         ProcessContext: The process context object.
     """
-    if isinstance(interface, PtraceInterface):
-        process_id = interface.process_id
-        return PtraceProcessContext(process_id, interface, argv)
-    elif isinstance(interface, GdbInterface):
-        # TODO: implement getGdbProcessContext
-        return GdbProcessContext(interface, argv)
+    if isinstance(debugging_context.debugging_interface, PtraceInterface):
+        return PtraceProcessContext()
+    elif isinstance(debugging_context.debugging_interface, GdbInterface):
+        return GdbProcessContext()
     else:
-        raise Exception("Unsupported debugging interface")
+        raise NotImplementedError("The provided debugging interface is not supported.")

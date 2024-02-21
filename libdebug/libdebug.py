@@ -15,15 +15,15 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
+from __future__ import annotations
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
 from libdebug.state.process_context import ProcessContext
-from libdebug.state.thread_context import ThreadContext
 from libdebug.state.process.process_context_provider import provide_process_context
-from libdebug.interfaces.interface_helper import debugging_interface_provider
+from libdebug.state.thread_context import ThreadContext
+from libdebug.state.debugging_context import debugging_context
+from libdebug.interfaces.interface_helper import provide_debugging_interface
 from libdebug.liblog import liblog
-from libdebug.utils.pipe_manager import PipeManager
 import os
 from queue import Queue
 from threading import Thread
@@ -33,56 +33,40 @@ from typing import Callable
 class Debugger:
     """The Debugger class is the main class of `libdebug`. It contains all the methods needed to run and interact with the process."""
 
-    breakpoints: dict[int, Breakpoint] = None
-    """A dictionary of all the breakpoints set on the process. The keys are the absolute addresses of the breakpoints."""
-
     memory: MemoryView = None
     """The memory view of the process."""
 
     process_context: ProcessContext
     """The process context object."""
 
+    breakpoints: dict[int, Breakpoint]
+    """A dictionary of all the breakpoints set on the process. The keys are the absolute addresses of the breakpoints."""
+
     threads: dict[int, ThreadContext]
     """A dictionary of all the threads in the process. The keys are the thread IDs."""
 
-    def __init__(self, argv, enable_aslr, env):
+    def __init__(self):
         """Do not use this constructor directly.
         Use the `debugger` function instead.
         """
-        if isinstance(argv, str):
-            self.argv = [argv]
-        else:
-            self.argv = argv
-
         # validate that the binary exists
-        if not os.path.isfile(self.argv[0]):
-            raise RuntimeError("Binary file does not exist.")
-
-        self.enable_aslr = enable_aslr
-        self.env = env
+        if not os.path.isfile(debugging_context.argv[0]):
+            raise RuntimeError("The specified binary file does not exist.")
 
         # instanced is True if and only if the process has been started and has not been killed yet
         self.instanced = False
-        self.interface = debugging_interface_provider(
-            self._create_new_thread, self._delete_thread
-        )
-        self.stack_unwinder = stack_unwinding_provider()
 
-        if not enable_aslr:
-            self.interface.disable_aslr()
+        self.interface = provide_debugging_interface()
+        debugging_context.debugging_interface = self.interface
+
+        self.process_context = provide_process_context()
 
         # threading utilities
         self._polling_thread: Thread | None = None
         self._polling_thread_command_queue: Queue = Queue()
 
-        # TODO don't share this using a property
-        self._pipe_manager: PipeManager = None
-
-        # instance breakpoints dict
-        self.breakpoints = {}
-
-        self.process_context = None
-        self.threads = {}
+        self.breakpoints = debugging_context.breakpoints
+        self.threads = debugging_context.threads
 
         self._start_processing_thread()
 
@@ -103,7 +87,9 @@ class Debugger:
         # We don't want any asynchronous behaviour here
         self._polling_thread_command_queue.join()
 
-        return self._pipe_manager
+        assert debugging_context.pipe_manager is not None
+
+        return debugging_context.pipe_manager
 
     def _start_processing_thread(self):
         """Starts the thread that will poll the traced process for state change."""
@@ -128,8 +114,10 @@ class Debugger:
         self.memory = None
         self.instanced = None
         self.process_context = None
-        self._pipe_manager.close()
-        self._pipe_manager = None
+
+        if debugging_context.pipe_manager is not None:
+            debugging_context.pipe_manager.close()
+            debugging_context.pipe_manager = None
 
         # Wait for the background thread to signal "task done" before returning
         # We don't want any asynchronous behaviour here
@@ -140,7 +128,7 @@ class Debugger:
         if not self.instanced:
             raise RuntimeError("Process not running, cannot continue.")
 
-        if self.process_context.dead or self.process_context.running:
+        if debugging_context.dead or debugging_context.running:
             raise RuntimeError("Process is dead or already running.")
 
         self._polling_thread_command_queue.put((self.__threaded_cont, ()))
@@ -154,7 +142,7 @@ class Debugger:
         if not self.instanced:
             raise RuntimeError("Process not running, cannot wait.")
 
-        if self.process_context.dead or not self.process_context.running:
+        if debugging_context.dead or not debugging_context.running:
             raise RuntimeError("Process is dead or not running.")
 
         self._polling_thread_command_queue.put((self.__threaded_wait, ()))
@@ -179,7 +167,7 @@ class Debugger:
         self,
         position: int | str,
         hardware: bool = False,
-        callback: None | Callable[["Debugger", Breakpoint], None] = None,
+        callback: None | Callable[[Debugger, Breakpoint], None] = None,
     ) -> Breakpoint:
         """Sets a breakpoint at the specified location.
 
@@ -187,7 +175,7 @@ class Debugger:
             position (int | bytes): The location of the breakpoint.
             hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software. Defaults to False.
         """
-        if self.process_context.running:
+        if debugging_context.running:
             raise RuntimeError("Cannot set a breakpoint while the process is running.")
 
         if isinstance(position, str):
@@ -198,13 +186,14 @@ class Debugger:
 
         bp = Breakpoint(address, position, 0, hardware, callback)
 
-        self.breakpoints[address] = bp
-
         self._polling_thread_command_queue.put((self.__threaded_breakpoint, (bp,)))
 
         # Wait for the background thread to signal "task done" before returning
         # We don't want any asynchronous behaviour here
         self._polling_thread_command_queue.join()
+
+        # the breakpoint should have been set by interface
+        assert address in self.breakpoints and self.breakpoints[address] is bp
 
         return bp
 
@@ -220,61 +209,39 @@ class Debugger:
             # Signal that the command has been executed
             self._polling_thread_command_queue.task_done()
 
-    def _create_new_thread(self, thread_id: int):
-        """Creates a new thread context object."""
-        thread = ThreadContext.new(self.process_context, thread_id)
-        self.threads[thread.thread_id] = thread
-
-        liblog.debugger("Thread %d created.", thread.thread_id)
-
-        return thread
-
-    def _delete_thread(self, thread_id: int):
-        """Deletes a thread context object."""
-        if thread_id in self.threads:
-            del self.threads[thread_id]
-
-            liblog.debugger("Thread %d deleted.", thread_id)
-
-        if self.threads == {}:
-            self.process_context.set_dead()
-
     def __threaded_run(self):
-        liblog.debugger("Starting process %s.", self.argv[0])
-        self._pipe_manager = self.interface.run(self.argv, self.enable_aslr, self.env)
+        liblog.debugger("Starting process %s.", debugging_context.argv[0])
+        self.interface.run()
 
-        self.process_context = provide_process_context(self.interface, self.argv)
-        self.process_context.set_stopped()
+        debugging_context.set_stopped()
 
         # create and update main thread context
-        main_thread = self._create_new_thread(None)
+        main_thread = ThreadContext.new()
+        debugging_context.insert_new_thread(main_thread)
 
         main_thread._poll_registers()
 
         # create memory view
         self.memory = self.interface.provide_memory_view()
-        if self.memory.maps_provider is None:
-            # TODO: not really the best way to do this
-            self.memory.maps_provider = self.process_context.maps
 
     def __threaded_kill(self):
-        liblog.debugger("Killing process %s.", self.argv[0])
+        liblog.debugger("Killing process %s.", debugging_context.argv[0])
         self.interface.kill()
 
     def __threaded_cont(self):
-        liblog.debugger("Continuing process %s.", self.argv[0])
+        liblog.debugger("Continuing process %s.", debugging_context.argv[0])
         self.interface.cont()
-        self.process_context.set_running()
+        debugging_context.set_running()
 
     def __threaded_breakpoint(self, bp: Breakpoint):
         liblog.debugger("Setting breakpoint at 0x%x.", bp.address)
         self.interface.set_breakpoint(bp)
 
     def __threaded_wait(self):
-        liblog.debugger("Waiting for process %s to stop.", self.argv[0])
+        liblog.debugger("Waiting for process %s to stop.", debugging_context.argv[0])
         self.interface.wait()
 
-        self.process_context.set_stopped()
+        debugging_context.set_stopped()
 
         # Update the state of the process and its threads
         keys = list(self.threads.keys())
@@ -285,7 +252,7 @@ class Debugger:
     def __threaded_step(self):
         liblog.debugger("Stepping process %s.", self.argv[0])
         self.interface.step()
-        self.process_context.set_running()
+        debugging_context.set_running()
 
 
 def debugger(
@@ -301,5 +268,11 @@ def debugger(
     Returns:
         Debugger: The `Debugger` object.
     """
+    if isinstance(argv, str):
+        argv = [argv]
 
-    return Debugger(argv, enable_aslr, env)
+    debugging_context.argv = argv
+    debugging_context.env = env
+    debugging_context.aslr_enabled = enable_aslr
+
+    return Debugger()

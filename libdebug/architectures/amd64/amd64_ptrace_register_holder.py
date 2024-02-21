@@ -16,7 +16,7 @@
 #
 
 from dataclasses import dataclass
-from libdebug.architectures.register_holder import PtraceRegisterHolder
+from libdebug.data.register_holder import PtraceRegisterHolder
 from libdebug.utils.packing_utils import u64, p64
 from libdebug.utils.register_utils import (
     get_reg_64,

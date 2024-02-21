@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/io-no/libdebug).
-# Copyright (c) 2023 Roberto Alessandro Bertolini.
+# Copyright (c) 2023 - 2024 Roberto Alessandro Bertolini.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,17 +18,14 @@
 from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.interfaces.interfaces import AvailableInterfaces
 from libdebug.interfaces.ptrace_interface import PtraceInterface
-from typing import Callable
 
 
-def debugging_interface_provider(
-    _create_new_thread: Callable[[int], "ThreadContext"],
-    _delete_thread: Callable[[int], None],
+def provide_debugging_interface(
     interface: AvailableInterfaces = AvailableInterfaces.PTRACE,
 ) -> DebuggingInterface:
     """Returns an instance of the debugging interface to be used by the `Debugger` class."""
     match interface:
         case AvailableInterfaces.PTRACE:
-            return PtraceInterface(_create_new_thread, _delete_thread)
+            return PtraceInterface()
         case _:
             raise NotImplementedError(f"Interface {interface} not available.")

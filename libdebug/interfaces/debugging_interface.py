@@ -15,34 +15,31 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libdebug.architectures.register_holder import RegisterHolder
+from libdebug.data.register_holder import RegisterHolder
+from libdebug.data.memory_map import MemoryMap
 from libdebug.data.memory_view import MemoryView
 from libdebug.data.breakpoint import Breakpoint
-from libdebug.utils.pipe_manager import PipeManager
-from typing import Callable
+from libdebug.state.thread_context import ThreadContext
+from libdebug.state.debugging_context import debugging_context
 
 
 class DebuggingInterface:
     """The interface used by `Debugger` to communicate with the available debugging backends, such as `ptrace` or `gdb`."""
 
-    def __init__(
-        self,
-        _create_new_thread: Callable[[int], "ThreadContext"],
-        _delete_thread: Callable[[int], None],
-    ):
-        self._create_new_thread = _create_new_thread
-        self._delete_thread = _delete_thread
+    breakpoints: dict[int, Breakpoint]
+    """A dictionary of all the breakpoints set on the process.
+    Key: the address of the breakpoint."""
 
-    def run(
-        self, argv: str | list[str], enable_aslr: bool, env: dict[str, str] = None
-    ) -> PipeManager:
-        """Runs the specified process.
+    threads: dict[int, ThreadContext]
+    """A dictionary of all the threads of the process.
+    Key: the thread ID."""
 
-        Args:
-            argv (str | list[str]): The command line to execute.
-            enable_aslr (bool): Whether to enable ASLR or not.
-            env (dict[str, str], optional): The environment variables to use. Defaults to None.
-        """
+    def __init__(self):
+        self.breakpoints = debugging_context._breakpoints
+        self.threads = debugging_context._threads
+
+    def run(self):
+        """Runs the specified process."""
         pass
 
     def kill(self):
@@ -65,6 +62,10 @@ class DebuggingInterface:
         """
         pass
 
+    def maps(self) -> list[MemoryMap]:
+        """Returns the memory maps of the process."""
+        pass
+
     def provide_memory_view(self) -> MemoryView:
         """Returns a memory view of the process."""
         pass
@@ -83,7 +84,7 @@ class DebuggingInterface:
         """
         pass
 
-    def restore_breakpoint(self, breakpoint: Breakpoint):
+    def unset_breakpoint(self, breakpoint: Breakpoint):
         """Restores the original instruction flow at the specified address.
 
         Args:

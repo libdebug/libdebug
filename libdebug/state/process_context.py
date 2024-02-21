@@ -15,12 +15,12 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.utils.debugging_utils import (
     normalize_and_validate_address,
     resolve_symbol_in_maps,
 )
 from libdebug.utils.elf_utils import is_pie
+from libdebug.state.debugging_context import debugging_context
 
 
 class ProcessContext:
@@ -28,56 +28,13 @@ class ProcessContext:
     This object represents a process. It holds information about the process' state, maps and descriptors.
     """
 
-    process_id: int
-    """The process' ID."""
-
-    interface: DebuggingInterface
-    """The debugging interface object."""
-
-    argv: list
-    """The process' argv."""
-
-    running: bool
-    """True if and only if the process is currently running."""
-
-    dead: bool
-    """True if and only if the process is dead."""
-
-    def __init__(
-        self, process_id: int, interface: DebuggingInterface, argv: list = None
-    ):
-        self.process_id = process_id
-        self.interface = interface
-        self.argv = argv
-        self.running = False
-        self.dead = False
-
-    def set_running(self):
-        """Sets the process as running."""
-        self.running = True
-
-    def set_stopped(self):
-        """Sets the process as stopped."""
-        self.running = False
-
-    def set_dead(self):
-        """Sets the process as dead."""
-        self.dead = True
-
-    def interrupt(self):
-        """Synchronously interrupts the process."""
-        raise NotImplementedError()
-
     def is_pie(self):
         """Returns whether the executable is PIE or not."""
-        return is_pie(self.argv[0])
+        argv = debugging_context.argv
+        return is_pie(argv[0])
 
     def fds(self):
         """Returns the file descriptors of the process."""
-        raise NotImplementedError()
-
-    def maps(self):
-        """Returns the memory maps of the process."""
         raise NotImplementedError()
 
     def base_address(self):
@@ -93,7 +50,7 @@ class ProcessContext:
         Returns:
             int: The normalized and validated address.
         """
-        maps = self.maps()
+        maps = debugging_context.debugging_interface.maps()
         normalized_address = normalize_and_validate_address(address, maps)
         return normalized_address
 
@@ -106,7 +63,7 @@ class ProcessContext:
         Returns:
             int: The address of the symbol.
         """
-        maps = self.maps()
+        maps = debugging_context.debugging_interface.maps()
         address = resolve_symbol_in_maps(symbol, maps)
         normalized_address = normalize_and_validate_address(address, maps)
         return normalized_address

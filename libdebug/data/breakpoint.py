@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/io-no/libdebug).
-# Copyright (c) 2023 Roberto Alessandro Bertolini.
+# Copyright (c) 2023 - 2024 Roberto Alessandro Bertolini.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,6 +15,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable
 
@@ -36,6 +37,6 @@ class Breakpoint:
     symbol: bytes = b""
     hit_count: int = 0
     hardware: bool = False
-    _callback: None | Callable[["Debugger", "Breakpoint"], None] = None
+    _callback: None | Callable[["Debugger", Breakpoint], None] = None
     condition: str = "X"
     length: int = 1

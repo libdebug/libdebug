@@ -19,7 +19,7 @@ import errno
 from libdebug.utils.pipe_manager import PipeManager
 from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.architectures.register_helper import register_holder_provider
-from libdebug.architectures.register_holder import RegisterHolder
+from libdebug.data.register_holder import RegisterHolder
 from libdebug.architectures.ptrace_hardware_breakpoint_provider import (
     ptrace_hardware_breakpoint_manager_provider,
 )
@@ -28,40 +28,50 @@ from libdebug.architectures.ptrace_software_breakpoint_patcher import (
 )
 from libdebug.cffi import _ptrace_cffi
 from libdebug.data.breakpoint import Breakpoint
+from libdebug.data.memory_map import MemoryMap
 from libdebug.data.memory_view import MemoryView
-from libdebug.utils.process_utils import invalidate_process_cache, disable_self_aslr
+from libdebug.utils.process_utils import (
+    invalidate_process_cache,
+    disable_self_aslr,
+    get_process_maps,
+)
 from libdebug.liblog import liblog
 from libdebug.state.thread_context import ThreadContext
+from libdebug.state.debugging_context import debugging_context
 from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
 import os
 import signal
 import sys
 import pty
 import tty
-from typing import Callable
 
 
 class PtraceInterface(DebuggingInterface):
     """The interface used by `Debugger` to communicate with the `ptrace` debugging backend."""
 
-    def __init__(
-        self,
-        _create_new_thread: Callable[[int], ThreadContext],
-        _delete_thread: Callable[[int], None],
-    ):
-        super().__init__(_create_new_thread, _delete_thread)
+    def __init__(self):
+        super().__init__()
 
         self.lib_trace = _ptrace_cffi.lib
         self.ffi = _ptrace_cffi.ffi
 
         # The PID of the process being traced
         self.process_id = None
-        self.thread_ids = []
-        self.software_breakpoints = {}
         self.hardware_bp_helper = None
 
-        # I hate that I have to have this circular dependency, TODO: fix my brain
-        self.status_handler = PtraceStatusHandler(self)
+        if not debugging_context.aslr_enabled:
+            disable_self_aslr()
+
+        setattr(
+            PtraceInterface,
+            "process_id",
+            property(lambda _: debugging_context.process_id),
+        )
+        setattr(
+            PtraceInterface,
+            "thread_ids",
+            property(lambda _: list(debugging_context.threads.keys())),
+        )
 
     def _set_options(self):
         """Sets the tracer options."""
@@ -75,21 +85,16 @@ class PtraceInterface(DebuggingInterface):
             errno_val = self.ffi.errno
             raise OSError(errno_val, errno.errorcode[errno_val])
 
-    def run(
-        self, argv: str | list[str], enable_aslr: bool, env: dict[str, str] = None
-    ) -> PipeManager:
-        """Runs the specified process.
+    def run(self):
+        """Runs the specified process."""
 
-        Args:
-            argv (str | list[str]): The command line to execute.
-            enable_aslr (bool): Whether to enable ASLR or not.
-            env (dict[str, str], optional): The environment variables to use. Defaults to None.
-
-        Returns:
-            int: The PID of the process.
-        """
+        argv = debugging_context.argv
+        env = debugging_context.env
 
         liblog.debugger("Running %s", argv)
+
+        # Setup ptrace wait status handler after debugging_context has been properly initialized
+        self.status_handler = PtraceStatusHandler()
 
         # Creating pipes for stdin, stdout, stderr
         self.stdin_read, self.stdin_write = os.pipe()
@@ -103,7 +108,7 @@ class PtraceInterface(DebuggingInterface):
             tty.setraw(self.stdout_write)
             tty.setraw(self.stderr_write)
 
-            self._setup_child(argv, enable_aslr, env)
+            self._setup_child(argv, env)
             sys.exit(-1)
         else:
             # Setting stdout, stderr to raw mode to avoid terminal control codes interfering with the
@@ -111,16 +116,17 @@ class PtraceInterface(DebuggingInterface):
             tty.setraw(self.stdout_read)
             tty.setraw(self.stderr_read)
 
-            self.process_id = child_pid
-            self.thread_ids = [child_pid]
+            debugging_context.process_id = child_pid
+            debugging_context.insert_new_thread(ThreadContext.new(child_pid))
             self._setup_parent()
-            return self._setup_pipe()
+            debugging_context.pipe_manager = self._setup_pipe()
 
     def kill(self):
         """Instantly terminates the process."""
         assert self.process_id is not None
 
         if not self.thread_ids:
+            debugging_context.clear()
             return
 
         for thread_id in self.thread_ids:
@@ -139,8 +145,7 @@ class PtraceInterface(DebuggingInterface):
         # wait for the child process to terminate, otherwise it will become a zombie
         os.wait()
 
-        self.process_id = None
-        self.thread_ids = []
+        debugging_context.clear()
 
     def cont(self):
         """Continues the execution of the process."""
@@ -165,7 +170,7 @@ class PtraceInterface(DebuggingInterface):
             errno_val = self.ffi.errno
             raise OSError(errno_val, errno.errorcode[errno_val])
 
-    def _setup_child(self, argv, enable_aslr, env):
+    def _setup_child(self, argv, env):
         self._trace_self()
 
         try:
@@ -189,9 +194,6 @@ class PtraceInterface(DebuggingInterface):
         except Exception as e:
             # TODO: custom exception
             raise RuntimeError("Redirecting stdin, stdout, and stderr failed: %r" % e)
-
-        if isinstance(argv, str):
-            argv = [argv]
 
         if env:
             os.execve(argv[0], argv, env)
@@ -277,13 +279,11 @@ class PtraceInterface(DebuggingInterface):
 
     def register_new_thread(self, new_thread_id: int):
         """Registers a new thread."""
-        self.thread_ids.append(new_thread_id)
-        self._create_new_thread(new_thread_id)
+        debugging_context.insert_new_thread(new_thread_id)
 
     def unregister_thread(self, thread_id: int):
         """Unregisters a thread."""
-        self.thread_ids.remove(thread_id)
-        self._delete_thread(thread_id)
+        debugging_context.remove_thread(thread_id)
 
     def provide_memory_view(self) -> MemoryView:
         """Returns a memory view of the process."""
@@ -295,7 +295,7 @@ class PtraceInterface(DebuggingInterface):
         def setter(address, value):
             self._poke_mem(address, int.from_bytes(value, "little", signed=False))
 
-        return MemoryView(getter, setter, None)
+        return MemoryView(getter, setter, self.maps)
 
     def continue_after_breakpoint(self, breakpoint: Breakpoint):
         """Continues the execution of the process after a breakpoint was hit."""
@@ -354,7 +354,9 @@ class PtraceInterface(DebuggingInterface):
         else:
             self._set_sw_breakpoint(breakpoint.address)
 
-    def restore_breakpoint(self, breakpoint: Breakpoint):
+        debugging_context.insert_new_breakpoint(breakpoint)
+
+    def unset_breakpoint(self, breakpoint: Breakpoint):
         """Restores the breakpoint at the specified address.
 
         Args:
@@ -365,10 +367,10 @@ class PtraceInterface(DebuggingInterface):
         else:
             self._unset_sw_breakpoint(breakpoint.address)
 
+        debugging_context.remove_breakpoint(breakpoint)
+
     def _peek_mem(self, address: int) -> int:
         """Reads the memory at the specified address."""
-        assert self.process_id is not None
-
         result = self.lib_trace.ptrace_peekdata(self.process_id, address)
         liblog.debugger(
             "PEEKDATA at address %d returned with result %x", address, result
@@ -382,8 +384,6 @@ class PtraceInterface(DebuggingInterface):
 
     def _poke_mem(self, address: int, value: int):
         """Writes the memory at the specified address."""
-        assert self.process_id is not None
-
         result = self.lib_trace.ptrace_pokedata(self.process_id, address, value)
         liblog.debugger(
             "POKEDATA at address %d returned with result %d", address, result
@@ -395,8 +395,6 @@ class PtraceInterface(DebuggingInterface):
 
     def _peek_user(self, address: int) -> int:
         """Reads the memory at the specified address."""
-        assert self.process_id is not None
-
         result = self.lib_trace.ptrace_peekuser(self.process_id, address)
         liblog.debugger(
             "PEEKUSER at address %d returned with result %x", address, result
@@ -410,8 +408,6 @@ class PtraceInterface(DebuggingInterface):
 
     def _poke_user(self, address: int, value: int):
         """Writes the memory at the specified address."""
-        assert self.process_id is not None
-
         result = self.lib_trace.ptrace_pokeuser(self.process_id, address, value)
         liblog.debugger(
             "POKEUSER at address %d returned with result %d", address, result
@@ -427,6 +423,8 @@ class PtraceInterface(DebuggingInterface):
 
         return self.lib_trace.ptrace_geteventmsg(self.process_id)
 
-    def disable_aslr(self):
-        """Disables ASLR for the current process."""
-        disable_self_aslr()
+    def maps(self) -> list[MemoryMap]:
+        """Returns the memory maps of the process."""
+        assert self.process_id is not None
+
+        return get_process_maps(self.process_id)

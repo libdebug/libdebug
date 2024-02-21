@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/io-no/libdebug).
-# Copyright (c) 2023 Roberto Alessandro Bertolini.
+# Copyright (c) 2023 - 2024 Roberto Alessandro Bertolini.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libdebug.architectures.register_holder import RegisterHolder
+from libdebug.data.register_holder import RegisterHolder
 from libdebug.architectures.amd64.amd64_ptrace_register_holder import (
     Amd64PtraceRegisterHolder,
 )

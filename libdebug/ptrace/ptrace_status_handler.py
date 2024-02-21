@@ -15,6 +15,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+from libdebug.state.debugging_context import debugging_context
 from libdebug.ptrace.ptrace_constants import StopEvents
 from libdebug.liblog import liblog
 import os
@@ -22,8 +23,8 @@ import signal
 
 
 class PtraceStatusHandler:
-    def __init__(self, ptrace_interface: "PtraceInterface"):
-        self.ptrace_interface = ptrace_interface
+    def __init__(self):
+        self.ptrace_interface = debugging_context.debugging_interface
 
     def _handle_clone(self, thread_id: int):
         self.ptrace_interface.register_new_thread(thread_id)
@@ -57,7 +58,8 @@ class PtraceStatusHandler:
                     )
                     # The tracee is still alive; it needs
                     # to be PTRACE_CONTed or PTRACE_DETACHed to finish exiting.
-                    # self._handle_exit(pid)
+                    # so we don't call self._handle_exit(pid) here
+                    # it will be called at the next wait (hopefully)
 
         if os.WIFEXITED(status):
             exitstatus = os.WEXITSTATUS(status)
