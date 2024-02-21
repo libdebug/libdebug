@@ -16,7 +16,9 @@
 #
 
 import unittest
+
 from libdebug import debugger
+
 
 class BreakpointTest(unittest.TestCase):
     def setUp(self):

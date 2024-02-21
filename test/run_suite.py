@@ -16,17 +16,19 @@
 #
 
 import logging
-import unittest
 import subprocess
-from scripts.basic_test import BasicTest, BasicPieTest, HwBasicTest
-from scripts.breakpoint_test import BreakpointTest
-from scripts.memory_test import MemoryTest
-from scripts.backtrace_test import BacktraceTest
-from scripts.brute_test import BruteTest
-from scripts.vmwhere1 import Vmwhere1
-from scripts.jumpout import Jumpout
-from scripts.ncuts import Ncuts
+import unittest
+
 from scripts.attach_test import AttachTest
+from scripts.backtrace_test import BacktraceTest
+from scripts.basic_test import BasicPieTest, BasicTest, HwBasicTest
+from scripts.breakpoint_test import BreakpointTest
+from scripts.brute_test import BruteTest
+from scripts.jumpout import Jumpout
+from scripts.memory_test import MemoryTest
+from scripts.ncuts import Ncuts
+from scripts.speed_test import SpeedTest
+from scripts.vmwhere1 import Vmwhere1
 
 
 def suite():
@@ -45,6 +47,8 @@ def suite():
     # suite.addTest(Jumpout("test_jumpout"))
     # suite.addTest(Ncuts("test_ncuts"))
     # suite.addTest(AttachTest("test_attach"))
+    suite.addTest(SpeedTest("test_speed"))
+    suite.addTest(SpeedTest("test_speed_hardware"))
     return suite
 
 def profiling():
@@ -57,8 +61,6 @@ def profiling():
         print("Error occurred during python profiling. Return code:", result.returncode)
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
-
     runner = unittest.TextTestRunner()
     result = runner.run(suite())
     
