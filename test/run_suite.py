@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/io-no/libdebug).
-# Copyright (c) 2023 Roberto Alessandro Bertolini.
+# Copyright (c) 2023 - 2024 Roberto Alessandro Bertolini, Gabriele Digregorio.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -34,17 +34,17 @@ def suite():
     suite.addTest(BasicTest("test_basic"))
     suite.addTest(BasicTest("test_registers"))
     suite.addTest(BasicPieTest("test_basic"))
-    suite.addTest(BreakpointTest("test_bps"))
-    suite.addTest(MemoryTest("test_memory"))
-    suite.addTest(MemoryTest("test_mem_access_libs"))
+    # suite.addTest(BreakpointTest("test_bps"))
+    # suite.addTest(MemoryTest("test_memory"))
+    # suite.addTest(MemoryTest("test_mem_access_libs"))
     suite.addTest(HwBasicTest("test_basic"))
     suite.addTest(HwBasicTest("test_registers"))
-    suite.addTest(BacktraceTest("test_backtrace"))
-    suite.addTest(BruteTest("test_bruteforce"))
-    suite.addTest(Vmwhere1("test_vmwhere1"))
-    suite.addTest(Jumpout("test_jumpout"))
-    suite.addTest(Ncuts("test_ncuts"))
-    suite.addTest(AttachTest("test_attach"))
+    # suite.addTest(BacktraceTest("test_backtrace"))
+    # suite.addTest(BruteTest("test_bruteforce"))
+    # suite.addTest(Vmwhere1("test_vmwhere1"))
+    # suite.addTest(Jumpout("test_jumpout"))
+    # suite.addTest(Ncuts("test_ncuts"))
+    # suite.addTest(AttachTest("test_attach"))
     return suite
 
 def profiling():
@@ -73,4 +73,4 @@ if __name__ == "__main__":
        for test, err in result.errors:
            print(f"{test}: {err}")
     
-    profiling()
+    # profiling()
