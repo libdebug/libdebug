@@ -128,6 +128,8 @@ class Debugger:
             debugging_context.pipe_manager.close()
             debugging_context.pipe_manager = None
 
+        debugging_context.clear()
+
         # Wait for the background thread to signal "task done" before returning
         # We don't want any asynchronous behaviour here
         self._polling_thread_command_queue.join()
@@ -302,6 +304,8 @@ def debugger(
     """
     if isinstance(argv, str):
         argv = [argv]
+
+    debugging_context.clear()
 
     debugging_context.argv = argv
     debugging_context.env = env
