@@ -15,12 +15,12 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+from libdebug.state.debugging_context import debugging_context
 from libdebug.utils.debugging_utils import (
     normalize_and_validate_address,
     resolve_symbol_in_maps,
 )
 from libdebug.utils.elf_utils import is_pie
-from libdebug.state.debugging_context import debugging_context
 
 
 class ProcessContext:

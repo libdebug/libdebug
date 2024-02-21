@@ -16,9 +16,10 @@
 #
 
 from collections.abc import MutableSequence
+from typing import Callable
+
 from libdebug.data.memory_map import MemoryMap
 from libdebug.utils.debugging_utils import resolve_symbol_in_maps
-from typing import Callable
 
 
 class MemoryView(MutableSequence):

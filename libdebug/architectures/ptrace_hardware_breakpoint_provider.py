@@ -15,13 +15,14 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libdebug.architectures.ptrace_hardware_breakpoint_manager import (
-    PtraceHardwareBreakpointManager,
-)
+from typing import Callable
+
 from libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper import (
     Amd64PtraceHardwareBreakpointManager,
 )
-from typing import Callable
+from libdebug.architectures.ptrace_hardware_breakpoint_manager import (
+    PtraceHardwareBreakpointManager,
+)
 from libdebug.utils.libcontext import libcontext
 
 

@@ -15,11 +15,11 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libdebug.state.process.ptrace_process_context import PtraceProcessContext
-from libdebug.interfaces.ptrace_interface import PtraceInterface
 from libdebug.interfaces.gdb_interface import GdbInterface
-from libdebug.state.process.gdb_process_context import GdbProcessContext
+from libdebug.interfaces.ptrace_interface import PtraceInterface
 from libdebug.state.debugging_context import debugging_context
+from libdebug.state.process.gdb_process_context import GdbProcessContext
+from libdebug.state.process.ptrace_process_context import PtraceProcessContext
 
 
 def provide_process_context():

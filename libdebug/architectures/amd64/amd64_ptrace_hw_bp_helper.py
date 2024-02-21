@@ -21,7 +21,6 @@ from libdebug.architectures.ptrace_hardware_breakpoint_manager import (
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.liblog import liblog
 
-
 AMD64_DBGREGS_OFF = {
     "DR0": 0x350,
     "DR1": 0x358,

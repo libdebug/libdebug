@@ -15,12 +15,12 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libdebug.data.register_holder import RegisterHolder
+from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_map import MemoryMap
 from libdebug.data.memory_view import MemoryView
-from libdebug.data.breakpoint import Breakpoint
-from libdebug.state.thread_context import ThreadContext
+from libdebug.data.register_holder import RegisterHolder
 from libdebug.state.debugging_context import debugging_context
+from libdebug.state.thread_context import ThreadContext
 
 
 class DebuggingInterface:

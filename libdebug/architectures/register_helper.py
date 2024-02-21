@@ -15,11 +15,12 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libdebug.data.register_holder import RegisterHolder
+from typing import Callable
+
 from libdebug.architectures.amd64.amd64_ptrace_register_holder import (
     Amd64PtraceRegisterHolder,
 )
-from typing import Callable
+from libdebug.data.register_holder import RegisterHolder
 from libdebug.utils.libcontext import libcontext
 
 

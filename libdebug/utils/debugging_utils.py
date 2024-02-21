@@ -16,8 +16,8 @@
 #
 
 from libdebug.data.memory_map import MemoryMap
-from libdebug.utils.elf_utils import resolve_symbol, resolve_address, is_pie
 from libdebug.liblog import liblog
+from libdebug.utils.elf_utils import is_pie, resolve_address, resolve_symbol
 
 
 def normalize_and_validate_address(address: int, maps: list[MemoryMap]) -> int:

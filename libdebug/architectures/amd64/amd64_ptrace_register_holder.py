@@ -16,19 +16,20 @@
 #
 
 from dataclasses import dataclass
+
 from libdebug.data.register_holder import PtraceRegisterHolder
-from libdebug.utils.packing_utils import u64, p64
+from libdebug.utils.packing_utils import p64, u64
 from libdebug.utils.register_utils import (
-    get_reg_64,
-    get_reg_32,
-    get_reg_16,
-    get_reg_8l,
     get_reg_8h,
-    set_reg_64,
-    set_reg_32,
-    set_reg_16,
-    set_reg_8l,
+    get_reg_8l,
+    get_reg_16,
+    get_reg_32,
+    get_reg_64,
     set_reg_8h,
+    set_reg_8l,
+    set_reg_16,
+    set_reg_32,
+    set_reg_64,
 )
 
 AMD64_GP_REGS = ["a", "b", "c", "d"]

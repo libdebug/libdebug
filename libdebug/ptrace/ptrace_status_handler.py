@@ -15,12 +15,15 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libdebug.architectures.ptrace_software_breakpoint_patcher import software_breakpoint_byte_size
-from libdebug.state.debugging_context import debugging_context
-from libdebug.ptrace.ptrace_constants import StopEvents
-from libdebug.liblog import liblog
 import os
 import signal
+
+from libdebug.architectures.ptrace_software_breakpoint_patcher import (
+    software_breakpoint_byte_size,
+)
+from libdebug.liblog import liblog
+from libdebug.ptrace.ptrace_constants import StopEvents
+from libdebug.state.debugging_context import debugging_context
 
 
 class PtraceStatusHandler:

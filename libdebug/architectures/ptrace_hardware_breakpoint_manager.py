@@ -15,8 +15,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libdebug.data.breakpoint import Breakpoint
 from typing import Callable
+
+from libdebug.data.breakpoint import Breakpoint
 
 
 class PtraceHardwareBreakpointManager:

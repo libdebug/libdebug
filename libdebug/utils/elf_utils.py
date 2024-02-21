@@ -15,14 +15,18 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libdebug.cffi.debug_sym_cffi import ffi, lib as lib_sym
 import functools
-import requests
-from pathlib import Path
 import os
-from elftools.elf.elffile import ELFFile
-from .libcontext import libcontext
+from pathlib import Path
 from typing import Tuple
+
+import requests
+from elftools.elf.elffile import ELFFile
+
+from libdebug.cffi.debug_sym_cffi import ffi
+from libdebug.cffi.debug_sym_cffi import lib as lib_sym
+
+from .libcontext import libcontext
 
 DEBUGINFOD_PATH: Path = Path.home() / ".cache" / "debuginfod_client"
 LOCAL_DEBUG_PATH: str = "/usr/lib/debug/.build-id/"

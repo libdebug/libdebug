@@ -17,6 +17,7 @@
 
 import logging
 
+
 class LogColors:
     RED = '\033[91m'
     BLUE = '\033[94m'

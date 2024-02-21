@@ -15,14 +15,15 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+import os
+import signal
+
+from libdebug.state.debugging_context import debugging_context
 from libdebug.state.process_context import ProcessContext
 from libdebug.utils.process_utils import (
     get_open_fds,
     guess_base_address,
 )
-import os
-import signal
-from libdebug.state.debugging_context import debugging_context
 
 
 class PtraceProcessContext(ProcessContext):

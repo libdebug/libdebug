@@ -15,12 +15,11 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libdebug.architectures.stack_unwinding_manager import StackUnwindingManager
 from libdebug.architectures.amd64.amd64_stack_unwinder import (
     Amd64StackUnwinder,
 )
+from libdebug.architectures.stack_unwinding_manager import StackUnwindingManager
 from libdebug.utils.libcontext import libcontext
-
 
 _amd64_stack_unwinder = Amd64StackUnwinder()
 

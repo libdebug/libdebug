@@ -15,10 +15,10 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libdebug.data.register_holder import RegisterHolder
-from libdebug.utils.debugging_utils import resolve_address_in_maps
 from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
+from libdebug.data.register_holder import RegisterHolder
 from libdebug.state.debugging_context import debugging_context
+from libdebug.utils.debugging_utils import resolve_address_in_maps
 
 
 class ThreadContext:

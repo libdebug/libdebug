@@ -16,6 +16,7 @@
 #
 
 from __future__ import annotations
+
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.utils.pipe_manager import PipeManager
 

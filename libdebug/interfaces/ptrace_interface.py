@@ -16,10 +16,12 @@
 #
 
 import errno
-from libdebug.utils.pipe_manager import PipeManager
-from libdebug.interfaces.debugging_interface import DebuggingInterface
-from libdebug.architectures.register_helper import register_holder_provider
-from libdebug.data.register_holder import RegisterHolder
+import os
+import pty
+import signal
+import sys
+import tty
+
 from libdebug.architectures.ptrace_hardware_breakpoint_manager import (
     PtraceHardwareBreakpointManager,
 )
@@ -29,24 +31,23 @@ from libdebug.architectures.ptrace_hardware_breakpoint_provider import (
 from libdebug.architectures.ptrace_software_breakpoint_patcher import (
     install_software_breakpoint,
 )
+from libdebug.architectures.register_helper import register_holder_provider
 from libdebug.cffi import _ptrace_cffi
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_map import MemoryMap
 from libdebug.data.memory_view import MemoryView
+from libdebug.data.register_holder import RegisterHolder
+from libdebug.interfaces.debugging_interface import DebuggingInterface
+from libdebug.liblog import liblog
+from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
+from libdebug.state.debugging_context import debugging_context
+from libdebug.state.thread_context import ThreadContext
+from libdebug.utils.pipe_manager import PipeManager
 from libdebug.utils.process_utils import (
-    invalidate_process_cache,
     disable_self_aslr,
     get_process_maps,
+    invalidate_process_cache,
 )
-from libdebug.liblog import liblog
-from libdebug.state.thread_context import ThreadContext
-from libdebug.state.debugging_context import debugging_context
-from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
-import os
-import signal
-import sys
-import pty
-import tty
 
 
 class PtraceInterface(DebuggingInterface):

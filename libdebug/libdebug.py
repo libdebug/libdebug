@@ -16,19 +16,21 @@
 #
 
 from __future__ import annotations
-from libdebug.data.breakpoint import Breakpoint
-from libdebug.data.memory_view import MemoryView
-from libdebug.state.process_context import ProcessContext
-from libdebug.state.process.process_context_provider import provide_process_context
-from libdebug.state.thread_context import ThreadContext
-from libdebug.state.debugging_context import debugging_context
-from libdebug.interfaces.interface_helper import provide_debugging_interface
-from libdebug.interfaces.debugging_interface import DebuggingInterface
-from libdebug.liblog import liblog
+
 import os
 from queue import Queue
 from threading import Thread
 from typing import Callable
+
+from libdebug.data.breakpoint import Breakpoint
+from libdebug.data.memory_view import MemoryView
+from libdebug.interfaces.debugging_interface import DebuggingInterface
+from libdebug.interfaces.interface_helper import provide_debugging_interface
+from libdebug.liblog import liblog
+from libdebug.state.debugging_context import debugging_context
+from libdebug.state.process.process_context_provider import provide_process_context
+from libdebug.state.process_context import ProcessContext
+from libdebug.state.thread_context import ThreadContext
 
 
 class Debugger:

@@ -15,9 +15,10 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from ctypes import CDLL, c_ulong, c_int
-import os
 import functools
+import os
+from ctypes import CDLL, c_int, c_ulong
+
 from libdebug.data.memory_map import MemoryMap
 
 

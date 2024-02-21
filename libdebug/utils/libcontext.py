@@ -15,9 +15,10 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+import sys
 from contextlib import contextmanager
 from copy import deepcopy
-import sys
+
 from libdebug.liblog import liblog
 
 

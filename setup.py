@@ -1,5 +1,6 @@
-from setuptools import setup, find_packages
 import os
+
+from setuptools import find_packages, setup
 
 # Check if the user has the required C libraries installed
 if not os.path.isfile("/usr/include/sys/ptrace.h"):
