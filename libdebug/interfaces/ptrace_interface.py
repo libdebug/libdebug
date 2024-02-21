@@ -129,6 +129,7 @@ class PtraceInterface(DebuggingInterface):
         assert self.process_id is not None
 
         if not self.thread_ids:
+            liblog.debugger("No threads to detach from")
             debugging_context.clear()
             return
 
@@ -141,9 +142,14 @@ class PtraceInterface(DebuggingInterface):
 
         # send SIGKILL to the child process
         try:
-            os.kill(self.process_id, signal.SIGKILL)
+            liblog.debugger("Killing process %d" % self.process_id)
+            res = os.kill(self.process_id, signal.SIGKILL)
+            if res == -1:
+                liblog.debugger("Killing process %d failed", self.process_id)
         except OSError as e:
             liblog.debugger("Killing process %d failed: %r", self.process_id, e)
+
+        liblog.debugger('Killed process %d' % self.process_id)
 
         # wait for the child process to terminate, otherwise it will become a zombie
         os.wait()

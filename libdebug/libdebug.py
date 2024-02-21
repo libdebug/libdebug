@@ -130,11 +130,11 @@ class Debugger:
             debugging_context.pipe_manager.close()
             debugging_context.pipe_manager = None
 
-        debugging_context.clear()
-
         # Wait for the background thread to signal "task done" before returning
         # We don't want any asynchronous behaviour here
         self._polling_thread_command_queue.join()
+
+        debugging_context.clear()
 
     def cont(self):
         """Continues the process."""
@@ -251,11 +251,11 @@ class Debugger:
 
         debugging_context.set_stopped()
 
-        # create and update main thread context
-        main_thread = ThreadContext.new()
-        debugging_context.insert_new_thread(main_thread)
-
-        main_thread._poll_registers()
+        # Update the state of the process and its threads
+        keys = list(self.threads.keys())
+        for thread_id in keys:
+            if thread_id in self.threads:
+                self.threads[thread_id]._poll_registers()
 
         # create memory view
         self.memory = self.interface.provide_memory_view()
