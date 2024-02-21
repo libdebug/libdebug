@@ -23,6 +23,7 @@ from libdebug.state.process.process_context_provider import provide_process_cont
 from libdebug.state.thread_context import ThreadContext
 from libdebug.state.debugging_context import debugging_context
 from libdebug.interfaces.interface_helper import provide_debugging_interface
+from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.liblog import liblog
 import os
 from queue import Queue
@@ -36,14 +37,26 @@ class Debugger:
     memory: MemoryView = None
     """The memory view of the process."""
 
-    process_context: ProcessContext
+    process_context: ProcessContext = None
     """The process context object."""
 
-    breakpoints: dict[int, Breakpoint]
+    breakpoints: dict[int, Breakpoint] = {}
     """A dictionary of all the breakpoints set on the process. The keys are the absolute addresses of the breakpoints."""
 
-    threads: dict[int, ThreadContext]
+    threads: dict[int, ThreadContext] = {}
     """A dictionary of all the threads in the process. The keys are the thread IDs."""
+
+    instanced: bool = False
+    """Whether the process was started and has not been killed yet."""
+
+    interface: DebuggingInterface = None
+    """The debugging interface used to interact with the process."""
+
+    _polling_thread: Thread = None
+    """The background thread used to poll the process for state change."""
+
+    _polling_thread_command_queue: Queue = None
+    """The queue used to send commands to the background thread."""
 
     def __init__(self):
         """Do not use this constructor directly.
@@ -53,17 +66,13 @@ class Debugger:
         if not os.path.isfile(debugging_context.argv[0]):
             raise RuntimeError("The specified binary file does not exist.")
 
-        # instanced is True if and only if the process has been started and has not been killed yet
-        self.instanced = False
-
         self.interface = provide_debugging_interface()
         debugging_context.debugging_interface = self.interface
 
         self.process_context = provide_process_context()
 
         # threading utilities
-        self._polling_thread: Thread | None = None
-        self._polling_thread_command_queue: Queue = Queue()
+        self._polling_thread_command_queue = Queue()
 
         self.breakpoints = debugging_context.breakpoints
         self.threads = debugging_context.threads
@@ -196,6 +205,22 @@ class Debugger:
         assert address in self.breakpoints and self.breakpoints[address] is bp
 
         return bp
+
+    def __getattr__(self, name: str) -> object:
+        """This function is called when an attribute is not found in the `Debugger` object.
+        It is used to forward the call to the first `ThreadContext` object."""
+        thread_context = next(iter(self.threads.values()))
+        return getattr(thread_context, name)
+
+    def __setattr__(self, name: str, value: object) -> None:
+        """This function is called when an attribute is set in the `Debugger` object.
+        It is used to forward the call to the first `ThreadContext` object."""
+        # let's check if the attribute is available in the `Debugger` object
+        if hasattr(Debugger, name):
+            super().__setattr__(name, value)
+        else:
+            thread_context = next(iter(self.threads.values()))
+            setattr(thread_context, name, value)
 
     def _polling_thread_function(self):
         """This function is run in a thread. It is used to poll the process for state change."""
