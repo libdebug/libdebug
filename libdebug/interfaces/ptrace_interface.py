@@ -151,23 +151,43 @@ class PtraceInterface(DebuggingInterface):
 
     def cont(self):
         """Continues the execution of the process."""
-        assert self.process_id is not None
+        # Set registers for all threads
+        for thread in self.threads.values():
+            thread._flush_registers()
 
-        # Before continuing, we must reset any software breakpoint that were hit
-        for breakpoint in debugging_context.breakpoints.values():
-            if breakpoint._needs_restore:
-                self._poke_mem(breakpoint.address, install_software_breakpoint(breakpoint.original_instruction))
-                breakpoint._needs_restore = False
+        # Count the number of breakpoints that need to be restored
+        bp_count = len(
+            [bp for bp in debugging_context.breakpoints.values() if bp._needs_restore]
+        )
 
-        for thread_id in self.thread_ids:
-            liblog.debugger("Continuing thread %d", thread_id)
-            result = self.lib_trace.ptrace_cont(thread_id)
-            if result == -1:
-                errno_val = self.ffi.errno
-                if errno_val == errno.ESRCH:
-                    pass
-                else:
-                    raise OSError(errno_val, errno.errorcode[errno_val])
+        if bp_count > 0:
+            # If any, allocate the cffi struct
+            # and fill it with the information of the breakpoints that need to be restored
+            bps = self.ffi.new("ptrace_hit_bp[]", bp_count)
+            i = 0
+            for bp in debugging_context.breakpoints.values():
+                if bp._needs_restore:
+                    bps[i].pid = self.process_id
+                    bps[i].addr = bp.address
+                    bps[i].prev_instruction = bp._original_instruction
+                    bps[i].bp_instruction = install_software_breakpoint(
+                        bp._original_instruction
+                    )
+                    bp._needs_restore = False
+                    i += 1
+        else:
+            # Otherwise, pass NULL
+            bps = self.ffi.NULL
+
+        # Construct the cffi array of pids
+        pids = self.ffi.new("int[]", self.thread_ids)
+        pid_count = len(self.thread_ids)
+
+        # Call the CFFI implementation
+        result = self.lib_trace.cont_all_and_set_bps(pid_count, pids, bp_count, bps)
+        if result == -1:
+            errno_val = self.ffi.errno
+            raise OSError(errno_val, errno.errorcode[errno_val])
 
     def step(self, thread_id: int):
         """Executes a single instruction of the process."""
@@ -312,7 +332,7 @@ class PtraceInterface(DebuggingInterface):
             self.continue_execution()
             return
 
-        instruction = breakpoint.original_instruction
+        instruction = breakpoint._original_instruction
 
         result = self.lib_trace.cont_after_bp(
             self.process_id,
@@ -335,7 +355,7 @@ class PtraceInterface(DebuggingInterface):
         """
         assert self.process_id is not None
         instruction = self._peek_mem(breakpoint.address)
-        breakpoint.original_instruction = instruction
+        breakpoint._original_instruction = instruction
         self._poke_mem(breakpoint.address, install_software_breakpoint(instruction))
 
     def _unset_sw_breakpoint(self, breakpoint: Breakpoint):
@@ -344,7 +364,7 @@ class PtraceInterface(DebuggingInterface):
         Args:
             breakpoint (Breakpoint): The breakpoint to unset.
         """
-        self._poke_mem(breakpoint.address, breakpoint.original_instruction)
+        self._poke_mem(breakpoint.address, breakpoint._original_instruction)
 
     def set_breakpoint(self, breakpoint: Breakpoint):
         """Sets a breakpoint at the specified address.

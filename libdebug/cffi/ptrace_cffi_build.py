@@ -20,6 +20,13 @@ from cffi import FFI
 ffibuilder = FFI()
 ffibuilder.cdef(
     """
+    typedef struct {
+        int pid;
+        uint64_t addr;
+        uint64_t bp_instruction;
+        uint64_t prev_instruction;
+    } ptrace_hit_bp;
+
     int ptrace_trace_me(void);
     int ptrace_attach(int pid);
     int ptrace_detach(int pid);
@@ -39,7 +46,12 @@ ffibuilder.cdef(
 
     uint64_t ptrace_geteventmsg(int pid);
 
-    int cont_after_bp(int pid, uint64_t addr, uint64_t prev_data, uint64_t data);
+    int cont_all_and_set_bps(
+        size_t n_pids,
+        int *pids,
+        size_t n_addrs,
+        ptrace_hit_bp *bps
+    );
 """
 )
 
@@ -50,6 +62,14 @@ ffibuilder.set_source(
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <stdint.h>
+
+
+typedef struct {
+    int pid;
+    uint64_t addr;
+    uint64_t bp_instruction;
+    uint64_t prev_instruction;
+} ptrace_hit_bp;
 
 
 int ptrace_trace_me(void)
@@ -131,36 +151,45 @@ uint64_t ptrace_geteventmsg(int pid)
 }
 
 
-int cont_after_bp(int pid, uint64_t addr, uint64_t prev_data, uint64_t data)
-{
-    int status;
+int cont_all_and_set_bps(
+    size_t n_pids,
+    int *pids,
+    size_t n_addrs,
+    ptrace_hit_bp *bps
+) {
+    int status = 0;
 
-    // restore the previous instruction
-    status = ptrace(PTRACE_POKEDATA, pid, (void*) addr, prev_data);
+    // restore the previous instruction for any thread that hit a software breakpoint
+    for (size_t i = 0; i < n_addrs; i++) {
+        // restore the previous instruction
+        status = ptrace(PTRACE_POKEDATA, bps[i].pid, (void*) bps[i].addr, bps[i].prev_instruction);
 
-    if (status == -1) {
-        return status;
-    }
+        if (status == -1)
+            return status;
 
-    // step over the breakpoint
-    status = ptrace(PTRACE_SINGLESTEP, pid, NULL, NULL);
+        // step over the breakpoint
+        status = ptrace(PTRACE_SINGLESTEP, bps[i].pid, NULL, NULL);
 
-    if (status == -1) {
-        return status;
-    }
+        if (status == -1)
+            return status;
 
-    // wait for the child
-    waitpid(pid, &status, 1 << 30);
+        // wait for the child
+        waitpid(bps[i].pid, &status, 0);
 
-    // restore the breakpoint
-    status = ptrace(PTRACE_POKEDATA, pid, (void*) addr, data);
+        // restore the breakpoint
+        status = ptrace(PTRACE_POKEDATA, bps[i].pid, (void*) bps[i].addr, bps[i].bp_instruction);
 
-    if (status == -1) {
-        return status;
+        if (status == -1)
+            return status;
     }
 
     // continue the execution
-    status = ptrace(PTRACE_CONT, pid, NULL, NULL);
+    for (size_t i = 0; i < n_pids; i++) {
+        status = ptrace(PTRACE_CONT, pids[i], NULL, NULL);
+
+        if (status == -1)
+            return status;
+    }
 
     return status;
 }

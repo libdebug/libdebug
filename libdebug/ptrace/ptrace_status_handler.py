@@ -62,7 +62,7 @@ class PtraceStatusHandler:
                 bp = debugging_context.breakpoints[ip]
 
                 # Restore the original instruction
-                self.ptrace_interface.unset_hit_software_breakpoint(bp)
+                # self.ptrace_interface.unset_hit_software_breakpoint(bp)
 
                 # Set the instruction pointer to the previous instruction
                 thread.instruction_pointer = ip
