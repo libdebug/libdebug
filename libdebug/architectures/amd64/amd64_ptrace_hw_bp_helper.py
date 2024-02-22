@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/io-no/libdebug).
-# Copyright (c) 2023 Roberto Alessandro Bertolini.
+# Copyright (c) 2023 - 2024 Roberto Alessandro Bertolini.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,6 +20,8 @@ from libdebug.architectures.ptrace_hardware_breakpoint_manager import (
 )
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.liblog import liblog
+from libdebug.state.thread_context import ThreadContext
+from typing import Callable
 
 AMD64_DBGREGS_OFF = {
     "DR0": 0x350,
@@ -44,13 +46,19 @@ class Amd64PtraceHardwareBreakpointManager(PtraceHardwareBreakpointManager):
     """A hardware breakpoint manager for the amd64 architecture.
 
     Attributes:
-        peek_mem (callable): A function that reads a number of bytes from the target process memory.
-        poke_mem (callable): A function that writes a number of bytes to the target process memory.
+        thread (ThreadContext): The target thread.
+        peek_user (callable): A function that reads a number of bytes from the target thread registers.
+        poke_user (callable): A function that writes a number of bytes to the target thread registers.
         breakpoint_count (int): The number of hardware breakpoints set.
     """
 
-    def __init__(self, peek_mem, poke_mem):
-        super().__init__(peek_mem, poke_mem)
+    def __init__(
+        self,
+        thread: ThreadContext,
+        peek_user: Callable[[int], int] = None,
+        poke_user: Callable[[int, int], None] = None,
+    ):
+        super().__init__(thread, peek_user, poke_user)
         self.breakpoint_registers = {
             "DR0": None,
             "DR1": None,
@@ -70,7 +78,7 @@ class Amd64PtraceHardwareBreakpointManager(PtraceHardwareBreakpointManager):
         liblog.debugger(f"Installing hardware breakpoint on register {register}.")
 
         # Write the breakpoint address in the register
-        self.poke_mem(AMD64_DBGREGS_OFF[register], bp.address)
+        self.poke_user(self.thread.thread_id, AMD64_DBGREGS_OFF[register], bp.address)
 
         # Set the breakpoint control register
         ctrl = (
@@ -86,7 +94,7 @@ class Amd64PtraceHardwareBreakpointManager(PtraceHardwareBreakpointManager):
         )
 
         # Read the current value of the register
-        current_ctrl = self.peek_mem(AMD64_DBGREGS_OFF["DR7"])
+        current_ctrl = self.peek_user(self.thread.thread_id, AMD64_DBGREGS_OFF["DR7"])
 
         # Clear condition and length fields for the current register
         current_ctrl &= ~(0x3 << AMD64_DBGREGS_CTRL_COND[register])
@@ -96,7 +104,7 @@ class Amd64PtraceHardwareBreakpointManager(PtraceHardwareBreakpointManager):
         current_ctrl |= ctrl
 
         # Write the new value of the register
-        self.poke_mem(AMD64_DBGREGS_OFF["DR7"], current_ctrl)
+        self.poke_user(self.thread.thread_id, AMD64_DBGREGS_OFF["DR7"], current_ctrl)
 
         # Save the breakpoint
         self.breakpoint_registers[register] = bp
@@ -121,16 +129,16 @@ class Amd64PtraceHardwareBreakpointManager(PtraceHardwareBreakpointManager):
         liblog.debugger(f"Removing hardware breakpoint on register {register}.")
 
         # Clear the breakpoint address in the register
-        self.poke_mem(AMD64_DBGREGS_OFF[register], 0)
+        self.poke_user(self.thread.thread_id, AMD64_DBGREGS_OFF[register], 0)
 
         # Read the current value of the control register
-        current_ctrl = self.peek_mem(AMD64_DBGREGS_OFF["DR7"])
+        current_ctrl = self.peek_user(self.thread.thread_id, AMD64_DBGREGS_OFF["DR7"])
 
         # Clear the breakpoint control register
         current_ctrl &= ~AMD64_DBGREGS_CTRL_LOCAL[register]
 
         # Write the new value of the register
-        self.poke_mem(AMD64_DBGREGS_OFF["DR7"], current_ctrl)
+        self.poke_user(self.thread.thread_id, AMD64_DBGREGS_OFF["DR7"], current_ctrl)
 
         # Remove the breakpoint
         self.breakpoint_registers[register] = None

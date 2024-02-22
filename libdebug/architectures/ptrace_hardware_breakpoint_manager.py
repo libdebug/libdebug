@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/io-no/libdebug).
-# Copyright (c) 2023 Roberto Alessandro Bertolini.
+# Copyright (c) 2023 - 2024 Roberto Alessandro Bertolini.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,22 +18,28 @@
 from typing import Callable
 
 from libdebug.data.breakpoint import Breakpoint
+from libdebug.state.thread_context import ThreadContext
 
 
 class PtraceHardwareBreakpointManager:
     """An architecture-independent interface for managing hardware breakpoints.
 
     Attributes:
-        peek_mem (callable): A function that reads a number of bytes from the target process memory.
-        poke_mem (callable): A function that writes a number of bytes to the target process memory.
+        thread (ThreadContext): The target thread.
+        peek_user (callable): A function that reads a number of bytes from the target thread registers.
+        poke_user (callable): A function that writes a number of bytes to the target thread registers.
         breakpoint_count (int): The number of hardware breakpoints set.
     """
 
     def __init__(
-        self, peek_mem: Callable[[int], int], poke_mem: Callable[[int, int], None]
+        self,
+        thread: ThreadContext,
+        peek_user: Callable[[int, int], int],
+        poke_user: Callable[[int, int, int], None],
     ):
-        self.peek_mem = peek_mem
-        self.poke_mem = poke_mem
+        self.thread = thread
+        self.peek_user = peek_user
+        self.poke_user = poke_user
         self.breakpoint_count = 0
 
     def install_breakpoint(bp: Breakpoint):

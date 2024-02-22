@@ -53,8 +53,8 @@ from libdebug.utils.process_utils import (
 class PtraceInterface(DebuggingInterface):
     """The interface used by `Debugger` to communicate with the `ptrace` debugging backend."""
 
-    hardware_bp_helper: PtraceHardwareBreakpointManager
-    """The hardware breakpoint manager."""
+    hardware_bp_helpers: dict[int, PtraceHardwareBreakpointManager]
+    """The hardware breakpoint managers (one for each thread)."""
 
     def __init__(self):
         super().__init__()
@@ -75,6 +75,8 @@ class PtraceInterface(DebuggingInterface):
             "thread_ids",
             property(lambda _: list(debugging_context.threads.keys())),
         )
+
+        self.hardware_bp_helpers = {}
 
     def _set_options(self):
         """Sets the tracer options."""
@@ -120,7 +122,7 @@ class PtraceInterface(DebuggingInterface):
             tty.setraw(self.stderr_read)
 
             debugging_context.process_id = child_pid
-            debugging_context.insert_new_thread(ThreadContext.new(child_pid))
+            self.register_new_thread(child_pid)
             self._setup_parent()
             debugging_context.pipe_manager = self._setup_pipe()
 
@@ -278,9 +280,6 @@ class PtraceInterface(DebuggingInterface):
         self._set_options()
         liblog.debugger("Options set")
         invalidate_process_cache()
-        self.hardware_bp_helper = ptrace_hardware_breakpoint_manager_provider(
-            self._peek_user, self._poke_user
-        )
 
     def get_register_holder(self, thread_id: int) -> RegisterHolder:
         """Returns the current value of all the available registers.
@@ -360,10 +359,22 @@ class PtraceInterface(DebuggingInterface):
         """Registers a new thread."""
         thread = ThreadContext.new(new_thread_id)
         debugging_context.insert_new_thread(thread)
+        thread_hw_bp_helper = ptrace_hardware_breakpoint_manager_provider(
+            thread, self._peek_user, self._poke_user
+        )
+        self.hardware_bp_helpers[new_thread_id] = thread_hw_bp_helper
+
+        # For any hardware breakpoints, we need to reapply them to the new thread
+        for bp in debugging_context.breakpoints.values():
+            if bp.hardware:
+                thread_hw_bp_helper.install_breakpoint(bp)
 
     def unregister_thread(self, thread_id: int):
         """Unregisters a thread."""
         debugging_context.remove_thread(thread_id)
+
+        # Remove the hardware breakpoint manager for the thread
+        self.hardware_bp_helpers.pop(thread_id)
 
     def provide_memory_view(self) -> MemoryView:
         """Returns a memory view of the process."""
@@ -376,28 +387,6 @@ class PtraceInterface(DebuggingInterface):
             self._poke_mem(address, int.from_bytes(value, "little", signed=False))
 
         return MemoryView(getter, setter, self.maps)
-
-    def continue_after_breakpoint(self, breakpoint: Breakpoint):
-        """Continues the execution of the process after a breakpoint was hit."""
-
-        if breakpoint.hardware:
-            self.continue_execution()
-            return
-
-        instruction = breakpoint._original_instruction
-
-        result = self.lib_trace.cont_after_bp(
-            self.process_id,
-            breakpoint.address,
-            instruction,
-            install_software_breakpoint(instruction),
-        )
-
-        if result == -1:
-            errno_val = self.ffi.errno
-            raise OSError(errno_val, errno.errorcode[errno_val])
-
-        invalidate_process_cache()
 
     def _set_sw_breakpoint(self, breakpoint: Breakpoint):
         """Sets a software breakpoint at the specified address.
@@ -425,7 +414,8 @@ class PtraceInterface(DebuggingInterface):
             breakpoint (Breakpoint): The breakpoint to set.
         """
         if breakpoint.hardware:
-            self.hardware_bp_helper.install_breakpoint(breakpoint)
+            for helper in self.hardware_bp_helpers.values():
+                helper.install_breakpoint(breakpoint)
         else:
             self._set_sw_breakpoint(breakpoint)
 
@@ -438,7 +428,8 @@ class PtraceInterface(DebuggingInterface):
             breakpoint (Breakpoint): The breakpoint to unset.
         """
         if breakpoint.hardware:
-            self.hardware_bp_helper.remove_breakpoint(breakpoint)
+            for helper in self.hardware_bp_helpers.values():
+                helper.remove_breakpoint(breakpoint)
         else:
             self._unset_sw_breakpoint(breakpoint)
 
@@ -476,9 +467,9 @@ class PtraceInterface(DebuggingInterface):
         if error == errno.EIO:
             raise OSError(error, errno.errorcode[error])
 
-    def _peek_user(self, address: int) -> int:
+    def _peek_user(self, thread_id: int, address: int) -> int:
         """Reads the memory at the specified address."""
-        result = self.lib_trace.ptrace_peekuser(self.process_id, address)
+        result = self.lib_trace.ptrace_peekuser(thread_id, address)
         liblog.debugger(
             "PEEKUSER at address %d returned with result %x", address, result
         )
@@ -489,9 +480,9 @@ class PtraceInterface(DebuggingInterface):
 
         return result
 
-    def _poke_user(self, address: int, value: int):
+    def _poke_user(self, thread_id: int, address: int, value: int):
         """Writes the memory at the specified address."""
-        result = self.lib_trace.ptrace_pokeuser(self.process_id, address, value)
+        result = self.lib_trace.ptrace_pokeuser(thread_id, address, value)
         liblog.debugger(
             "POKEUSER at address %d returned with result %d", address, result
         )

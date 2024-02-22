@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/io-no/libdebug).
-# Copyright (c) 2023 Roberto Alessandro Bertolini.
+# Copyright (c) 2023 - 2024 Roberto Alessandro Bertolini.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,18 +23,20 @@ from libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper import (
 from libdebug.architectures.ptrace_hardware_breakpoint_manager import (
     PtraceHardwareBreakpointManager,
 )
+from libdebug.state.thread_context import ThreadContext
 from libdebug.utils.libcontext import libcontext
 
 
 def ptrace_hardware_breakpoint_manager_provider(
-    peek_mem: Callable[[int], int] = None,
-    poke_mem: Callable[[int, int], None] = None,
+    thread: ThreadContext,
+    peek_user: Callable[[int], int] = None,
+    poke_user: Callable[[int, int], None] = None,
 ) -> PtraceHardwareBreakpointManager:
     """Returns an instance of the hardware breakpoint manager to be used by the `Debugger` class."""
     architecture = libcontext.arch
 
     match architecture:
         case "amd64":
-            return Amd64PtraceHardwareBreakpointManager(peek_mem, poke_mem)
+            return Amd64PtraceHardwareBreakpointManager(thread, peek_user, poke_user)
         case _:
             raise NotImplementedError(f"Architecture {architecture} not available.")
