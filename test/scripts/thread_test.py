@@ -25,10 +25,6 @@ class ThreadTest(unittest.TestCase):
         self.d = debugger("binaries/thread_test")
     
     def test_thread(self):
-        from libdebug.liblog import liblog
-
-        liblog.debugger_logger.setLevel(5)
-
         d = self.d
 
         d.run()
@@ -59,8 +55,6 @@ class ThreadTest(unittest.TestCase):
 
             if len(d.threads.values()) == 4:
                 t3 = d.threads[list(d.threads.keys())[3]]
-
-            print([f'{a}: {hex(t.rip)}' for a, t in d.threads.items()])
 
             if bp_t0.address == d.rip:
                 self.assertTrue(t1_done)
