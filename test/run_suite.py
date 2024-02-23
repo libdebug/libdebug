@@ -43,7 +43,7 @@ def suite():
     suite.addTest(HwBasicTest("test_basic"))
     suite.addTest(HwBasicTest("test_registers"))
     # suite.addTest(BacktraceTest("test_backtrace"))
-    # suite.addTest(BruteTest("test_bruteforce"))
+    suite.addTest(BruteTest("test_bruteforce"))
     # suite.addTest(Vmwhere1("test_vmwhere1"))
     # suite.addTest(Jumpout("test_jumpout"))
     # suite.addTest(Ncuts("test_ncuts"))

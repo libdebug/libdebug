@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/io-no/libdebug).
-# Copyright (c) 2023 Gabriele Digregorio, Francesco Panebianco.
+# Copyright (c) 2023 - 2024 Gabriele Digregorio, Francesco Panebianco, Roberto Alessandro Bertolini.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,61 +16,50 @@
 #
 
 import string
-from libdebug import debugger
 import unittest
+
+from libdebug import debugger
 
 
 class BruteTest(unittest.TestCase):
     def setUp(self):
-        self.exceptions = []
+        pass
 
     def test_bruteforce(self):
-        global flag
-        global counter
-        global new_counter
-
         flag = ''
         counter = 1
-        new_counter = 0
 
-        def brute_force(d,b):
-            global new_counter 
-            try:
-                new_counter = b.hit_count
-            except Exception as e:
-                self.exceptions.append(e)
-
-        d = debugger('binaries/brute_test')
-        while True:
-            end = False
+        while not flag or flag != 'BRUTINOBRUTONE':
             for c in string.printable:
+                d = debugger("binaries/brute_test")
 
-                r = d.start()
-
-                d.b(0x1222, brute_force, hardware_assisted=True)
+                r = d.run()
+                bp = d.breakpoint(0x1222, hardware=True)
                 d.cont()
-                
-                r.sendlineafter(b'chars\n', (flag+c).encode())
+
+                r.sendlineafter(b'chars\n', (flag + c).encode())
+
+                d.wait()
+
+                while bp.address == d.rip:
+                    d.cont()
+                    d.wait()
+
+                if bp.hit_count > counter:
+                    flag += c
+                    counter = bp.hit_count
+                    d.kill()
+                    break
+
                 message = r.recvline()
 
-                if new_counter > counter:
-                    flag += c
-                    counter = new_counter
-                    d.kill()
-                    break 
                 d.kill()
+
                 if message == b"Giusto!":
                     flag += c
-                    end = True
-                    break            
-            if end:
-                break
-        
-        assert flag == 'BRUTINOBRUTONE'
+                    break
 
-        if self.exceptions:
-            raise self.exceptions[0]
-
+        self.assertEqual(flag, 'BRUTINOBRUTONE')
 
 if __name__ == '__main__':
     unittest.main()
