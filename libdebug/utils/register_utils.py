@@ -17,40 +17,40 @@
 
 
 def get_reg_64(dict: dict, name: str) -> int:
-    return dict[name]
+    return getattr(dict, name)
 
 
 def get_reg_32(dict: dict, name: str) -> int:
-    return dict[name] & 0xFFFFFFFF
+    return getattr(dict, name) & 0xFFFFFFFF
 
 
 def get_reg_16(dict: dict, name: str) -> int:
-    return dict[name] & 0xFFFF
+    return getattr(dict, name) & 0xFFFF
 
 
 def get_reg_8l(dict: dict, name: str) -> int:
-    return dict[name] & 0xFF
+    return getattr(dict, name) & 0xFF
 
 
 def get_reg_8h(dict: dict, name: str) -> int:
-    return (dict[name] >> 8) & 0xFF
+    return (getattr(dict, name) >> 8) & 0xFF
 
 
 def set_reg_64(dict: dict, name: str, value: int):
-    dict[name] = value
+    setattr(dict, name, value)
 
 
 def set_reg_32(dict: dict, name: str, value: int):
-    dict[name] = (dict[name] & 0xFFFFFFFF00000000) | (value & 0xFFFFFFFF)
+    setattr(dict, name, (getattr(dict, name) & 0xFFFFFFFF00000000) | (value & 0xFFFFFFFF))
 
 
 def set_reg_16(dict: dict, name: str, value: int):
-    dict[name] = (dict[name] & 0xFFFFFFFFFFFF0000) | (value & 0xFFFF)
+    setattr(dict, name, (getattr(dict, name) & 0xFFFFFFFFFFFF0000) | (value & 0xFFFF))
 
 
 def set_reg_8l(dict: dict, name: str, value: int):
-    dict[name] = (dict[name] & 0xFFFFFFFFFFFFFF00) | (value & 0xFF)
+    setattr(dict, name, (getattr(dict, name) & 0xFFFFFFFFFFFFFF00) | (value & 0xFF))
 
 
 def set_reg_8h(dict: dict, name: str, value: int):
-    dict[name] = (dict[name] & 0xFFFFFFFFFFFF00FF) | ((value & 0xFF) << 8)
+    setattr(dict, name, (getattr(dict, name) & 0xFFFFFFFFFFFF00FF) | ((value & 0xFF) << 8))

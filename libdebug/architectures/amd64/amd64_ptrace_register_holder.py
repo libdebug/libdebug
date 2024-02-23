@@ -74,10 +74,7 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
     """A class that provides views and setters for the registers of an x86_64 process, specifically for the `ptrace` debugging backend."""
 
     def apply_on(self, target, target_class):
-        target.regs = {}
-
-        for i, name in enumerate(AMD64_REGS):
-            target.regs[name] = u64(self.register_file[i * 8 : (i + 1) * 8])
+        target.regs = self.register_file
 
         # If the accessors are already defined, we don't need to redefine them
         if hasattr(target_class, "instruction_pointer"):
@@ -172,7 +169,4 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
 
     def flush(self, source: "ThreadContext"):
         """Flushes the register values to the target process."""
-        buffer = b""
-        for name in AMD64_REGS:
-            buffer += p64(source.regs[name])
-        self.ptrace_setter(buffer, source.thread_id)
+        self.ptrace_setter(source.regs, source.thread_id)

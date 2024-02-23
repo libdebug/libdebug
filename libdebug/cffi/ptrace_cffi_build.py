@@ -16,10 +16,48 @@
 #
 
 from cffi import FFI
+import platform
+
+if platform.machine() in ['i386', 'x86_64']:
+    user_regs_struct = """
+    struct user_regs_struct
+    {
+        unsigned long r15;
+        unsigned long r14;
+        unsigned long r13;
+        unsigned long r12;
+        unsigned long rbp;
+        unsigned long rbx;
+        unsigned long r11;
+        unsigned long r10;
+        unsigned long r9;
+        unsigned long r8;
+        unsigned long rax;
+        unsigned long rcx;
+        unsigned long rdx;
+        unsigned long rsi;
+        unsigned long rdi;
+        unsigned long orig_rax;
+        unsigned long rip;
+        unsigned long cs;
+        unsigned long eflags;
+        unsigned long rsp;
+        unsigned long ss;
+        unsigned long fs_base;
+        unsigned long gs_base;
+        unsigned long ds;
+        unsigned long es;
+        unsigned long fs;
+        unsigned long gs;
+    };
+    """
+else:
+    raise NotImplementedError(f"Architecture {platform.machine()} not available.")
+
 
 ffibuilder = FFI()
 ffibuilder.cdef(
-    """
+    user_regs_struct + """
     typedef struct {
         int pid;
         uint64_t addr;
@@ -32,8 +70,8 @@ ffibuilder.cdef(
     int ptrace_detach(int pid);
     void ptrace_set_options(int pid);
 
-    int ptrace_getregs(int pid, void *regs);
-    int ptrace_setregs(int pid, void *regs);
+    int ptrace_getregs(int pid, struct user_regs_struct *regs);
+    int ptrace_setregs(int pid, struct user_regs_struct *regs);
 
     int ptrace_singlestep(int pid);
 
@@ -66,8 +104,8 @@ ffibuilder.set_source(
 #include <sys/ptrace.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/user.h>
 #include <stdint.h>
-
 
 typedef struct {
     int pid;
@@ -101,12 +139,12 @@ void ptrace_set_options(int pid)
 }
 
 
-int ptrace_getregs(int pid, void *regs)
+int ptrace_getregs(int pid, struct user_regs_struct *regs)
 {
     return ptrace(PTRACE_GETREGS, pid, NULL, regs);
 }
 
-int ptrace_setregs(int pid, void *regs)
+int ptrace_setregs(int pid, struct user_regs_struct *regs)
 {
     return ptrace(PTRACE_SETREGS, pid, NULL, regs);
 }
