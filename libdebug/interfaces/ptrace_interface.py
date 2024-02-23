@@ -299,7 +299,9 @@ class PtraceInterface(DebuggingInterface):
             else:
                 raise OSError(errno_val, errno.errorcode[errno_val])
         else:
-            return register_holder_provider(register_file, ptrace_setter=self._set_registers)
+            return register_holder_provider(
+                register_file, ptrace_setter=self._set_registers
+            )
 
     def _set_registers(self, register_file, thread_id: int):
         """Sets the value of all the available registers."""
@@ -330,11 +332,14 @@ class PtraceInterface(DebuggingInterface):
             # Wait for the threads to stop and poll their status
             for thread_id in other_threads:
                 liblog.debugger(f"Waiting for thread {thread_id}")
+
+                # 0 means "wait blocking"
+                option = 0
+
                 # threads might have more than one status change to report
                 while True:
                     try:
-                        # 1 means WNOHANG, in order to return immediately if no result is available
-                        npid, nstatus = os.waitpid(thread_id, 1)
+                        npid, nstatus = os.waitpid(thread_id, option)
                         if npid != 0:
                             liblog.debugger(
                                 "Child process %d reported status %d", npid, nstatus
@@ -345,6 +350,10 @@ class PtraceInterface(DebuggingInterface):
                     except ChildProcessError:
                         liblog.debugger("Could not find thread %d", thread_id)
                         break
+                    # After the first iteration, we want to return immediately if no result is available
+                    # This is because we are polling the status of the threads, to see if there's anything
+                    # waiting in the queue, but we don't want to block if there's nothing to report
+                    option = os.WNOHANG
 
             liblog.debugger("All threads stopped")
 
@@ -489,11 +498,9 @@ class PtraceInterface(DebuggingInterface):
         if error == errno.EIO:
             raise OSError(error, errno.errorcode[error])
 
-    def _get_event_msg(self) -> int:
+    def _get_event_msg(self, thread_id: int) -> int:
         """Returns the event message."""
-        assert self.process_id is not None
-
-        return self.lib_trace.ptrace_geteventmsg(self.process_id)
+        return self.lib_trace.ptrace_geteventmsg(thread_id)
 
     def maps(self) -> list[MemoryMap]:
         """Returns the memory maps of the process."""

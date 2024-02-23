@@ -88,7 +88,7 @@ class PtraceStatusHandler:
 
     def handle_change(self, pid: int, status: int):
         event = status >> 8
-        message = self.ptrace_interface._get_event_msg()
+        message = self.ptrace_interface._get_event_msg(pid)
 
         if os.WIFSTOPPED(status):
             signum = os.WSTOPSIG(status)
