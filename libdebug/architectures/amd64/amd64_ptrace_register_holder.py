@@ -79,6 +79,10 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
         for i, name in enumerate(AMD64_REGS):
             target.regs[name] = u64(self.register_file[i * 8 : (i + 1) * 8])
 
+        # If the accessors are already defined, we don't need to redefine them
+        if hasattr(target_class, "instruction_pointer"):
+            return
+
         def get_property_64(name):
             def getter(self):
                 return get_reg_64(self.regs, name)
