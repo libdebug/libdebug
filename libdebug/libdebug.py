@@ -124,7 +124,6 @@ class Debugger:
 
         self.memory = None
         self.instanced = None
-        self.process_context = None
 
         if debugging_context.pipe_manager is not None:
             debugging_context.pipe_manager.close()
@@ -135,6 +134,7 @@ class Debugger:
         self._polling_thread_command_queue.join()
 
         debugging_context.clear()
+        self.interface.reset()
 
     def cont(self):
         """Continues the process."""

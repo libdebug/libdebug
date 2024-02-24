@@ -78,6 +78,10 @@ class PtraceInterface(DebuggingInterface):
 
         self.hardware_bp_helpers = {}
 
+    def reset(self):
+        """Resets the state of the interface."""
+        self.hardware_bp_helpers.clear()
+
     def _set_options(self):
         """Sets the tracer options."""
         self.lib_trace.ptrace_set_options(self.process_id)
@@ -155,8 +159,6 @@ class PtraceInterface(DebuggingInterface):
 
         # wait for the child process to terminate, otherwise it will become a zombie
         os.wait()
-
-        debugging_context.clear()
 
     def cont(self):
         """Continues the execution of the process."""

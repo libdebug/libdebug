@@ -75,12 +75,14 @@ class DebuggingContext:
         if self._initialized:
             return
 
-        self.clear()
-
         # These must be reinitialized on every call to "debugger"
         self.aslr_enabled = False
         self.argv = []
         self.env = {}
+        self._breakpoints = {}
+        self._threads = {}
+
+        self.clear()
 
         self._initialized = True
 
@@ -88,11 +90,10 @@ class DebuggingContext:
         """Clear the context"""
 
         # These must be reinitialized on every call to "run"
-        self._breakpoints = {}
-        self._threads = {}
+        self._breakpoints.clear()
+        self._threads.clear()
         self.pipe_manager = None
         self.process_state = False
-        self.debugging_interface = None
         self.process_id = 0
 
     @property

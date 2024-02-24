@@ -38,6 +38,10 @@ class DebuggingInterface:
         self.breakpoints = debugging_context._breakpoints
         self.threads = debugging_context._threads
 
+    def reset(self):
+        """Resets the state of the interface."""
+        pass
+
     def run(self):
         """Runs the specified process."""
         pass
