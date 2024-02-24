@@ -26,18 +26,18 @@ class BruteTest(unittest.TestCase):
         pass
 
     def test_bruteforce(self):
-        flag = ''
+        flag = ""
         counter = 1
 
-        while not flag or flag != 'BRUTINOBRUTONE':
-            for c in string.printable:
-                d = debugger("binaries/brute_test")
+        d = debugger("binaries/brute_test")
 
+        while not flag or flag != "BRUTINOBRUTONE":
+            for c in string.printable:
                 r = d.run()
                 bp = d.breakpoint(0x1222, hardware=True)
                 d.cont()
 
-                r.sendlineafter(b'chars\n', (flag + c).encode())
+                r.sendlineafter(b"chars\n", (flag + c).encode())
 
                 d.wait()
 
@@ -59,7 +59,8 @@ class BruteTest(unittest.TestCase):
                     flag += c
                     break
 
-        self.assertEqual(flag, 'BRUTINOBRUTONE')
+        self.assertEqual(flag, "BRUTINOBRUTONE")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

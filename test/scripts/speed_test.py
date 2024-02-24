@@ -24,16 +24,16 @@ from time import perf_counter_ns
 class SpeedTest(unittest.TestCase):
     def setUp(self):
         self.d = debugger("binaries/speed_test")
-    
+
     def test_speed(self):
         d = self.d
 
         start_time = perf_counter_ns()
 
         d.run()
-        
+
         bp = d.breakpoint("do_nothing")
-        
+
         d.cont()
 
         for _ in range(65536):
@@ -45,7 +45,7 @@ class SpeedTest(unittest.TestCase):
 
         end_time = perf_counter_ns()
 
-        self.assertTrue((end_time - start_time) < 15 * 1e9) # 15 seconds
+        self.assertTrue((end_time - start_time) < 15 * 1e9)  # 15 seconds
 
     def test_speed_hardware(self):
         d = self.d
@@ -53,9 +53,9 @@ class SpeedTest(unittest.TestCase):
         start_time = perf_counter_ns()
 
         d.run()
-        
+
         bp = d.breakpoint("do_nothing", hardware=True)
-        
+
         d.cont()
 
         for _ in range(65536):
@@ -67,4 +67,8 @@ class SpeedTest(unittest.TestCase):
 
         end_time = perf_counter_ns()
 
-        self.assertTrue((end_time - start_time) < 15 * 1e9) # 15 seconds
+        self.assertTrue((end_time - start_time) < 15 * 1e9)  # 15 seconds
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -44,7 +44,7 @@ def suite():
     suite.addTest(HwBasicTest("test_registers"))
     # suite.addTest(BacktraceTest("test_backtrace"))
     suite.addTest(BruteTest("test_bruteforce"))
-    # suite.addTest(Vmwhere1("test_vmwhere1"))
+    suite.addTest(Vmwhere1("test_vmwhere1"))
     # suite.addTest(Jumpout("test_jumpout"))
     # suite.addTest(Ncuts("test_ncuts"))
     # suite.addTest(AttachTest("test_attach"))
@@ -53,6 +53,7 @@ def suite():
     suite.addTest(SpeedTest("test_speed"))
     suite.addTest(SpeedTest("test_speed_hardware"))
     return suite
+
 
 def profiling():
     command = "py-spy record --format speedscope -o ./python_profiling.app -- python scripts/node.py"
@@ -63,19 +64,20 @@ def profiling():
     else:
         print("Error occurred during python profiling. Return code:", result.returncode)
 
+
 if __name__ == "__main__":
     runner = unittest.TextTestRunner()
     result = runner.run(suite())
-    
+
     if result.wasSuccessful():
-       print("All tests passed")
+        print("All tests passed")
     else:
-       print("Some tests failed")
-       print("\nFailed Tests:")
-       for test, err in result.failures:
-           print(f"{test}: {err}")
-       print("\nErrors:")
-       for test, err in result.errors:
-           print(f"{test}: {err}")
-    
+        print("Some tests failed")
+        print("\nFailed Tests:")
+        for test, err in result.failures:
+            print(f"{test}: {err}")
+        print("\nErrors:")
+        for test, err in result.errors:
+            print(f"{test}: {err}")
+
     # profiling()
