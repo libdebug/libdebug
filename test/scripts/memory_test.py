@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/io-no/libdebug).
-# Copyright (c) 2023 Roberto Alessandro Bertolini, Gabriele Digregorio.
+# Copyright (c) 2023 - 2024 Roberto Alessandro Bertolini, Gabriele Digregorio.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,6 +16,7 @@
 #
 
 import unittest
+
 from libdebug import debugger
 from libdebug.utils.packing_utils import p64
 
@@ -23,63 +24,50 @@ from libdebug.utils.packing_utils import p64
 class MemoryTest(unittest.TestCase):
     def setUp(self) -> None:
         self.d = debugger("binaries/memory_test")
-        self.exceptions = []
 
     def test_memory(self):
-        global validated
+        d = self.d
 
-        validated = False
+        d.run()
 
-        def bp_change_memory(d, _):
-            try:
-                address = d.rdi
-                prev = bytes(range(256))
+        bp = d.breakpoint("change_memory")
 
-                self.assertTrue(d.memory[address : address + 256] == prev)
+        d.cont()
+        d.wait()
 
-                d.memory[address + 128 :] = b"abcd123456"
+        assert d.rip == bp.address
 
-                prev = prev[:128] + b"abcd123456" + prev[138:]
+        address = d.rdi
+        prev = bytes(range(256))
 
-                self.assertTrue(d.memory[address : address + 256] == prev)
-            except Exception as e:
-                self.exceptions.append(e)
+        self.assertTrue(d.memory[address, 256] == prev)
 
-        def bp_validate(d, _):
-            try:
-                global validated
-                validated = True
-            except Exception as e:
-                self.exceptions.append(e)
+        d.memory[address + 128 :] = b"abcd123456"
+        prev = prev[:128] + b"abcd123456" + prev[138:]
 
-        self.d.start()
-        self.d.b("change_memory", bp_change_memory)
-        self.d.b("validate_setter", bp_validate)
-        self.d.cont()
-        self.d.kill()
-        self.assertTrue(validated)
+        self.assertTrue(d.memory[address : address + 256] == prev)
 
-        if self.exceptions:
-            raise self.exceptions[0]
+        d.kill()
 
     def test_mem_access_libs(self):
-        def bp_leak_address(d, _):
-            try:
-                address = d.rdi
-                arena = d.memory["main_arena", 256]
+        d = self.d
 
-                self.assertTrue(p64(address - 0x10) in arena)
-            except Exception as e:
-                self.exceptions.append(e)
+        d.run()
 
-        self.d.start()
-        self.d.b("leak_address", bp_leak_address)
-        self.d.cont()
-        self.d.kill()
-        self.assertTrue(validated)
+        bp = d.breakpoint("leak_address")
 
-        if self.exceptions:
-            raise self.exceptions[0]
+        d.cont()
+        d.wait()
+
+        assert d.rip == bp.address
+
+        address = d.rdi
+        arena = d.memory["main_arena", 256]
+
+        self.assertTrue(p64(address - 0x10) in arena)
+
+        d.kill()
+
 
 if __name__ == "__main__":
     unittest.main()

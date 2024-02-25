@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/io-no/libdebug).
-# Copyright (c) 2023 Gabriele Digregorio.
+# Copyright (c) 2023 - 2024 Gabriele Digregorio, Roberto Alessandro Bertolini.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,87 +15,112 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-import unittest 
+import unittest
+
 from libdebug import debugger
 
 
 class BacktraceTest(unittest.TestCase):
     def setUp(self):
         self.d = debugger("binaries/backtrace_test")
-        self.exceptions = []
 
     def test_backtrace(self):
+        d = self.d
 
-        def check_main(d,b):
-            try:
-                backtrace = d.backtrace()
-                self.assertIn('__libc_start_', backtrace.pop())
-                self.assertEqual(backtrace, ['main+8'])
-            except Exception as e:
-                self.exceptions.append(e)
+        d.run()
 
-        def check_function1(d,b):
-            try:
-                backtrace = d.backtrace()
-                self.assertIn('__libc_start_', backtrace.pop())
-                self.assertEqual(backtrace, ['function1+8', 'main+22'])
-            except Exception as e:
-                self.exceptions.append(e)
+        bp0 = d.breakpoint("main+8")
+        bp1 = d.breakpoint("function1+8")
+        bp2 = d.breakpoint("function2+8")
+        bp3 = d.breakpoint("function3+8")
+        bp4 = d.breakpoint("function4+8")
+        bp5 = d.breakpoint("function5+8")
+        bp6 = d.breakpoint("function6+8")
 
-        def check_function2(d,b):
-            try:
-                backtrace = d.backtrace()
-                self.assertIn('__libc_start_', backtrace.pop())
-                self.assertEqual(backtrace, ['function2+8', 'function1+18', 'main+22'])
-            except Exception as e:
-                self.exceptions.append(e)
-        
-        def check_function3(d,b):
-            try:
-                backtrace = d.backtrace()
-                self.assertIn('__libc_start_', backtrace.pop())
-                self.assertEqual(backtrace, ['function3+8', 'function2+28', 'function1+18', 'main+22'])
-            except Exception as e:
-                self.exceptions.append(e)
+        d.cont()
+        d.wait()
 
-        def check_function4(d,b):
-            try:
-                backtrace = d.backtrace()
-                self.assertIn('__libc_start_', backtrace.pop())
-                self.assertEqual(backtrace, ['function4+8', 'function3+28', 'function2+28', 'function1+18', 'main+22'])
-            except Exception as e:
-                self.exceptions.append(e)
-        
-        def check_function5(d,b):
-            try:
-                backtrace = d.backtrace()
-                self.assertIn('__libc_start_', backtrace.pop())
-                self.assertEqual(backtrace, ['function5+8', 'function4+28', 'function3+28', 'function2+28', 'function1+18', 'main+22'])
-            except Exception as e:
-                self.exceptions.append(e)
+        self.assertTrue(d.rip == bp0.address)
+        backtrace = d.backtrace()
+        self.assertIn("_start", backtrace.pop())
+        self.assertEqual(backtrace[:1], ["main+8"])
 
-        def check_function6(d,b):
-            try:
-                backtrace = d.backtrace()
-                self.assertIn('__libc_start_', backtrace.pop())
-                self.assertEqual(backtrace, ['function6+8', 'function5+28', 'function4+28', 'function3+28', 'function2+28', 'function1+18', 'main+22'])
-            except Exception as e:
-                self.exceptions.append(e)
+        d.cont()
+        d.wait()
 
-        self.d.start()
-        self.d.b('main+8', check_main)
-        self.d.b('function1+8', check_function1)
-        self.d.b('function2+8', check_function2)
-        self.d.b('function3+8', check_function3)
-        self.d.b('function4+8', check_function4)
-        self.d.b('function5+8', check_function5)
-        self.d.b('function6+8', check_function6)
-        self.d.cont()
-        self.d.kill()
+        self.assertTrue(d.rip == bp1.address)
+        backtrace = d.backtrace()
+        self.assertIn("_start", backtrace.pop())
+        self.assertEqual(backtrace[:2], ["function1+8", "main+22"])
 
-        if self.exceptions:
-            raise self.exceptions[0]
+        d.cont()
+        d.wait()
+
+        self.assertTrue(d.rip == bp2.address)
+        backtrace = d.backtrace()
+        self.assertIn("_start", backtrace.pop())
+        self.assertEqual(backtrace[:3], ["function2+8", "function1+18", "main+22"])
+
+        d.cont()
+        d.wait()
+
+        self.assertTrue(d.rip == bp3.address)
+        backtrace = d.backtrace()
+        self.assertIn("_start", backtrace.pop())
+        self.assertEqual(
+            backtrace[:4], ["function3+8", "function2+28", "function1+18", "main+22"]
+        )
+
+        d.cont()
+        d.wait()
+
+        self.assertTrue(d.rip == bp4.address)
+        backtrace = d.backtrace()
+        self.assertIn("_start", backtrace.pop())
+        self.assertEqual(
+            backtrace[:5],
+            ["function4+8", "function3+28", "function2+28", "function1+18", "main+22"],
+        )
+
+        d.cont()
+        d.wait()
+
+        self.assertTrue(d.rip == bp5.address)
+        backtrace = d.backtrace()
+        self.assertIn("_start", backtrace.pop())
+        self.assertEqual(
+            backtrace[:6],
+            [
+                "function5+8",
+                "function4+28",
+                "function3+28",
+                "function2+28",
+                "function1+18",
+                "main+22",
+            ],
+        )
+
+        d.cont()
+        d.wait()
+
+        self.assertTrue(d.rip == bp6.address)
+        backtrace = d.backtrace()
+        self.assertIn("_start", backtrace.pop())
+        self.assertEqual(
+            backtrace[:7],
+            [
+                "function6+8",
+                "function5+28",
+                "function4+28",
+                "function3+28",
+                "function2+28",
+                "function1+18",
+                "main+22",
+            ],
+        )
+
+        d.kill()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

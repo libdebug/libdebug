@@ -15,7 +15,6 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-import logging
 import subprocess
 import unittest
 
@@ -38,15 +37,15 @@ def suite():
     suite.addTest(BasicTest("test_registers"))
     suite.addTest(BasicPieTest("test_basic"))
     suite.addTest(BreakpointTest("test_bps"))
-    # suite.addTest(MemoryTest("test_memory"))
-    # suite.addTest(MemoryTest("test_mem_access_libs"))
+    suite.addTest(MemoryTest("test_memory"))
+    suite.addTest(MemoryTest("test_mem_access_libs"))
     suite.addTest(HwBasicTest("test_basic"))
     suite.addTest(HwBasicTest("test_registers"))
-    # suite.addTest(BacktraceTest("test_backtrace"))
+    suite.addTest(BacktraceTest("test_backtrace"))
     suite.addTest(BruteTest("test_bruteforce"))
     suite.addTest(Vmwhere1("test_vmwhere1"))
-    # suite.addTest(Jumpout("test_jumpout"))
-    # suite.addTest(Ncuts("test_ncuts"))
+    suite.addTest(Jumpout("test_jumpout"))
+    suite.addTest(Ncuts("test_ncuts"))
     # suite.addTest(AttachTest("test_attach"))
     suite.addTest(ThreadTest("test_thread"))
     suite.addTest(ThreadTest("test_thread_hardware"))
