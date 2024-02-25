@@ -70,10 +70,6 @@ class DebuggingInterface:
         """Returns the memory maps of the process."""
         pass
 
-    def provide_memory_view(self) -> MemoryView:
-        """Returns a memory view of the process."""
-        pass
-
     def get_register_holder(self, thread_id: int) -> RegisterHolder:
         """Returns the current value of all the available registers for the specified thread.
         Note: the register holder should then be used to automatically setup getters and setters for each register.
@@ -98,4 +94,24 @@ class DebuggingInterface:
 
     def disable_aslr(self):
         """Disables ASLR for the current process."""
+        pass
+
+    def peek_memory(self, address: int) -> int:
+        """Reads the memory at the specified address.
+
+        Args:
+            address (int): The address to read.
+
+        Returns:
+            int: The read memory value.
+        """
+        pass
+
+    def poke_memory(self, address: int, data: int):
+        """Writes the memory at the specified address.
+
+        Args:
+            address (int): The address to write.
+            data (int): The value to write.
+        """
         pass

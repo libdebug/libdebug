@@ -57,6 +57,11 @@ class ThreadContext:
 
         return ThreadContext(thread_id)
 
+    @property
+    def memory(self):
+        """The memory view of the debugged process."""
+        return debugging_context.memory
+
     def _poll_registers(self):
         """Updates the register values."""
         if not self._needs_poll_registers:

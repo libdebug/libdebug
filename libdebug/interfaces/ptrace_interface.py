@@ -385,18 +385,6 @@ class PtraceInterface(DebuggingInterface):
         # Remove the hardware breakpoint manager for the thread
         self.hardware_bp_helpers.pop(thread_id)
 
-    def provide_memory_view(self) -> MemoryView:
-        """Returns a memory view of the process."""
-        assert self.process_id is not None
-
-        def getter(address) -> bytes:
-            return self._peek_mem(address).to_bytes(8, "little", signed=False)
-
-        def setter(address, value):
-            self._poke_mem(address, int.from_bytes(value, "little", signed=False))
-
-        return MemoryView(getter, setter, self.maps)
-
     def _set_sw_breakpoint(self, breakpoint: Breakpoint):
         """Sets a software breakpoint at the specified address.
 
@@ -404,9 +392,9 @@ class PtraceInterface(DebuggingInterface):
             breakpoint (Breakpoint): The breakpoint to set.
         """
         assert self.process_id is not None
-        instruction = self._peek_mem(breakpoint.address)
+        instruction = self.peek_memory(breakpoint.address)
         breakpoint._original_instruction = instruction
-        self._poke_mem(breakpoint.address, install_software_breakpoint(instruction))
+        self.poke_memory(breakpoint.address, install_software_breakpoint(instruction))
 
     def _unset_sw_breakpoint(self, breakpoint: Breakpoint):
         """Unsets a software breakpoint at the specified address.
@@ -414,7 +402,7 @@ class PtraceInterface(DebuggingInterface):
         Args:
             breakpoint (Breakpoint): The breakpoint to unset.
         """
-        self._poke_mem(breakpoint.address, breakpoint._original_instruction)
+        self.poke_memory(breakpoint.address, breakpoint._original_instruction)
 
     def set_breakpoint(self, breakpoint: Breakpoint):
         """Sets a breakpoint at the specified address.
@@ -452,7 +440,7 @@ class PtraceInterface(DebuggingInterface):
         """
         return self._unset_sw_breakpoint(breakpoint)
 
-    def _peek_mem(self, address: int) -> int:
+    def peek_memory(self, address: int) -> int:
         """Reads the memory at the specified address."""
         result = self.lib_trace.ptrace_peekdata(self.process_id, address)
         liblog.debugger(
@@ -465,7 +453,7 @@ class PtraceInterface(DebuggingInterface):
 
         return result
 
-    def _poke_mem(self, address: int, value: int):
+    def poke_memory(self, address: int, value: int):
         """Writes the memory at the specified address."""
         result = self.lib_trace.ptrace_pokedata(self.process_id, address, value)
         liblog.debugger(

@@ -60,6 +60,9 @@ class Debugger:
     _polling_thread_command_queue: Queue = None
     """The queue used to send commands to the background thread."""
 
+    _polling_thread_response_queue: Queue = None
+    """The queue used to receive responses from the background thread."""
+
     def __init__(self):
         """Do not use this constructor directly.
         Use the `debugger` function instead.
@@ -75,11 +78,13 @@ class Debugger:
 
         # threading utilities
         self._polling_thread_command_queue = Queue()
+        self._polling_thread_response_queue = Queue()
 
         self.breakpoints = debugging_context.breakpoints
         self.threads = debugging_context.threads
 
         self._start_processing_thread()
+        self._setup_memory_view()
 
     def run(self):
         """Starts the process and waits for it to stop."""
@@ -233,6 +238,41 @@ class Debugger:
             thread_context = next(iter(self.threads.values()))
             setattr(thread_context, name, value)
 
+    def _peek_memory(self, address: int) -> bytes:
+        """Reads memory from the process."""
+        if not self.instanced:
+            raise RuntimeError("Process not running, cannot step.")
+
+        self._polling_thread_command_queue.put(
+            (self.__threaded_peek_memory, (address,))
+        )
+        self._polling_thread_command_queue.join()
+
+        value = self._polling_thread_response_queue.get()
+        self._polling_thread_response_queue.task_done()
+
+        return value
+
+    def _poke_memory(self, address: int, data: bytes) -> None:
+        """Writes memory to the process."""
+        if not self.instanced:
+            raise RuntimeError("Process not running, cannot step.")
+
+        self._polling_thread_command_queue.put(
+            (self.__threaded_poke_memory, (address, data))
+        )
+        self._polling_thread_command_queue.join()
+
+    def _setup_memory_view(self):
+        """Sets up the memory view of the process."""
+        self.memory = MemoryView(
+            self._peek_memory,
+            self._poke_memory,
+            self.interface.maps,
+        )
+
+        debugging_context.memory = self.memory
+
     def _polling_thread_function(self):
         """This function is run in a thread. It is used to poll the process for state change."""
         while True:
@@ -240,10 +280,16 @@ class Debugger:
             command, args = self._polling_thread_command_queue.get()
 
             # Execute the command
-            command(*args)
+            return_value = command(*args)
+
+            if return_value is not None:
+                self._polling_thread_response_queue.put(return_value)
 
             # Signal that the command has been executed
             self._polling_thread_command_queue.task_done()
+
+            if return_value is not None:
+                self._polling_thread_response_queue.join()
 
     def __threaded_run(self):
         liblog.debugger("Starting process %s.", debugging_context.argv[0])
@@ -258,7 +304,7 @@ class Debugger:
                 self.threads[thread_id]._poll_registers()
 
         # create memory view
-        self.memory = self.interface.provide_memory_view()
+        # self.memory = self.interface.provide_memory_view()
 
     def __threaded_kill(self):
         liblog.debugger("Killing process %s.", debugging_context.argv[0])
@@ -289,6 +335,15 @@ class Debugger:
         liblog.debugger("Stepping thread %s.", thread.thread_id)
         self.interface.step(thread)
         debugging_context.set_running()
+
+    def __threaded_peek_memory(self, address: int) -> bytes:
+        value = self.interface.peek_memory(address)
+        # TODO: this is only for amd64
+        return value.to_bytes(8, "little")
+
+    def __threaded_poke_memory(self, address: int, data: bytes):
+        data = int.from_bytes(data, "little")
+        self.interface.poke_memory(address, data)
 
 
 def debugger(

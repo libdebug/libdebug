@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 from libdebug.data.breakpoint import Breakpoint
+from libdebug.data.memory_view import MemoryView
 from libdebug.utils.pipe_manager import PipeManager
 
 
@@ -56,6 +57,9 @@ class DebuggingContext:
 
     debugging_interface: "DebuggingInterface"
     """The debugging interface used to communicate with the debugged process."""
+
+    memory: MemoryView
+    """The memory view of the debugged process."""
 
     def __new__(cls) -> DebuggingContext:
         """Create a new instance of the class if it does not exist yet.
