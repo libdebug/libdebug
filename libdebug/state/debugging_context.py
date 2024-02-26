@@ -61,6 +61,9 @@ class DebuggingContext:
     memory: MemoryView
     """The memory view of the debugged process."""
 
+    _threaded_memory: MemoryView
+    """The memory view of the debugged process, used for operations in the background thread."""
+
     def __new__(cls) -> DebuggingContext:
         """Create a new instance of the class if it does not exist yet.
 

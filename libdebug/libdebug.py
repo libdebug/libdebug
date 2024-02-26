@@ -63,6 +63,9 @@ class Debugger:
     _polling_thread_response_queue: Queue = None
     """The queue used to receive responses from the background thread."""
 
+    _threaded_memory: MemoryView = None
+    """The memory view of the process, used for operations in the background thread."""
+
     def __init__(self):
         """Do not use this constructor directly.
         Use the `debugger` function instead.
@@ -280,6 +283,13 @@ class Debugger:
 
         return value
 
+    def _poll_thread_registers(self):
+        """Updates the register values of all the threads."""
+        keys = list(self.threads.keys())
+        for thread_id in keys:
+            if thread_id in self.threads:
+                self.threads[thread_id]._poll_registers()
+
     def _poke_memory(self, address: int, data: bytes) -> None:
         """Writes memory to the process."""
         if not self.instanced:
@@ -297,8 +307,14 @@ class Debugger:
             self._poke_memory,
             self.interface.maps,
         )
+        self._threaded_memory = MemoryView(
+            self.__threaded_peek_memory,
+            self.__threaded_poke_memory,
+            self.interface.maps,
+        )
 
         debugging_context.memory = self.memory
+        debugging_context._threaded_memory = self._threaded_memory
 
     def _polling_thread_function(self):
         """This function is run in a thread. It is used to poll the process for state change."""
@@ -325,10 +341,7 @@ class Debugger:
         debugging_context.set_stopped()
 
         # Update the state of the process and its threads
-        keys = list(self.threads.keys())
-        for thread_id in keys:
-            if thread_id in self.threads:
-                self.threads[thread_id]._poll_registers()
+        self._poll_thread_registers()
 
     def __threaded_attach(self, pid: int):
         liblog.debugger("Attaching to process %d.", pid)
@@ -337,10 +350,7 @@ class Debugger:
         debugging_context.set_stopped()
 
         # Update the state of the process and its threads
-        keys = list(self.threads.keys())
-        for thread_id in keys:
-            if thread_id in self.threads:
-                self.threads[thread_id]._poll_registers()
+        self._poll_thread_registers()
 
     def __threaded_kill(self):
         liblog.debugger("Killing process %s.", debugging_context.argv[0])
@@ -357,15 +367,15 @@ class Debugger:
 
     def __threaded_wait(self):
         liblog.debugger("Waiting for process %s to stop.", debugging_context.argv[0])
-        self.interface.wait()
+
+        while self.interface.wait():
+            self._poll_thread_registers()
+            self.interface.cont()
 
         debugging_context.set_stopped()
 
         # Update the state of the process and its threads
-        keys = list(self.threads.keys())
-        for thread_id in keys:
-            if thread_id in self.threads:
-                self.threads[thread_id]._poll_registers()
+        self._poll_thread_registers()
 
     def __threaded_step(self, thread: ThreadContext):
         liblog.debugger("Stepping thread %s.", thread.thread_id)

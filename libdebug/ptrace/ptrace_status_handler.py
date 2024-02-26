@@ -44,16 +44,16 @@ class PtraceStatusHandler:
     def _handle_exit(self, thread_id: int):
         self.ptrace_interface.unregister_thread(thread_id)
 
-    def _handle_trap(self, thread_id: int):
+    def _handle_trap(self, thread_id: int) -> bool:
         thread = debugging_context.threads[thread_id]
 
-        # force a register poll
+        # Force a register poll
         thread._poll_registers()
-        thread._needs_poll_registers = False
+        thread._needs_register_poll = False
 
         if not hasattr(thread, "instruction_pointer"):
             # This is a signal trap hit on process startup
-            return
+            return False
 
         ip = thread.instruction_pointer
 
@@ -91,8 +91,22 @@ class PtraceStatusHandler:
         if bp:
             bp.hit_count += 1
 
-    def handle_change(self, pid: int, status: int):
+            if bp.callback:
+                # This is a bit of a hack, but we will make it work for now
+                # Better than swapping global variables for everyone
+                thread._in_background_op = True
+                bp.callback(thread, bp)
+                thread._in_background_op = False
+                return True
+
+        return False
+
+    def handle_change(self, pid: int, status: int) -> bool:
+        """Handle a change in the status of a traced process. Return True if the process should start waiting again."""
         event = status >> 8
+
+        # By default, we block at the first wait we don't recognize
+        restart_wait = False
 
         if os.WIFSTOPPED(status):
             signum = os.WSTOPSIG(status)
@@ -100,7 +114,10 @@ class PtraceStatusHandler:
             liblog.debugger("Child thread %d stopped with signal %s", pid, signame)
 
             if signum == signal.SIGTRAP:
-                self._handle_trap(pid)
+                # The trap decides if we hit a breakpoint
+                # And if so, it returns whether we should stop or
+                # continue the execution and wait for the next trap
+                restart_wait |= self._handle_trap(pid)
 
             match event:
                 case StopEvents.CLONE_EVENT:
@@ -132,3 +149,5 @@ class PtraceStatusHandler:
             termsig = os.WTERMSIG(status)
             liblog.debugger("Child process %d exited with signal %d", pid, termsig)
             self._handle_exit(pid)
+
+        return restart_wait

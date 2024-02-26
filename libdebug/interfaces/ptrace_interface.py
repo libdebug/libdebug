@@ -35,7 +35,6 @@ from libdebug.architectures.register_helper import register_holder_provider
 from libdebug.cffi import _ptrace_cffi
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_map import MemoryMap
-from libdebug.data.memory_view import MemoryView
 from libdebug.data.register_holder import RegisterHolder
 from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.liblog import liblog
@@ -337,8 +336,8 @@ class PtraceInterface(DebuggingInterface):
             errno_val = self.ffi.errno
             raise OSError(errno_val, errno.errorcode[errno_val])
 
-    def wait(self):
-        """Waits for the process to stop."""
+    def wait(self) -> bool:
+        """Waits for the process to stop. Returns True if the wait has to be repeated."""
         assert self.process_id is not None
 
         # -1 means wait for any child process
@@ -383,10 +382,14 @@ class PtraceInterface(DebuggingInterface):
 
             liblog.debugger("All threads stopped")
 
+            repeat = False
+
             for pid, status in wait_results:
-                self.status_handler.handle_change(pid, status)
+                repeat |= self.status_handler.handle_change(pid, status)
+
+            return repeat
         else:
-            self.status_handler.handle_change(pid, status)
+            return self.status_handler.handle_change(pid, status)
 
     def register_new_thread(self, new_thread_id: int):
         """Registers a new thread."""

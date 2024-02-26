@@ -17,6 +17,7 @@
 
 from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
 from libdebug.data.register_holder import RegisterHolder
+from libdebug.liblog import liblog
 from libdebug.state.debugging_context import debugging_context
 from libdebug.utils.debugging_utils import resolve_address_in_maps
 
@@ -32,7 +33,7 @@ class ThreadContext:
     thread_id: int
     """The thread's ID."""
 
-    _needs_poll_registers: bool = True
+    _needs_register_poll: bool = True
     """Whether the registers need to be polled."""
 
     _needs_sigcont: bool = False
@@ -40,6 +41,9 @@ class ThreadContext:
 
     _dirty: bool = False
     """Whether the registers have been modified."""
+
+    _in_background_op: bool = False
+    """Whether the thread is being interacted with from the background thread."""
 
     def __init__(self, thread_id: int):
         self.thread_id = thread_id
@@ -70,18 +74,29 @@ class ThreadContext:
     @property
     def memory(self):
         """The memory view of the debugged process."""
-        return debugging_context.memory
+        # This is not the best way to do it, but it should not cause issues
+        # Even if the library is multi-threaded, we don't expect the memory view
+        # to be used while a background operation is in progress
+        if not self._in_background_op:
+            return debugging_context.memory
+        else:
+            return debugging_context._threaded_memory
 
     def _poll_registers(self):
         """Updates the register values."""
-        if not self._needs_poll_registers:
-            self._needs_poll_registers = True
+        if not self._needs_register_poll:
+            self._needs_register_poll = True
             return
+
+        liblog.debugger("Polling registers for thread %d", self.thread_id)
 
         self.registers.poll(self)
         self._dirty = False
 
     def _flush_registers(self):
+        """Flushes the register values."""
+        liblog.debugger("Flushing registers for thread %d", self.thread_id)
+
         if self._dirty:
             self.registers.flush(self)
 
