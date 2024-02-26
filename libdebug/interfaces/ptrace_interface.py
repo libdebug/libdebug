@@ -313,11 +313,14 @@ class PtraceInterface(DebuggingInterface):
         """Returns the current value of all the available registers.
         Note: the register holder should then be used to automatically setup getters and setters for each register.
         """
-        # TODO: this 512 is a magic number, it should be replaced with a constant
         register_file = self.ffi.new("struct user_regs_struct*")
-        liblog.debugger(
-            "Getting registers from process %d, thread %d", self.process_id, thread_id
+
+        return register_holder_provider(
+            register_file, getter=self._get_registers, setter=self._set_registers
         )
+
+    def _get_registers(self, register_file, thread_id: int):
+        """Returns the current value of all the available registers."""
         result = self.lib_trace.ptrace_getregs(thread_id, register_file)
         if result == -1:
             errno_val = self.ffi.errno
@@ -326,14 +329,9 @@ class PtraceInterface(DebuggingInterface):
                 return None
             else:
                 raise OSError(errno_val, errno.errorcode[errno_val])
-        else:
-            return register_holder_provider(
-                register_file, ptrace_setter=self._set_registers
-            )
 
     def _set_registers(self, register_file, thread_id: int):
         """Sets the value of all the available registers."""
-        # TODO: this 512 is a magic number, it should be replaced with a constant
         result = self.lib_trace.ptrace_setregs(thread_id, register_file)
         if result == -1:
             errno_val = self.ffi.errno

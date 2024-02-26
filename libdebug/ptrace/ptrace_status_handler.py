@@ -93,35 +93,32 @@ class PtraceStatusHandler:
 
     def handle_change(self, pid: int, status: int):
         event = status >> 8
-        message = self.ptrace_interface._get_event_msg(pid)
 
         if os.WIFSTOPPED(status):
             signum = os.WSTOPSIG(status)
             signame = signal.Signals(signum).name
-            liblog.debugger("Child process %d stopped with signal %s", pid, signame)
+            liblog.debugger("Child thread %d stopped with signal %s", pid, signame)
 
             if signum == signal.SIGTRAP:
                 self._handle_trap(pid)
 
             match event:
                 case StopEvents.CLONE_EVENT:
+                    message = self.ptrace_interface._get_event_msg(pid)
                     liblog.debugger(
                         "Process {} cloned, new thread_id: {}".format(pid, message)
                     )
                     self._handle_clone(message)
 
                 case StopEvents.SECCOMP_EVENT:
-                    liblog.debugger(
-                        "Process {} installed a seccomp, SECCOMP_RET_DATA: {}".format(
-                            pid, message
-                        )
-                    )
+                    liblog.debugger("Process {} installed a seccomp".format(pid))
 
                 case StopEvents.EXIT_EVENT:
                     # The tracee is still alive; it needs
                     # to be PTRACE_CONTed or PTRACE_DETACHed to finish exiting.
                     # so we don't call self._handle_exit(pid) here
                     # it will be called at the next wait (hopefully)
+                    message = self.ptrace_interface._get_event_msg(pid)
                     liblog.debugger(
                         "Thread {} exited with status: {}".format(pid, message)
                     )

@@ -18,7 +18,6 @@
 from dataclasses import dataclass
 
 from libdebug.data.register_holder import PtraceRegisterHolder
-from libdebug.utils.packing_utils import p64, u64
 from libdebug.utils.register_utils import (
     get_reg_8h,
     get_reg_8l,
@@ -85,6 +84,7 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
                 return get_reg_64(self.regs, name)
 
             def setter(self, value):
+                self._dirty = True
                 set_reg_64(self.regs, name, value)
 
             return property(getter, setter, None, name)
@@ -94,6 +94,7 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
                 return get_reg_32(self.regs, name)
 
             def setter(self, value):
+                self._dirty = True
                 set_reg_32(self.regs, name, value)
 
             return property(getter, setter, None, name)
@@ -103,6 +104,7 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
                 return get_reg_16(self.regs, name)
 
             def setter(self, value):
+                self._dirty = True
                 set_reg_16(self.regs, name, value)
 
             return property(getter, setter, None, name)
@@ -112,6 +114,7 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
                 return get_reg_8l(self.regs, name)
 
             def setter(self, value):
+                self._dirty = True
                 set_reg_8l(self.regs, name, value)
 
             return property(getter, setter, None, name)
@@ -121,6 +124,7 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
                 return get_reg_8h(self.regs, name)
 
             def setter(self, value):
+                self._dirty = True
                 set_reg_8h(self.regs, name, value)
 
             return property(getter, setter, None, name)
@@ -166,6 +170,10 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
 
         # setup generic "instruction_pointer" property
         setattr(target_class, "instruction_pointer", get_property_64("rip"))
+
+    def poll(self, target: "ThreadContext"):
+        """Polls the register values from the target process."""
+        self.ptrace_getter(target.regs, target.thread_id)
 
     def flush(self, source: "ThreadContext"):
         """Flushes the register values to the target process."""

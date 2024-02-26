@@ -23,20 +23,28 @@ from typing import Callable
 class RegisterHolder:
     """An abstract class that holds the state of the registers of a process, providing setters and getters for them."""
 
-    def apply_on(self, target, target_class):
+    def apply_on(self, target: "ThreadContext", target_class):
         """Applies the current register values to the specified target.
 
         Args:
-            target (object): The object to which the register values should be applied.
+            target (ThreadContext): The object to which the register values should be applied.
             target_class (type): The class of the target object, needed to set the attributes.
         """
         pass
 
-    def flush(self, source):
+    def poll(self, target: "ThreadContext"):
+        """Polls the register values from the specified target.
+
+        Args:
+            target (ThreadContext): The object from which the register values should be polled.
+        """
+        pass
+
+    def flush(self, source: "ThreadContext"):
         """Flushes the register values from the specified source.
 
         Args:
-            source (object): The object from which the register values should be flushed.
+            source (ThreadContext): The object from which the register values should be flushed.
         """
         pass
 
@@ -48,8 +56,9 @@ class PtraceRegisterHolder(RegisterHolder):
     This class should not be instantiated directly, but rather through the `register_holder_provider` function.
 
     Attributes:
-        register_file (bytes): The content of the register file of the process, as returned by `ptrace`.
+        register_file (object): The content of the register file of the process, as returned by `ptrace`.
     """
 
     register_file: bytes
-    ptrace_setter: Callable[[bytes], None]
+    ptrace_getter: Callable[[], object]
+    ptrace_setter: Callable[[object], None]

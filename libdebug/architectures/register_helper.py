@@ -25,14 +25,15 @@ from libdebug.utils.libcontext import libcontext
 
 
 def register_holder_provider(
-    register_file: bytes,
-    ptrace_setter: Callable[[bytes], None] = None,
+    register_file: object,
+    getter: Callable[[], object] = None,
+    setter: Callable[[object], None] = None,
 ) -> RegisterHolder:
     """Returns an instance of the register holder to be used by the `Debugger` class."""
     architecture = libcontext.arch
 
     match architecture:
         case "amd64":
-            return Amd64PtraceRegisterHolder(register_file, ptrace_setter)
+            return Amd64PtraceRegisterHolder(register_file, getter, setter)
         case _:
             raise NotImplementedError(f"Architecture {architecture} not available.")

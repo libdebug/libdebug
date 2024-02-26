@@ -26,7 +26,7 @@ class ThreadContext:
     This object represents a thread in the context of the target process. It holds information about the thread's state, registers and stack.
     """
 
-    registers: RegisterHolder
+    registers: RegisterHolder = None
     """The register holder object. It provides access to the thread's registers."""
 
     thread_id: int
@@ -37,6 +37,9 @@ class ThreadContext:
 
     _needs_sigcont: bool = False
     """Whether the thread needs to be continued after a signal stop."""
+
+    _dirty: bool = False
+    """Whether the registers have been modified."""
 
     def __init__(self, thread_id: int):
         self.thread_id = thread_id
@@ -55,7 +58,14 @@ class ThreadContext:
             # If no thread ID is specified, we assume the main thread which has tid = pid
             thread_id = debugging_context.process_id
 
-        return ThreadContext(thread_id)
+        thread = ThreadContext(thread_id)
+
+        thread.registers = debugging_context.debugging_interface.get_register_holder(
+            thread_id
+        )
+        thread.registers.apply_on(thread, ThreadContext)
+
+        return thread
 
     @property
     def memory(self):
@@ -68,14 +78,11 @@ class ThreadContext:
             self._needs_poll_registers = True
             return
 
-        self.registers = debugging_context.debugging_interface.get_register_holder(
-            self.thread_id
-        )
-        if self.registers:
-            self.registers.apply_on(self, ThreadContext)
+        self.registers.poll(self)
+        self._dirty = False
 
     def _flush_registers(self):
-        if self.registers:
+        if self._dirty:
             self.registers.flush(self)
 
     def backtrace(self):
