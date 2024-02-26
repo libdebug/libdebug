@@ -267,6 +267,9 @@ class Debugger:
         value = self._polling_thread_response_queue.get()
         self._polling_thread_response_queue.task_done()
 
+        if isinstance(value, BaseException):
+            raise value
+
         return value
 
     def _poke_memory(self, address: int, data: bytes) -> None:
@@ -362,9 +365,12 @@ class Debugger:
         debugging_context.set_running()
 
     def __threaded_peek_memory(self, address: int) -> bytes:
-        value = self.interface.peek_memory(address)
-        # TODO: this is only for amd64
-        return value.to_bytes(8, "little")
+        try:
+            value = self.interface.peek_memory(address)
+            # TODO: this is only for amd64
+            return value.to_bytes(8, "little")
+        except BaseException as e:
+            return e
 
     def __threaded_poke_memory(self, address: int, data: bytes):
         data = int.from_bytes(data, "little")
