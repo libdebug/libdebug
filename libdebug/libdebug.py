@@ -270,6 +270,9 @@ class Debugger:
         if not self.instanced:
             raise RuntimeError("Process not running, cannot step.")
 
+        if debugging_context.running:
+            raise RuntimeError("Cannot read memory while the process is running.")
+
         self._polling_thread_command_queue.put(
             (self.__threaded_peek_memory, (address,))
         )
@@ -283,22 +286,25 @@ class Debugger:
 
         return value
 
+    def _poke_memory(self, address: int, data: bytes) -> None:
+        """Writes memory to the process."""
+        if not self.instanced:
+            raise RuntimeError("Process not running, cannot step.")
+
+        if debugging_context.running:
+            raise RuntimeError("Cannot write memory while the process is running.")
+
+        self._polling_thread_command_queue.put(
+            (self.__threaded_poke_memory, (address, data))
+        )
+        self._polling_thread_command_queue.join()
+
     def _poll_thread_registers(self):
         """Updates the register values of all the threads."""
         keys = list(self.threads.keys())
         for thread_id in keys:
             if thread_id in self.threads:
                 self.threads[thread_id]._poll_registers()
-
-    def _poke_memory(self, address: int, data: bytes) -> None:
-        """Writes memory to the process."""
-        if not self.instanced:
-            raise RuntimeError("Process not running, cannot step.")
-
-        self._polling_thread_command_queue.put(
-            (self.__threaded_poke_memory, (address, data))
-        )
-        self._polling_thread_command_queue.join()
 
     def _setup_memory_view(self):
         """Sets up the memory view of the process."""

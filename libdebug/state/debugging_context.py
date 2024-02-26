@@ -49,7 +49,7 @@ class DebuggingContext:
     pipe_manager: PipeManager
     """The pipe manager used to communicate with the debugged process."""
 
-    process_state: bool
+    _is_running: bool
     """The overall state of the debugged process. True if the process is running, False otherwise."""
 
     process_id: int
@@ -100,7 +100,7 @@ class DebuggingContext:
         self._breakpoints.clear()
         self._threads.clear()
         self.pipe_manager = None
-        self.process_state = False
+        self._is_running = False
         self.process_id = 0
 
     @property
@@ -167,7 +167,7 @@ class DebuggingContext:
             bool: True if the process is running, False otherwise.
         """
 
-        return self.process_state
+        return self._is_running
 
     def set_running(self) -> bool:
         """Set the state of the process to running.
@@ -176,7 +176,7 @@ class DebuggingContext:
             bool: True if the process is running, False otherwise.
         """
 
-        self.process_state = True
+        self._is_running = True
 
     def set_stopped(self) -> bool:
         """Set the state of the process to stopped.
@@ -185,7 +185,7 @@ class DebuggingContext:
             bool: True if the process is running, False otherwise.
         """
 
-        self.process_state = False
+        self._is_running = False
 
     @property
     def dead(self) -> bool:

@@ -68,6 +68,40 @@ class MemoryTest(unittest.TestCase):
 
         d.kill()
 
+    def test_memory_exceptions(self):
+        d = self.d
+
+        d.run()
+
+        bp = d.breakpoint("change_memory")
+
+        d.cont()
+
+        try:
+            print(d.memory[0x0, 256])
+            self.assertTrue(False)
+        except ValueError:
+            self.assertTrue(False)
+        except RuntimeError:
+            self.assertTrue(True)
+            pass
+
+        d.wait()
+
+        assert d.rip == bp.address
+
+        address = d.rdi
+        prev = bytes(range(256))
+
+        self.assertTrue(d.memory[address, 256] == prev)
+
+        d.memory[address + 128 :] = b"abcd123456"
+        prev = prev[:128] + b"abcd123456" + prev[138:]
+
+        self.assertTrue(d.memory[address : address + 256] == prev)
+
+        d.kill()
+
 
 if __name__ == "__main__":
     unittest.main()
