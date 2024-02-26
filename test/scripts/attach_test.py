@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/io-no/libdebug).
-# Copyright (c) 2023 Gabriele Digregorio.
+# Copyright (c) 2023 - 2024 Gabriele Digregorio, Roberto Alessandro Bertolini.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,38 +16,36 @@
 #
 
 from libdebug import debugger
-from pwn import *
+from pwn import process
 import unittest
 import logging
 
-logging.getLogger('pwnlib').setLevel(logging.ERROR)
+logging.getLogger("pwnlib").setLevel(logging.ERROR)
+
 
 class AttachTest(unittest.TestCase):
     def setUp(self):
-        self.exceptions = []
-        
+        pass
+
     def test_attach(self):
-        global is_hit
+        r = process("binaries/attach_test")
 
-        def hook(d,b):
-            global is_hit
-            try:
-                is_hit = True
-            except Exception as e:
-                self.exceptions.append(e)
-        
-        r = process('binaries/attach_test')
-
-        d = debugger()
+        d = debugger("binaries/attach_test")
         d.attach(r.pid)
-        d.b('printName', hook, hardware_assisted=True)
+        bp = d.breakpoint("printName", hardware=True)
         d.cont()
 
-        r.recvuntil(b'name:')
-        r.sendline(b'Io_no')
+        r.recvuntil(b"name:")
+        r.sendline(b"Io_no")
+
+        d.wait()
+
+        self.assertTrue(d.rip == bp.address)
+
+        d.cont()
 
         d.kill()
-        
-        self.assertTrue(is_hit)
-        if self.exceptions:
-            raise self.exceptions[0]
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -46,7 +46,7 @@ def suite():
     suite.addTest(Vmwhere1("test_vmwhere1"))
     suite.addTest(Jumpout("test_jumpout"))
     suite.addTest(Ncuts("test_ncuts"))
-    # suite.addTest(AttachTest("test_attach"))
+    suite.addTest(AttachTest("test_attach"))
     suite.addTest(ThreadTest("test_thread"))
     suite.addTest(ThreadTest("test_thread_hardware"))
     suite.addTest(SpeedTest("test_speed"))
