@@ -30,17 +30,19 @@ class BasicTest(unittest.TestCase):
         self.d.cont()
         self.d.wait()
         self.assertTrue(bp.address == self.d.rip)
+        self.d.cont()
+        self.d.wait()
         self.d.kill()
-        
+
     def test_registers(self):
         d = self.d
 
         d.run()
 
-        bp1 = d.breakpoint(0x4011ca)
-        bp2 = d.breakpoint(0x40128d)
+        bp1 = d.breakpoint(0x4011CA)
+        bp2 = d.breakpoint(0x40128D)
         bp3 = d.breakpoint(0x401239)
-        bp4 = d.breakpoint(0x4011f4)
+        bp4 = d.breakpoint(0x4011F4)
         bp5 = d.breakpoint(0x401296)
 
         d.cont()
@@ -183,6 +185,7 @@ class BasicTest(unittest.TestCase):
         d.cont()
         d.kill()
 
+
 class BasicPieTest(unittest.TestCase):
     def setUp(self):
         self.d = debugger("binaries/basic_test_pie")
@@ -199,6 +202,7 @@ class BasicPieTest(unittest.TestCase):
         self.assertTrue(d.rdi == 0xAABBCCDD11223344)
 
         self.d.kill()
+
 
 class HwBasicTest(unittest.TestCase):
     def setUp(self):
@@ -218,10 +222,10 @@ class HwBasicTest(unittest.TestCase):
 
         d.run()
 
-        bp1 = d.breakpoint(0x4011ca, hardware=True)
-        bp2 = d.breakpoint(0x40128d, hardware=False)
+        bp1 = d.breakpoint(0x4011CA, hardware=True)
+        bp2 = d.breakpoint(0x40128D, hardware=False)
         bp3 = d.breakpoint(0x401239, hardware=True)
-        bp4 = d.breakpoint(0x4011f4, hardware=False)
+        bp4 = d.breakpoint(0x4011F4, hardware=False)
         bp5 = d.breakpoint(0x401296, hardware=True)
 
         d.cont()
@@ -316,5 +320,6 @@ class HwBasicTest(unittest.TestCase):
         self.d.cont()
         self.d.kill()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

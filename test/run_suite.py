@@ -23,6 +23,7 @@ from scripts.backtrace_test import BacktraceTest
 from scripts.basic_test import BasicPieTest, BasicTest, HwBasicTest
 from scripts.breakpoint_test import BreakpointTest
 from scripts.brute_test import BruteTest
+from scripts.callback_test import CallbackTest
 from scripts.jumpout import Jumpout
 from scripts.memory_test import MemoryTest
 from scripts.ncuts import Ncuts
@@ -52,6 +53,12 @@ def suite():
     suite.addTest(ThreadTest("test_thread"))
     suite.addTest(ThreadTest("test_thread_hardware"))
     suite.addTest(ComplexThreadTest("test_thread"))
+    suite.addTest(CallbackTest("test_callback_simple"))
+    suite.addTest(CallbackTest("test_callback_simple_hardware"))
+    suite.addTest(CallbackTest("test_callback_memory"))
+    suite.addTest(CallbackTest("test_callback_bruteforce"))
+    suite.addTest(CallbackTest("test_callback_jumpout"))
+    suite.addTest(CallbackTest("test_callback_intermixing"))
     suite.addTest(SpeedTest("test_speed"))
     suite.addTest(SpeedTest("test_speed_hardware"))
     return suite
