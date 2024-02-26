@@ -130,6 +130,24 @@ class PtraceInterface(DebuggingInterface):
             self._setup_parent()
             debugging_context.pipe_manager = self._setup_pipe()
 
+    def attach(self, pid: int):
+        """Attaches to the specified process.
+
+        Args:
+            pid (int): the pid of the process to attach to.
+        """
+        # Setup ptrace wait status handler after debugging_context has been properly initialized
+        self.status_handler = PtraceStatusHandler()
+
+        res = self.lib_trace.ptrace_attach(pid)
+        if res == -1:
+            errno_val = self.ffi.errno
+            raise OSError(errno_val, errno.errorcode[errno_val])
+
+        debugging_context.process_id = pid
+        self.register_new_thread(pid)
+        self._setup_parent()
+
     def kill(self):
         """Instantly terminates the process."""
         assert self.process_id is not None

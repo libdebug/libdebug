@@ -17,7 +17,6 @@
 
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_map import MemoryMap
-from libdebug.data.memory_view import MemoryView
 from libdebug.data.register_holder import RegisterHolder
 from libdebug.state.debugging_context import debugging_context
 from libdebug.state.thread_context import ThreadContext
@@ -44,6 +43,14 @@ class DebuggingInterface:
 
     def run(self):
         """Runs the specified process."""
+        pass
+
+    def attach(self, pid: int):
+        """Attaches to the specified process.
+
+        Args:
+            pid (int): the pid of the process to attach to.
+        """
         pass
 
     def kill(self):

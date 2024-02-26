@@ -107,6 +107,22 @@ class Debugger:
 
         return debugging_context.pipe_manager
 
+    def attach(self, pid: int):
+        """Attaches to an existing process."""
+        if self.instanced:
+            liblog.debugger("Process already running, stopping it before restarting.")
+
+        self.instanced = True
+
+        if not self._polling_thread_command_queue.empty():
+            raise RuntimeError("Polling thread command queue not empty.")
+
+        self._polling_thread_command_queue.put((self.__threaded_attach, (pid,)))
+
+        # Wait for the background thread to signal "task done" before returning
+        # We don't want any asynchronous behaviour here
+        self._polling_thread_command_queue.join()
+
     def _start_processing_thread(self):
         """Starts the thread that will poll the traced process for state change."""
         # Set as daemon so that the Python interpreter can exit even if the thread is still running
@@ -303,8 +319,17 @@ class Debugger:
             if thread_id in self.threads:
                 self.threads[thread_id]._poll_registers()
 
-        # create memory view
-        # self.memory = self.interface.provide_memory_view()
+    def __threaded_attach(self, pid: int):
+        liblog.debugger("Attaching to process %d.", pid)
+        self.interface.attach(pid)
+
+        debugging_context.set_stopped()
+
+        # Update the state of the process and its threads
+        keys = list(self.threads.keys())
+        for thread_id in keys:
+            if thread_id in self.threads:
+                self.threads[thread_id]._poll_registers()
 
     def __threaded_kill(self):
         liblog.debugger("Killing process %s.", debugging_context.argv[0])
