@@ -27,7 +27,7 @@ from scripts.jumpout import Jumpout
 from scripts.memory_test import MemoryTest
 from scripts.ncuts import Ncuts
 from scripts.speed_test import SpeedTest
-from scripts.thread_test import ThreadTest
+from scripts.thread_test import ThreadTest, ComplexThreadTest
 from scripts.vmwhere1 import Vmwhere1
 
 
@@ -35,6 +35,8 @@ def suite():
     suite = unittest.TestSuite()
     suite.addTest(BasicTest("test_basic"))
     suite.addTest(BasicTest("test_registers"))
+    suite.addTest(BasicTest("test_step"))
+    suite.addTest(BasicTest("test_step_hardware"))
     suite.addTest(BasicPieTest("test_basic"))
     suite.addTest(BreakpointTest("test_bps"))
     suite.addTest(MemoryTest("test_memory"))
@@ -49,6 +51,7 @@ def suite():
     suite.addTest(AttachTest("test_attach"))
     suite.addTest(ThreadTest("test_thread"))
     suite.addTest(ThreadTest("test_thread_hardware"))
+    suite.addTest(ComplexThreadTest("test_thread"))
     suite.addTest(SpeedTest("test_speed"))
     suite.addTest(SpeedTest("test_speed_hardware"))
     return suite

@@ -199,11 +199,17 @@ int cont_all_and_set_bps(
             return -1;
 
         // step over the breakpoint
-        if (ptrace(PTRACE_SINGLESTEP, bps[i].pid, NULL, NULL))
+        if (ptrace(PTRACE_SINGLESTEP, bps[i].pid, NULL, SIGCONT))
             return -1;
 
         // wait for the child
         waitpid(bps[i].pid, &status, 0);
+
+        // status == 4991 ==> (WIFSTOPPED(status) && WSTOPSIG(status) == SIGSTOP)
+        if (status == 4991) {
+            ptrace(PTRACE_SINGLESTEP, bps[i].pid, NULL, SIGCONT);
+            waitpid(bps[i].pid, &status, 0);
+        }
 
         // restore the breakpoint
         if (ptrace(PTRACE_POKEDATA, bps[i].pid, (void*) bps[i].addr, bps[i].bp_instruction))

@@ -57,9 +57,14 @@ class PtraceStatusHandler:
 
         ip = thread.instruction_pointer
 
+        enabled_breakpoints = {}
+        for bp in debugging_context.breakpoints.values():
+            if bp.enabled and not bp._disabled_for_step:
+                enabled_breakpoints[bp.address] = bp
+
         bp = None
 
-        if ip in debugging_context.breakpoints:
+        if ip in enabled_breakpoints:
             # Hardware breakpoint hit
             liblog.debugger("Hardware breakpoint hit at 0x%x", ip)
             bp = debugging_context.breakpoints[ip]
@@ -68,7 +73,7 @@ class PtraceStatusHandler:
             # and set the instruction pointer to the previous instruction.
             ip -= software_breakpoint_byte_size()
 
-            if ip in debugging_context.breakpoints:
+            if ip in enabled_breakpoints:
                 # Software breakpoint hit
                 liblog.debugger("Software breakpoint hit at 0x%x", ip)
                 bp = debugging_context.breakpoints[ip]
@@ -79,7 +84,7 @@ class PtraceStatusHandler:
                 # Set the instruction pointer to the previous instruction
                 thread.instruction_pointer = ip
 
-                # Set the needs_restore flag to True and the needs_poll flag to False
+                # Set the needs_restore flag to True and the link the breakpoint to the thread
                 bp._needs_restore = True
                 bp._linked_thread_ids.append(thread_id)
 

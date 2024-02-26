@@ -21,6 +21,7 @@ all:
 	$(CC) $(CFLAGS) $(SRC_DIR)/brute_test.c -o $(BIN_DIR)/brute_test $(LDFLAGS)
 	$(CC) $(CFLAGS) $(SRC_DIR)/speed_test.c -o $(BIN_DIR)/speed_test $(LDFLAGS)
 	$(CC) $(CFLAGS) $(SRC_DIR)/thread_test.c -o $(BIN_DIR)/thread_test $(LDFLAGS)
+	$(CC) $(CFLAGS) $(SRC_DIR)/complex_thread_test.c -o $(BIN_DIR)/complex_thread_test $(LDFLAGS)
 	
 
 # Clean rule to remove compiled files
