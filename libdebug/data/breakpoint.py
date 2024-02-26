@@ -32,6 +32,7 @@ class Breakpoint:
         hardware (bool): Whether the breakpoint is a hardware breakpoint or not.
         condition (str): The breakpoint condition. Available values are "X", "W", "RW". Supported only for hardware breakpoints.
         length (int): The length of the breakpoint area. Supported only for hardware breakpoints.
+        enabled (bool): Whether the breakpoint is enabled or not.
     """
 
     address: int = 0
@@ -41,6 +42,7 @@ class Breakpoint:
     callback: None | Callable[["Debugger", Breakpoint], None] = None
     condition: str = "X"
     length: int = 1
+    enabled: bool = True
 
     # Internal use only
     _original_instruction: bytes = b""
@@ -51,3 +53,13 @@ class Breakpoint:
 
     _linked_thread_ids: list[int] = field(default_factory=list)
     # The thread ID that hit the breakpoint
+
+    _disabled_for_step: bool = False
+
+    def enable(self) -> None:
+        """Enable the breakpoint."""
+        self.enabled = True
+
+    def disable(self) -> None:
+        """Disable the breakpoint."""
+        self.enabled = False

@@ -184,6 +184,10 @@ class PtraceInterface(DebuggingInterface):
         for thread in self.threads.values():
             thread._flush_registers()
 
+        # Enable all breakpoints that were disabled for a single step
+        for bp in debugging_context.breakpoints.values():
+            bp._disabled_for_step = False
+
         # Determine if any breakpoints need to be restored
         bps_to_restore = [
             bp for bp in debugging_context.breakpoints.values() if bp._needs_restore
@@ -235,6 +239,10 @@ class PtraceInterface(DebuggingInterface):
         # Set registers for all threads
         for thread in self.threads.values():
             thread._flush_registers()
+
+        # Disable all breakpoints for the single step
+        for bp in debugging_context.breakpoints.values():
+            bp._disabled_for_step = True
 
         thread_id = thread.thread_id
 
@@ -414,7 +422,7 @@ class PtraceInterface(DebuggingInterface):
         breakpoint._original_instruction = instruction
         self.poke_memory(breakpoint.address, install_software_breakpoint(instruction))
 
-    def _unset_sw_breakpoint(self, breakpoint: Breakpoint):
+    def unset_hit_software_breakpoint(self, breakpoint: Breakpoint):
         """Unsets a software breakpoint at the specified address.
 
         Args:
@@ -446,17 +454,9 @@ class PtraceInterface(DebuggingInterface):
             for helper in self.hardware_bp_helpers.values():
                 helper.remove_breakpoint(breakpoint)
         else:
-            self._unset_sw_breakpoint(breakpoint)
+            self.unset_hit_software_breakpoint(breakpoint)
 
         debugging_context.remove_breakpoint(breakpoint)
-
-    def unset_hit_software_breakpoint(self, breakpoint: Breakpoint):
-        """Unsets a software breakpoint at the specified address.
-
-        Args:
-            breakpoint (Breakpoint): The breakpoint to unset.
-        """
-        return self._unset_sw_breakpoint(breakpoint)
 
     def peek_memory(self, address: int) -> int:
         """Reads the memory at the specified address."""

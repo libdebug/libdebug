@@ -135,6 +135,54 @@ class BasicTest(unittest.TestCase):
         self.d.cont()
         self.d.kill()
 
+    def test_step(self):
+        d = self.d
+
+        d.run()
+        bp = d.breakpoint("register_test")
+        d.cont()
+        d.wait()
+
+        self.assertTrue(bp.address == d.rip)
+        self.assertTrue(bp.hit_count == 1)
+
+        d.step()
+
+        self.assertTrue(bp.address + 1 == d.rip)
+        self.assertTrue(bp.hit_count == 1)
+
+        d.step()
+
+        self.assertTrue(bp.address + 4 == d.rip)
+        self.assertTrue(bp.hit_count == 1)
+
+        d.cont()
+        d.kill()
+
+    def test_step_hardware(self):
+        d = self.d
+
+        d.run()
+        bp = d.breakpoint("register_test", hardware=True)
+        d.cont()
+        d.wait()
+
+        self.assertTrue(bp.address == d.rip)
+        self.assertTrue(bp.hit_count == 1)
+
+        d.step()
+
+        self.assertTrue(bp.address + 1 == d.rip)
+        self.assertTrue(bp.hit_count == 1)
+
+        d.step()
+
+        self.assertTrue(bp.address + 4 == d.rip)
+        self.assertTrue(bp.hit_count == 1)
+
+        d.cont()
+        d.kill()
+
 class BasicPieTest(unittest.TestCase):
     def setUp(self):
         self.d = debugger("binaries/basic_test_pie")

@@ -185,10 +185,18 @@ class Debugger:
         # We don't want any asynchronous behaviour here
         self._polling_thread_command_queue.join()
 
-    def step(self, thread: ThreadContext):
-        """Executes a single instruction of the process."""
+    def step(self, thread: ThreadContext = None):
+        """Executes a single instruction of the process.
+
+        Args:
+            thread (ThreadContext, optional): The thread to step. Defaults to None.
+        """
         if not self.instanced:
             raise RuntimeError("Process not running, cannot step.")
+
+        if thread is None:
+            # If no thread is specified, we use the first thread
+            thread = next(iter(self.threads.values()))
 
         self._polling_thread_command_queue.put((self.__threaded_step, (thread,)))
         self._polling_thread_command_queue.put((self.__threaded_wait, ()))
