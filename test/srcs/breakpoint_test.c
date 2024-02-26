@@ -1,6 +1,6 @@
 // 
 //  This file is part of libdebug Python library (https://github.com/io-no/libdebug).
-//  Copyright (c) 2023 Roberto Alessandro Bertolini.
+//  Copyright (c) 2023 - 2024 Roberto Alessandro Bertolini.
 // 
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@ void random_function()
 {
     printf("Random function\n");
 
-    int x;
+    int x = 0;
     for (int i = 0; i < 10; i++)
     {
         x += i;        

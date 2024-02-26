@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/io-no/libdebug).
-# Copyright (c) 2023 Roberto Alessandro Bertolini, Gabriele Digregorio.
+# Copyright (c) 2023 - 2024 Roberto Alessandro Bertolini, Gabriele Digregorio.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -30,8 +30,8 @@ class BreakpointTest(unittest.TestCase):
         d.run()
 
         bp1 = d.breakpoint("random_function")
-        bp2 = d.breakpoint(0x401154)
-        bp3 = d.breakpoint(0x401166)
+        bp2 = d.breakpoint(0x40115b)
+        bp3 = d.breakpoint(0x40116d)
 
         counter = 1
 

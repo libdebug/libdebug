@@ -3,7 +3,8 @@ import os
 from setuptools import find_packages, setup
 
 # Check if the user has the required C libraries installed
-if not os.path.isfile("/usr/include/sys/ptrace.h"):
+if not (os.path.isfile("/usr/include/sys/ptrace.h")
+        or os.path.isfile("/usr/include/x86_64-linux-gnu/sys/ptrace.h")):
     print("Required C libraries not found. Please install ptrace")
     exit(1)
 if not os.path.isfile("/usr/include/libelf.h"):
@@ -31,6 +32,7 @@ setup(
         "capstone",
         "pyelftools",
         "cffi",
+        "requests",
     ],
     setup_requires=["cffi"],
     cffi_modules=["./libdebug/cffi/ptrace_cffi_build.py:ffibuilder", f"./libdebug/cffi/{debug_sym_cffi}.py:ffibuilder"],
