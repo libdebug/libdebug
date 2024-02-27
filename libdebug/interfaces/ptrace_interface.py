@@ -77,9 +77,12 @@ class PtraceInterface(DebuggingInterface):
 
         self.hardware_bp_helpers = {}
 
+        self.reset()
+
     def reset(self):
         """Resets the state of the interface."""
         self.hardware_bp_helpers.clear()
+        self.lib_trace.free_thread_list()
 
     def _set_options(self):
         """Sets the tracer options."""
@@ -179,10 +182,6 @@ class PtraceInterface(DebuggingInterface):
 
     def cont(self):
         """Continues the execution of the process."""
-        # Set registers for all threads
-        for thread in self.threads.values():
-            thread._flush_registers()
-
         # Enable all breakpoints that were disabled for a single step
         for bp in debugging_context.breakpoints.values():
             bp._disabled_for_step = False
@@ -221,31 +220,21 @@ class PtraceInterface(DebuggingInterface):
             bp_count = 0
             bps = self.ffi.NULL
 
-        # Construct the cffi array of pids
-        pids = self.ffi.new("int[]", self.thread_ids)
-        pid_count = len(self.thread_ids)
-
-        liblog.debugger(f"Continuing threads {self.thread_ids}")
-
         # Call the CFFI implementation
-        result = self.lib_trace.cont_all_and_set_bps(pid_count, pids, bp_count, bps)
+        result = self.lib_trace.cont_all_and_set_bps(bp_count, bps)
         if result < 0:
             errno_val = self.ffi.errno
             raise OSError(errno_val, errno.errorcode[errno_val])
 
     def step(self, thread: ThreadContext):
         """Executes a single instruction of the process."""
-        # Set registers for all threads
-        for thread in self.threads.values():
-            thread._flush_registers()
-
         # Disable all breakpoints for the single step
         for bp in debugging_context.breakpoints.values():
             bp._disabled_for_step = True
 
         thread_id = thread.thread_id
 
-        result = self.lib_trace.ptrace_singlestep(thread_id)
+        result = self.lib_trace.singlestep(thread_id)
         if result == -1:
             errno_val = self.ffi.errno
             raise OSError(errno_val, errno.errorcode[errno_val])
@@ -312,88 +301,29 @@ class PtraceInterface(DebuggingInterface):
         """Returns the current value of all the available registers.
         Note: the register holder should then be used to automatically setup getters and setters for each register.
         """
-        register_file = self.ffi.new("struct user_regs_struct*")
-
-        return register_holder_provider(
-            register_file, getter=self._get_registers, setter=self._set_registers
-        )
-
-    def _get_registers(self, register_file, thread_id: int):
-        """Returns the current value of all the available registers."""
-        result = self.lib_trace.ptrace_getregs(thread_id, register_file)
-        if result == -1:
-            errno_val = self.ffi.errno
-            if errno_val == errno.ESRCH:
-                liblog.debugger("Thread %d not found", thread_id)
-                return None
-            else:
-                raise OSError(errno_val, errno.errorcode[errno_val])
-
-    def _set_registers(self, register_file, thread_id: int):
-        """Sets the value of all the available registers."""
-        result = self.lib_trace.ptrace_setregs(thread_id, register_file)
-        if result == -1:
-            errno_val = self.ffi.errno
-            raise OSError(errno_val, errno.errorcode[errno_val])
+        raise RuntimeError("This method should never be called.")
 
     def wait(self) -> bool:
         """Waits for the process to stop. Returns True if the wait has to be repeated."""
-        assert self.process_id is not None
+        result = self.lib_trace.wait_all_and_update_regs(self.process_id)
 
-        # -1 means wait for any child process
-        # 1 << 30 is for __WALL, in order to wait for any child thread
-        pid, status = os.waitpid(-1, 1 << 30)
-        liblog.debugger("Child thread %d reported status %d", pid, status)
+        repeat = False
 
-        # Interrupt any other running thread
-        if len(self.thread_ids) > 1:
-            wait_results = [(pid, status)]
+        while result != self.ffi.NULL:
+            repeat |= self.status_handler.handle_change(result.tid, result.status)
+            result = result.next
 
-            other_threads = [tid for tid in self.thread_ids if tid != pid]
-
-            # Send a process-wide SIGSTOP signal to stop all threads
-            os.kill(self.process_id, signal.SIGSTOP)
-
-            # Wait for the threads to stop and poll their status
-            for thread_id in other_threads:
-                liblog.debugger(f"Waiting for thread {thread_id}")
-
-                # 0 means "wait blocking"
-                option = 0
-
-                # threads might have more than one status change to report
-                while True:
-                    try:
-                        npid, nstatus = os.waitpid(thread_id, option)
-                        if npid != 0:
-                            liblog.debugger(
-                                "Child process %d reported status %d", npid, nstatus
-                            )
-                            wait_results.append((npid, nstatus))
-                        else:
-                            break
-                    except ChildProcessError:
-                        liblog.debugger("Could not find thread %d", thread_id)
-                        break
-                    # After the first iteration, we want to return immediately if no result is available
-                    # This is because we are polling the status of the threads, to see if there's anything
-                    # waiting in the queue, but we don't want to block if there's nothing to report
-                    option = os.WNOHANG
-
-            liblog.debugger("All threads stopped")
-
-            repeat = False
-
-            for pid, status in wait_results:
-                repeat |= self.status_handler.handle_change(pid, status)
-
-            return repeat
-        else:
-            return self.status_handler.handle_change(pid, status)
+        return repeat
 
     def register_new_thread(self, new_thread_id: int):
         """Registers a new thread."""
-        thread = ThreadContext.new(new_thread_id)
+        # The FFI implementation returns a pointer to the register file
+        register_file = self.lib_trace.register_thread(new_thread_id)
+
+        register_holder = register_holder_provider(register_file)
+
+        thread = ThreadContext.new(new_thread_id, register_holder)
+
         debugging_context.insert_new_thread(thread)
         thread_hw_bp_helper = ptrace_hardware_breakpoint_manager_provider(
             thread, self._peek_user, self._poke_user
@@ -407,6 +337,8 @@ class PtraceInterface(DebuggingInterface):
 
     def unregister_thread(self, thread_id: int):
         """Unregisters a thread."""
+        self.lib_trace.unregister_thread(thread_id)
+
         debugging_context.remove_thread(thread_id)
 
         # Remove the hardware breakpoint manager for the thread

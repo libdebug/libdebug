@@ -170,11 +170,3 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
 
         # setup generic "instruction_pointer" property
         setattr(target_class, "instruction_pointer", get_property_64("rip"))
-
-    def poll(self, target: "ThreadContext"):
-        """Polls the register values from the target process."""
-        self.ptrace_getter(target.regs, target.thread_id)
-
-    def flush(self, source: "ThreadContext"):
-        """Flushes the register values to the target process."""
-        self.ptrace_setter(source.regs, source.thread_id)

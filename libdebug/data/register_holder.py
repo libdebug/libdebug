@@ -60,5 +60,3 @@ class PtraceRegisterHolder(RegisterHolder):
     """
 
     register_file: bytes
-    ptrace_getter: Callable[[], object]
-    ptrace_setter: Callable[[object], None]

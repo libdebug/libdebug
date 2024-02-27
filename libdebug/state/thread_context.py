@@ -49,7 +49,7 @@ class ThreadContext:
         self.thread_id = thread_id
 
     @staticmethod
-    def new(thread_id: int = None):
+    def new(thread_id: int = None, registers: RegisterHolder = None):
         """Creates a new thread context object.
 
         Args:
@@ -63,10 +63,8 @@ class ThreadContext:
             thread_id = debugging_context.process_id
 
         thread = ThreadContext(thread_id)
+        thread.registers = registers
 
-        thread.registers = debugging_context.debugging_interface.get_register_holder(
-            thread_id
-        )
         thread.registers.apply_on(thread, ThreadContext)
 
         return thread

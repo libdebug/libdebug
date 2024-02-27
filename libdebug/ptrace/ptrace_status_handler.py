@@ -47,10 +47,6 @@ class PtraceStatusHandler:
     def _handle_trap(self, thread_id: int) -> bool:
         thread = debugging_context.threads[thread_id]
 
-        # Force a register poll
-        thread._poll_registers()
-        thread._needs_register_poll = False
-
         if not hasattr(thread, "instruction_pointer"):
             # This is a signal trap hit on process startup
             return False
