@@ -220,6 +220,9 @@ class Debugger:
             position (int | bytes): The location of the breakpoint.
             hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software. Defaults to False.
         """
+        if not self.instanced:
+            raise RuntimeError("Process not running, cannot set a breakpoint.")
+
         if debugging_context.running:
             raise RuntimeError("Cannot set a breakpoint while the process is running.")
 
