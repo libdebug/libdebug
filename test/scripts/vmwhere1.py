@@ -73,6 +73,49 @@ class Vmwhere1(unittest.TestCase):
             flag, b"uiuctf{ar3_y0u_4_r3al_vm_wh3r3_(gpt_g3n3r4t3d_th1s_f14g)}"
         )
 
+    def test_vmwhere1_callback(self):
+        flag = b""
+        counter = 3
+        stop = False
+
+        d = debugger(["CTF/vmwhere1", "CTF/vmwhere1_program"])
+
+        def callback(d, bp):
+            pass
+
+        while not stop:
+            for el in string.printable:
+                r = d.run()
+                bp = d.breakpoint(0x1587, hardware=True, callback=callback)
+                d.cont()
+
+                r.recvline()
+                r.recvuntil(b"the password:\n")
+
+                r.sendline(flag + el.encode())
+
+                d.wait()
+
+                message = r.recvline()
+
+                if b"Incorrect" not in message:
+                    flag += el.encode()
+                    stop = True
+                    d.kill()
+                    break
+                else:
+                    if bp.hit_count > counter:
+                        counter = bp.hit_count
+                        flag += el.encode()
+                        d.kill()
+                        break
+
+                d.kill()
+
+        self.assertEqual(
+            flag, b"uiuctf{ar3_y0u_4_r3al_vm_wh3r3_(gpt_g3n3r4t3d_th1s_f14g)}"
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

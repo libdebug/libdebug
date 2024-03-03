@@ -15,7 +15,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-import subprocess
+import sys
 import unittest
 
 from scripts.attach_test import AttachTest
@@ -32,7 +32,7 @@ from scripts.thread_test import ThreadTest, ComplexThreadTest
 from scripts.vmwhere1 import Vmwhere1
 
 
-def suite():
+def fast_suite():
     suite = unittest.TestSuite()
     suite.addTest(BasicTest("test_basic"))
     suite.addTest(BasicTest("test_registers"))
@@ -46,10 +46,6 @@ def suite():
     suite.addTest(HwBasicTest("test_basic"))
     suite.addTest(HwBasicTest("test_registers"))
     suite.addTest(BacktraceTest("test_backtrace"))
-    suite.addTest(BruteTest("test_bruteforce"))
-    suite.addTest(Vmwhere1("test_vmwhere1"))
-    suite.addTest(Jumpout("test_jumpout"))
-    suite.addTest(Ncuts("test_ncuts"))
     suite.addTest(AttachTest("test_attach"))
     suite.addTest(ThreadTest("test_thread"))
     suite.addTest(ThreadTest("test_thread_hardware"))
@@ -57,27 +53,36 @@ def suite():
     suite.addTest(CallbackTest("test_callback_simple"))
     suite.addTest(CallbackTest("test_callback_simple_hardware"))
     suite.addTest(CallbackTest("test_callback_memory"))
-    suite.addTest(CallbackTest("test_callback_bruteforce"))
     suite.addTest(CallbackTest("test_callback_jumpout"))
     suite.addTest(CallbackTest("test_callback_intermixing"))
+    suite.addTest(Jumpout("test_jumpout"))
+    suite.addTest(Ncuts("test_ncuts"))
+    return suite
+
+
+def complete_suite():
+    suite = fast_suite()
+    suite.addTest(Vmwhere1("test_vmwhere1"))
+    suite.addTest(Vmwhere1("test_vmwhere1_callback"))
+    suite.addTest(BruteTest("test_bruteforce"))
+    suite.addTest(CallbackTest("test_callback_bruteforce"))
     suite.addTest(SpeedTest("test_speed"))
     suite.addTest(SpeedTest("test_speed_hardware"))
     return suite
 
 
-def profiling():
-    command = "py-spy record --format speedscope -o ./python_profiling.app -- python scripts/node.py"
-    result = subprocess.run(command, shell=True)
-
-    if result.returncode == 0:
-        print("Python profiling executed successfully!")
-    else:
-        print("Error occurred during python profiling. Return code:", result.returncode)
-
-
 if __name__ == "__main__":
-    runner = unittest.TextTestRunner()
-    result = runner.run(suite())
+    if sys.version_info >= (3, 12):
+        runner = unittest.TextTestRunner(verbosity=2, durations=3)
+    else:
+        runner = unittest.TextTestRunner(verbosity=2)
+
+    if len(sys.argv) > 1 and sys.argv[1].lower() == "slow":
+        suite = complete_suite()
+    else:
+        suite = fast_suite()
+
+    result = runner.run(suite)
 
     if result.wasSuccessful():
         print("All tests passed")
@@ -89,5 +94,3 @@ if __name__ == "__main__":
         print("\nErrors:")
         for test, err in result.errors:
             print(f"{test}: {err}")
-
-    # profiling()
