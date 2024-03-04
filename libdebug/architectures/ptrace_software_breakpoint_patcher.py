@@ -17,24 +17,6 @@
 
 from libdebug.utils.libcontext import libcontext
 
-
-def install_software_breakpoint(code: int) -> int:
-    """Patch the instruction to be executed by the CPU.
-
-    Args:
-        code (int): the instruction to be patched.
-
-    Returns:
-        int: the patched instruction.
-    """
-
-    match libcontext.arch:
-        case "amd64":
-            return (code & (2**56 - 1) << 8) | 0xCC
-        case "x86":
-            return (code & (2**56 - 1) << 8) | 0xCC
-
-
 def software_breakpoint_byte_size() -> int:
     """Return the size of a software breakpoint instruction."""
 

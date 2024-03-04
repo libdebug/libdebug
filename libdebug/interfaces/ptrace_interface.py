@@ -28,9 +28,6 @@ from libdebug.architectures.ptrace_hardware_breakpoint_manager import (
 from libdebug.architectures.ptrace_hardware_breakpoint_provider import (
     ptrace_hardware_breakpoint_manager_provider,
 )
-from libdebug.architectures.ptrace_software_breakpoint_patcher import (
-    install_software_breakpoint,
-)
 from libdebug.architectures.register_helper import register_holder_provider
 from libdebug.cffi import _ptrace_cffi
 from libdebug.data.breakpoint import Breakpoint
@@ -188,21 +185,6 @@ class PtraceInterface(DebuggingInterface):
 
     def cont(self):
         """Continues the execution of the process."""
-        # tids = set()
-
-        # for bp in debugging_context.breakpoints.values():
-        #     # Enable all breakpoints that were disabled for a single step
-        #     bp._disabled_for_step = False
-
-        #     # Determine if any software breakpoints were hit and need stepping
-        #     tids.update(bp._linked_thread_ids)
-        #     bp._linked_thread_ids.clear()
-
-        # bp_count = len(tids)
-        # bps = self.ffi.new("int[]", list(tids))
-
-        # Call the CFFI implementation
-        # result = self.lib_trace.cont_all_and_set_bps(self.process_id, bp_count, bps)
         result = self.lib_trace.cont_all_and_set_bps(self.process_id)
         if result < 0:
             errno_val = self.ffi.errno
@@ -348,21 +330,15 @@ class PtraceInterface(DebuggingInterface):
         Args:
             breakpoint (Breakpoint): The breakpoint to set.
         """
-        assert self.process_id is not None
-        instruction = self.peek_memory(breakpoint.address)
-        breakpoint._original_instruction = instruction
+        self.lib_trace.register_breakpoint(self.process_id, breakpoint.address)
 
-        self.lib_trace.register_breakpoint(
-            self.process_id, breakpoint.address, instruction, install_software_breakpoint(instruction)
-        )
-
-    def unset_hit_software_breakpoint(self, breakpoint: Breakpoint):
+    def _unset_hit_software_breakpoint(self, breakpoint: Breakpoint):
         """Unsets a software breakpoint at the specified address.
 
         Args:
             breakpoint (Breakpoint): The breakpoint to unset.
         """
-        self.poke_memory(breakpoint.address, breakpoint._original_instruction)
+        self.lib_trace.disable_breakpoint(self.process_id, breakpoint.address)
 
     def set_breakpoint(self, breakpoint: Breakpoint):
         """Sets a breakpoint at the specified address.
@@ -388,7 +364,7 @@ class PtraceInterface(DebuggingInterface):
             for helper in self.hardware_bp_helpers.values():
                 helper.remove_breakpoint(breakpoint)
         else:
-            self.unset_hit_software_breakpoint(breakpoint)
+            self._unset_hit_software_breakpoint(breakpoint)
 
         debugging_context.remove_breakpoint(breakpoint)
 

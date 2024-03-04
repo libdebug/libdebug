@@ -115,9 +115,9 @@ ffibuilder.cdef(
     void unregister_thread(int tid);
     void free_thread_list();
 
-    void register_breakpoint(int pid, uint64_t address, uint64_t instruction, uint64_t patched_instruction);
+    void register_breakpoint(int pid, uint64_t address);
     void unregister_breakpoint(uint64_t address);
-    void disable_breakpoint(uint64_t address);
+    void disable_breakpoint(int pid, uint64_t address);
     void free_breakpoints();
 """
 )
@@ -443,8 +443,14 @@ void free_thread_status_list(struct thread_status *head)
     }
 }
 
-void register_breakpoint(int pid, uint64_t address, uint64_t instruction, uint64_t patched_instruction)
+void register_breakpoint(int pid, uint64_t address)
 {
+    uint64_t instruction, patched_instruction;
+
+    instruction = ptrace(PTRACE_PEEKDATA, pid, (void*) address, NULL);
+
+    patched_instruction = INSTALL_BREAKPOINT(instruction);
+
     ptrace(PTRACE_POKEDATA, pid, (void*) address, patched_instruction);
 
     struct software_breakpoint *b = b_HEAD;
@@ -487,13 +493,14 @@ void unregister_breakpoint(uint64_t address)
     }
 }
 
-void disable_breakpoint(uint64_t address)
+void disable_breakpoint(int pid, uint64_t address)
 {
     struct software_breakpoint *b = b_HEAD;
 
     while (b != NULL) {
         if (b->addr == address) {
             b->enabled = 0;
+            ptrace(PTRACE_POKEDATA, pid, b->addr, b->patched_instruction);
             return;
         }
         b = b->next;
