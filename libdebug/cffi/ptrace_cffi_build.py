@@ -51,6 +51,12 @@ if platform.machine() in ['i386', 'x86_64']:
         unsigned long gs;
     };
     """
+
+    breakpoint_define = """
+    #define INSTRUCTION_POINTER(regs) (regs.rip)
+    #define INSTALL_BREAKPOINT(instruction) ((instruction & 0xFFFFFFFFFFFFFF00) | 0xCC)
+    #define BREAKPOINT_SIZE 1
+    """
 else:
     raise NotImplementedError(f"Architecture {platform.machine()} not available.")
 
@@ -58,12 +64,20 @@ else:
 ffibuilder = FFI()
 ffibuilder.cdef(
     user_regs_struct + """
-    typedef struct {
+    struct ptrace_hit_bp {
         int pid;
         uint64_t addr;
         uint64_t bp_instruction;
         uint64_t prev_instruction;
-    } ptrace_hit_bp;
+    };
+
+    struct software_breakpoint {
+        uint64_t addr;
+        uint64_t instruction;
+        uint64_t patched_instruction;
+        char enabled;
+        struct software_breakpoint *next;
+    };
 
     struct thread {
         int tid;
@@ -82,29 +96,35 @@ ffibuilder.cdef(
     int ptrace_detach(int pid);
     void ptrace_set_options(int pid);
 
-    int ptrace_getregs(int pid, struct user_regs_struct *regs);
-    int ptrace_setregs(int pid, struct user_regs_struct *regs);
-
-
     uint64_t ptrace_peekdata(int pid, uint64_t addr);
     uint64_t ptrace_pokedata(int pid, uint64_t addr, uint64_t data);
+
     uint64_t ptrace_peekuser(int pid, uint64_t addr);
     uint64_t ptrace_pokeuser(int pid, uint64_t addr, uint64_t data);
 
     uint64_t ptrace_geteventmsg(int pid);
 
     int singlestep(int tid);
-    int cont_all_and_set_bps(size_t n_addrs, ptrace_hit_bp *bps);
+
+    int cont_all_and_set_bps(int pid);
+
     struct thread_status *wait_all_and_update_regs(int pid);
+    void free_thread_status_list(struct thread_status *head);
+
     struct user_regs_struct* register_thread(int tid);
     void unregister_thread(int tid);
     void free_thread_list();
+
+    void register_breakpoint(int pid, uint64_t address, uint64_t instruction, uint64_t patched_instruction);
+    void unregister_breakpoint(uint64_t address);
+    void disable_breakpoint(uint64_t address);
+    void free_breakpoints();
 """
 )
 
 ffibuilder.set_source(
     "libdebug.cffi._ptrace_cffi",
-    """
+    breakpoint_define + """
 #include <errno.h>
 #include <signal.h>
 #include <sys/ptrace.h>
@@ -113,12 +133,20 @@ ffibuilder.set_source(
 #include <sys/user.h>
 #include <stdint.h>
 
-typedef struct {
+struct ptrace_hit_bp {
     int pid;
     uint64_t addr;
     uint64_t bp_instruction;
     uint64_t prev_instruction;
-} ptrace_hit_bp;
+};
+
+struct software_breakpoint {
+    uint64_t addr;
+    uint64_t instruction;
+    uint64_t patched_instruction;
+    char enabled;
+    struct software_breakpoint *next;
+};
 
 struct thread {
     int tid;
@@ -133,6 +161,8 @@ struct thread_status {
 };
 
 struct thread *t_HEAD = NULL;
+
+struct software_breakpoint *b_HEAD = NULL;
 
 struct user_regs_struct* register_thread(int tid)
 {
@@ -212,17 +242,6 @@ void ptrace_set_options(int pid)
     ptrace(PTRACE_SETOPTIONS, pid, NULL, options);
 }
 
-
-int ptrace_getregs(int pid, struct user_regs_struct *regs)
-{
-    return ptrace(PTRACE_GETREGS, pid, NULL, regs);
-}
-
-int ptrace_setregs(int pid, struct user_regs_struct *regs)
-{
-    return ptrace(PTRACE_SETREGS, pid, NULL, regs);
-}
-
 uint64_t ptrace_peekdata(int pid, uint64_t addr)
 {
     // Since the value returned by a successful PTRACE_PEEK*
@@ -253,7 +272,7 @@ uint64_t ptrace_pokeuser(int pid, uint64_t addr, uint64_t data)
 
 uint64_t ptrace_geteventmsg(int pid)
 {
-    uint64_t data;
+    uint64_t data = 0;
 
     ptrace(PTRACE_GETEVENTMSG, pid, NULL, &data);
 
@@ -274,10 +293,8 @@ int singlestep(int tid)
     return ptrace(PTRACE_SINGLESTEP, tid, NULL, NULL);
 }
 
-int cont_all_and_set_bps(
-    size_t n_addrs,
-    ptrace_hit_bp *bps
-) {
+int cont_all_and_set_bps(int pid)
+{
     int status = 0;
 
     // flush any register changes
@@ -288,25 +305,51 @@ int cont_all_and_set_bps(
         t = t->next;
     }
 
-    // the previous instruction should have been restored by the status handler
-    for (size_t i = 0; i < n_addrs; i++) {
-        // step over the breakpoint
-        if (ptrace(PTRACE_SINGLESTEP, bps[i].pid, NULL, SIGCONT))
-            return -1;
+    // iterate over all the threads and check if any of them has hit a software breakpoint
+    t = t_HEAD;
+    struct software_breakpoint *b;
+    int t_hit;
+    
+    while (t != NULL) {
+        t_hit = 0;
+        uint64_t ip = INSTRUCTION_POINTER(t->regs);
 
-        // wait for the child
-        waitpid(bps[i].pid, &status, 0);
+        b = b_HEAD;
+        while (b != NULL && !t_hit) {
+            if (b->addr == ip)
+                t_hit = 1;
 
-        // status == 4991 ==> (WIFSTOPPED(status) && WSTOPSIG(status) == SIGSTOP)
-        // this should happen only if threads are involved
-        if (status == 4991) {
-            ptrace(PTRACE_SINGLESTEP, bps[i].pid, NULL, SIGCONT);
-            waitpid(bps[i].pid, &status, 0);
+            b = b->next;
+        }
+        
+
+        if (t_hit) {
+            // step over the breakpoint
+            if (ptrace(PTRACE_SINGLESTEP, t->tid, NULL, SIGCONT))
+                return -1;
+
+            // wait for the child
+            waitpid(t->tid, &status, 0);
+
+            // status == 4991 ==> (WIFSTOPPED(status) && WSTOPSIG(status) == SIGSTOP)
+            // this should happen only if threads are involved
+            if (status == 4991) {
+                ptrace(PTRACE_SINGLESTEP, t->tid, NULL, SIGCONT);
+                waitpid(t->tid, &status, 0);
+            }
         }
 
-        // restore the breakpoint
-        if (ptrace(PTRACE_POKEDATA, bps[i].pid, (void*) bps[i].addr, bps[i].bp_instruction))
-            return -1;
+        t = t->next;
+    }
+
+    // Reset any software breakpoint
+    b = b_HEAD;
+
+    while (b != NULL) {
+        if (b->enabled) {
+            ptrace(PTRACE_POKEDATA, pid, (void*) b->addr, b->patched_instruction);
+        }
+        b = b->next;
     }
 
     // continue the execution of all the threads
@@ -376,7 +419,99 @@ struct thread_status *wait_all_and_update_regs(int pid)
         t = t->next;
     }
 
+    // Restore any software breakpoint
+    struct software_breakpoint *b = b_HEAD;
+
+    while (b != NULL) {
+        if (b->enabled) {
+            ptrace(PTRACE_POKEDATA, pid, (void*) b->addr, b->instruction);
+        }
+        b = b->next;
+    }
+
     return head;
+}
+
+void free_thread_status_list(struct thread_status *head)
+{
+    struct thread_status *next;
+
+    while (head) {
+        next = head->next;
+        free(head);
+        head = next;
+    }
+}
+
+void register_breakpoint(int pid, uint64_t address, uint64_t instruction, uint64_t patched_instruction)
+{
+    ptrace(PTRACE_POKEDATA, pid, (void*) address, patched_instruction);
+
+    struct software_breakpoint *b = b_HEAD;
+
+    while (b != NULL) {
+        if (b->addr == address) {
+            b->enabled = 1;
+            return;
+        }
+        b = b->next;
+    }
+
+    b = malloc(sizeof(struct software_breakpoint));
+    b->addr = address;
+    b->instruction = instruction;
+    b->patched_instruction = patched_instruction;
+    b->enabled = 1;
+
+    b->next = b_HEAD;
+    b_HEAD = b;
+}
+
+void unregister_breakpoint(uint64_t address)
+{
+    struct software_breakpoint *b = b_HEAD;
+    struct software_breakpoint *prev = NULL;
+
+    while (b != NULL) {
+        if (b->addr == address) {
+            if (prev == NULL) {
+                b_HEAD = b->next;
+            } else {
+                prev->next = b->next;
+            }
+            free(b);
+            return;
+        }
+        prev = b;
+        b = b->next;
+    }
+}
+
+void disable_breakpoint(uint64_t address)
+{
+    struct software_breakpoint *b = b_HEAD;
+
+    while (b != NULL) {
+        if (b->addr == address) {
+            b->enabled = 0;
+            return;
+        }
+        b = b->next;
+    }
+}
+
+void free_breakpoints()
+{
+    struct software_breakpoint *b = b_HEAD;
+    struct software_breakpoint *next;
+
+    while (b != NULL) {
+        next = b->next;
+        free(b);
+        b = next;
+    }
+
+    b_HEAD = NULL;
 }
 """,
     libraries=[],

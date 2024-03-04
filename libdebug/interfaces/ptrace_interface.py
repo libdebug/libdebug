@@ -85,6 +85,7 @@ class PtraceInterface(DebuggingInterface):
         """Resets the state of the interface."""
         self.hardware_bp_helpers.clear()
         self.lib_trace.free_thread_list()
+        self.lib_trace.free_breakpoints()
 
     def _set_options(self):
         """Sets the tracer options."""
@@ -187,46 +188,22 @@ class PtraceInterface(DebuggingInterface):
 
     def cont(self):
         """Continues the execution of the process."""
-        # Enable all breakpoints that were disabled for a single step
-        for bp in debugging_context.breakpoints.values():
-            bp._disabled_for_step = False
+        # tids = set()
 
-        # Determine if any breakpoints need to be restored
-        bps_to_restore = [
-            bp for bp in debugging_context.breakpoints.values() if bp._needs_restore
-        ]
+        # for bp in debugging_context.breakpoints.values():
+        #     # Enable all breakpoints that were disabled for a single step
+        #     bp._disabled_for_step = False
 
-        if bps_to_restore:
-            # If any, allocate the cffi struct
-            # and fill it with the information of the breakpoints that need to be restored
-            bp_count = sum(len(bp._linked_thread_ids) for bp in bps_to_restore)
-            bps = self.ffi.new("ptrace_hit_bp[]", bp_count)
+        #     # Determine if any software breakpoints were hit and need stepping
+        #     tids.update(bp._linked_thread_ids)
+        #     bp._linked_thread_ids.clear()
 
-            i = 0
-            while i < bp_count:
-                bp = bps_to_restore.pop(0)
-                for thread_id in bp._linked_thread_ids:
-                    liblog.debugger(
-                        "Restoring breakpoint at address %x, hit by thread %d",
-                        bp.address,
-                        thread_id,
-                    )
-                    bps[i].pid = thread_id
-                    bps[i].addr = bp.address
-                    bps[i].prev_instruction = bp._original_instruction
-                    bps[i].bp_instruction = install_software_breakpoint(
-                        bp._original_instruction
-                    )
-                    i += 1
-                bp._linked_thread_ids.clear()
-                bp._needs_restore = False
-        else:
-            # Otherwise, pass NULL
-            bp_count = 0
-            bps = self.ffi.NULL
+        # bp_count = len(tids)
+        # bps = self.ffi.new("int[]", list(tids))
 
         # Call the CFFI implementation
-        result = self.lib_trace.cont_all_and_set_bps(bp_count, bps)
+        # result = self.lib_trace.cont_all_and_set_bps(self.process_id, bp_count, bps)
+        result = self.lib_trace.cont_all_and_set_bps(self.process_id)
         if result < 0:
             errno_val = self.ffi.errno
             raise OSError(errno_val, errno.errorcode[errno_val])
@@ -237,9 +214,7 @@ class PtraceInterface(DebuggingInterface):
         for bp in debugging_context.breakpoints.values():
             bp._disabled_for_step = True
 
-        thread_id = thread.thread_id
-
-        result = self.lib_trace.singlestep(thread_id)
+        result = self.lib_trace.singlestep(thread.thread_id)
         if result == -1:
             errno_val = self.ffi.errno
             raise OSError(errno_val, errno.errorcode[errno_val])
@@ -334,6 +309,8 @@ class PtraceInterface(DebuggingInterface):
             repeat |= self.status_handler.handle_change(result.tid, result.status)
             result = result.next
 
+        self.lib_trace.free_thread_status_list(result)
+
         return repeat
 
     def register_new_thread(self, new_thread_id: int):
@@ -374,7 +351,10 @@ class PtraceInterface(DebuggingInterface):
         assert self.process_id is not None
         instruction = self.peek_memory(breakpoint.address)
         breakpoint._original_instruction = instruction
-        self.poke_memory(breakpoint.address, install_software_breakpoint(instruction))
+
+        self.lib_trace.register_breakpoint(
+            self.process_id, breakpoint.address, instruction, install_software_breakpoint(instruction)
+        )
 
     def unset_hit_software_breakpoint(self, breakpoint: Breakpoint):
         """Unsets a software breakpoint at the specified address.

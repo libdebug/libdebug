@@ -17,8 +17,8 @@
 
 import functools
 import os
-from ctypes import CDLL, c_int, c_ulong
 
+from libdebug.cffi._personality_cffi import lib as lib_personality
 from libdebug.data.memory_map import MemoryMap
 
 
@@ -79,19 +79,7 @@ def invalidate_process_cache():
 
 def disable_self_aslr():
     """Disables ASLR for the current process."""
-    libc = CDLL("libc.so.6")
-
-    libc.personality.argtypes = [c_ulong]
-    libc.personality.restype = c_int
-
-    personality = libc.personality(0xFFFFFFFF)
-
-    ADDR_NO_RANDOMIZE = 0x0040000
-
-    if personality & ADDR_NO_RANDOMIZE == ADDR_NO_RANDOMIZE:
-        return
-
-    retval = libc.personality(personality | ADDR_NO_RANDOMIZE)
+    retval = lib_personality.disable_aslr()
 
     if retval == -1:
         raise RuntimeError("Failed to disable ASLR.")

@@ -74,14 +74,10 @@ class PtraceStatusHandler:
                 liblog.debugger("Software breakpoint hit at 0x%x", ip)
                 bp = debugging_context.breakpoints[ip]
 
-                # Restore the previous instruction
-                self.ptrace_interface.unset_hit_software_breakpoint(bp)
-
                 # Set the instruction pointer to the previous instruction
                 thread.instruction_pointer = ip
 
-                # Set the needs_restore flag to True and the link the breakpoint to the thread
-                bp._needs_restore = True
+                # Link the breakpoint to the thread, so that we can step over it
                 bp._linked_thread_ids.append(thread_id)
 
         if bp:
