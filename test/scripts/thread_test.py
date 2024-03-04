@@ -39,17 +39,23 @@ class ThreadTest(unittest.TestCase):
 
         d.cont()
 
+        local_threads = {}
+
         for _ in range(15):
             d.wait()
 
-            if len(d.threads.values()) == 2:
-                t1 = d.threads[list(d.threads.keys())[1]]
+            for t in d.threads.values():
+                if t.thread_id not in local_threads:
+                    local_threads[t.thread_id] = t
 
-            if len(d.threads.values()) == 3:
-                t2 = d.threads[list(d.threads.keys())[2]]
+            if len(local_threads) == 2:
+                t1 = local_threads[list(local_threads.keys())[1]]
 
-            if len(d.threads.values()) == 4:
-                t3 = d.threads[list(d.threads.keys())[3]]
+            if len(local_threads) == 3:
+                t2 = local_threads[list(local_threads.keys())[2]]
+
+            if len(local_threads) == 4:
+                t3 = local_threads[list(local_threads.keys())[3]]
 
             if bp_t0.address == d.rip:
                 self.assertTrue(t1_done)
@@ -180,3 +186,6 @@ class ComplexThreadTest(unittest.TestCase):
                 break
 
         d.kill()
+
+if __name__ == "__main__":
+    unittest.main()
