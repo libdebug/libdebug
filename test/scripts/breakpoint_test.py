@@ -22,7 +22,7 @@ from libdebug import debugger
 
 class BreakpointTest(unittest.TestCase):
     def setUp(self):
-        self.d = debugger('binaries/breakpoint_test')
+        self.d = debugger("binaries/breakpoint_test")
 
     def test_bps(self):
         d = self.d
@@ -30,8 +30,8 @@ class BreakpointTest(unittest.TestCase):
         d.run()
 
         bp1 = d.breakpoint("random_function")
-        bp2 = d.breakpoint(0x40115b)
-        bp3 = d.breakpoint(0x40116d)
+        bp2 = d.breakpoint(0x40115B)
+        bp3 = d.breakpoint(0x40116D)
 
         counter = 1
 
@@ -57,5 +57,6 @@ class BreakpointTest(unittest.TestCase):
 
         self.d.kill()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

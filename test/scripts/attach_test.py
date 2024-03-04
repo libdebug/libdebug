@@ -15,10 +15,12 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libdebug import debugger
-from pwn import process
-import unittest
 import logging
+import unittest
+
+from pwn import process
+
+from libdebug import debugger
 
 logging.getLogger("pwnlib").setLevel(logging.ERROR)
 

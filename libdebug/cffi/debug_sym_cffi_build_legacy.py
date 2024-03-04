@@ -19,7 +19,8 @@ from cffi import FFI
 
 ffibuilder = FFI()
 
-ffibuilder.cdef("""
+ffibuilder.cdef(
+    """
     typedef struct SymbolInfo
     {
         char *name;
@@ -33,7 +34,8 @@ ffibuilder.cdef("""
     char *get_build_id();
     char *get_debug_file();
     void free_symbol_info(SymbolInfo *head);
-""")
+"""
+)
 
 ffibuilder.set_source(
     "libdebug.cffi.debug_sym_cffi",

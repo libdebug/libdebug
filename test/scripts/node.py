@@ -15,22 +15,23 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from libdebug import debugger, libcontext
 from time import perf_counter
 
-d = debugger('binaries/node')
+from libdebug import debugger, libcontext
+
+d = debugger("binaries/node")
 
 r = d.start()
 
 # Let ignore debuginfod for this test to avoid inconsistencies due to network
-with libcontext.tmp(sym_lvl = 4):
+with libcontext.tmp(sym_lvl=4):
     # Try resolving a non-existent symbol, which will force the resolution of all symbols.
-    t1_start = perf_counter() 
+    t1_start = perf_counter()
     try:
-        d.memory['provola', 2]
-    except Exception :
+        d.memory["provola", 2]
+    except Exception:
         pass
     t1_stop = perf_counter()
-    print("Elapsed time during the symbols resolution in seconds:", t1_stop-t1_start)
+    print("Elapsed time during the symbols resolution in seconds:", t1_stop - t1_start)
 
 d.kill()

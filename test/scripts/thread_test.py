@@ -125,6 +125,7 @@ class ThreadTest(unittest.TestCase):
 
         d.kill()
 
+
 class ComplexThreadTest(unittest.TestCase):
     def setUp(self):
         self.d = debugger("binaries/complex_thread_test")
@@ -186,6 +187,7 @@ class ComplexThreadTest(unittest.TestCase):
                 break
 
         d.kill()
+
 
 if __name__ == "__main__":
     unittest.main()

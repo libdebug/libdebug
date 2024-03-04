@@ -369,7 +369,7 @@ class PtraceInterface(DebuggingInterface):
         debugging_context.remove_breakpoint(breakpoint)
 
     def peek_memory(self, address: int) -> int:
-        """Reads the memory at the specified address."""        
+        """Reads the memory at the specified address."""
         result = self.lib_trace.ptrace_peekdata(self.process_id, address)
         liblog.debugger(
             "PEEKDATA at address %d returned with result %x", address, result

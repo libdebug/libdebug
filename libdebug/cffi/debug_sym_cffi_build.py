@@ -21,7 +21,8 @@ from cffi import FFI
 
 ffibuilder = FFI()
 
-ffibuilder.cdef("""
+ffibuilder.cdef(
+    """
     typedef struct SymbolInfo
     {
         char *name;
@@ -35,7 +36,8 @@ ffibuilder.cdef("""
     char *get_build_id();
     char *get_debug_file();
     void free_symbol_info(SymbolInfo *head);
-""")
+"""
+)
 
 ffibuilder.set_source(
     "libdebug.cffi.debug_sym_cffi",
@@ -467,7 +469,7 @@ SymbolInfo *read_elf_info(const char *elf_file_path, int debug_info_level)
 }
 """,
     libraries=["elf", "dwarf"],
-    include_dirs=['/usr/include/libdwarf/libdwarf-0', '/usr/include/libdwarf-0'],
+    include_dirs=["/usr/include/libdwarf/libdwarf-0", "/usr/include/libdwarf-0"],
 )
 
 if __name__ == "__main__":

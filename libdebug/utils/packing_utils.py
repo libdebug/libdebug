@@ -15,6 +15,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+
 def u64(value: bytes) -> int:
     """Converts the specified value to an unsigned 64-bit integer.
 

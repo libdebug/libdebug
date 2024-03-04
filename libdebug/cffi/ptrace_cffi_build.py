@@ -15,10 +15,11 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from cffi import FFI
 import platform
 
-if platform.machine() in ['i386', 'x86_64']:
+from cffi import FFI
+
+if platform.machine() in ["i386", "x86_64"]:
     user_regs_struct = """
     struct user_regs_struct
     {
@@ -63,7 +64,8 @@ else:
 
 ffibuilder = FFI()
 ffibuilder.cdef(
-    user_regs_struct + """
+    user_regs_struct
+    + """
     struct ptrace_hit_bp {
         int pid;
         uint64_t addr;
@@ -124,7 +126,8 @@ ffibuilder.cdef(
 
 ffibuilder.set_source(
     "libdebug.cffi._ptrace_cffi",
-    breakpoint_define + """
+    breakpoint_define
+    + """
 #include <errno.h>
 #include <signal.h>
 #include <sys/ptrace.h>

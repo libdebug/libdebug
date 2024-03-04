@@ -28,7 +28,7 @@ from scripts.jumpout import Jumpout
 from scripts.memory_test import MemoryTest
 from scripts.ncuts import Ncuts
 from scripts.speed_test import SpeedTest
-from scripts.thread_test import ThreadTest, ComplexThreadTest
+from scripts.thread_test import ComplexThreadTest, ThreadTest
 from scripts.vmwhere1 import Vmwhere1
 
 

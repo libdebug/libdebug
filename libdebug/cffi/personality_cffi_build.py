@@ -19,15 +19,17 @@ from cffi import FFI
 
 ffibuilder = FFI()
 
-ffibuilder.cdef("""
+ffibuilder.cdef(
+    """
 
     int disable_aslr();
 
-""")
+"""
+)
 
 ffibuilder.set_source(
     "libdebug.cffi._personality_cffi",
-"""
+    """
 #include <sys/personality.h>
                       
 int disable_aslr()
@@ -38,8 +40,9 @@ int disable_aslr()
                       
     return personality(persona);
 }
-""", libraries=[])
+""",
+    libraries=[],
+)
 
 if __name__ == "__main__":
     ffibuilder.compile(verbose=True)
-

@@ -41,7 +41,9 @@ def set_reg_64(dict: dict, name: str, value: int):
 
 
 def set_reg_32(dict: dict, name: str, value: int):
-    setattr(dict, name, (getattr(dict, name) & 0xFFFFFFFF00000000) | (value & 0xFFFFFFFF))
+    setattr(
+        dict, name, (getattr(dict, name) & 0xFFFFFFFF00000000) | (value & 0xFFFFFFFF)
+    )
 
 
 def set_reg_16(dict: dict, name: str, value: int):
@@ -53,4 +55,6 @@ def set_reg_8l(dict: dict, name: str, value: int):
 
 
 def set_reg_8h(dict: dict, name: str, value: int):
-    setattr(dict, name, (getattr(dict, name) & 0xFFFFFFFFFFFF00FF) | ((value & 0xFF) << 8))
+    setattr(
+        dict, name, (getattr(dict, name) & 0xFFFFFFFFFFFF00FF) | ((value & 0xFF) << 8)
+    )

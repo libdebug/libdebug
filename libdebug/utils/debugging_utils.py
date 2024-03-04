@@ -62,7 +62,11 @@ def resolve_symbol_in_maps(symbol: str, maps: list[MemoryMap]) -> int:
         offset = 0
 
     for map in maps:
-        if map.backing_file and map.backing_file not in mapped_files and map.backing_file[0] != "[":
+        if (
+            map.backing_file
+            and map.backing_file not in mapped_files
+            and map.backing_file[0] != "["
+        ):
             mapped_files[map.backing_file] = map.start
 
     for file, base_address in mapped_files.items():
@@ -81,6 +85,7 @@ def resolve_symbol_in_maps(symbol: str, maps: list[MemoryMap]) -> int:
         raise ValueError(
             f"Symbol {symbol} not found in any mapped file. Please specify a valid symbol."
         )
+
 
 def resolve_address_in_maps(address: int, maps: list[MemoryMap]) -> str:
     """Returns the symbol corresponding to the specified address in the specified memory maps.
@@ -101,15 +106,13 @@ def resolve_address_in_maps(address: int, maps: list[MemoryMap]) -> str:
         file = map.backing_file
         if not file or file[0] == "[":
             continue
-            
+
         if file not in mapped_files:
             mapped_files[file] = (map.start, map.end)
         else:
             mapped_files[file] = (mapped_files[file][0], map.end)
 
-
     for file, (base_address, top_address) in mapped_files.items():
-        
         # Check if the address is in the range of the current section
         if address < base_address or address >= top_address:
             continue
@@ -119,10 +122,12 @@ def resolve_address_in_maps(address: int, maps: list[MemoryMap]) -> str:
                 symbol = resolve_address(file, address - base_address)
             else:
                 symbol = resolve_address(file, address)
-                
+
             return symbol
         except OSError as e:
-            liblog.debugger(f"Error while resolving address {hex(address)} in {file}: {e}")
+            liblog.debugger(
+                f"Error while resolving address {hex(address)} in {file}: {e}"
+            )
         except ValueError:
             pass
     else:

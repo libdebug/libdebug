@@ -17,6 +17,7 @@
 
 from libdebug.utils.libcontext import libcontext
 
+
 def software_breakpoint_byte_size() -> int:
     """Return the size of a software breakpoint instruction."""
 

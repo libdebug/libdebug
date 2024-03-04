@@ -16,9 +16,9 @@
 #
 
 import unittest
+from time import perf_counter_ns
 
 from libdebug import debugger
-from time import perf_counter_ns
 
 
 class SpeedTest(unittest.TestCase):

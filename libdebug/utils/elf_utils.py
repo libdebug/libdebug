@@ -23,7 +23,8 @@ from typing import Tuple
 import requests
 from elftools.elf.elffile import ELFFile
 
-from libdebug.cffi.debug_sym_cffi import ffi, lib as lib_sym
+from libdebug.cffi.debug_sym_cffi import ffi
+from libdebug.cffi.debug_sym_cffi import lib as lib_sym
 from libdebug.utils.libcontext import libcontext
 
 DEBUGINFOD_PATH: Path = Path.home() / ".cache" / "debuginfod_client"

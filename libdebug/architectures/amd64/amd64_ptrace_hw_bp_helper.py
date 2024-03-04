@@ -15,13 +15,14 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+from typing import Callable
+
 from libdebug.architectures.ptrace_hardware_breakpoint_manager import (
     PtraceHardwareBreakpointManager,
 )
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.liblog import liblog
 from libdebug.state.thread_context import ThreadContext
-from typing import Callable
 
 AMD64_DBGREGS_OFF = {
     "DR0": 0x350,
