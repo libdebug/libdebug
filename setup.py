@@ -35,5 +35,5 @@ setup(
         "requests",
     ],
     setup_requires=["cffi"],
-    cffi_modules=["./libdebug/cffi/ptrace_cffi_build.py:ffibuilder", f"./libdebug/cffi/{debug_sym_cffi}.py:ffibuilder"],
+    cffi_modules=["./libdebug/cffi/ptrace_cffi_build.py:ffibuilder", "./libdebug/cffi/personality_cffi_build.py:ffibuilder", f"./libdebug/cffi/{debug_sym_cffi}.py:ffibuilder"],
 )
