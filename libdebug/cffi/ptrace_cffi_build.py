@@ -105,6 +105,7 @@ ffibuilder.cdef(
 ffibuilder.set_source(
     "libdebug.cffi._ptrace_cffi",
     """
+#include <errno.h>
 #include <signal.h>
 #include <sys/ptrace.h>
 #include <sys/types.h>
@@ -224,6 +225,10 @@ int ptrace_setregs(int pid, struct user_regs_struct *regs)
 
 uint64_t ptrace_peekdata(int pid, uint64_t addr)
 {
+    // Since the value returned by a successful PTRACE_PEEK*
+    // request may be -1, the caller must clear errno before the call,
+    errno = 0;
+
     return ptrace(PTRACE_PEEKDATA, pid, (void*) addr, NULL);
 }
 
@@ -234,6 +239,10 @@ uint64_t ptrace_pokedata(int pid, uint64_t addr, uint64_t data)
 
 uint64_t ptrace_peekuser(int pid, uint64_t addr)
 {
+    // Since the value returned by a successful PTRACE_PEEK*
+    // request may be -1, the caller must clear errno before the call,
+    errno = 0;
+
     return ptrace(PTRACE_PEEKUSER, pid, addr, NULL);
 }
 

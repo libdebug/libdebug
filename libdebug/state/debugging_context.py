@@ -38,6 +38,9 @@ class DebuggingContext:
     env: dict[str, str]
     """The environment variables of the debugged process."""
 
+    autoreach_entrypoint: bool
+    """A flag that indicates if the debugger should automatically reach the entry point of the debugged process."""
+
     _breakpoints: dict[int, Breakpoint]
     """A dictionary of all the breakpoints set on the process.
     Key: the address of the breakpoint."""
@@ -84,6 +87,7 @@ class DebuggingContext:
 
         # These must be reinitialized on every call to "debugger"
         self.aslr_enabled = False
+        self.autoreach_entrypoint = True
         self.argv = []
         self.env = {}
         self._breakpoints = {}

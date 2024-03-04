@@ -388,7 +388,10 @@ class Debugger:
 
 
 def debugger(
-    argv: str | list[str] = None, enable_aslr: bool = False, env: dict[str, str] = None
+    argv: str | list[str] = None,
+    enable_aslr: bool = False,
+    env: dict[str, str] = None,
+    continue_to_binary_entrypoint: bool = True,
 ) -> Debugger:
     """This function is used to create a new `Debugger` object. It takes as input the location of the binary to debug and returns a `Debugger` object.
 
@@ -396,6 +399,7 @@ def debugger(
         argv (str | list[str]): The location of the binary to debug, and any additional arguments to pass to it.
         enable_aslr (bool, optional): Whether to enable ASLR. Defaults to False.
         env (dict[str, str], optional): The environment variables to use. Defaults to None.
+        continue_to_binary_entrypoint (bool, optional): Whether to automatically continue to the binary entrypoint. Defaults to True.
 
     Returns:
         Debugger: The `Debugger` object.
@@ -408,5 +412,6 @@ def debugger(
     debugging_context.argv = argv
     debugging_context.env = env
     debugging_context.aslr_enabled = enable_aslr
+    debugging_context.autoreach_entrypoint = continue_to_binary_entrypoint
 
     return Debugger()

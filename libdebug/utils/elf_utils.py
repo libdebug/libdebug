@@ -23,10 +23,8 @@ from typing import Tuple
 import requests
 from elftools.elf.elffile import ELFFile
 
-from libdebug.cffi.debug_sym_cffi import ffi
-from libdebug.cffi.debug_sym_cffi import lib as lib_sym
-
-from .libcontext import libcontext
+from libdebug.cffi.debug_sym_cffi import ffi, lib as lib_sym
+from libdebug.utils.libcontext import libcontext
 
 DEBUGINFOD_PATH: Path = Path.home() / ".cache" / "debuginfod_client"
 LOCAL_DEBUG_PATH: str = "/usr/lib/debug/.build-id/"
@@ -105,7 +103,9 @@ def _collect_external_info(path: str) -> dict[str, int]:
 
 
 @functools.cache
-def _parse_elf_file(path: str, debug_info_level: int) -> Tuple[dict[str, int], str, str]:
+def _parse_elf_file(
+    path: str, debug_info_level: int
+) -> Tuple[dict[str, int], str, str]:
     """Returns a dictionary containing the symbols of the specified ELF file and
     the buildid.
 
@@ -255,3 +255,19 @@ def is_pie(path: str) -> bool:
         elf = ELFFile(elf_file)
 
     return elf.header.e_type == "ET_DYN"
+
+
+@functools.cache
+def get_entry_point(path: str) -> int:
+    """Returns the entry point of the specified ELF file.
+
+    Args:
+        path (str): The path to the ELF file.
+
+    Returns:
+        int: The entry point of the specified ELF file.
+    """
+    with open(path, "rb") as elf_file:
+        elf = ELFFile(elf_file)
+
+    return elf.header.e_entry

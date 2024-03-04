@@ -41,6 +41,8 @@ from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
 from libdebug.state.debugging_context import debugging_context
 from libdebug.state.thread_context import ThreadContext
+from libdebug.utils.debugging_utils import normalize_and_validate_address
+from libdebug.utils.elf_utils import get_entry_point
 from libdebug.utils.pipe_manager import PipeManager
 from libdebug.utils.process_utils import (
     disable_self_aslr,
@@ -129,7 +131,8 @@ class PtraceInterface(DebuggingInterface):
 
             debugging_context.process_id = child_pid
             self.register_new_thread(child_pid)
-            self._setup_parent()
+            continue_to_entry_point = debugging_context.autoreach_entrypoint
+            self._setup_parent(continue_to_entry_point)
             debugging_context.pipe_manager = self._setup_pipe()
 
     def attach(self, pid: int):
@@ -148,7 +151,9 @@ class PtraceInterface(DebuggingInterface):
 
         debugging_context.process_id = pid
         self.register_new_thread(pid)
-        self._setup_parent()
+        # If we are attaching to a process, we don't want to continue to the entry point
+        # which we have probably already passed
+        self._setup_parent(continue_to_entry_point=False)
 
     def kill(self):
         """Instantly terminates the process."""
@@ -286,7 +291,7 @@ class PtraceInterface(DebuggingInterface):
             raise Exception("Closing fds failed: %r" % e)
         return PipeManager(self.stdin_write, self.stdout_read, self.stderr_read)
 
-    def _setup_parent(self):
+    def _setup_parent(self, continue_to_entry_point: bool):
         """
         Sets up the parent process after the child process has been created or attached to.
         """
@@ -295,6 +300,22 @@ class PtraceInterface(DebuggingInterface):
         liblog.debugger("Child process ready, setting options")
         self._set_options()
         liblog.debugger("Options set")
+
+        if continue_to_entry_point:
+            # Now that the process is running, we must continue until we have reached the entry point
+            entry_point = get_entry_point(debugging_context.argv[0])
+
+            # For PIE binaries, the entry point is a relative address
+            entry_point = normalize_and_validate_address(entry_point, self.maps())
+
+            bp = Breakpoint(entry_point, hardware=True)
+            self.set_breakpoint(bp)
+
+            self.cont()
+            self.wait()
+
+            self.unset_breakpoint(bp)
+
         invalidate_process_cache()
 
     def get_register_holder(self, thread_id: int) -> RegisterHolder:
@@ -392,14 +413,14 @@ class PtraceInterface(DebuggingInterface):
         debugging_context.remove_breakpoint(breakpoint)
 
     def peek_memory(self, address: int) -> int:
-        """Reads the memory at the specified address."""
+        """Reads the memory at the specified address."""        
         result = self.lib_trace.ptrace_peekdata(self.process_id, address)
         liblog.debugger(
             "PEEKDATA at address %d returned with result %x", address, result
         )
 
         error = self.ffi.errno
-        if error == errno.EIO:
+        if error:
             raise OSError(error, errno.errorcode[error])
 
         return result
@@ -411,8 +432,8 @@ class PtraceInterface(DebuggingInterface):
             "POKEDATA at address %d returned with result %d", address, result
         )
 
-        error = self.ffi.errno
-        if error == errno.EIO:
+        if result == -1:
+            error = self.ffi.errno
             raise OSError(error, errno.errorcode[error])
 
     def _peek_user(self, thread_id: int, address: int) -> int:
@@ -423,7 +444,7 @@ class PtraceInterface(DebuggingInterface):
         )
 
         error = self.ffi.errno
-        if error == errno.EIO:
+        if error:
             raise OSError(error, errno.errorcode[error])
 
         return result
@@ -435,8 +456,8 @@ class PtraceInterface(DebuggingInterface):
             "POKEUSER at address %d returned with result %d", address, result
         )
 
-        error = self.ffi.errno
-        if error == errno.EIO:
+        if result == -1:
+            error = self.ffi.errno
             raise OSError(error, errno.errorcode[error])
 
     def _get_event_msg(self, thread_id: int) -> int:
