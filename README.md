@@ -61,6 +61,8 @@ d.memory["main_arena"] = b"12345678"
 
 `wait()` will block the execution of the Python script until the debugging process interrupts.
 
+`step_until(<address | symbol>, [max_steps=-1])` will step until the desired address is reached or for `max_steps` steps, whichever comes first.
+
 `breakpoint(<address | symbol>, [hardware=False])` to set a breakpoint, which can be hardware-assisted. 
 
 ```python
