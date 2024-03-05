@@ -20,7 +20,7 @@ import unittest
 
 from scripts.attach_test import AttachTest
 from scripts.backtrace_test import BacktraceTest
-from scripts.basic_test import BasicPieTest, BasicTest, HwBasicTest
+from scripts.basic_test import BasicPieTest, BasicTest, HwBasicTest, ControlFlowTest
 from scripts.breakpoint_test import BreakpointTest
 from scripts.brute_test import BruteTest
 from scripts.callback_test import CallbackTest
@@ -57,6 +57,13 @@ def fast_suite():
     suite.addTest(CallbackTest("test_callback_intermixing"))
     suite.addTest(Jumpout("test_jumpout"))
     suite.addTest(Ncuts("test_ncuts"))
+    suite.addTest(ControlFlowTest("test_step_until_1"))
+    suite.addTest(ControlFlowTest("test_step_until_2"))
+    suite.addTest(ControlFlowTest("test_step_until_3"))
+    suite.addTest(ControlFlowTest("test_step_and_cont"))
+    suite.addTest(ControlFlowTest("test_step_and_cont_hardware"))
+    suite.addTest(ControlFlowTest("test_step_until_and_cont"))
+    suite.addTest(ControlFlowTest("test_step_until_and_cont_hardware"))
     return suite
 
 

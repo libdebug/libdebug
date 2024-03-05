@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/io-no/libdebug).
-# Copyright (c) 2023 Roberto Alessandro Bertolini, Gabriele Digregorio.
+# Copyright (c) 2023 - 2024 Roberto Alessandro Bertolini, Gabriele Digregorio.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -319,6 +319,190 @@ class HwBasicTest(unittest.TestCase):
 
         self.d.cont()
         self.d.kill()
+
+
+class ControlFlowTest(unittest.TestCase):
+    def setUp(self) -> None:
+        pass
+
+    def test_step_until_1(self):
+        d = debugger("./binaries/breakpoint_test")
+        d.run()
+
+        bp = d.breakpoint("main")
+        d.cont()
+        d.wait()
+
+        self.assertTrue(bp.hit_on(d))
+
+        d.step_until(0x40119D)
+
+        self.assertTrue(d.rip == 0x40119D)
+        self.assertTrue(bp.hit_count == 1)
+        self.assertFalse(bp.hit_on(d))
+
+        d.kill()
+
+    def test_step_until_2(self):
+        d = debugger("./binaries/breakpoint_test")
+        d.run()
+
+        bp = d.breakpoint(0x401148, hardware=True)
+        d.cont()
+        d.wait()
+
+        self.assertTrue(bp.hit_on(d))
+
+        d.step_until(0x40119D, max_steps=7)
+
+        self.assertTrue(d.rip == 0x40115E)
+        self.assertTrue(bp.hit_count == 1)
+        self.assertFalse(bp.hit_on(d))
+
+        d.kill()
+
+    def test_step_until_3(self):
+        d = debugger("./binaries/breakpoint_test")
+        d.run()
+
+        bp = d.breakpoint(0x401148)
+
+        # Let's put some breakpoints in-between
+        d.breakpoint(0x40114F)
+        d.breakpoint(0x401156)
+        d.breakpoint(0x401162, hardware=True)
+
+        d.cont()
+        d.wait()
+
+        self.assertTrue(bp.hit_on(d))
+
+        # trace is [0x401148, 0x40114f, 0x401156, 0x401162, 0x401166, 0x401158, 0x40115b, 0x40115e]
+        d.step_until(0x40119D, max_steps=7)
+
+        self.assertTrue(d.rip == 0x40115E)
+        self.assertTrue(bp.hit_count == 1)
+        self.assertFalse(bp.hit_on(d))
+
+        d.kill()
+
+    def test_step_and_cont(self):
+        d = debugger("./binaries/breakpoint_test")
+        d.run()
+
+        bp1 = d.breakpoint("main")
+        bp2 = d.breakpoint("random_function")
+        d.cont()
+        d.wait()
+
+        self.assertTrue(bp1.hit_on(d))
+        self.assertFalse(bp2.hit_on(d))
+
+        d.step()
+        self.assertTrue(d.rip == 0x401180)
+        self.assertFalse(bp1.hit_on(d))
+        self.assertFalse(bp2.hit_on(d))
+
+        d.step()
+        self.assertTrue(d.rip == 0x401183)
+        self.assertFalse(bp1.hit_on(d))
+        self.assertFalse(bp2.hit_on(d))
+
+        d.cont()
+        d.wait()
+
+        self.assertTrue(bp2.hit_on(d))
+
+        d.cont()
+        d.wait()
+
+        d.kill()
+
+    def test_step_and_cont_hardware(self):
+        d = debugger("./binaries/breakpoint_test")
+        d.run()
+
+        bp1 = d.breakpoint("main", hardware=True)
+        bp2 = d.breakpoint("random_function", hardware=True)
+        d.cont()
+        d.wait()
+
+        self.assertTrue(bp1.hit_on(d))
+        self.assertFalse(bp2.hit_on(d))
+
+        d.step()
+        self.assertTrue(d.rip == 0x401180)
+        self.assertFalse(bp1.hit_on(d))
+        self.assertFalse(bp2.hit_on(d))
+
+        d.step()
+        self.assertTrue(d.rip == 0x401183)
+        self.assertFalse(bp1.hit_on(d))
+        self.assertFalse(bp2.hit_on(d))
+
+        d.cont()
+        d.wait()
+
+        self.assertTrue(bp2.hit_on(d))
+
+        d.cont()
+        d.wait()
+
+        d.kill()
+
+    def test_step_until_and_cont(self):
+        d = debugger("./binaries/breakpoint_test")
+        d.run()
+
+        bp1 = d.breakpoint("main")
+        bp2 = d.breakpoint("random_function")
+        d.cont()
+        d.wait()
+
+        self.assertTrue(bp1.hit_on(d))
+        self.assertFalse(bp2.hit_on(d))
+
+        d.step_until(0x401180)
+        self.assertTrue(d.rip == 0x401180)
+        self.assertFalse(bp1.hit_on(d))
+        self.assertFalse(bp2.hit_on(d))
+
+        d.cont()
+        d.wait()
+
+        self.assertTrue(bp2.hit_on(d))
+
+        d.cont()
+        d.wait()
+
+        d.kill()
+
+    def test_step_until_and_cont_hardware(self):
+        d = debugger("./binaries/breakpoint_test")
+        d.run()
+
+        bp1 = d.breakpoint("main", hardware=True)
+        bp2 = d.breakpoint("random_function", hardware=True)
+        d.cont()
+        d.wait()
+
+        self.assertTrue(bp1.hit_on(d))
+        self.assertFalse(bp2.hit_on(d))
+
+        d.step_until(0x401180)
+        self.assertTrue(d.rip == 0x401180)
+        self.assertFalse(bp1.hit_on(d))
+        self.assertFalse(bp2.hit_on(d))
+
+        d.cont()
+        d.wait()
+
+        self.assertTrue(bp2.hit_on(d))
+
+        d.cont()
+        d.wait()
+
+        d.kill()
 
 
 if __name__ == "__main__":
