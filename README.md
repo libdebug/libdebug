@@ -1,102 +1,127 @@
 # libdebug
-libdebug is a python library to automate the debugging of a binary executable.
+libdebug is a Python library to automate the debugging of a binary executable.
 
-## Install
+## Installation
 ```bash
-pip install git+https://github.com/JinBlack/libdebug
+python3 -m pip install git+https://github.com/io-no/libdebug.git@threading
 ```
 
-## Attach/Detach
-You can use the method `run` to start a binary using the path to the binary
+## Attach
+After providing the path to the executable, you can use the methdo `run` to start it
 ```python
-from libdebug import Debugger
-d = Debugger()
-d.run("./test")
+from libdebug import debugger
+
+d = debugger("./test")
+
+d.run()
 ```
 
-You can attach to a running pid using `attach`
+You can attach to an already running process using `attach`
 ```python
-d = Debugger()
+d = debugger("./test")
+
 d.attach(1234)
 ```
-or
 
+## Register Access
+Registers are provided as properties of the class `Debugger`. You can read from and write to them when the process is interrupted.
 ```python
-d = Debugger(1234)
-```
-`detach` is used to unleash the process. `stop` is used to terminate a process executed with `run`. You can use `reattach` to attach back to a process after `detach`
+d = debugger("./test")
 
-## Register
-you can access register as property of the cluss `Debugger`. You can user the property to read and write registers.
-```python
-d = Debugger()
-d.run("./test")
+d.run()
+
 print(d.rax)
 d.rax = 0
 ```
-## Memory
-`mem` is used to access memory of the debugged program. You can use `d.mem` with the array-link python syntax both for read and write.
+
+## Memory Access
+`memory` is used to access the memory of the debugged program. You can use the `d.memory` property to read from and write to it.
+We provide multiple elegant ways of accessing it, such as:
 
 ```python
-d = Debugger()
-d.run("./test")
-print("[rsp]: ", d.mem[d.rsp])
-print("[rsp]: ", d.mem[d.rsp:d.rsp+0x10])
-d.mem[d.rsp:d.rsp+0x10] = b"AAAAAAABC"
+d = debugger("./test")
+
+d.run()
+
+print("[rsp]: ", d.memory[d.rsp])
+print("[rsp]: ", d.memory[d.rsp:d.rsp+0x10])
+print("[rsp]: ", d.memory[d.rsp, 0x10])
+
+print("[main_arena]: ", d.memory["main_arena"])
+print("[main_arena+8:main_arena+18]: ", d.memory["main_arena+8", 0x10])
+
+d.memory[d.rsp, 0x10] = b"AAAAAAABC"
+d.memory["main_arena"] = b"12345678"
 ```
 
 ## Control Flow
 `step()` will execute a single instruction stepping into function calls
 
-`step_until(<addr>)` keep executing `step()` untill `rip == <addr>` .
+`cont()` will continue the execution, without blocking the main Python script.
 
-`cont()` will continue the execution.
+`wait()` will block the execution of the Python script until the debugging process interrupts.
 
-`next()` will execute a single instruction but wil step over the function calls. Indeed, this is implemented checking id the next instruction is a `call` instruction and setting a beakpoints on the return address of the called function.
-
-`finish()` will continue the execution until the return from the current function. (The return is computed retriving the return address from `rbp+8`)
-
-
-`breakpoint(<address>, [name=<libname>], [hw=False])` to set a breakpoint, name is part of the string to search for relative breakpoints, hw is a bool to specify if you want to use hardware breakpoint. 
-
-`del_bp(<address>)` to remove the break point.
+`breakpoint(<address | symbol>, [hardware=False])` to set a breakpoint, which can be hardware-assisted. 
 
 ```python
-bp = d.breakpoint(0x1234, "libc")
+bp = d.breakpoint(0x1234)
+
 d.cont()
-d.del_bp(bp)
+d.wait()
+
+assert d.rip == bp.address
 ```
 
-`watch(<address>, [cond='W'|'RW'], length=[1,2,4,8] [name=<libname>])` to set an hardware breakpoint when there is a memory access to specific address.
-`cond` (default: `W`) specify the contition on which the breakpoint is triggered `'W'` only write or `'RW'` read and write. `length` (default: `8`) specify the size of the memory access.
+## Asynchronous Callbacks
+Breakpoints can be asynchronous: instead of interrupting the main Python script, they can register a small callback function that gets run on hitting the breakpoint, and then the execution is continued automatically.
 ```python
-bp = d.watch(0x1234, "libc")
+d = debugger("./test")
+d.run()
+
+def callback(d, bp):
+    print(hex(d.rip))
+    assert d.rip == bp.address
+    print(hex(d.memory[d.rax, 0x10]))
+
+d.breakpoint(0x1234, callback=callback)
+
 d.cont()
-d.del_bp(bp)
-```
-### Non Blocking Continue
-`cont` can be nonblocking. In this case the waitpid is avoided. The library will stop the process when there is an operation that require the process to be stopped.
-```python
-for i in range(10):
-    d.cont(blocking=False)
-    time.sleep(0.1)
-    print("rip: %#x" % d.rip)
+d.wait()
 ```
 
-## GDB
-Migrate debugging to gdb
+## Multithreading Support
+Libdebug supports multithreaded applications: each time the process clones itself, the new thread is automatically traced and registered in the `threads` property of the `debugger`.
+
+Each thread exposes its own set of register access properties. Control flow is synchronous between threads: they either are all stopped or all running, and every time a thread stops all the others get stopped. This is done to avoid concurrency issues.
 
 ```python
-d.gdb()
+d = debugger("./threaded_test")
+d.run()
+d.cont()
+
+for _ in range(15):
+    d.wait()
+
+    for thread_id, thread in d.threads.items():
+        print(hex(thread.rip))
+
+    d.cont()
+
+d.kill()
 ```
 
-with default option gdb is executed using `execve`. This means that the python script does not exists anymore after the spawn of gdb.
+## Breakpoints
+The `Breakpoint` class automatically counts the number of times the breakpoint has been it: this is accessible though the `hit_count` property:
 
-It is possible to spwn gdb in a differen shell keeping the script alive:
 ```python
-d.gdb(spawn=True)
+bp = d.breakpoint(0x1234)
+d.cont()
+
+for i in range(15):
+    d.wait()
+
+    assert d.rip == bp.address
+    assert bp.hit_count == i
+
+    d.cont()
 ```
-`spawn=True` option will execute gdb without eliminating the current process. In this case the library will use the content of `d.terminal` to spawn a new terminal emulator to handle the new gdb process. The default option fo `d.terminal` is `['tmux', 'splitw', '-h']`. This option will create a vertical separation in a `tmux` shell.
-
-
-
