@@ -107,6 +107,7 @@ ffibuilder.cdef(
     uint64_t ptrace_geteventmsg(int pid);
 
     int singlestep(int tid);
+    int step_until(int tid, uint64_t addr, int max_steps);
 
     int cont_all_and_set_bps(int pid);
 
@@ -294,6 +295,53 @@ int singlestep(int tid)
     }
 
     return ptrace(PTRACE_SINGLESTEP, tid, NULL, NULL);
+}
+
+int step_until(int tid, uint64_t addr, int max_steps)
+{
+    // flush any register changes
+    struct thread *t = t_HEAD, *stepping_thread = NULL;
+    while (t != NULL) {
+        if (ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs))
+            perror("ptrace_setregs");
+
+        if (t->tid == tid)
+            stepping_thread = t;
+
+        t = t->next;
+    }
+
+    int count = 0, status = 0;
+    uint64_t previous_ip;
+
+    if (!stepping_thread) {
+        perror("Thread not found");
+        return -1;
+    }
+
+    while (max_steps == -1 || count < max_steps) {
+        if (ptrace(PTRACE_SINGLESTEP, tid, NULL, NULL))
+            return -1;
+
+        // wait for the child
+        waitpid(tid, &status, 0);
+
+        previous_ip = INSTRUCTION_POINTER(stepping_thread->regs);
+
+        // update the registers
+        ptrace(PTRACE_GETREGS, tid, NULL, &stepping_thread->regs);
+
+        if (INSTRUCTION_POINTER(stepping_thread->regs) == addr)
+            break;
+
+        // if the instruction pointer didn't change, we have to step again because we hit a hardware breakpoint
+        if (INSTRUCTION_POINTER(stepping_thread->regs) == previous_ip)
+            continue;
+
+        count++;
+    }
+
+    return 0;
 }
 
 int cont_all_and_set_bps(int pid)

@@ -73,6 +73,16 @@ class DebuggingInterface:
         """
         pass
 
+    def step_until(self, thread: ThreadContext, address: int, max_steps: int):
+        """Executes instructions of the specified thread until the specified address is reached.
+
+        Args:
+            thread (ThreadContext): The thread to step.
+            address (int): The address to reach.
+            max_steps (int): The maximum number of steps to execute.
+        """
+        pass
+
     def maps(self) -> list[MemoryMap]:
         """Returns the memory maps of the process."""
         pass

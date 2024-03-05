@@ -185,6 +185,10 @@ class PtraceInterface(DebuggingInterface):
 
     def cont(self):
         """Continues the execution of the process."""
+        # Enable all breakpoints if they were disabled for a single step
+        for bp in debugging_context.breakpoints.values():
+            bp._disabled_for_step = False
+
         result = self.lib_trace.cont_all_and_set_bps(self.process_id)
         if result < 0:
             errno_val = self.ffi.errno
@@ -197,6 +201,23 @@ class PtraceInterface(DebuggingInterface):
             bp._disabled_for_step = True
 
         result = self.lib_trace.singlestep(thread.thread_id)
+        if result == -1:
+            errno_val = self.ffi.errno
+            raise OSError(errno_val, errno.errorcode[errno_val])
+
+    def step_until(self, thread: ThreadContext, address: int, max_steps: int):
+        """Executes instructions of the specified thread until the specified address is reached.
+
+        Args:
+            thread (ThreadContext): The thread to step.
+            address (int): The address to reach.
+            max_steps (int): The maximum number of steps to execute.
+        """
+        # Disable all breakpoints for the single step
+        for bp in debugging_context.breakpoints.values():
+            bp._disabled_for_step = True
+
+        result = self.lib_trace.step_until(thread.thread_id, address, max_steps)
         if result == -1:
             errno_val = self.ffi.errno
             raise OSError(errno_val, errno.errorcode[errno_val])

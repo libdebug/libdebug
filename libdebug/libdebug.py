@@ -208,6 +208,40 @@ class Debugger:
         # We don't want any asynchronous behaviour here
         self._polling_thread_command_queue.join()
 
+    def step_until(
+        self, position: int | str, thread: ThreadContext = None, max_steps: int = -1
+    ):
+        """Executes instructions of the process until the specified location is reached.
+
+        Args:
+            position (int | bytes): The location to reach.
+            thread (ThreadContext, optional): The thread to step. Defaults to None.
+            max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
+        """
+        if not self.instanced:
+            raise RuntimeError("Process not running, cannot step.")
+
+        if thread is None:
+            # If no thread is specified, we use the first thread
+            thread = next(iter(self.threads.values()))
+
+        if isinstance(position, str):
+            address = self.process_context.resolve_symbol(position)
+        else:
+            address = self.process_context.resolve_address(position)
+
+        arguments = (
+            thread,
+            address,
+            max_steps,
+        )
+
+        self._polling_thread_command_queue.put((self.__threaded_step_until, arguments))
+
+        # Wait for the background thread to signal "task done" before returning
+        # We don't want any asynchronous behaviour here
+        self._polling_thread_command_queue.join()
+
     def breakpoint(
         self,
         position: int | str,
@@ -373,6 +407,13 @@ class Debugger:
         liblog.debugger("Stepping thread %s.", thread.thread_id)
         self.interface.step(thread)
         debugging_context.set_running()
+
+    def __threaded_step_until(
+        self, thread: ThreadContext, address: int, max_steps: int
+    ):
+        liblog.debugger("Stepping thread %s until 0x%x.", thread.thread_id, address)
+        self.interface.step_until(thread, address, max_steps)
+        debugging_context.set_stopped()
 
     def __threaded_peek_memory(self, address: int) -> bytes:
         try:
