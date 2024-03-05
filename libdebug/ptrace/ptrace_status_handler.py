@@ -31,8 +31,6 @@ class PtraceStatusHandler:
         self.ptrace_interface = debugging_context.debugging_interface
 
     def _handle_clone(self, thread_id: int):
-        self.ptrace_interface.register_new_thread(thread_id)
-
         # https://go.googlesource.com/debug/+/a09ead70f05c87ad67bd9a131ff8352cf39a6082/doc/ptrace-nptl.txt
         # "At this time, the new thread will exist, but will initially
         # be stopped with a SIGSTOP.  The new thread will automatically be
@@ -40,6 +38,8 @@ class PtraceStatusHandler:
         # parent.  The attached process should wait on the new thread to receive
         # the SIGSTOP notification."
         os.waitpid(thread_id, 0)
+
+        self.ptrace_interface.register_new_thread(thread_id)
 
     def _handle_exit(self, thread_id: int):
         self.ptrace_interface.unregister_thread(thread_id)
