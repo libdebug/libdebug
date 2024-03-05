@@ -125,3 +125,21 @@ for i in range(15):
 
     d.cont()
 ```
+
+To check if a breakpoint was hit by a specific thread, you can use the `hit_on` function:
+
+```python
+bp = d.breakpoint(0x1234)
+d.cont()
+
+for i in range(15):
+    d.wait()
+
+    assert d.rip == bp.address
+    assert bp.hit_on(d)
+
+    if bp.hit_on(d):
+        ...
+
+    d.cont()
+```

@@ -40,6 +40,7 @@ class CallbackTest(unittest.TestCase):
 
             try:
                 self.assertEqual(bp.hit_count, 1)
+                self.assertTrue(bp.hit_on(thread))
             except Exception as e:
                 self.exceptions.append(e)
 
@@ -72,6 +73,7 @@ class CallbackTest(unittest.TestCase):
 
             try:
                 self.assertEqual(bp.hit_count, 1)
+                self.assertTrue(bp.hit_on(thread))
             except Exception as e:
                 self.exceptions.append(e)
 

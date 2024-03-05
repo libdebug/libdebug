@@ -42,8 +42,14 @@ class BreakpointTest(unittest.TestCase):
 
             if d.rip == bp1.address:
                 self.assertTrue(bp1.hit_count == 1)
+                self.assertTrue(bp1.hit_on(d))
+                self.assertFalse(bp2.hit_on(d))
+                self.assertFalse(bp3.hit_on(d))
             elif d.rip == bp2.address:
                 self.assertTrue(bp2.hit_count == counter)
+                self.assertTrue(bp2.hit_on(d))
+                self.assertFalse(bp1.hit_on(d))
+                self.assertFalse(bp3.hit_on(d))
                 counter += 1
             elif d.rip == bp3.address:
                 self.assertTrue(bp3.hit_count == 1)
@@ -51,6 +57,9 @@ class BreakpointTest(unittest.TestCase):
                 self.assertTrue(d.esi == 45)
                 self.assertTrue(d.si == 45)
                 self.assertTrue(d.sil == 45)
+                self.assertTrue(bp3.hit_on(d))
+                self.assertFalse(bp1.hit_on(d))
+                self.assertFalse(bp2.hit_on(d))
                 break
 
             d.cont()

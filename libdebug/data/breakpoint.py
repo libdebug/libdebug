@@ -56,3 +56,7 @@ class Breakpoint:
     def disable(self) -> None:
         """Disable the breakpoint."""
         self.enabled = False
+
+    def hit_on(self, thread_context: "ThreadContext") -> None:
+        """Called when the breakpoint is hit."""
+        return self.enabled and thread_context.instruction_pointer == self.address
