@@ -103,9 +103,33 @@ int ptrace_attach(int pid)
     return ptrace(PTRACE_ATTACH, pid, NULL, NULL);
 }
 
-int ptrace_detach(int pid)
+void ptrace_detach_all(int pid)
 {
-    return ptrace(PTRACE_DETACH, pid, NULL, NULL);
+    struct thread *t = t_HEAD;
+    // note that the order is important: the main thread must be detached last
+    while (t != NULL) {
+        // let's attempt to read the registers of the thread
+        if (ptrace(PTRACE_GETREGS, t->tid, NULL, &t->regs)) {
+            // if we can't read the registers, the thread is probably still running
+            // ensure that the thread is stopped
+            tgkill(pid, t->tid, SIGSTOP);
+
+            // wait for it to stop
+            waitpid(t->tid, NULL, 0);
+        }
+
+        // detach from it
+        if (ptrace(PTRACE_DETACH, t->tid, NULL, NULL))
+            fprintf(stderr, "ptrace_detach failed for thread %d: %s\\n", t->tid,
+                    strerror(errno));
+
+        // kill it
+        tgkill(pid, t->tid, SIGKILL);
+
+        t = t->next;
+    }
+
+    waitpid(pid, NULL, 0);
 }
 
 void ptrace_set_options(int pid)
@@ -176,7 +200,8 @@ int step_until(int tid, uint64_t addr, int max_steps)
         if (ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs))
             perror("ptrace_setregs");
 
-        if (t->tid == tid) stepping_thread = t;
+        if (t->tid == tid)
+            stepping_thread = t;
 
         t = t->next;
     }

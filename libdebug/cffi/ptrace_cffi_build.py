@@ -95,7 +95,7 @@ ffibuilder.cdef(
 
     int ptrace_trace_me(void);
     int ptrace_attach(int pid);
-    int ptrace_detach(int pid);
+    void ptrace_detach_all(int pid);
     void ptrace_set_options(int pid);
 
     uint64_t ptrace_peekdata(int pid, uint64_t addr);

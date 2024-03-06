@@ -77,6 +77,7 @@ def complete_suite():
     suite.addTest(SpeedTest("test_speed_hardware"))
     return suite
 
+
 def thread_stress_suite():
     suite = unittest.TestSuite()
     for _ in range(1024):
