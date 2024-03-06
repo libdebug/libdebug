@@ -156,9 +156,6 @@ class Debugger:
 
         self._polling_thread_command_queue.put((self.__threaded_kill, ()))
 
-        # If the process is running, interrupt it
-        self.process_context.interrupt()
-
         self.memory = None
         self.instanced = None
 
