@@ -41,7 +41,7 @@ class ThreadTest(unittest.TestCase):
 
         local_threads = {}
 
-        for _ in range(15):
+        for _ in range(150):
             d.wait()
 
             for t in d.threads.values():

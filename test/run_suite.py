@@ -77,6 +77,14 @@ def complete_suite():
     suite.addTest(SpeedTest("test_speed_hardware"))
     return suite
 
+def thread_stress_suite():
+    suite = unittest.TestSuite()
+    for _ in range(1024):
+        suite.addTest(ThreadTest("test_thread"))
+        suite.addTest(ThreadTest("test_thread_hardware"))
+        suite.addTest(ComplexThreadTest("test_thread"))
+    return suite
+
 
 if __name__ == "__main__":
     if sys.version_info >= (3, 12):
@@ -86,6 +94,9 @@ if __name__ == "__main__":
 
     if len(sys.argv) > 1 and sys.argv[1].lower() == "slow":
         suite = complete_suite()
+    elif len(sys.argv) > 1 and sys.argv[1].lower() == "thread_stress":
+        suite = thread_stress_suite()
+        runner.verbosity = 1
     else:
         suite = fast_suite()
 
