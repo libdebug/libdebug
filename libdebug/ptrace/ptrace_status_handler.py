@@ -30,21 +30,31 @@ class PtraceStatusHandler:
     def __init__(self):
         self.ptrace_interface = debugging_context.debugging_interface
 
-    def _handle_clone(self, thread_id: int):
+    def _handle_clone(self, thread_id: int, results: list):
         # https://go.googlesource.com/debug/+/a09ead70f05c87ad67bd9a131ff8352cf39a6082/doc/ptrace-nptl.txt
         # "At this time, the new thread will exist, but will initially
         # be stopped with a SIGSTOP.  The new thread will automatically be
         # traced and will inherit the PTRACE_O_TRACECLONE option from its
         # parent.  The attached process should wait on the new thread to receive
         # the SIGSTOP notification."
-        os.waitpid(thread_id, 0)
+
+        # Check if we received the SIGSTOP notification for the new thread
+        # If not, we need to wait for it
+        # 4991 == (WIFSTOPPED && WSTOPSIG(status) == SIGSTOP)
+        if (thread_id, 4991) not in results:
+            os.waitpid(thread_id, 0)
 
         self.ptrace_interface.register_new_thread(thread_id)
 
     def _handle_exit(self, thread_id: int):
-        self.ptrace_interface.unregister_thread(thread_id)
+        if thread_id in debugging_context.threads:
+            self.ptrace_interface.unregister_thread(thread_id)
 
     def _handle_trap(self, thread_id: int) -> bool:
+        if thread_id == -1:
+            # This is a spurious trap, we don't know what to do with it
+            return False
+
         thread = debugging_context.threads[thread_id]
 
         if not hasattr(thread, "instruction_pointer"):
@@ -93,7 +103,7 @@ class PtraceStatusHandler:
 
         return False
 
-    def handle_change(self, pid: int, status: int) -> bool:
+    def _handle_change(self, pid: int, status: int, results: list) -> bool:
         """Handle a change in the status of a traced process. Return True if the process should start waiting again."""
         event = status >> 8
 
@@ -117,7 +127,7 @@ class PtraceStatusHandler:
                     liblog.debugger(
                         "Process {} cloned, new thread_id: {}".format(pid, message)
                     )
-                    self._handle_clone(message)
+                    self._handle_clone(message, results)
 
                 case StopEvents.SECCOMP_EVENT:
                     liblog.debugger("Process {} installed a seccomp".format(pid))
@@ -143,3 +153,23 @@ class PtraceStatusHandler:
             self._handle_exit(pid)
 
         return restart_wait
+
+    def check_result(self, result):
+        repeat = False
+
+        for pid, status in result:
+            repeat |= self._handle_change(pid, status, result)
+
+        return repeat
+
+    def check_for_new_threads(self, pid: int):
+        """Check for new threads in the process and register them."""
+        if not os.path.exists(f"/proc/{pid}/task"):
+            return
+
+        tids = os.listdir(f"/proc/{pid}/task")
+        for tid in tids:
+            tid = int(tid)
+            if tid not in debugging_context.threads:
+                self.ptrace_interface.register_new_thread(tid)
+                print("Manually registered new thread %d", tid)

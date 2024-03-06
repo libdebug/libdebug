@@ -181,7 +181,7 @@ class PtraceInterface(DebuggingInterface):
         liblog.debugger("Killed process %d" % self.process_id)
 
         # wait for the child process to terminate, otherwise it will become a zombie
-        os.wait()
+        os.waitpid(self.process_id, 0)
 
     def cont(self):
         """Continues the execution of the process."""
@@ -305,12 +305,15 @@ class PtraceInterface(DebuggingInterface):
     def wait(self) -> bool:
         """Waits for the process to stop. Returns True if the wait has to be repeated."""
         result = self.lib_trace.wait_all_and_update_regs(self.process_id)
+        cursor = result
 
-        repeat = False
+        results = []
 
-        while result != self.ffi.NULL:
-            repeat |= self.status_handler.handle_change(result.tid, result.status)
-            result = result.next
+        while cursor != self.ffi.NULL:
+            results.append((cursor.tid, cursor.status))
+            cursor = cursor.next
+
+        repeat = self.status_handler.check_result(results)
 
         self.lib_trace.free_thread_status_list(result)
 
