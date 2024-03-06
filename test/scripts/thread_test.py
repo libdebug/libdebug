@@ -22,10 +22,10 @@ from libdebug import debugger
 
 class ThreadTest(unittest.TestCase):
     def setUp(self):
-        self.d = debugger("binaries/thread_test")
+        pass
 
     def test_thread(self):
-        d = self.d
+        d = debugger("binaries/thread_test")
 
         d.run()
 
@@ -73,9 +73,10 @@ class ThreadTest(unittest.TestCase):
             d.cont()
 
         d.kill()
+        d.terminate()
 
     def test_thread_hardware(self):
-        d = self.d
+        d = debugger("binaries/thread_test")
 
         d.run()
 
@@ -124,11 +125,12 @@ class ThreadTest(unittest.TestCase):
             d.cont()
 
         d.kill()
+        d.terminate()
 
 
 class ComplexThreadTest(unittest.TestCase):
     def setUp(self):
-        self.d = debugger("binaries/complex_thread_test")
+        pass
 
     def test_thread(self):
         def factorial(n):
@@ -137,7 +139,7 @@ class ComplexThreadTest(unittest.TestCase):
             else:
                 return (n * factorial(n - 1)) & (2**32 - 1)
 
-        d = self.d
+        d = d = debugger("binaries/complex_thread_test")
 
         d.run()
 
@@ -187,6 +189,7 @@ class ComplexThreadTest(unittest.TestCase):
                 break
 
         d.kill()
+        d.terminate()
 
 
 if __name__ == "__main__":

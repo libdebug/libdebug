@@ -33,6 +33,9 @@ from libdebug.state.process_context import ProcessContext
 from libdebug.state.thread_context import ThreadContext
 
 
+THREAD_TERMINATE = -1
+
+
 class Debugger:
     """The Debugger class is the main class of `libdebug`. It contains all the methods needed to run and interact with the process."""
 
@@ -88,6 +91,16 @@ class Debugger:
 
         self._start_processing_thread()
         self._setup_memory_view()
+
+    def terminate(self):
+        """Terminates the background thread. The debugger object cannot be used after this method is called.
+        This method should only be called to free up resources when the debugger object is no longer needed.
+        """
+        if self._polling_thread is not None:
+            self._polling_thread_command_queue.put((THREAD_TERMINATE, ()))
+            self._polling_thread.join()
+            del self._polling_thread
+            self._polling_thread = None
 
     def run(self):
         """Starts the process and waits for it to stop."""
@@ -357,6 +370,11 @@ class Debugger:
         while True:
             # Wait for the main thread to signal a command to execute
             command, args = self._polling_thread_command_queue.get()
+
+            if command == THREAD_TERMINATE:
+                # Signal that the command has been executed
+                self._polling_thread_command_queue.task_done()
+                return
 
             # Execute the command
             return_value = command(*args)
