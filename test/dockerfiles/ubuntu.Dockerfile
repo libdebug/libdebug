@@ -10,15 +10,15 @@ WORKDIR /test
 RUN python3 -m pip install -U pip
 RUN pypy3 -m pip install -U pip
 
-RUN python3 -m pip install pwntools
-RUN pypy3 -m pip install pwntools
+RUN python3 -m pip install pwntools requests capstone pyelftools
+RUN pypy3 -m pip install pwntools requests capstone pyelftools
 
 COPY . .
 
 COPY test/dockerfiles/run_tests.sh /test/test/run_tests.sh
 
-RUN python3 -m pip install .
-RUN pypy3 -m pip install .
+RUN python3 -m pip install --compile .
+RUN pypy3 -m pip install --compile .
 
 WORKDIR /test/test
 

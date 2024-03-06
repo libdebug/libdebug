@@ -7,13 +7,13 @@ WORKDIR /test
 # Debian forces venvs
 RUN python3 -m venv venv
 RUN venv/bin/python -m pip install -U pip
-RUN venv/bin/python -m pip install pwntools
+RUN venv/bin/python -m pip install pwntools requests capstone pyelftools
 
 COPY . .
 
 COPY test/dockerfiles/run_tests.sh /test/test/run_tests.sh
 
-RUN venv/bin/python -m pip install .
+RUN venv/bin/python -m pip install --compile .
 
 WORKDIR /test/test
 
