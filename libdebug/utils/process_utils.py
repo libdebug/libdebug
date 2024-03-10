@@ -39,6 +39,7 @@ def get_process_maps(process_id) -> list[MemoryMap]:
 
     return parsed_maps
 
+
 @functools.cache
 def get_open_fds(process_id) -> list[str]:
     """Returns the file descriptors of the specified process.

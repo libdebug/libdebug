@@ -22,6 +22,7 @@ from libdebug.architectures.stack_unwinding_manager import StackUnwindingManager
 if TYPE_CHECKING:
     from libdebug.state.thread_context import ThreadContext
 
+
 class Amd64StackUnwinder(StackUnwindingManager):
     """
     Class that provides stack unwinding for the x86_64 architecture.

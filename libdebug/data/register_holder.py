@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from libdebug.state.thread_context import ThreadContext
 
+
 @dataclass
 class RegisterHolder:
     """An abstract class that holds the state of the registers of a process, providing setters and getters for them."""

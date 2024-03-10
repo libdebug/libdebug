@@ -19,10 +19,10 @@ import logging
 
 
 class LogColors:
-    RED = '\033[91m'
-    BLUE = '\033[94m'
-    GREEN = '\033[92m'
-    RESET = '\033[0m'
+    RED = "\033[91m"
+    BLUE = "\033[94m"
+    GREEN = "\033[92m"
+    RESET = "\033[0m"
 
 
 class LibLog:
@@ -32,10 +32,9 @@ class LibLog:
 
     _instance = None
 
-
-    def __new__(cls) -> 'LibLog':
+    def __new__(cls) -> "LibLog":
         """Create a new instance of the class if it does not exist yet.
-        
+
         Returns:
             LibLog: the instance of the class.
         """
@@ -45,13 +44,12 @@ class LibLog:
             cls._instance._initialized = False
         return cls._instance
 
-
     def __init__(self):
         """Initialize the logger"""
 
         if self._initialized:
             return
-        
+
         # General logger
         self.general_logger = self._setup_logger("libdebug", logging.INFO)
 
@@ -60,7 +58,6 @@ class LibLog:
         self.pipe_logger = self._setup_logger("pipe", logging.INFO)
 
         self._initialized = True
-
 
     def _setup_logger(self, name: str, level: int) -> logging.Logger:
         """Setup a logger with the given name and level.
@@ -76,13 +73,12 @@ class LibLog:
         logger = logging.getLogger(name)
         logger.setLevel(level)
         handler = logging.StreamHandler()
-        formatter = logging.Formatter('%(message)s')
+        formatter = logging.Formatter("%(message)s")
         handler.setFormatter(formatter)
         logger.addHandler(handler)
 
         return logger
 
-    
     def debugger(self, message: str, *args, **kwargs):
         """Log a message to the debugger logger.
 
@@ -95,7 +91,6 @@ class LibLog:
         header = f"[{LogColors.RED}DEBUGGER{LogColors.RESET}]"
         self.debugger_logger.debug(f"{header} {message}", *args, **kwargs)
 
-    
     def pipe(self, message: str, *args, **kwargs):
         """Log a message to the pipe logger.
 
@@ -107,7 +102,6 @@ class LibLog:
 
         header = f"[{LogColors.BLUE}PIPE{LogColors.RESET}]"
         self.pipe_logger.debug(f"{header} {message}", *args, **kwargs)
-    
 
     def info(self, message: str, *args, **kwargs):
         """Log a info message to the general logger.

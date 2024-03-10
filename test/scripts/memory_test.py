@@ -62,7 +62,7 @@ class MemoryTest(unittest.TestCase):
         assert d.rip == bp.address
 
         address = d.rdi
-        with libcontext.tmp(sym_lvl=5): 
+        with libcontext.tmp(sym_lvl=5):
             arena = d.memory["main_arena", 256]
 
         self.assertTrue(p64(address - 0x10) in arena)

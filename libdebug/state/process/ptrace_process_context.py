@@ -35,4 +35,3 @@ class PtraceProcessContext(ProcessContext):
     def fds(self):
         """Returns the file descriptors of the process."""
         return get_open_fds(self.process_id)
-

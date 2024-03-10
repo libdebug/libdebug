@@ -49,7 +49,10 @@ class PipeManager:
         self.stderr_read: int = stderr_read
 
     def _recv(
-        self, numb: int | None = None, timeout: float = timeout_default, stderr: bool = False
+        self,
+        numb: int | None = None,
+        timeout: float = timeout_default,
+        stderr: bool = False,
     ) -> bytes:
         """Receives at most numb bytes from the child process.
 
