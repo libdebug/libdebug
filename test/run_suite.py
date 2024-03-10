@@ -26,6 +26,7 @@ from scripts.brute_test import BruteTest
 from scripts.callback_test import CallbackTest
 from scripts.jumpout import Jumpout
 from scripts.memory_test import MemoryTest
+from scripts.multiple_debuggers_test import MultipleDebuggersTest
 from scripts.ncuts import Ncuts
 from scripts.speed_test import SpeedTest
 from scripts.thread_test import ComplexThreadTest, ThreadTest
@@ -64,6 +65,7 @@ def fast_suite():
     suite.addTest(ControlFlowTest("test_step_and_cont_hardware"))
     suite.addTest(ControlFlowTest("test_step_until_and_cont"))
     suite.addTest(ControlFlowTest("test_step_until_and_cont_hardware"))
+    suite.addTest(MultipleDebuggersTest("test_multiple_debuggers"))
     return suite
 
 
