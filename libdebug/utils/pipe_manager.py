@@ -19,6 +19,7 @@
 import os
 import pty
 import time
+from typing import Tuple
 
 from libdebug.liblog import liblog
 
@@ -33,21 +34,6 @@ class PipeManager:
     _instance = None
     timeout_default: int = 2
 
-    def __new__(
-        cls, stdin_write: int, stdout_read: int, stderr_read: int
-    ) -> "PipeManager":
-        """Create a new instance of the class if it does not exist yet.
-
-        Returns:
-            CustomLogger: the instance of the class.
-        """
-        # TODO: change comment
-
-        if cls._instance is None:
-            cls._instance = super(PipeManager, cls).__new__(cls)
-            cls._instance._initialized = False
-        return cls._instance
-
     def __init__(self, stdin_write: int, stdout_read: int, stderr_read: int):
         """Initialization for PipeManager class.
 
@@ -56,9 +42,6 @@ class PipeManager:
             stdout_read (int): file descriptor for stdout read.
             stderr_read (int): file descriptor for stderr read.
         """
-
-        if self._initialized:
-            return
 
         self.stdin_write: int = stdin_write
         self.stdout_read: int = stdout_read
@@ -393,7 +376,7 @@ class PipeManager:
         occurences: int = 1,
         drop: bool = False,
         timeout: int = timeout_default,
-    ) -> (bytes, int):
+    ) -> Tuple[bytes, int]:
         """Sends data to the child process stdin after the delimiters are found.
 
         Args:
@@ -421,7 +404,7 @@ class PipeManager:
         occurences: int = 1,
         drop: bool = False,
         timeout: int = timeout_default,
-    ) -> (bytes, int):
+    ) -> Tuple[bytes, int]:
         """Sends line to the child process stdin after the delimiters are found.
 
         Args:
