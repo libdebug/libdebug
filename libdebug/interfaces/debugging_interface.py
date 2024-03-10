@@ -18,7 +18,7 @@
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_map import MemoryMap
 from libdebug.data.register_holder import RegisterHolder
-from libdebug.state.debugging_context import debugging_context
+from libdebug.state.debugging_context import provide_context
 from libdebug.state.thread_context import ThreadContext
 
 
@@ -34,8 +34,8 @@ class DebuggingInterface:
     Key: the thread ID."""
 
     def __init__(self):
-        self.breakpoints = debugging_context._breakpoints
-        self.threads = debugging_context._threads
+        self.breakpoints = provide_context(self)._breakpoints
+        self.threads = provide_context(self)._threads
 
     def reset(self):
         """Resets the state of the interface."""

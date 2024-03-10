@@ -16,6 +16,9 @@
 #
 
 from __future__ import annotations
+from contextlib import contextmanager
+from threading import Lock
+from weakref import WeakKeyDictionary
 
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
@@ -67,23 +70,8 @@ class DebuggingContext:
     _threaded_memory: MemoryView
     """The memory view of the debugged process, used for operations in the background thread."""
 
-    def __new__(cls) -> DebuggingContext:
-        """Create a new instance of the class if it does not exist yet.
-
-        Returns:
-            DebuggingContext: the instance of the class.
-        """
-
-        if cls._instance is None:
-            cls._instance = super(DebuggingContext, cls).__new__(cls)
-            cls._instance._initialized = False
-        return cls._instance
-
     def __init__(self):
         """Initialize the context"""
-
-        if self._initialized:
-            return
 
         # These must be reinitialized on every call to "debugger"
         self.aslr_enabled = False
@@ -94,8 +82,6 @@ class DebuggingContext:
         self._threads = {}
 
         self.clear()
-
-        self._initialized = True
 
     def clear(self):
         """Clear the context"""
@@ -202,4 +188,100 @@ class DebuggingContext:
         return not self._threads
 
 
-debugging_context = DebuggingContext()
+__debugging_contexts = WeakKeyDictionary()
+
+__debugging_global_context = None
+__debugging_context_lock = Lock()
+
+
+def debugging_context() -> DebuggingContext:
+    global __debugging_global_context
+
+    if __debugging_global_context is None:
+        raise RuntimeError("No debugging context available")
+    return __debugging_global_context
+
+
+def create_context(owner: object) -> DebuggingContext:
+    """Create a debugging context.
+
+    Args:
+        reference (object): the object that needs the debugging context.
+
+    Returns:
+        DebuggingContext: the debugging context.
+    """
+
+    __debugging_contexts[owner] = DebuggingContext()
+    return __debugging_contexts[owner]
+
+
+def provide_context(reference: object) -> DebuggingContext:
+    """Provide a debugging context.
+
+    Args:
+        reference (object): the object that needs the debugging context.
+
+    Returns:
+        DebuggingContext: the debugging context.
+    """
+
+    if reference in __debugging_contexts:
+        return __debugging_contexts[reference]
+
+    global __debugging_global_context
+
+    if __debugging_global_context is None:
+        raise RuntimeError("No debugging context available")
+
+    __debugging_contexts[reference] = __debugging_global_context
+    return __debugging_global_context
+
+
+def link_context(reference: object, referrer: object = None):
+    """Link a reference to a referrer.
+
+    Args:
+        reference (object): the object that needs the debugging context.
+        referrer (object): the referrer object.
+    """
+    if referrer is not None:
+        __debugging_contexts[reference] = __debugging_contexts[referrer]
+    elif __debugging_global_context is not None:
+        __debugging_contexts[reference] = __debugging_global_context
+    else:
+        raise RuntimeError("No debugging context available")
+
+
+@contextmanager
+def context_extend_from(referrer: object):
+    """Extend the debugging context.
+
+    Args:
+        referrer (object): the referrer object.
+
+    Yields:
+        DebuggingContext: the debugging context.
+    """
+
+    global __debugging_global_context
+
+    with __debugging_context_lock:
+        assert referrer in __debugging_contexts
+        __debugging_global_context = __debugging_contexts[referrer]
+        yield
+        __debugging_global_context = None
+
+
+def clear_context(reference: object):
+    """Clear the debugging context.
+
+    Args:
+        reference (object): the object that needs the debugging context.
+    """
+    if reference in __debugging_contexts:
+        context = __debugging_contexts[reference]
+        # delete all keys whose value is context
+        for key in list(__debugging_contexts):
+            if __debugging_contexts[key] == context:
+                del __debugging_contexts[key]

@@ -18,7 +18,7 @@
 from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
 from libdebug.data.register_holder import RegisterHolder
 from libdebug.liblog import liblog
-from libdebug.state.debugging_context import debugging_context
+from libdebug.state.debugging_context import provide_context, debugging_context
 from libdebug.utils.debugging_utils import resolve_address_in_maps
 
 
@@ -60,7 +60,7 @@ class ThreadContext:
         """
         if thread_id is None:
             # If no thread ID is specified, we assume the main thread which has tid = pid
-            thread_id = debugging_context.process_id
+            thread_id = debugging_context().process_id
 
         thread = ThreadContext(thread_id)
         thread.registers = registers
@@ -76,9 +76,9 @@ class ThreadContext:
         # Even if the library is multi-threaded, we don't expect the memory view
         # to be used while a background operation is in progress
         if not self._in_background_op:
-            return debugging_context.memory
+            return provide_context(self).memory
         else:
-            return debugging_context._threaded_memory
+            return provide_context(self)._threaded_memory
 
     def _poll_registers(self):
         """Updates the register values."""
@@ -105,7 +105,7 @@ class ThreadContext:
         return list(
             map(
                 lambda x: resolve_address_in_maps(
-                    x, debugging_context.debugging_interface.maps()
+                    x, provide_context(self).debugging_interface.maps()
                 ),
                 backtrace,
             )

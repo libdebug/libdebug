@@ -93,9 +93,15 @@ ffibuilder.cdef(
         struct thread_status *next;
     };
 
+    struct global_state {
+        struct thread *t_HEAD;
+        struct software_breakpoint *b_HEAD;
+    };
+
+
     int ptrace_trace_me(void);
     int ptrace_attach(int pid);
-    void ptrace_detach_all(int pid);
+    void ptrace_detach_all(struct global_state *state, int pid);
     void ptrace_set_options(int pid);
 
     uint64_t ptrace_peekdata(int pid, uint64_t addr);
@@ -106,22 +112,22 @@ ffibuilder.cdef(
 
     uint64_t ptrace_geteventmsg(int pid);
 
-    int singlestep(int tid);
-    int step_until(int tid, uint64_t addr, int max_steps);
+    int singlestep(struct global_state *state, int tid);
+    int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps);
 
-    int cont_all_and_set_bps(int pid);
+    int cont_all_and_set_bps(struct global_state *state, int pid);
 
-    struct thread_status *wait_all_and_update_regs(int pid);
+    struct thread_status *wait_all_and_update_regs(struct global_state *state, int pid);
     void free_thread_status_list(struct thread_status *head);
 
-    struct user_regs_struct* register_thread(int tid);
-    void unregister_thread(int tid);
-    void free_thread_list();
+    struct user_regs_struct* register_thread(struct global_state *state, int tid);
+    void unregister_thread(struct global_state *state, int tid);
+    void free_thread_list(struct global_state *state);
 
-    void register_breakpoint(int pid, uint64_t address);
-    void unregister_breakpoint(uint64_t address);
-    void disable_breakpoint(int pid, uint64_t address);
-    void free_breakpoints();
+    void register_breakpoint(struct global_state *state, int pid, uint64_t address);
+    void unregister_breakpoint(struct global_state *state, uint64_t address);
+    void disable_breakpoint(struct global_state *state, int pid, uint64_t address);
+    void free_breakpoints(struct global_state *state);
 """
 )
 

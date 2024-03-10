@@ -30,7 +30,7 @@ class ProcessContext:
 
     def is_pie(self):
         """Returns whether the executable is PIE or not."""
-        argv = debugging_context.argv
+        argv = debugging_context().argv
         return is_pie(argv[0])
 
     def fds(self):
@@ -50,7 +50,7 @@ class ProcessContext:
         Returns:
             int: The normalized and validated address.
         """
-        maps = debugging_context.debugging_interface.maps()
+        maps = debugging_context().debugging_interface.maps()
         normalized_address = normalize_and_validate_address(address, maps)
         return normalized_address
 
@@ -63,7 +63,7 @@ class ProcessContext:
         Returns:
             int: The address of the symbol.
         """
-        maps = debugging_context.debugging_interface.maps()
+        maps = debugging_context().debugging_interface.maps()
         address = resolve_symbol_in_maps(symbol, maps)
         normalized_address = normalize_and_validate_address(address, maps)
         return normalized_address

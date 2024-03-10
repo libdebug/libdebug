@@ -35,14 +35,15 @@ struct thread_status {
     struct thread_status *next;
 };
 
-struct thread *t_HEAD = NULL;
+struct global_state {
+    struct thread *t_HEAD;
+    struct software_breakpoint *b_HEAD;
+};
 
-struct software_breakpoint *b_HEAD = NULL;
-
-struct user_regs_struct *register_thread(int tid)
+struct user_regs_struct *register_thread(struct global_state *state, int tid)
 {
     // Verify if the thread is already registered
-    struct thread *t = t_HEAD;
+    struct thread *t = state->t_HEAD;
     while (t != NULL) {
         if (t->tid == tid) return &t->regs;
         t = t->next;
@@ -53,21 +54,21 @@ struct user_regs_struct *register_thread(int tid)
 
     ptrace(PTRACE_GETREGS, tid, NULL, &t->regs);
 
-    t->next = t_HEAD;
-    t_HEAD = t;
+    t->next = state->t_HEAD;
+    state->t_HEAD = t;
 
     return &t->regs;
 }
 
-void unregister_thread(int tid)
+void unregister_thread(struct global_state *state, int tid)
 {
-    struct thread *t = t_HEAD;
+    struct thread *t = state->t_HEAD;
     struct thread *prev = NULL;
 
     while (t != NULL) {
         if (t->tid == tid) {
             if (prev == NULL) {
-                t_HEAD = t->next;
+                state->t_HEAD = t->next;
             } else {
                 prev->next = t->next;
             }
@@ -79,9 +80,9 @@ void unregister_thread(int tid)
     }
 }
 
-void free_thread_list()
+void free_thread_list(struct global_state *state)
 {
-    struct thread *t = t_HEAD;
+    struct thread *t = state->t_HEAD;
     struct thread *next;
 
     while (t != NULL) {
@@ -90,7 +91,7 @@ void free_thread_list()
         t = next;
     }
 
-    t_HEAD = NULL;
+    state->t_HEAD = NULL;
 }
 
 int ptrace_trace_me(void)
@@ -103,9 +104,9 @@ int ptrace_attach(int pid)
     return ptrace(PTRACE_ATTACH, pid, NULL, NULL);
 }
 
-void ptrace_detach_all(int pid)
+void ptrace_detach_all(struct global_state *state, int pid)
 {
-    struct thread *t = t_HEAD;
+    struct thread *t = state->t_HEAD;
     // note that the order is important: the main thread must be detached last
     while (t != NULL) {
         // let's attempt to read the registers of the thread
@@ -179,10 +180,10 @@ uint64_t ptrace_geteventmsg(int pid)
     return data;
 }
 
-int singlestep(int tid)
+int singlestep(struct global_state *state, int tid)
 {
     // flush any register changes
-    struct thread *t = t_HEAD;
+    struct thread *t = state->t_HEAD;
     while (t != NULL) {
         if (ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs))
             perror("ptrace_setregs");
@@ -192,10 +193,10 @@ int singlestep(int tid)
     return ptrace(PTRACE_SINGLESTEP, tid, NULL, NULL);
 }
 
-int step_until(int tid, uint64_t addr, int max_steps)
+int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps)
 {
     // flush any register changes
-    struct thread *t = t_HEAD, *stepping_thread = NULL;
+    struct thread *t = state->t_HEAD, *stepping_thread = NULL;
     while (t != NULL) {
         if (ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs))
             perror("ptrace_setregs");
@@ -237,12 +238,12 @@ int step_until(int tid, uint64_t addr, int max_steps)
     return 0;
 }
 
-int cont_all_and_set_bps(int pid)
+int cont_all_and_set_bps(struct global_state *state, int pid)
 {
     int status = 0;
 
     // flush any register changes
-    struct thread *t = t_HEAD;
+    struct thread *t = state->t_HEAD;
     while (t != NULL) {
         if (ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs))
             fprintf(stderr, "ptrace_setregs failed for thread %d: %s\\n",
@@ -252,7 +253,7 @@ int cont_all_and_set_bps(int pid)
 
     // iterate over all the threads and check if any of them has hit a software
     // breakpoint
-    t = t_HEAD;
+    t = state->t_HEAD;
     struct software_breakpoint *b;
     int t_hit;
 
@@ -260,7 +261,7 @@ int cont_all_and_set_bps(int pid)
         t_hit = 0;
         uint64_t ip = INSTRUCTION_POINTER(t->regs);
 
-        b = b_HEAD;
+        b = state->b_HEAD;
         while (b != NULL && !t_hit) {
             if (b->addr == ip)
                 // we hit a software breakpoint on this thread
@@ -288,7 +289,7 @@ int cont_all_and_set_bps(int pid)
     }
 
     // Reset any software breakpoint
-    b = b_HEAD;
+    b = state->b_HEAD;
     while (b != NULL) {
         if (b->enabled) {
             ptrace(PTRACE_POKEDATA, pid, (void *)b->addr,
@@ -298,7 +299,7 @@ int cont_all_and_set_bps(int pid)
     }
 
     // continue the execution of all the threads
-    t = t_HEAD;
+    t = state->t_HEAD;
     while (t != NULL) {
         if (ptrace(PTRACE_CONT, t->tid, NULL, NULL))
             fprintf(stderr, "ptrace_cont failed for thread %d: %s\\n", t->tid,
@@ -309,16 +310,15 @@ int cont_all_and_set_bps(int pid)
     return status;
 }
 
-struct thread_status *wait_all_and_update_regs(int pid)
+struct thread_status *wait_all_and_update_regs(struct global_state *state, int pid)
 {
     // Allocate the head of the list
     struct thread_status *head;
     head = malloc(sizeof(struct thread_status));
+    head->next = NULL;
 
     // The first element is the first status we get from polling with waitpid
-    head->tid = waitpid(-1, &head->status, __WALL);
-
-    head->next = NULL;
+    head->tid = waitpid(-getpgid(pid), &head->status, 0);
 
     if (head->tid == -1) {
         free(head);
@@ -327,7 +327,7 @@ struct thread_status *wait_all_and_update_regs(int pid)
     }
 
     // We must interrupt all the other threads with a SIGSTOP
-    struct thread *t = t_HEAD;
+    struct thread *t = state->t_HEAD;
     int temp_tid, temp_status;
     while (t != NULL) {
         if (t->tid != head->tid) {
@@ -352,7 +352,7 @@ struct thread_status *wait_all_and_update_regs(int pid)
     }
 
     // We keep polling but don't block, we want to get all the statuses we can
-    while ((temp_tid = waitpid(-1, &temp_status, WNOHANG | __WALL)) > 0) {
+    while ((temp_tid = waitpid(-getpgid(pid), &temp_status, WNOHANG)) > 0) {
         struct thread_status *ts = malloc(sizeof(struct thread_status));
         ts->tid = temp_tid;
         ts->status = temp_status;
@@ -361,14 +361,14 @@ struct thread_status *wait_all_and_update_regs(int pid)
     }
 
     // Update the registers of all the threads
-    t = t_HEAD;
+    t = state->t_HEAD;
     while (t) {
         ptrace(PTRACE_GETREGS, t->tid, NULL, &t->regs);
         t = t->next;
     }
 
     // Restore any software breakpoint
-    struct software_breakpoint *b = b_HEAD;
+    struct software_breakpoint *b = state->b_HEAD;
 
     while (b != NULL) {
         if (b->enabled) {
@@ -391,7 +391,7 @@ void free_thread_status_list(struct thread_status *head)
     }
 }
 
-void register_breakpoint(int pid, uint64_t address)
+void register_breakpoint(struct global_state *state, int pid, uint64_t address)
 {
     uint64_t instruction, patched_instruction;
 
@@ -401,7 +401,7 @@ void register_breakpoint(int pid, uint64_t address)
 
     ptrace(PTRACE_POKEDATA, pid, (void *)address, patched_instruction);
 
-    struct software_breakpoint *b = b_HEAD;
+    struct software_breakpoint *b = state->b_HEAD;
 
     while (b != NULL) {
         if (b->addr == address) {
@@ -417,19 +417,19 @@ void register_breakpoint(int pid, uint64_t address)
     b->patched_instruction = patched_instruction;
     b->enabled = 1;
 
-    b->next = b_HEAD;
-    b_HEAD = b;
+    b->next = state->b_HEAD;
+    state->b_HEAD = b;
 }
 
-void unregister_breakpoint(uint64_t address)
+void unregister_breakpoint(struct global_state *state, uint64_t address)
 {
-    struct software_breakpoint *b = b_HEAD;
+    struct software_breakpoint *b = state->b_HEAD;
     struct software_breakpoint *prev = NULL;
 
     while (b != NULL) {
         if (b->addr == address) {
             if (prev == NULL) {
-                b_HEAD = b->next;
+                state->b_HEAD = b->next;
             } else {
                 prev->next = b->next;
             }
@@ -441,9 +441,9 @@ void unregister_breakpoint(uint64_t address)
     }
 }
 
-void disable_breakpoint(int pid, uint64_t address)
+void disable_breakpoint(struct global_state *state, int pid, uint64_t address)
 {
-    struct software_breakpoint *b = b_HEAD;
+    struct software_breakpoint *b = state->b_HEAD;
 
     while (b != NULL) {
         if (b->addr == address) {
@@ -455,9 +455,9 @@ void disable_breakpoint(int pid, uint64_t address)
     }
 }
 
-void free_breakpoints()
+void free_breakpoints(struct global_state *state)
 {
-    struct software_breakpoint *b = b_HEAD;
+    struct software_breakpoint *b = state->b_HEAD;
     struct software_breakpoint *next;
 
     while (b != NULL) {
@@ -466,5 +466,5 @@ void free_breakpoints()
         b = next;
     }
 
-    b_HEAD = NULL;
+    state->b_HEAD = NULL;
 }

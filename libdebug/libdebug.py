@@ -27,7 +27,7 @@ from libdebug.data.memory_view import MemoryView
 from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.interfaces.interface_helper import provide_debugging_interface
 from libdebug.liblog import liblog
-from libdebug.state.debugging_context import debugging_context
+from libdebug.state.debugging_context import provide_context, context_extend_from, create_context
 from libdebug.state.process.process_context_provider import provide_process_context
 from libdebug.state.process_context import ProcessContext
 from libdebug.state.thread_context import ThreadContext
@@ -70,24 +70,27 @@ class Debugger:
     """The memory view of the process, used for operations in the background thread."""
 
     def __init__(self):
+        pass
+
+    def _post_init_(self):
         """Do not use this constructor directly.
         Use the `debugger` function instead.
         """
         # validate that the binary exists
-        if not os.path.isfile(debugging_context.argv[0]):
+        if not os.path.isfile(provide_context(self).argv[0]):
             raise RuntimeError("The specified binary file does not exist.")
 
-        self.interface = provide_debugging_interface()
-        debugging_context.debugging_interface = self.interface
-
-        self.process_context = provide_process_context()
+        with context_extend_from(self):
+            self.interface = provide_debugging_interface()
+            provide_context(self).debugging_interface = self.interface
+            self.process_context = provide_process_context()
 
         # threading utilities
         self._polling_thread_command_queue = Queue()
         self._polling_thread_response_queue = Queue()
 
-        self.breakpoints = debugging_context.breakpoints
-        self.threads = debugging_context.threads
+        self.breakpoints = provide_context(self).breakpoints
+        self.threads = provide_context(self).threads
 
         self._start_processing_thread()
         self._setup_memory_view()
@@ -119,9 +122,9 @@ class Debugger:
         # We don't want any asynchronous behaviour here
         self._polling_thread_command_queue.join()
 
-        assert debugging_context.pipe_manager is not None
+        assert provide_context(self).pipe_manager is not None
 
-        return debugging_context.pipe_manager
+        return provide_context(self).pipe_manager
 
     def attach(self, pid: int):
         """Attaches to an existing process."""
@@ -159,15 +162,15 @@ class Debugger:
         self.memory = None
         self.instanced = None
 
-        if debugging_context.pipe_manager is not None:
-            debugging_context.pipe_manager.close()
-            debugging_context.pipe_manager = None
+        if provide_context(self).pipe_manager is not None:
+            provide_context(self).pipe_manager.close()
+            provide_context(self).pipe_manager = None
 
         # Wait for the background thread to signal "task done" before returning
         # We don't want any asynchronous behaviour here
         self._polling_thread_command_queue.join()
 
-        debugging_context.clear()
+        provide_context(self).clear()
         self.interface.reset()
 
     def cont(self):
@@ -175,7 +178,7 @@ class Debugger:
         if not self.instanced:
             raise RuntimeError("Process not running, cannot continue.")
 
-        if debugging_context.dead or debugging_context.running:
+        if provide_context(self).dead or provide_context(self).running:
             raise RuntimeError("Process is dead or already running.")
 
         self._polling_thread_command_queue.put((self.__threaded_cont, ()))
@@ -189,7 +192,7 @@ class Debugger:
         if not self.instanced:
             raise RuntimeError("Process not running, cannot wait.")
 
-        if debugging_context.dead or not debugging_context.running:
+        if provide_context(self).dead or not provide_context(self).running:
             raise RuntimeError("Process is dead or not running.")
 
         self._polling_thread_command_queue.put((self.__threaded_wait, ()))
@@ -236,9 +239,11 @@ class Debugger:
             thread = next(iter(self.threads.values()))
 
         if isinstance(position, str):
-            address = self.process_context.resolve_symbol(position)
+            with context_extend_from(self):
+                address = self.process_context.resolve_symbol(position)
         else:
-            address = self.process_context.resolve_address(position)
+            with context_extend_from(self):
+                address = self.process_context.resolve_address(position)
 
         arguments = (
             thread,
@@ -267,13 +272,15 @@ class Debugger:
         if not self.instanced:
             raise RuntimeError("Process not running, cannot set a breakpoint.")
 
-        if debugging_context.running:
+        if provide_context(self).running:
             raise RuntimeError("Cannot set a breakpoint while the process is running.")
 
         if isinstance(position, str):
-            address = self.process_context.resolve_symbol(position)
+            with context_extend_from(self):
+                address = self.process_context.resolve_symbol(position)
         else:
-            address = self.process_context.resolve_address(position)
+            with context_extend_from(self):
+                address = self.process_context.resolve_address(position)
             position = address
 
         bp = Breakpoint(address, position, 0, hardware, callback)
@@ -317,7 +324,7 @@ class Debugger:
         if not self.instanced:
             raise RuntimeError("Process not running, cannot step.")
 
-        if debugging_context.running:
+        if provide_context(self).running:
             raise RuntimeError("Cannot read memory while the process is running.")
 
         self._polling_thread_command_queue.put(
@@ -338,7 +345,7 @@ class Debugger:
         if not self.instanced:
             raise RuntimeError("Process not running, cannot step.")
 
-        if debugging_context.running:
+        if provide_context(self).running:
             raise RuntimeError("Cannot write memory while the process is running.")
 
         self._polling_thread_command_queue.put(
@@ -359,8 +366,8 @@ class Debugger:
             self.interface.maps,
         )
 
-        debugging_context.memory = self.memory
-        debugging_context._threaded_memory = self._threaded_memory
+        provide_context(self).memory = self.memory
+        provide_context(self)._threaded_memory = self._threaded_memory
 
     def _polling_thread_function(self):
         """This function is run in a thread. It is used to poll the process for state change."""
@@ -386,49 +393,49 @@ class Debugger:
                 self._polling_thread_response_queue.join()
 
     def __threaded_run(self):
-        liblog.debugger("Starting process %s.", debugging_context.argv[0])
+        liblog.debugger("Starting process %s.", provide_context(self).argv[0])
         self.interface.run()
 
-        debugging_context.set_stopped()
+        provide_context(self).set_stopped()
 
     def __threaded_attach(self, pid: int):
         liblog.debugger("Attaching to process %d.", pid)
         self.interface.attach(pid)
 
-        debugging_context.set_stopped()
+        provide_context(self).set_stopped()
 
     def __threaded_kill(self):
-        liblog.debugger("Killing process %s.", debugging_context.argv[0])
+        liblog.debugger("Killing process %s.", provide_context(self).argv[0])
         self.interface.kill()
 
     def __threaded_cont(self):
-        liblog.debugger("Continuing process %s.", debugging_context.argv[0])
+        liblog.debugger("Continuing process %s.", provide_context(self).argv[0])
         self.interface.cont()
-        debugging_context.set_running()
+        provide_context(self).set_running()
 
     def __threaded_breakpoint(self, bp: Breakpoint):
         liblog.debugger("Setting breakpoint at 0x%x.", bp.address)
         self.interface.set_breakpoint(bp)
 
     def __threaded_wait(self):
-        liblog.debugger("Waiting for process %s to stop.", debugging_context.argv[0])
+        liblog.debugger("Waiting for process %s to stop.", provide_context(self).argv[0])
 
         while self.interface.wait():
             self.interface.cont()
 
-        debugging_context.set_stopped()
+        provide_context(self).set_stopped()
 
     def __threaded_step(self, thread: ThreadContext):
         liblog.debugger("Stepping thread %s.", thread.thread_id)
         self.interface.step(thread)
-        debugging_context.set_running()
+        provide_context(self).set_running()
 
     def __threaded_step_until(
         self, thread: ThreadContext, address: int, max_steps: int
     ):
         liblog.debugger("Stepping thread %s until 0x%x.", thread.thread_id, address)
         self.interface.step_until(thread, address, max_steps)
-        debugging_context.set_stopped()
+        provide_context(self).set_stopped()
 
     def __threaded_peek_memory(self, address: int) -> bytes:
         try:
@@ -463,6 +470,10 @@ def debugger(
     if isinstance(argv, str):
         argv = [argv]
 
+    debugger = Debugger()
+
+    debugging_context = create_context(debugger)
+
     debugging_context.clear()
 
     debugging_context.argv = argv
@@ -470,4 +481,6 @@ def debugger(
     debugging_context.aslr_enabled = enable_aslr
     debugging_context.autoreach_entrypoint = continue_to_binary_entrypoint
 
-    return Debugger()
+    debugger._post_init_()
+
+    return debugger

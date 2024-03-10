@@ -32,9 +32,9 @@ def provide_process_context():
     Returns:
         ProcessContext: The process context object.
     """
-    if isinstance(debugging_context.debugging_interface, PtraceInterface):
+    if isinstance(debugging_context().debugging_interface, PtraceInterface):
         return PtraceProcessContext()
-    elif isinstance(debugging_context.debugging_interface, GdbInterface):
+    elif isinstance(debugging_context().debugging_interface, GdbInterface):
         return GdbProcessContext()
     else:
         raise NotImplementedError("The provided debugging interface is not supported.")
