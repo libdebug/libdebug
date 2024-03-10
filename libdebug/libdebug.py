@@ -176,8 +176,12 @@ class Debugger:
         provide_context(self).clear()
         self.interface.reset()
 
-    def cont(self, autowait: bool = True):
-        """Continues the process."""
+    def cont(self, auto_wait: bool = True):
+        """Continues the process.
+
+        Args:
+            auto_wait (bool, optional): Whether to automatically wait for the process to stop after continuing. Defaults to True.
+        """
         if not self.instanced:
             raise RuntimeError("Process not running, cannot continue.")
 
@@ -190,13 +194,23 @@ class Debugger:
         # We don't want any asynchronous behaviour here
         self._polling_thread_command_queue.join()
 
+        if auto_wait:
+            self._polling_thread_command_queue.put((self.__threaded_wait, ()))
+
     def wait(self):
         """Waits for the process to stop."""
         if not self.instanced:
             raise RuntimeError("Process not running, cannot wait.")
 
-        if provide_context(self).dead or not provide_context(self).running:
-            raise RuntimeError("Process is dead or not running.")
+        # Wait for the background thread to signal "task done"
+        # Our background might be waiting, and if so we must stop until it's done
+        self._polling_thread_command_queue.join()
+
+        if provide_context(self).dead:
+            raise RuntimeError("Process is dead.")
+
+        if not provide_context(self).running:
+            return
 
         self._polling_thread_command_queue.put((self.__threaded_wait, ()))
 
@@ -225,7 +239,10 @@ class Debugger:
         self._polling_thread_command_queue.join()
 
     def step_until(
-        self, position: int | str, thread: ThreadContext | None = None, max_steps: int = -1
+        self,
+        position: int | str,
+        thread: ThreadContext | None = None,
+        max_steps: int = -1,
     ):
         """Executes instructions of the process until the specified location is reached.
 
@@ -421,7 +438,9 @@ class Debugger:
         self.interface.set_breakpoint(bp)
 
     def __threaded_wait(self):
-        liblog.debugger("Waiting for process %s to stop.", provide_context(self).argv[0])
+        liblog.debugger(
+            "Waiting for process %s to stop.", provide_context(self).argv[0]
+        )
 
         while self.interface.wait():
             self.interface.cont()
