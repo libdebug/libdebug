@@ -37,8 +37,8 @@ from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
 from libdebug.state.debugging_context import (
     context_extend_from,
-    provide_context,
     link_context,
+    provide_context,
 )
 from libdebug.state.thread_context import ThreadContext
 from libdebug.utils.debugging_utils import normalize_and_validate_address
@@ -56,6 +56,12 @@ class PtraceInterface(DebuggingInterface):
 
     hardware_bp_helpers: dict[int, PtraceHardwareBreakpointManager]
     """The hardware breakpoint managers (one for each thread)."""
+
+    process_id: int | None
+    """The process ID of the debugged process."""
+
+    thread_ids: list[int]
+    """The IDs of the threads of the debugged process."""
 
     def __init__(self):
         super().__init__()

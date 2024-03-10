@@ -18,7 +18,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
+
+if TYPE_CHECKING:
+    from libdebug.state.thread_context import ThreadContext
 
 
 @dataclass
@@ -27,7 +30,7 @@ class Breakpoint:
 
     Attributes:
         address (int): The address of the breakpoint in the target process.
-        symbol (bytes): The symbol, if available, of the breakpoint in the target process.
+        symbol (str): The symbol, if available, of the breakpoint in the target process.
         hit_count (int): The number of times this specific breakpoint has been hit.
         hardware (bool): Whether the breakpoint is a hardware breakpoint or not.
         condition (str): The breakpoint condition. Available values are "X", "W", "RW". Supported only for hardware breakpoints.
@@ -36,10 +39,10 @@ class Breakpoint:
     """
 
     address: int = 0
-    symbol: bytes = b""
+    symbol: str = ""
     hit_count: int = 0
     hardware: bool = False
-    callback: None | Callable[["Debugger", Breakpoint], None] = None
+    callback: None | Callable[["ThreadContext", Breakpoint], None] = None
     condition: str = "X"
     length: int = 1
     enabled: bool = True
@@ -57,6 +60,6 @@ class Breakpoint:
         """Disable the breakpoint."""
         self.enabled = False
 
-    def hit_on(self, thread_context: "ThreadContext") -> None:
+    def hit_on(self, thread_context: "ThreadContext") -> bool:
         """Called when the breakpoint is hit."""
         return self.enabled and thread_context.instruction_pointer == self.address

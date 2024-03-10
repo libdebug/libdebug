@@ -20,10 +20,7 @@ import signal
 
 from libdebug.state.debugging_context import debugging_context
 from libdebug.state.process_context import ProcessContext
-from libdebug.utils.process_utils import (
-    get_open_fds,
-    guess_base_address,
-)
+from libdebug.utils.process_utils import get_open_fds
 
 
 class PtraceProcessContext(ProcessContext):
@@ -39,6 +36,3 @@ class PtraceProcessContext(ProcessContext):
         """Returns the file descriptors of the process."""
         return get_open_fds(self.process_id)
 
-    def base_address(self):
-        """Returns the base address of the process."""
-        return guess_base_address(self.process_id)

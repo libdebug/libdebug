@@ -56,8 +56,8 @@ def resolve_symbol_in_maps(symbol: str, maps: list[MemoryMap]) -> int:
     mapped_files = {}
 
     if "+" in symbol:
-        symbol, offset = symbol.split("+")
-        offset = int(offset, 16)
+        symbol, offset_str = symbol.split("+")
+        offset = int(offset_str, 16)
     else:
         offset = 0
 

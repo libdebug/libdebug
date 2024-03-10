@@ -23,7 +23,7 @@ from libdebug.data.memory_map import MemoryMap
 
 
 @functools.cache
-def get_process_maps(process_id) -> list[str]:
+def get_process_maps(process_id) -> list[MemoryMap]:
     """Returns the memory maps of the specified process.
 
     Args:
@@ -38,21 +38,6 @@ def get_process_maps(process_id) -> list[str]:
     parsed_maps = [MemoryMap.parse(map) for map in maps]
 
     return parsed_maps
-
-
-@functools.cache
-def guess_base_address(process_id) -> int:
-    """Returns the base address of the specified process.
-
-    Args:
-        process_id (int): The PID of the process whose base address should be returned.
-
-    Returns:
-        int: The base address of the specified process.
-    """
-    maps = get_process_maps(process_id)
-    return int(maps[0].split("-")[0], 16)
-
 
 @functools.cache
 def get_open_fds(process_id) -> list[str]:
@@ -73,7 +58,6 @@ def get_open_fds(process_id) -> list[str]:
 def invalidate_process_cache():
     """Invalidates the cache of the functions in this module. Must be executed any time the process executes code."""
     get_process_maps.cache_clear()
-    guess_base_address.cache_clear()
     get_open_fds.cache_clear()
 
 

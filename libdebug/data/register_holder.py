@@ -16,8 +16,10 @@
 #
 
 from dataclasses import dataclass
-from typing import Callable
+from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from libdebug.state.thread_context import ThreadContext
 
 @dataclass
 class RegisterHolder:
@@ -59,4 +61,4 @@ class PtraceRegisterHolder(RegisterHolder):
         register_file (object): The content of the register file of the process, as returned by `ptrace`.
     """
 
-    register_file: bytes
+    register_file: object

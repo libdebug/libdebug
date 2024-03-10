@@ -29,8 +29,8 @@ from libdebug.utils.libcontext import libcontext
 
 def ptrace_hardware_breakpoint_manager_provider(
     thread: ThreadContext,
-    peek_user: Callable[[int], int] = None,
-    poke_user: Callable[[int, int], None] = None,
+    peek_user: Callable[[int, int], int],
+    poke_user: Callable[[int, int, int], None],
 ) -> PtraceHardwareBreakpointManager:
     """Returns an instance of the hardware breakpoint manager to be used by the `Debugger` class."""
     architecture = libcontext.arch

@@ -25,8 +25,8 @@ def u64(value: bytes) -> int:
     Returns:
         int: The converted value.
     """
-    value = int.from_bytes(value, "little", signed=False)
-    return value & 0xFFFFFFFFFFFFFFFF
+    int_value = int.from_bytes(value, "little", signed=False)
+    return int_value & 0xFFFFFFFFFFFFFFFF
 
 
 def p64(value: int) -> bytes:

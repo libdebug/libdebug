@@ -57,14 +57,14 @@ class MemoryMap:
             start = int(address.split("-")[0], 16)
             end = int(address.split("-")[1], 16)
             size = end - start
-            offset = int(offset, 16)
+            int_offset = int(offset, 16)
             backing_file = backing_file.strip()
         except ValueError:
             raise ValueError(
                 f"Invalid memory map: {map}. Please specify a valid memory map."
             )
 
-        return MemoryMap(start, end, permissions, size, offset, backing_file)
+        return MemoryMap(start, end, permissions, size, int_offset, backing_file)
 
     def __repr__(self) -> str:
         return f"MemoryMap(start={hex(self.start)}, end={hex(self.end)}, permissions={self.permissions}, size={hex(self.size)}, offset={hex(self.offset)}, backing_file={self.backing_file})"

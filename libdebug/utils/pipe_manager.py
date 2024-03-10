@@ -19,6 +19,7 @@
 import os
 import pty
 import time
+from select import select
 from typing import Tuple
 
 from libdebug.liblog import liblog
@@ -48,13 +49,13 @@ class PipeManager:
         self.stderr_read: int = stderr_read
 
     def _recv(
-        self, numb: int = None, timeout: int = timeout_default, stderr: bool = False
+        self, numb: int | None = None, timeout: float = timeout_default, stderr: bool = False
     ) -> bytes:
         """Receives at most numb bytes from the child process.
 
         Args:
             numb (int, optional): number of bytes to receive. Defaults to None.
-            timeout (int, optional): timeout in seconds. Defaults to timeout_default.
+            timeout (float, optional): timeout in seconds. Defaults to timeout_default.
             stderr (bool, optional): receive from stderr. Defaults to False.
 
         Returns:
@@ -94,7 +95,7 @@ class PipeManager:
                 remaining_time = (
                     None if end_time is None else max(0, end_time - time.time())
                 )
-                ready, _, _ = pty.select([pipe_read], [], [], remaining_time)
+                ready, _, _ = select([pipe_read], [], [], remaining_time)
 
                 if not ready:
                     # No data ready within the remaining timeout
@@ -108,7 +109,7 @@ class PipeManager:
                 numb -= len(data)
                 data_buffer += data
         else:
-            ready, _, _ = pty.select([pipe_read], [], [], timeout)
+            ready, _, _ = select([pipe_read], [], [], timeout)
 
             if ready:
                 # Read all available bytes up to 4096
@@ -116,7 +117,7 @@ class PipeManager:
                 data_buffer += data
 
         liblog.pipe(
-            f"Received {len(data_buffer)} bytes from the child process: {data_buffer}"
+            f"Received {len(data_buffer)} bytes from the child process: {data_buffer!r}"
         )
         return data_buffer
 
@@ -126,7 +127,7 @@ class PipeManager:
         os.close(self.stdout_read)
         os.close(self.stderr_read)
 
-    def recv(self, numb: int = None, timeout: int = timeout_default) -> bytes:
+    def recv(self, numb: int | None = None, timeout: int = timeout_default) -> bytes:
         """Receives at most numb bytes from the child process stdout.
 
         Args:
@@ -139,7 +140,7 @@ class PipeManager:
 
         return self._recv(numb=numb, timeout=timeout, stderr=False)
 
-    def recverr(self, numb: int = None, timeout: int = timeout_default) -> bytes:
+    def recverr(self, numb: int | None = None, timeout: int = timeout_default) -> bytes:
         """Receives at most numb bytes from the child process stderr.
 
         Args:
@@ -156,7 +157,7 @@ class PipeManager:
         self,
         delims: bytes,
         drop: bool = False,
-        timeout: int = timeout_default,
+        timeout: float = timeout_default,
         stderr: bool = False,
     ) -> bytes:
         """Receives data from the child process until the delimiters are found.
@@ -164,7 +165,7 @@ class PipeManager:
         Args:
             delims (bytes): delimiters where stop.
             drop (bool, optional): drop the delimiter. Defaults to False.
-            timeout (int, optional): timeout in seconds. Defaults to timeout_default.
+            timeout (float, optional): timeout in seconds. Defaults to timeout_default.
             stderr (bool, optional): receive from stderr. Defaults to False.
 
         Returns:
@@ -207,7 +208,7 @@ class PipeManager:
         delims: bytes,
         occurences: int = 1,
         drop: bool = False,
-        timeout: int = timeout_default,
+        timeout: float = timeout_default,
         stderr: bool = False,
     ) -> bytes:
         """Receives data from the child process until the delimiters are found occurences time.
@@ -216,7 +217,7 @@ class PipeManager:
             delims (bytes): delimiters where stop.
             occurences (int, optional): number of delimiters to find. Defaults to 1.
             drop (bool, optional): drop the delimiter. Defaults to False.
-            timeout (int, optional): timeout in seconds. Defaults to timeout_default.
+            timeout (float, optional): timeout in seconds. Defaults to timeout_default.
             stderr (bool, optional): receive from stderr. Defaults to False.
 
         Returns:
@@ -354,7 +355,7 @@ class PipeManager:
         if not self.stdin_write:
             raise PipeFail("No stdin pipe of the child process")
 
-        liblog.pipe(f"Sending {len(data)} bytes to the child process: {data}")
+        liblog.pipe(f"Sending {len(data)} bytes to the child process: {data!r}")
         return os.write(self.stdin_write, data)
 
     def sendline(self, data: bytes) -> int:

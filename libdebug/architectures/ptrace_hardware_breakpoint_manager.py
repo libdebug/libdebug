@@ -15,13 +15,14 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+from abc import ABC, abstractmethod
 from typing import Callable
 
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.state.thread_context import ThreadContext
 
 
-class PtraceHardwareBreakpointManager:
+class PtraceHardwareBreakpointManager(ABC):
     """An architecture-independent interface for managing hardware breakpoints.
 
     Attributes:
@@ -42,14 +43,17 @@ class PtraceHardwareBreakpointManager:
         self.poke_user = poke_user
         self.breakpoint_count = 0
 
-    def install_breakpoint(bp: Breakpoint):
+    @abstractmethod
+    def install_breakpoint(self, bp: Breakpoint):
         """Installs a hardware breakpoint at the provided location."""
         pass
 
-    def remove_breakpoint(bp: Breakpoint):
+    @abstractmethod
+    def remove_breakpoint(self, bp: Breakpoint):
         """Removes a hardware breakpoint at the provided location."""
         pass
 
-    def available_breakpoints() -> int:
+    @abstractmethod
+    def available_breakpoints(self) -> int:
         """Returns the number of available hardware breakpoint registers."""
         pass

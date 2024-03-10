@@ -20,7 +20,7 @@ import unittest
 
 from scripts.attach_test import AttachTest
 from scripts.backtrace_test import BacktraceTest
-from scripts.basic_test import BasicPieTest, BasicTest, HwBasicTest, ControlFlowTest
+from scripts.basic_test import BasicPieTest, BasicTest, ControlFlowTest, HwBasicTest
 from scripts.breakpoint_test import BreakpointTest
 from scripts.brute_test import BruteTest
 from scripts.callback_test import CallbackTest

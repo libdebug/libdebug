@@ -27,11 +27,14 @@ from libdebug.data.memory_view import MemoryView
 from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.interfaces.interface_helper import provide_debugging_interface
 from libdebug.liblog import liblog
-from libdebug.state.debugging_context import provide_context, context_extend_from, create_context
+from libdebug.state.debugging_context import (
+    context_extend_from,
+    create_context,
+    provide_context,
+)
 from libdebug.state.process.process_context_provider import provide_process_context
 from libdebug.state.process_context import ProcessContext
 from libdebug.state.thread_context import ThreadContext
-
 
 THREAD_TERMINATE = -1
 
@@ -39,10 +42,10 @@ THREAD_TERMINATE = -1
 class Debugger:
     """The Debugger class is the main class of `libdebug`. It contains all the methods needed to run and interact with the process."""
 
-    memory: MemoryView = None
+    memory: MemoryView | None = None
     """The memory view of the process."""
 
-    process_context: ProcessContext = None
+    process_context: ProcessContext | None = None
     """The process context object."""
 
     breakpoints: dict[int, Breakpoint] = {}
@@ -54,19 +57,19 @@ class Debugger:
     instanced: bool = False
     """Whether the process was started and has not been killed yet."""
 
-    interface: DebuggingInterface = None
+    interface: DebuggingInterface | None = None
     """The debugging interface used to interact with the process."""
 
-    _polling_thread: Thread = None
+    _polling_thread: Thread | None = None
     """The background thread used to poll the process for state change."""
 
-    _polling_thread_command_queue: Queue = None
+    _polling_thread_command_queue: Queue | None = None
     """The queue used to send commands to the background thread."""
 
-    _polling_thread_response_queue: Queue = None
+    _polling_thread_response_queue: Queue | None = None
     """The queue used to receive responses from the background thread."""
 
-    _threaded_memory: MemoryView = None
+    _threaded_memory: MemoryView | None = None
     """The memory view of the process, used for operations in the background thread."""
 
     def __init__(self):
@@ -173,7 +176,7 @@ class Debugger:
         provide_context(self).clear()
         self.interface.reset()
 
-    def cont(self):
+    def cont(self, autowait: bool = True):
         """Continues the process."""
         if not self.instanced:
             raise RuntimeError("Process not running, cannot continue.")
@@ -201,7 +204,7 @@ class Debugger:
         # We don't want any asynchronous behaviour here
         self._polling_thread_command_queue.join()
 
-    def step(self, thread: ThreadContext = None):
+    def step(self, thread: ThreadContext | None = None):
         """Executes a single instruction of the process.
 
         Args:
@@ -222,7 +225,7 @@ class Debugger:
         self._polling_thread_command_queue.join()
 
     def step_until(
-        self, position: int | str, thread: ThreadContext = None, max_steps: int = -1
+        self, position: int | str, thread: ThreadContext | None = None, max_steps: int = -1
     ):
         """Executes instructions of the process until the specified location is reached.
 
@@ -261,7 +264,7 @@ class Debugger:
         self,
         position: int | str,
         hardware: bool = False,
-        callback: None | Callable[[Debugger, Breakpoint], None] = None,
+        callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
     ) -> Breakpoint:
         """Sets a breakpoint at the specified location.
 
@@ -281,7 +284,7 @@ class Debugger:
         else:
             with context_extend_from(self):
                 address = self.process_context.resolve_address(position)
-            position = address
+            position = hex(address)
 
         bp = Breakpoint(address, position, 0, hardware, callback)
 
@@ -437,7 +440,7 @@ class Debugger:
         self.interface.step_until(thread, address, max_steps)
         provide_context(self).set_stopped()
 
-    def __threaded_peek_memory(self, address: int) -> bytes:
+    def __threaded_peek_memory(self, address: int) -> bytes | BaseException:
         try:
             value = self.interface.peek_memory(address)
             # TODO: this is only for amd64
@@ -446,14 +449,14 @@ class Debugger:
             return e
 
     def __threaded_poke_memory(self, address: int, data: bytes):
-        data = int.from_bytes(data, "little")
-        self.interface.poke_memory(address, data)
+        int_data = int.from_bytes(data, "little")
+        self.interface.poke_memory(address, int_data)
 
 
 def debugger(
-    argv: str | list[str] = None,
+    argv: str | list[str],
     enable_aslr: bool = False,
-    env: dict[str, str] = None,
+    env: dict[str, str] | None = None,
     continue_to_binary_entrypoint: bool = True,
 ) -> Debugger:
     """This function is used to create a new `Debugger` object. It takes as input the location of the binary to debug and returns a `Debugger` object.

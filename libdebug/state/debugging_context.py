@@ -16,13 +16,19 @@
 #
 
 from __future__ import annotations
+
 from contextlib import contextmanager
 from threading import Lock
+from typing import TYPE_CHECKING
 from weakref import WeakKeyDictionary
 
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
 from libdebug.utils.pipe_manager import PipeManager
+
+if TYPE_CHECKING:
+    from libdebug.interfaces.debugging_interface import DebuggingInterface
+    from libdebug.state.thread_context import ThreadContext
 
 
 class DebuggingContext:
@@ -38,7 +44,7 @@ class DebuggingContext:
     argv: list[str]
     """The command line arguments of the debugged process."""
 
-    env: dict[str, str]
+    env: dict[str, str] | None
     """The environment variables of the debugged process."""
 
     autoreach_entrypoint: bool
@@ -159,22 +165,12 @@ class DebuggingContext:
 
         return self._is_running
 
-    def set_running(self) -> bool:
-        """Set the state of the process to running.
-
-        Returns:
-            bool: True if the process is running, False otherwise.
-        """
-
+    def set_running(self):
+        """Set the state of the process to running."""
         self._is_running = True
 
-    def set_stopped(self) -> bool:
-        """Set the state of the process to stopped.
-
-        Returns:
-            bool: True if the process is running, False otherwise.
-        """
-
+    def set_stopped(self):
+        """Set the state of the process to stopped."""
         self._is_running = False
 
     @property
@@ -188,7 +184,7 @@ class DebuggingContext:
         return not self._threads
 
 
-__debugging_contexts = WeakKeyDictionary()
+__debugging_contexts: WeakKeyDictionary = WeakKeyDictionary()
 
 __debugging_global_context = None
 __debugging_context_lock = Lock()

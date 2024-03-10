@@ -56,11 +56,11 @@ class Amd64PtraceHardwareBreakpointManager(PtraceHardwareBreakpointManager):
     def __init__(
         self,
         thread: ThreadContext,
-        peek_user: Callable[[int], int] = None,
-        poke_user: Callable[[int, int], None] = None,
+        peek_user: Callable[[int, int], int],
+        poke_user: Callable[[int, int, int], None],
     ):
         super().__init__(thread, peek_user, poke_user)
-        self.breakpoint_registers = {
+        self.breakpoint_registers: dict[str, Breakpoint | None] = {
             "DR0": None,
             "DR1": None,
             "DR2": None,

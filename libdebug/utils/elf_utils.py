@@ -75,7 +75,7 @@ def _debuginfod(buildid: str) -> Path:
 
 
 @functools.cache
-def _collect_external_info(path: str) -> dict[str, int]:
+def _collect_external_info(path: str) -> dict[str, tuple[int, int]]:
     """Returns a dictionary containing the symbols taken from the external debuginfo file
 
     Args:
@@ -106,7 +106,7 @@ def _collect_external_info(path: str) -> dict[str, int]:
 @functools.cache
 def _parse_elf_file(
     path: str, debug_info_level: int
-) -> Tuple[dict[str, int], str, str]:
+) -> Tuple[dict[str, Tuple[int, int]], str | None, str | None]:
     """Returns a dictionary containing the symbols of the specified ELF file and
     the buildid.
 
@@ -178,8 +178,8 @@ def resolve_symbol(path: str, symbol: str) -> int:
     # Retrieve the symbols from the external debuginfo file
     if buildid and debug_file and libcontext.sym_lvl > 2:
         folder = buildid[:2]
-        absolute_debug_path = os.path.join(LOCAL_DEBUG_PATH, folder, debug_file)
-        symbols = _collect_external_info(absolute_debug_path)
+        absolute_debug_path_str = os.path.join(LOCAL_DEBUG_PATH, folder, debug_file)
+        symbols = _collect_external_info(absolute_debug_path_str)
         if symbol in symbols:
             return symbols[symbol][0]
 
@@ -221,8 +221,8 @@ def resolve_address(path: str, address: int) -> str:
     # Retrieve the symbols from the external debuginfo file
     if buildid and debug_file and libcontext.sym_lvl > 2:
         folder = buildid[:2]
-        absolute_debug_path = os.path.join(LOCAL_DEBUG_PATH, folder, debug_file)
-        symbols = _collect_external_info(absolute_debug_path)
+        absolute_debug_path_str = os.path.join(LOCAL_DEBUG_PATH, folder, debug_file)
+        symbols = _collect_external_info(absolute_debug_path_str)
         for symbol, (symbol_start, symbol_end) in symbols.items():
             if symbol_start <= address < symbol_end:
                 return f"{symbol}+{str(address-symbol_start)}"

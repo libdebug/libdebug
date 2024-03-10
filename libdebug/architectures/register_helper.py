@@ -26,8 +26,8 @@ from libdebug.utils.libcontext import libcontext
 
 def register_holder_provider(
     register_file: object,
-    getter: Callable[[], object] = None,
-    setter: Callable[[object], None] = None,
+    getter: Callable[[], object] | None = None,
+    setter: Callable[[object], None] | None = None,
 ) -> RegisterHolder:
     """Returns an instance of the register holder to be used by the `Debugger` class."""
     architecture = libcontext.arch

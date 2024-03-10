@@ -15,8 +15,14 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+from typing import TYPE_CHECKING
 
-class Amd64StackUnwinder:
+from libdebug.architectures.stack_unwinding_manager import StackUnwindingManager
+
+if TYPE_CHECKING:
+    from libdebug.state.thread_context import ThreadContext
+
+class Amd64StackUnwinder(StackUnwindingManager):
     """
     Class that provides stack unwinding for the x86_64 architecture.
     """
@@ -31,6 +37,9 @@ class Amd64StackUnwinder:
         Returns:
             list: A list of return addresses.
         """
+
+        assert hasattr(target, "rip")
+        assert hasattr(target, "rbp")
 
         current_rbp = target.rbp
         stack_trace = [target.rip]

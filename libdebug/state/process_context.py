@@ -37,10 +37,6 @@ class ProcessContext:
         """Returns the file descriptors of the process."""
         raise NotImplementedError()
 
-    def base_address(self):
-        """Returns the base address of the process."""
-        raise NotImplementedError()
-
     def resolve_address(self, address: int) -> int:
         """Normalizes and validates the specified address.
 

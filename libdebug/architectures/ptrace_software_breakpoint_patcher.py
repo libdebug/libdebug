@@ -26,3 +26,5 @@ def software_breakpoint_byte_size() -> int:
             return 1
         case "x86":
             return 1
+        case _:
+            raise ValueError(f"Unsupported architecture: {libcontext.arch}")

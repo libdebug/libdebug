@@ -17,6 +17,7 @@
 
 import os
 import signal
+from typing import TYPE_CHECKING
 
 from libdebug.architectures.ptrace_software_breakpoint_patcher import (
     software_breakpoint_byte_size,
@@ -24,6 +25,9 @@ from libdebug.architectures.ptrace_software_breakpoint_patcher import (
 from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_constants import StopEvents
 from libdebug.state.debugging_context import provide_context
+
+if TYPE_CHECKING:
+    from libdebug.data.breakpoint import Breakpoint
 
 
 class PtraceStatusHandler:
@@ -62,6 +66,8 @@ class PtraceStatusHandler:
             return False
 
         ip = thread.instruction_pointer
+
+        bp: None | "Breakpoint"
 
         enabled_breakpoints = {}
         for bp in provide_context(self).breakpoints.values():
@@ -167,9 +173,8 @@ class PtraceStatusHandler:
         if not os.path.exists(f"/proc/{pid}/task"):
             return
 
-        tids = os.listdir(f"/proc/{pid}/task")
+        tids = [int(x) for x in os.listdir(f"/proc/{pid}/task")]
         for tid in tids:
-            tid = int(tid)
             if tid not in provide_context(self).threads:
                 self.ptrace_interface.register_new_thread(tid)
                 print("Manually registered new thread %d", tid)
