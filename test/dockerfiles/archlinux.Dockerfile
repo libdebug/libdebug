@@ -6,12 +6,10 @@ WORKDIR /test
 
 # Arch Linux forces venvs
 RUN python -m venv venv_python
-RUN venv_python/bin/python -m pip install -U pip
-RUN venv_python/bin/python -m pip install pwntools requests capstone pyelftools
+RUN venv_python/bin/python -m pip install -U pip pwntools requests capstone pyelftools
 
 RUN pypy3 -m venv venv_pypy
-RUN venv_pypy/bin/python -m pip install -U pip
-RUN venv_pypy/bin/python -m pip install pwntools requests capstone pyelftools
+RUN venv_pypy/bin/python -m pip install -U pip pwntools requests capstone pyelftools
 
 COPY . .
 

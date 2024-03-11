@@ -1,18 +1,13 @@
 FROM fedora:latest
 
-RUN dnf -y upgrade && dnf install -y python3 python3-devel kernel-devel pypy3 pypy3-devel
+RUN dnf -y upgrade && dnf install -y python3 python3-devel kernel-devel pypy3 pypy3-devel binutils-devel libdwarf-devel
 
 WORKDIR /test
 
 RUN python3 -m ensurepip
-RUN python3 -m pip install -U pip
+RUN python3 -m pip install -U pip pwntools requests capstone pyelftools
 RUN pypy3 -m ensurepip
-RUN pypy3 -m pip install -U pip
-
-RUN dnf install -y libdwarf-devel
-
-RUN python3 -m pip install pwntools requests capstone pyelftools
-RUN pypy3 -m pip install pwntools requests capstone pyelftools
+RUN pypy3 -m pip install -U pip pwntools requests capstone pyelftools
 
 COPY . .
 
