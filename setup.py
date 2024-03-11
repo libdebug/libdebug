@@ -7,11 +7,20 @@ if not (
     os.path.isfile("/usr/include/sys/ptrace.h")
     or os.path.isfile("/usr/include/x86_64-linux-gnu/sys/ptrace.h")
 ):
-    print("Required C libraries not found. Please install ptrace")
+    print("Required C libraries not found. Please install ptrace or kernel headers")
     exit(1)
+
+if not (
+    os.path.isfile("/usr/include/demangle.h")
+    or os.path.isfile("/usr/include/libiberty/demangle.h")
+):
+    print("Required C libraries not found. Please install libiberty-dev or binutils-devel")
+    exit(1)
+
 if not os.path.isfile("/usr/include/libelf.h"):
     print("Required C libraries not found. Please install elfutils")
     exit(1)
+
 if os.path.isfile("/usr/include/libdwarf/dwarf.h") and os.path.isfile(
     "/usr/include/libdwarf/libdwarf.h"
 ):

@@ -15,6 +15,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 //
 
+#include <demangle.h>
 #include <dwarf.h>
 #include <fcntl.h>
 #include <gelf.h>
@@ -37,7 +38,8 @@ typedef struct SymbolInfo
 SymbolInfo *add_symbol_info(SymbolInfo **head, const char *name, Dwarf_Addr low_pc, Dwarf_Addr high_pc)
 {
     SymbolInfo *new_node = (SymbolInfo *)malloc(sizeof(SymbolInfo));
-    new_node->name = strdup(name);
+    char *demangled_name = cplus_demangle_v3(name, DMGL_PARAMS | DMGL_ANSI | DMGL_TYPES);
+    new_node->name = demangled_name ? demangled_name : strdup(name);
     new_node->low_pc = low_pc;
     new_node->high_pc = high_pc;
     new_node->next = *head;

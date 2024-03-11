@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/io-no/libdebug).
-# Copyright (c) 2023 Gabriele Digregorio.
+# Copyright (c) 2023 - 2024 Gabriele Digregorio, Roberto Alessandro Bertolini.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -39,12 +39,16 @@ ffibuilder.cdef(
 """
 )
 
-with open("libdebug/cffi/debug_sym_cffi_source.c", 'r') as f:
+with open("libdebug/cffi/debug_sym_cffi_source.c", "r") as f:
     ffibuilder.set_source(
         "libdebug.cffi.debug_sym_cffi",
         f.read(),
-        libraries=["elf", "dwarf"],
-        include_dirs=["/usr/include/libdwarf/libdwarf-0", "/usr/include/libdwarf-0"],
+        libraries=["elf", "dwarf", "iberty"],
+        include_dirs=[
+            "/usr/include/libdwarf/libdwarf-0",
+            "/usr/include/libdwarf-0",
+            "/usr/include/libiberty",
+        ],
     )
 
 if __name__ == "__main__":
