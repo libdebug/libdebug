@@ -5,6 +5,11 @@ libdebug is a Python library to automate the debugging of a binary executable.
 ```bash
 python3 -m pip install git+https://github.com/io-no/libdebug.git@threading
 ```
+### Installation Requirements:
+Ubuntu: `sudo apt-get install -y python3 python3-dev python3-pip libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg`
+Debian: `sudo apt-get install -y python3 python3-dev python3-pip python3-venv libdwarf-dev libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg`
+Fedora: `sudo dnf install -y python3 python3-devel kernel-devel pypy3 pypy3-devel binutils-devel libdwarf-devel`
+Arch Linux: `sudo pacman -S --noconfirm python python-pip pypy3 libelf libdwarf gcc make debuginfod`
 
 ## Attach
 After providing the path to the executable, you can use the methdo `run` to start it
