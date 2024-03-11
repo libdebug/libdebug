@@ -67,8 +67,6 @@ def fast_suite():
     suite.addTest(ControlFlowTest("test_step_until_and_cont"))
     suite.addTest(ControlFlowTest("test_step_until_and_cont_hardware"))
     suite.addTest(MultipleDebuggersTest("test_multiple_debuggers"))
-    suite.addTest(LargeBinarySymTest("test_large_binary_symbol_load_times"))
-    suite.addTest(LargeBinarySymTest("test_large_binary_demangle"))
     return suite
 
 
@@ -80,6 +78,8 @@ def complete_suite():
     suite.addTest(CallbackTest("test_callback_bruteforce"))
     suite.addTest(SpeedTest("test_speed"))
     suite.addTest(SpeedTest("test_speed_hardware"))
+    suite.addTest(LargeBinarySymTest("test_large_binary_symbol_load_times"))
+    suite.addTest(LargeBinarySymTest("test_large_binary_demangle"))
     return suite
 
 
