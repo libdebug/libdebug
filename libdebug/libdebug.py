@@ -149,10 +149,25 @@ class Debugger:
         )
         self._polling_thread.start()
 
+    def _ensure_process_stopped(self):
+        """Validates the state of the process."""
+        if not self.instanced:
+            raise RuntimeError("Process not running, cannot continue.")
+
+        if not provide_context(self).running:
+            return
+
+        if provide_context(self).auto_interrupt_on_command:
+            provide_context(self).interrupt()
+
+        self._polling_thread_command_queue.join()
+
     def kill(self):
         """Kills the process."""
-        if not self.instanced:
-            raise RuntimeError("Process not running, cannot kill.")
+        try:
+            self._ensure_process_stopped()
+        except OSError:
+            pass
 
         self._polling_thread_command_queue.put((self.__threaded_kill, ()))
 
@@ -176,11 +191,7 @@ class Debugger:
         Args:
             auto_wait (bool, optional): Whether to automatically wait for the process to stop after continuing. Defaults to True.
         """
-        if not self.instanced:
-            raise RuntimeError("Process not running, cannot continue.")
-
-        if provide_context(self).dead or provide_context(self).running:
-            raise RuntimeError("Process is dead or already running.")
+        self._ensure_process_stopped()
 
         self._polling_thread_command_queue.put((self.__threaded_cont, ()))
 
@@ -218,8 +229,7 @@ class Debugger:
         Args:
             thread (ThreadContext, optional): The thread to step. Defaults to None.
         """
-        if not self.instanced:
-            raise RuntimeError("Process not running, cannot step.")
+        self._ensure_process_stopped()
 
         if thread is None:
             # If no thread is specified, we use the first thread
@@ -245,8 +255,7 @@ class Debugger:
             thread (ThreadContext, optional): The thread to step. Defaults to None.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
         """
-        if not self.instanced:
-            raise RuntimeError("Process not running, cannot step.")
+        self._ensure_process_stopped()
 
         if thread is None:
             # If no thread is specified, we use the first thread
@@ -283,11 +292,7 @@ class Debugger:
             position (int | bytes): The location of the breakpoint.
             hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software. Defaults to False.
         """
-        if not self.instanced:
-            raise RuntimeError("Process not running, cannot set a breakpoint.")
-
-        if provide_context(self).running:
-            raise RuntimeError("Cannot set a breakpoint while the process is running.")
+        self._ensure_process_stopped()
 
         if isinstance(position, str):
             with context_extend_from(self):
@@ -316,6 +321,8 @@ class Debugger:
         if not self.threads:
             raise AttributeError(f"'Debugger' object has no attribute '{name}'")
 
+        self._ensure_process_stopped()
+
         thread_context = next(iter(self.threads.values()))
 
         if not hasattr(thread_context, name):
@@ -330,6 +337,7 @@ class Debugger:
         if hasattr(Debugger, name):
             super().__setattr__(name, value)
         else:
+            self._ensure_process_stopped()
             thread_context = next(iter(self.threads.values()))
             setattr(thread_context, name, value)
 
@@ -471,6 +479,7 @@ def debugger(
     enable_aslr: bool = False,
     env: dict[str, str] | None = None,
     continue_to_binary_entrypoint: bool = True,
+    auto_interrupt_on_command: bool = True,
 ) -> Debugger:
     """This function is used to create a new `Debugger` object. It takes as input the location of the binary to debug and returns a `Debugger` object.
 
@@ -479,6 +488,7 @@ def debugger(
         enable_aslr (bool, optional): Whether to enable ASLR. Defaults to False.
         env (dict[str, str], optional): The environment variables to use. Defaults to None.
         continue_to_binary_entrypoint (bool, optional): Whether to automatically continue to the binary entrypoint. Defaults to True.
+        auto_interrupt_on_command (bool, optional): Whether to automatically interrupt the process when a command is issued. Defaults to True.
 
     Returns:
         Debugger: The `Debugger` object.
@@ -499,6 +509,7 @@ def debugger(
     debugging_context.env = env
     debugging_context.aslr_enabled = enable_aslr
     debugging_context.autoreach_entrypoint = continue_to_binary_entrypoint
+    debugging_context.auto_interrupt_on_command = auto_interrupt_on_command
 
     debugger._post_init_()
 

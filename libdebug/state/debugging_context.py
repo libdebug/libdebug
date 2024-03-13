@@ -17,6 +17,8 @@
 
 from __future__ import annotations
 
+import os
+import signal
 from contextlib import contextmanager
 from threading import Lock
 from typing import TYPE_CHECKING
@@ -53,6 +55,9 @@ class DebuggingContext:
 
     autoreach_entrypoint: bool
     """A flag that indicates if the debugger should automatically reach the entry point of the debugged process."""
+
+    auto_interrupt_on_command: bool
+    """A flag that indicates if the debugger should automatically interrupt the debugged process when a command is issued."""
 
     _breakpoints: dict[int, Breakpoint]
     """A dictionary of all the breakpoints set on the process.
@@ -213,6 +218,10 @@ class DebuggingContext:
         address = resolve_symbol_in_maps(symbol, maps)
         normalized_address = normalize_and_validate_address(address, maps)
         return normalized_address
+
+    def interrupt(self):
+        """Interrupt the debugged process."""
+        os.kill(self.process_id, signal.SIGSTOP)
 
 
 __debugging_contexts: WeakKeyDictionary = WeakKeyDictionary()
