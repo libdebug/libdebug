@@ -50,6 +50,8 @@ class CallbackTest(unittest.TestCase):
 
         d.cont()
 
+        d.wait()
+
         d.kill()
 
         self.assertTrue(hit)
@@ -81,6 +83,8 @@ class CallbackTest(unittest.TestCase):
         d.breakpoint("register_test", callback=callback, hardware=True)
 
         d.cont()
+
+        d.wait()
 
         d.kill()
 
@@ -120,6 +124,8 @@ class CallbackTest(unittest.TestCase):
         d.breakpoint("change_memory", callback=callback)
 
         d.cont()
+
+        d.wait()
 
         d.kill()
 
@@ -210,6 +216,8 @@ class CallbackTest(unittest.TestCase):
 
         r.sendline(b"A" * 0x1D)
         r.recvuntil(b"Wrong...")
+
+        d.wait()
 
         d.kill()
 
