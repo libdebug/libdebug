@@ -1,6 +1,7 @@
 import os
 
 from setuptools import find_packages, setup
+from setuptools.command.build_ext import build_ext
 
 # Check if the user has the required C libraries installed
 if not (
@@ -14,7 +15,9 @@ if not (
     os.path.isfile("/usr/include/demangle.h")
     or os.path.isfile("/usr/include/libiberty/demangle.h")
 ):
-    print("Required C libraries not found. Please install libiberty-dev or binutils-devel")
+    print(
+        "Required C libraries not found. Please install libiberty-dev or binutils-devel"
+    )
     exit(1)
 
 if not os.path.isfile("/usr/include/libelf.h"):
@@ -39,6 +42,15 @@ else:
     )
     exit(1)
 
+
+class JumpstartBuildCommand(build_ext):
+    def run(self):
+        os.system(
+            "cc -o libdebug/ptrace/jumpstart/jumpstart libdebug/ptrace/jumpstart/jumpstart.c"
+        )
+        build_ext.run(self)
+
+
 setup(
     name="libdebug",
     version="0.3",
@@ -57,4 +69,6 @@ setup(
         "./libdebug/cffi/personality_cffi_build.py:ffibuilder",
         f"./libdebug/cffi/{debug_sym_cffi}.py:ffibuilder",
     ],
+    cmdclass={"build_ext": JumpstartBuildCommand},
+    package_data={"libdebug": ["ptrace/jumpstart/jumpstart"]},
 )

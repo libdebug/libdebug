@@ -18,8 +18,8 @@
 import errno
 import os
 import pty
-import sys
 import tty
+from pathlib import Path
 
 from libdebug.architectures.ptrace_hardware_breakpoint_manager import (
     PtraceHardwareBreakpointManager,
@@ -49,6 +49,36 @@ from libdebug.utils.process_utils import (
     get_process_maps,
     invalidate_process_cache,
 )
+
+
+JUMPSTART_LOCATION = str(
+    (Path(__file__) / ".." / ".." / "ptrace" / "jumpstart" / "jumpstart").resolve()
+)
+
+if hasattr(os, "posix_spawn"):
+    POSIX_SPAWN_CLOSE = os.POSIX_SPAWN_CLOSE
+    POSIX_SPAWN_DUP2 = os.POSIX_SPAWN_DUP2
+    POSIX_SPAWN = os.posix_spawn
+else:
+    # Fallback to fork+exec if posix_spawn is not available
+    # PyPy3 apparently does not have posix_spawn even if it should
+    def simplified_posix_spawn(file, argv, env, file_actions, setpgroup):
+        child_pid = os.fork()
+        if child_pid == 0:
+            for element in file_actions:
+                if element[0] == POSIX_SPAWN_CLOSE:
+                    os.close(element[1])
+                elif element[0] == POSIX_SPAWN_DUP2:
+                    os.dup2(element[1], element[2])
+            if setpgroup == 0:
+                os.setpgid(0, 0)
+            os.execve(file, argv, env)
+
+        return child_pid
+
+    POSIX_SPAWN_CLOSE = 0
+    POSIX_SPAWN_DUP2 = 1
+    POSIX_SPAWN = simplified_posix_spawn
 
 
 class PtraceInterface(DebuggingInterface):
@@ -123,30 +153,34 @@ class PtraceInterface(DebuggingInterface):
         self.stdout_read, self.stdout_write = pty.openpty()
         self.stderr_read, self.stderr_write = pty.openpty()
 
-        child_pid = os.fork()
-        if child_pid == 0:
-            # Setting stdout, stderr to raw mode to avoid terminal control codes interfering with the
-            # output
-            tty.setraw(self.stdout_write)
-            tty.setraw(self.stderr_write)
+        # Setting stdout, stderr to raw mode to avoid terminal control codes interfering with the
+        # output
+        tty.setraw(self.stdout_read)
+        tty.setraw(self.stderr_read)
 
-            self._setup_child(argv, env)
-            sys.exit(-1)
-        else:
-            # change the process group of the child to its own pid
-            # so that we can observe just it (and any children it creates)
-            os.setpgid(child_pid, child_pid)
+        child_pid = POSIX_SPAWN(
+            JUMPSTART_LOCATION,
+            [JUMPSTART_LOCATION] + argv,
+            env,
+            file_actions=[
+                (POSIX_SPAWN_CLOSE, self.stdin_write),
+                (POSIX_SPAWN_CLOSE, self.stdout_read),
+                (POSIX_SPAWN_CLOSE, self.stderr_read),
+                (POSIX_SPAWN_DUP2, self.stdin_read, 0),
+                (POSIX_SPAWN_DUP2, self.stdout_write, 1),
+                (POSIX_SPAWN_DUP2, self.stderr_write, 2),
+                (POSIX_SPAWN_CLOSE, self.stdin_read),
+                (POSIX_SPAWN_CLOSE, self.stdout_write),
+                (POSIX_SPAWN_CLOSE, self.stderr_write),
+            ],
+            setpgroup=0,
+        )
 
-            # Setting stdout, stderr to raw mode to avoid terminal control codes interfering with the
-            # output
-            tty.setraw(self.stdout_read)
-            tty.setraw(self.stderr_read)
-
-            provide_context(self).process_id = child_pid
-            self.register_new_thread(child_pid)
-            continue_to_entry_point = provide_context(self).autoreach_entrypoint
-            self._setup_parent(continue_to_entry_point)
-            provide_context(self).pipe_manager = self._setup_pipe()
+        provide_context(self).process_id = child_pid
+        self.register_new_thread(child_pid)
+        continue_to_entry_point = provide_context(self).autoreach_entrypoint
+        self._setup_parent(continue_to_entry_point)
+        provide_context(self).pipe_manager = self._setup_pipe()
 
     def attach(self, pid: int):
         """Attaches to the specified process.
@@ -217,36 +251,6 @@ class PtraceInterface(DebuggingInterface):
         if result == -1:
             errno_val = self.ffi.errno
             raise OSError(errno_val, errno.errorcode[errno_val])
-
-    def _setup_child(self, argv, env):
-        self._trace_self()
-
-        try:
-            # Close the write end for stdin and the read ends for stdout and stderr
-            # in the child process since it is going to read from stdin and write to
-            # stdout and stderr
-            os.close(self.stdin_write)
-            os.close(self.stdout_read)
-            os.close(self.stderr_read)
-
-            # Redirect stdin, stdout, and stderr of child process
-            os.dup2(self.stdin_read, 0)
-            os.dup2(self.stdout_write, 1)
-            os.dup2(self.stderr_write, 2)
-
-            # Close the original fds in the child process since now they are duplicated
-            # by 0, 1, and 2 (they point to the same location)
-            os.close(self.stdin_read)
-            os.close(self.stdout_write)
-            os.close(self.stderr_write)
-        except Exception as e:
-            # TODO: custom exception
-            raise RuntimeError("Redirecting stdin, stdout, and stderr failed: %r" % e)
-
-        if env:
-            os.execve(argv[0], argv, env)
-        else:
-            os.execv(argv[0], argv)
 
     def _setup_pipe(self):
         """
