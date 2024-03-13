@@ -32,8 +32,6 @@ from libdebug.state.debugging_context import (
     create_context,
     provide_context,
 )
-from libdebug.state.process.process_context_provider import provide_process_context
-from libdebug.state.process_context import ProcessContext
 from libdebug.state.thread_context import ThreadContext
 
 THREAD_TERMINATE = -1
@@ -44,9 +42,6 @@ class Debugger:
 
     memory: MemoryView | None = None
     """The memory view of the process."""
-
-    process_context: ProcessContext | None = None
-    """The process context object."""
 
     breakpoints: dict[int, Breakpoint] = {}
     """A dictionary of all the breakpoints set on the process. The keys are the absolute addresses of the breakpoints."""
@@ -86,7 +81,6 @@ class Debugger:
         with context_extend_from(self):
             self.interface = provide_debugging_interface()
             provide_context(self).debugging_interface = self.interface
-            self.process_context = provide_process_context()
 
         # threading utilities
         self._polling_thread_command_queue = Queue()
@@ -260,10 +254,10 @@ class Debugger:
 
         if isinstance(position, str):
             with context_extend_from(self):
-                address = self.process_context.resolve_symbol(position)
+                address = provide_context(self).resolve_symbol(position)
         else:
             with context_extend_from(self):
-                address = self.process_context.resolve_address(position)
+                address = provide_context(self).resolve_address(position)
 
         arguments = (
             thread,
@@ -297,10 +291,10 @@ class Debugger:
 
         if isinstance(position, str):
             with context_extend_from(self):
-                address = self.process_context.resolve_symbol(position)
+                address = provide_context(self).resolve_symbol(position)
         else:
             with context_extend_from(self):
-                address = self.process_context.resolve_address(position)
+                address = provide_context(self).resolve_address(position)
             position = hex(address)
 
         bp = Breakpoint(address, position, 0, hardware, callback)

@@ -24,6 +24,10 @@ from weakref import WeakKeyDictionary
 
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
+from libdebug.utils.debugging_utils import (
+    normalize_and_validate_address,
+    resolve_symbol_in_maps,
+)
 from libdebug.utils.pipe_manager import PipeManager
 
 if TYPE_CHECKING:
@@ -182,6 +186,33 @@ class DebuggingContext:
         """
 
         return not self._threads
+
+    def resolve_address(self, address: int) -> int:
+        """Normalizes and validates the specified address.
+
+        Args:
+            address (int): The address to normalize and validate.
+
+        Returns:
+            int: The normalized and validated address.
+        """
+        maps = self.debugging_interface.maps()
+        normalized_address = normalize_and_validate_address(address, maps)
+        return normalized_address
+
+    def resolve_symbol(self, symbol: str) -> int:
+        """Resolves the address of the specified symbol.
+
+        Args:
+            symbol (str): The symbol to resolve.
+
+        Returns:
+            int: The address of the symbol.
+        """
+        maps = debugging_context().debugging_interface.maps()
+        address = resolve_symbol_in_maps(symbol, maps)
+        normalized_address = normalize_and_validate_address(address, maps)
+        return normalized_address
 
 
 __debugging_contexts: WeakKeyDictionary = WeakKeyDictionary()
