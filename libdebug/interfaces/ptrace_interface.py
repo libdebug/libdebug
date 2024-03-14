@@ -40,6 +40,7 @@ from libdebug.state.debugging_context import (
     link_context,
     provide_context,
 )
+from libdebug.state.debugging_context import DebuggingContext
 from libdebug.state.thread_context import ThreadContext
 from libdebug.utils.debugging_utils import normalize_and_validate_address
 from libdebug.utils.elf_utils import get_entry_point
@@ -84,6 +85,9 @@ else:
 class PtraceInterface(DebuggingInterface):
     """The interface used by `Debugger` to communicate with the `ptrace` debugging backend."""
 
+    context: DebuggingContext
+    """The debugging context."""
+
     hardware_bp_helpers: dict[int, PtraceHardwareBreakpointManager]
     """The hardware breakpoint managers (one for each thread)."""
 
@@ -99,20 +103,18 @@ class PtraceInterface(DebuggingInterface):
         self.lib_trace = _ptrace_cffi.lib
         self.ffi = _ptrace_cffi.ffi
 
-        if not provide_context(self).aslr_enabled:
+        self.context = provide_context(self)
+
+        if not self.context.aslr_enabled:
             disable_self_aslr()
 
         self._global_state = self.ffi.new("struct global_state*")
 
-        setattr(
-            PtraceInterface,
-            "process_id",
-            property(lambda self: provide_context(self).process_id),
-        )
+        self.process_id = 0
         setattr(
             PtraceInterface,
             "thread_ids",
-            property(lambda self: list(provide_context(self).threads.keys())),
+            property(lambda self: list(self.threads.keys())),
         )
 
         self.hardware_bp_helpers = {}
@@ -139,8 +141,8 @@ class PtraceInterface(DebuggingInterface):
 
     def run(self):
         """Runs the specified process."""
-        argv = provide_context(self).argv
-        env = provide_context(self).env
+        argv = self.context.argv
+        env = self.context.env
 
         liblog.debugger("Running %s", argv)
 
@@ -176,11 +178,12 @@ class PtraceInterface(DebuggingInterface):
             setpgroup=0,
         )
 
-        provide_context(self).process_id = child_pid
+        self.process_id = child_pid
+        self.context.process_id = child_pid
         self.register_new_thread(child_pid)
-        continue_to_entry_point = provide_context(self).autoreach_entrypoint
+        continue_to_entry_point = self.context.autoreach_entrypoint
         self._setup_parent(continue_to_entry_point)
-        provide_context(self).pipe_manager = self._setup_pipe()
+        self.context.pipe_manager = self._setup_pipe()
 
     def attach(self, pid: int):
         """Attaches to the specified process.
@@ -197,7 +200,8 @@ class PtraceInterface(DebuggingInterface):
             errno_val = self.ffi.errno
             raise OSError(errno_val, errno.errorcode[errno_val])
 
-        provide_context(self).process_id = pid
+        self.process_id = pid
+        self.context.process_id = pid
         self.register_new_thread(pid)
         # If we are attaching to a process, we don't want to continue to the entry point
         # which we have probably already passed
@@ -212,7 +216,7 @@ class PtraceInterface(DebuggingInterface):
     def cont(self):
         """Continues the execution of the process."""
         # Enable all breakpoints if they were disabled for a single step
-        for bp in provide_context(self).breakpoints.values():
+        for bp in self.context.breakpoints.values():
             bp._disabled_for_step = False
 
         result = self.lib_trace.cont_all_and_set_bps(
@@ -225,7 +229,7 @@ class PtraceInterface(DebuggingInterface):
     def step(self, thread: ThreadContext):
         """Executes a single instruction of the process."""
         # Disable all breakpoints for the single step
-        for bp in provide_context(self).breakpoints.values():
+        for bp in self.context.breakpoints.values():
             bp._disabled_for_step = True
 
         result = self.lib_trace.singlestep(self._global_state, thread.thread_id)
@@ -242,7 +246,7 @@ class PtraceInterface(DebuggingInterface):
             max_steps (int): The maximum number of steps to execute.
         """
         # Disable all breakpoints for the single step
-        for bp in provide_context(self).breakpoints.values():
+        for bp in self.context.breakpoints.values():
             bp._disabled_for_step = True
 
         result = self.lib_trace.step_until(
@@ -281,7 +285,7 @@ class PtraceInterface(DebuggingInterface):
 
         if continue_to_entry_point:
             # Now that the process is running, we must continue until we have reached the entry point
-            entry_point = get_entry_point(provide_context(self).argv[0])
+            entry_point = get_entry_point(self.context.argv[0])
 
             # For PIE binaries, the entry point is a relative address
             entry_point = normalize_and_validate_address(entry_point, self.maps())
@@ -335,14 +339,14 @@ class PtraceInterface(DebuggingInterface):
 
         link_context(thread, self)
 
-        provide_context(self).insert_new_thread(thread)
+        self.context.insert_new_thread(thread)
         thread_hw_bp_helper = ptrace_hardware_breakpoint_manager_provider(
             thread, self._peek_user, self._poke_user
         )
         self.hardware_bp_helpers[new_thread_id] = thread_hw_bp_helper
 
         # For any hardware breakpoints, we need to reapply them to the new thread
-        for bp in provide_context(self).breakpoints.values():
+        for bp in self.context.breakpoints.values():
             if bp.hardware:
                 thread_hw_bp_helper.install_breakpoint(bp)
 
@@ -350,7 +354,7 @@ class PtraceInterface(DebuggingInterface):
         """Unregisters a thread."""
         self.lib_trace.unregister_thread(self._global_state, thread_id)
 
-        provide_context(self).remove_thread(thread_id)
+        self.context.remove_thread(thread_id)
 
         # Remove the hardware breakpoint manager for the thread
         self.hardware_bp_helpers.pop(thread_id)
@@ -387,7 +391,7 @@ class PtraceInterface(DebuggingInterface):
         else:
             self._set_sw_breakpoint(breakpoint)
 
-        provide_context(self).insert_new_breakpoint(breakpoint)
+        self.context.insert_new_breakpoint(breakpoint)
 
     def unset_breakpoint(self, breakpoint: Breakpoint):
         """Restores the breakpoint at the specified address.
@@ -401,7 +405,7 @@ class PtraceInterface(DebuggingInterface):
         else:
             self._unset_hit_software_breakpoint(breakpoint)
 
-        provide_context(self).remove_breakpoint(breakpoint)
+        self.context.remove_breakpoint(breakpoint)
 
     def peek_memory(self, address: int) -> int:
         """Reads the memory at the specified address."""

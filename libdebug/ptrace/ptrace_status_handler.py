@@ -32,7 +32,8 @@ if TYPE_CHECKING:
 
 class PtraceStatusHandler:
     def __init__(self):
-        self.ptrace_interface = provide_context(self).debugging_interface
+        self.context = provide_context(self)
+        self.ptrace_interface = self.context.debugging_interface
 
     def _handle_clone(self, thread_id: int, results: list):
         # https://go.googlesource.com/debug/+/a09ead70f05c87ad67bd9a131ff8352cf39a6082/doc/ptrace-nptl.txt
@@ -51,7 +52,7 @@ class PtraceStatusHandler:
         self.ptrace_interface.register_new_thread(thread_id)
 
     def _handle_exit(self, thread_id: int):
-        if thread_id in provide_context(self).threads:
+        if thread_id in self.context.threads:
             self.ptrace_interface.unregister_thread(thread_id)
 
     def _handle_trap(self, thread_id: int) -> bool:
@@ -59,7 +60,7 @@ class PtraceStatusHandler:
             # This is a spurious trap, we don't know what to do with it
             return False
 
-        thread = provide_context(self).threads[thread_id]
+        thread = self.context.threads[thread_id]
 
         if not hasattr(thread, "instruction_pointer"):
             # This is a signal trap hit on process startup
@@ -70,7 +71,7 @@ class PtraceStatusHandler:
         bp: None | "Breakpoint"
 
         enabled_breakpoints = {}
-        for bp in provide_context(self).breakpoints.values():
+        for bp in self.context.breakpoints.values():
             if bp.enabled and not bp._disabled_for_step:
                 enabled_breakpoints[bp.address] = bp
 
@@ -79,7 +80,7 @@ class PtraceStatusHandler:
         if ip in enabled_breakpoints:
             # Hardware breakpoint hit
             liblog.debugger("Hardware breakpoint hit at 0x%x", ip)
-            bp = provide_context(self).breakpoints[ip]
+            bp = self.context.breakpoints[ip]
         else:
             # If the trap was caused by a software breakpoint, we need to restore the original instruction
             # and set the instruction pointer to the previous instruction.
@@ -88,7 +89,7 @@ class PtraceStatusHandler:
             if ip in enabled_breakpoints:
                 # Software breakpoint hit
                 liblog.debugger("Software breakpoint hit at 0x%x", ip)
-                bp = provide_context(self).breakpoints[ip]
+                bp = self.context.breakpoints[ip]
 
                 # Set the instruction pointer to the previous instruction
                 thread.instruction_pointer = ip
@@ -175,6 +176,6 @@ class PtraceStatusHandler:
 
         tids = [int(x) for x in os.listdir(f"/proc/{pid}/task")]
         for tid in tids:
-            if tid not in provide_context(self).threads:
+            if tid not in self.context.threads:
                 self.ptrace_interface.register_new_thread(tid)
                 print("Manually registered new thread %d", tid)
