@@ -202,6 +202,19 @@ class Debugger:
         if auto_wait:
             self._polling_thread_command_queue.put((self.__threaded_wait, ()))
 
+    def interrupt(self):
+        """Interrupts the process."""
+        if not self.instanced:
+            raise RuntimeError("Process not running, cannot interrupt.")
+
+        if not provide_context(self).running:
+            return
+
+        provide_context(self).interrupt()
+
+        self._polling_thread_command_queue.put((self.__threaded_wait, ()))
+        self._polling_thread_command_queue.join()
+
     def wait(self):
         """Waits for the process to stop."""
         if not self.instanced:
@@ -486,7 +499,7 @@ def debugger(
     Args:
         argv (str | list[str]): The location of the binary to debug, and any additional arguments to pass to it.
         enable_aslr (bool, optional): Whether to enable ASLR. Defaults to False.
-        env (dict[str, str], optional): The environment variables to use. Defaults to None.
+        env (dict[str, str], optional): The environment variables to use. Defaults to the same environment of the debugging script.
         continue_to_binary_entrypoint (bool, optional): Whether to automatically continue to the binary entrypoint. Defaults to True.
         auto_interrupt_on_command (bool, optional): Whether to automatically interrupt the process when a command is issued. Defaults to True.
 
