@@ -5,14 +5,16 @@ libdebug is a Python library to automate the debugging of a binary executable.
 ```bash
 python3 -m pip install git+https://github.com/io-no/libdebug.git@threading
 ```
-### Installation Requirements:
-Ubuntu: `sudo apt-get install -y python3 python3-dev python3-pip libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg`
-Debian: `sudo apt-get install -y python3 python3-dev python3-pip python3-venv libdwarf-dev libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg`
-Fedora: `sudo dnf install -y python3 python3-devel kernel-devel pypy3 pypy3-devel binutils-devel libdwarf-devel`
-Arch Linux: `sudo pacman -S --noconfirm python python-pip pypy3 libelf libdwarf gcc make debuginfod`
+PyPy3 is supported but not recommended, as it performs worse.
 
-## Attach
-After providing the path to the executable, you can use the methdo `run` to start it
+### Installation Requirements:
+Ubuntu: `sudo apt-get install -y python3 python3-dev python3-pip libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg`  
+Debian: `sudo apt-get install -y python3 python3-dev python3-pip python3-venv libdwarf-dev libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg`  
+Fedora: `sudo dnf install -y python3 python3-devel kernel-devel pypy3 pypy3-devel binutils-devel libdwarf-devel`  
+Arch Linux: `sudo pacman -S --noconfirm python python-pip pypy3 libelf libdwarf gcc make debuginfod`  
+
+## Run and Attach
+After providing the path to the executable, you can use the method `run` to start it
 ```python
 from libdebug import debugger
 
@@ -21,12 +23,24 @@ d = debugger("./test")
 d.run()
 ```
 
-You can attach to an already running process using `attach`
+You can attach to an already running process using `attach` and specifying the PID.
 ```python
 d = debugger("./test")
 
 d.attach(1234)
 ```
+
+The Debugger has some options that can be configured by the user:
+```python
+d = debugger(argv=<"./test" | ["./test", ...]>,
+    [enable_aslr=<True | False>], # defaults to False
+    [env={...}], # defaults to the same environment in which the debugging script is run
+    [continue_to_binary_entrypoint=<True | False>], # defaults to True
+    [auto_interrupt_on_command=<True | False>], #defaults to True
+)
+```
+By setting `continue_to_binary_entrypoint` to False, the debugger will not automatically reach the entrypoint of the binary on `run()`, instead it will stop at the first instruction executed by the loader.
+By setting `auto_interrupt_on_command` to False, the debugger will wait for the debugged executable to script before issuing any command, while in the normal configuration it interrupts the executable in order to instantly issue commands, such as `breakpoint(...)` and any register access operation.
 
 ## Register Access
 Registers are provided as properties of the class `Debugger`. You can read from and write to them when the process is interrupted.
@@ -68,7 +82,7 @@ d.memory["main_arena"] = b"12345678"
 
 `step_until(<address | symbol>, [max_steps=-1])` will step until the desired address is reached or for `max_steps` steps, whichever comes first.
 
-`breakpoint(<address | symbol>, [hardware=False])` to set a breakpoint, which can be hardware-assisted. 
+`breakpoint(<address | symbol>, [hardware=False])` will set a breakpoint, which can be hardware-assisted. 
 
 ```python
 bp = d.breakpoint(0x1234)
