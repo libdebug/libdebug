@@ -57,29 +57,13 @@ JUMPSTART_LOCATION = str(
 )
 
 if hasattr(os, "posix_spawn"):
-    POSIX_SPAWN_CLOSE = os.POSIX_SPAWN_CLOSE
-    POSIX_SPAWN_DUP2 = os.POSIX_SPAWN_DUP2
-    POSIX_SPAWN = os.posix_spawn
+    from os import posix_spawn, POSIX_SPAWN_CLOSE, POSIX_SPAWN_DUP2
 else:
-    # Fallback to fork+exec if posix_spawn is not available
-    # PyPy3 apparently does not have posix_spawn even if it should
-    def simplified_posix_spawn(file, argv, env, file_actions, setpgroup):
-        child_pid = os.fork()
-        if child_pid == 0:
-            for element in file_actions:
-                if element[0] == POSIX_SPAWN_CLOSE:
-                    os.close(element[1])
-                elif element[0] == POSIX_SPAWN_DUP2:
-                    os.dup2(element[1], element[2])
-            if setpgroup == 0:
-                os.setpgid(0, 0)
-            os.execve(file, argv, env)
-
-        return child_pid
-
-    POSIX_SPAWN_CLOSE = 0
-    POSIX_SPAWN_DUP2 = 1
-    POSIX_SPAWN = simplified_posix_spawn
+    from libdebug.utils.posix_spawn import (
+        posix_spawn,
+        POSIX_SPAWN_CLOSE,
+        POSIX_SPAWN_DUP2,
+    )
 
 
 class PtraceInterface(DebuggingInterface):
@@ -160,7 +144,7 @@ class PtraceInterface(DebuggingInterface):
         tty.setraw(self.stdout_read)
         tty.setraw(self.stderr_read)
 
-        child_pid = POSIX_SPAWN(
+        child_pid = posix_spawn(
             JUMPSTART_LOCATION,
             [JUMPSTART_LOCATION] + argv,
             env,
