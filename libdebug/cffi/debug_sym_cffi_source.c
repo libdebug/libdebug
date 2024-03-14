@@ -249,6 +249,11 @@ SymbolInfo *collect_external_symbols(const char *debug_file_path, int debug_info
         return NULL;
     }
 
+    // Check if the debug file exists
+    if (access(debug_file_path, R_OK) != 0) {
+        return NULL;
+    }
+
     // Open the ELF file
     fd = open(debug_file_path, O_RDONLY);
     if (fd < 0) {
@@ -366,6 +371,11 @@ SymbolInfo *read_elf_info(const char *elf_file_path, int debug_info_level)
     // Initialize the ELF library
     if (elf_version(EV_CURRENT) == EV_NONE) {
         perror("Failed to initialize libelf");
+        return NULL;
+    }
+
+    // Check if the debug file exists
+    if (access(elf_file_path, R_OK) != 0) {
         return NULL;
     }
 
