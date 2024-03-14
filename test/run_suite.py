@@ -19,6 +19,7 @@ import sys
 import unittest
 
 from scripts.attach_test import AttachTest
+from scripts.auto_waiting_test import AutoWaitingTest, AutoWaitingNcuts
 from scripts.backtrace_test import BacktraceTest
 from scripts.basic_test import BasicPieTest, BasicTest, ControlFlowTest, HwBasicTest
 from scripts.breakpoint_test import BreakpointTest
@@ -29,7 +30,7 @@ from scripts.large_binary_sym_test import LargeBinarySymTest
 from scripts.memory_test import MemoryTest
 from scripts.multiple_debuggers_test import MultipleDebuggersTest
 from scripts.ncuts import Ncuts
-from scripts.non_waiting_test import NonWaitingTest
+from scripts.non_waiting_test import NonWaitingTest, NonWaitingNcuts
 from scripts.speed_test import SpeedTest
 from scripts.thread_test import ComplexThreadTest, ThreadTest
 from scripts.vmwhere1 import Vmwhere1
@@ -72,6 +73,10 @@ def fast_suite():
     suite.addTest(LargeBinarySymTest("test_large_binary_demangle"))
     suite.addTest(NonWaitingTest("test_bps_non_waiting"))
     suite.addTest(NonWaitingTest("test_jumpout_non_waiting"))
+    suite.addTest(NonWaitingNcuts("test_ncuts"))
+    suite.addTest(AutoWaitingTest("test_bps_auto_waiting"))
+    suite.addTest(AutoWaitingTest("test_jumpout_auto_waiting"))
+    suite.addTest(AutoWaitingNcuts("test_ncuts"))
     return suite
 
 
