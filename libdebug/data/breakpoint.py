@@ -43,7 +43,7 @@ class Breakpoint:
     hit_count: int = 0
     hardware: bool = False
     callback: None | Callable[["ThreadContext", Breakpoint], None] = None
-    condition: str = "X"
+    condition: str = "x"
     length: int = 1
     enabled: bool = True
 

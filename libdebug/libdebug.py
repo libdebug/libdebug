@@ -304,6 +304,8 @@ class Debugger:
         self,
         position: int | str,
         hardware: bool = False,
+        condition: str | None = None,
+        length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
     ) -> Breakpoint:
         """Sets a breakpoint at the specified location.
@@ -311,6 +313,8 @@ class Debugger:
         Args:
             position (int | bytes): The location of the breakpoint.
             hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software. Defaults to False.
+            condition (str, optional): The trigger condition for the breakpoint. Defaults to None.
+            length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 0.
         """
         self._ensure_process_stopped()
 
@@ -322,7 +326,26 @@ class Debugger:
                 address = self.context.resolve_address(position)
             position = hex(address)
 
-        bp = Breakpoint(address, position, 0, hardware, callback)
+        if condition:
+            if not hardware:
+                raise ValueError(
+                    "Breakpoint condition is supported only for hardware watchpoints."
+                )
+
+            if condition.lower() not in ["w", "rw", "x"]:
+                raise ValueError(
+                    "Invalid condition for watchpoints. Supported conditions are 'r', 'rw', 'x'."
+                )
+
+            if length not in [1, 2, 4, 8]:
+                raise ValueError(
+                    "Invalid length for watchpoints. Supported lengths are 1, 2, 4, 8."
+                )
+
+        if hardware and not condition:
+            condition = "x"
+
+        bp = Breakpoint(address, position, 0, hardware, callback, condition, length)
 
         link_context(bp, self)
 
