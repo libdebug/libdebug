@@ -18,7 +18,6 @@
 import unittest
 
 from libdebug import debugger, libcontext
-from libdebug.utils.packing_utils import p64
 
 
 class MemoryTest(unittest.TestCase):
@@ -64,6 +63,9 @@ class MemoryTest(unittest.TestCase):
         address = d.rdi
         with libcontext.tmp(sym_lvl=5):
             arena = d.memory["main_arena", 256]
+
+        def p64(x):
+            return x.to_bytes(8, "little")
 
         self.assertTrue(p64(address - 0x10) in arena)
 

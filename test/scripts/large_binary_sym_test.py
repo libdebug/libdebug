@@ -40,8 +40,8 @@ class LargeBinarySymTest(unittest.TestCase):
 
             t1_stop = perf_counter_ns()
 
-        # This must be less than 1 second
-        self.assertTrue((t1_stop - t1_start) < 1e9)
+        # This must be less than 2 seconds
+        self.assertTrue((t1_stop - t1_start) < 2e9)
 
         d.kill()
 

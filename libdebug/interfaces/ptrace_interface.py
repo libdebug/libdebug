@@ -308,6 +308,8 @@ class PtraceInterface(DebuggingInterface):
         )
         cursor = result
 
+        invalidate_process_cache()
+
         results = []
 
         while cursor != self.ffi.NULL:

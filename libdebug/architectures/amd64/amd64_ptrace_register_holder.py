@@ -84,7 +84,6 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
                 return get_reg_64(self.regs, name)
 
             def setter(self, value):
-                self._dirty = True
                 set_reg_64(self.regs, name, value)
 
             return property(getter, setter, None, name)
@@ -94,7 +93,6 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
                 return get_reg_32(self.regs, name)
 
             def setter(self, value):
-                self._dirty = True
                 set_reg_32(self.regs, name, value)
 
             return property(getter, setter, None, name)
@@ -104,7 +102,6 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
                 return get_reg_16(self.regs, name)
 
             def setter(self, value):
-                self._dirty = True
                 set_reg_16(self.regs, name, value)
 
             return property(getter, setter, None, name)
@@ -114,7 +111,6 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
                 return get_reg_8l(self.regs, name)
 
             def setter(self, value):
-                self._dirty = True
                 set_reg_8l(self.regs, name, value)
 
             return property(getter, setter, None, name)
@@ -124,7 +120,6 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
                 return get_reg_8h(self.regs, name)
 
             def setter(self, value):
-                self._dirty = True
                 set_reg_8h(self.regs, name, value)
 
             return property(getter, setter, None, name)
