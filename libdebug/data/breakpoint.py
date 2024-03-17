@@ -51,15 +51,35 @@ class Breakpoint:
     # The thread ID that hit the breakpoint
 
     _disabled_for_step: bool = False
+    _changed: bool = False
 
     def enable(self) -> None:
         """Enable the breakpoint."""
+        from libdebug.state.debugging_context import provide_context
+
+        if provide_context(self).running:
+            raise RuntimeError(
+                "Cannot enable a breakpoint while the target process is running."
+            )
+
         self.enabled = True
+        self._changed = True
 
     def disable(self) -> None:
         """Disable the breakpoint."""
+        from libdebug.state.debugging_context import provide_context
+
+        if provide_context(self).running:
+            raise RuntimeError(
+                "Cannot disable a breakpoint while the target process is running."
+            )
+
         self.enabled = False
+        self._changed = True
 
     def hit_on(self, thread_context: "ThreadContext") -> bool:
         """Called when the breakpoint is hit."""
         return self.enabled and thread_context.instruction_pointer == self.address
+
+    def __hash__(self) -> int:
+        return hash(self.address)

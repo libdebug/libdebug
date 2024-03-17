@@ -154,8 +154,6 @@ void ptrace_set_options(int pid)
 {
     int options = PTRACE_O_TRACEFORK | PTRACE_O_TRACEVFORK |
                   PTRACE_O_TRACECLONE | PTRACE_O_TRACEEXEC | PTRACE_O_TRACEEXIT;
-    // int options = PTRACE_O_TRACECLONE | PTRACE_O_TRACEEXEC |
-    // PTRACE_O_TRACEEXIT;
 
     ptrace(PTRACE_SETOPTIONS, pid, NULL, options);
 }
@@ -434,8 +432,24 @@ void register_breakpoint(struct global_state *state, int pid, uint64_t address)
     b->patched_instruction = patched_instruction;
     b->enabled = 1;
 
-    b->next = state->b_HEAD;
-    state->b_HEAD = b;
+    // Breakpoints should be inserted ordered by address, increasing
+    // This is important, because we don't want a breakpoint patching another
+    if (state->b_HEAD == NULL || state->b_HEAD->addr > address) {
+        b->next = state->b_HEAD;
+        state->b_HEAD = b;
+        return;
+    } else {
+        struct software_breakpoint *prev = state->b_HEAD;
+        struct software_breakpoint *next = state->b_HEAD->next;
+
+        while (next != NULL && next->addr < address) {
+            prev = next;
+            next = next->next;
+        }
+
+        b->next = next;
+        prev->next = b;
+    }
 }
 
 void unregister_breakpoint(struct global_state *state, uint64_t address)
@@ -458,15 +472,25 @@ void unregister_breakpoint(struct global_state *state, uint64_t address)
     }
 }
 
-void disable_breakpoint(struct global_state *state, int pid, uint64_t address)
+void enable_breakpoint(struct global_state *state, uint64_t address)
+{
+    struct software_breakpoint *b = state->b_HEAD;
+
+    while (b != NULL) {
+        if (b->addr == address) {
+            b->enabled = 1;
+        }
+        b = b->next;
+    }
+}
+
+void disable_breakpoint(struct global_state *state, uint64_t address)
 {
     struct software_breakpoint *b = state->b_HEAD;
 
     while (b != NULL) {
         if (b->addr == address) {
             b->enabled = 0;
-            ptrace(PTRACE_POKEDATA, pid, b->addr, b->patched_instruction);
-            return;
         }
         b = b->next;
     }

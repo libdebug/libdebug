@@ -200,8 +200,19 @@ class PtraceInterface(DebuggingInterface):
     def cont(self):
         """Continues the execution of the process."""
         # Enable all breakpoints if they were disabled for a single step
+        changed = []
+
         for bp in self.context.breakpoints.values():
             bp._disabled_for_step = False
+            if bp._changed:
+                changed.append(bp)
+                bp._changed
+
+        for bp in changed:
+            if bp.enabled:
+                self.set_breakpoint(bp, insert=False)
+            else:
+                self.unset_breakpoint(bp, delete=False)
 
         result = self.lib_trace.cont_all_and_set_bps(
             self._global_state, self.process_id
@@ -353,17 +364,31 @@ class PtraceInterface(DebuggingInterface):
             self._global_state, self.process_id, breakpoint.address
         )
 
-    def _unset_hit_software_breakpoint(self, breakpoint: Breakpoint):
+    def _unset_sw_breakpoint(self, breakpoint: Breakpoint):
         """Unsets a software breakpoint at the specified address.
 
         Args:
             breakpoint (Breakpoint): The breakpoint to unset.
         """
-        self.lib_trace.disable_breakpoint(
-            self._global_state, self.process_id, breakpoint.address
-        )
+        self.lib_trace.unregister_breakpoint(self._global_state, breakpoint.address)
 
-    def set_breakpoint(self, breakpoint: Breakpoint):
+    def _enable_breakpoint(self, breakpoint: Breakpoint):
+        """Enables a breakpoint at the specified address.
+
+        Args:
+            breakpoint (Breakpoint): The breakpoint to enable.
+        """
+        self.lib_trace.enable_breakpoint(self._global_state, breakpoint.address)
+
+    def _disable_breakpoint(self, breakpoint: Breakpoint):
+        """Disables a breakpoint at the specified address.
+
+        Args:
+            breakpoint (Breakpoint): The breakpoint to disable.
+        """
+        self.lib_trace.disable_breakpoint(self._global_state, breakpoint.address)
+
+    def set_breakpoint(self, breakpoint: Breakpoint, insert: bool = True):
         """Sets a breakpoint at the specified address.
 
         Args:
@@ -373,11 +398,15 @@ class PtraceInterface(DebuggingInterface):
             for helper in self.hardware_bp_helpers.values():
                 helper.install_breakpoint(breakpoint)
         else:
-            self._set_sw_breakpoint(breakpoint)
+            if insert:
+                self._set_sw_breakpoint(breakpoint)
+            else:
+                self._enable_breakpoint(breakpoint)
 
-        self.context.insert_new_breakpoint(breakpoint)
+        if insert:
+            self.context.insert_new_breakpoint(breakpoint)
 
-    def unset_breakpoint(self, breakpoint: Breakpoint):
+    def unset_breakpoint(self, breakpoint: Breakpoint, delete: bool = True):
         """Restores the breakpoint at the specified address.
 
         Args:
@@ -387,9 +416,13 @@ class PtraceInterface(DebuggingInterface):
             for helper in self.hardware_bp_helpers.values():
                 helper.remove_breakpoint(breakpoint)
         else:
-            self._unset_hit_software_breakpoint(breakpoint)
+            if delete:
+                self._unset_sw_breakpoint(breakpoint)
+            else:
+                self._disable_breakpoint(breakpoint)
 
-        self.context.remove_breakpoint(breakpoint)
+        if delete:
+            self.context.remove_breakpoint(breakpoint)
 
     def peek_memory(self, address: int) -> int:
         """Reads the memory at the specified address."""

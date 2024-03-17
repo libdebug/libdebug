@@ -126,7 +126,8 @@ ffibuilder.cdef(
 
     void register_breakpoint(struct global_state *state, int pid, uint64_t address);
     void unregister_breakpoint(struct global_state *state, uint64_t address);
-    void disable_breakpoint(struct global_state *state, int pid, uint64_t address);
+    void enable_breakpoint(struct global_state *state, uint64_t address);
+    void disable_breakpoint(struct global_state *state, uint64_t address);
     void free_breakpoints(struct global_state *state);
 """
 )

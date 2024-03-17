@@ -31,6 +31,7 @@ from libdebug.state.debugging_context import (
     DebuggingContext,
     context_extend_from,
     create_context,
+    link_context,
     provide_context,
 )
 from libdebug.state.thread_context import ThreadContext
@@ -322,6 +323,8 @@ class Debugger:
             position = hex(address)
 
         bp = Breakpoint(address, position, 0, hardware, callback)
+
+        link_context(bp, self)
 
         self._polling_thread_command_queue.put((self.__threaded_breakpoint, (bp,)))
 
