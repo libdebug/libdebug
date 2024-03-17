@@ -34,6 +34,7 @@ from scripts.non_waiting_test import NonWaitingTest, NonWaitingNcuts
 from scripts.speed_test import SpeedTest
 from scripts.thread_test import ComplexThreadTest, ThreadTest
 from scripts.vmwhere1 import Vmwhere1
+from scripts.watchpoint_test import WatchpointTest
 
 
 def fast_suite():
@@ -81,6 +82,7 @@ def fast_suite():
     suite.addTest(AutoWaitingTest("test_bps_auto_waiting"))
     suite.addTest(AutoWaitingTest("test_jumpout_auto_waiting"))
     suite.addTest(AutoWaitingNcuts("test_ncuts"))
+    suite.addTest(WatchpointTest("test_watchpoint"))
     return suite
 
 
