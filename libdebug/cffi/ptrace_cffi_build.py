@@ -19,7 +19,7 @@ import platform
 
 from cffi import FFI
 
-if platform.machine() in ["i386", "x86_64"]:
+if platform.machine() == "x86_64":
     user_regs_struct = """
     struct user_regs_struct
     {
