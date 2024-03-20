@@ -2,6 +2,7 @@ import os
 
 from setuptools import find_packages, setup
 from setuptools.command.build_ext import build_ext
+from setuptools.command.install import install
 
 # Check if the user has the required C libraries installed
 if not (
@@ -50,6 +51,11 @@ class JumpstartBuildCommand(build_ext):
         )
         build_ext.run(self)
 
+class Run_BuildExt_first(install):
+    def run(self):
+        self.run_command("build_ext")
+        return install.run(self)
+
 
 setup(
     name="libdebug",
@@ -69,6 +75,6 @@ setup(
         "./libdebug/cffi/personality_cffi_build.py:ffibuilder",
         f"./libdebug/cffi/{debug_sym_cffi}.py:ffibuilder",
     ],
-    cmdclass={"build_ext": JumpstartBuildCommand},
+    cmdclass={"install": Run_BuildExt_first, "build_ext": JumpstartBuildCommand},
     package_data={"libdebug": ["ptrace/jumpstart/jumpstart"]},
 )
