@@ -3,7 +3,7 @@ libdebug is a python library to automate the debugging of a binary executable.
 
 ## Install
 ```bash
-pip install git+https://github.com/JinBlack/libdebug
+pip install git+https://github.com/libdebug/libdebug
 ```
 
 ## Attach/Detach
