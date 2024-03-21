@@ -14,7 +14,7 @@ Fedora: `sudo dnf install -y python3 python3-devel kernel-devel pypy3 pypy3-deve
 Arch Linux: `sudo pacman -S --noconfirm python python-pip pypy3 libelf libdwarf gcc make debuginfod`  
 
 ## Run and Attach
-After providing the path to the executable, you can use the method `run` to start it
+The first step of a libdebug script is creating a debugger object. This can be done with the function `debugger(argv,...)`. You can either provide a path or an array of arguments. Once your debugger object has been created, you can use the method `run` to start it
 ```python
 from libdebug import debugger
 
@@ -23,14 +23,14 @@ d = debugger("./test")
 d.run()
 ```
 
-You can attach to an already running process using `attach` and specifying the PID.
+Alternatively, you can attach to an already running process using `attach` and specifying the PID.
 ```python
 d = debugger("./test")
 
 d.attach(1234)
 ```
 
-The Debugger has some options that can be configured by the user:
+The debugger has many more options that can be configured by the user:
 ```python
 d = debugger(argv=<"./test" | ["./test", ...]>,
     [enable_aslr=<True | False>], # defaults to False
@@ -39,11 +39,46 @@ d = debugger(argv=<"./test" | ["./test", ...]>,
     [auto_interrupt_on_command=<True | False>], #defaults to True
 )
 ```
-By setting `continue_to_binary_entrypoint` to False, the debugger will not automatically reach the entrypoint of the binary on `run()`, instead it will stop at the first instruction executed by the loader.
-By setting `auto_interrupt_on_command` to False, the debugger will wait for the debugged executable to script before issuing any command, while in the normal configuration it interrupts the executable in order to instantly issue commands, such as `breakpoint(...)` and any register access operation.
+By setting `continue_to_binary_entrypoint` to False, the `run()` command will stop at the first instruction executed by the loader instead of reaching the entrypoint of the binary.
+
+---
+
+The flag `auto_interrupt_on_command` fundamentally changes the way you use libdebug. By default it is set to True. In this setting, every debugging command transparenty stops the execution of the program to perform the requested action as soon as possible. This is an example extract of code in the default mode:
+
+```python
+d = debugger("./binary")
+
+bp = d.breakpoint("function")
+
+d.run()
+d.cont()
+
+# If you do not call d.wait() here, the register access will be performed
+# shortly after the process is allowed to continue
+d.wait()
+print(hex(d.rip))
+
+d.kill()
+```
+
+Instead, when set to False, issued commands will not be performed until a breakpoint is hit or any other tracing signal stops the process (e.g, SIGSEGV).
+
+```python
+d = debugger("./binary")
+
+bp = d.breakpoint("function")
+
+d.run()
+d.cont()
+
+# Here the register access is performed after the breakpoint is hit
+print(hex(d.rip))
+
+d.kill()
+```
 
 ## Register Access
-Registers are provided as properties of the class `Debugger`. You can read from and write to them when the process is interrupted.
+Registers are provided as properties of the debugger object. You can perform read and write operations on them, which by default are handled when the process is stopped by a breakpoint or another tracing signal.
 ```python
 d = debugger("./test")
 
@@ -54,7 +89,7 @@ d.rax = 0
 ```
 
 ## Memory Access
-`memory` is used to access the memory of the debugged program. You can use the `d.memory` property to read from and write to it.
+The debugger property `memory` is used to read and write a memory address or range in the virtual memory of the debugged program.
 We provide multiple elegant ways of accessing it, such as:
 
 ```python
@@ -82,8 +117,10 @@ d.memory["main_arena"] = b"12345678"
 
 `step_until(<address | symbol>, [max_steps=-1])` will step until the desired address is reached or for `max_steps` steps, whichever comes first.
 
-`breakpoint(<address | symbol>, [hardware=False])` will set a breakpoint, which can be hardware-assisted. 
+`breakpoint(<address | symbol>, [hardware=False])` will set a breakpoint, which can be hardware-assisted.
 
+`watchpoint(<address | symbol>, [condition='w'])`
+will set a watchpoint for the requested stopping condition: on write (`w`), on read and write (`rw`) or on execution (`x`, which basically corresponds to a hardware breakpoint).
 ```python
 bp = d.breakpoint(0x1234)
 
@@ -94,7 +131,7 @@ assert d.rip == bp.address
 ```
 
 ## Asynchronous Callbacks
-Breakpoints can be asynchronous: instead of interrupting the main Python script, they can register a small callback function that gets run on hitting the breakpoint, and then the execution is continued automatically.
+Breakpoints can be asynchronous: instead of interrupting the main Python script, they can register a small callback function that is run upon hitting the breakpoint. Execution of the debugged process is continued automatically.
 ```python
 d = debugger("./test")
 d.run()
@@ -113,7 +150,7 @@ d.wait()
 ## Multithreading Support
 Libdebug supports multithreaded applications: each time the process clones itself, the new thread is automatically traced and registered in the `threads` property of the `debugger`.
 
-Each thread exposes its own set of register access properties. Control flow is synchronous between threads: they either are all stopped or all running, and every time a thread stops all the others get stopped. This is done to avoid concurrency issues.
+Each thread exposes its own set of register access properties. Control flow is synchronous between threads: they either are all stopped or all running, and every time a thread stops, all the others are stopped. This is done to avoid concurrency issues.
 
 ```python
 d = debugger("./threaded_test")
@@ -132,8 +169,13 @@ d.kill()
 ```
 
 ## Breakpoints
-The `Breakpoint` class automatically counts the number of times the breakpoint has been it: this is accessible though the `hit_count` property:
+The `Breakpoint` class represents a breakpoint for the traced process. It can be created with a function of the debugger object in the following way:
+```python
+bp = d.breakpoint(position=0x1234, hardware=False, condition=None, length=1, callback=None)
+```
+`position` represents a memory address or a symbol of the ELF. The `hardware` flag trivially controls whether or not the breakpoint is hardware assisted (a maximum of 4 hardware breakpoints are allowed). `condition`and `length`are used to specify properties of hardware watchpoints (see next section). For any type of breakpoint, a `callback` function can be specified. When set, a breakpoint hit will trigger the callback and automatically resume the execution of the program.
 
+For your convenience, a Breakpoint object counts the number of times the breakpoint has been hit. The current count can be accessed though the `hit_count` property:
 ```python
 bp = d.breakpoint(0x1234)
 d.cont()
@@ -147,9 +189,11 @@ for i in range(15):
     d.cont()
 ```
 
-To check if a breakpoint was hit by a specific thread, you can use the `hit_on` function:
-
+Since breakpoints in the program text are shared between threads, you can check if a breakpoint was hit on a specific thread with the `hit_on` function:
 ```python
+# Assuming to have thread n.3
+chosen_thread = d.threads[3]
+
 bp = d.breakpoint(0x1234)
 d.cont()
 
@@ -157,10 +201,18 @@ for i in range(15):
     d.wait()
 
     assert d.rip == bp.address
-    assert bp.hit_on(d)
+    assert bp.hit_on(chosen_thread)
 
-    if bp.hit_on(d):
+    if bp.hit_on(chosen_thread):
         ...
 
     d.cont()
 ```
+
+## Watchpoints
+The suggested way to insert a watchpoint is the following:
+
+```python
+wp = d.watchpoint(position=0x1234, condition='rw', length=8, callback=None)
+```
+The function returns a `Breakpoint` object, which can be interacted with in the same manner as traditional breakpoints. Valid conditions for the breakpoint are `w`, `rw` and `x` (default is `w`). It is also possible to specify the length of the word being watched (default is 1 byte).
