@@ -32,7 +32,7 @@ def ptrace_hardware_breakpoint_manager_provider(
     peek_user: Callable[[int, int], int],
     poke_user: Callable[[int, int, int], None],
 ) -> PtraceHardwareBreakpointManager:
-    """Returns an instance of the hardware breakpoint manager to be used by the `Debugger` class."""
+    """Returns an instance of the hardware breakpoint manager to be used by the `_InternalDebugger` class."""
     architecture = libcontext.arch
 
     match architecture:

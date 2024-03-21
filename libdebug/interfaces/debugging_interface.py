@@ -25,7 +25,7 @@ from libdebug.state.thread_context import ThreadContext
 
 
 class DebuggingInterface(ABC):
-    """The interface used by `Debugger` to communicate with the available debugging backends, such as `ptrace` or `gdb`."""
+    """The interface used by `_InternalDebugger` to communicate with the available debugging backends, such as `ptrace` or `gdb`."""
 
     breakpoints: dict[int, Breakpoint]
     """A dictionary of all the breakpoints set on the process.

@@ -67,7 +67,7 @@ else:
 
 
 class PtraceInterface(DebuggingInterface):
-    """The interface used by `Debugger` to communicate with the `ptrace` debugging backend."""
+    """The interface used by `_InternalDebugger` to communicate with the `ptrace` debugging backend."""
 
     context: DebuggingContext
     """The debugging context."""

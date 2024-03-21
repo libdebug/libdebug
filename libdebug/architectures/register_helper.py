@@ -29,7 +29,7 @@ def register_holder_provider(
     getter: Callable[[], object] | None = None,
     setter: Callable[[object], None] | None = None,
 ) -> RegisterHolder:
-    """Returns an instance of the register holder to be used by the `Debugger` class."""
+    """Returns an instance of the register holder to be used by the `_InternalDebugger` class."""
     architecture = libcontext.arch
 
     match architecture:

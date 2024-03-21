@@ -78,7 +78,7 @@ class Breakpoint:
         self._changed = True
 
     def hit_on(self, thread_context: "ThreadContext") -> bool:
-        """Called when the breakpoint is hit."""
+        """Returns whether the breakpoint has been hit on the given thread context."""
         return self.enabled and thread_context.instruction_pointer == self.address
 
     def __hash__(self) -> int:

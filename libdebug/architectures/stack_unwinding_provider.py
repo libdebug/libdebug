@@ -25,7 +25,7 @@ _amd64_stack_unwinder = Amd64StackUnwinder()
 
 
 def stack_unwinding_provider() -> StackUnwindingManager:
-    """Returns an instance of the stack unwinding provider to be used by the `Debugger` class."""
+    """Returns an instance of the stack unwinding provider to be used by the `_InternalDebugger` class."""
     architecture = libcontext.arch
 
     match architecture:

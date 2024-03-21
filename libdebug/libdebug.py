@@ -39,8 +39,8 @@ from libdebug.state.thread_context import ThreadContext
 THREAD_TERMINATE = -1
 
 
-class Debugger:
-    """The Debugger class is the main class of `libdebug`. It contains all the methods needed to run and interact with the process."""
+class _InternalDebugger:
+    """The _InternalDebugger class is the main class of `libdebug`. It contains all the methods needed to run and interact with the process."""
 
     memory: MemoryView | None = None
     """The memory view of the process."""
@@ -314,7 +314,8 @@ class Debugger:
             position (int | bytes): The location of the breakpoint.
             hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software. Defaults to False.
             condition (str, optional): The trigger condition for the breakpoint. Defaults to None.
-            length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 0.
+            length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
+            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the breakpoint is hit. Defaults to None.
         """
         self._ensure_process_stopped()
 
@@ -359,27 +360,44 @@ class Debugger:
         assert address in self.breakpoints and self.breakpoints[address] is bp
 
         return bp
+    
+    def watchpoint(
+        self,
+        position: int | str,
+        condition: str = "w",
+        length: int = 1,
+        callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
+    ) -> Breakpoint:
+        """Sets a watchpoint at the specified location. Internally, watchpoints are implemented as breakpoints.
+
+        Args:
+            position (int | bytes): The location of the breakpoint.
+            condition (str, optional): The trigger condition for the watchpoint (either "r", "rw" or "x"). Defaults to "w".
+            length (int, optional): The size of the word in being watched (1, 2, 4 or 8). Defaults to 1.
+            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the watchpoint is hit. Defaults to None.
+        """
+        return self.breakpoint(position, hardware=True, condition=condition, length=length, callback=callback)
 
     def __getattr__(self, name: str) -> object:
-        """This function is called when an attribute is not found in the `Debugger` object.
+        """This function is called when an attribute is not found in the `_InternalDebugger` object.
         It is used to forward the call to the first `ThreadContext` object."""
         if not self.threads:
-            raise AttributeError(f"'Debugger' object has no attribute '{name}'")
+            raise AttributeError(f"'debugger has no attribute '{name}'")
 
         self._ensure_process_stopped()
 
         thread_context = next(iter(self.threads.values()))
 
         if not hasattr(thread_context, name):
-            raise AttributeError(f"'Debugger' object has no attribute '{name}'")
+            raise AttributeError(f"'debugger has no attribute '{name}'")
 
         return getattr(thread_context, name)
 
     def __setattr__(self, name: str, value: object) -> None:
-        """This function is called when an attribute is set in the `Debugger` object.
+        """This function is called when an attribute is set in the `_InternalDebugger` object.
         It is used to forward the call to the first `ThreadContext` object."""
-        # First we check if the attribute is available in the `Debugger` object
-        if hasattr(Debugger, name):
+        # First we check if the attribute is available in the `_InternalDebugger` object
+        if hasattr(_InternalDebugger, name):
             super().__setattr__(name, value)
         else:
             self._ensure_process_stopped()
@@ -523,8 +541,8 @@ def debugger(
     env: dict[str, str] | None = None,
     continue_to_binary_entrypoint: bool = True,
     auto_interrupt_on_command: bool = True,
-) -> Debugger:
-    """This function is used to create a new `Debugger` object. It takes as input the location of the binary to debug and returns a `Debugger` object.
+) -> _InternalDebugger:
+    """This function is used to create a new `_InternalDebugger` object. It takes as input the location of the binary to debug and returns a `_InternalDebugger` object.
 
     Args:
         argv (str | list[str]): The location of the binary to debug, and any additional arguments to pass to it.
@@ -534,12 +552,12 @@ def debugger(
         auto_interrupt_on_command (bool, optional): Whether to automatically interrupt the process when a command is issued. Defaults to True.
 
     Returns:
-        Debugger: The `Debugger` object.
+        _InternalDebugger: The `_InternalDebugger` object.
     """
     if isinstance(argv, str):
         argv = [argv]
 
-    debugger = Debugger()
+    debugger = _InternalDebugger()
 
     debugging_context = create_context(debugger)
 
