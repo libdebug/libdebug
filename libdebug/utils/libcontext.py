@@ -69,6 +69,7 @@ class LibContext:
         self._initialized = True
 
         self._arch = "amd64"
+        self._terminal = []
 
     def _set_debug_level_for_all(self):
         """Set the debug level for all the loggers to DEBUG"""
@@ -182,6 +183,26 @@ class LibContext:
             self._arch = value
         else:
             raise RuntimeError("The specified architecture is not supported")
+
+    @property
+    def terminal(self) -> list[str]:
+        """
+        Property getter for terminal.
+
+        Returns:
+            _terminal (str): the current terminal.
+        """
+        return self._terminal
+
+    @terminal.setter
+    def terminal(self, value: list[str] | str):
+        """
+        Property setter for terminal, ensuring it's a valid terminal.
+        """
+        if isinstance(value, str):
+            value = [value]
+
+        self._terminal = value
 
     def update(self, **kwargs):
         """

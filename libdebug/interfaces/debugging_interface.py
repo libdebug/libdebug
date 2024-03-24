@@ -74,6 +74,16 @@ class DebuggingInterface(ABC):
         pass
 
     @abstractmethod
+    def migrate_to_gdb(self):
+        """Migrates the current process to GDB."""
+        pass
+
+    @abstractmethod
+    def migrate_from_gdb(self):
+        """Migrates the current process from GDB."""
+        pass
+
+    @abstractmethod
     def step(self, thread: ThreadContext):
         """Executes a single instruction of the specified thread.
 

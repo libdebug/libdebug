@@ -150,6 +150,47 @@ void ptrace_detach_all(struct global_state *state, int pid)
     waitpid(pid, NULL, 0);
 }
 
+void ptrace_detach_for_migration(struct global_state *state, int pid)
+{
+    struct thread *t = state->t_HEAD;
+    // note that the order is important: the main thread must be detached last
+    while (t != NULL) {
+        // let's attempt to read the registers of the thread
+        if (ptrace(PTRACE_GETREGS, t->tid, NULL, &t->regs)) {
+            // if we can't read the registers, the thread is probably still running
+            // ensure that the thread is stopped
+            tgkill(pid, t->tid, SIGSTOP);
+
+            // wait for it to stop
+            waitpid(t->tid, NULL, 0);
+        }
+
+        // detach from it
+        if (ptrace(PTRACE_DETACH, t->tid, NULL, NULL))
+            fprintf(stderr, "ptrace_detach failed for thread %d: %s\\n", t->tid,
+                    strerror(errno));
+
+        t = t->next;
+    }
+}
+
+void ptrace_reattach_from_gdb(struct global_state *state, int pid)
+{
+    struct thread *t = state->t_HEAD;
+    // note that the order is important: the main thread must be detached last
+    while (t != NULL) {
+        if (ptrace(PTRACE_ATTACH, t->tid, NULL, NULL))
+            fprintf(stderr, "ptrace_attach failed for thread %d: %s\\n", t->tid,
+                    strerror(errno));
+
+        if (ptrace(PTRACE_GETREGS, t->tid, NULL, &t->regs))
+            fprintf(stderr, "ptrace_getregs failed for thread %d: %s\\n", t->tid,
+                    strerror(errno));
+
+        t = t->next;
+    }
+}
+
 void ptrace_set_options(int pid)
 {
     int options = PTRACE_O_TRACEFORK | PTRACE_O_TRACEVFORK |

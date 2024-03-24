@@ -18,7 +18,11 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
+import psutil
 from queue import Queue
+from subprocess import Popen
+import time
 from threading import Thread
 from typing import Callable
 
@@ -35,8 +39,10 @@ from libdebug.state.debugging_context import (
     provide_context,
 )
 from libdebug.state.thread_context import ThreadContext
+from libdebug.utils.libcontext import libcontext
 
 THREAD_TERMINATE = -1
+GDB_GOBACK_LOCATION = str((Path(__file__).parent / "utils" / "gdb.py").resolve())
 
 
 class _InternalDebugger:
@@ -360,7 +366,7 @@ class _InternalDebugger:
         assert address in self.breakpoints and self.breakpoints[address] is bp
 
         return bp
-    
+
     def watchpoint(
         self,
         position: int | str,
@@ -376,7 +382,71 @@ class _InternalDebugger:
             length (int, optional): The size of the word in being watched (1, 2, 4 or 8). Defaults to 1.
             callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the watchpoint is hit. Defaults to None.
         """
-        return self.breakpoint(position, hardware=True, condition=condition, length=length, callback=callback)
+        return self.breakpoint(
+            position,
+            hardware=True,
+            condition=condition,
+            length=length,
+            callback=callback,
+        )
+
+    def migrate_to_gdb(self, open_in_new_process: bool = True):
+        """Migrates the current debugging session to GDB."""
+        self._ensure_process_stopped()
+
+        self.context.interrupt()
+
+        self._polling_thread_command_queue.put((self.__threaded_migrate_to_gdb, ()))
+
+        # Wait for the background thread to signal "task done" before returning
+        # We don't want any asynchronous behaviour here
+        self._polling_thread_command_queue.join()
+
+        if open_in_new_process:
+            args = [
+                "/bin/gdb", "-q",
+                "--pid", str(self.context.process_id),
+                "-ex", "source " + GDB_GOBACK_LOCATION,
+                "-ex", "ni",
+                "-ex", "ni",
+            ]
+
+            if not libcontext.terminal:
+                raise RuntimeError("Please configure the terminal in libcontext.terminal.")
+
+            initial_pid = Popen(libcontext.terminal + args).pid
+
+            os.waitpid(initial_pid, 0)
+
+            liblog.debugger("Waiting for GDB process to terminate...")
+
+            for proc in psutil.process_iter():
+                cmdline = proc.cmdline()
+
+                if args == cmdline:
+                    gdb_process = proc
+                    break
+            else:
+                raise RuntimeError("GDB process not found.")
+
+            gdb_process.wait()
+
+            self._polling_thread_command_queue.put((self.__threaded_migrate_from_gdb, ()))
+            self._polling_thread_command_queue.join()
+
+            # We have to ignore a SIGSTOP signal that is sent by GDB
+            # TODO: once we have signal handling, we should remove this
+            self.cont()
+            self.wait()
+        else:
+            args = [
+                "/bin/gdb", "-q",
+                "--pid", str(self.context.process_id),
+                "-ex", "ni",
+                "-ex", "ni",
+            ]
+
+            os.execv("/bin/gdb", args)
 
     def __getattr__(self, name: str) -> object:
         """This function is called when an attribute is not found in the `_InternalDebugger` object.
@@ -533,6 +603,12 @@ class _InternalDebugger:
     def __threaded_poke_memory(self, address: int, data: bytes):
         int_data = int.from_bytes(data, "little")
         self.interface.poke_memory(address, int_data)
+
+    def __threaded_migrate_to_gdb(self):
+        self.interface.migrate_to_gdb()
+
+    def __threaded_migrate_from_gdb(self):
+        self.interface.migrate_from_gdb()
 
 
 def debugger(

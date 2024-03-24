@@ -322,6 +322,16 @@ class PtraceInterface(DebuggingInterface):
 
         return repeat
 
+    def migrate_to_gdb(self):
+        """Migrates the current process to GDB."""
+        self.lib_trace.ptrace_detach_for_migration(self._global_state, self.process_id)
+
+    def migrate_from_gdb(self):
+        """Migrates the current process from GDB."""
+        invalidate_process_cache()
+        self.status_handler.check_for_new_threads(self.process_id)
+        self.lib_trace.ptrace_reattach_from_gdb(self._global_state, self.process_id)
+
     def register_new_thread(self, new_thread_id: int):
         """Registers a new thread."""
         # The FFI implementation returns a pointer to the register file
