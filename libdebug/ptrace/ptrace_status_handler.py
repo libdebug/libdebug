@@ -52,7 +52,7 @@ class PtraceStatusHandler:
         self.ptrace_interface.register_new_thread(thread_id)
 
     def _handle_exit(self, thread_id: int):
-        if thread_id in self.context.threads:
+        if self.context.get_thread_by_id(thread_id):
             self.ptrace_interface.unregister_thread(thread_id)
 
     def _handle_trap(self, thread_id: int) -> bool:
@@ -60,7 +60,7 @@ class PtraceStatusHandler:
             # This is a spurious trap, we don't know what to do with it
             return False
 
-        thread = self.context.threads[thread_id]
+        thread = self.context.get_thread_by_id(thread_id)
 
         if not hasattr(thread, "instruction_pointer"):
             # This is a signal trap hit on process startup
@@ -176,6 +176,6 @@ class PtraceStatusHandler:
 
         tids = [int(x) for x in os.listdir(f"/proc/{pid}/task")]
         for tid in tids:
-            if tid not in self.context.threads:
+            if not self.context.get_thread_by_id(tid):
                 self.ptrace_interface.register_new_thread(tid)
                 print("Manually registered new thread %d", tid)

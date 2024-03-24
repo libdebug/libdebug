@@ -160,8 +160,8 @@ d.cont()
 for _ in range(15):
     d.wait()
 
-    for thread_id, thread in d.threads.items():
-        print(hex(thread.rip))
+    for thread in d.threads:
+        print(thread.thread_id, hex(thread.rip))
 
     d.cont()
 

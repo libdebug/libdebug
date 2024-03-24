@@ -27,6 +27,9 @@ class ThreadContext:
     This object represents a thread in the context of the target process. It holds information about the thread's state, registers and stack.
     """
 
+    dead: bool = False
+    """Whether the thread is dead."""
+
     registers: RegisterHolder | None = None
     """The register holder object. It provides access to the thread's registers."""
 

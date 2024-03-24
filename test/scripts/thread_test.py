@@ -39,23 +39,15 @@ class ThreadTest(unittest.TestCase):
 
         d.cont()
 
-        local_threads = {}
-
         for _ in range(150):
             d.wait()
 
-            for t in d.threads.values():
-                if t.thread_id not in local_threads:
-                    local_threads[t.thread_id] = t
-
-            if len(local_threads) == 2:
-                t1 = local_threads[list(local_threads.keys())[1]]
-
-            if len(local_threads) == 3:
-                t2 = local_threads[list(local_threads.keys())[2]]
-
-            if len(local_threads) == 4:
-                t3 = local_threads[list(local_threads.keys())[3]]
+            if len(d.threads) == 2:
+                t1 = d.threads[1]
+            if len(d.threads) == 3:
+                t2 = d.threads[2]
+            if len(d.threads) == 4:
+                t3 = d.threads[3]
 
             if bp_t0.address == d.rip:
                 self.assertTrue(t1_done)
@@ -90,24 +82,16 @@ class ThreadTest(unittest.TestCase):
 
         d.cont()
 
-        local_threads = {}
-
         for _ in range(15):
             d.wait()
 
             # TODO: This is a workaround for the fact that the threads are not kept around after they die
-            for t in d.threads.values():
-                if t.thread_id not in local_threads:
-                    local_threads[t.thread_id] = t
-
-            if len(local_threads) == 2:
-                t1 = local_threads[list(local_threads.keys())[1]]
-
-            if len(local_threads) == 3:
-                t2 = local_threads[list(local_threads.keys())[2]]
-
-            if len(local_threads) == 4:
-                t3 = local_threads[list(local_threads.keys())[3]]
+            if len(d.threads) == 2:
+                t1 = d.threads[1]
+            if len(d.threads) == 3:
+                t2 = d.threads[2]
+            if len(d.threads) == 4:
+                t3 = d.threads[3]
 
             if bp_t0.address == d.rip:
                 self.assertTrue(t1_done)
@@ -147,7 +131,6 @@ class ComplexThreadTest(unittest.TestCase):
         bp2_t1 = d.breakpoint("thread_1_function+17")
         bp3_t2 = d.breakpoint("thread_2_function+1e")
 
-        local_threads = {}
         bp1_hit, bp2_hit, bp3_hit = False, False, False
         t1, t2 = None, None
 
@@ -156,15 +139,11 @@ class ComplexThreadTest(unittest.TestCase):
         while True:
             d.wait()
 
-            for t in d.threads.values():
-                if t.thread_id not in local_threads:
-                    local_threads[t.thread_id] = t
+            if len(d.threads) == 2:
+                t1 = d.threads[1]
 
-            if len(local_threads) == 2:
-                t1 = local_threads[list(local_threads.keys())[1]]
-
-            if len(local_threads) == 3:
-                t2 = local_threads[list(local_threads.keys())[2]]
+            if len(d.threads) == 3:
+                t2 = d.threads[2]
 
             if t1 and bp2_t1.address == t1.rip:
                 bp2_hit = True

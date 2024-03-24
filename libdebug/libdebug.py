@@ -63,7 +63,7 @@ class _InternalDebugger:
     interface: DebuggingInterface | None = None
     """The debugging interface used to interact with the process."""
 
-    threads: dict[int, ThreadContext] = {}
+    threads: list[ThreadContext] = []
     """A dictionary of all the threads in the process. The keys are the thread IDs."""
 
     _polling_thread: Thread | None = None
@@ -259,7 +259,7 @@ class _InternalDebugger:
 
         if thread is None:
             # If no thread is specified, we use the first thread
-            thread = next(iter(self.threads.values()))
+            thread = self.threads[0]
 
         self._polling_thread_command_queue.put((self.__threaded_step, (thread,)))
         self._polling_thread_command_queue.put((self.__threaded_wait, ()))
@@ -285,7 +285,7 @@ class _InternalDebugger:
 
         if thread is None:
             # If no thread is specified, we use the first thread
-            thread = next(iter(self.threads.values()))
+            thread = self.threads[0]
 
         if isinstance(position, str):
             with context_extend_from(self):
@@ -456,7 +456,7 @@ class _InternalDebugger:
 
         self._ensure_process_stopped()
 
-        thread_context = next(iter(self.threads.values()))
+        thread_context = self.threads[0]
 
         if not hasattr(thread_context, name):
             raise AttributeError(f"'debugger has no attribute '{name}'")
@@ -471,7 +471,7 @@ class _InternalDebugger:
             super().__setattr__(name, value)
         else:
             self._ensure_process_stopped()
-            thread_context = next(iter(self.threads.values()))
+            thread_context = self.threads[0]
             setattr(thread_context, name, value)
 
     def _peek_memory(self, address: int) -> bytes:

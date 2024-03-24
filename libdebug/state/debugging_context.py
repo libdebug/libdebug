@@ -63,9 +63,8 @@ class DebuggingContext:
     """A dictionary of all the breakpoints set on the process.
     Key: the address of the breakpoint."""
 
-    _threads: dict[int, "ThreadContext"]
-    """A dictionary of all the threads of the process.
-    Key: the thread ID."""
+    _threads: list[ThreadContext]
+    """A list of all the threads of the debugged process."""
 
     pipe_manager: PipeManager
     """The pipe manager used to communicate with the debugged process."""
@@ -94,7 +93,7 @@ class DebuggingContext:
         self.argv = []
         self.env = {}
         self._breakpoints = {}
-        self._threads = {}
+        self._threads = []
 
         self.clear()
 
@@ -152,17 +151,36 @@ class DebuggingContext:
         Args:
             thread (ThreadContext): the thread to insert.
         """
+        assert thread not in self._threads
 
-        self._threads[thread.thread_id] = thread
+        self._threads.append(thread)
 
-    def remove_thread(self, thread_id: int):
+    def set_thread_as_dead(self, thread_id: int):
         """Remove a thread from the context.
 
         Args:
             thread_id (int): the ID of the thread to remove.
         """
+        for thread in self._threads:
+            if thread.thread_id == thread_id:
+                thread.dead = True
+                break
 
-        del self._threads[thread_id]
+        return None
+
+    def get_thread_by_id(self, thread_id: int) -> "ThreadContext":
+        """Get a thread by its ID.
+
+        Args:
+            thread_id (int): the ID of the thread to get.
+
+        Returns:
+            ThreadContext: the thread with the specified ID.
+        """
+
+        for thread in self._threads:
+            if thread.thread_id == thread_id and not thread.dead:
+                return thread
 
     @property
     def running(self) -> bool:

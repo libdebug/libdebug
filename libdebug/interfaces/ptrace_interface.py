@@ -78,9 +78,6 @@ class PtraceInterface(DebuggingInterface):
     process_id: int | None
     """The process ID of the debugged process."""
 
-    thread_ids: list[int]
-    """The IDs of the threads of the debugged process."""
-
     def __init__(self):
         super().__init__()
 
@@ -95,11 +92,6 @@ class PtraceInterface(DebuggingInterface):
         self._global_state = self.ffi.new("struct global_state*")
 
         self.process_id = 0
-        setattr(
-            PtraceInterface,
-            "thread_ids",
-            property(lambda self: list(self.threads.keys())),
-        )
 
         self.hardware_bp_helpers = {}
 
@@ -361,7 +353,7 @@ class PtraceInterface(DebuggingInterface):
         """Unregisters a thread."""
         self.lib_trace.unregister_thread(self._global_state, thread_id)
 
-        self.context.remove_thread(thread_id)
+        self.context.set_thread_as_dead(thread_id)
 
         # Remove the hardware breakpoint manager for the thread
         self.hardware_bp_helpers.pop(thread_id)
