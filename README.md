@@ -89,7 +89,7 @@ d.rax = 0
 ```
 
 ## Memory Access
-The debugger property `memory` is used to read and write a memory address or range in the virtual memory of the debugged program.
+The debugger property `memory` is used read to and write from a memory address or range in the virtual memory of the debugged program.
 We provide multiple elegant ways of accessing it, such as:
 
 ```python
@@ -173,7 +173,7 @@ The `Breakpoint` class represents a breakpoint for the traced process. It can be
 ```python
 bp = d.breakpoint(position=0x1234, hardware=False, condition=None, length=1, callback=None)
 ```
-`position` represents a memory address or a symbol of the ELF. The `hardware` flag trivially controls whether or not the breakpoint is hardware assisted (a maximum of 4 hardware breakpoints are allowed). `condition`and `length`are used to specify properties of hardware watchpoints (see next section). For any type of breakpoint, a `callback` function can be specified. When set, a breakpoint hit will trigger the callback and automatically resume the execution of the program.
+`position` represents a memory address or a symbol of the ELF. The `hardware` flag trivially controls whether or not the breakpoint is hardware assisted (a maximum of 4 hardware breakpoints are allowed). `condition` and `length` are used to specify properties of hardware watchpoints (see next section). For any type of breakpoint, a `callback` function can be specified. When set, a breakpoint hit will trigger the callback and automatically resume the execution of the program.
 
 For your convenience, a Breakpoint object counts the number of times the breakpoint has been hit. The current count can be accessed though the `hit_count` property:
 ```python
