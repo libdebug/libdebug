@@ -17,7 +17,6 @@
 
 
 import os
-import pty
 import time
 from select import select
 from typing import Tuple
@@ -178,6 +177,10 @@ class PipeManager:
             PipeFail: no stdout pipe of the child process.
             TimeoutError: timeout reached.
         """
+        
+        if isinstance(delims, str):
+            liblog.warning("The delimiters are a string, converting to bytes")
+            delims = delims.encode()
 
         # Buffer for the received data
         data_buffer = b""
@@ -243,7 +246,7 @@ class PipeManager:
             )
 
             data_buffer += self._recvonceuntil(
-                delims=delims, drop=drop, timeout=remaining_time
+                delims=delims, drop=drop, timeout=remaining_time, stderr=stderr
             )
 
         return data_buffer
@@ -359,6 +362,11 @@ class PipeManager:
             raise PipeFail("No stdin pipe of the child process")
 
         liblog.pipe(f"Sending {len(data)} bytes to the child process: {data!r}")
+        
+        if isinstance(data, str):
+            liblog.warning("The input data is a string, converting to bytes")
+            data = data.encode()
+        
         return os.write(self.stdin_write, data)
 
     def sendline(self, data: bytes) -> int:
@@ -370,6 +378,10 @@ class PipeManager:
         Returns:
             int: number of bytes sent.
         """
+        
+        if isinstance(data, str):
+            liblog.warning("The input data is a string, converting to bytes")
+            data = data.encode()
 
         return self.send(data=data + b"\n")
 
