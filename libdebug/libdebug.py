@@ -636,7 +636,7 @@ def debugger(
     enable_aslr: bool = False,
     env: dict[str, str] | None = None,
     continue_to_binary_entrypoint: bool = True,
-    auto_interrupt_on_command: bool = True,
+    auto_interrupt_on_command: bool = False,
 ) -> _InternalDebugger:
     """This function is used to create a new `_InternalDebugger` object. It takes as input the location of the binary to debug and returns a `_InternalDebugger` object.
 
@@ -645,7 +645,7 @@ def debugger(
         enable_aslr (bool, optional): Whether to enable ASLR. Defaults to False.
         env (dict[str, str], optional): The environment variables to use. Defaults to the same environment of the debugging script.
         continue_to_binary_entrypoint (bool, optional): Whether to automatically continue to the binary entrypoint. Defaults to True.
-        auto_interrupt_on_command (bool, optional): Whether to automatically interrupt the process when a command is issued. Defaults to True.
+        auto_interrupt_on_command (bool, optional): Whether to automatically interrupt the process when a command is issued. Defaults to False.
 
     Returns:
         _InternalDebugger: The `_InternalDebugger` object.
