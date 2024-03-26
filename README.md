@@ -36,32 +36,15 @@ d = debugger(argv=<"./test" | ["./test", ...]>,
     [enable_aslr=<True | False>], # defaults to False
     [env={...}], # defaults to the same environment in which the debugging script is run
     [continue_to_binary_entrypoint=<True | False>], # defaults to True
-    [auto_interrupt_on_command=<True | False>], #defaults to True
+    [auto_interrupt_on_command=<True | False>], #defaults to False
 )
 ```
 By setting `continue_to_binary_entrypoint` to False, the `run()` command will stop at the first instruction executed by the loader instead of reaching the entrypoint of the binary.
 
 ---
 
-The flag `auto_interrupt_on_command` fundamentally changes the way you use libdebug. By default it is set to True. In this setting, every debugging command transparenty stops the execution of the program to perform the requested action as soon as possible. This is an example extract of code in the default mode:
-
-```python
-d = debugger("./binary")
-
-bp = d.breakpoint("function")
-
-d.run()
-d.cont()
-
-# If you do not call d.wait() here, the register access will be performed
-# shortly after the process is allowed to continue
-d.wait()
-print(hex(d.rip))
-
-d.kill()
-```
-
-Instead, when set to False, issued commands will not be performed until a breakpoint is hit or any other tracing signal stops the process (e.g, SIGSEGV).
+The flag `auto_interrupt_on_command` fundamentally changes the way you use libdebug. By default it is set to False. In this setting, issued commands will not be performed until a breakpoint is hit or any other tracing signal stops the process (e.g, SIGSEGV).
+This is an example extract of code in the default mode:
 
 ```python
 d = debugger("./binary")
@@ -72,6 +55,24 @@ d.run()
 d.cont()
 
 # Here the register access is performed after the breakpoint is hit
+print(hex(d.rip))
+
+d.kill()
+```
+
+Instead, when set to True, every debugging command transparenty stops the execution of the program to perform the requested action as soon as possible.
+
+```python
+d = debugger("./binary")
+
+bp = d.breakpoint("function", auto_interrupt_on_command=True)
+
+d.run()
+d.cont()
+
+# If you do not call d.wait() here, the register access will be performed
+# shortly after the process is allowed to continue
+d.wait()
 print(hex(d.rip))
 
 d.kill()
@@ -125,7 +126,6 @@ will set a watchpoint for the requested stopping condition: on write (`w`), on r
 bp = d.breakpoint(0x1234)
 
 d.cont()
-d.wait()
 
 assert d.rip == bp.address
 ```
@@ -144,7 +144,6 @@ def callback(d, bp):
 d.breakpoint(0x1234, callback=callback)
 
 d.cont()
-d.wait()
 ```
 
 ## Multithreading Support
@@ -158,8 +157,6 @@ d.run()
 d.cont()
 
 for _ in range(15):
-    d.wait()
-
     for thread in d.threads:
         print(thread.thread_id, hex(thread.rip))
 
@@ -177,7 +174,7 @@ bp = d.breakpoint(position=0x1234, hardware=False, condition=None, length=1, cal
 
 For your convenience, a Breakpoint object counts the number of times the breakpoint has been hit. The current count can be accessed though the `hit_count` property:
 ```python
-bp = d.breakpoint(0x1234)
+bp = d.breakpoint(0x1234, auto_interrupt_on_command=True)
 d.cont()
 
 for i in range(15):
@@ -198,8 +195,7 @@ bp = d.breakpoint(0x1234)
 d.cont()
 
 for i in range(15):
-    d.wait()
-
+    
     assert d.rip == bp.address
     assert bp.hit_on(chosen_thread)
 
