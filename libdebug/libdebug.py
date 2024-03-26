@@ -22,7 +22,6 @@ from pathlib import Path
 import psutil
 from queue import Queue
 from subprocess import Popen
-import time
 from threading import Thread
 from typing import Callable
 
