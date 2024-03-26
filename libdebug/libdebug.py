@@ -402,12 +402,14 @@ class _InternalDebugger:
         self._polling_thread_command_queue.join()
 
         if open_in_new_process and libcontext.terminal:
-            self._open_gdb_in_new_process()  
+            self._open_gdb_in_new_process()
         else:
             if open_in_new_process:
-                liblog.warning("Cannot open in a new process. Please configure the terminal in libcontext.terminal.")
+                liblog.warning(
+                    "Cannot open in a new process. Please configure the terminal in libcontext.terminal."
+                )
             self._open_gdb_in_shell()
-        
+
         self._polling_thread_command_queue.put((self.__threaded_migrate_from_gdb, ()))
         self._polling_thread_command_queue.join()
 
@@ -419,11 +421,16 @@ class _InternalDebugger:
     def _open_gdb_in_new_process(self):
         """Opens GDB in a new process following the configuration in libcontext.terminal."""
         args = [
-                "/bin/gdb", "-q",
-                "--pid", str(self.context.process_id),
-                "-ex", "source " + GDB_GOBACK_LOCATION,
-                "-ex", "ni",
-                "-ex", "ni",
+            "/bin/gdb",
+            "-q",
+            "--pid",
+            str(self.context.process_id),
+            "-ex",
+            "source " + GDB_GOBACK_LOCATION,
+            "-ex",
+            "ni",
+            "-ex",
+            "ni",
         ]
 
         initial_pid = Popen(libcontext.terminal + args).pid
@@ -441,21 +448,25 @@ class _InternalDebugger:
         else:
             raise RuntimeError("GDB process not found.")
 
-        gdb_process.wait()    
-    
+        gdb_process.wait()
+
     def _open_gdb_in_shell(self):
         """Open GDB in the current shell."""
         gdb_pid = os.fork()
         if gdb_pid == 0:  # This is the child process.
             args = [
-                "/bin/gdb", "-q",
-                "--pid", str(self.context.process_id),
-                "-ex", "ni",
-                "-ex", "ni",
+                "/bin/gdb",
+                "-q",
+                "--pid",
+                str(self.context.process_id),
+                "-ex",
+                "ni",
+                "-ex",
+                "ni",
             ]
             os.execv("/bin/gdb", args)
         else:  # This is the parent process.
-            os.waitpid(gdb_pid, 0)  # Wait for the child process to finish.  
+            os.waitpid(gdb_pid, 0)  # Wait for the child process to finish.
 
     def __getattr__(self, name: str) -> object:
         """This function is called when an attribute is not found in the `_InternalDebugger` object.
