@@ -406,7 +406,7 @@ class _InternalDebugger:
             self._open_gdb_in_new_process()  
         else:
             if open_in_new_process:
-                print("Please configure the terminal in libcontext.terminal.")
+                liblog.warning("Cannot open in a new process. Please configure the terminal in libcontext.terminal.")
             self._open_gdb_in_shell()
         
         self._polling_thread_command_queue.put((self.__threaded_migrate_from_gdb, ()))
