@@ -17,10 +17,8 @@ class BasicTest(unittest.TestCase):
         self.d.run()
         bp = self.d.breakpoint("register_test")
         self.d.cont()
-        self.d.wait()
         self.assertTrue(bp.address == self.d.rip)
         self.d.cont()
-        self.d.wait()
         self.d.kill()
 
     def test_registers(self):
@@ -35,7 +33,6 @@ class BasicTest(unittest.TestCase):
         bp5 = d.breakpoint(0x401296)
 
         d.cont()
-        d.wait()
         self.assertTrue(bp1.address == d.rip)
 
         self.assertTrue(d.rax == 0x0011223344556677)
@@ -55,7 +52,6 @@ class BasicTest(unittest.TestCase):
         self.assertTrue(d.r15 == 0x44AABBCCDD112233)
 
         d.cont()
-        d.wait()
         self.assertTrue(bp4.address == d.rip)
 
         self.assertTrue(d.al == 0x11)
@@ -75,7 +71,6 @@ class BasicTest(unittest.TestCase):
         self.assertTrue(d.r15b == 0xFF)
 
         d.cont()
-        d.wait()
         self.assertTrue(bp3.address == d.rip)
 
         self.assertTrue(d.ax == 0x1122)
@@ -95,7 +90,6 @@ class BasicTest(unittest.TestCase):
         self.assertTrue(d.r15w == 0xFF00)
 
         d.cont()
-        d.wait()
         self.assertTrue(bp2.address == d.rip)
 
         self.assertTrue(d.eax == 0x11223344)
@@ -115,7 +109,6 @@ class BasicTest(unittest.TestCase):
         self.assertTrue(d.r15d == 0x22334455)
 
         d.cont()
-        d.wait()
         self.assertTrue(bp5.address == d.rip)
 
         self.assertTrue(d.ah == 0x11)
@@ -132,7 +125,6 @@ class BasicTest(unittest.TestCase):
         d.run()
         bp = d.breakpoint("register_test")
         d.cont()
-        d.wait()
 
         self.assertTrue(bp.address == d.rip)
         self.assertTrue(bp.hit_count == 1)
@@ -156,7 +148,6 @@ class BasicTest(unittest.TestCase):
         d.run()
         bp = d.breakpoint("register_test", hardware=True)
         d.cont()
-        d.wait()
 
         self.assertTrue(bp.address == d.rip)
         self.assertTrue(bp.hit_count == 1)
@@ -185,7 +176,6 @@ class BasicPieTest(unittest.TestCase):
         d.run()
         bp = d.breakpoint("register_test")
         d.cont()
-        d.wait()
 
         self.assertTrue(bp.address == d.rip)
         self.assertTrue(d.rdi == 0xAABBCCDD11223344)
@@ -202,7 +192,6 @@ class HwBasicTest(unittest.TestCase):
         d.run()
         bp = d.breakpoint(0x4011D1, hardware=True)
         self.d.cont()
-        self.d.wait()
         self.assertTrue(bp.address == d.rip)
         self.d.kill()
 
@@ -218,7 +207,6 @@ class HwBasicTest(unittest.TestCase):
         bp5 = d.breakpoint(0x401296, hardware=True)
 
         d.cont()
-        d.wait()
         self.assertTrue(bp1.address == d.rip)
 
         self.assertTrue(d.rax == 0x0011223344556677)
@@ -238,7 +226,6 @@ class HwBasicTest(unittest.TestCase):
         self.assertTrue(d.r15 == 0x44AABBCCDD112233)
 
         d.cont()
-        d.wait()
         self.assertTrue(bp4.address == d.rip)
 
         self.assertTrue(d.al == 0x11)
@@ -258,7 +245,6 @@ class HwBasicTest(unittest.TestCase):
         self.assertTrue(d.r15b == 0xFF)
 
         d.cont()
-        d.wait()
         self.assertTrue(bp3.address == d.rip)
 
         self.assertTrue(d.ax == 0x1122)
@@ -278,7 +264,6 @@ class HwBasicTest(unittest.TestCase):
         self.assertTrue(d.r15w == 0xFF00)
 
         d.cont()
-        d.wait()
         self.assertTrue(bp2.address == d.rip)
 
         self.assertTrue(d.eax == 0x11223344)
@@ -298,7 +283,6 @@ class HwBasicTest(unittest.TestCase):
         self.assertTrue(d.r15d == 0x22334455)
 
         d.cont()
-        d.wait()
         self.assertTrue(bp5.address == d.rip)
 
         self.assertTrue(d.ah == 0x11)
@@ -320,7 +304,6 @@ class ControlFlowTest(unittest.TestCase):
 
         bp = d.breakpoint("main")
         d.cont()
-        d.wait()
 
         self.assertTrue(bp.hit_on(d))
 
@@ -338,7 +321,6 @@ class ControlFlowTest(unittest.TestCase):
 
         bp = d.breakpoint(0x401148, hardware=True)
         d.cont()
-        d.wait()
 
         self.assertTrue(bp.hit_on(d))
 
@@ -362,7 +344,6 @@ class ControlFlowTest(unittest.TestCase):
         d.breakpoint(0x401162, hardware=True)
 
         d.cont()
-        d.wait()
 
         self.assertTrue(bp.hit_on(d))
 
@@ -382,7 +363,6 @@ class ControlFlowTest(unittest.TestCase):
         bp1 = d.breakpoint("main")
         bp2 = d.breakpoint("random_function")
         d.cont()
-        d.wait()
 
         self.assertTrue(bp1.hit_on(d))
         self.assertFalse(bp2.hit_on(d))
@@ -398,12 +378,10 @@ class ControlFlowTest(unittest.TestCase):
         self.assertFalse(bp2.hit_on(d))
 
         d.cont()
-        d.wait()
 
         self.assertTrue(bp2.hit_on(d))
 
         d.cont()
-        d.wait()
 
         d.kill()
 
@@ -414,7 +392,6 @@ class ControlFlowTest(unittest.TestCase):
         bp1 = d.breakpoint("main", hardware=True)
         bp2 = d.breakpoint("random_function", hardware=True)
         d.cont()
-        d.wait()
 
         self.assertTrue(bp1.hit_on(d))
         self.assertFalse(bp2.hit_on(d))
@@ -430,12 +407,10 @@ class ControlFlowTest(unittest.TestCase):
         self.assertFalse(bp2.hit_on(d))
 
         d.cont()
-        d.wait()
 
         self.assertTrue(bp2.hit_on(d))
 
         d.cont()
-        d.wait()
 
         d.kill()
 
@@ -446,7 +421,6 @@ class ControlFlowTest(unittest.TestCase):
         bp1 = d.breakpoint("main")
         bp2 = d.breakpoint("random_function")
         d.cont()
-        d.wait()
 
         self.assertTrue(bp1.hit_on(d))
         self.assertFalse(bp2.hit_on(d))
@@ -457,12 +431,10 @@ class ControlFlowTest(unittest.TestCase):
         self.assertFalse(bp2.hit_on(d))
 
         d.cont()
-        d.wait()
 
         self.assertTrue(bp2.hit_on(d))
 
         d.cont()
-        d.wait()
 
         d.kill()
 
@@ -473,7 +445,6 @@ class ControlFlowTest(unittest.TestCase):
         bp1 = d.breakpoint("main", hardware=True)
         bp2 = d.breakpoint("random_function", hardware=True)
         d.cont()
-        d.wait()
 
         self.assertTrue(bp1.hit_on(d))
         self.assertFalse(bp2.hit_on(d))
@@ -484,12 +455,10 @@ class ControlFlowTest(unittest.TestCase):
         self.assertFalse(bp2.hit_on(d))
 
         d.cont()
-        d.wait()
 
         self.assertTrue(bp2.hit_on(d))
 
         d.cont()
-        d.wait()
 
         d.kill()
 

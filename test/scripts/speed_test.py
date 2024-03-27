@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2024 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -26,7 +26,6 @@ class SpeedTest(unittest.TestCase):
         d.cont()
 
         for _ in range(65536):
-            d.wait()
             self.assertTrue(bp.address == d.rip)
             d.cont()
 
@@ -48,7 +47,6 @@ class SpeedTest(unittest.TestCase):
         d.cont()
 
         for _ in range(65536):
-            d.wait()
             self.assertTrue(bp.address == d.rip)
             d.cont()
 

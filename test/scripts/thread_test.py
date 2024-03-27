@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2024 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -29,8 +29,6 @@ class ThreadTest(unittest.TestCase):
         d.cont()
 
         for _ in range(150):
-            d.wait()
-
             if len(d.threads) == 2:
                 t1 = d.threads[1]
             if len(d.threads) == 3:
@@ -72,8 +70,6 @@ class ThreadTest(unittest.TestCase):
         d.cont()
 
         for _ in range(15):
-            d.wait()
-
             # TODO: This is a workaround for the fact that the threads are not kept around after they die
             if len(d.threads) == 2:
                 t1 = d.threads[1]
@@ -112,7 +108,7 @@ class ComplexThreadTest(unittest.TestCase):
             else:
                 return (n * factorial(n - 1)) & (2**32 - 1)
 
-        d = d = debugger("binaries/complex_thread_test")
+        d = debugger("binaries/complex_thread_test")
 
         d.run()
 
@@ -126,7 +122,6 @@ class ComplexThreadTest(unittest.TestCase):
         d.cont()
 
         while True:
-            d.wait()
 
             if len(d.threads) == 2:
                 t1 = d.threads[1]

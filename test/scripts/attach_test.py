@@ -29,8 +29,6 @@ class AttachTest(unittest.TestCase):
         r.recvuntil(b"name:")
         r.sendline(b"Io_no")
 
-        d.wait()
-
         self.assertTrue(d.rip == bp.address)
 
         d.cont()

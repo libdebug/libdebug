@@ -32,8 +32,6 @@ class Ncuts(unittest.TestCase):
         r.send(previous_flag + b"a" * 8)
 
         for _ in range(8):
-            d.wait()
-
             self.assertTrue(d.rip == bp.address)
 
             offset = ord("a") ^ d.rbp
@@ -67,8 +65,6 @@ class Ncuts(unittest.TestCase):
         r.send(previous_flag + b"a" * 8)
 
         while True:
-            d.wait()
-
             if d.rip == bp1.address:
                 lastpos = d.rbp
                 d.rbp = d.r13 + 1
@@ -106,7 +102,6 @@ class Ncuts(unittest.TestCase):
         r.send(b"a" * 8)
 
         for _ in range(8):
-            d.wait()
 
             self.assertTrue(d.rip == bp.address)
 

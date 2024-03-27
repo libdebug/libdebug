@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2024 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -37,10 +37,6 @@ class MultipleDebuggersTest(unittest.TestCase):
         disable_red = False
 
         while True:
-            bpd.wait()
-
-            if not disable_red:
-                red.wait()
 
             if bpd.rip == bp1.address:
                 self.assertTrue(bp1.hit_count == 1)

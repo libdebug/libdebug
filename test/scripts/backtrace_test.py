@@ -27,7 +27,6 @@ class BacktraceTest(unittest.TestCase):
         bp6 = d.breakpoint("function6+8")
 
         d.cont()
-        d.wait()
 
         self.assertTrue(d.rip == bp0.address)
         backtrace = d.backtrace()
@@ -35,7 +34,6 @@ class BacktraceTest(unittest.TestCase):
         self.assertEqual(backtrace[:1], ["main+8"])
 
         d.cont()
-        d.wait()
 
         self.assertTrue(d.rip == bp1.address)
         backtrace = d.backtrace()
@@ -43,7 +41,6 @@ class BacktraceTest(unittest.TestCase):
         self.assertEqual(backtrace[:2], ["function1+8", "main+22"])
 
         d.cont()
-        d.wait()
 
         self.assertTrue(d.rip == bp2.address)
         backtrace = d.backtrace()
@@ -51,7 +48,6 @@ class BacktraceTest(unittest.TestCase):
         self.assertEqual(backtrace[:3], ["function2+8", "function1+18", "main+22"])
 
         d.cont()
-        d.wait()
 
         self.assertTrue(d.rip == bp3.address)
         backtrace = d.backtrace()
@@ -61,7 +57,6 @@ class BacktraceTest(unittest.TestCase):
         )
 
         d.cont()
-        d.wait()
 
         self.assertTrue(d.rip == bp4.address)
         backtrace = d.backtrace()
@@ -72,7 +67,6 @@ class BacktraceTest(unittest.TestCase):
         )
 
         d.cont()
-        d.wait()
 
         self.assertTrue(d.rip == bp5.address)
         backtrace = d.backtrace()
@@ -90,7 +84,6 @@ class BacktraceTest(unittest.TestCase):
         )
 
         d.cont()
-        d.wait()
 
         self.assertTrue(d.rip == bp6.address)
         backtrace = d.backtrace()

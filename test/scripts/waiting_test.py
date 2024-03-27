@@ -1,18 +1,18 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2024 Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-import time
 import unittest
 
 from libdebug import debugger
 
 
-class NonWaitingTest(unittest.TestCase):
-    def test_bps_non_waiting(self):
-        d = debugger("binaries/breakpoint_test")
+class WaitingTest(unittest.TestCase):
+
+    def test_bps_waiting(self):
+        d = debugger("binaries/breakpoint_test", auto_interrupt_on_command=True)
 
         d.run()
 
@@ -25,6 +25,7 @@ class NonWaitingTest(unittest.TestCase):
         d.cont()
 
         while True:
+            d.wait()
             if d.rip == bp1.address:
                 self.assertTrue(bp1.hit_count == 1)
                 self.assertTrue(bp1.hit_on(d))
@@ -51,12 +52,12 @@ class NonWaitingTest(unittest.TestCase):
 
         d.kill()
 
-    def test_jumpout_non_waiting(self):
+    def test_jumpout_waiting(self):
         flag = ""
         first = 0x55
         second = 0
 
-        d = debugger("CTF/jumpout")
+        d = debugger("CTF/jumpout", auto_interrupt_on_command=True)
 
         r = d.run()
 
@@ -68,8 +69,7 @@ class NonWaitingTest(unittest.TestCase):
         r.sendline(b"A" * 0x1D)
 
         while True:
-            time.sleep(0.001)
-
+            d.wait()
             if d.rip == bp1.address:
                 second = d.r9
             elif d.rip == bp2.address:
@@ -88,32 +88,28 @@ class NonWaitingTest(unittest.TestCase):
 
         self.assertEqual(flag, "SECCON{jump_table_everywhere}")
 
-class NonWaitingNcuts(unittest.TestCase):
+class WaitingNcuts(unittest.TestCase):
     def setUp(self):
         pass
 
     def get_passsphrase_from_class_1_binaries(self, previous_flag):
         flag = b""
 
-        d = debugger("CTF/1")
+        d = debugger("CTF/1", auto_interrupt_on_command=True)
         r = d.run()
 
-        bp = d.breakpoint(0x7EF1, hardware=True)
+        d.breakpoint(0x7EF1, hardware=True)
 
         d.cont()
 
         r.recvuntil(b"Passphrase:\n")
         r.send(previous_flag + b"a" * 8)
 
-        count = 0
-        while count < 8:
-            time.sleep(0.01)
-
-            if d.rip == bp.address:
-                offset = ord("a") ^ d.rbp
-                d.rbp = d.r13
-                flag += (offset ^ d.r13).to_bytes(1, "little")
-                count += 1
+        for _ in range(8):
+            d.wait()
+            offset = ord("a") ^ d.rbp
+            d.rbp = d.r13
+            flag += (offset ^ d.r13).to_bytes(1, "little")
 
             d.cont()
 
@@ -129,7 +125,7 @@ class NonWaitingNcuts(unittest.TestCase):
         lastpos = 0
         flag = b""
 
-        d = debugger("CTF/2")
+        d = debugger("CTF/2", auto_interrupt_on_command=True)
         r = d.run()
 
         bp1 = d.breakpoint(0xD8C1, hardware=True)
@@ -142,8 +138,7 @@ class NonWaitingNcuts(unittest.TestCase):
         r.send(previous_flag + b"a" * 8)
 
         while True:
-            time.sleep(0.01)
-
+            d.wait()
             if d.rip == bp1.address:
                 lastpos = d.rbp
                 d.rbp = d.r13 + 1
@@ -171,28 +166,23 @@ class NonWaitingNcuts(unittest.TestCase):
     def get_passsphrase_from_class_3_binaries(self):
         flag = b""
 
-        d = debugger("CTF/0")
+        d = debugger("CTF/0", auto_interrupt_on_command=True)
         r = d.run()
 
-        bp = d.breakpoint(0x91A1, hardware=True)
+        d.breakpoint(0x91A1, hardware=True)
 
         d.cont()
 
         r.send(b"a" * 8)
 
-        count = 0
-        while count < 8:
-            time.sleep(0.01)
+        for _ in range(8):
+            d.wait()
+            offset = ord("a") - d.rbp
+            d.rbp = d.r13
 
-            if d.rip == bp.address:
-                offset = ord("a") - d.rbp
-                d.rbp = d.r13
-                flag += chr((d.r13 + offset) % 256).encode("latin-1")
-                count += 1
+            flag += chr((d.r13 + offset) % 256).encode("latin-1")
 
             d.cont()
-
-        d.cont()
 
         r.recvline()
 

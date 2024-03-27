@@ -34,7 +34,6 @@ class Jumpout(unittest.TestCase):
         r.sendline(b"A" * 0x1D)
 
         while True:
-            d.wait()
             if d.rip == bp1.address:
                 second = d.r9
             elif d.rip == bp2.address:

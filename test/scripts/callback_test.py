@@ -39,8 +39,6 @@ class CallbackTest(unittest.TestCase):
 
         d.cont()
 
-        d.wait()
-
         d.kill()
 
         self.assertTrue(hit)
@@ -72,8 +70,6 @@ class CallbackTest(unittest.TestCase):
         d.breakpoint("register_test", callback=callback, hardware=True)
 
         d.cont()
-
-        d.wait()
 
         d.kill()
 
@@ -114,8 +110,6 @@ class CallbackTest(unittest.TestCase):
 
         d.cont()
 
-        d.wait()
-
         d.kill()
 
         self.assertTrue(hit)
@@ -149,8 +143,6 @@ class CallbackTest(unittest.TestCase):
                 d.cont()
 
                 r.sendlineafter(b"chars\n", (flag + c).encode())
-
-                d.wait()
 
                 message = r.recvline()
 
@@ -206,8 +198,6 @@ class CallbackTest(unittest.TestCase):
         r.sendline(b"A" * 0x1D)
         r.recvuntil(b"Wrong...")
 
-        d.wait()
-
         d.kill()
 
         self.assertEqual(flag, "SECCON{jump_table_everywhere}")
@@ -239,7 +229,6 @@ class CallbackTest(unittest.TestCase):
         r.sendline(b"A" * 0x1D)
 
         while True:
-            d.wait()
 
             if d.rip == bp.address:
                 address = d.r13 + d.rbx

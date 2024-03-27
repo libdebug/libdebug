@@ -36,11 +36,9 @@ class Vmwhere1(unittest.TestCase):
 
                 r.sendline(flag + el.encode())
 
-                d.wait()
 
                 while d.rip == bp.address:
                     d.cont()
-                    d.wait()
 
                 message = r.recvline()
 
@@ -83,7 +81,6 @@ class Vmwhere1(unittest.TestCase):
 
                 r.sendline(flag + el.encode())
 
-                d.wait()
 
                 message = r.recvline()
 

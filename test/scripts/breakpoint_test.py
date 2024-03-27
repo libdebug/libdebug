@@ -27,7 +27,6 @@ class BreakpointTest(unittest.TestCase):
         d.cont()
 
         while True:
-            d.wait()
 
             if d.rip == bp1.address:
                 self.assertTrue(bp1.hit_count == 1)
@@ -71,7 +70,6 @@ class BreakpointTest(unittest.TestCase):
         d.cont()
 
         while True:
-            d.wait()
 
             if d.rip == bp1.address:
                 self.assertTrue(bp1.hit_count == 1)
@@ -115,7 +113,6 @@ class BreakpointTest(unittest.TestCase):
         d.cont()
 
         while True:
-            d.wait()
 
             if d.rip == bp1.address:
                 self.assertTrue(bp1.hit_count == 1)
@@ -158,7 +155,6 @@ class BreakpointTest(unittest.TestCase):
         d.cont()
 
         while True:
-            d.wait()
 
             if d.rip == bp1.address:
                 self.assertTrue(bp1.hit_count == 1)
@@ -209,7 +205,6 @@ class BreakpointTest(unittest.TestCase):
         d.cont()
 
         while True:
-            d.wait()
 
             if d.rip == bp1.address:
                 self.assertTrue(bp1.hit_count == 1)

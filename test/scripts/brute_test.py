@@ -28,11 +28,10 @@ class BruteTest(unittest.TestCase):
 
                 r.sendlineafter(b"chars\n", (flag + c).encode())
 
-                d.wait()
 
                 while bp.address == d.rip:
                     d.cont()
-                    d.wait()
+
 
                 if bp.hit_count > counter:
                     flag += c

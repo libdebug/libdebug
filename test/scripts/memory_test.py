@@ -21,7 +21,6 @@ class MemoryTest(unittest.TestCase):
         bp = d.breakpoint("change_memory")
 
         d.cont()
-        d.wait()
 
         assert d.rip == bp.address
 
@@ -45,7 +44,6 @@ class MemoryTest(unittest.TestCase):
         bp = d.breakpoint("leak_address")
 
         d.cont()
-        d.wait()
 
         assert d.rip == bp.address
 
@@ -77,8 +75,6 @@ class MemoryTest(unittest.TestCase):
         except RuntimeError:
             self.assertTrue(True)
             pass
-
-        d.wait()
 
         assert d.rip == bp.address
 
