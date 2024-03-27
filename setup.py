@@ -1,3 +1,9 @@
+#
+# This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
+# Copyright (c) 2023-2024 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
+# Licensed under the MIT license. See LICENSE file in the project root for details.
+#
+
 import os
 
 from setuptools import find_packages, setup
