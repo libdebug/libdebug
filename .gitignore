@@ -51,6 +51,9 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
+# Profiling
+*.app
+
 # Translations
 *.mo
 *.pot
@@ -130,3 +133,6 @@ dmypy.json
 
 # Vscode
 .vscode/
+
+# Jumpstart binary file
+libdebug/ptrace/jumpstart/jumpstart
