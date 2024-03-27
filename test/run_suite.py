@@ -25,6 +25,7 @@ from scripts.thread_test import ComplexThreadTest, ThreadTest
 from scripts.vmwhere1 import Vmwhere1
 from scripts.watchpoint_test import WatchpointTest
 from scripts.watchpoint_alias_test import WatchpointAliasTest
+from scripts.deep_dive_division import DeepDiveDivision
 
 
 def fast_suite():
@@ -85,6 +86,7 @@ def complete_suite():
     suite.addTest(CallbackTest("test_callback_bruteforce"))
     suite.addTest(SpeedTest("test_speed"))
     suite.addTest(SpeedTest("test_speed_hardware"))
+    suite.addTest(DeepDiveDivision("test_deep_dive_division"))
     return suite
 
 
