@@ -72,9 +72,6 @@ class _InternalDebugger:
         """Do not use this constructor directly.
         Use the `debugger` function instead.
         """
-        # validate that the binary exists
-        if not os.path.isfile(provide_context(self).argv[0]):
-            raise RuntimeError("The specified binary file does not exist.")
 
         self.context = provide_context(self)
 
@@ -104,6 +101,13 @@ class _InternalDebugger:
 
     def run(self):
         """Starts the process and waits for it to stop."""
+        
+        if not self.context.argv:
+            raise RuntimeError("No binary file specified.")
+    
+        if not os.path.isfile(provide_context(self).argv[0]):
+            raise RuntimeError("The specified binary file does not exist.")
+        
         if self.instanced:
             liblog.debugger("Process already running, stopping it before restarting.")
             self.kill()
@@ -568,11 +572,19 @@ class _InternalDebugger:
         self.context.set_stopped()
 
     def __threaded_kill(self):
-        liblog.debugger("Killing process %s.", self.context.argv[0])
+        if self.context.argv:
+            liblog.debugger("Killing process %s (%d).", self.context.argv[0], self.context.process_id)
+        else:
+            liblog.debugger("Killing process %d.", self.context.process_id)
+        
         self.interface.kill()
 
     def __threaded_cont(self):
-        liblog.debugger("Continuing process %s.", self.context.argv[0])
+        if self.context.argv:
+            liblog.debugger("Continuing process %s (%d).", self.context.argv[0], self.context.process_id)
+        else:
+            liblog.debugger("Continuing process %d.", self.context.process_id)
+            
         self.interface.cont()
         self.context.set_running()
 
@@ -581,7 +593,10 @@ class _InternalDebugger:
         self.interface.set_breakpoint(bp)
 
     def __threaded_wait(self):
-        liblog.debugger("Waiting for process %s to stop.", self.context.argv[0])
+        if self.context.argv:
+            liblog.debugger("Waiting for process %s (%d) to stop.", self.context.argv[0], self.context.process_id)
+        else:
+            liblog.debugger("Waiting for process %d to stop.", self.context.process_id)
 
         while self.interface.wait():
             self.interface.cont()
@@ -620,7 +635,7 @@ class _InternalDebugger:
 
 
 def debugger(
-    argv: str | list[str],
+    argv: str | list[str] = [],
     enable_aslr: bool = False,
     env: dict[str, str] | None = None,
     continue_to_binary_entrypoint: bool = True,
@@ -629,7 +644,7 @@ def debugger(
     """This function is used to create a new `_InternalDebugger` object. It takes as input the location of the binary to debug and returns a `_InternalDebugger` object.
 
     Args:
-        argv (str | list[str]): The location of the binary to debug, and any additional arguments to pass to it.
+        argv (str | list[str], optional): The location of the binary to debug, and any additional arguments to pass to it.
         enable_aslr (bool, optional): Whether to enable ASLR. Defaults to False.
         env (dict[str, str], optional): The environment variables to use. Defaults to the same environment of the debugging script.
         continue_to_binary_entrypoint (bool, optional): Whether to automatically continue to the binary entrypoint. Defaults to True.
