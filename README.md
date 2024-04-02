@@ -25,7 +25,7 @@ d.run()
 
 Alternatively, you can attach to an already running process using `attach` and specifying the PID.
 ```python
-d = debugger("./test")
+d = debugger()
 
 d.attach(1234)
 ```
