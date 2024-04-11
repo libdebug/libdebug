@@ -28,6 +28,7 @@ from libdebug.state.debugging_context import (
 )
 from libdebug.state.thread_context import ThreadContext
 from libdebug.utils.libcontext import libcontext
+from libdebug.utils.syscall_utils import resolve_syscall_number
 
 THREAD_TERMINATE = -1
 GDB_GOBACK_LOCATION = str((Path(__file__).parent / "utils" / "gdb.py").resolve())
@@ -384,14 +385,14 @@ class _InternalDebugger:
 
     def hook_syscall(
         self,
-        syscall_number: int,
+        syscall: int | str,
         on_enter: Callable[[ThreadContext, int], None] = None,
         on_exit: Callable[[ThreadContext, int], None] = None,
     ) -> SyscallHook:
         """Hooks a syscall in the target process.
 
         Args:
-            syscall_number (int): The syscall number to hook.
+            syscall (int | str): The syscall name or number to hook.
             on_enter (Callable[[ThreadContext, int], None], optional): The callback to execute when the syscall is entered. Defaults to None.
             on_exit (Callable[[ThreadContext, int], None], optional): The callback to execute when the syscall is exited. Defaults to None.
 
@@ -405,8 +406,10 @@ class _InternalDebugger:
                 "At least one callback between on_enter and on_exit should be specified."
             )
 
-        if syscall_number < 0:
-            raise ValueError("Syscall number should be a positive integer.")
+        if isinstance(syscall, str):
+            syscall_number = resolve_syscall_number(syscall)
+        else:
+            syscall_number = syscall
 
         if syscall_number in self.context.syscall_hooks:
             raise ValueError(

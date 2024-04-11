@@ -48,9 +48,9 @@ class SyscallHookTest(unittest.TestCase):
             self.assertTrue(syscall_number == 0x4F)
             self.assertEqual(d.memory[d.rdi, 8], os.getcwd()[:8].encode())
 
-        hook1 = d.hook_syscall(1, on_enter_write, None)
-        hook2 = d.hook_syscall(9, None, on_exit_mmap)
-        hook3 = d.hook_syscall(0x4F, on_enter_getcwd, on_exit_getcwd)
+        hook1 = d.hook_syscall("write", on_enter_write, None)
+        hook2 = d.hook_syscall("mmap", None, on_exit_mmap)
+        hook3 = d.hook_syscall("getcwd", on_enter_getcwd, on_exit_getcwd)
 
         r.sendline(b"provola")
 
