@@ -154,3 +154,6 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
 
         # setup generic "instruction_pointer" property
         setattr(target_class, "instruction_pointer", get_property_64("rip"))
+
+        # setup generic "syscall_number" property
+        setattr(target_class, "syscall_number", get_property_64("orig_rax"))

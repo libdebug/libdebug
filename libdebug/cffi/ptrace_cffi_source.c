@@ -44,6 +44,7 @@ struct thread_status {
 struct global_state {
     struct thread *t_HEAD;
     struct software_breakpoint *b_HEAD;
+    _Bool syscall_hooks_enabled;
 };
 
 struct user_regs_struct *register_thread(struct global_state *state, int tid)
@@ -182,7 +183,7 @@ void ptrace_reattach_from_gdb(struct global_state *state, int pid)
 
 void ptrace_set_options(int pid)
 {
-    int options = PTRACE_O_TRACEFORK | PTRACE_O_TRACEVFORK |
+    int options = PTRACE_O_TRACEFORK | PTRACE_O_TRACEVFORK | PTRACE_O_TRACESYSGOOD |
                   PTRACE_O_TRACECLONE | PTRACE_O_TRACEEXEC | PTRACE_O_TRACEEXIT;
 
     ptrace(PTRACE_SETOPTIONS, pid, NULL, options);
@@ -346,7 +347,7 @@ int cont_all_and_set_bps(struct global_state *state, int pid)
     // continue the execution of all the threads
     t = state->t_HEAD;
     while (t != NULL) {
-        if (ptrace(PTRACE_CONT, t->tid, NULL, NULL))
+        if (ptrace(state->syscall_hooks_enabled ? PTRACE_SYSCALL : PTRACE_CONT, t->tid, NULL, NULL))
             fprintf(stderr, "ptrace_cont failed for thread %d: %s\\n", t->tid,
                     strerror(errno));
         t = t->next;
