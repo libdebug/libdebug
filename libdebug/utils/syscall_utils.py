@@ -71,6 +71,27 @@ def resolve_syscall_name(number: int) -> str:
     definitions = get_syscall_definitions(libcontext.arch)
 
     try:
-        return definitions["syscalls"][number]["name"]
+        for syscall in definitions["syscalls"]:
+            if syscall["number"] == number:
+                return syscall["name"]
     except KeyError:
         raise ValueError(f'Syscall number "{number}" not found')
+
+
+@functools.cache
+def resolve_syscall_arguments(number: int) -> list[str]:
+    definitions = get_syscall_definitions(libcontext.arch)
+
+    try:
+        for syscall in definitions["syscalls"]:
+            if syscall["number"] == number:
+                return syscall["signature"]
+    except KeyError:
+        raise ValueError(f'Syscall number "{number}" not found')
+
+
+@functools.cache
+def get_all_syscall_numbers() -> list[int]:
+    definitions = get_syscall_definitions(libcontext.arch)
+
+    return [syscall["number"] for syscall in definitions["syscalls"]]

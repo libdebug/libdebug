@@ -412,7 +412,7 @@ class _InternalDebugger:
 
         if syscall_number in self.context.syscall_hooks:
             raise ValueError(
-                f"Syscall {syscall_number} is already hooked. Please unhook it first."
+                f"Syscall {syscall} is already hooked. Please unhook it first."
             )
 
         hook = SyscallHook(syscall_number, on_enter, on_exit)
