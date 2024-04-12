@@ -13,6 +13,7 @@ from scripts.backtrace_test import BacktraceTest
 from scripts.basic_test import BasicPieTest, BasicTest, ControlFlowTest, HwBasicTest
 from scripts.breakpoint_test import BreakpointTest
 from scripts.brute_test import BruteTest
+from scripts.builtin_hooks_test import AntidebugSyscallHookTest
 from scripts.callback_test import CallbackTest
 from scripts.jumpout import Jumpout
 from scripts.large_binary_sym_test import LargeBinarySymTest
@@ -78,6 +79,7 @@ def fast_suite():
     suite.addTest(WatchpointAliasTest("test_watchpoint_alias"))
     suite.addTest(SyscallHookTest("test_hooks"))
     suite.addTest(SyscallHookTest("test_hook_disabling"))
+    suite.addTest(AntidebugSyscallHookTest("test_antidebug_hook"))
     return suite
 
 
