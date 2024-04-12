@@ -1,0 +1,1 @@
+from libdebug.builtin.antidebug_syscall_hook import install_antidebug_hook
