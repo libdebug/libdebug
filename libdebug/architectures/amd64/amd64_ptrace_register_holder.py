@@ -155,5 +155,12 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
         # setup generic "instruction_pointer" property
         setattr(target_class, "instruction_pointer", get_property_64("rip"))
 
-        # setup generic "syscall_number" property
+        # setup generic syscall properties
         setattr(target_class, "syscall_number", get_property_64("orig_rax"))
+        setattr(target_class, "syscall_return", get_property_64("rax"))
+        setattr(target_class, "syscall_arg0", get_property_64("rdi"))
+        setattr(target_class, "syscall_arg1", get_property_64("rsi"))
+        setattr(target_class, "syscall_arg2", get_property_64("rdx"))
+        setattr(target_class, "syscall_arg3", get_property_64("r10"))
+        setattr(target_class, "syscall_arg4", get_property_64("r8"))
+        setattr(target_class, "syscall_arg5", get_property_64("r9"))
