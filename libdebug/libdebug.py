@@ -218,8 +218,7 @@ class _InternalDebugger:
 
         self.context.interrupt()
 
-        self._polling_thread_command_queue.put((self.__threaded_wait, ()))
-        self._polling_thread_command_queue.join()
+        self.wait()
 
     def wait(self):
         """Waits for the process to stop."""
