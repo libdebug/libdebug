@@ -104,7 +104,7 @@ class LibLog:
 
         header = f"[{LogColors.GREEN}INFO{LogColors.RESET}]"
         self.general_logger.info(f"{header} {message}", *args, **kwargs)
-    
+
     def warning(self, message: str, *args, **kwargs):
         """Log a warning message to the general logger.
 
@@ -116,6 +116,18 @@ class LibLog:
 
         header = f"[{LogColors.ORANGE}WARNING{LogColors.RESET}]"
         self.general_logger.warning(f"{header} {message}", *args, **kwargs)
+
+    def error(self, message: str, *args, **kwargs):
+        """Log an error message to the general logger.
+
+        Args:
+            message (str): the message to log.
+            *args: positional arguments to pass to the logger.
+            **kwargs: keyword arguments to pass to the logger.
+        """
+
+        header = f"[{LogColors.RED}ERROR{LogColors.RESET}]"
+        self.general_logger.error(f"{header} {message}", *args, **kwargs)
 
 
 # Create the logger instance
