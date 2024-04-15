@@ -9,8 +9,8 @@ import platform
 from cffi import FFI
 
 if platform.machine() == "x86_64":
-    user_regs_struct = """
-    struct user_regs_struct
+    ptrace_user_regs_struct = """
+    struct ptrace_user_regs_struct
     {
         unsigned long r15;
         unsigned long r14;
@@ -48,8 +48,8 @@ if platform.machine() == "x86_64":
     #define BREAKPOINT_SIZE 1
     """
 elif platform.machine() == "i686":
-    user_regs_struct = """
-    struct user_regs_struct
+    ptrace_user_regs_struct = """
+    struct ptrace_user_regs_struct
     {
         unsigned long ebx;
         unsigned long ecx;
@@ -77,40 +77,40 @@ elif platform.machine() == "i686":
     #define BREAKPOINT_SIZE 1
     """
 elif platform.machine() == "aarch64":
-    user_regs_struct = """
-    struct user_regs_struct
+    ptrace_user_regs_struct = """
+    struct ptrace_user_regs_struct
     {
-        unsigned long r0;
-        unsigned long r1;
-        unsigned long r2;
-        unsigned long r3;
-        unsigned long r4;
-        unsigned long r5;
-        unsigned long r6;
-        unsigned long r7;
-        unsigned long r8;
-        unsigned long r9;
-        unsigned long r10;
-        unsigned long r11;
-        unsigned long r12;
-        unsigned long r13;
-        unsigned long r14;
-        unsigned long r15;
-        unsigned long r16;
-        unsigned long r17;
-        unsigned long r18;
-        unsigned long r19;
-        unsigned long r20;
-        unsigned long r21;
-        unsigned long r22;
-        unsigned long r23;
-        unsigned long r24;
-        unsigned long r25;
-        unsigned long r26;
-        unsigned long r27;
-        unsigned long r28;
-        unsigned long r29;
-        unsigned long r30;
+        unsigned long x0;
+        unsigned long x1;
+        unsigned long x2;
+        unsigned long x3;
+        unsigned long x4;
+        unsigned long x5;
+        unsigned long x6;
+        unsigned long x7;
+        unsigned long x8;
+        unsigned long x9;
+        unsigned long x10;
+        unsigned long x11;
+        unsigned long x12;
+        unsigned long x13;
+        unsigned long x14;
+        unsigned long x15;
+        unsigned long x16;
+        unsigned long x17;
+        unsigned long x18;
+        unsigned long x19;
+        unsigned long x20;
+        unsigned long x21;
+        unsigned long x22;
+        unsigned long x23;
+        unsigned long x24;
+        unsigned long x25;
+        unsigned long x26;
+        unsigned long x27;
+        unsigned long x28;
+        unsigned long x29;
+        unsigned long x30;
         unsigned long sp;
         unsigned long pc;
         unsigned long pstate;
@@ -128,7 +128,7 @@ else:
 
 ffibuilder = FFI()
 ffibuilder.cdef(
-    user_regs_struct
+    ptrace_user_regs_struct
     + """
     struct ptrace_hit_bp {
         int pid;
@@ -147,7 +147,7 @@ ffibuilder.cdef(
 
     struct thread {
         int tid;
-        struct user_regs_struct regs;
+        struct ptrace_user_regs_struct regs;
         struct thread *next;
     };
 
@@ -187,7 +187,7 @@ ffibuilder.cdef(
     struct thread_status *wait_all_and_update_regs(struct global_state *state, int pid);
     void free_thread_status_list(struct thread_status *head);
 
-    struct user_regs_struct* register_thread(struct global_state *state, int tid);
+    struct ptrace_user_regs_struct* register_thread(struct global_state *state, int tid);
     void unregister_thread(struct global_state *state, int tid);
     void free_thread_list(struct global_state *state);
 
@@ -202,7 +202,7 @@ ffibuilder.cdef(
 with open("libdebug/cffi/ptrace_cffi_source.c") as f:
     ffibuilder.set_source(
         "libdebug.cffi._ptrace_cffi",
-        breakpoint_define + f.read(),
+        ptrace_user_regs_struct + breakpoint_define + f.read(),
         libraries=[],
     )
 

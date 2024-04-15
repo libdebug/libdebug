@@ -36,7 +36,7 @@ struct software_breakpoint {
 
 struct thread {
     int tid;
-    struct user_regs_struct regs;
+    struct ptrace_user_regs_struct regs;
     struct thread *next;
 };
 
@@ -52,35 +52,35 @@ struct global_state {
     _Bool syscall_hooks_enabled;
 };
 
-int get_registers(int tid, struct user_regs_struct *regs)
+int get_registers(int tid, struct ptrace_user_regs_struct *regs)
 {
 #if defined __x86_64__ || defined(__i386__) 
     return ptrace(PTRACE_GETREGS, tid, NULL, regs);
 #elif defined __aarch64__
     struct iovec iov;
     iov.iov_base = regs;
-    iov.iov_len = sizeof(struct user_regs_struct);
+    iov.iov_len = sizeof(struct ptrace_user_regs_struct);
     return ptrace(PTRACE_GETREGSET, tid, NT_PRSTATUS, &iov);
 #else
     #error "Unsupported architecture"
 #endif
 }
 
-int set_registers(int tid, struct user_regs_struct *regs)
+int set_registers(int tid, struct ptrace_user_regs_struct *regs)
 {
 #if defined __x86_64__ || defined(__i386__)
     return ptrace(PTRACE_SETREGS, tid, NULL, regs);
 #elif defined __aarch64__
     struct iovec iov;
     iov.iov_base = regs;
-    iov.iov_len = sizeof(struct user_regs_struct);
+    iov.iov_len = sizeof(struct ptrace_user_regs_struct);
     return ptrace(PTRACE_SETREGSET, tid, NT_PRSTATUS, &iov);
 #else
     #error "Unsupported architecture"
 #endif
 }
 
-struct user_regs_struct *register_thread(struct global_state *state, int tid)
+struct ptrace_user_regs_struct *register_thread(struct global_state *state, int tid)
 {
     // Verify if the thread is already registered
     struct thread *t = state->t_HEAD;
