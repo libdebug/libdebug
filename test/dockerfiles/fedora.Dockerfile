@@ -1,6 +1,6 @@
 FROM fedora:latest
 
-RUN dnf -y upgrade && dnf install -y python3 python3-devel kernel-devel pypy3 pypy3-devel binutils-devel libdwarf-devel
+RUN dnf -y upgrade && dnf install -y python3 python3-devel kernel-devel pypy3 pypy3-devel binutils-devel libdwarf-devel glibc-devel.i686
 
 WORKDIR /test
 

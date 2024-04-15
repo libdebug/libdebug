@@ -1,6 +1,6 @@
 FROM archlinux:latest
 
-RUN pacman -Syu --noconfirm && pacman -S --noconfirm python python-pip pypy3 libelf libdwarf gcc make debuginfod
+RUN pacman -Syu --noconfirm && pacman -S --noconfirm python python-pip pypy3 libelf libdwarf gcc make debuginfod lib32-glibc
 
 WORKDIR /test
 
