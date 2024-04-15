@@ -205,7 +205,7 @@ def resolve_address(path: str, address: int) -> str:
     symbols, buildid, debug_file = _parse_elf_file(path, libcontext.sym_lvl)
     for symbol, (symbol_start, symbol_end) in symbols.items():
         if symbol_start <= address < symbol_end:
-            return f"{symbol}+{str(address-symbol_start)}"
+            return f"{symbol}+{address - symbol_start:x}"
 
     # Retrieve the symbols from the external debuginfo file
     if buildid and debug_file and libcontext.sym_lvl > 2:
@@ -214,7 +214,7 @@ def resolve_address(path: str, address: int) -> str:
         symbols = _collect_external_info(absolute_debug_path_str)
         for symbol, (symbol_start, symbol_end) in symbols.items():
             if symbol_start <= address < symbol_end:
-                return f"{symbol}+{str(address-symbol_start)}"
+                return f"{symbol}+{address - symbol_start:x}"
 
     # Retrieve the symbols from debuginfod
     if buildid and libcontext.sym_lvl > 4:
@@ -223,12 +223,13 @@ def resolve_address(path: str, address: int) -> str:
             symbols = _collect_external_info(str(absolute_debug_path))
             for symbol, (symbol_start, symbol_end) in symbols.items():
                 if symbol_start <= address < symbol_end:
-                    return f"{symbol}+{str(address-symbol_start)}"
+                    return f"{symbol}+{address - symbol_start:x}"
 
     # Address not found
     raise ValueError(
         f"Address {hex(address)} not found in {path}. Please specify a valid address."
     )
+
 
 @functools.cache
 def open_as_elf_file(path: str) -> ELFFile:
@@ -245,6 +246,7 @@ def open_as_elf_file(path: str) -> ELFFile:
 
     return file
 
+
 def is_pie(path: str) -> bool:
     """Returns True if the specified ELF file is position independent, False otherwise.
 
@@ -257,6 +259,7 @@ def is_pie(path: str) -> bool:
     elf = open_as_elf_file(path)
 
     return elf.header.e_type == "ET_DYN"
+
 
 def get_entry_point(path: str) -> int:
     """Returns the entry point of the specified ELF file.
@@ -271,6 +274,7 @@ def get_entry_point(path: str) -> int:
 
     return elf.header.e_entry
 
+
 def determine_architecture(path: str) -> str:
     """Returns the architecture of the specified ELF file.
 
@@ -282,7 +286,7 @@ def determine_architecture(path: str) -> str:
     """
     elf = open_as_elf_file(path)
 
-    match (elf.get_machine_arch()):
+    match elf.get_machine_arch():
         case "x86":
             return "i386"
         case "x64":
