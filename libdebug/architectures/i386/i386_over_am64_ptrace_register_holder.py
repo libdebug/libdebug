@@ -97,3 +97,13 @@ class I386POverAmd64traceRegisterHolder(PtraceRegisterHolder):
 
         # setup generic "instruction_pointer" property
         setattr(target_class, "instruction_pointer", get_property_32("rip"))
+
+        # setup generic syscall properties
+        setattr(target_class, "syscall_number", get_property_32("orig_rax"))
+        setattr(target_class, "syscall_return", get_property_32("rax"))
+        setattr(target_class, "syscall_arg0", get_property_32("rbx"))
+        setattr(target_class, "syscall_arg1", get_property_32("rcx"))
+        setattr(target_class, "syscall_arg2", get_property_32("rdx"))
+        setattr(target_class, "syscall_arg3", get_property_32("rsi"))
+        setattr(target_class, "syscall_arg4", get_property_32("rdi"))
+        setattr(target_class, "syscall_arg5", get_property_32("rbp"))

@@ -91,3 +91,13 @@ class I386PtraceRegisterHolder(PtraceRegisterHolder):
 
         # setup generic "instruction_pointer" property
         setattr(target_class, "instruction_pointer", get_property_32("eip"))
+
+        # setup generic syscall properties
+        setattr(target_class, "syscall_number", get_property_32("orig_eax"))
+        setattr(target_class, "syscall_return", get_property_32("eax"))
+        setattr(target_class, "syscall_arg0", get_property_32("ebx"))
+        setattr(target_class, "syscall_arg1", get_property_32("ecx"))
+        setattr(target_class, "syscall_arg2", get_property_32("edx"))
+        setattr(target_class, "syscall_arg3", get_property_32("esi"))
+        setattr(target_class, "syscall_arg4", get_property_32("edi"))
+        setattr(target_class, "syscall_arg5", get_property_32("ebp"))
