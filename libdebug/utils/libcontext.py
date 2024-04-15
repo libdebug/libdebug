@@ -4,6 +4,7 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+import platform
 import sys
 from contextlib import contextmanager
 from copy import deepcopy
@@ -57,7 +58,13 @@ class LibContext:
                 self._general_logger = "DEBUG"
         self._initialized = True
 
-        self._arch = "amd64"
+        self._platform = platform.machine()
+
+        if not self._platform:
+            liblog.general_logger.error(
+                "Could not determine the system platform. Please set it manually in libcontext"
+            )
+
         self._terminal = []
 
     def _set_debug_level_for_all(self):
@@ -68,6 +75,23 @@ class LibContext:
             liblog.pipe_logger,
         ]:
             logger.setLevel("DEBUG")
+
+    @property
+    def platform(self) -> str:
+        """
+        Property getter for platform.
+
+        Returns:
+            _platform (str): the current platform.
+        """
+        return self._platform
+
+    @platform.setter
+    def platform(self, value: str):
+        """
+        Property setter for platform.
+        """
+        self._platform = value
 
     @property
     def sym_lvl(self) -> int:
@@ -152,26 +176,6 @@ class LibContext:
             liblog.general_logger.setLevel(value)
         else:
             raise ValueError("general_logger must be a valid logging level")
-
-    @property
-    def arch(self) -> str:
-        """
-        Property getter for arch.
-
-        Returns:
-            _arch (str): the current architecture.
-        """
-        return self._arch
-
-    @arch.setter
-    def arch(self, value: str):
-        """
-        Property setter for arch, ensuring it's a valid architecture.
-        """
-        if value in ["amd64"]:
-            self._arch = value
-        else:
-            raise RuntimeError("The specified architecture is not supported")
 
     @property
     def terminal(self) -> list[str]:
