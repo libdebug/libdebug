@@ -338,7 +338,9 @@ class PtraceInterface(DebuggingInterface):
 
         register_holder = register_holder_provider(self.context.arch, register_file)
 
-        thread = provide_thread_context(self.context.arch, new_thread_id)
+        with context_extend_from(self):
+            thread = provide_thread_context(self.context.arch, new_thread_id)
+
         thread.set_register_holder(register_holder)
 
         link_context(thread, self)

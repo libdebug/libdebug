@@ -4,11 +4,16 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+from typing import TYPE_CHECKING
+
 from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
 from libdebug.data.register_holder import RegisterHolder
 from libdebug.liblog import liblog
-from libdebug.state.debugging_context import provide_context
+from libdebug.state.debugging_context import debugging_context
 from libdebug.utils.debugging_utils import resolve_address_in_maps
+
+if TYPE_CHECKING:
+    from libdebug.state.debugging_context import DebuggingContext
 
 
 class ThreadContext:
@@ -24,6 +29,9 @@ class ThreadContext:
 
     thread_id: int
     """The thread's ID."""
+
+    context: "DebuggingContext"
+    """The debugging context associated with the debugged process."""
 
     instruction_pointer: int
     """The thread's instruction pointer."""
@@ -42,6 +50,7 @@ class ThreadContext:
 
     def __init__(self, thread_id: int):
         self.thread_id = thread_id
+        self.context = debugging_context()
 
     @property
     def memory(self):
@@ -50,9 +59,9 @@ class ThreadContext:
         # Even if the library is multi-threaded, we don't expect the memory view
         # to be used while a background operation is in progress
         if not self._in_background_op:
-            return provide_context(self).memory
+            return self.context.memory
         else:
-            return provide_context(self)._threaded_memory
+            return self.context._threaded_memory
 
     def set_register_holder(self, registers: RegisterHolder):
         """Sets the register holder object.
@@ -83,12 +92,12 @@ class ThreadContext:
 
     def backtrace(self):
         """Returns the current backtrace of the thread."""
-        stack_unwinder = stack_unwinding_provider(provide_context(self).arch)
+        stack_unwinder = stack_unwinding_provider(self.context.arch)
         backtrace = stack_unwinder.unwind(self)
         return list(
             map(
                 lambda x: resolve_address_in_maps(
-                    x, provide_context(self).debugging_interface.maps()
+                    x, self.context.debugging_interface.maps()
                 ),
                 backtrace,
             )
