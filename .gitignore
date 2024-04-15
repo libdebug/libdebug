@@ -136,3 +136,6 @@ dmypy.json
 
 # Jumpstart binary file
 libdebug/ptrace/jumpstart/jumpstart
+
+# syscall definitions
+libdebug/utils/syscalls/

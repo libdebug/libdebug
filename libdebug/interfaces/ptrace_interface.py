@@ -22,6 +22,7 @@ from libdebug.cffi import _ptrace_cffi
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_map import MemoryMap
 from libdebug.data.register_holder import RegisterHolder
+from libdebug.data.syscall_hook import SyscallHook
 from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
@@ -201,6 +202,13 @@ class PtraceInterface(DebuggingInterface):
                 self.set_breakpoint(bp, insert=False)
             else:
                 self.unset_breakpoint(bp, delete=False)
+
+        for hook in self.context.syscall_hooks.values():
+            if hook.enabled:
+                self._global_state.syscall_hooks_enabled = True
+                break
+        else:
+            self._global_state.syscall_hooks_enabled = False
 
         result = self.lib_trace.cont_all_and_set_bps(
             self._global_state, self.process_id
@@ -423,6 +431,22 @@ class PtraceInterface(DebuggingInterface):
 
         if delete:
             self.context.remove_breakpoint(breakpoint)
+
+    def set_syscall_hook(self, hook: SyscallHook):
+        """Sets a syscall hook.
+
+        Args:
+            hook (SyscallHook): The syscall hook to set.
+        """
+        self.context.insert_new_syscall_hook(hook)
+
+    def unset_syscall_hook(self, hook: SyscallHook):
+        """Unsets a syscall hook.
+
+        Args:
+            hook (SyscallHook): The syscall hook to unset.
+        """
+        self.context.remove_syscall_hook(hook)
 
     def peek_memory(self, address: int) -> int:
         """Reads the memory at the specified address."""
