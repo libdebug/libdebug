@@ -9,20 +9,33 @@ from typing import Callable
 from libdebug.architectures.amd64.amd64_ptrace_register_holder import (
     Amd64PtraceRegisterHolder,
 )
+from libdebug.architectures.i386.i386_ptrace_register_holder import (
+    I386PtraceRegisterHolder,
+)
+from libdebug.architectures.i386.i386_over_am64_ptrace_register_holder import (
+    I386POverAmd64traceRegisterHolder,
+)
 from libdebug.data.register_holder import RegisterHolder
 from libdebug.utils.libcontext import libcontext
 
 
 def register_holder_provider(
+    architecture: str,
     register_file: object,
     getter: Callable[[], object] | None = None,
     setter: Callable[[object], None] | None = None,
 ) -> RegisterHolder:
     """Returns an instance of the register holder to be used by the `_InternalDebugger` class."""
-    architecture = libcontext.arch
+    platform = libcontext.platform
 
-    match architecture:
-        case "amd64":
+    match (architecture, platform):
+        case "amd64", "x86_64":
             return Amd64PtraceRegisterHolder(register_file)
+        case "i386", "x86_64":
+            return I386POverAmd64traceRegisterHolder(register_file)
+        case "i386", "i386":
+            return I386PtraceRegisterHolder(register_file)
         case _:
-            raise NotImplementedError(f"Architecture {architecture} not available.")
+            raise NotImplementedError(
+                f"Architecture {architecture} on platform {platform} not available."
+            )
