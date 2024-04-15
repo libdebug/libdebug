@@ -8,6 +8,7 @@ import sys
 import unittest
 
 from scripts.basic_test import BasicTest
+from scripts.syscall_hook_test import SyscallHookTest
 
 
 def fast_suite():
@@ -15,6 +16,8 @@ def fast_suite():
     suite.addTest(BasicTest("test_basic"))
     suite.addTest(BasicTest("test_registers"))
     suite.addTest(BasicTest("test_step"))
+    suite.addTest(SyscallHookTest("test_hooks"))
+    suite.addTest(SyscallHookTest("test_hook_disabling"))
     return suite
 
 
