@@ -26,6 +26,8 @@ else:
             arch = "amd64"
         case "i686":
             arch = "i386"
+        case "aarch64":
+            arch = "aarch64"
         case _:
             raise ValueError(f"Unsupported architecture: {arch}")
 
