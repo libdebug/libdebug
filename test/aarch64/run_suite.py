@@ -12,7 +12,9 @@ from scripts.basic_test import BasicTest
 
 def fast_suite():
     suite = unittest.TestSuite()
+    suite.addTest(BasicTest("test_basic"))
     suite.addTest(BasicTest("test_registers"))
+    suite.addTest(BasicTest("test_step"))
     return suite
 
 
