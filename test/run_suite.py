@@ -10,6 +10,7 @@ import unittest
 from scripts.attach_test import AttachTest
 from scripts.auto_waiting_test import AutoWaitingTest, AutoWaitingNcuts
 from scripts.backtrace_test import BacktraceTest
+from scripts.backtrace_test_x86 import BacktraceTestX86
 from scripts.basic_test import BasicPieTest, BasicTest, ControlFlowTest, HwBasicTest
 from scripts.basic_test_x86 import BasicTestX86
 from scripts.breakpoint_test import BreakpointTest
@@ -51,6 +52,7 @@ def fast_suite():
     suite.addTest(HwBasicTest("test_basic"))
     suite.addTest(HwBasicTest("test_registers"))
     suite.addTest(BacktraceTest("test_backtrace"))
+    suite.addTest(BacktraceTestX86("test_backtrace"))
     suite.addTest(AttachTest("test_attach"))
     suite.addTest(ThreadTest("test_thread"))
     suite.addTest(ThreadTest("test_thread_hardware"))
