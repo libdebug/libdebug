@@ -13,6 +13,7 @@ from subprocess import Popen
 from threading import Thread
 from typing import Callable
 
+from libdebug.architectures.ptrace_software_breakpoint_patcher import software_breakpoint_byte_size
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
 from libdebug.data.syscall_hook import SyscallHook
@@ -328,6 +329,9 @@ class _InternalDebugger:
             with context_extend_from(self):
                 address = self.context.resolve_address(position)
             position = hex(address)
+
+        if address % software_breakpoint_byte_size(self.context.arch) != 0:
+            raise ValueError("Breakpoint address is unaligned.")
 
         if condition:
             if not hardware:
