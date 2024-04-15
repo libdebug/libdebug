@@ -73,6 +73,9 @@ class DebuggingContext:
     _threaded_memory: MemoryView
     """The memory view of the debugged process, used for operations in the background thread."""
 
+    arch: str
+    """The architecture of the debugged process."""
+
     def __init__(self):
         """Initialize the context"""
 
@@ -83,6 +86,7 @@ class DebuggingContext:
         self.env = {}
         self._breakpoints = {}
         self._threads = []
+        self._arch = ""
 
         self.clear()
 
@@ -95,6 +99,26 @@ class DebuggingContext:
         self.pipe_manager = None
         self._is_running = False
         self.process_id = 0
+
+    @property
+    def arch(self) -> str:
+        """Get the architecture of the debugged process.
+
+        Returns:
+            str: the architecture of the debugged process.
+        """
+
+        return self._arch
+
+    @arch.setter
+    def arch(self, arch: str):
+        """Set the architecture of the debugged process.
+
+        Args:
+            arch (str): the architecture of the debugged process.
+        """
+
+        self._arch = arch
 
     @property
     def breakpoints(self) -> dict[int, Breakpoint]:
