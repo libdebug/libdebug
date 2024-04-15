@@ -38,7 +38,7 @@ class Aarch64PtraceRegisterHolder(PtraceRegisterHolder):
 
         for i in range(31):
             setattr(target_class, f"x{i}", get_property_64(f"x{i}"))
-            setattr(target_class, f"w{i}", get_property_32(f"w{i}"))
+            setattr(target_class, f"w{i}", get_property_32(f"x{i}"))
 
         # setup special registers
         setattr(target_class, "pc", get_property_64("pc"))
