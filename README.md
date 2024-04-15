@@ -5,13 +5,13 @@ libdebug is a Python library to automate the debugging of a binary executable.
 ```bash
 python3 -m pip install git+https://github.com/libdebug/libdebug.git
 ```
-PyPy3 is supported but not recommended, as it performs worse.
+PyPy3 is supported but not recommended, as it performs worse on most of our tests.
 
 ### Installation Requirements:
-Ubuntu: `sudo apt-get install -y python3 python3-dev python3-pip libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg`  
-Debian: `sudo apt-get install -y python3 python3-dev python3-pip python3-venv libdwarf-dev libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg`  
-Fedora: `sudo dnf install -y python3 python3-devel kernel-devel pypy3 pypy3-devel binutils-devel libdwarf-devel`  
-Arch Linux: `sudo pacman -S --noconfirm python python-pip pypy3 libelf libdwarf gcc make debuginfod`  
+Ubuntu: `sudo apt install -y python3 python3-dev libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg`
+Debian: `sudo apt install -y python3 python3-dev libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg`
+Fedora: `sudo dnf install -y python3 python3-devel kernel-devel binutils-devel libdwarf-devel`
+Arch Linux: `sudo pacman -S python libelf libdwarf gcc make debuginfod`
 
 ## Run and Attach
 The first step of a libdebug script is creating a debugger object. This can be done with the function `debugger(argv,...)`. You can either provide a path or an array of arguments. Once your debugger object has been created, you can use the method `run` to start it
