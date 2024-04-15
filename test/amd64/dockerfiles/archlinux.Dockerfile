@@ -13,7 +13,7 @@ RUN venv_pypy/bin/python -m pip install -U pip pwntools requests capstone pyelft
 
 COPY . .
 
-COPY test/dockerfiles/run_tests.sh /test/test/run_tests.sh
+COPY test/amd64/dockerfiles/run_tests.sh /test/test/run_tests.sh
 
 RUN venv_python/bin/python -m pip install --compile .
 RUN venv_pypy/bin/python -m pip install --compile .

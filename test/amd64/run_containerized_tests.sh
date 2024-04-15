@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "Building Fedora..."
-docker build -f dockerfiles/fedora.Dockerfile -t libdebug_test_fedora ../
+docker build -f dockerfiles/fedora.Dockerfile -t libdebug_test_fedora ../../
 if [ $? -eq 0 ]; then
     echo "Fedora build successful"
 else
@@ -10,7 +10,7 @@ else
 fi
 
 echo "Building Ubuntu..."
-docker build -f dockerfiles/ubuntu.Dockerfile -t libdebug_test_ubuntu ../
+docker build -f dockerfiles/ubuntu.Dockerfile -t libdebug_test_ubuntu ../../
 if [ $? -eq 0 ]; then
     echo "Ubuntu build successful"
 else
@@ -19,7 +19,7 @@ else
 fi
 
 echo "Building Arch..."
-docker build -f dockerfiles/archlinux.Dockerfile -t libdebug_test_archlinux ../
+docker build -f dockerfiles/archlinux.Dockerfile -t libdebug_test_archlinux ../../
 if [ $? -eq 0 ]; then
     echo "Arch build successful"
 else
@@ -28,7 +28,7 @@ else
 fi
 
 echo "Building Debian..."
-docker build -f dockerfiles/debian.Dockerfile -t libdebug_test_debian ../
+docker build -f dockerfiles/debian.Dockerfile -t libdebug_test_debian ../../
 if [ $? -eq 0 ]; then
     echo "Debian build successful"
 else

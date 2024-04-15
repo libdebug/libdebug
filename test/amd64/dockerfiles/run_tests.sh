@@ -5,7 +5,7 @@ if [ "$(uname -s)" = "Linux" ] && [ -f /etc/os-release ]; then
     if grep -q "^ID=debian" /etc/os-release; then
         cd /test
         source venv/bin/activate
-        cd test
+        cd test/amd64
         echo "Running Python3 tests..."
         python3 run_suite.py
         deactivate
@@ -16,7 +16,7 @@ fi
 # Check if the system is Ubuntu
 if [ "$(uname -s)" = "Linux" ] && [ -f /etc/os-release ]; then
     if grep -q "^ID=ubuntu" /etc/os-release; then
-        cd /test/test
+        cd /test/test/amd64
         echo "Running Python3 tests..."
         python3 run_suite.py
         exit 0
@@ -28,11 +28,11 @@ if [ "$(uname -s)" = "Linux" ] && [ -f /etc/os-release ]; then
     if grep -q "^ID=arch" /etc/os-release; then
         cd /test
         source venv_python/bin/activate
-        cd test
+        cd test/amd64
         echo "Running Python3 tests..."
         python3 run_suite.py
         deactivate
-        source ../venv_pypy/bin/activate
+        source ../../venv_pypy/bin/activate
         echo "Running PyPy3 tests..."
         pypy3 run_suite.py
         deactivate
@@ -41,7 +41,7 @@ if [ "$(uname -s)" = "Linux" ] && [ -f /etc/os-release ]; then
 fi
 
 # Run both Python3 and PyPy3 tests
-cd /test/test
+cd /test/test/amd64
 echo "Running Python3 tests..."
 python3 run_suite.py slow
 echo "Running PyPy3 tests..."

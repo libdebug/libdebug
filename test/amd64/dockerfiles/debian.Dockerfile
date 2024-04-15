@@ -10,7 +10,7 @@ RUN venv/bin/python -m pip install -U pip pwntools requests capstone pyelftools
 
 COPY . .
 
-COPY test/dockerfiles/run_tests.sh /test/test/run_tests.sh
+COPY test/amd64/dockerfiles/run_tests.sh /test/test/run_tests.sh
 
 RUN venv/bin/python -m pip install --compile .
 
