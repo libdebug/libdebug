@@ -34,7 +34,7 @@ class SyscallHookTest(unittest.TestCase):
                 write_count += 1
 
         def on_exit_mmap(d, syscall_number):
-            self.assertTrue(syscall_number == 0xde)
+            self.assertTrue(syscall_number == 0xDE)
 
             nonlocal ptr
 
@@ -87,7 +87,7 @@ class SyscallHookTest(unittest.TestCase):
                 write_count += 1
 
         def on_exit_mmap(d, syscall_number):
-            self.assertTrue(syscall_number == 0xde)
+            self.assertTrue(syscall_number == 0xDE)
 
             nonlocal ptr
 
@@ -102,7 +102,7 @@ class SyscallHookTest(unittest.TestCase):
             self.assertEqual(d.memory[ptr, 8], os.getcwd()[:8].encode())
 
         hook1 = d.hook_syscall(0x40, on_enter_write, None)
-        hook2 = d.hook_syscall(0xde, None, on_exit_mmap)
+        hook2 = d.hook_syscall(0xDE, None, on_exit_mmap)
         hook3 = d.hook_syscall(0x11, on_enter_getcwd, on_exit_getcwd)
 
         r.sendline(b"provola")

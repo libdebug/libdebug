@@ -8,7 +8,9 @@ import sys
 import unittest
 
 from scripts.basic_test import BasicTest
+from scripts.complex_thread_test import ComplexThreadTest
 from scripts.syscall_hook_test import SyscallHookTest
+from scripts.thread_test import ThreadTest
 
 
 def fast_suite():
@@ -18,6 +20,9 @@ def fast_suite():
     suite.addTest(BasicTest("test_step"))
     suite.addTest(SyscallHookTest("test_hooks"))
     suite.addTest(SyscallHookTest("test_hook_disabling"))
+    suite.addTest(ThreadTest("test_thread"))
+    suite.addTest(ThreadTest("test_thread_hardware"))
+    suite.addTest(ComplexThreadTest("test_thread"))
     return suite
 
 
