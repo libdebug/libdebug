@@ -83,7 +83,7 @@ class ThreadContext:
 
     def backtrace(self):
         """Returns the current backtrace of the thread."""
-        stack_unwinder = stack_unwinding_provider()
+        stack_unwinder = stack_unwinding_provider(provide_context(self).arch)
         backtrace = stack_unwinder.unwind(self)
         return list(
             map(
