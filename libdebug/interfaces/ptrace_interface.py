@@ -274,7 +274,8 @@ class PtraceInterface(DebuggingInterface):
         self._set_options()
         liblog.debugger("Options set")
 
-        if continue_to_entry_point:
+        # We cannot continue to the entry point if we don't have hardware breakpoints
+        if continue_to_entry_point and len(self.hardware_bp_helpers) > 0:
             # Now that the process is running, we must continue until we have reached the entry point
             entry_point = get_entry_point(self.context.argv[0])
 
