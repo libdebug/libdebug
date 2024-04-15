@@ -94,6 +94,16 @@ class LibContext:
         self._platform = value
 
     @property
+    def system_register_size(self) -> int:
+        """
+        Property getter for system_register_size.
+
+        Returns:
+            _system_register_size (int): the current system register size.
+        """
+        return 8 if sys.maxsize > 2 ** 32 else 4
+
+    @property
     def sym_lvl(self) -> int:
         """
         Property getter for sym_lvl.

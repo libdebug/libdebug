@@ -595,11 +595,13 @@ class _InternalDebugger:
             self._peek_memory,
             self._poke_memory,
             self.interface.maps,
+            unit_size=libcontext.system_register_size
         )
         self._threaded_memory = MemoryView(
             self.__threaded_peek_memory,
             self.__threaded_poke_memory,
             self.interface.maps,
+            unit_size=libcontext.system_register_size
         )
 
         self.context.memory = self.memory
@@ -707,8 +709,7 @@ class _InternalDebugger:
     def __threaded_peek_memory(self, address: int) -> bytes | BaseException:
         try:
             value = self.interface.peek_memory(address)
-            # TODO: this is only for amd64
-            return value.to_bytes(8, "little")
+            return value.to_bytes(libcontext.system_register_size, "little")
         except BaseException as e:
             return e
 
