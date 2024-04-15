@@ -47,6 +47,35 @@ if platform.machine() == "x86_64":
     #define INSTALL_BREAKPOINT(instruction) ((instruction & 0xFFFFFFFFFFFFFF00) | 0xCC)
     #define BREAKPOINT_SIZE 1
     """
+elif platform.machine() == "i686":
+    user_regs_struct = """
+    struct user_regs_struct
+    {
+        unsigned long ebx;
+        unsigned long ecx;
+        unsigned long edx;
+        unsigned long esi;
+        unsigned long edi;
+        unsigned long ebp;
+        unsigned long eax;
+        unsigned long xds;
+        unsigned long xes;
+        unsigned long xfs;
+        unsigned long xgs;
+        unsigned long orig_eax;
+        unsigned long eip;
+        unsigned long xcs;
+        unsigned long eflags;
+        unsigned long esp;
+        unsigned long xss;
+    };
+    """
+
+    breakpoint_define = """
+    #define INSTRUCTION_POINTER(regs) (regs.eip)
+    #define INSTALL_BREAKPOINT(instruction) ((instruction & 0xFFFFFF00) | 0xCC)
+    #define BREAKPOINT_SIZE 1
+    """
 else:
     raise NotImplementedError(f"Architecture {platform.machine()} not available.")
 

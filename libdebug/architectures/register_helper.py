@@ -33,7 +33,7 @@ def register_holder_provider(
             return Amd64PtraceRegisterHolder(register_file)
         case "i386", "x86_64":
             return I386POverAmd64traceRegisterHolder(register_file)
-        case "i386", "i386":
+        case "i386", "i686":
             return I386PtraceRegisterHolder(register_file)
         case _:
             raise NotImplementedError(

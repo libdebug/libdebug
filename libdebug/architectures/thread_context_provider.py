@@ -19,7 +19,7 @@ def provide_thread_context(arch: str, thread_id: int) -> ThreadContext:
     match (arch, platform):
         case ("amd64", "x86_64"):
             return ThreadContextAmd64(thread_id)
-        case ("i386", "i386"):
+        case ("i386", "i686"):
             return ThreadContextI386(thread_id)
         case ("i386", "x86_64"):
             return ThreadContextI386OverAmd64(thread_id)
