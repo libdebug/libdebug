@@ -19,8 +19,8 @@ def install_pretty_print_syscall_hook(
     """Installs a syscall hook that will pretty print the syscall arguments and return value."""
 
     def on_enter_syscall(d, syscall_number):
-        syscall_name = resolve_syscall_name(syscall_number)
-        syscall_args = resolve_syscall_arguments(syscall_number)
+        syscall_name = resolve_syscall_name(d.context.arch, syscall_number)
+        syscall_args = resolve_syscall_arguments(d.context.arch, syscall_number)
 
         values = [
             d.syscall_arg0,
@@ -43,20 +43,20 @@ def install_pretty_print_syscall_hook(
         print(f"0x{d.syscall_return:x}")
 
     if syscalls is None:
-        syscalls = get_all_syscall_numbers()
+        syscalls = get_all_syscall_numbers(d.context.arch)
 
     syscall_numbers = []
 
     for syscall in syscalls:
         if isinstance(syscall, str):
-            syscall_numbers.append(resolve_syscall_number(syscall))
+            syscall_numbers.append(resolve_syscall_number(d.context.arch, syscall))
         else:
             syscall_numbers.append(syscall)
 
     if exclude is not None:
         for excluded in exclude:
             if isinstance(excluded, str):
-                excluded = resolve_syscall_number(excluded)
+                excluded = resolve_syscall_number(d.context.arch, excluded)
 
             syscall_numbers.remove(excluded)
 

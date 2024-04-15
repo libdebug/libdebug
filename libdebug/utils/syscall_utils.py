@@ -10,8 +10,6 @@ import os
 from pathlib import Path
 import requests
 
-from libdebug.utils.libcontext import libcontext
-
 SYSCALLS_REMOTE = "https://syscalls.mebeim.net/db"
 LOCAL_FOLDER_PATH = str((Path(__file__) / ".." / "syscalls").resolve())
 
@@ -53,8 +51,8 @@ def get_syscall_definitions(arch: str) -> dict:
 
 
 @functools.cache
-def resolve_syscall_number(name: str) -> int:
-    definitions = get_syscall_definitions(libcontext.arch)
+def resolve_syscall_number(arch: str, name: str) -> int:
+    definitions = get_syscall_definitions(arch)
 
     try:
         for syscall in definitions["syscalls"]:
@@ -67,8 +65,8 @@ def resolve_syscall_number(name: str) -> int:
 
 
 @functools.cache
-def resolve_syscall_name(number: int) -> str:
-    definitions = get_syscall_definitions(libcontext.arch)
+def resolve_syscall_name(arch: str, number: int) -> str:
+    definitions = get_syscall_definitions(arch)
 
     try:
         for syscall in definitions["syscalls"]:
@@ -79,8 +77,8 @@ def resolve_syscall_name(number: int) -> str:
 
 
 @functools.cache
-def resolve_syscall_arguments(number: int) -> list[str]:
-    definitions = get_syscall_definitions(libcontext.arch)
+def resolve_syscall_arguments(arch: str, number: int) -> list[str]:
+    definitions = get_syscall_definitions(arch)
 
     try:
         for syscall in definitions["syscalls"]:
@@ -91,7 +89,7 @@ def resolve_syscall_arguments(number: int) -> list[str]:
 
 
 @functools.cache
-def get_all_syscall_numbers() -> list[int]:
-    definitions = get_syscall_definitions(libcontext.arch)
+def get_all_syscall_numbers(arch: str) -> list[int]:
+    definitions = get_syscall_definitions(arch)
 
     return [syscall["number"] for syscall in definitions["syscalls"]]

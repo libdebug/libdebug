@@ -410,7 +410,7 @@ class _InternalDebugger:
             )
 
         if isinstance(syscall, str):
-            syscall_number = resolve_syscall_number(syscall)
+            syscall_number = resolve_syscall_number(self.context.arch, syscall)
         else:
             syscall_number = syscall
 
