@@ -7,7 +7,7 @@
 import unittest
 
 from libdebug import debugger
-from libdebug.architectures.i386.i386_over_amd64_thread_context import ThreadContextI386OverAmd64
+from libdebug.architectures.i386.i386_thread_context import ThreadContextI386
 
 
 class BasicTest(unittest.TestCase):
@@ -68,7 +68,7 @@ class BasicTest(unittest.TestCase):
         self.assertTrue(d.ch == 0x33)
         self.assertTrue(d.dh == 0x44)
 
-        self.assertIsInstance(d.threads[0], ThreadContextI386OverAmd64)
+        self.assertIsInstance(d.threads[0], ThreadContextI386)
 
         d.cont()
         d.kill()
@@ -93,7 +93,7 @@ class BasicTest(unittest.TestCase):
         self.assertTrue(bp.address + 3 == d.eip)
         self.assertTrue(bp.hit_count == 1)
 
-        self.assertIsInstance(d.threads[0], ThreadContextI386OverAmd64)
+        self.assertIsInstance(d.threads[0], ThreadContextI386)
 
         d.cont()
         d.kill()
@@ -118,7 +118,7 @@ class BasicTest(unittest.TestCase):
         self.assertTrue(bp.address + 3 == d.eip)
         self.assertTrue(bp.hit_count == 1)
 
-        self.assertIsInstance(d.threads[0], ThreadContextI386OverAmd64)
+        self.assertIsInstance(d.threads[0], ThreadContextI386)
 
         d.cont()
         d.kill()

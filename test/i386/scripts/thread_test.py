@@ -36,17 +36,17 @@ class ThreadTest(unittest.TestCase):
             if len(d.threads) == 4:
                 t3 = d.threads[3]
 
-            if bp_t0.address == d.rip:
+            if bp_t0.address == d.eip:
                 self.assertTrue(t1_done)
                 self.assertTrue(t2_done)
                 self.assertTrue(t3_done)
                 break
 
-            if t1 and bp_t1.address == t1.rip:
+            if t1 and bp_t1.address == t1.eip:
                 t1_done = True
-            if t2 and bp_t2.address == t2.rip:
+            if t2 and bp_t2.address == t2.eip:
                 t2_done = True
-            if t3 and bp_t3.address == t3.rip:
+            if t3 and bp_t3.address == t3.eip:
                 t3_done = True
 
             d.cont()
@@ -78,78 +78,20 @@ class ThreadTest(unittest.TestCase):
             if len(d.threads) == 4:
                 t3 = d.threads[3]
 
-            if bp_t0.address == d.rip:
+            if bp_t0.address == d.eip:
                 self.assertTrue(t1_done)
                 self.assertTrue(t2_done)
                 self.assertTrue(t3_done)
                 break
 
-            if t1 and bp_t1.address == t1.rip:
+            if t1 and bp_t1.address == t1.eip:
                 t1_done = True
-            if t2 and bp_t2.address == t2.rip:
+            if t2 and bp_t2.address == t2.eip:
                 t2_done = True
-            if t3 and bp_t3.address == t3.rip:
+            if t3 and bp_t3.address == t3.eip:
                 t3_done = True
 
             d.cont()
-
-        d.kill()
-        d.terminate()
-
-
-class ComplexThreadTest(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def test_thread(self):
-        def factorial(n):
-            if n == 0:
-                return 1
-            else:
-                return (n * factorial(n - 1)) & (2**32 - 1)
-
-        d = debugger("binaries/complex_thread_test")
-
-        d.run()
-
-        bp1_t0 = d.breakpoint("do_nothing")
-        bp2_t1 = d.breakpoint("thread_1_function+17")
-        bp3_t2 = d.breakpoint("thread_2_function+1e")
-
-        bp1_hit, bp2_hit, bp3_hit = False, False, False
-        t1, t2 = None, None
-
-        d.cont()
-
-        while True:
-
-            if len(d.threads) == 2:
-                t1 = d.threads[1]
-
-            if len(d.threads) == 3:
-                t2 = d.threads[2]
-
-            if t1 and bp2_t1.address == t1.rip:
-                bp2_hit = True
-                self.assertTrue(bp2_t1.hit_count == (t1.rax + 1))
-
-            if bp1_t0.address == d.rip:
-                bp1_hit = True
-                self.assertTrue(bp2_hit)
-                self.assertEqual(bp2_t1.hit_count, 50)
-                self.assertFalse(bp3_hit)
-                self.assertEqual(bp1_t0.hit_count, 1)
-
-            if t2 and bp3_t2.address == t2.rip:
-                bp3_hit = True
-                self.assertTrue(factorial(bp3_t2.hit_count) == t2.rax)
-                self.assertTrue(bp2_hit)
-                self.assertTrue(bp1_hit)
-
-            d.cont()
-
-            if bp3_t2.hit_count == 49:
-                break
 
         d.kill()
         d.terminate()

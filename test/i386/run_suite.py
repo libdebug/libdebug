@@ -22,6 +22,8 @@ def fast_suite():
     suite.addTest(BacktraceTest("test_backtrace"))
     suite.addTest(SyscallHookTest("test_hooks"))
     suite.addTest(SyscallHookTest("test_hook_disabling"))
+    suite.addTest(ThreadTest("test_thread"))
+    suite.addTest(ThreadTest("test_thread_hardware"))
     return suite
 
 
