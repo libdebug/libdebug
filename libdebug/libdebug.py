@@ -26,6 +26,7 @@ from libdebug.state.debugging_context import (
     provide_context,
 )
 from libdebug.state.thread_context import ThreadContext
+from libdebug.utils.elf_utils import determine_architecture
 from libdebug.utils.libcontext import libcontext
 
 THREAD_TERMINATE = -1
@@ -101,13 +102,16 @@ class _InternalDebugger:
 
     def run(self):
         """Starts the process and waits for it to stop."""
-        
+
         if not self.context.argv:
             raise RuntimeError("No binary file specified.")
-    
+
         if not os.path.isfile(provide_context(self).argv[0]):
             raise RuntimeError("The specified binary file does not exist.")
-        
+
+        if not self.context.arch:
+            self.context.arch = determine_architecture(self.context.argv[0])
+
         if self.instanced:
             liblog.debugger("Process already running, stopping it before restarting.")
             self.kill()
@@ -573,18 +577,26 @@ class _InternalDebugger:
 
     def __threaded_kill(self):
         if self.context.argv:
-            liblog.debugger("Killing process %s (%d).", self.context.argv[0], self.context.process_id)
+            liblog.debugger(
+                "Killing process %s (%d).",
+                self.context.argv[0],
+                self.context.process_id,
+            )
         else:
             liblog.debugger("Killing process %d.", self.context.process_id)
-        
+
         self.interface.kill()
 
     def __threaded_cont(self):
         if self.context.argv:
-            liblog.debugger("Continuing process %s (%d).", self.context.argv[0], self.context.process_id)
+            liblog.debugger(
+                "Continuing process %s (%d).",
+                self.context.argv[0],
+                self.context.process_id,
+            )
         else:
             liblog.debugger("Continuing process %d.", self.context.process_id)
-            
+
         self.interface.cont()
         self.context.set_running()
 
@@ -594,7 +606,11 @@ class _InternalDebugger:
 
     def __threaded_wait(self):
         if self.context.argv:
-            liblog.debugger("Waiting for process %s (%d) to stop.", self.context.argv[0], self.context.process_id)
+            liblog.debugger(
+                "Waiting for process %s (%d) to stop.",
+                self.context.argv[0],
+                self.context.process_id,
+            )
         else:
             liblog.debugger("Waiting for process %d to stop.", self.context.process_id)
 

@@ -230,8 +230,21 @@ def resolve_address(path: str, address: int) -> str:
         f"Address {hex(address)} not found in {path}. Please specify a valid address."
     )
 
-
 @functools.cache
+def open_as_elf_file(path: str) -> ELFFile:
+    """Returns an ELFFile object representing the specified ELF file.
+
+    Args:
+        path (str): The path to the ELF file.
+
+    Returns:
+        ELFFile: An ELFFile object representing the specified ELF file.
+    """
+    with open(path, "rb") as elf_file:
+        file = ELFFile(elf_file)
+
+    return file
+
 def is_pie(path: str) -> bool:
     """Returns True if the specified ELF file is position independent, False otherwise.
 
@@ -241,13 +254,10 @@ def is_pie(path: str) -> bool:
     Returns:
         bool: True if the specified ELF file is position independent, False otherwise.
     """
-    with open(path, "rb") as elf_file:
-        elf = ELFFile(elf_file)
+    elf = open_as_elf_file(path)
 
     return elf.header.e_type == "ET_DYN"
 
-
-@functools.cache
 def get_entry_point(path: str) -> int:
     """Returns the entry point of the specified ELF file.
 
@@ -257,7 +267,25 @@ def get_entry_point(path: str) -> int:
     Returns:
         int: The entry point of the specified ELF file.
     """
-    with open(path, "rb") as elf_file:
-        elf = ELFFile(elf_file)
+    elf = open_as_elf_file(path)
 
     return elf.header.e_entry
+
+def determine_architecture(path: str) -> str:
+    """Returns the architecture of the specified ELF file.
+
+    Args:
+        path (str): The path to the ELF file.
+
+    Returns:
+        str: The architecture of the specified ELF file.
+    """
+    elf = open_as_elf_file(path)
+
+    match (elf.get_machine_arch()):
+        case "x86":
+            return "i386"
+        case "x64":
+            return "amd64"
+        case _:
+            raise ValueError("Architecture not supported.")

@@ -10,6 +10,7 @@ import pty
 import tty
 from pathlib import Path
 
+from libdebug.architectures.thread_context_provider import provide_thread_context
 from libdebug.architectures.ptrace_hardware_breakpoint_manager import (
     PtraceHardwareBreakpointManager,
 )
@@ -32,7 +33,7 @@ from libdebug.state.debugging_context import (
 from libdebug.state.debugging_context import DebuggingContext
 from libdebug.state.thread_context import ThreadContext
 from libdebug.utils.debugging_utils import normalize_and_validate_address
-from libdebug.utils.elf_utils import get_entry_point
+from libdebug.utils.elf_utils import get_entry_point, determine_architecture
 from libdebug.utils.pipe_manager import PipeManager
 from libdebug.utils.process_utils import (
     disable_self_aslr,
@@ -167,6 +168,12 @@ class PtraceInterface(DebuggingInterface):
 
         self.process_id = pid
         self.context.process_id = pid
+
+        # we need to determine the architecture of the process before we can do anything
+        maps = self.maps()
+        backing_file = maps[0].backing_file
+        self.context.arch = determine_architecture(backing_file)
+
         self.register_new_thread(pid)
         # If we are attaching to a process, we don't want to continue to the entry point
         # which we have probably already passed
@@ -320,10 +327,10 @@ class PtraceInterface(DebuggingInterface):
             self._global_state, new_thread_id
         )
 
-        register_holder = register_holder_provider(register_file)
+        register_holder = register_holder_provider(self.context.arch, register_file)
 
-        with context_extend_from(self):
-            thread = ThreadContext.new(new_thread_id, register_holder)
+        thread = provide_thread_context(self.context.arch, new_thread_id)
+        thread.set_register_holder(register_holder)
 
         link_context(thread, self)
 

@@ -22,10 +22,10 @@ def ptrace_hardware_breakpoint_manager_provider(
     poke_user: Callable[[int, int, int], None],
 ) -> PtraceHardwareBreakpointManager:
     """Returns an instance of the hardware breakpoint manager to be used by the `_InternalDebugger` class."""
-    architecture = libcontext.arch
+    platform = libcontext.platform
 
-    match architecture:
-        case "amd64":
+    match platform:
+        case "x86_64":
             return Amd64PtraceHardwareBreakpointManager(thread, peek_user, poke_user)
         case _:
-            raise NotImplementedError(f"Architecture {architecture} not available.")
+            raise NotImplementedError(f"Platform {platform} not available.")
