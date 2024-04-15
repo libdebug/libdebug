@@ -212,3 +212,81 @@ The suggested way to insert a watchpoint is the following:
 wp = d.watchpoint(position=0x1234, condition='rw', length=8, callback=None)
 ```
 The function returns a `Breakpoint` object, which can be interacted with in the same manner as traditional breakpoints. Valid conditions for the breakpoint are `w`, `rw` and `x` (default is `w`). It is also possible to specify the length of the word being watched (default is 1 byte).
+
+## Syscall Hooking
+libdebug supports hooking system calls in the debugged binary in the following way:
+```python
+def on_enter_open(d: ThreadContext, suscall_number: int):
+    print("entering open")
+    d.syscall_arg0 = 0x1
+
+def on_exit_open(d: ThreadContext, syscall_number: int):
+    print("exiting open")
+    d.syscall_return = 0x0
+
+sys_hook = d.hook_syscall(syscall="open", on_enter=on_enter_open, on_exit=on_exit_open)
+```
+`hook_syscall` accepts either a number or a string.
+If the user provides a string, a syscall definition list is downloaded from [syscalls.mebeim.net](https://syscalls.mebeim.net/?table=x86/64/x64/latest) and cached internally in order to convert it into the corresponding syscall number.
+`on_enter` and `on_exit` are optional: they are called only if present.
+
+Syscall hooks, just like breakpoints, can be enabled and disabled, and automatically count the number of invocations:
+```py
+sys_hook.disable()
+sys_hook.enable()
+
+print(sys_hook.hit_count)
+```
+Note: there can be at most one hook for each syscall.
+
+## Builtin Hooks
+libdebug provides some easy-to-use builtin hooks for syscalls:
+- antidebug_syscall_hook
+Automatically patches binaries which use the return value of `ptrace(PTRACE_TRACEME, 0, 0, 0)` to verify that no external debugger is present.
+Usage:
+```py
+from libdebug import debugger
+from libdebug.builtin import install_antidebug_syscall_hook
+
+d = debugger(...)
+d.run()
+
+install_antidebug_syscall_hook(d)
+
+d.cont()
+[...]
+```
+
+- pretty_print_syscall_hook
+Installs a hook on any syscall that automatically prints the input arguments and the corresponding return values, just like strace does.
+By default, it hooks every syscall. The user can specify either a list of syscalls to hook onto, or a list of syscalls to exclude from hooking.
+Usage:
+```py
+from libdebug import debugger
+from libdebug.builtin import install_pretty_print_syscall_hook
+
+d = debugger("/usr/bin/ls")
+d.run()
+
+install_pretty_print_syscall_hook(d,
+    # syscalls = ["execve", "open", "getcwd"],
+    # exclude = ["fork", "vfork", "exit_group"]
+)
+
+d.cont()
+[...]
+```
+This results in an output similar to:
+```
+openat(int dfd = 0xffffff9c, const char *filename = 0x7ffff7f241b0, int flags = 0x80000, umode_t mode = 0x0) = 0x3
+newfstatat(int dfd = 0x3, const char *filename = 0x7ffff7f1abd5, struct stat *statbuf = 0x7ffff7f53840, int flag = 0x1000) = 0x0
+mmap(unsigned long addr = 0x0, unsigned long len = 0xd5f8ef0, unsigned long prot = 0x1, unsigned long flags = 0x2, unsigned long fd = 0x3, unsigned long off = 0x0) = 0x7fffea600000
+close(unsigned int fd = 0x3) = 0x0
+ioctl(unsigned int fd = 0x1, unsigned int cmd = 0x5401, unsigned long arg = 0x7fffffffd3a0) = 0x0
+ioctl(unsigned int fd = 0x1, unsigned int cmd = 0x5413, unsigned long arg = 0x7fffffffd4c0) = 0x0
+openat(int dfd = 0xffffff9c, const char *filename = 0x5555555806c0, int flags = 0x90800, umode_t mode = 0x0) = 0x3
+newfstatat(int dfd = 0x3, const char *filename = 0x7ffff7f1abd5, struct stat *statbuf = 0x7fffffffd070, int flag = 0x1000) = 0x0
+getdents64(unsigned int fd = 0x3, struct linux_dirent64 *dirent = 0x555555580710, unsigned int count = 0x8000) = 0x50
+getdents64(unsigned int fd = 0x3, struct linux_dirent64 *dirent = 0x555555580710, unsigned int count = 0x8000) = 0x0
+[...]
+```
