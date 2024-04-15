@@ -7,7 +7,7 @@
 from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
 from libdebug.data.register_holder import RegisterHolder
 from libdebug.liblog import liblog
-from libdebug.state.debugging_context import debugging_context, provide_context
+from libdebug.state.debugging_context import provide_context
 from libdebug.utils.debugging_utils import resolve_address_in_maps
 
 
@@ -43,27 +43,6 @@ class ThreadContext:
     def __init__(self, thread_id: int):
         self.thread_id = thread_id
 
-    @staticmethod
-    def new(thread_id: int | None = None, registers: RegisterHolder | None = None):
-        """Creates a new thread context object.
-
-        Args:
-            thread_id (int, optional): The thread's ID. Defaults to None.
-
-        Returns:
-            ThreadContext: The thread context object.
-        """
-        if thread_id is None:
-            # If no thread ID is specified, we assume the main thread which has tid = pid
-            thread_id = debugging_context().process_id
-
-        thread = ThreadContext(thread_id)
-        thread.registers = registers
-
-        thread.registers.apply_on(thread, ThreadContext)
-
-        return thread
-
     @property
     def memory(self):
         """The memory view of the debugged process."""
@@ -74,6 +53,15 @@ class ThreadContext:
             return provide_context(self).memory
         else:
             return provide_context(self)._threaded_memory
+
+    def set_register_holder(self, registers: RegisterHolder):
+        """Sets the register holder object.
+
+        Args:
+            registers (RegisterHolder): The register holder object.
+        """
+        self.registers = registers
+        self.registers.apply_on(self, type(self))
 
     def _poll_registers(self):
         """Updates the register values."""
