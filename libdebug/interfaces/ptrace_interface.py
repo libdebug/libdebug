@@ -343,10 +343,14 @@ class PtraceInterface(DebuggingInterface):
         link_context(thread, self)
 
         self.context.insert_new_thread(thread)
-        thread_hw_bp_helper = ptrace_hardware_breakpoint_manager_provider(
-            thread, self._peek_user, self._poke_user
-        )
-        self.hardware_bp_helpers[new_thread_id] = thread_hw_bp_helper
+
+        try:
+            thread_hw_bp_helper = ptrace_hardware_breakpoint_manager_provider(
+                thread, self._peek_user, self._poke_user
+            )
+            self.hardware_bp_helpers[new_thread_id] = thread_hw_bp_helper
+        except NotImplementedError:
+            pass
 
         # For any hardware breakpoints, we need to reapply them to the new thread
         for bp in self.context.breakpoints.values():

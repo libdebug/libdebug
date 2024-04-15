@@ -18,6 +18,7 @@ if not (
     os.path.isfile("/usr/include/sys/ptrace.h")
     or os.path.isfile("/usr/include/x86_64-linux-gnu/sys/ptrace.h")
     or os.path.isfile("/usr/include/i386-linux-gnu/sys/ptrace.h")
+    or os.path.isfile("/usr/include/aarch64-linux-gnu/sys/ptrace.h")
 ):
     print("Required C libraries not found. Please install ptrace or kernel headers")
     exit(1)
