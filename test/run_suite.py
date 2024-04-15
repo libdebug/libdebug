@@ -25,6 +25,7 @@ from scripts.ncuts import Ncuts
 from scripts.waiting_test import WaitingTest, WaitingNcuts
 from scripts.speed_test import SpeedTest
 from scripts.syscall_hook_test import SyscallHookTest
+from scripts.syscall_hook_test_x86 import SyscallHookTestX86
 from scripts.thread_test import ComplexThreadTest, ThreadTest
 from scripts.vmwhere1 import Vmwhere1
 from scripts.watchpoint_test import WatchpointTest
@@ -86,6 +87,8 @@ def fast_suite():
     suite.addTest(WatchpointAliasTest("test_watchpoint_alias"))
     suite.addTest(SyscallHookTest("test_hooks"))
     suite.addTest(SyscallHookTest("test_hook_disabling"))
+    suite.addTest(SyscallHookTestX86("test_hooks"))
+    suite.addTest(SyscallHookTestX86("test_hook_disabling"))
     suite.addTest(AntidebugSyscallHookTest("test_antidebug_hook"))
     return suite
 
