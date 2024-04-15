@@ -16,15 +16,15 @@
 
 struct ptrace_hit_bp {
     int pid;
-    uint64_t addr;
-    uint64_t bp_instruction;
-    uint64_t prev_instruction;
+    unsigned long addr;
+    unsigned long bp_instruction;
+    unsigned long prev_instruction;
 };
 
 struct software_breakpoint {
-    uint64_t addr;
-    uint64_t instruction;
-    uint64_t patched_instruction;
+    unsigned long addr;
+    unsigned long instruction;
+    unsigned long patched_instruction;
     char enabled;
     struct software_breakpoint *next;
 };
@@ -189,7 +189,7 @@ void ptrace_set_options(int pid)
     ptrace(PTRACE_SETOPTIONS, pid, NULL, options);
 }
 
-uint64_t ptrace_peekdata(int pid, uint64_t addr)
+unsigned long ptrace_peekdata(int pid, unsigned long addr)
 {
     // Since the value returned by a successful PTRACE_PEEK*
     // request may be -1, the caller must clear errno before the call,
@@ -198,12 +198,12 @@ uint64_t ptrace_peekdata(int pid, uint64_t addr)
     return ptrace(PTRACE_PEEKDATA, pid, (void *)addr, NULL);
 }
 
-uint64_t ptrace_pokedata(int pid, uint64_t addr, uint64_t data)
+unsigned long ptrace_pokedata(int pid, unsigned long addr, unsigned long data)
 {
     return ptrace(PTRACE_POKEDATA, pid, (void *)addr, data);
 }
 
-uint64_t ptrace_peekuser(int pid, uint64_t addr)
+unsigned long ptrace_peekuser(int pid, unsigned long addr)
 {
     // Since the value returned by a successful PTRACE_PEEK*
     // request may be -1, the caller must clear errno before the call,
@@ -212,14 +212,14 @@ uint64_t ptrace_peekuser(int pid, uint64_t addr)
     return ptrace(PTRACE_PEEKUSER, pid, addr, NULL);
 }
 
-uint64_t ptrace_pokeuser(int pid, uint64_t addr, uint64_t data)
+unsigned long ptrace_pokeuser(int pid, unsigned long addr, unsigned long data)
 {
     return ptrace(PTRACE_POKEUSER, pid, addr, data);
 }
 
-uint64_t ptrace_geteventmsg(int pid)
+unsigned long ptrace_geteventmsg(int pid)
 {
-    uint64_t data = 0;
+    unsigned long data = 0;
 
     ptrace(PTRACE_GETEVENTMSG, pid, NULL, &data);
 
@@ -239,7 +239,7 @@ int singlestep(struct global_state *state, int tid)
     return ptrace(PTRACE_SINGLESTEP, tid, NULL, NULL);
 }
 
-int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps)
+int step_until(struct global_state *state, int tid, unsigned long addr, int max_steps)
 {
     // flush any register changes
     struct thread *t = state->t_HEAD, *stepping_thread = NULL;
@@ -254,7 +254,7 @@ int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps
     }
 
     int count = 0, status = 0;
-    uint64_t previous_ip;
+    unsigned long previous_ip;
 
     if (!stepping_thread) {
         perror("Thread not found");
@@ -305,7 +305,7 @@ int cont_all_and_set_bps(struct global_state *state, int pid)
 
     while (t != NULL) {
         t_hit = 0;
-        uint64_t ip = INSTRUCTION_POINTER(t->regs);
+        unsigned long ip = INSTRUCTION_POINTER(t->regs);
 
         b = state->b_HEAD;
         while (b != NULL && !t_hit) {
@@ -437,9 +437,9 @@ void free_thread_status_list(struct thread_status *head)
     }
 }
 
-void register_breakpoint(struct global_state *state, int pid, uint64_t address)
+void register_breakpoint(struct global_state *state, int pid, unsigned long address)
 {
-    uint64_t instruction, patched_instruction;
+    unsigned long instruction, patched_instruction;
 
     instruction = ptrace(PTRACE_PEEKDATA, pid, (void *)address, NULL);
 
@@ -483,7 +483,7 @@ void register_breakpoint(struct global_state *state, int pid, uint64_t address)
     }
 }
 
-void unregister_breakpoint(struct global_state *state, uint64_t address)
+void unregister_breakpoint(struct global_state *state, unsigned long address)
 {
     struct software_breakpoint *b = state->b_HEAD;
     struct software_breakpoint *prev = NULL;
@@ -503,7 +503,7 @@ void unregister_breakpoint(struct global_state *state, uint64_t address)
     }
 }
 
-void enable_breakpoint(struct global_state *state, uint64_t address)
+void enable_breakpoint(struct global_state *state, unsigned long address)
 {
     struct software_breakpoint *b = state->b_HEAD;
 
@@ -515,7 +515,7 @@ void enable_breakpoint(struct global_state *state, uint64_t address)
     }
 }
 
-void disable_breakpoint(struct global_state *state, uint64_t address)
+void disable_breakpoint(struct global_state *state, unsigned long address)
 {
     struct software_breakpoint *b = state->b_HEAD;
 

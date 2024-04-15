@@ -86,15 +86,15 @@ ffibuilder.cdef(
     + """
     struct ptrace_hit_bp {
         int pid;
-        uint64_t addr;
-        uint64_t bp_instruction;
-        uint64_t prev_instruction;
+        unsigned long addr;
+        unsigned long bp_instruction;
+        unsigned long prev_instruction;
     };
 
     struct software_breakpoint {
-        uint64_t addr;
-        uint64_t instruction;
-        uint64_t patched_instruction;
+        unsigned long addr;
+        unsigned long instruction;
+        unsigned long patched_instruction;
         char enabled;
         struct software_breakpoint *next;
     };
@@ -125,16 +125,16 @@ ffibuilder.cdef(
     void ptrace_reattach_from_gdb(struct global_state *state, int pid);
     void ptrace_set_options(int pid);
 
-    uint64_t ptrace_peekdata(int pid, uint64_t addr);
-    uint64_t ptrace_pokedata(int pid, uint64_t addr, uint64_t data);
+    unsigned long ptrace_peekdata(int pid, unsigned long addr);
+    unsigned long ptrace_pokedata(int pid, unsigned long addr, unsigned long data);
 
-    uint64_t ptrace_peekuser(int pid, uint64_t addr);
-    uint64_t ptrace_pokeuser(int pid, uint64_t addr, uint64_t data);
+    unsigned long ptrace_peekuser(int pid, unsigned long addr);
+    unsigned long ptrace_pokeuser(int pid, unsigned long addr, unsigned long data);
 
-    uint64_t ptrace_geteventmsg(int pid);
+    unsigned long ptrace_geteventmsg(int pid);
 
     int singlestep(struct global_state *state, int tid);
-    int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps);
+    int step_until(struct global_state *state, int tid, unsigned long addr, int max_steps);
 
     int cont_all_and_set_bps(struct global_state *state, int pid);
 
@@ -145,10 +145,10 @@ ffibuilder.cdef(
     void unregister_thread(struct global_state *state, int tid);
     void free_thread_list(struct global_state *state);
 
-    void register_breakpoint(struct global_state *state, int pid, uint64_t address);
-    void unregister_breakpoint(struct global_state *state, uint64_t address);
-    void enable_breakpoint(struct global_state *state, uint64_t address);
-    void disable_breakpoint(struct global_state *state, uint64_t address);
+    void register_breakpoint(struct global_state *state, int pid, unsigned long address);
+    void unregister_breakpoint(struct global_state *state, unsigned long address);
+    void enable_breakpoint(struct global_state *state, unsigned long address);
+    void disable_breakpoint(struct global_state *state, unsigned long address);
     void free_breakpoints(struct global_state *state);
 """
 )
