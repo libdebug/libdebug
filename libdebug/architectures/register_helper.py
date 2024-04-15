@@ -15,6 +15,9 @@ from libdebug.architectures.i386.i386_ptrace_register_holder import (
 from libdebug.architectures.i386.i386_over_am64_ptrace_register_holder import (
     I386POverAmd64traceRegisterHolder,
 )
+from libdebug.architectures.aarch64.aarch64_ptrace_register_holder import (
+    Aarch64PtraceRegisterHolder,
+)
 from libdebug.data.register_holder import RegisterHolder
 from libdebug.utils.libcontext import libcontext
 
@@ -35,6 +38,8 @@ def register_holder_provider(
             return I386POverAmd64traceRegisterHolder(register_file)
         case "i386", "i686":
             return I386PtraceRegisterHolder(register_file)
+        case "aarch64", "aarch64":
+            return Aarch64PtraceRegisterHolder(register_file)
         case _:
             raise NotImplementedError(
                 f"Architecture {architecture} on platform {platform} not available."

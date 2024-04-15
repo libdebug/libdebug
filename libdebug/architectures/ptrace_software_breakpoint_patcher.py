@@ -13,5 +13,7 @@ def software_breakpoint_byte_size(arch: str) -> int:
             return 1
         case "i386":
             return 1
+        case "aarch64":
+            return 4
         case _:
             raise ValueError(f"Unsupported architecture: {arch}")
