@@ -6,6 +6,9 @@
 
 from typing import Callable
 
+from libdebug.architectures.aarch64.aarch64_ptrace_hw_bp_helper import (
+    Aarch64HardwareBreakpointManager,
+)
 from libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper import (
     Amd64PtraceHardwareBreakpointManager,
 )
@@ -32,5 +35,7 @@ def ptrace_hardware_breakpoint_manager_provider(
             return Amd64PtraceHardwareBreakpointManager(thread, peek_user, poke_user)
         case "i686":
             return I386PtraceHardwareBreakpointManager(thread, peek_user, poke_user)
+        case "aarch64":
+            return Aarch64HardwareBreakpointManager(thread, peek_user, poke_user)
         case _:
             raise NotImplementedError(f"Platform {platform} not available.")

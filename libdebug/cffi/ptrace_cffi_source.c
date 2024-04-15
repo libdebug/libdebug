@@ -17,6 +17,8 @@
 #if defined __aarch64__
 #include <elf.h>
 #include <sys/uio.h>
+
+#define SIZEOF_STRUCT_HWDEBUG_STATE 8 + (16 * 16)
 #endif
 
 struct ptrace_hit_bp {
@@ -54,7 +56,7 @@ struct global_state {
 
 int get_registers(int tid, struct ptrace_user_regs_struct *regs)
 {
-#if defined __x86_64__ || defined(__i386__) 
+#if defined __x86_64__ || defined __i386__
     return ptrace(PTRACE_GETREGS, tid, NULL, regs);
 #elif defined __aarch64__
     struct iovec iov;
@@ -63,12 +65,13 @@ int get_registers(int tid, struct ptrace_user_regs_struct *regs)
     return ptrace(PTRACE_GETREGSET, tid, NT_PRSTATUS, &iov);
 #else
     #error "Unsupported architecture"
+    return 0;
 #endif
 }
 
 int set_registers(int tid, struct ptrace_user_regs_struct *regs)
 {
-#if defined __x86_64__ || defined(__i386__)
+#if defined __x86_64__ || defined __i386__
     return ptrace(PTRACE_SETREGS, tid, NULL, regs);
 #elif defined __aarch64__
     struct iovec iov;
@@ -77,6 +80,7 @@ int set_registers(int tid, struct ptrace_user_regs_struct *regs)
     return ptrace(PTRACE_SETREGSET, tid, NT_PRSTATUS, &iov);
 #else
     #error "Unsupported architecture"
+    return 0;
 #endif
 }
 
@@ -242,12 +246,60 @@ unsigned long ptrace_peekuser(int pid, unsigned long addr)
     // request may be -1, the caller must clear errno before the call,
     errno = 0;
 
+#if defined __x86_64__ || defined __i386__
     return ptrace(PTRACE_PEEKUSER, pid, addr, NULL);
+#elif defined __aarch64__
+    unsigned char *data = malloc(SIZEOF_STRUCT_HWDEBUG_STATE);
+    memset(data, 0, SIZEOF_STRUCT_HWDEBUG_STATE);
+
+    struct iovec iov;
+    iov.iov_base = data;
+    iov.iov_len = SIZEOF_STRUCT_HWDEBUG_STATE;
+
+    unsigned long command = (addr & 0x1000) ? NT_ARM_HW_WATCH : NT_ARM_HW_BREAK;
+    addr &= ~0x1000;
+    
+    ptrace(PTRACE_GETREGSET, pid, command, &iov);
+
+    unsigned long result = *(unsigned long *) (data + addr);
+
+    free(data);
+    
+    return result;
+#else
+    #error "Unsupported architecture"
+    return 0;
+#endif
 }
 
 unsigned long ptrace_pokeuser(int pid, unsigned long addr, unsigned long data)
 {
+#if defined __x86_64__ || defined __i386__
     return ptrace(PTRACE_POKEUSER, pid, addr, data);
+#elif defined __aarch64__
+    unsigned char *dbg_data = malloc(SIZEOF_STRUCT_HWDEBUG_STATE);
+    memset(dbg_data, 0, SIZEOF_STRUCT_HWDEBUG_STATE);
+
+    struct iovec iov;
+    iov.iov_base = dbg_data;
+    iov.iov_len = SIZEOF_STRUCT_HWDEBUG_STATE;
+
+    unsigned long command = (addr & 0x1000) ? NT_ARM_HW_WATCH : NT_ARM_HW_BREAK;
+    addr &= ~0x1000;
+    
+    ptrace(PTRACE_GETREGSET, pid, command, &iov);
+
+    *(unsigned long *) (dbg_data + addr) = data;
+        
+    ptrace(PTRACE_SETREGSET, pid, command, &iov);
+
+    free(dbg_data);
+    
+    return 0;
+#else
+    #error "Unsupported architecture"
+    return 0;
+#endif
 }
 
 unsigned long ptrace_geteventmsg(int pid)
