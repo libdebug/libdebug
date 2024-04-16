@@ -6,15 +6,18 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
-import psutil
 from queue import Queue
 from subprocess import Popen
-import sys
 from threading import Thread
 from typing import Callable
 
-from libdebug.architectures.ptrace_software_breakpoint_patcher import software_breakpoint_byte_size
+import psutil
+
+from libdebug.architectures.ptrace_software_breakpoint_patcher import (
+    software_breakpoint_byte_size,
+)
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
 from libdebug.data.syscall_hook import SyscallHook
@@ -600,13 +603,13 @@ class _InternalDebugger:
             self._peek_memory,
             self._poke_memory,
             self.interface.maps,
-            unit_size=libcontext.system_register_size
+            unit_size=libcontext.system_register_size,
         )
         self._threaded_memory = MemoryView(
             self.__threaded_peek_memory,
             self.__threaded_poke_memory,
             self.interface.maps,
-            unit_size=libcontext.system_register_size
+            unit_size=libcontext.system_register_size,
         )
 
         self.context.memory = self.memory

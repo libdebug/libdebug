@@ -5,7 +5,7 @@
 #
 
 from libdebug.data.register_holder import PtraceRegisterHolder
-from libdebug.utils.register_utils import get_reg_32, set_reg_32, get_reg_64, set_reg_64
+from libdebug.utils.register_utils import get_reg_32, get_reg_64, set_reg_32, set_reg_64
 
 
 class Aarch64PtraceRegisterHolder(PtraceRegisterHolder):

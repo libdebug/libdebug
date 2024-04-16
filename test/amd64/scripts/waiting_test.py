@@ -10,7 +10,6 @@ from libdebug import debugger
 
 
 class WaitingTest(unittest.TestCase):
-
     def test_bps_waiting(self):
         d = debugger("binaries/breakpoint_test", auto_interrupt_on_command=True)
 
@@ -87,6 +86,7 @@ class WaitingTest(unittest.TestCase):
         d.kill()
 
         self.assertEqual(flag, "SECCON{jump_table_everywhere}")
+
 
 class WaitingNcuts(unittest.TestCase):
     def setUp(self):

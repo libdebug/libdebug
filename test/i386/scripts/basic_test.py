@@ -26,9 +26,9 @@ class BasicTest(unittest.TestCase):
         d.run()
 
         bp1 = d.breakpoint(0x8049185)
-        bp2 = d.breakpoint(0x80491a2)
-        bp3 = d.breakpoint(0x80491c6)
-        bp4 = d.breakpoint(0x80491cf)
+        bp2 = d.breakpoint(0x80491A2)
+        bp3 = d.breakpoint(0x80491C6)
+        bp4 = d.breakpoint(0x80491CF)
 
         d.cont()
         self.assertTrue(bp1.address == d.eip)

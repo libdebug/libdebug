@@ -229,7 +229,6 @@ class CallbackTest(unittest.TestCase):
         r.sendline(b"A" * 0x1D)
 
         while True:
-
             if d.rip == bp.address:
                 address = d.r13 + d.rbx
                 third = int.from_bytes(d.memory[address : address + 1], "little")

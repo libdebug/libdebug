@@ -4,13 +4,13 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-from libdebug.state.thread_context import ThreadContext
+from libdebug.architectures.aarch64.aarch64_thread_context import ThreadContextAarch64
 from libdebug.architectures.amd64.amd64_thread_context import ThreadContextAmd64
-from libdebug.architectures.i386.i386_thread_context import ThreadContextI386
 from libdebug.architectures.i386.i386_over_amd64_thread_context import (
     ThreadContextI386OverAmd64,
 )
-from libdebug.architectures.aarch64.aarch64_thread_context import ThreadContextAarch64
+from libdebug.architectures.i386.i386_thread_context import ThreadContextI386
+from libdebug.state.thread_context import ThreadContext
 from libdebug.utils.libcontext import libcontext
 
 

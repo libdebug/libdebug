@@ -101,7 +101,7 @@ class LibContext:
         Returns:
             _system_register_size (int): the current system register size.
         """
-        return 8 if sys.maxsize > 2 ** 32 else 4
+        return 8 if sys.maxsize > 2**32 else 4
 
     @property
     def sym_lvl(self) -> int:

@@ -6,7 +6,6 @@
 
 import os
 
-
 POSIX_SPAWN_CLOSE = 0
 POSIX_SPAWN_DUP2 = 1
 POSIX_SPAWN_OPEN = 2

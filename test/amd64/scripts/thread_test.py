@@ -122,7 +122,6 @@ class ComplexThreadTest(unittest.TestCase):
         d.cont()
 
         while True:
-
             if len(d.threads) == 2:
                 t1 = d.threads[1]
 

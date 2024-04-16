@@ -4,9 +4,9 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+import os
 import platform
 import sys
-import os
 
 architectures = os.listdir(".")
 architectures.remove("other")

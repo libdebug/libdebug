@@ -36,7 +36,6 @@ class Vmwhere1(unittest.TestCase):
 
                 r.sendline(flag + el.encode())
 
-
                 while d.rip == bp.address:
                     d.cont()
 
@@ -80,7 +79,6 @@ class Vmwhere1(unittest.TestCase):
                 r.recvuntil(b"the password:\n")
 
                 r.sendline(flag + el.encode())
-
 
                 message = r.recvline()
 

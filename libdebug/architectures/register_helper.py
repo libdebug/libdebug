@@ -6,17 +6,17 @@
 
 from typing import Callable
 
+from libdebug.architectures.aarch64.aarch64_ptrace_register_holder import (
+    Aarch64PtraceRegisterHolder,
+)
 from libdebug.architectures.amd64.amd64_ptrace_register_holder import (
     Amd64PtraceRegisterHolder,
-)
-from libdebug.architectures.i386.i386_ptrace_register_holder import (
-    I386PtraceRegisterHolder,
 )
 from libdebug.architectures.i386.i386_over_am64_ptrace_register_holder import (
     I386POverAmd64traceRegisterHolder,
 )
-from libdebug.architectures.aarch64.aarch64_ptrace_register_holder import (
-    Aarch64PtraceRegisterHolder,
+from libdebug.architectures.i386.i386_ptrace_register_holder import (
+    I386PtraceRegisterHolder,
 )
 from libdebug.data.register_holder import RegisterHolder
 from libdebug.utils.libcontext import libcontext

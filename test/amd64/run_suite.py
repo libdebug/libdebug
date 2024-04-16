@@ -8,7 +8,7 @@ import sys
 import unittest
 
 from scripts.attach_test import AttachTest
-from scripts.auto_waiting_test import AutoWaitingTest, AutoWaitingNcuts
+from scripts.auto_waiting_test import AutoWaitingNcuts, AutoWaitingTest
 from scripts.backtrace_test import BacktraceTest
 from scripts.backtrace_test_x86 import BacktraceTestX86
 from scripts.basic_test import BasicPieTest, BasicTest, ControlFlowTest, HwBasicTest
@@ -17,21 +17,21 @@ from scripts.breakpoint_test import BreakpointTest
 from scripts.brute_test import BruteTest
 from scripts.builtin_hooks_test import AntidebugSyscallHookTest
 from scripts.callback_test import CallbackTest
+from scripts.deep_dive_division import DeepDiveDivision
 from scripts.jumpout import Jumpout
 from scripts.large_binary_sym_test import LargeBinarySymTest
 from scripts.memory_test import MemoryTest
 from scripts.multiple_debuggers_test import MultipleDebuggersTest
 from scripts.ncuts import Ncuts
-from scripts.waiting_test import WaitingTest, WaitingNcuts
 from scripts.speed_test import SpeedTest
 from scripts.syscall_hook_test import SyscallHookTest
 from scripts.syscall_hook_test_x86 import SyscallHookTestX86
 from scripts.thread_test import ComplexThreadTest, ThreadTest
 from scripts.thread_test_x86 import ThreadTestX86
 from scripts.vmwhere1 import Vmwhere1
-from scripts.watchpoint_test import WatchpointTest
+from scripts.waiting_test import WaitingNcuts, WaitingTest
 from scripts.watchpoint_alias_test import WatchpointAliasTest
-from scripts.deep_dive_division import DeepDiveDivision
+from scripts.watchpoint_test import WatchpointTest
 
 
 def fast_suite():

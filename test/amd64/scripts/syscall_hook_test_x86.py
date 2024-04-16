@@ -34,18 +34,18 @@ class SyscallHookTestX86(unittest.TestCase):
                 write_count += 1
 
         def on_exit_mmap(d, syscall_number):
-            self.assertTrue(syscall_number == 0xc0)
+            self.assertTrue(syscall_number == 0xC0)
 
             nonlocal ptr
 
             ptr = d.eax
 
         def on_enter_getcwd(d, syscall_number):
-            self.assertTrue(syscall_number == 0xb7)
+            self.assertTrue(syscall_number == 0xB7)
             self.assertEqual(d.ebx, ptr)
 
         def on_exit_getcwd(d, syscall_number):
-            self.assertTrue(syscall_number == 0xb7)
+            self.assertTrue(syscall_number == 0xB7)
             self.assertEqual(d.memory[d.ebx, 8], os.getcwd()[:8].encode())
 
         hook1 = d.hook_syscall("write", on_enter_write, None)
@@ -86,23 +86,23 @@ class SyscallHookTestX86(unittest.TestCase):
                 write_count += 1
 
         def on_exit_mmap(d, syscall_number):
-            self.assertTrue(syscall_number == 0xc0)
+            self.assertTrue(syscall_number == 0xC0)
 
             nonlocal ptr
 
             ptr = d.eax
 
         def on_enter_getcwd(d, syscall_number):
-            self.assertTrue(syscall_number == 0xb7)
+            self.assertTrue(syscall_number == 0xB7)
             self.assertEqual(d.ebx, ptr)
 
         def on_exit_getcwd(d, syscall_number):
-            self.assertTrue(syscall_number == 0xb7)
+            self.assertTrue(syscall_number == 0xB7)
             self.assertEqual(d.memory[d.ebx, 8], os.getcwd()[:8].encode())
 
         hook1 = d.hook_syscall(4, on_enter_write, None)
-        hook2 = d.hook_syscall(0xc0, None, on_exit_mmap)
-        hook3 = d.hook_syscall(0xb7, on_enter_getcwd, on_exit_getcwd)
+        hook2 = d.hook_syscall(0xC0, None, on_exit_mmap)
+        hook3 = d.hook_syscall(0xB7, on_enter_getcwd, on_exit_getcwd)
 
         r.sendline(b"provola")
 

@@ -8,6 +8,7 @@ import functools
 import json
 import os
 from pathlib import Path
+
 import requests
 
 SYSCALLS_REMOTE = "https://syscalls.mebeim.net/db"

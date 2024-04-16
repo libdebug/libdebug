@@ -4,13 +4,13 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+from libdebug.state.thread_context import ThreadContext
 from libdebug.utils.syscall_utils import (
+    get_all_syscall_numbers,
+    resolve_syscall_arguments,
     resolve_syscall_name,
     resolve_syscall_number,
-    resolve_syscall_arguments,
-    get_all_syscall_numbers,
 )
-from libdebug.state.thread_context import ThreadContext
 
 
 def install_pretty_print_syscall_hook(

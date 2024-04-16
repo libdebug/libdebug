@@ -10,7 +10,6 @@ from libdebug import debugger
 
 
 class WatchpointAliasTest(unittest.TestCase):
-
     def test_watchpoint_alias(self):
         d = debugger("binaries/watchpoint_test", auto_interrupt_on_command=False)
 
@@ -22,23 +21,25 @@ class WatchpointAliasTest(unittest.TestCase):
 
         d.cont()
 
-        self.assertEqual(d.rip, 0x401111) # mov byte ptr [global_char], 0x1
+        self.assertEqual(d.rip, 0x401111)  # mov byte ptr [global_char], 0x1
 
         d.cont()
 
-        self.assertEqual(d.rip, 0x401124) # mov dword ptr [global_int], 0x4050607
+        self.assertEqual(d.rip, 0x401124)  # mov dword ptr [global_int], 0x4050607
 
         d.cont()
 
-        self.assertEqual(d.rip, 0x401135) # mov qword ptr [global_long], 0x8090a0b0c0d0e0f
+        self.assertEqual(
+            d.rip, 0x401135
+        )  # mov qword ptr [global_long], 0x8090a0b0c0d0e0f
 
         d.cont()
 
-        self.assertEqual(d.rip, 0x401155) # movzx eax, byte ptr [global_char]
+        self.assertEqual(d.rip, 0x401155)  # movzx eax, byte ptr [global_char]
 
         d.cont()
 
-        self.assertEqual(d.rip, 0x401173) # mov rax, qword ptr [global_long]
+        self.assertEqual(d.rip, 0x401173)  # mov rax, qword ptr [global_long]
 
         d.cont()
 

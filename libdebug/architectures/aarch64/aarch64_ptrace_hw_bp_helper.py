@@ -13,7 +13,6 @@ from libdebug.data.breakpoint import Breakpoint
 from libdebug.liblog import liblog
 from libdebug.state.thread_context import ThreadContext
 
-
 AARCH64_DBREGS_OFF = {}
 
 AARCH64_VALID_SIZES = {1, 2, 4, 8}
@@ -87,7 +86,9 @@ class Aarch64HardwareBreakpointManager(PtraceHardwareBreakpointManager):
         condition = AARCH64_COND_VAL[bp.condition]
         control = length << 5 | condition << 3 | enable
 
-        self.poke_user(self.thread.thread_id, AARCH64_DBREGS_OFF[register] + 0, bp.address)
+        self.poke_user(
+            self.thread.thread_id, AARCH64_DBREGS_OFF[register] + 0, bp.address
+        )
         self.poke_user(self.thread.thread_id, AARCH64_DBREGS_OFF[register] + 8, control)
 
         self.breakpoint_registers[register] = bp

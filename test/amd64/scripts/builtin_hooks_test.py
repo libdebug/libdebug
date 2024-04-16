@@ -4,8 +4,8 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-import unittest
 import string
+import unittest
 
 from libdebug import debugger
 from libdebug.builtin import install_antidebug_hook

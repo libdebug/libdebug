@@ -37,7 +37,6 @@ class MultipleDebuggersTest(unittest.TestCase):
         disable_red = False
 
         while True:
-
             if bpd.rip == bp1.address:
                 self.assertTrue(bp1.hit_count == 1)
                 self.assertTrue(bp1.hit_on(bpd))
