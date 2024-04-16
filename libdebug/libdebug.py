@@ -10,6 +10,7 @@ from pathlib import Path
 import psutil
 from queue import Queue
 from subprocess import Popen
+import sys
 from threading import Thread
 from typing import Callable
 
@@ -713,12 +714,12 @@ class _InternalDebugger:
     def __threaded_peek_memory(self, address: int) -> bytes | BaseException:
         try:
             value = self.interface.peek_memory(address)
-            return value.to_bytes(libcontext.system_register_size, "little")
+            return value.to_bytes(libcontext.system_register_size, sys.byteorder)
         except BaseException as e:
             return e
 
     def __threaded_poke_memory(self, address: int, data: bytes):
-        int_data = int.from_bytes(data, "little")
+        int_data = int.from_bytes(data, sys.byteorder)
         self.interface.poke_memory(address, int_data)
 
     def __threaded_migrate_to_gdb(self):
