@@ -15,6 +15,7 @@ from typing import Callable
 
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
+from libdebug.data.syscall_hook import SyscallHook
 from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.interfaces.interface_helper import provide_debugging_interface
 from libdebug.liblog import liblog
@@ -27,6 +28,7 @@ from libdebug.state.debugging_context import (
 )
 from libdebug.state.thread_context import ThreadContext
 from libdebug.utils.libcontext import libcontext
+from libdebug.utils.syscall_utils import resolve_syscall_number
 
 THREAD_TERMINATE = -1
 GDB_GOBACK_LOCATION = str((Path(__file__).parent / "utils" / "gdb.py").resolve())
@@ -101,13 +103,13 @@ class _InternalDebugger:
 
     def run(self):
         """Starts the process and waits for it to stop."""
-        
+
         if not self.context.argv:
             raise RuntimeError("No binary file specified.")
-    
+
         if not os.path.isfile(provide_context(self).argv[0]):
             raise RuntimeError("The specified binary file does not exist.")
-        
+
         if self.instanced:
             liblog.debugger("Process already running, stopping it before restarting.")
             self.kill()
@@ -216,8 +218,7 @@ class _InternalDebugger:
 
         self.context.interrupt()
 
-        self._polling_thread_command_queue.put((self.__threaded_wait, ()))
-        self._polling_thread_command_queue.join()
+        self.wait()
 
     def wait(self):
         """Waits for the process to stop."""
@@ -380,6 +381,70 @@ class _InternalDebugger:
             length=length,
             callback=callback,
         )
+
+    def hook_syscall(
+        self,
+        syscall: int | str,
+        on_enter: Callable[[ThreadContext, int], None] = None,
+        on_exit: Callable[[ThreadContext, int], None] = None,
+    ) -> SyscallHook:
+        """Hooks a syscall in the target process.
+
+        Args:
+            syscall (int | str): The syscall name or number to hook.
+            on_enter (Callable[[ThreadContext, int], None], optional): The callback to execute when the syscall is entered. Defaults to None.
+            on_exit (Callable[[ThreadContext, int], None], optional): The callback to execute when the syscall is exited. Defaults to None.
+
+        Returns:
+            SyscallHook: The syscall hook object.
+        """
+        self._ensure_process_stopped()
+
+        if on_enter is None and on_exit is None:
+            raise ValueError(
+                "At least one callback between on_enter and on_exit should be specified."
+            )
+
+        if isinstance(syscall, str):
+            syscall_number = resolve_syscall_number(syscall)
+        else:
+            syscall_number = syscall
+
+        if syscall_number in self.context.syscall_hooks:
+            raise ValueError(
+                f"Syscall {syscall} is already hooked. Please unhook it first."
+            )
+
+        hook = SyscallHook(syscall_number, on_enter, on_exit)
+
+        link_context(hook, self)
+
+        self._polling_thread_command_queue.put((self.__threaded_syscall_hook, (hook,)))
+
+        # Wait for the background thread to signal "task done" before returning
+        # We don't want any asynchronous behaviour here
+        self._polling_thread_command_queue.join()
+
+        return hook
+
+    def unhook_syscall(self, hook: SyscallHook):
+        """Unhooks a syscall in the target process.
+
+        Args:
+            hook (SyscallHook): The syscall hook to unhook.
+        """
+        self._ensure_process_stopped()
+
+        if hook.syscall_number not in self.context.syscall_hooks:
+            raise ValueError(f"Syscall {hook.syscall_number} is not hooked.")
+
+        self._polling_thread_command_queue.put(
+            (self.__threaded_syscall_unhook, (hook,))
+        )
+
+        # Wait for the background thread to signal "task done" before returning
+        # We don't want any asynchronous behaviour here
+        self._polling_thread_command_queue.join()
 
     def migrate_to_gdb(self, open_in_new_process: bool = True):
         """Migrates the current debugging session to GDB."""
@@ -573,18 +638,26 @@ class _InternalDebugger:
 
     def __threaded_kill(self):
         if self.context.argv:
-            liblog.debugger("Killing process %s (%d).", self.context.argv[0], self.context.process_id)
+            liblog.debugger(
+                "Killing process %s (%d).",
+                self.context.argv[0],
+                self.context.process_id,
+            )
         else:
             liblog.debugger("Killing process %d.", self.context.process_id)
-        
+
         self.interface.kill()
 
     def __threaded_cont(self):
         if self.context.argv:
-            liblog.debugger("Continuing process %s (%d).", self.context.argv[0], self.context.process_id)
+            liblog.debugger(
+                "Continuing process %s (%d).",
+                self.context.argv[0],
+                self.context.process_id,
+            )
         else:
             liblog.debugger("Continuing process %d.", self.context.process_id)
-            
+
         self.interface.cont()
         self.context.set_running()
 
@@ -592,9 +665,21 @@ class _InternalDebugger:
         liblog.debugger("Setting breakpoint at 0x%x.", bp.address)
         self.interface.set_breakpoint(bp)
 
+    def __threaded_syscall_hook(self, hook: SyscallHook):
+        liblog.debugger("Hooking syscall %d.", hook.syscall_number)
+        self.interface.set_syscall_hook(hook)
+
+    def __threaded_syscall_unhook(self, hook: SyscallHook):
+        liblog.debugger("Unhooking syscall %d.", hook.syscall_number)
+        self.interface.unset_syscall_hook(hook)
+
     def __threaded_wait(self):
         if self.context.argv:
-            liblog.debugger("Waiting for process %s (%d) to stop.", self.context.argv[0], self.context.process_id)
+            liblog.debugger(
+                "Waiting for process %s (%d) to stop.",
+                self.context.argv[0],
+                self.context.process_id,
+            )
         else:
             liblog.debugger("Waiting for process %d to stop.", self.context.process_id)
 

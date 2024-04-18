@@ -85,6 +85,7 @@ ffibuilder.cdef(
     struct global_state {
         struct thread *t_HEAD;
         struct software_breakpoint *b_HEAD;
+        _Bool syscall_hooks_enabled;
     };
 
 

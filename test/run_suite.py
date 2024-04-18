@@ -13,6 +13,7 @@ from scripts.backtrace_test import BacktraceTest
 from scripts.basic_test import BasicPieTest, BasicTest, ControlFlowTest, HwBasicTest
 from scripts.breakpoint_test import BreakpointTest
 from scripts.brute_test import BruteTest
+from scripts.builtin_hooks_test import AntidebugEscapingTest
 from scripts.callback_test import CallbackTest
 from scripts.jumpout import Jumpout
 from scripts.large_binary_sym_test import LargeBinarySymTest
@@ -21,6 +22,7 @@ from scripts.multiple_debuggers_test import MultipleDebuggersTest
 from scripts.ncuts import Ncuts
 from scripts.waiting_test import WaitingTest, WaitingNcuts
 from scripts.speed_test import SpeedTest
+from scripts.syscall_hook_test import SyscallHookTest
 from scripts.thread_test import ComplexThreadTest, ThreadTest
 from scripts.vmwhere1 import Vmwhere1
 from scripts.watchpoint_test import WatchpointTest
@@ -75,6 +77,9 @@ def fast_suite():
     suite.addTest(AutoWaitingNcuts("test_ncuts"))
     suite.addTest(WatchpointTest("test_watchpoint"))
     suite.addTest(WatchpointAliasTest("test_watchpoint_alias"))
+    suite.addTest(SyscallHookTest("test_hooks"))
+    suite.addTest(SyscallHookTest("test_hook_disabling"))
+    suite.addTest(AntidebugEscapingTest("test_antidebug_escaping"))
     return suite
 
 

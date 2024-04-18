@@ -5,13 +5,13 @@ libdebug is a Python library to automate the debugging of a binary executable.
 ```bash
 python3 -m pip install git+https://github.com/libdebug/libdebug.git
 ```
-PyPy3 is supported but not recommended, as it performs worse.
+PyPy3 is supported but not recommended, as it performs worse on most of our tests.
 
 ### Installation Requirements:
-Ubuntu: `sudo apt-get install -y python3 python3-dev python3-pip libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg`  
-Debian: `sudo apt-get install -y python3 python3-dev python3-pip python3-venv libdwarf-dev libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg`  
-Fedora: `sudo dnf install -y python3 python3-devel kernel-devel pypy3 pypy3-devel binutils-devel libdwarf-devel`  
-Arch Linux: `sudo pacman -S --noconfirm python python-pip pypy3 libelf libdwarf gcc make debuginfod`  
+Ubuntu: `sudo apt install -y python3 python3-dev libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg`
+Debian: `sudo apt install -y python3 python3-dev libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg`
+Fedora: `sudo dnf install -y python3 python3-devel kernel-devel binutils-devel libdwarf-devel`
+Arch Linux: `sudo pacman -S python libelf libdwarf gcc make debuginfod`
 
 ## Run and Attach
 The first step of a libdebug script is creating a debugger object. This can be done with the function `debugger(argv,...)`. You can either provide a path or an array of arguments. Once your debugger object has been created, you can use the method `run` to start it
@@ -63,9 +63,9 @@ d.kill()
 Instead, when set to True, every debugging command transparenty stops the execution of the program to perform the requested action as soon as possible.
 
 ```python
-d = debugger("./binary")
+d = debugger("./binary", auto_interrupt_on_command=True)
 
-bp = d.breakpoint("function", auto_interrupt_on_command=True)
+bp = d.breakpoint("function")
 
 d.run()
 d.cont()
@@ -174,7 +174,7 @@ bp = d.breakpoint(position=0x1234, hardware=False, condition=None, length=1, cal
 
 For your convenience, a Breakpoint object counts the number of times the breakpoint has been hit. The current count can be accessed though the `hit_count` property:
 ```python
-bp = d.breakpoint(0x1234, auto_interrupt_on_command=True)
+bp = d.breakpoint(0x1234)
 d.cont()
 
 for i in range(15):
@@ -212,3 +212,81 @@ The suggested way to insert a watchpoint is the following:
 wp = d.watchpoint(position=0x1234, condition='rw', length=8, callback=None)
 ```
 The function returns a `Breakpoint` object, which can be interacted with in the same manner as traditional breakpoints. Valid conditions for the breakpoint are `w`, `rw` and `x` (default is `w`). It is also possible to specify the length of the word being watched (default is 1 byte).
+
+## Syscall Hooking
+libdebug supports hooking system calls in the debugged binary in the following way:
+```python
+def on_enter_open(d: ThreadContext, syscall_number: int):
+    print("entering open")
+    d.syscall_arg0 = 0x1
+
+def on_exit_open(d: ThreadContext, syscall_number: int):
+    print("exiting open")
+    d.syscall_return = 0x0
+
+sys_hook = d.hook_syscall(syscall="open", on_enter=on_enter_open, on_exit=on_exit_open)
+```
+`hook_syscall` accepts either a number or a string.
+If the user provides a string, a syscall definition list is downloaded from [syscalls.mebeim.net](https://syscalls.mebeim.net/?table=x86/64/x64/latest) and cached internally in order to convert it into the corresponding syscall number.
+`on_enter` and `on_exit` are optional: they are called only if present. At least one callback is required between `on_enter` and `on_exit` to make the hook meaningful.
+
+Syscall hooks, just like breakpoints, can be enabled and disabled, and automatically count the number of invocations:
+```py
+sys_hook.disable()
+sys_hook.enable()
+
+print(sys_hook.hit_count)
+```
+Note: there can be at most one hook for each syscall.
+
+## Builtin Hooks
+libdebug provides some easy-to-use builtin hooks for syscalls:
+- antidebug_escaping
+Automatically patches binaries which use the return value of `ptrace(PTRACE_TRACEME, 0, 0, 0)` to verify that no external debugger is present.
+Usage:
+```py
+from libdebug import debugger
+from libdebug.builtin import antidebug_escaping
+
+d = debugger(...)
+d.run()
+
+antidebug_escaping(d)
+
+d.cont()
+[...]
+```
+
+- pretty_print_syscall
+Installs a hook on any syscall that automatically prints the input arguments and the corresponding return values, just like strace does.
+By default, it hooks every syscall. The user can specify either a list of syscalls to hook onto, or a list of syscalls to exclude from hooking.
+Usage:
+```py
+from libdebug import debugger
+from libdebug.builtin import pretty_print_syscall
+
+d = debugger("/usr/bin/ls")
+d.run()
+
+pretty_print_syscall(d,
+    # syscalls = ["execve", "open", "getcwd"],
+    # exclude = ["fork", "vfork", "exit_group"]
+)
+
+d.cont()
+[...]
+```
+This results in an output similar to:
+```
+openat(int dfd = 0xffffff9c, const char *filename = 0x7ffff7f241b0, int flags = 0x80000, umode_t mode = 0x0) = 0x3
+newfstatat(int dfd = 0x3, const char *filename = 0x7ffff7f1abd5, struct stat *statbuf = 0x7ffff7f53840, int flag = 0x1000) = 0x0
+mmap(unsigned long addr = 0x0, unsigned long len = 0xd5f8ef0, unsigned long prot = 0x1, unsigned long flags = 0x2, unsigned long fd = 0x3, unsigned long off = 0x0) = 0x7fffea600000
+close(unsigned int fd = 0x3) = 0x0
+ioctl(unsigned int fd = 0x1, unsigned int cmd = 0x5401, unsigned long arg = 0x7fffffffd3a0) = 0x0
+ioctl(unsigned int fd = 0x1, unsigned int cmd = 0x5413, unsigned long arg = 0x7fffffffd4c0) = 0x0
+openat(int dfd = 0xffffff9c, const char *filename = 0x5555555806c0, int flags = 0x90800, umode_t mode = 0x0) = 0x3
+newfstatat(int dfd = 0x3, const char *filename = 0x7ffff7f1abd5, struct stat *statbuf = 0x7fffffffd070, int flag = 0x1000) = 0x0
+getdents64(unsigned int fd = 0x3, struct linux_dirent64 *dirent = 0x555555580710, unsigned int count = 0x8000) = 0x50
+getdents64(unsigned int fd = 0x3, struct linux_dirent64 *dirent = 0x555555580710, unsigned int count = 0x8000) = 0x0
+[...]
+```
