@@ -241,34 +241,34 @@ Note: there can be at most one hook for each syscall.
 
 ## Builtin Hooks
 libdebug provides some easy-to-use builtin hooks for syscalls:
-- antidebug_syscall_hook
+- antidebug_escaping
 Automatically patches binaries which use the return value of `ptrace(PTRACE_TRACEME, 0, 0, 0)` to verify that no external debugger is present.
 Usage:
 ```py
 from libdebug import debugger
-from libdebug.builtin import install_antidebug_syscall_hook
+from libdebug.builtin import antidebug_escaping
 
 d = debugger(...)
 d.run()
 
-install_antidebug_syscall_hook(d)
+antidebug_escaping(d)
 
 d.cont()
 [...]
 ```
 
-- pretty_print_syscall_hook
+- pretty_print_syscall
 Installs a hook on any syscall that automatically prints the input arguments and the corresponding return values, just like strace does.
 By default, it hooks every syscall. The user can specify either a list of syscalls to hook onto, or a list of syscalls to exclude from hooking.
 Usage:
 ```py
 from libdebug import debugger
-from libdebug.builtin import install_pretty_print_syscall_hook
+from libdebug.builtin import pretty_print_syscall
 
 d = debugger("/usr/bin/ls")
 d.run()
 
-install_pretty_print_syscall_hook(d,
+pretty_print_syscall(d,
     # syscalls = ["execve", "open", "getcwd"],
     # exclude = ["fork", "vfork", "exit_group"]
 )
