@@ -10,7 +10,7 @@ from libdebug.state.debugging_context import provide_context
 from libdebug.state.thread_context import ThreadContext
 
 
-def install_antidebug_hook(d: ThreadContext):
+def antidebug_escaping(d: ThreadContext):
     """Installs a syscall hook that will detect any attempt to ptrace the process, and emulate the expected return value."""
 
     def on_enter_ptrace(d, syscall_number):

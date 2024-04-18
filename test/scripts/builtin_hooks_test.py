@@ -8,11 +8,11 @@ import unittest
 import string
 
 from libdebug import debugger
-from libdebug.builtin import install_antidebug_hook
+from libdebug.builtin import antidebug_escaping
 
 
-class AntidebugSyscallHookTest(unittest.TestCase):
-    def test_antidebug_hook(self):
+class AntidebugEscapingTest(unittest.TestCase):
+    def test_antidebug_escaping(self):
         d = debugger("binaries/antidebug_brute_test")
 
         # validate that without the hook the binary cannot be debugged
@@ -24,7 +24,7 @@ class AntidebugSyscallHookTest(unittest.TestCase):
 
         # validate that with the hook the binary can be debugged
         r = d.run()
-        install_antidebug_hook(d)
+        antidebug_escaping(d)
         d.cont()
         msg = r.recvline()
         self.assertEqual(msg, b"Write up to 64 chars")
@@ -38,7 +38,7 @@ class AntidebugSyscallHookTest(unittest.TestCase):
         while not flag or flag != "BRUTE":
             for c in string.printable:
                 r = d.run()
-                install_antidebug_hook(d)
+                antidebug_escaping(d)
                 bp = d.breakpoint(0x401209, hardware=True)
                 d.cont()
 
