@@ -12,6 +12,7 @@ from queue import Queue
 from subprocess import Popen
 from threading import Thread
 from typing import Callable
+from contextlib import contextmanager
 
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
@@ -26,6 +27,7 @@ from libdebug.state.debugging_context import (
     link_context,
     provide_context,
 )
+from libdebug.builtin.pretty_print_syscall_hook import enable_pretty_print_syscalls
 from libdebug.state.thread_context import ThreadContext
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.syscall_utils import resolve_syscall_number
@@ -90,7 +92,7 @@ class _InternalDebugger:
 
         self._start_processing_thread()
         self._setup_memory_view()
-
+        
     def terminate(self):
         """Terminates the background thread. The debugger object cannot be used after this method is called.
         This method should only be called to free up resources when the debugger object is no longer needed.
@@ -445,6 +447,54 @@ class _InternalDebugger:
         # Wait for the background thread to signal "task done" before returning
         # We don't want any asynchronous behaviour here
         self._polling_thread_command_queue.join()
+    
+    @property
+    def pprint_syscalls(self):
+        """Get the state of the pprint_syscalls flag.
+
+        Returns:
+            bool: True if the debugger should pretty print syscalls, False otherwise.
+        """
+
+        return self.context._pretty_print_syscalls
+    
+    @pprint_syscalls.setter
+    def pprint_syscalls(self, value):
+        """Set the state of the pprint_syscalls flag.
+
+        Args:
+            value (bool): the value to set.
+        """
+        
+        if not isinstance(value, bool):
+            raise ValueError("pprint_syscalls must be a boolean")
+        
+        if not self.instanced:
+            raise RuntimeError("Process not running, cannot set pprint_syscalls. Did you call run()?")
+
+        if value:
+            enable_pretty_print_syscalls(self)
+        else:
+            pass
+            # disable_syscall_pretty_print(debugging_context())
+        
+        self.context._pretty_print_syscalls = value
+        
+    @contextmanager
+    def pprint_syscalls_context(self, value: bool):
+        """A context manager to temporarily change the state of the pprint_syscalls flag.
+
+        Args:
+            value (bool): the value to set.
+
+        Yields:
+            None
+        """
+        old_value = self.pprint_syscalls
+        self.pprint_syscalls = value
+        yield
+        self.pprint_syscalls = old_value
+    
 
     def migrate_to_gdb(self, open_in_new_process: bool = True):
         """Migrates the current debugging session to GDB."""
@@ -525,6 +575,7 @@ class _InternalDebugger:
         else:  # This is the parent process.
             os.waitpid(gdb_pid, 0)  # Wait for the child process to finish.
 
+
     def __getattr__(self, name: str) -> object:
         """This function is called when an attribute is not found in the `_InternalDebugger` object.
         It is used to forward the call to the first `ThreadContext` object."""
@@ -550,7 +601,7 @@ class _InternalDebugger:
             self._ensure_process_stopped()
             thread_context = self.threads[0]
             setattr(thread_context, name, value)
-
+    
     def _peek_memory(self, address: int) -> bytes:
         """Reads memory from the process."""
         if not self.instanced:
