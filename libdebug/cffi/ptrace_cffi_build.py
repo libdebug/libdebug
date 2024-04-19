@@ -46,6 +46,11 @@ if platform.machine() == "x86_64":
     #define INSTRUCTION_POINTER(regs) (regs.rip)
     #define INSTALL_BREAKPOINT(instruction) ((instruction & 0xFFFFFFFFFFFFFF00) | 0xCC)
     #define BREAKPOINT_SIZE 1
+    #define IS_SW_BREAKPOINT(instruction) (instruction == 0xCC)
+    """
+
+    ret_define = """
+    #define IS_RET_INSTRUCTION(instruction) (instruction == 0xC3 || instruction == 0xCB || instruction == 0xC2 || instruction = 0xCA)
     """
 else:
     raise NotImplementedError(f"Architecture {platform.machine()} not available.")
@@ -109,6 +114,8 @@ ffibuilder.cdef(
 
     int cont_all_and_set_bps(struct global_state *state, int pid);
 
+    int exact_finish(struct global_state *state, int tid);
+
     struct thread_status *wait_all_and_update_regs(struct global_state *state, int pid);
     void free_thread_status_list(struct thread_status *head);
 
@@ -127,7 +134,7 @@ ffibuilder.cdef(
 with open("libdebug/cffi/ptrace_cffi_source.c") as f:
     ffibuilder.set_source(
         "libdebug.cffi._ptrace_cffi",
-        breakpoint_define + f.read(),
+        breakpoint_define + ret_define + f.read(),
         libraries=[],
     )
 

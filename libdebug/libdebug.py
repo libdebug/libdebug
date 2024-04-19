@@ -475,6 +475,33 @@ class _InternalDebugger:
         self.cont()
         self.wait()
 
+    def finish(
+        self,
+        thread: ThreadContext | None = None,
+        exact: bool = True
+    ):
+        """Continues the process until the current function returns or the process stops. When used in step mode,
+        it will step until a return instruction is executed. Otherwise, it uses a heuristic
+        based on the call stack to breakpoint (exact is slower).
+        
+        Args:
+            thread (ThreadContext, optional): The thread to affect. Defaults to None.
+            exact (bool, optional): Whether or not to execute in step mode. Defaults to True.
+        """
+        self._ensure_process_stopped()
+
+        if thread is None:
+            # If no thread is specified, we use the first thread
+            thread = self.threads[0]
+
+        self._polling_thread_command_queue.put((self.__threaded_finish, (thread,exact)))
+        self._polling_thread_command_queue.put((self.__threaded_wait, ()))
+
+        # Wait for the background thread to signal "task done" before returning
+        # We don't want any asynchronous behaviour here
+        self._polling_thread_command_queue.join()
+
+
     def _open_gdb_in_new_process(self):
         """Opens GDB in a new process following the configuration in libcontext.terminal."""
         args = [
@@ -698,6 +725,15 @@ class _InternalDebugger:
     ):
         liblog.debugger("Stepping thread %s until 0x%x.", thread.thread_id, address)
         self.interface.step_until(thread, address, max_steps)
+        self.context.set_stopped()
+
+    def __threaded_finish(self, thread: ThreadContext, exact: bool):
+        prefix = 'Exact' if exact else 'Heuristic'
+        
+        liblog.debugger(f"{prefix} finish on thread %s", thread.thread_id)
+        self.interface.finish(thread, exact=exact)
+        
+        #TODO: Is this correct?
         self.context.set_stopped()
 
     def __threaded_peek_memory(self, address: int) -> bytes | BaseException:

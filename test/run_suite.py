@@ -15,6 +15,7 @@ from scripts.breakpoint_test import BreakpointTest
 from scripts.brute_test import BruteTest
 from scripts.builtin_hooks_test import AntidebugEscapingTest
 from scripts.callback_test import CallbackTest
+from scripts.finish_test import FinishTest
 from scripts.jumpout import Jumpout
 from scripts.large_binary_sym_test import LargeBinarySymTest
 from scripts.memory_test import MemoryTest
@@ -57,6 +58,8 @@ def fast_suite():
     suite.addTest(CallbackTest("test_callback_memory"))
     suite.addTest(CallbackTest("test_callback_jumpout"))
     suite.addTest(CallbackTest("test_callback_intermixing"))
+    suite.addTest(FinishTest("test_finish_exact_no_auto_interrupt_no_breakpoint"))
+    suite.addTest(FinishTest("test_finish_heuristic_no_auto_interrupt_no_breakpoint"))
     suite.addTest(Jumpout("test_jumpout"))
     suite.addTest(Ncuts("test_ncuts"))
     suite.addTest(ControlFlowTest("test_step_until_1"))
@@ -89,6 +92,10 @@ def complete_suite():
     suite.addTest(Vmwhere1("test_vmwhere1_callback"))
     suite.addTest(BruteTest("test_bruteforce"))
     suite.addTest(CallbackTest("test_callback_bruteforce"))
+    suite.addTest(FinishTest("test_finish_exact_auto_interrupt_no_breakpoint"))
+    suite.addTest(FinishTest("test_finish_heuristic_auto_interrupt_no_breakpoint"))
+    suite.addTest(FinishTest("test_finish_exact_no_auto_interrupt_breakpoint"))
+    suite.addTest(FinishTest("test_finish_heuristic_no_auto_interrupt_breakpoint"))
     suite.addTest(SpeedTest("test_speed"))
     suite.addTest(SpeedTest("test_speed_hardware"))
     suite.addTest(DeepDiveDivision("test_deep_dive_division"))

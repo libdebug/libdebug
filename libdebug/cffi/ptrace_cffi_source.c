@@ -540,3 +540,54 @@ void free_breakpoints(struct global_state *state)
 
     state->b_HEAD = NULL;
 }
+
+int exact_finish(struct global_state *state, int tid)
+{
+    // flush any register changes
+    struct thread *t = state->t_HEAD, *stepping_thread = NULL;
+    while (t != NULL) {
+        if (ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs))
+            perror("ptrace_setregs");
+
+        if (t->tid == tid)
+            stepping_thread = t;
+
+        t = t->next;
+    }
+
+    int status = 0;
+    uint64_t previous_ip;
+    uint64_t current_ip = stepping_thread->regs.rip;
+    uint8_t curr_opcode_start = 0x00;
+
+    if (!stepping_thread){
+        perror("Thread not found");
+        return -1;
+    }
+
+    do{
+        if (ptrace(PTRACE_SINGLESTEP, tid, NULL, NULL)) return -1;
+
+        // wait for the child
+        waitpid(tid, &status, 0);
+
+        previous_ip = INSTRUCTION_POINTER(stepping_thread->regs);
+
+        // update the registers
+        ptrace(PTRACE_GETREGS, tid, NULL, &stepping_thread->regs);
+
+        current_ip = INSTRUCTION_POINTER(stepping_thread->regs);
+
+        // Get value at current instruction pointer
+        curr_opcode_start = ptrace(PTRACE_PEEKTEXT, tid, (void *)current_ip, NULL) & 0xFF;
+
+        // if the instruction pointer didn't change, we return
+        // because we hit a hardware breakpoint
+        // we do the same if we hit a software breakpoint
+        if (current_ip == previous_ip || curr_opcode_start == IS_SW_BREAKPOINT(curr_opcode_start))
+            return 0;
+
+    }while(!IS_RET_INSTRUCTION(curr_opcode_start));
+
+    return 0;
+}

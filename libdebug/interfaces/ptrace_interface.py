@@ -239,6 +239,54 @@ class PtraceInterface(DebuggingInterface):
         if result == -1:
             errno_val = self.ffi.errno
             raise OSError(errno_val, errno.errorcode[errno_val])
+        
+    def finish(self, thread: ThreadContext, exact: bool):
+        """Executes instructions of the specified thread until the current function returns.
+
+        Args:
+            thread (ThreadContext): The thread to step.
+            exact (bool): If True, the command is implemented as a series of `step` commands.
+        """
+        
+        if exact:
+            #TODO: Do I need this?
+            # # Disable all breakpoints for the single step
+            # for bp in self.context.breakpoints.values():
+            #     bp._disabled_for_step = True
+
+            result = self.lib_trace.exact_finish(
+                self._global_state, thread.thread_id
+            )
+            
+            if result == -1:
+                errno_val = self.ffi.errno
+                raise OSError(errno_val, errno.errorcode[errno_val])
+        else:
+            # Breakpoint to return address
+            last_saved_instruction_pointer = thread.backtrace()[0]
+
+            # If a breakpoint already exists at the return address, we don't need to set a new one
+            found = False
+            ip_breakpoint = None
+            
+            for bp in self.context.breakpoints.values():
+                if bp.address == last_saved_instruction_pointer:
+                    found = True
+                    ip_breakpoint = bp
+                    break
+            
+            if not found:
+                ip_breakpoint = Breakpoint(last_saved_instruction_pointer, hardware=False)
+                self.set_breakpoint(ip_breakpoint)
+            else:
+                if not ip_breakpoint.enabled:
+                    self._enable_breakpoint(ip_breakpoint)
+
+            self.lib_trace.cont_all_and_set_bps(self._global_state, self.process_id)
+
+            # Remove the breakpoint if it was set by us
+            if not found:
+                self.unset_breakpoint(ip_breakpoint)
 
     def _setup_pipe(self):
         """
