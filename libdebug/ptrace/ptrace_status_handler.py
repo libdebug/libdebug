@@ -130,28 +130,57 @@ class PtraceStatusHandler:
             liblog.debugger(
                 "Syscall %d entered on thread %d", syscall_number, thread_id
             )
-
-            # Call the on_enter hook
-            if hook.on_enter:
-                hook.on_enter(thread, syscall_number)
+                
+            # Call the user-defined hook if it exists
+            if hook.on_enter_user:
+                hook.on_enter_user(thread, syscall_number)
             
-            # Check if the syscall number has changed
-            syscall_number_after_hook = thread.syscall_number
-            
-            if syscall_number_after_hook != syscall_number:
-                # The syscall number has changed
-                hook = self.context.syscall_hooks[syscall_number_after_hook]
-                if not hook.enabled:
-                    # The hook is disabled, skip it
-                    return True
+                # Check if the syscall number has changed
+                syscall_number_after_hook = thread.syscall_number
+                
+                if syscall_number_after_hook != syscall_number:
+                    
+                    # Pretty print the syscall number before the hook
+                    if hook.on_enter_pprint:
+                        hook.on_enter_pprint(thread, syscall_number, hijacked=True)
+                    
+                    # The syscall number has changed
+                    hook = self.context.syscall_hooks[syscall_number_after_hook]
+                    
+                    # Pretty print the syscall number after the hook
+                    if hook.on_enter_pprint:
+                        hook.on_enter_pprint(thread, syscall_number_after_hook)
+                    
+                    if not hook.enabled and not hook.on_enter_pprint:
+                        # The hook is disabled, skip it
+                        return True
+                else:
+                    # Pretty print the syscall number
+                    if hook.on_enter_pprint:
+                        hook.on_enter_pprint(thread, syscall_number, user_hooked=True)
+            else:
+                # Pretty print the syscall number
+                if hook.on_enter_pprint:
+                    hook.on_enter_pprint(thread, syscall_number)
             
             hook._has_entered = True
         else:
             # The syscall is being exited
             liblog.debugger("Syscall %d exited on thread %d", syscall_number, thread_id)
 
-            if hook.on_exit:
-                hook.on_exit(thread, syscall_number)
+            #TODO printare sia il vecchio valore che il nuovo valore
+            
+            # Call the user-defined hook if it exists
+            if hook.on_exit_user:
+                # Pretty print the return value before the hook
+                if hook.on_exit_pprint:
+                    hook.on_exit_pprint(thread, syscall_number, user_hooked=True)
+                hook.on_exit_user(thread, syscall_number)
+            
+            # Pretty print the return value (after the hook)
+            if hook.on_exit_pprint:
+                hook.on_exit_pprint(thread, syscall_number)    
+            
             hook._has_entered = False
 
             # Increment the hit count only if the syscall was exited
