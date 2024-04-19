@@ -15,7 +15,7 @@ from scripts.basic_test import BasicPieTest, BasicTest, ControlFlowTest, HwBasic
 from scripts.basic_test_x86 import BasicTestX86
 from scripts.breakpoint_test import BreakpointTest
 from scripts.brute_test import BruteTest
-from scripts.builtin_hooks_test import AntidebugSyscallHookTest
+from scripts.builtin_hooks_test import AntidebugEscapingTest
 from scripts.callback_test import CallbackTest
 from scripts.deep_dive_division import DeepDiveDivision
 from scripts.jumpout import Jumpout
@@ -92,7 +92,7 @@ def fast_suite():
     suite.addTest(SyscallHookTest("test_hook_disabling"))
     suite.addTest(SyscallHookTestX86("test_hooks"))
     suite.addTest(SyscallHookTestX86("test_hook_disabling"))
-    suite.addTest(AntidebugSyscallHookTest("test_antidebug_hook"))
+    suite.addTest(AntidebugEscapingTest("test_antidebug_escaping"))
     return suite
 
 

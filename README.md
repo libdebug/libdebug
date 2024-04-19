@@ -63,9 +63,9 @@ d.kill()
 Instead, when set to True, every debugging command transparenty stops the execution of the program to perform the requested action as soon as possible.
 
 ```python
-d = debugger("./binary")
+d = debugger("./binary", auto_interrupt_on_command=True)
 
-bp = d.breakpoint("function", auto_interrupt_on_command=True)
+bp = d.breakpoint("function")
 
 d.run()
 d.cont()
@@ -174,7 +174,7 @@ bp = d.breakpoint(position=0x1234, hardware=False, condition=None, length=1, cal
 
 For your convenience, a Breakpoint object counts the number of times the breakpoint has been hit. The current count can be accessed though the `hit_count` property:
 ```python
-bp = d.breakpoint(0x1234, auto_interrupt_on_command=True)
+bp = d.breakpoint(0x1234)
 d.cont()
 
 for i in range(15):
@@ -216,7 +216,7 @@ The function returns a `Breakpoint` object, which can be interacted with in the 
 ## Syscall Hooking
 libdebug supports hooking system calls in the debugged binary in the following way:
 ```python
-def on_enter_open(d: ThreadContext, suscall_number: int):
+def on_enter_open(d: ThreadContext, syscall_number: int):
     print("entering open")
     d.syscall_arg0 = 0x1
 
@@ -228,7 +228,7 @@ sys_hook = d.hook_syscall(syscall="open", on_enter=on_enter_open, on_exit=on_exi
 ```
 `hook_syscall` accepts either a number or a string.
 If the user provides a string, a syscall definition list is downloaded from [syscalls.mebeim.net](https://syscalls.mebeim.net/?table=x86/64/x64/latest) and cached internally in order to convert it into the corresponding syscall number.
-`on_enter` and `on_exit` are optional: they are called only if present.
+`on_enter` and `on_exit` are optional: they are called only if present. At least one callback is required between `on_enter` and `on_exit` to make the hook meaningful.
 
 Syscall hooks, just like breakpoints, can be enabled and disabled, and automatically count the number of invocations:
 ```py
@@ -241,34 +241,34 @@ Note: there can be at most one hook for each syscall.
 
 ## Builtin Hooks
 libdebug provides some easy-to-use builtin hooks for syscalls:
-- antidebug_syscall_hook
+- antidebug_escaping
 Automatically patches binaries which use the return value of `ptrace(PTRACE_TRACEME, 0, 0, 0)` to verify that no external debugger is present.
 Usage:
 ```py
 from libdebug import debugger
-from libdebug.builtin import install_antidebug_syscall_hook
+from libdebug.builtin import antidebug_escaping
 
 d = debugger(...)
 d.run()
 
-install_antidebug_syscall_hook(d)
+antidebug_escaping(d)
 
 d.cont()
 [...]
 ```
 
-- pretty_print_syscall_hook
+- pretty_print_syscall
 Installs a hook on any syscall that automatically prints the input arguments and the corresponding return values, just like strace does.
 By default, it hooks every syscall. The user can specify either a list of syscalls to hook onto, or a list of syscalls to exclude from hooking.
 Usage:
 ```py
 from libdebug import debugger
-from libdebug.builtin import install_pretty_print_syscall_hook
+from libdebug.builtin import pretty_print_syscall
 
 d = debugger("/usr/bin/ls")
 d.run()
 
-install_pretty_print_syscall_hook(d,
+pretty_print_syscall(d,
     # syscalls = ["execve", "open", "getcwd"],
     # exclude = ["fork", "vfork", "exit_group"]
 )

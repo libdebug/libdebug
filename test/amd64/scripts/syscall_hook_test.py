@@ -24,13 +24,13 @@ class SyscallHookTest(unittest.TestCase):
 
             if write_count == 0:
                 self.assertTrue(syscall_number == 1)
-                self.assertEqual(d.memory[d.rsi, 13], b"Hello, World!")
-                self.assertEqual(d.rdi, 1)
+                self.assertEqual(d.memory[d.syscall_arg1, 13], b"Hello, World!")
+                self.assertEqual(d.syscall_arg0, 1)
                 write_count += 1
             else:
                 self.assertTrue(syscall_number == 1)
-                self.assertEqual(d.memory[d.rsi, 7], b"provola")
-                self.assertEqual(d.rdi, 1)
+                self.assertEqual(d.memory[d.syscall_arg1, 7], b"provola")
+                self.assertEqual(d.syscall_arg0, 1)
                 write_count += 1
 
         def on_exit_mmap(d, syscall_number):
@@ -42,11 +42,11 @@ class SyscallHookTest(unittest.TestCase):
 
         def on_enter_getcwd(d, syscall_number):
             self.assertTrue(syscall_number == 0x4F)
-            self.assertEqual(d.rdi, ptr)
+            self.assertEqual(d.syscall_arg0, ptr)
 
         def on_exit_getcwd(d, syscall_number):
             self.assertTrue(syscall_number == 0x4F)
-            self.assertEqual(d.memory[d.rdi, 8], os.getcwd()[:8].encode())
+            self.assertEqual(d.memory[d.syscall_arg0, 8], os.getcwd()[:8].encode())
 
         hook1 = d.hook_syscall("write", on_enter_write, None)
         hook2 = d.hook_syscall("mmap", None, on_exit_mmap)
@@ -76,13 +76,13 @@ class SyscallHookTest(unittest.TestCase):
 
             if write_count == 0:
                 self.assertTrue(syscall_number == 1)
-                self.assertEqual(d.memory[d.rsi, 13], b"Hello, World!")
-                self.assertEqual(d.rdi, 1)
+                self.assertEqual(d.memory[d.syscall_arg1, 13], b"Hello, World!")
+                self.assertEqual(d.syscall_arg0, 1)
                 write_count += 1
             else:
                 self.assertTrue(syscall_number == 1)
-                self.assertEqual(d.memory[d.rsi, 7], b"provola")
-                self.assertEqual(d.rdi, 1)
+                self.assertEqual(d.memory[d.syscall_arg1, 7], b"provola")
+                self.assertEqual(d.syscall_arg0, 1)
                 write_count += 1
 
         def on_exit_mmap(d, syscall_number):
@@ -94,11 +94,11 @@ class SyscallHookTest(unittest.TestCase):
 
         def on_enter_getcwd(d, syscall_number):
             self.assertTrue(syscall_number == 0x4F)
-            self.assertEqual(d.rdi, ptr)
+            self.assertEqual(d.syscall_arg0, ptr)
 
         def on_exit_getcwd(d, syscall_number):
             self.assertTrue(syscall_number == 0x4F)
-            self.assertEqual(d.memory[d.rdi, 8], os.getcwd()[:8].encode())
+            self.assertEqual(d.memory[d.syscall_arg0, 8], os.getcwd()[:8].encode())
 
         hook1 = d.hook_syscall(1, on_enter_write, None)
         hook2 = d.hook_syscall(9, None, on_exit_mmap)
