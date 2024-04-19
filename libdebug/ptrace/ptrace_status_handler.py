@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -131,8 +131,20 @@ class PtraceStatusHandler:
                 "Syscall %d entered on thread %d", syscall_number, thread_id
             )
 
+            # Call the on_enter hook
             if hook.on_enter:
                 hook.on_enter(thread, syscall_number)
+            
+            # Check if the syscall number has changed
+            syscall_number_after_hook = thread.syscall_number
+            
+            if syscall_number_after_hook != syscall_number:
+                # The syscall number has changed
+                hook = self.context.syscall_hooks[syscall_number_after_hook]
+                if not hook.enabled:
+                    # The hook is disabled, skip it
+                    return True
+            
             hook._has_entered = True
         else:
             # The syscall is being exited

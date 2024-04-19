@@ -65,3 +65,4 @@ def enable_pretty_print_syscalls(
 
     for syscall_number in syscall_numbers:
         d.hook_syscall(syscall_number, on_enter_syscall, on_exit_syscall)
+
