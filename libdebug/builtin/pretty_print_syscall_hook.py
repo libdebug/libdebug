@@ -13,7 +13,7 @@ from libdebug.utils.syscall_utils import (
 from libdebug.state.thread_context import ThreadContext
 
 
-def install_pretty_print_syscall_hook(
+def pretty_print_syscall(
     d: ThreadContext, syscalls: list[str | int] = None, exclude: list[str | int] = None
 ):
     """Installs a syscall hook that will pretty print the syscall arguments and return value."""
