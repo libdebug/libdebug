@@ -19,13 +19,17 @@ class SyscallHook:
 
     Attributes:
         syscall_number (int): The syscall number to hook.
-        on_enter (Callable[[ThreadContext, int], None]): The callback to execute when the syscall is entered.
-        on_exit (Callable[[ThreadContext, int], None]): The callback to execute when the syscall is exited.
+        on_enter_user (Callable[[ThreadContext, int], None]): The callback defined by the user to execute when the syscall is entered.
+        on_exit_user (Callable[[ThreadContext, int], None]): The callback defined by the user to execute when the syscall is exited.
+        on_enter_pprint (Callable[[ThreadContext, int], None]): The callback defined by the pretty print to execute when the syscall is entered.
+        on_exit_pprint (Callable[[ThreadContext, int], None]): The callback defined by the pretty print to execute when the syscall is exited.
     """
 
     syscall_number: int
-    on_enter: Callable[[ThreadContext, int], None]
-    on_exit: Callable[[ThreadContext, int], None]
+    on_enter_user: Callable[[ThreadContext, int], None]
+    on_exit_user: Callable[[ThreadContext, int], None]
+    on_enter_pprint: Callable[[ThreadContext, int], None]
+    on_exit_pprint: Callable[[ThreadContext, int], None]
     enabled: bool = True
     hit_count: int = 0
 

@@ -384,6 +384,41 @@ class _InternalDebugger:
             callback=callback,
         )
 
+    def _pretty_print_hook_syscall(
+        self,
+        syscall: int | str,
+        on_enter: Callable[[ThreadContext, int], None] = None,
+        on_exit: Callable[[ThreadContext, int], None] = None,
+    ) -> SyscallHook:
+        """Hooks a syscall in the target process to pretty prints its arguments and return value.
+        
+        Args:
+            syscall (int | str): The syscall name or number to hook.
+            on_enter (Callable[[ThreadContext, int], None], optional): The callback to execute when the syscall is entered. Defaults to None.
+            on_exit (Callable[[ThreadContext, int], None], optional): The callback to execute when the syscall is exited. Defaults to None.
+        """
+        self._ensure_process_stopped()
+            
+        syscall_number = syscall
+        
+        # Check if the syscall is already hooked (by the user or by the pretty print hook)
+        if syscall_number in self.context.syscall_hooks:
+            hook = self.context.syscall_hooks[syscall_number]
+            hook.on_enter_pprint = on_enter
+            hook.on_exit_pprint = on_exit
+        else:
+            hook = SyscallHook(syscall_number, None, None, on_enter, on_exit)
+            
+            link_context(hook, self)
+            
+            self._polling_thread_command_queue.put((self.__threaded_syscall_hook, (hook,)))
+
+            # Wait for the background thread to signal "task done" before returning
+            # We don't want any asynchronous behaviour here
+            self._polling_thread_command_queue.join()
+
+        return hook
+            
     def hook_syscall(
         self,
         syscall: int | str,
@@ -412,22 +447,28 @@ class _InternalDebugger:
         else:
             syscall_number = syscall
 
+        # Check if the syscall is already hooked (by the user or by the pretty print hook)
         if syscall_number in self.context.syscall_hooks:
-            raise ValueError(
-                f"Syscall {syscall} is already hooked. Please unhook it first."
-            )
+            hook = self.context.syscall_hooks[syscall_number]
+            if hook.on_enter_user or hook.on_exit_user:
+                liblog.warning(
+                    f"Syscall {syscall} is already hooked by a user-defined hook. Overriding it."
+                )
+            hook.on_enter_user = on_enter
+            hook.on_exit_user = on_exit
+        else:
+            hook = SyscallHook(syscall_number, on_enter, on_exit, None, None)
 
-        hook = SyscallHook(syscall_number, on_enter, on_exit)
+            link_context(hook, self)
 
-        link_context(hook, self)
+            self._polling_thread_command_queue.put((self.__threaded_syscall_hook, (hook,)))
 
-        self._polling_thread_command_queue.put((self.__threaded_syscall_hook, (hook,)))
-
-        # Wait for the background thread to signal "task done" before returning
-        # We don't want any asynchronous behaviour here
-        self._polling_thread_command_queue.join()
+            # Wait for the background thread to signal "task done" before returning
+            # We don't want any asynchronous behaviour here
+            self._polling_thread_command_queue.join()
 
         return hook
+                
 
     def unhook_syscall(self, hook: SyscallHook):
         """Unhooks a syscall in the target process.
@@ -439,6 +480,13 @@ class _InternalDebugger:
 
         if hook.syscall_number not in self.context.syscall_hooks:
             raise ValueError(f"Syscall {hook.syscall_number} is not hooked.")
+        
+        hook = self.context.syscall_hooks[hook.syscall_number]
+        
+        if hook.on_enter_pprint or hook.on_exit_pprint:
+            hook.on_enter_user = None
+            hook.on_exit_user = None
+            return
 
         self._polling_thread_command_queue.put(
             (self.__threaded_syscall_unhook, (hook,))
