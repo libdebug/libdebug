@@ -733,7 +733,6 @@ class _InternalDebugger:
         liblog.debugger(f"{prefix} finish on thread %s", thread.thread_id)
         self.interface.finish(thread, exact=exact)
         
-        #TODO: Is this correct?
         self.context.set_stopped()
 
     def __threaded_peek_memory(self, address: int) -> bytes | BaseException:

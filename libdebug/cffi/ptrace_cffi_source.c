@@ -557,7 +557,7 @@ int exact_finish(struct global_state *state, int tid)
 
     int status = 0;
     uint64_t previous_ip;
-    uint64_t current_ip = stepping_thread->regs.rip;
+    uint64_t current_ip = INSTRUCTION_POINTER(stepping_thread->regs);
     uint8_t curr_opcode_start = 0x00;
 
     if (!stepping_thread){

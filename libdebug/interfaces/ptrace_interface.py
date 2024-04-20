@@ -249,10 +249,6 @@ class PtraceInterface(DebuggingInterface):
         """
         
         if exact:
-            #TODO: Do I need this?
-            # # Disable all breakpoints for the single step
-            # for bp in self.context.breakpoints.values():
-            #     bp._disabled_for_step = True
 
             result = self.lib_trace.exact_finish(
                 self._global_state, thread.thread_id
@@ -275,6 +271,9 @@ class PtraceInterface(DebuggingInterface):
                     ip_breakpoint = bp
                     break
             
+            # TODO: Check if we have enough hardware breakpoints available
+            # Otherwise we use a software breakpoint
+
             if not found:
                 ip_breakpoint = Breakpoint(last_saved_instruction_pointer, hardware=False)
                 self.set_breakpoint(ip_breakpoint)
