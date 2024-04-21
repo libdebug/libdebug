@@ -558,12 +558,16 @@ int exact_finish(struct global_state *state, int tid)
     int status = 0;
     uint64_t previous_ip;
     uint64_t current_ip = INSTRUCTION_POINTER(stepping_thread->regs);
-    uint8_t curr_opcode_start = 0x00;
+    uint64_t opcode_window = 0x00;
+    uint8_t first_opcode_byte = 0x00;
 
     if (!stepping_thread){
         perror("Thread not found");
         return -1;
     }
+
+    // We need to keep track of the nested calls
+    int nested_call_counter = 1;
 
     do{
         if (ptrace(PTRACE_SINGLESTEP, tid, NULL, NULL)) return -1;
@@ -578,16 +582,50 @@ int exact_finish(struct global_state *state, int tid)
 
         current_ip = INSTRUCTION_POINTER(stepping_thread->regs);
 
+        fprintf(stderr, "[DEBUG]: Current IP: %p\n", current_ip);
+
         // Get value at current instruction pointer
-        curr_opcode_start = ptrace(PTRACE_PEEKTEXT, tid, (void *)current_ip, NULL) & 0xFF;
+        opcode_window = ptrace(PTRACE_PEEKTEXT, tid, (void *)current_ip, NULL);
+        first_opcode_byte = opcode_window & 0xFF;
 
         // if the instruction pointer didn't change, we return
         // because we hit a hardware breakpoint
         // we do the same if we hit a software breakpoint
-        if (current_ip == previous_ip || curr_opcode_start == IS_SW_BREAKPOINT(curr_opcode_start))
+        if (current_ip == previous_ip || first_opcode_byte == IS_SW_BREAKPOINT(opcode_window))
             return 0;
 
-    }while(!IS_RET_INSTRUCTION(curr_opcode_start));
+        // If we hit a call instruction, we increment the counter
+        if (IS_CALL_INSTRUCTION((uint8_t*)&opcode_window))
+        {
+            nested_call_counter++;
+            fprintf(stderr, "[DEBUG]: CALL INSTRUCTION AT %p\n", current_ip);
+            fprintf(stderr, "[DEBUG]: nested call counter is now at %d\n", nested_call_counter);
+        }
+        else if (IS_RET_INSTRUCTION(first_opcode_byte))
+        {
+            nested_call_counter--;
+            fprintf(stderr, "[DEBUG]: RET INSTRUCTION AT %p\n", current_ip);
+            fprintf(stderr, "[DEBUG]: nested call counter is now at %d\n", nested_call_counter);
+        }
+
+    }while(nested_call_counter > 0);
+
+    fprintf(stderr, "[DEBUG]: Before last step IP: %p\n", current_ip);
+
+    // We are in a return instruction, do the last step
+    if (ptrace(PTRACE_SINGLESTEP, tid, NULL, NULL)) return -1;
+
+    // wait for the child
+    waitpid(tid, &status, 0);
+
+    // update the registers
+    ptrace(PTRACE_GETREGS, tid, NULL, &stepping_thread->regs);
+
+    current_ip = INSTRUCTION_POINTER(stepping_thread->regs);
+
+    fprintf(stderr, "[DEBUG]: After last step IP: %p\n", current_ip);
+
+    fprintf(stderr, "[DEBUG]: FINISHING\n");
 
     return 0;
 }

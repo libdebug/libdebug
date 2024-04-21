@@ -49,8 +49,30 @@ if platform.machine() == "x86_64":
     #define IS_SW_BREAKPOINT(instruction) (instruction == 0xCC)
     """
 
-    ret_define = """
-    #define IS_RET_INSTRUCTION(instruction) (instruction == 0xC3 || instruction == 0xCB || instruction == 0xC2 || instruction = 0xCA)
+    finish_define = """
+    #define IS_RET_INSTRUCTION(instruction) (instruction == 0xC3 || instruction == 0xCB || instruction == 0xC2 || instruction == 0xCA)
+    
+    // X86_64 Architecture specific
+    int IS_CALL_INSTRUCTION(uint8_t* instr)
+    {
+        // Check for direct CALL (E8 xx xx xx xx)
+        if (instr[0] == (uint8_t)0xE8) {
+            return 1; // It's a CALL
+        }
+        
+        // Check for indirect CALL using ModR/M (FF /2)
+        if (instr[0] == (uint8_t)0xFF) {
+            // Extract ModR/M byte
+            uint8_t modRM = (uint8_t)instr[1];
+            uint8_t reg = (modRM >> 3) & 7; // Middle three bits
+
+            if (reg == 2) {
+                return 1; // It's a CALL
+            }
+        }
+
+        return 0; // Not a CALL
+    }
     """
 else:
     raise NotImplementedError(f"Architecture {platform.machine()} not available.")
@@ -134,7 +156,7 @@ ffibuilder.cdef(
 with open("libdebug/cffi/ptrace_cffi_source.c") as f:
     ffibuilder.set_source(
         "libdebug.cffi._ptrace_cffi",
-        breakpoint_define + ret_define + f.read(),
+        breakpoint_define + finish_define + f.read(),
         libraries=[],
     )
 

@@ -260,6 +260,7 @@ class PtraceInterface(DebuggingInterface):
         else:
             # Breakpoint to return address
             last_saved_instruction_pointer = thread.backtrace()[0]
+            print(f'[DEBUG] Backtrace to return address: {hex(last_saved_instruction_pointer)}')
 
             # If a breakpoint already exists at the return address, we don't need to set a new one
             found = False
