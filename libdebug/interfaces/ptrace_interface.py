@@ -258,8 +258,9 @@ class PtraceInterface(DebuggingInterface):
                 errno_val = self.ffi.errno
                 raise OSError(errno_val, errno.errorcode[errno_val])
         else:
+            print("Provolina")
             # Breakpoint to return address
-            last_saved_instruction_pointer = thread.backtrace()[0]
+            last_saved_instruction_pointer = thread.current_return_address()
             print(f'[DEBUG] Backtrace to return address: {hex(last_saved_instruction_pointer)}')
 
             # If a breakpoint already exists at the return address, we don't need to set a new one
@@ -282,7 +283,7 @@ class PtraceInterface(DebuggingInterface):
                 if not ip_breakpoint.enabled:
                     self._enable_breakpoint(ip_breakpoint)
 
-            self.lib_trace.cont_all_and_set_bps(self._global_state, self.process_id)
+            self.cont()
 
             # Remove the breakpoint if it was set by us
             if not found:
@@ -499,6 +500,7 @@ class PtraceInterface(DebuggingInterface):
         error = self.ffi.errno
         if error:
             raise OSError(error, errno.errorcode[error])
+        
 
         return result
 
