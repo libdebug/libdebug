@@ -383,7 +383,7 @@ struct thread_status *wait_all_and_update_regs(struct global_state *state, int p
                 // Stop the thread with a SIGSTOP
                 tgkill(pid, t->tid, SIGSTOP);
                 // Wait for the thread to stop
-                temp_tid = waitpid(t->tid, &temp_status, NULL);
+                temp_tid = waitpid(t->tid, &temp_status, 0);
 
                 // Register the status of the thread, as it might contain useful
                 // information
