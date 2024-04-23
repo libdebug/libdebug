@@ -406,7 +406,7 @@ class _InternalDebugger:
             # Check if the syscall is already hooked (by the user or by the pretty print hook)
             if syscall_number in self.context.syscall_hooks:
                 hook = self.context.syscall_hooks[syscall_number]
-                if syscall_number not in self._syscalls_to_not_pprint:
+                if syscall_number not in (self._syscalls_to_not_pprint or []):
                     hook.on_enter_pprint = pprint_on_enter
                     hook.on_exit_pprint = pprint_on_exit
                 else:
@@ -414,7 +414,7 @@ class _InternalDebugger:
                     hook.on_enter_pprint = None
                     hook.on_exit_pprint = None
             else:
-                if syscall_number not in self._syscalls_to_not_pprint:
+                if syscall_number not in (self._syscalls_to_not_pprint or []):
                     hook = SyscallHook(syscall_number, None, None, pprint_on_enter, pprint_on_exit)
                     
                     link_context(hook, self)
@@ -480,6 +480,7 @@ class _InternalDebugger:
                 )
             hook.on_enter_user = on_enter
             hook.on_exit_user = on_exit
+            hook.enabled = True
         else:
             hook = SyscallHook(syscall_number, on_enter, on_exit, None, None)
 
