@@ -30,6 +30,7 @@ class SyscallHook:
     on_exit_user: Callable[[ThreadContext, int], None]
     on_enter_pprint: Callable[[ThreadContext, int], None]
     on_exit_pprint: Callable[[ThreadContext, int], None]
+    hook_hijack: bool = True
     enabled: bool = True
     hit_count: int = 0
 

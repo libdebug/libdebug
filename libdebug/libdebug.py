@@ -437,17 +437,20 @@ class _InternalDebugger:
                 if hook.on_enter_user or hook.on_exit_user:
                     hook.on_enter_pprint = None
                     hook.on_exit_pprint = None
-                    continue
-                self._polling_thread_command_queue.put(
-                    (self.__threaded_syscall_unhook, (hook,))
-                )
-                self._polling_thread_command_queue.join()
+                else:
+                    self._polling_thread_command_queue.put(
+                        (self.__threaded_syscall_unhook, (hook,))
+                    )
+        # Wait for the background thread to signal "task done" before returning
+        # We don't want any asynchronous behaviour here     
+        self._polling_thread_command_queue.join()
             
     def hook_syscall(
         self,
         syscall: int | str,
         on_enter: Callable[[ThreadContext, int], None] = None,
         on_exit: Callable[[ThreadContext, int], None] = None,
+        hook_hijack: bool = True,
     ) -> SyscallHook:
         """Hooks a syscall in the target process.
 
@@ -455,6 +458,7 @@ class _InternalDebugger:
             syscall (int | str): The syscall name or number to hook.
             on_enter (Callable[[ThreadContext, int], None], optional): The callback to execute when the syscall is entered. Defaults to None.
             on_exit (Callable[[ThreadContext, int], None], optional): The callback to execute when the syscall is exited. Defaults to None.
+            hook_hijack (bool, optional): Whether the syscall after the hijack should be hooked. Defaults to True.
 
         Returns:
             SyscallHook: The syscall hook object.
@@ -480,9 +484,10 @@ class _InternalDebugger:
                 )
             hook.on_enter_user = on_enter
             hook.on_exit_user = on_exit
+            hook.hook_hijack = hook_hijack
             hook.enabled = True
         else:
-            hook = SyscallHook(syscall_number, on_enter, on_exit, None, None)
+            hook = SyscallHook(syscall_number, on_enter, on_exit, None, None, hook_hijack)
 
             link_context(hook, self)
 
@@ -511,15 +516,14 @@ class _InternalDebugger:
         if hook.on_enter_pprint or hook.on_exit_pprint:
             hook.on_enter_user = None
             hook.on_exit_user = None
-            return
+        else:
+            self._polling_thread_command_queue.put(
+                (self.__threaded_syscall_unhook, (hook,))
+            )
 
-        self._polling_thread_command_queue.put(
-            (self.__threaded_syscall_unhook, (hook,))
-        )
-
-        # Wait for the background thread to signal "task done" before returning
-        # We don't want any asynchronous behaviour here
-        self._polling_thread_command_queue.join()
+            # Wait for the background thread to signal "task done" before returning
+            # We don't want any asynchronous behaviour here
+            self._polling_thread_command_queue.join()
     
     @property
     def pprint_syscalls(self):
