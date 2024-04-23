@@ -397,40 +397,33 @@ class _InternalDebugger:
         self._ensure_process_stopped()        
         
         if self._syscalls_to_pprint is None:
-            syscalls = get_all_syscall_numbers()
-            
-        syscall_numbers = []
-
-        for syscall in syscalls:
-            if isinstance(syscall, str):
-                syscall_numbers.append(resolve_syscall_number(syscall))
-            else:
-                syscall_numbers.append(syscall)
-
-        if self._syscalls_to_not_pprint is not None:
-            for excluded in self._syscalls_to_not_pprint:
-                if isinstance(excluded, str):
-                    excluded = resolve_syscall_number(excluded)
-
-                syscall_numbers.remove(excluded)
+            syscall_numbers = get_all_syscall_numbers()
+        else:
+            syscall_numbers = self._syscalls_to_pprint
 
         for syscall_number in syscall_numbers:
             
             # Check if the syscall is already hooked (by the user or by the pretty print hook)
             if syscall_number in self.context.syscall_hooks:
                 hook = self.context.syscall_hooks[syscall_number]
-                hook.on_enter_pprint = pprint_on_enter
-                hook.on_exit_pprint = pprint_on_exit
+                if syscall_number not in self._syscalls_to_not_pprint:
+                    hook.on_enter_pprint = pprint_on_enter
+                    hook.on_exit_pprint = pprint_on_exit
+                else:
+                    # Remove the pretty print hook from previous pretty print calls
+                    hook.on_enter_pprint = None
+                    hook.on_exit_pprint = None
             else:
-                hook = SyscallHook(syscall_number, None, None, pprint_on_enter, pprint_on_exit)
-                
-                link_context(hook, self)
-                
-                self._polling_thread_command_queue.put((self.__threaded_syscall_hook, (hook,)))
+                if syscall_number not in self._syscalls_to_not_pprint:
+                    hook = SyscallHook(syscall_number, None, None, pprint_on_enter, pprint_on_exit)
+                    
+                    link_context(hook, self)
+                    
+                    self._polling_thread_command_queue.put((self.__threaded_syscall_hook, (hook,)))
 
-                # Wait for the background thread to signal "task done" before returning
-                # We don't want any asynchronous behaviour here
-                self._polling_thread_command_queue.join()
+        # Wait for the background thread to signal "task done" before returning
+        # We don't want any asynchronous behaviour here
+        self._polling_thread_command_queue.join()
 
     
     def _disable_pretty_print(self):
