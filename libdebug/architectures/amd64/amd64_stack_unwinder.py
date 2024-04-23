@@ -67,10 +67,17 @@ class Amd64StackUnwinder(StackUnwindingManager):
 
         # Memory access utility for readability
         def get_qword(addr):
-            provide_context(target).debugging_interface.peek_memory(addr)
+            return provide_context(target).debugging_interface.peek_memory(addr)
 
         current_rip = target.rip
-        instruction_window = get_qword(current_rip) & 0xFFFFFFFF
+
+        print(hex(current_rip))
+
+        test_window = get_qword(current_rip)
+
+        print(hex(test_window))
+
+        instruction_window = int.to_bytes(test_window)[:4]
 
         # Check if the instruction window is a function preamble and handle each case
         return_address = None
