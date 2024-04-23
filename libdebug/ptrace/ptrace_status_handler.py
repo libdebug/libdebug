@@ -14,6 +14,8 @@ from libdebug.architectures.ptrace_software_breakpoint_patcher import (
 from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_constants import StopEvents, SYSCALL_SIGTRAP
 from libdebug.state.debugging_context import provide_context
+from libdebug.state.thread_context import ThreadContext
+from libdebug.data.syscall_hook import SyscallHook
 
 if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
@@ -99,7 +101,53 @@ class PtraceStatusHandler:
 
         return False
 
+
+    def _manage_on_enter(self, hook: SyscallHook, thread: ThreadContext, syscall_number: int, hijacked_list: list[int]):
+        """Manage the on_enter hook of a syscall."""
+        # Call the user-defined hook if it exists
+        if hook.on_enter_user and hook.enabled:
+            hook.on_enter_user(thread, syscall_number)
+        
+            # Check if the syscall number has changed
+            syscall_number_after_hook = thread.syscall_number
+            
+            if syscall_number_after_hook != syscall_number:
+                
+                # Pretty print the syscall number before the hook
+                if hook.on_enter_pprint:
+                    hook.on_enter_pprint(thread, syscall_number, hijacked=True)
+                
+                # The syscall number has changed
+                if syscall_number_after_hook in self.context.syscall_hooks:
+                    hook_hijack = self.context.syscall_hooks[syscall_number_after_hook]
+                    
+                    # Check if the new syscall has to be hooked
+                    if hook.hook_hijack:
+                        hijacked_list.append(syscall_number_after_hook)
+                        # Check if the new syscall has already been hijacked in the current chain
+                        if len(hijacked_list) != len(set(hijacked_list)):
+                            print(hijacked_list)
+                            print(list(set(hijacked_list)))
+                            raise RuntimeError("Syscall hijacking loop detected. Check your hooks to avoid infinite loops.")
+                        
+                        # Call recursively the function to manage the new syscall
+                        self._manage_on_enter(hook_hijack, thread, syscall_number_after_hook, hijacked_list)
+                    elif hook_hijack.on_enter_pprint:
+                        # Pretty print the syscall number
+                        hook_hijack.on_enter_pprint(thread, syscall_number_after_hook)
+                        hook_hijack._has_entered = True
+            elif hook.on_enter_pprint:
+                # Pretty print the syscall number
+                hook.on_enter_pprint(thread, syscall_number, user_hooked=True)
+                hook._has_entered = True
+        elif hook.on_enter_pprint:
+            # Pretty print the syscall number
+            hook.on_enter_pprint(thread, syscall_number)
+            hook._has_entered = True
+    
+
     def _handle_syscall(self, thread_id: int) -> bool:
+        """Handle a syscall trap."""
         if thread_id == -1:
             # This is a spurious trap, we don't know what to do with it
             return False
@@ -119,10 +167,6 @@ class PtraceStatusHandler:
 
         hook = self.context.syscall_hooks[syscall_number]
 
-        if not hook.enabled:
-            # The hook is disabled, skip it
-            return True
-
         thread._in_background_op = True
 
         if not hook._has_entered:
@@ -131,60 +175,33 @@ class PtraceStatusHandler:
                 "Syscall %d entered on thread %d", syscall_number, thread_id
             )
                 
-            # Call the user-defined hook if it exists
-            if hook.on_enter_user:
-                hook.on_enter_user(thread, syscall_number)
+            self._manage_on_enter(hook, thread, syscall_number, [syscall_number])
             
-                # Check if the syscall number has changed
-                syscall_number_after_hook = thread.syscall_number
-                
-                if syscall_number_after_hook != syscall_number:
-                    
-                    # Pretty print the syscall number before the hook
-                    if hook.on_enter_pprint:
-                        hook.on_enter_pprint(thread, syscall_number, hijacked=True)
-                    
-                    # The syscall number has changed
-                    hook = self.context.syscall_hooks[syscall_number_after_hook]
-                    
-                    # Pretty print the syscall number after the hook
-                    if hook.on_enter_pprint:
-                        hook.on_enter_pprint(thread, syscall_number_after_hook)
-                    
-                    if not hook.enabled and not hook.on_enter_pprint:
-                        # The hook is disabled, skip it
-                        return True
-                else:
-                    # Pretty print the syscall number
-                    if hook.on_enter_pprint:
-                        hook.on_enter_pprint(thread, syscall_number, user_hooked=True)
-            else:
-                # Pretty print the syscall number
-                if hook.on_enter_pprint:
-                    hook.on_enter_pprint(thread, syscall_number)
             
-            hook._has_entered = True
         else:
             # The syscall is being exited
             liblog.debugger("Syscall %d exited on thread %d", syscall_number, thread_id)
-
-            #TODO printare sia il vecchio valore che il nuovo valore
             
             # Call the user-defined hook if it exists
-            if hook.on_exit_user:
+            if hook.on_exit_user and hook.enabled:
+                # Increment the hit count only if the syscall was exited
+                hook.hit_count += 1
                 # Pretty print the return value before the hook
                 if hook.on_exit_pprint:
-                    hook.on_exit_pprint(thread, syscall_number, user_hooked=True)
+                    return_value_before_hook = thread.syscall_return
                 hook.on_exit_user(thread, syscall_number)
-            
-            # Pretty print the return value (after the hook)
-            if hook.on_exit_pprint:
-                hook.on_exit_pprint(thread, syscall_number)    
+                if hook.on_exit_pprint:
+                    return_value_after_hook = thread.syscall_return
+                    if return_value_after_hook != return_value_before_hook:
+                        hook.on_exit_pprint((return_value_before_hook, return_value_after_hook))
+                    else:
+                        hook.on_exit_pprint(return_value_after_hook)
+            elif hook.on_exit_pprint:
+                # Pretty print the return value
+                hook.on_exit_pprint(thread.syscall_return)  
             
             hook._has_entered = False
 
-            # Increment the hit count only if the syscall was exited
-            hook.hit_count += 1
 
         thread._in_background_op = False
 
