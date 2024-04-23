@@ -4,7 +4,7 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Tuple
 from libdebug.utils.print_style import PrintStyle
 from libdebug.utils.syscall_utils import (
     resolve_syscall_name,
@@ -49,20 +49,16 @@ def pprint_on_enter(d: "ThreadContext", syscall_number: int, **kwargs: bool):
         print(f"{PrintStyle.RED}(user hooked) {PrintStyle.BLUE}{syscall_name}{PrintStyle.DEFAULT_COLOR}({', '.join(entries)}) = ", end="")
     else:
         print(f"{PrintStyle.BLUE}{syscall_name}{PrintStyle.DEFAULT_COLOR}({', '.join(entries)}) = ", end="")
-    
 
-def pprint_on_exit(d: "ThreadContext", _: int, **kwargs: bool):
+
+def pprint_on_exit(syscall_return: int | Tuple[int, int]):
     """Function that will be called when a syscall is exited in pretty print mode.
     
     Args:
-        d (ThreadContext): the thread context.
-        _: int: the syscall number.
-        **kwargs (bool): the keyword arguments.
+        syscall_return (int | list[int]): the syscall return value.
     """
     
-    user_hooked = kwargs.get("user_hooked", False)
-    
-    if user_hooked:
-        print(f"{PrintStyle.STRIKE}{PrintStyle.YELLOW}0x{d.syscall_return:x}{PrintStyle.RESET}", end = " ")
+    if isinstance(syscall_return, Tuple):
+        print(f"{PrintStyle.YELLOW}{PrintStyle.STRIKE}0x{syscall_return[0]:x}{PrintStyle.RESET} {PrintStyle.YELLOW}0x{syscall_return[1]:x}{PrintStyle.RESET}")
     else:
-        print(f"{PrintStyle.YELLOW}0x{d.syscall_return:x}{PrintStyle.DEFAULT_COLOR}")
+        print(f"{PrintStyle.YELLOW}0x{syscall_return:x}{PrintStyle.RESET}")
