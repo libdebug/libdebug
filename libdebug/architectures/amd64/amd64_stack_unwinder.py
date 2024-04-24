@@ -65,29 +65,25 @@ class Amd64StackUnwinder(StackUnwindingManager):
             int: The return address.
         """
 
-        # Memory access utility for readability
-        def get_qword(addr):
-            return provide_context(target).debugging_interface.peek_memory(addr)
+        # Set the thread to background mode to avoid deadlock
+        target._in_background_op = True
 
-        current_rip = target.rip
-
-        print(hex(current_rip))
-
-        test_window = get_qword(current_rip)
-
-        print(hex(test_window))
-
-        instruction_window = int.to_bytes(test_window)[:4]
+        instruction_window = target.memory[target.rip, 4]
 
         # Check if the instruction window is a function preamble and handle each case
         return_address = None
 
         if self._preamble_state(instruction_window) == 0:
-            return_address = get_qword(target.rbp + 8)
+            return_address = target.memory[target.rbp + 8, 4]
         elif self._preamble_state(instruction_window) == 1:
-            return_address = get_qword(target.rsp)
+            return_address = target.memory[target.rsp, 4]
         else:
-            return_address = get_qword(target.rsp + 8)
+            return_address = target.memory[target.rsp + 8, 4]
+
+        return_address = int.from_bytes(return_address, byteorder="little")
+
+        # Restore the thread to normal mode
+        target._in_background_op = False
 
         return return_address
 
