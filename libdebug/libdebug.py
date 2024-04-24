@@ -60,12 +60,6 @@ class _InternalDebugger:
     interface: DebuggingInterface | None = None
     """The debugging interface used to interact with the process."""
 
-    _syscalls_to_pprint: list[int] | None = None
-    """The syscalls to pretty print."""
-
-    _syscalls_to_not_pprint: list[int] | None = None
-    """The syscalls to not pretty print."""
-
     threads: list[ThreadContext] = []
     """A dictionary of all the threads in the process. The keys are the thread IDs."""
 
@@ -402,16 +396,17 @@ class _InternalDebugger:
         """Hooks a syscall in the target process to pretty prints its arguments and return value."""
         self._ensure_process_stopped()
 
-        if self._syscalls_to_pprint is None:
-            syscall_numbers = get_all_syscall_numbers()
-        else:
-            syscall_numbers = self._syscalls_to_pprint
+        syscall_numbers = get_all_syscall_numbers()
 
         for syscall_number in syscall_numbers:
             # Check if the syscall is already hooked (by the user or by the pretty print hook)
             if syscall_number in self.context.syscall_hooks:
                 hook = self.context.syscall_hooks[syscall_number]
-                if syscall_number not in (self._syscalls_to_not_pprint or []):
+                if syscall_number not in (
+                    self.context._syscalls_to_not_pprint or []
+                ) and syscall_number in (
+                    self.context._syscalls_to_pprint or syscall_numbers
+                ):
                     hook.on_enter_pprint = pprint_on_enter
                     hook.on_exit_pprint = pprint_on_exit
                 else:
@@ -419,7 +414,7 @@ class _InternalDebugger:
                     hook.on_enter_pprint = None
                     hook.on_exit_pprint = None
             else:
-                if syscall_number not in (self._syscalls_to_not_pprint or []):
+                if syscall_number not in (self.context._syscalls_to_not_pprint or []):
                     hook = SyscallHook(
                         syscall_number, None, None, pprint_on_enter, pprint_on_exit
                     )
@@ -657,10 +652,10 @@ class _InternalDebugger:
             list[str]: The syscalls to pretty print.
         """
 
-        if self._syscalls_to_pprint is None:
+        if self.context._syscalls_to_pprint is None:
             return None
         else:
-            return [resolve_syscall_name(v) for v in self._syscalls_to_pprint]
+            return [resolve_syscall_name(v) for v in self.context._syscalls_to_pprint]
 
     @syscalls_to_pprint.setter
     def syscalls_to_pprint(self, value: list[int] | list[str] | None):
@@ -670,15 +665,17 @@ class _InternalDebugger:
             value (list[int] | list[str] | None): The syscalls to pretty print.
         """
         if value is None:
-            self._syscalls_to_pprint = None
+            self.context._syscalls_to_pprint = None
         elif isinstance(value, list):
-            self._syscalls_to_pprint = [
+            self.context._syscalls_to_pprint = [
                 v if isinstance(v, int) else resolve_syscall_number(v) for v in value
             ]
         else:
             raise ValueError(
                 "syscalls_to_pprint must be a list of integers or strings or None."
             )
+        if self.context._pprint_syscalls:
+            self._enable_pretty_print()
 
     @property
     def syscalls_to_not_pprint(self):
@@ -687,10 +684,12 @@ class _InternalDebugger:
         Returns:
             list[str]: The syscalls to not pretty print.
         """
-        if self._syscalls_to_not_pprint is None:
+        if self.context._syscalls_to_not_pprint is None:
             return None
         else:
-            return [resolve_syscall_name(v) for v in self._syscalls_to_not_pprint]
+            return [
+                resolve_syscall_name(v) for v in self.context._syscalls_to_not_pprint
+            ]
 
     @syscalls_to_not_pprint.setter
     def syscalls_to_not_pprint(self, value: list[int] | list[str] | None):
@@ -700,15 +699,17 @@ class _InternalDebugger:
             value (list[int] | list[str] | None): The syscalls to not pretty print.
         """
         if value is None:
-            self._syscalls_to_not_pprint = None
+            self.context._syscalls_to_not_pprint = None
         elif isinstance(value, list):
-            self._syscalls_to_not_pprint = [
+            self.context._syscalls_to_not_pprint = [
                 v if isinstance(v, int) else resolve_syscall_number(v) for v in value
             ]
         else:
             raise ValueError(
                 "syscalls_to_not_pprint must be a list of integers or strings or None."
             )
+        if self.context._pprint_syscalls:
+            self._enable_pretty_print()
 
     def migrate_to_gdb(self, open_in_new_process: bool = True):
         """Migrates the current debugging session to GDB."""
@@ -987,6 +988,7 @@ def debugger(
     argv: str | list[str] = [],
     enable_aslr: bool = False,
     env: dict[str, str] | None = None,
+    escape_anti_debug: bool = False,
     continue_to_binary_entrypoint: bool = True,
     auto_interrupt_on_command: bool = False,
 ) -> _InternalDebugger:
@@ -1019,6 +1021,7 @@ def debugger(
     debugging_context.aslr_enabled = enable_aslr
     debugging_context.autoreach_entrypoint = continue_to_binary_entrypoint
     debugging_context.auto_interrupt_on_command = auto_interrupt_on_command
+    debugging_context.escape_anti_debug = escape_anti_debug
 
     debugger._post_init_()
 

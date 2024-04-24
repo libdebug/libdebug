@@ -42,13 +42,16 @@ class DebuggingContext:
 
     env: dict[str, str] | None
     """The environment variables of the debugged process."""
+    
+    escape_anti_debug: bool
+    """A flag that indicates if the debugger should escape anti-debugging techniques."""
 
     autoreach_entrypoint: bool
     """A flag that indicates if the debugger should automatically reach the entry point of the debugged process."""
 
     auto_interrupt_on_command: bool
     """A flag that indicates if the debugger should automatically interrupt the debugged process when a command is issued."""
-
+    
     _breakpoints: dict[int, Breakpoint]
     """A dictionary of all the breakpoints set on the process.
     Key: the address of the breakpoint."""
@@ -56,6 +59,12 @@ class DebuggingContext:
     _syscall_hooks: dict[int, SyscallHook]
     """A dictionary of all the syscall hooks set on the process.
     Key: the syscall number."""
+    
+    _syscalls_to_pprint: list[int] | None = None
+    """The syscalls to pretty print."""
+
+    _syscalls_to_not_pprint: list[int] | None = None
+    """The syscalls to not pretty print."""
 
     _threads: list[ThreadContext]
     """A list of all the threads of the debugged process."""
