@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 def pprint_on_enter(d: "ThreadContext", syscall_number: int, **kwargs: bool):
     """Function that will be called when a syscall is entered in pretty print mode.
-    
+
     Args:
         d (ThreadContext): the thread context.
         syscall_number (int): the syscall number.
@@ -40,25 +40,35 @@ def pprint_on_enter(d: "ThreadContext", syscall_number: int, **kwargs: bool):
         for arg, value in zip(syscall_args, values)
         if arg is not None
     ]
-    
+
     hijacked = kwargs.get("hijacked", False)
     user_hooked = kwargs.get("user_hooked", False)
     if hijacked:
-        print(f"{PrintStyle.RED}(user hijacked) {PrintStyle.STRIKE}{PrintStyle.BLUE}{syscall_name}{PrintStyle.DEFAULT_COLOR}({', '.join(entries)}){PrintStyle.RESET}")
+        print(
+            f"{PrintStyle.RED}(user hijacked) {PrintStyle.STRIKE}{PrintStyle.BLUE}{syscall_name}{PrintStyle.DEFAULT_COLOR}({', '.join(entries)}){PrintStyle.RESET}"
+        )
     elif user_hooked:
-        print(f"{PrintStyle.RED}(user hooked) {PrintStyle.BLUE}{syscall_name}{PrintStyle.DEFAULT_COLOR}({', '.join(entries)}) = ", end="")
+        print(
+            f"{PrintStyle.RED}(user hooked) {PrintStyle.BLUE}{syscall_name}{PrintStyle.DEFAULT_COLOR}({', '.join(entries)}) = ",
+            end="",
+        )
     else:
-        print(f"{PrintStyle.BLUE}{syscall_name}{PrintStyle.DEFAULT_COLOR}({', '.join(entries)}) = ", end="")
+        print(
+            f"{PrintStyle.BLUE}{syscall_name}{PrintStyle.DEFAULT_COLOR}({', '.join(entries)}) = ",
+            end="",
+        )
 
 
 def pprint_on_exit(syscall_return: int | Tuple[int, int]):
     """Function that will be called when a syscall is exited in pretty print mode.
-    
+
     Args:
         syscall_return (int | list[int]): the syscall return value.
     """
-    
+
     if isinstance(syscall_return, Tuple):
-        print(f"{PrintStyle.YELLOW}{PrintStyle.STRIKE}0x{syscall_return[0]:x}{PrintStyle.RESET} {PrintStyle.YELLOW}0x{syscall_return[1]:x}{PrintStyle.RESET}")
+        print(
+            f"{PrintStyle.YELLOW}{PrintStyle.STRIKE}0x{syscall_return[0]:x}{PrintStyle.RESET} {PrintStyle.YELLOW}0x{syscall_return[1]:x}{PrintStyle.RESET}"
+        )
     else:
         print(f"{PrintStyle.YELLOW}0x{syscall_return:x}{PrintStyle.RESET}")
