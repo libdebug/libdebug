@@ -16,6 +16,7 @@ from typing import Callable
 import psutil
 
 from libdebug.architectures.syscall_hijacking_provider import syscall_hijacking_provider
+from libdebug.builtin.antidebug_syscall_hook import on_enter_ptrace, on_exit_ptrace
 from libdebug.builtin.pretty_print_syscall_hook import pprint_on_enter, pprint_on_exit
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
@@ -128,6 +129,10 @@ class _InternalDebugger:
             raise RuntimeError("Polling thread command queue not empty.")
 
         self._polling_thread_command_queue.put((self.__threaded_run, ()))
+
+        if self.context.escape_antidebug:
+            liblog.debugger("Enabling anti-debugging escape mechanism.")
+            self._enable_antidebug_escaping()
 
         # Wait for the background thread to signal "task done" before returning
         # We don't want any asynchronous behaviour here
@@ -448,6 +453,24 @@ class _InternalDebugger:
         # We don't want any asynchronous behaviour here
         self._polling_thread_command_queue.join()
 
+    def _enable_antidebug_escaping(self):
+        """Enables the anti-debugging escape mechanism."""
+        hook = SyscallHook(
+            resolve_syscall_number("ptrace"),
+            on_enter_ptrace,
+            on_exit_ptrace,
+            None,
+            None,
+        )
+
+        link_context(hook, self)
+
+        self._polling_thread_command_queue.put((self.__threaded_syscall_hook, (hook,)))
+
+        # setup hidden state for the hook
+        hook._traceme_called = False
+        hook._command = None
+
     def hook_syscall(
         self,
         syscall: int | str,
@@ -483,7 +506,7 @@ class _InternalDebugger:
             hook = self.context.syscall_hooks[syscall_number]
             if hook.on_enter_user or hook.on_exit_user:
                 liblog.warning(
-                    f"Syscall {syscall} is already hooked by a user-defined hook. Overriding it."
+                    f"Syscall {resolve_syscall_name(syscall_number)} is already hooked by a user-defined hook. Overriding it."
                 )
             hook.on_enter_user = on_enter
             hook.on_exit_user = on_exit
@@ -931,11 +954,11 @@ class _InternalDebugger:
         self.interface.set_breakpoint(bp)
 
     def __threaded_syscall_hook(self, hook: SyscallHook):
-        liblog.debugger("Hooking syscall %d.", hook.syscall_number)
+        liblog.debugger(f"Hooking syscall {hook.syscall_number}.")
         self.interface.set_syscall_hook(hook)
 
     def __threaded_syscall_unhook(self, hook: SyscallHook):
-        liblog.debugger("Unhooking syscall %d.", hook.syscall_number)
+        liblog.debugger(f"Hooking syscall {hook.syscall_number}.")
         self.interface.unset_syscall_hook(hook)
 
     def __threaded_wait(self):
@@ -988,7 +1011,7 @@ def debugger(
     argv: str | list[str] = [],
     enable_aslr: bool = False,
     env: dict[str, str] | None = None,
-    escape_anti_debug: bool = False,
+    escape_antidebug: bool = False,
     continue_to_binary_entrypoint: bool = True,
     auto_interrupt_on_command: bool = False,
 ) -> _InternalDebugger:
@@ -1021,7 +1044,7 @@ def debugger(
     debugging_context.aslr_enabled = enable_aslr
     debugging_context.autoreach_entrypoint = continue_to_binary_entrypoint
     debugging_context.auto_interrupt_on_command = auto_interrupt_on_command
-    debugging_context.escape_anti_debug = escape_anti_debug
+    debugging_context.escape_antidebug = escape_antidebug
 
     debugger._post_init_()
 

@@ -43,7 +43,7 @@ class DebuggingContext:
     env: dict[str, str] | None
     """The environment variables of the debugged process."""
     
-    escape_anti_debug: bool
+    escape_antidebug: bool
     """A flag that indicates if the debugger should escape anti-debugging techniques."""
 
     autoreach_entrypoint: bool
@@ -98,6 +98,7 @@ class DebuggingContext:
         self.autoreach_entrypoint = True
         self.argv = []
         self.env = {}
+        self.escape_antidebug = False
         self._breakpoints = {}
         self._syscall_hooks = {}
         self._threads = []
