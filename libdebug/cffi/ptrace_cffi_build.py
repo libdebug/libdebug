@@ -9,8 +9,8 @@ import platform
 from cffi import FFI
 
 if platform.machine() == "x86_64":
-    user_regs_struct = """
-    struct user_regs_struct
+    ptrace_user_regs_struct = """
+    struct ptrace_user_regs_struct
     {
         unsigned long r15;
         unsigned long r14;
@@ -47,32 +47,107 @@ if platform.machine() == "x86_64":
     #define INSTALL_BREAKPOINT(instruction) ((instruction & 0xFFFFFFFFFFFFFF00) | 0xCC)
     #define BREAKPOINT_SIZE 1
     """
+elif platform.machine() == "i686":
+    ptrace_user_regs_struct = """
+    struct ptrace_user_regs_struct
+    {
+        unsigned long ebx;
+        unsigned long ecx;
+        unsigned long edx;
+        unsigned long esi;
+        unsigned long edi;
+        unsigned long ebp;
+        unsigned long eax;
+        unsigned long xds;
+        unsigned long xes;
+        unsigned long xfs;
+        unsigned long xgs;
+        unsigned long orig_eax;
+        unsigned long eip;
+        unsigned long xcs;
+        unsigned long eflags;
+        unsigned long esp;
+        unsigned long xss;
+    };
+    """
+
+    breakpoint_define = """
+    #define INSTRUCTION_POINTER(regs) (regs.eip)
+    #define INSTALL_BREAKPOINT(instruction) ((instruction & 0xFFFFFF00) | 0xCC)
+    #define BREAKPOINT_SIZE 1
+    """
+elif platform.machine() == "aarch64":
+    ptrace_user_regs_struct = """
+    struct ptrace_user_regs_struct
+    {
+        unsigned long x0;
+        unsigned long x1;
+        unsigned long x2;
+        unsigned long x3;
+        unsigned long x4;
+        unsigned long x5;
+        unsigned long x6;
+        unsigned long x7;
+        unsigned long x8;
+        unsigned long x9;
+        unsigned long x10;
+        unsigned long x11;
+        unsigned long x12;
+        unsigned long x13;
+        unsigned long x14;
+        unsigned long x15;
+        unsigned long x16;
+        unsigned long x17;
+        unsigned long x18;
+        unsigned long x19;
+        unsigned long x20;
+        unsigned long x21;
+        unsigned long x22;
+        unsigned long x23;
+        unsigned long x24;
+        unsigned long x25;
+        unsigned long x26;
+        unsigned long x27;
+        unsigned long x28;
+        unsigned long x29;
+        unsigned long x30;
+        unsigned long sp;
+        unsigned long pc;
+        unsigned long pstate;
+    };
+    """
+
+    breakpoint_define = """
+    #define INSTRUCTION_POINTER(regs) (regs.pc)
+    #define INSTALL_BREAKPOINT(instruction) ((instruction & 0xFFFFFFFF00000000) | 0xD4200000)
+    #define BREAKPOINT_SIZE 4
+    """
 else:
     raise NotImplementedError(f"Architecture {platform.machine()} not available.")
 
 
 ffibuilder = FFI()
 ffibuilder.cdef(
-    user_regs_struct
+    ptrace_user_regs_struct
     + """
     struct ptrace_hit_bp {
         int pid;
-        uint64_t addr;
-        uint64_t bp_instruction;
-        uint64_t prev_instruction;
+        unsigned long addr;
+        unsigned long bp_instruction;
+        unsigned long prev_instruction;
     };
 
     struct software_breakpoint {
-        uint64_t addr;
-        uint64_t instruction;
-        uint64_t patched_instruction;
+        unsigned long addr;
+        unsigned long instruction;
+        unsigned long patched_instruction;
         char enabled;
         struct software_breakpoint *next;
     };
 
     struct thread {
         int tid;
-        struct user_regs_struct regs;
+        struct ptrace_user_regs_struct regs;
         struct thread *next;
     };
 
@@ -96,30 +171,30 @@ ffibuilder.cdef(
     void ptrace_reattach_from_gdb(struct global_state *state, int pid);
     void ptrace_set_options(int pid);
 
-    uint64_t ptrace_peekdata(int pid, uint64_t addr);
-    uint64_t ptrace_pokedata(int pid, uint64_t addr, uint64_t data);
+    unsigned long ptrace_peekdata(int pid, unsigned long addr);
+    unsigned long ptrace_pokedata(int pid, unsigned long addr, unsigned long data);
 
-    uint64_t ptrace_peekuser(int pid, uint64_t addr);
-    uint64_t ptrace_pokeuser(int pid, uint64_t addr, uint64_t data);
+    unsigned long ptrace_peekuser(int pid, unsigned long addr);
+    unsigned long ptrace_pokeuser(int pid, unsigned long addr, unsigned long data);
 
-    uint64_t ptrace_geteventmsg(int pid);
+    unsigned long ptrace_geteventmsg(int pid);
 
     int singlestep(struct global_state *state, int tid);
-    int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps);
+    int step_until(struct global_state *state, int tid, unsigned long addr, int max_steps);
 
     int cont_all_and_set_bps(struct global_state *state, int pid);
 
     struct thread_status *wait_all_and_update_regs(struct global_state *state, int pid);
     void free_thread_status_list(struct thread_status *head);
 
-    struct user_regs_struct* register_thread(struct global_state *state, int tid);
+    struct ptrace_user_regs_struct* register_thread(struct global_state *state, int tid);
     void unregister_thread(struct global_state *state, int tid);
     void free_thread_list(struct global_state *state);
 
-    void register_breakpoint(struct global_state *state, int pid, uint64_t address);
-    void unregister_breakpoint(struct global_state *state, uint64_t address);
-    void enable_breakpoint(struct global_state *state, uint64_t address);
-    void disable_breakpoint(struct global_state *state, uint64_t address);
+    void register_breakpoint(struct global_state *state, int pid, unsigned long address);
+    void unregister_breakpoint(struct global_state *state, unsigned long address);
+    void enable_breakpoint(struct global_state *state, unsigned long address);
+    void disable_breakpoint(struct global_state *state, unsigned long address);
     void free_breakpoints(struct global_state *state);
 """
 )
@@ -127,7 +202,7 @@ ffibuilder.cdef(
 with open("libdebug/cffi/ptrace_cffi_source.c") as f:
     ffibuilder.set_source(
         "libdebug.cffi._ptrace_cffi",
-        breakpoint_define + f.read(),
+        ptrace_user_regs_struct + breakpoint_define + f.read(),
         libraries=[],
     )
 

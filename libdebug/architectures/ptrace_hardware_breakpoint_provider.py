@@ -6,8 +6,14 @@
 
 from typing import Callable
 
+from libdebug.architectures.aarch64.aarch64_ptrace_hw_bp_helper import (
+    Aarch64HardwareBreakpointManager,
+)
 from libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper import (
     Amd64PtraceHardwareBreakpointManager,
+)
+from libdebug.architectures.i386.i386_ptrace_hw_bp_helper import (
+    I386PtraceHardwareBreakpointManager,
 )
 from libdebug.architectures.ptrace_hardware_breakpoint_manager import (
     PtraceHardwareBreakpointManager,
@@ -22,10 +28,14 @@ def ptrace_hardware_breakpoint_manager_provider(
     poke_user: Callable[[int, int, int], None],
 ) -> PtraceHardwareBreakpointManager:
     """Returns an instance of the hardware breakpoint manager to be used by the `_InternalDebugger` class."""
-    architecture = libcontext.arch
+    platform = libcontext.platform
 
-    match architecture:
-        case "amd64":
+    match platform:
+        case "x86_64":
             return Amd64PtraceHardwareBreakpointManager(thread, peek_user, poke_user)
+        case "i686":
+            return I386PtraceHardwareBreakpointManager(thread, peek_user, poke_user)
+        case "aarch64":
+            return Aarch64HardwareBreakpointManager(thread, peek_user, poke_user)
         case _:
-            raise NotImplementedError(f"Architecture {architecture} not available.")
+            raise NotImplementedError(f"Platform {platform} not available.")

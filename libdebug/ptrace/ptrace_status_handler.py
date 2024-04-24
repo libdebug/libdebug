@@ -12,7 +12,7 @@ from libdebug.architectures.ptrace_software_breakpoint_patcher import (
     software_breakpoint_byte_size,
 )
 from libdebug.liblog import liblog
-from libdebug.ptrace.ptrace_constants import StopEvents, SYSCALL_SIGTRAP
+from libdebug.ptrace.ptrace_constants import SYSCALL_SIGTRAP, StopEvents
 from libdebug.state.debugging_context import provide_context
 
 if TYPE_CHECKING:
@@ -73,7 +73,7 @@ class PtraceStatusHandler:
         else:
             # If the trap was caused by a software breakpoint, we need to restore the original instruction
             # and set the instruction pointer to the previous instruction.
-            ip -= software_breakpoint_byte_size()
+            ip -= software_breakpoint_byte_size(self.context.arch)
 
             if ip in enabled_breakpoints:
                 # Software breakpoint hit

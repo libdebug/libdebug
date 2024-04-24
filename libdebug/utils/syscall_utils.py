@@ -8,9 +8,8 @@ import functools
 import json
 import os
 from pathlib import Path
-import requests
 
-from libdebug.utils.libcontext import libcontext
+import requests
 
 SYSCALLS_REMOTE = "https://syscalls.mebeim.net/db"
 LOCAL_FOLDER_PATH = str((Path(__file__) / ".." / "syscalls").resolve())
@@ -20,6 +19,10 @@ def get_remote_definition_url(arch: str) -> str:
     match arch:
         case "amd64":
             return f"{SYSCALLS_REMOTE}/x86/64/x64/latest/table.json"
+        case "i386":
+            return f"{SYSCALLS_REMOTE}/x86/32/ia32/latest/table.json"
+        case "aarch64":
+            return f"{SYSCALLS_REMOTE}/arm64/64/aarch64/latest/table.json"
         case _:
             raise ValueError(f"Architecture {arch} not supported")
 
@@ -53,8 +56,8 @@ def get_syscall_definitions(arch: str) -> dict:
 
 
 @functools.cache
-def resolve_syscall_number(name: str) -> int:
-    definitions = get_syscall_definitions(libcontext.arch)
+def resolve_syscall_number(arch: str, name: str) -> int:
+    definitions = get_syscall_definitions(arch)
 
     try:
         for syscall in definitions["syscalls"]:
@@ -67,8 +70,8 @@ def resolve_syscall_number(name: str) -> int:
 
 
 @functools.cache
-def resolve_syscall_name(number: int) -> str:
-    definitions = get_syscall_definitions(libcontext.arch)
+def resolve_syscall_name(arch: str, number: int) -> str:
+    definitions = get_syscall_definitions(arch)
 
     try:
         for syscall in definitions["syscalls"]:
@@ -79,8 +82,8 @@ def resolve_syscall_name(number: int) -> str:
 
 
 @functools.cache
-def resolve_syscall_arguments(number: int) -> list[str]:
-    definitions = get_syscall_definitions(libcontext.arch)
+def resolve_syscall_arguments(arch: str, number: int) -> list[str]:
+    definitions = get_syscall_definitions(arch)
 
     try:
         for syscall in definitions["syscalls"]:
@@ -91,7 +94,7 @@ def resolve_syscall_arguments(number: int) -> list[str]:
 
 
 @functools.cache
-def get_all_syscall_numbers() -> list[int]:
-    definitions = get_syscall_definitions(libcontext.arch)
+def get_all_syscall_numbers(arch: str) -> list[int]:
+    definitions = get_syscall_definitions(arch)
 
     return [syscall["number"] for syscall in definitions["syscalls"]]

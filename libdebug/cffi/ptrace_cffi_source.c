@@ -14,24 +14,31 @@
 #include <sys/user.h>
 #include <sys/wait.h>
 
+#if defined __aarch64__
+#include <elf.h>
+#include <sys/uio.h>
+
+#define SIZEOF_STRUCT_HWDEBUG_STATE 8 + (16 * 16)
+#endif
+
 struct ptrace_hit_bp {
     int pid;
-    uint64_t addr;
-    uint64_t bp_instruction;
-    uint64_t prev_instruction;
+    unsigned long addr;
+    unsigned long bp_instruction;
+    unsigned long prev_instruction;
 };
 
 struct software_breakpoint {
-    uint64_t addr;
-    uint64_t instruction;
-    uint64_t patched_instruction;
+    unsigned long addr;
+    unsigned long instruction;
+    unsigned long patched_instruction;
     char enabled;
     struct software_breakpoint *next;
 };
 
 struct thread {
     int tid;
-    struct user_regs_struct regs;
+    struct ptrace_user_regs_struct regs;
     struct thread *next;
 };
 
@@ -47,7 +54,37 @@ struct global_state {
     _Bool syscall_hooks_enabled;
 };
 
-struct user_regs_struct *register_thread(struct global_state *state, int tid)
+int get_registers(int tid, struct ptrace_user_regs_struct *regs)
+{
+#if defined __x86_64__ || defined __i386__
+    return ptrace(PTRACE_GETREGS, tid, NULL, regs);
+#elif defined __aarch64__
+    struct iovec iov;
+    iov.iov_base = regs;
+    iov.iov_len = sizeof(struct ptrace_user_regs_struct);
+    return ptrace(PTRACE_GETREGSET, tid, NT_PRSTATUS, &iov);
+#else
+    #error "Unsupported architecture"
+    return 0;
+#endif
+}
+
+int set_registers(int tid, struct ptrace_user_regs_struct *regs)
+{
+#if defined __x86_64__ || defined __i386__
+    return ptrace(PTRACE_SETREGS, tid, NULL, regs);
+#elif defined __aarch64__
+    struct iovec iov;
+    iov.iov_base = regs;
+    iov.iov_len = sizeof(struct ptrace_user_regs_struct);
+    return ptrace(PTRACE_SETREGSET, tid, NT_PRSTATUS, &iov);
+#else
+    #error "Unsupported architecture"
+    return 0;
+#endif
+}
+
+struct ptrace_user_regs_struct *register_thread(struct global_state *state, int tid)
 {
     // Verify if the thread is already registered
     struct thread *t = state->t_HEAD;
@@ -59,7 +96,7 @@ struct user_regs_struct *register_thread(struct global_state *state, int tid)
     t = malloc(sizeof(struct thread));
     t->tid = tid;
 
-    ptrace(PTRACE_GETREGS, tid, NULL, &t->regs);
+    get_registers(tid, &t->regs);
 
     t->next = state->t_HEAD;
     state->t_HEAD = t;
@@ -117,7 +154,7 @@ void ptrace_detach_all(struct global_state *state, int pid)
     // note that the order is important: the main thread must be detached last
     while (t != NULL) {
         // let's attempt to read the registers of the thread
-        if (ptrace(PTRACE_GETREGS, t->tid, NULL, &t->regs)) {
+        if (get_registers(t->tid, &t->regs)) {
             // if we can't read the registers, the thread is probably still running
             // ensure that the thread is stopped
             tgkill(pid, t->tid, SIGSTOP);
@@ -146,7 +183,7 @@ void ptrace_detach_for_migration(struct global_state *state, int pid)
     // note that the order is important: the main thread must be detached last
     while (t != NULL) {
         // let's attempt to read the registers of the thread
-        if (ptrace(PTRACE_GETREGS, t->tid, NULL, &t->regs)) {
+        if (get_registers(t->tid, &t->regs)) {
             // if we can't read the registers, the thread is probably still running
             // ensure that the thread is stopped
             tgkill(pid, t->tid, SIGSTOP);
@@ -173,7 +210,7 @@ void ptrace_reattach_from_gdb(struct global_state *state, int pid)
             fprintf(stderr, "ptrace_attach failed for thread %d: %s\\n", t->tid,
                     strerror(errno));
 
-        if (ptrace(PTRACE_GETREGS, t->tid, NULL, &t->regs))
+        if (get_registers(t->tid, &t->regs))
             fprintf(stderr, "ptrace_getregs failed for thread %d: %s\\n", t->tid,
                     strerror(errno));
 
@@ -189,7 +226,7 @@ void ptrace_set_options(int pid)
     ptrace(PTRACE_SETOPTIONS, pid, NULL, options);
 }
 
-uint64_t ptrace_peekdata(int pid, uint64_t addr)
+unsigned long ptrace_peekdata(int pid, unsigned long addr)
 {
     // Since the value returned by a successful PTRACE_PEEK*
     // request may be -1, the caller must clear errno before the call,
@@ -198,28 +235,76 @@ uint64_t ptrace_peekdata(int pid, uint64_t addr)
     return ptrace(PTRACE_PEEKDATA, pid, (void *)addr, NULL);
 }
 
-uint64_t ptrace_pokedata(int pid, uint64_t addr, uint64_t data)
+unsigned long ptrace_pokedata(int pid, unsigned long addr, unsigned long data)
 {
     return ptrace(PTRACE_POKEDATA, pid, (void *)addr, data);
 }
 
-uint64_t ptrace_peekuser(int pid, uint64_t addr)
+unsigned long ptrace_peekuser(int pid, unsigned long addr)
 {
     // Since the value returned by a successful PTRACE_PEEK*
     // request may be -1, the caller must clear errno before the call,
     errno = 0;
 
+#if defined __x86_64__ || defined __i386__
     return ptrace(PTRACE_PEEKUSER, pid, addr, NULL);
+#elif defined __aarch64__
+    unsigned char *data = malloc(SIZEOF_STRUCT_HWDEBUG_STATE);
+    memset(data, 0, SIZEOF_STRUCT_HWDEBUG_STATE);
+
+    struct iovec iov;
+    iov.iov_base = data;
+    iov.iov_len = SIZEOF_STRUCT_HWDEBUG_STATE;
+
+    unsigned long command = (addr & 0x1000) ? NT_ARM_HW_WATCH : NT_ARM_HW_BREAK;
+    addr &= ~0x1000;
+    
+    ptrace(PTRACE_GETREGSET, pid, command, &iov);
+
+    unsigned long result = *(unsigned long *) (data + addr);
+
+    free(data);
+    
+    return result;
+#else
+    #error "Unsupported architecture"
+    return 0;
+#endif
 }
 
-uint64_t ptrace_pokeuser(int pid, uint64_t addr, uint64_t data)
+unsigned long ptrace_pokeuser(int pid, unsigned long addr, unsigned long data)
 {
+#if defined __x86_64__ || defined __i386__
     return ptrace(PTRACE_POKEUSER, pid, addr, data);
+#elif defined __aarch64__
+    unsigned char *dbg_data = malloc(SIZEOF_STRUCT_HWDEBUG_STATE);
+    memset(dbg_data, 0, SIZEOF_STRUCT_HWDEBUG_STATE);
+
+    struct iovec iov;
+    iov.iov_base = dbg_data;
+    iov.iov_len = SIZEOF_STRUCT_HWDEBUG_STATE;
+
+    unsigned long command = (addr & 0x1000) ? NT_ARM_HW_WATCH : NT_ARM_HW_BREAK;
+    addr &= ~0x1000;
+    
+    ptrace(PTRACE_GETREGSET, pid, command, &iov);
+
+    *(unsigned long *) (dbg_data + addr) = data;
+        
+    ptrace(PTRACE_SETREGSET, pid, command, &iov);
+
+    free(dbg_data);
+    
+    return 0;
+#else
+    #error "Unsupported architecture"
+    return 0;
+#endif
 }
 
-uint64_t ptrace_geteventmsg(int pid)
+unsigned long ptrace_geteventmsg(int pid)
 {
-    uint64_t data = 0;
+    unsigned long data = 0;
 
     ptrace(PTRACE_GETEVENTMSG, pid, NULL, &data);
 
@@ -231,7 +316,7 @@ int singlestep(struct global_state *state, int tid)
     // flush any register changes
     struct thread *t = state->t_HEAD;
     while (t != NULL) {
-        if (ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs))
+        if (set_registers(t->tid, &t->regs))
             perror("ptrace_setregs");
         t = t->next;
     }
@@ -239,12 +324,12 @@ int singlestep(struct global_state *state, int tid)
     return ptrace(PTRACE_SINGLESTEP, tid, NULL, NULL);
 }
 
-int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps)
+int step_until(struct global_state *state, int tid, unsigned long addr, int max_steps)
 {
     // flush any register changes
     struct thread *t = state->t_HEAD, *stepping_thread = NULL;
     while (t != NULL) {
-        if (ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs))
+        if (set_registers(t->tid, &t->regs))
             perror("ptrace_setregs");
 
         if (t->tid == tid)
@@ -254,7 +339,7 @@ int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps
     }
 
     int count = 0, status = 0;
-    uint64_t previous_ip;
+    unsigned long previous_ip;
 
     if (!stepping_thread) {
         perror("Thread not found");
@@ -270,7 +355,7 @@ int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps
         previous_ip = INSTRUCTION_POINTER(stepping_thread->regs);
 
         // update the registers
-        ptrace(PTRACE_GETREGS, tid, NULL, &stepping_thread->regs);
+        get_registers(tid, &stepping_thread->regs);
 
         if (INSTRUCTION_POINTER(stepping_thread->regs) == addr) break;
 
@@ -291,7 +376,7 @@ int cont_all_and_set_bps(struct global_state *state, int pid)
     // flush any register changes
     struct thread *t = state->t_HEAD;
     while (t != NULL) {
-        if (ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs))
+        if (set_registers(t->tid, &t->regs))
             fprintf(stderr, "ptrace_setregs failed for thread %d: %s\\n",
                     t->tid, strerror(errno));
         t = t->next;
@@ -305,7 +390,7 @@ int cont_all_and_set_bps(struct global_state *state, int pid)
 
     while (t != NULL) {
         t_hit = 0;
-        uint64_t ip = INSTRUCTION_POINTER(t->regs);
+        unsigned long ip = INSTRUCTION_POINTER(t->regs);
 
         b = state->b_HEAD;
         while (b != NULL && !t_hit) {
@@ -379,7 +464,7 @@ struct thread_status *wait_all_and_update_regs(struct global_state *state, int p
         if (t->tid != head->tid) {
             // If GETREGS succeeds, the thread is already stopped, so we must
             // not "stop" it again
-            if (ptrace(PTRACE_GETREGS, t->tid, NULL, &t->regs) == -1) {
+            if (get_registers(t->tid, &t->regs) == -1) {
                 // Stop the thread with a SIGSTOP
                 tgkill(pid, t->tid, SIGSTOP);
                 // Wait for the thread to stop
@@ -409,7 +494,7 @@ struct thread_status *wait_all_and_update_regs(struct global_state *state, int p
     // Update the registers of all the threads
     t = state->t_HEAD;
     while (t) {
-        ptrace(PTRACE_GETREGS, t->tid, NULL, &t->regs);
+        get_registers(t->tid, &t->regs);
         t = t->next;
     }
 
@@ -437,9 +522,9 @@ void free_thread_status_list(struct thread_status *head)
     }
 }
 
-void register_breakpoint(struct global_state *state, int pid, uint64_t address)
+void register_breakpoint(struct global_state *state, int pid, unsigned long address)
 {
-    uint64_t instruction, patched_instruction;
+    unsigned long instruction, patched_instruction;
 
     instruction = ptrace(PTRACE_PEEKDATA, pid, (void *)address, NULL);
 
@@ -483,7 +568,7 @@ void register_breakpoint(struct global_state *state, int pid, uint64_t address)
     }
 }
 
-void unregister_breakpoint(struct global_state *state, uint64_t address)
+void unregister_breakpoint(struct global_state *state, unsigned long address)
 {
     struct software_breakpoint *b = state->b_HEAD;
     struct software_breakpoint *prev = NULL;
@@ -503,7 +588,7 @@ void unregister_breakpoint(struct global_state *state, uint64_t address)
     }
 }
 
-void enable_breakpoint(struct global_state *state, uint64_t address)
+void enable_breakpoint(struct global_state *state, unsigned long address)
 {
     struct software_breakpoint *b = state->b_HEAD;
 
@@ -515,7 +600,7 @@ void enable_breakpoint(struct global_state *state, uint64_t address)
     }
 }
 
-void disable_breakpoint(struct global_state *state, uint64_t address)
+void disable_breakpoint(struct global_state *state, unsigned long address)
 {
     struct software_breakpoint *b = state->b_HEAD;
 

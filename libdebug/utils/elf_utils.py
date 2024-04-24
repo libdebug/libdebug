@@ -205,7 +205,7 @@ def resolve_address(path: str, address: int) -> str:
     symbols, buildid, debug_file = _parse_elf_file(path, libcontext.sym_lvl)
     for symbol, (symbol_start, symbol_end) in symbols.items():
         if symbol_start <= address < symbol_end:
-            return f"{symbol}+{str(address-symbol_start)}"
+            return f"{symbol}+{address - symbol_start:x}"
 
     # Retrieve the symbols from the external debuginfo file
     if buildid and debug_file and libcontext.sym_lvl > 2:
@@ -214,7 +214,7 @@ def resolve_address(path: str, address: int) -> str:
         symbols = _collect_external_info(absolute_debug_path_str)
         for symbol, (symbol_start, symbol_end) in symbols.items():
             if symbol_start <= address < symbol_end:
-                return f"{symbol}+{str(address-symbol_start)}"
+                return f"{symbol}+{address - symbol_start:x}"
 
     # Retrieve the symbols from debuginfod
     if buildid and libcontext.sym_lvl > 4:
@@ -223,7 +223,7 @@ def resolve_address(path: str, address: int) -> str:
             symbols = _collect_external_info(str(absolute_debug_path))
             for symbol, (symbol_start, symbol_end) in symbols.items():
                 if symbol_start <= address < symbol_end:
-                    return f"{symbol}+{str(address-symbol_start)}"
+                    return f"{symbol}+{address - symbol_start:x}"
 
     # Address not found
     raise ValueError(
@@ -232,6 +232,21 @@ def resolve_address(path: str, address: int) -> str:
 
 
 @functools.cache
+def open_as_elf_file(path: str) -> ELFFile:
+    """Returns an ELFFile object representing the specified ELF file.
+
+    Args:
+        path (str): The path to the ELF file.
+
+    Returns:
+        ELFFile: An ELFFile object representing the specified ELF file.
+    """
+    with open(path, "rb") as elf_file:
+        file = ELFFile(elf_file)
+
+    return file
+
+
 def is_pie(path: str) -> bool:
     """Returns True if the specified ELF file is position independent, False otherwise.
 
@@ -241,13 +256,11 @@ def is_pie(path: str) -> bool:
     Returns:
         bool: True if the specified ELF file is position independent, False otherwise.
     """
-    with open(path, "rb") as elf_file:
-        elf = ELFFile(elf_file)
+    elf = open_as_elf_file(path)
 
     return elf.header.e_type == "ET_DYN"
 
 
-@functools.cache
 def get_entry_point(path: str) -> int:
     """Returns the entry point of the specified ELF file.
 
@@ -257,7 +270,28 @@ def get_entry_point(path: str) -> int:
     Returns:
         int: The entry point of the specified ELF file.
     """
-    with open(path, "rb") as elf_file:
-        elf = ELFFile(elf_file)
+    elf = open_as_elf_file(path)
 
     return elf.header.e_entry
+
+
+def determine_architecture(path: str) -> str:
+    """Returns the architecture of the specified ELF file.
+
+    Args:
+        path (str): The path to the ELF file.
+
+    Returns:
+        str: The architecture of the specified ELF file.
+    """
+    elf = open_as_elf_file(path)
+
+    match elf.get_machine_arch():
+        case "x86":
+            return "i386"
+        case "x64":
+            return "amd64"
+        case "AArch64":
+            return "aarch64"
+        case _:
+            raise ValueError("Architecture not supported.")

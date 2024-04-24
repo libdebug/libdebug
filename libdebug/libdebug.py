@@ -6,13 +6,18 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
-import psutil
 from queue import Queue
 from subprocess import Popen
 from threading import Thread
 from typing import Callable
 
+import psutil
+
+from libdebug.architectures.ptrace_software_breakpoint_patcher import (
+    software_breakpoint_byte_size,
+)
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
 from libdebug.data.syscall_hook import SyscallHook
@@ -27,6 +32,7 @@ from libdebug.state.debugging_context import (
     provide_context,
 )
 from libdebug.state.thread_context import ThreadContext
+from libdebug.utils.elf_utils import determine_architecture
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.syscall_utils import resolve_syscall_number
 
@@ -109,6 +115,9 @@ class _InternalDebugger:
 
         if not os.path.isfile(provide_context(self).argv[0]):
             raise RuntimeError("The specified binary file does not exist.")
+
+        if not self.context.arch:
+            self.context.arch = determine_architecture(self.context.argv[0])
 
         if self.instanced:
             liblog.debugger("Process already running, stopping it before restarting.")
@@ -325,6 +334,9 @@ class _InternalDebugger:
                 address = self.context.resolve_address(position)
             position = hex(address)
 
+        if address % software_breakpoint_byte_size(self.context.arch) != 0:
+            raise ValueError("Breakpoint address is unaligned.")
+
         if condition:
             if not hardware:
                 raise ValueError(
@@ -406,7 +418,7 @@ class _InternalDebugger:
             )
 
         if isinstance(syscall, str):
-            syscall_number = resolve_syscall_number(syscall)
+            syscall_number = resolve_syscall_number(self.context.arch, syscall)
         else:
             syscall_number = syscall
 
@@ -591,11 +603,13 @@ class _InternalDebugger:
             self._peek_memory,
             self._poke_memory,
             self.interface.maps,
+            unit_size=libcontext.system_register_size,
         )
         self._threaded_memory = MemoryView(
             self.__threaded_peek_memory,
             self.__threaded_poke_memory,
             self.interface.maps,
+            unit_size=libcontext.system_register_size,
         )
 
         self.context.memory = self.memory
@@ -703,13 +717,12 @@ class _InternalDebugger:
     def __threaded_peek_memory(self, address: int) -> bytes | BaseException:
         try:
             value = self.interface.peek_memory(address)
-            # TODO: this is only for amd64
-            return value.to_bytes(8, "little")
+            return value.to_bytes(libcontext.system_register_size, sys.byteorder)
         except BaseException as e:
             return e
 
     def __threaded_poke_memory(self, address: int, data: bytes):
-        int_data = int.from_bytes(data, "little")
+        int_data = int.from_bytes(data, sys.byteorder)
         self.interface.poke_memory(address, int_data)
 
     def __threaded_migrate_to_gdb(self):

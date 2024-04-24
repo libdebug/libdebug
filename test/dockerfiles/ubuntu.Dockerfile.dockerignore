@@ -1,9 +1,0 @@
-build/
-libdebug.egg-info/
-dist/
-utils/
-venv/
-.git/
-**/__pycache__/
-test/dockerfiles/
-!test/dockerfiles/run_tests.sh
