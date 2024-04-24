@@ -6,14 +6,17 @@
 from __future__ import annotations
 
 import os
+from contextlib import contextmanager
 from pathlib import Path
-import psutil
 from queue import Queue
 from subprocess import Popen
 from threading import Thread
 from typing import Callable
-from contextlib import contextmanager
 
+import psutil
+
+from libdebug.architectures.syscall_hijacking_provider import syscall_hijacking_provider
+from libdebug.builtin.pretty_print_syscall_hook import pprint_on_enter, pprint_on_exit
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
 from libdebug.data.syscall_hook import SyscallHook
@@ -27,10 +30,13 @@ from libdebug.state.debugging_context import (
     link_context,
     provide_context,
 )
-from libdebug.builtin.pretty_print_syscall_hook import pprint_on_enter, pprint_on_exit
 from libdebug.state.thread_context import ThreadContext
 from libdebug.utils.libcontext import libcontext
-from libdebug.utils.syscall_utils import resolve_syscall_number, resolve_syscall_name, get_all_syscall_numbers
+from libdebug.utils.syscall_utils import (
+    get_all_syscall_numbers,
+    resolve_syscall_name,
+    resolve_syscall_number,
+)
 
 THREAD_TERMINATE = -1
 GDB_GOBACK_LOCATION = str((Path(__file__).parent / "utils" / "gdb.py").resolve())
@@ -53,10 +59,10 @@ class _InternalDebugger:
 
     interface: DebuggingInterface | None = None
     """The debugging interface used to interact with the process."""
-    
+
     _syscalls_to_pprint: list[int] | None = None
     """The syscalls to pretty print."""
-    
+
     _syscalls_to_not_pprint: list[int] | None = None
     """The syscalls to not pretty print."""
 
@@ -98,7 +104,7 @@ class _InternalDebugger:
 
         self._start_processing_thread()
         self._setup_memory_view()
-        
+
     def terminate(self):
         """Terminates the background thread. The debugger object cannot be used after this method is called.
         This method should only be called to free up resources when the debugger object is no longer needed.
@@ -394,15 +400,14 @@ class _InternalDebugger:
         self,
     ) -> SyscallHook:
         """Hooks a syscall in the target process to pretty prints its arguments and return value."""
-        self._ensure_process_stopped()        
-        
+        self._ensure_process_stopped()
+
         if self._syscalls_to_pprint is None:
             syscall_numbers = get_all_syscall_numbers()
         else:
             syscall_numbers = self._syscalls_to_pprint
 
         for syscall_number in syscall_numbers:
-            
             # Check if the syscall is already hooked (by the user or by the pretty print hook)
             if syscall_number in self.context.syscall_hooks:
                 hook = self.context.syscall_hooks[syscall_number]
@@ -415,23 +420,26 @@ class _InternalDebugger:
                     hook.on_exit_pprint = None
             else:
                 if syscall_number not in (self._syscalls_to_not_pprint or []):
-                    hook = SyscallHook(syscall_number, None, None, pprint_on_enter, pprint_on_exit)
-                    
+                    hook = SyscallHook(
+                        syscall_number, None, None, pprint_on_enter, pprint_on_exit
+                    )
+
                     link_context(hook, self)
-                    
-                    self._polling_thread_command_queue.put((self.__threaded_syscall_hook, (hook,)))
+
+                    self._polling_thread_command_queue.put(
+                        (self.__threaded_syscall_hook, (hook,))
+                    )
 
         # Wait for the background thread to signal "task done" before returning
         # We don't want any asynchronous behaviour here
         self._polling_thread_command_queue.join()
 
-    
     def _disable_pretty_print(self):
         """
         Unhooks all syscalls that are pretty printed.
         """
         self._ensure_process_stopped()
-        
+
         for hook in self.context.syscall_hooks.values():
             if hook.on_enter_pprint or hook.on_exit_pprint:
                 if hook.on_enter_user or hook.on_exit_user:
@@ -442,9 +450,9 @@ class _InternalDebugger:
                         (self.__threaded_syscall_unhook, (hook,))
                     )
         # Wait for the background thread to signal "task done" before returning
-        # We don't want any asynchronous behaviour here     
+        # We don't want any asynchronous behaviour here
         self._polling_thread_command_queue.join()
-            
+
     def hook_syscall(
         self,
         syscall: int | str,
@@ -487,18 +495,21 @@ class _InternalDebugger:
             hook.hook_hijack = hook_hijack
             hook.enabled = True
         else:
-            hook = SyscallHook(syscall_number, on_enter, on_exit, None, None, hook_hijack)
+            hook = SyscallHook(
+                syscall_number, on_enter, on_exit, None, None, hook_hijack
+            )
 
             link_context(hook, self)
 
-            self._polling_thread_command_queue.put((self.__threaded_syscall_hook, (hook,)))
+            self._polling_thread_command_queue.put(
+                (self.__threaded_syscall_hook, (hook,))
+            )
 
             # Wait for the background thread to signal "task done" before returning
             # We don't want any asynchronous behaviour here
             self._polling_thread_command_queue.join()
 
         return hook
-                
 
     def unhook_syscall(self, hook: SyscallHook):
         """Unhooks a syscall in the target process.
@@ -510,9 +521,9 @@ class _InternalDebugger:
 
         if hook.syscall_number not in self.context.syscall_hooks:
             raise ValueError(f"Syscall {hook.syscall_number} is not hooked.")
-        
+
         hook = self.context.syscall_hooks[hook.syscall_number]
-        
+
         if hook.on_enter_pprint or hook.on_exit_pprint:
             hook.on_enter_user = None
             hook.on_exit_user = None
@@ -524,7 +535,72 @@ class _InternalDebugger:
             # Wait for the background thread to signal "task done" before returning
             # We don't want any asynchronous behaviour here
             self._polling_thread_command_queue.join()
-    
+
+    def hijack_syscall(
+        self,
+        original_syscall: int | str,
+        new_syscall: int | str,
+        hook_hijack: bool = True,
+        *kwargs,
+    ) -> SyscallHook:
+        """Hijacks a syscall in the target process.
+
+        Args:
+            original_syscall (int | str): The syscall name or number to hijack.
+            new_syscall (int | str): The syscall name or number to replace the original syscall with.
+            hook_hijack (bool, optional): Whether the syscall after the hijack should be hooked. Defaults to True.
+            *kwargs: The arguments to pass to the new syscall.
+
+        Returns:
+            SyscallHook: The syscall hook object.
+        """
+        self._ensure_process_stopped()
+
+        if isinstance(original_syscall, str):
+            original_syscall_number = resolve_syscall_number(original_syscall)
+        else:
+            original_syscall_number = original_syscall
+
+        if isinstance(new_syscall, str):
+            new_syscall_number = resolve_syscall_number(new_syscall)
+        else:
+            new_syscall_number = new_syscall
+
+        if original_syscall_number == new_syscall_number:
+            raise ValueError(
+                "The original syscall and the new syscall must be different during hijacking."
+            )
+
+        on_enter = syscall_hijacking_provider().create_hijacker(new_syscall, *kwargs)
+
+        # Check if the syscall is already hooked (by the user or by the pretty print hook)
+        if original_syscall_number in self.context.syscall_hooks:
+            hook = self.context.syscall_hooks[original_syscall_number]
+            if hook.on_enter_user or hook.on_exit_user:
+                liblog.warning(
+                    f"Syscall {original_syscall_number} is already hooked by a user-defined hook. Overriding it."
+                )
+            hook.on_enter_user = on_enter
+            hook.on_exit_user = None
+            hook.hook_hijack = hook_hijack
+            hook.enabled = True
+        else:
+            hook = SyscallHook(
+                original_syscall_number, on_enter, None, None, None, hook_hijack
+            )
+
+            link_context(hook, self)
+
+            self._polling_thread_command_queue.put(
+                (self.__threaded_syscall_hook, (hook,))
+            )
+
+            # Wait for the background thread to signal "task done" before returning
+            # We don't want any asynchronous behaviour here
+            self._polling_thread_command_queue.join()
+
+        return hook
+
     @property
     def pprint_syscalls(self):
         """Get the state of the pprint_syscalls flag.
@@ -534,7 +610,7 @@ class _InternalDebugger:
         """
 
         return self.context._pretty_print_syscalls
-    
+
     @pprint_syscalls.setter
     def pprint_syscalls(self, value):
         """Set the state of the pprint_syscalls flag.
@@ -542,21 +618,22 @@ class _InternalDebugger:
         Args:
             value (bool): the value to set.
         """
-        
+
         if not isinstance(value, bool):
             raise ValueError("pprint_syscalls must be a boolean")
-        
+
         if not self.instanced:
-            raise RuntimeError("Process not running, cannot set pprint_syscalls. Did you call run()?")
+            raise RuntimeError(
+                "Process not running, cannot set pprint_syscalls. Did you call run()?"
+            )
 
         if value:
             self._enable_pretty_print()
         else:
-            pass
-            # disable_syscall_pretty_print(debugging_context())
-        
+            self._disable_pretty_print()
+
         self.context._pretty_print_syscalls = value
-        
+
     @contextmanager
     def pprint_syscalls_context(self, value: bool):
         """A context manager to temporarily change the state of the pprint_syscalls flag.
@@ -571,7 +648,7 @@ class _InternalDebugger:
         self.pprint_syscalls = value
         yield
         self.pprint_syscalls = old_value
-    
+
     @property
     def syscalls_to_pprint(self):
         """Get the syscalls to pretty print.
@@ -579,14 +656,14 @@ class _InternalDebugger:
         Returns:
             list[str]: The syscalls to pretty print.
         """
-        
+
         if self._syscalls_to_pprint is None:
             return None
         else:
             return [resolve_syscall_name(v) for v in self._syscalls_to_pprint]
-    
+
     @syscalls_to_pprint.setter
-    def syscalls_to_pprint(self, value: list[int] | list[str] | None ):
+    def syscalls_to_pprint(self, value: list[int] | list[str] | None):
         """Get the syscalls to pretty print.
 
         Args:
@@ -595,10 +672,14 @@ class _InternalDebugger:
         if value is None:
             self._syscalls_to_pprint = None
         elif isinstance(value, list):
-            self._syscalls_to_pprint = [v if isinstance(v, int) else resolve_syscall_number(v) for v in value]
+            self._syscalls_to_pprint = [
+                v if isinstance(v, int) else resolve_syscall_number(v) for v in value
+            ]
         else:
-            raise ValueError("syscalls_to_pprint must be a list of integers or strings or None.")
-        
+            raise ValueError(
+                "syscalls_to_pprint must be a list of integers or strings or None."
+            )
+
     @property
     def syscalls_to_not_pprint(self):
         """Get the syscalls to not pretty print.
@@ -610,9 +691,9 @@ class _InternalDebugger:
             return None
         else:
             return [resolve_syscall_name(v) for v in self._syscalls_to_not_pprint]
-    
+
     @syscalls_to_not_pprint.setter
-    def syscalls_to_not_pprint(self, value: list[int] | list[str] | None ):
+    def syscalls_to_not_pprint(self, value: list[int] | list[str] | None):
         """Get the syscalls to not pretty print.
 
         Args:
@@ -621,10 +702,14 @@ class _InternalDebugger:
         if value is None:
             self._syscalls_to_not_pprint = None
         elif isinstance(value, list):
-            self._syscalls_to_not_pprint = [v if isinstance(v, int) else resolve_syscall_number(v) for v in value]
+            self._syscalls_to_not_pprint = [
+                v if isinstance(v, int) else resolve_syscall_number(v) for v in value
+            ]
         else:
-            raise ValueError("syscalls_to_not_pprint must be a list of integers or strings or None.")
-        
+            raise ValueError(
+                "syscalls_to_not_pprint must be a list of integers or strings or None."
+            )
+
     def migrate_to_gdb(self, open_in_new_process: bool = True):
         """Migrates the current debugging session to GDB."""
         self._ensure_process_stopped()
@@ -704,7 +789,6 @@ class _InternalDebugger:
         else:  # This is the parent process.
             os.waitpid(gdb_pid, 0)  # Wait for the child process to finish.
 
-
     def __getattr__(self, name: str) -> object:
         """This function is called when an attribute is not found in the `_InternalDebugger` object.
         It is used to forward the call to the first `ThreadContext` object."""
@@ -730,7 +814,7 @@ class _InternalDebugger:
             self._ensure_process_stopped()
             thread_context = self.threads[0]
             setattr(thread_context, name, value)
-    
+
     def _peek_memory(self, address: int) -> bytes:
         """Reads memory from the process."""
         if not self.instanced:
