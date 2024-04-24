@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Any, Callable, Tuple
 
 if TYPE_CHECKING:
     from libdebug.state.thread_context import ThreadContext
@@ -28,8 +28,8 @@ class SyscallHook:
     syscall_number: int
     on_enter_user: Callable[[ThreadContext, int], None]
     on_exit_user: Callable[[ThreadContext, int], None]
-    on_enter_pprint: Callable[[ThreadContext, int], None]
-    on_exit_pprint: Callable[[ThreadContext, int], None]
+    on_enter_pprint: Callable[[ThreadContext, int, Any], None]
+    on_exit_pprint: Callable[[int | Tuple[int, int]], None]
     hook_hijack: bool = True
     enabled: bool = True
     hit_count: int = 0

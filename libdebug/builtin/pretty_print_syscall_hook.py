@@ -4,7 +4,7 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING, Tuple, Any
 from libdebug.utils.print_style import PrintStyle
 from libdebug.utils.syscall_utils import (
     resolve_syscall_name,
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from libdebug.state.thread_context import ThreadContext
 
 
-def pprint_on_enter(d: "ThreadContext", syscall_number: int, **kwargs: bool):
+def pprint_on_enter(d: "ThreadContext", syscall_number: int, **kwargs: Any):
     """Function that will be called when a syscall is entered in pretty print mode.
 
     Args:
