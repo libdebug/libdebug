@@ -130,8 +130,6 @@ class PtraceStatusHandler:
                         hijacked_list.append(syscall_number_after_hook)
                         # Check if the new syscall has already been hijacked in the current chain
                         if len(hijacked_list) != len(set(hijacked_list)):
-                            print(hijacked_list)
-                            print(list(set(hijacked_list)))
                             raise RuntimeError(
                                 "Syscall hijacking loop detected. Check your hooks to avoid infinite loops."
                             )
@@ -195,13 +193,13 @@ class PtraceStatusHandler:
         else:
             # The syscall is being exited
             liblog.debugger("Syscall %d exited on thread %d", syscall_number, thread_id)
-            
+
             if hook.enable:
                 # Increment the hit count only if the syscall hook is enabled
                 hook.hit_count += 1
-                
+
                 # Call the user-defined hook if it exists
-                if hook.on_exit_user :
+                if hook.on_exit_user:
                     # Pretty print the return value before the hook
                     if hook.on_exit_pprint:
                         return_value_before_hook = thread.syscall_return
