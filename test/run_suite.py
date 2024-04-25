@@ -28,6 +28,7 @@ from scripts.vmwhere1 import Vmwhere1
 from scripts.watchpoint_test import WatchpointTest
 from scripts.watchpoint_alias_test import WatchpointAliasTest
 from scripts.deep_dive_division import DeepDiveDivision
+from scripts.hijack_syscall_test import SyscallHijackTest
 
 
 def fast_suite():
@@ -80,6 +81,8 @@ def fast_suite():
     suite.addTest(SyscallHookTest("test_hooks"))
     suite.addTest(SyscallHookTest("test_hook_disabling"))
     suite.addTest(AntidebugEscapingTest("test_antidebug_escaping"))
+    suite.addTest(SyscallHijackTest("test_hijack_syscall"))
+    suite.addTest(SyscallHijackTest("loop_detection_test"))
     return suite
 
 
