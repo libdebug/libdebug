@@ -4,9 +4,9 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-import unittest
 import io
 import sys
+import unittest
 
 from libdebug import debugger
 
