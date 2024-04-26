@@ -284,7 +284,7 @@ int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps
     return 0;
 }
 
-int cont_all_and_set_bps(struct global_state *state, int pid)
+int prepare_for_run(struct global_state *state, int pid)
 {
     int status = 0;
 
@@ -344,8 +344,15 @@ int cont_all_and_set_bps(struct global_state *state, int pid)
         b = b->next;
     }
 
+    return status;
+}
+
+int cont_all_and_set_bps(struct global_state *state, int pid)
+{
+    int status = prepare_for_run(state, pid);
+
     // continue the execution of all the threads
-    t = state->t_HEAD;
+    struct thread *t = state->t_HEAD;
     while (t != NULL) {
         if (ptrace(state->syscall_hooks_enabled ? PTRACE_SYSCALL : PTRACE_CONT, t->tid, NULL, NULL))
             fprintf(stderr, "ptrace_cont failed for thread %d: %s\\n", t->tid,
@@ -543,33 +550,31 @@ void free_breakpoints(struct global_state *state)
 
 int exact_finish(struct global_state *state, int tid)
 {
-    // flush any register changes
-    struct thread *t = state->t_HEAD, *stepping_thread = NULL;
-    while (t != NULL) {
-        if (ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs))
-            perror("ptrace_setregs");
+    int status = prepare_for_run(state, tid);
 
-        if (t->tid == tid)
-            stepping_thread = t;
+    struct thread *stepping_thread = state->t_HEAD;
+    while (stepping_thread != NULL) {
+        if (stepping_thread->tid == tid) {
+            break;
+        }
 
-        t = t->next;
+        stepping_thread = stepping_thread->next;
     }
 
-    int status = 0;
+    if (!stepping_thread) {
+        perror("Thread not found");
+        return -1;
+    }
+
     uint64_t previous_ip;
     uint64_t current_ip = INSTRUCTION_POINTER(stepping_thread->regs);
     uint64_t opcode_window = 0x00;
     uint8_t first_opcode_byte = 0x00;
 
-    if (!stepping_thread){
-        perror("Thread not found");
-        return -1;
-    }
-
     // We need to keep track of the nested calls
     int nested_call_counter = 1;
 
-    do{
+    do {
         if (ptrace(PTRACE_SINGLESTEP, tid, NULL, NULL)) return -1;
 
         // wait for the child
@@ -585,30 +590,27 @@ int exact_finish(struct global_state *state, int tid)
         fprintf(stderr, "[DEBUG]: Current IP: %p\n", current_ip);
 
         // Get value at current instruction pointer
-        opcode_window = ptrace(PTRACE_PEEKTEXT, tid, (void *)current_ip, NULL);
+        opcode_window = ptrace(PTRACE_PEEKDATA, tid, (void *)current_ip, NULL);
         first_opcode_byte = opcode_window & 0xFF;
 
         // if the instruction pointer didn't change, we return
         // because we hit a hardware breakpoint
         // we do the same if we hit a software breakpoint
-        if (current_ip == previous_ip || first_opcode_byte == IS_SW_BREAKPOINT(opcode_window))
-            return 0;
+        if (current_ip == previous_ip || IS_SW_BREAKPOINT(first_opcode_byte))
+            goto cleanup;
 
         // If we hit a call instruction, we increment the counter
-        if (IS_CALL_INSTRUCTION((uint8_t*)&opcode_window))
-        {
+        if (IS_CALL_INSTRUCTION((uint8_t*) &opcode_window)) {
             nested_call_counter++;
             fprintf(stderr, "[DEBUG]: CALL INSTRUCTION AT %p\n", current_ip);
             fprintf(stderr, "[DEBUG]: nested call counter is now at %d\n", nested_call_counter);
-        }
-        else if (IS_RET_INSTRUCTION(first_opcode_byte))
-        {
+        } else if (IS_RET_INSTRUCTION(first_opcode_byte)) {
             nested_call_counter--;
             fprintf(stderr, "[DEBUG]: RET INSTRUCTION AT %p\n", current_ip);
             fprintf(stderr, "[DEBUG]: nested call counter is now at %d\n", nested_call_counter);
         }
 
-    }while(nested_call_counter > 0);
+    } while (nested_call_counter > 0);
 
     fprintf(stderr, "[DEBUG]: Before last step IP: %p\n", current_ip);
 
@@ -626,6 +628,16 @@ int exact_finish(struct global_state *state, int tid)
     fprintf(stderr, "[DEBUG]: After last step IP: %p\n", current_ip);
 
     fprintf(stderr, "[DEBUG]: FINISHING\n");
+
+cleanup:
+    // remove any installed breakpoint
+    struct software_breakpoint *b = state->b_HEAD;
+    while (b != NULL) {
+        if (b->enabled) {
+            ptrace(PTRACE_POKEDATA, tid, (void *)b->addr, b->instruction);
+        }
+        b = b->next;
+    }
 
     return 0;
 }
