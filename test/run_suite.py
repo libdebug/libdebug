@@ -93,10 +93,14 @@ def fast_suite():
     suite.addTest(PPrintSyscallsTest("test_pprint_hijack_syscall"))
     suite.addTest(PPrintSyscallsTest("test_pprint_which_syscalls_pprint_after"))
     suite.addTest(PPrintSyscallsTest("test_pprint_which_syscalls_pprint_before"))
-    suite.addTest(PPrintSyscallsTest("test_pprint_which_syscalls_pprint_after_and_before"))
+    suite.addTest(
+        PPrintSyscallsTest("test_pprint_which_syscalls_pprint_after_and_before")
+    )
     suite.addTest(PPrintSyscallsTest("test_pprint_which_syscalls_not_pprint_after"))
     suite.addTest(PPrintSyscallsTest("test_pprint_which_syscalls_not_pprint_before"))
-    suite.addTest(PPrintSyscallsTest("test_pprint_which_syscalls_not_pprint_after_and_before"))
+    suite.addTest(
+        PPrintSyscallsTest("test_pprint_which_syscalls_not_pprint_after_and_before")
+    )
     return suite
 
 
