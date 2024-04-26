@@ -29,6 +29,7 @@ from scripts.watchpoint_test import WatchpointTest
 from scripts.watchpoint_alias_test import WatchpointAliasTest
 from scripts.deep_dive_division import DeepDiveDivision
 from scripts.hijack_syscall_test import SyscallHijackTest
+from scripts.pprint_syscalls_test import PPrintSyscallsTest
 
 
 def fast_suite():
@@ -82,7 +83,20 @@ def fast_suite():
     suite.addTest(SyscallHookTest("test_hook_disabling"))
     suite.addTest(AntidebugEscapingTest("test_antidebug_escaping"))
     suite.addTest(SyscallHijackTest("test_hijack_syscall"))
+    suite.addTest(SyscallHijackTest("test_hijack_syscall_with_pprint"))
+    suite.addTest(SyscallHijackTest("test_hijack_syscall_hook"))
+    suite.addTest(SyscallHijackTest("test_hijack_syscall_hook_with_pprint"))
     suite.addTest(SyscallHijackTest("loop_detection_test"))
+    suite.addTest(PPrintSyscallsTest("test_pprint_syscalls_generic"))
+    suite.addTest(PPrintSyscallsTest("test_pprint_syscalls_with_statement"))
+    suite.addTest(PPrintSyscallsTest("test_pprint_syscalls_hooking"))
+    suite.addTest(PPrintSyscallsTest("test_pprint_hijack_syscall"))
+    suite.addTest(PPrintSyscallsTest("test_pprint_which_syscalls_pprint_after"))
+    suite.addTest(PPrintSyscallsTest("test_pprint_which_syscalls_pprint_before"))
+    suite.addTest(PPrintSyscallsTest("test_pprint_which_syscalls_pprint_after_and_before"))
+    suite.addTest(PPrintSyscallsTest("test_pprint_which_syscalls_not_pprint_after"))
+    suite.addTest(PPrintSyscallsTest("test_pprint_which_syscalls_not_pprint_before"))
+    suite.addTest(PPrintSyscallsTest("test_pprint_which_syscalls_not_pprint_after_and_before"))
     return suite
 
 
