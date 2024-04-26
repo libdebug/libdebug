@@ -17,6 +17,7 @@ from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
 from libdebug.data.syscall_hook import SyscallHook
 from libdebug.interfaces.debugging_interface import DebuggingInterface
+from libdebug.interfaces.interfaces import BackendInterface
 from libdebug.interfaces.interface_helper import provide_debugging_interface
 from libdebug.liblog import liblog
 from libdebug.state.debugging_context import (
@@ -78,7 +79,7 @@ class _InternalDebugger:
         self.context = provide_context(self)
 
         with context_extend_from(self):
-            self.interface = provide_debugging_interface()
+            self.interface = provide_debugging_interface(self.context.backend)
             self.context.debugging_interface = self.interface
 
         # threading utilities
@@ -725,6 +726,7 @@ def debugger(
     env: dict[str, str] | None = None,
     continue_to_binary_entrypoint: bool = True,
     auto_interrupt_on_command: bool = False,
+    backend: BackendInterface = BackendInterface.QEMU_STUB,
 ) -> _InternalDebugger:
     """This function is used to create a new `_InternalDebugger` object. It takes as input the location of the binary to debug and returns a `_InternalDebugger` object.
 
@@ -755,6 +757,7 @@ def debugger(
     debugging_context.aslr_enabled = enable_aslr
     debugging_context.autoreach_entrypoint = continue_to_binary_entrypoint
     debugging_context.auto_interrupt_on_command = auto_interrupt_on_command
+    debugging_context.backend = backend
 
     debugger._post_init_()
 

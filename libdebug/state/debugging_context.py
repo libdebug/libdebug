@@ -16,6 +16,7 @@ from weakref import WeakKeyDictionary
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
 from libdebug.data.syscall_hook import SyscallHook
+from libdebug.interfaces.interfaces import BackendInterface
 from libdebug.utils.debugging_utils import (
     normalize_and_validate_address,
     resolve_symbol_in_maps,
@@ -48,6 +49,9 @@ class DebuggingContext:
 
     auto_interrupt_on_command: bool
     """A flag that indicates if the debugger should automatically interrupt the debugged process when a command is issued."""
+
+    backend: BackendInterface
+    """The backend interface used to communicate with the debugged process."""
 
     _breakpoints: dict[int, Breakpoint]
     """A dictionary of all the breakpoints set on the process.
@@ -89,6 +93,7 @@ class DebuggingContext:
         self._breakpoints = {}
         self._syscall_hooks = {}
         self._threads = []
+        self.backend = BackendInterface.PTRACE
 
         self.clear()
 

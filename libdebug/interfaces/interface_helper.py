@@ -5,16 +5,19 @@
 #
 
 from libdebug.interfaces.debugging_interface import DebuggingInterface
-from libdebug.interfaces.interfaces import AvailableInterfaces
+from libdebug.interfaces.interfaces import BackendInterface
 from libdebug.interfaces.ptrace_interface import PtraceInterface
+from libdebug.qemu_stub.qemu_stub_interface import QemuStubInterface
 
 
 def provide_debugging_interface(
-    interface: AvailableInterfaces = AvailableInterfaces.PTRACE,
+    interface: BackendInterface = BackendInterface.PTRACE,
 ) -> DebuggingInterface:
     """Returns an instance of the debugging interface to be used by the `_InternalDebugger` class."""
     match interface:
-        case AvailableInterfaces.PTRACE:
+        case BackendInterface.PTRACE:
             return PtraceInterface()
+        case BackendInterface.QEMU_STUB:
+            return QemuStubInterface()
         case _:
             raise NotImplementedError(f"Interface {interface} not available.")
