@@ -117,7 +117,12 @@ class _InternalDebugger:
             raise RuntimeError("No binary file specified.")
 
         if not os.path.isfile(provide_context(self).argv[0]):
-            raise RuntimeError("The specified binary file does not exist.")
+            raise RuntimeError(f"File {provide_context(self).argv[0]} does not exist.")
+
+        if not os.access(provide_context(self).argv[0], os.X_OK):
+            raise RuntimeError(
+                f"File {provide_context(self).argv[0]} is not executable."
+            )
 
         if self.instanced:
             liblog.debugger("Process already running, stopping it before restarting.")
