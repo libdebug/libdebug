@@ -472,8 +472,7 @@ class _InternalDebugger:
 
         # We have to ignore a SIGSTOP signal that is sent by GDB
         # TODO: once we have signal handling, we should remove this
-        self.cont()
-        self.wait()
+        self.step()
 
     def _craft_gdb_migration_command(self) -> list[str]:
         """Crafts the command to migrate to GDB."""
