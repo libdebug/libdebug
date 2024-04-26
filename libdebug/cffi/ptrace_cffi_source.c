@@ -587,8 +587,6 @@ int exact_finish(struct global_state *state, int tid)
 
         current_ip = INSTRUCTION_POINTER(stepping_thread->regs);
 
-        fprintf(stderr, "[DEBUG]: Current IP: %p\n", current_ip);
-
         // Get value at current instruction pointer
         opcode_window = ptrace(PTRACE_PEEKDATA, tid, (void *)current_ip, NULL);
         first_opcode_byte = opcode_window & 0xFF;
@@ -600,19 +598,12 @@ int exact_finish(struct global_state *state, int tid)
             goto cleanup;
 
         // If we hit a call instruction, we increment the counter
-        if (IS_CALL_INSTRUCTION((uint8_t*) &opcode_window)) {
+        if (IS_CALL_INSTRUCTION((uint8_t*) &opcode_window))
             nested_call_counter++;
-            fprintf(stderr, "[DEBUG]: CALL INSTRUCTION AT %p\n", current_ip);
-            fprintf(stderr, "[DEBUG]: nested call counter is now at %d\n", nested_call_counter);
-        } else if (IS_RET_INSTRUCTION(first_opcode_byte)) {
+        else if (IS_RET_INSTRUCTION(first_opcode_byte))
             nested_call_counter--;
-            fprintf(stderr, "[DEBUG]: RET INSTRUCTION AT %p\n", current_ip);
-            fprintf(stderr, "[DEBUG]: nested call counter is now at %d\n", nested_call_counter);
-        }
 
     } while (nested_call_counter > 0);
-
-    fprintf(stderr, "[DEBUG]: Before last step IP: %p\n", current_ip);
 
     // We are in a return instruction, do the last step
     if (ptrace(PTRACE_SINGLESTEP, tid, NULL, NULL)) return -1;
@@ -622,12 +613,6 @@ int exact_finish(struct global_state *state, int tid)
 
     // update the registers
     ptrace(PTRACE_GETREGS, tid, NULL, &stepping_thread->regs);
-
-    current_ip = INSTRUCTION_POINTER(stepping_thread->regs);
-
-    fprintf(stderr, "[DEBUG]: After last step IP: %p\n", current_ip);
-
-    fprintf(stderr, "[DEBUG]: FINISHING\n");
 
 cleanup:
     // remove any installed breakpoint

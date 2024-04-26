@@ -36,7 +36,6 @@ class Amd64StackUnwinder(StackUnwindingManager):
         stack_trace = [target.rip]
 
         while current_rbp:
-            print(f'Currently unwinding stack at RBP: {hex(current_rbp)}')
             try:
                 # Read the return address
                 return_address = int.from_bytes(
