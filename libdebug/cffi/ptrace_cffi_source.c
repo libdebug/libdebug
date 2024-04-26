@@ -145,14 +145,18 @@ void ptrace_detach_for_migration(struct global_state *state, int pid)
     struct thread *t = state->t_HEAD;
     // note that the order is important: the main thread must be detached last
     while (t != NULL) {
-        // let's attempt to read the registers of the thread
-        if (ptrace(PTRACE_GETREGS, t->tid, NULL, &t->regs)) {
+        // the user might have modified the state of the registers
+        // so we use SETREGS to check if the process is running
+        if (ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs)) {
             // if we can't read the registers, the thread is probably still running
             // ensure that the thread is stopped
             tgkill(pid, t->tid, SIGSTOP);
 
             // wait for it to stop
             waitpid(t->tid, NULL, 0);
+
+            // set the registers again, as the first time it failed
+            ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs);
         }
 
         // detach from it

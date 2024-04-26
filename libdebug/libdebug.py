@@ -472,12 +472,11 @@ class _InternalDebugger:
 
         # We have to ignore a SIGSTOP signal that is sent by GDB
         # TODO: once we have signal handling, we should remove this
-        self.cont()
-        self.wait()
+        self.step()
 
-    def _open_gdb_in_new_process(self):
-        """Opens GDB in a new process following the configuration in libcontext.terminal."""
-        args = [
+    def _craft_gdb_migration_command(self) -> list[str]:
+        """Crafts the command to migrate to GDB."""
+        gdb_command = [
             "/bin/gdb",
             "-q",
             "--pid",
@@ -489,6 +488,31 @@ class _InternalDebugger:
             "-ex",
             "ni",
         ]
+
+        bp_args = []
+        for bp in self.breakpoints.values():
+            if bp.enabled:
+                bp_args.append("-ex")
+
+                if bp.hardware and bp.condition == "rw":
+                    bp_args.append(f"awatch *(int{bp.length * 8}_t *) {bp.address:0x}")
+                elif bp.hardware and bp.condition == "w":
+                    bp_args.append(f"watch *(int{bp.length * 8}_t *) {bp.address:0x}")
+                elif bp.hardware:
+                    bp_args.append("hb *" + hex(bp.address))
+                else:
+                    bp_args.append("b *" + hex(bp.address))
+
+                if self.instruction_pointer == bp.address:
+                    # We have to enqueue an additional continue
+                    bp_args.append("-ex")
+                    bp_args.append("ni")
+
+        return gdb_command + bp_args
+
+    def _open_gdb_in_new_process(self):
+        """Opens GDB in a new process following the configuration in libcontext.terminal."""
+        args = self._craft_gdb_migration_command()
 
         initial_pid = Popen(libcontext.terminal + args).pid
 
@@ -511,16 +535,7 @@ class _InternalDebugger:
         """Open GDB in the current shell."""
         gdb_pid = os.fork()
         if gdb_pid == 0:  # This is the child process.
-            args = [
-                "/bin/gdb",
-                "-q",
-                "--pid",
-                str(self.context.process_id),
-                "-ex",
-                "ni",
-                "-ex",
-                "ni",
-            ]
+            args = self._craft_gdb_migration_command()
             os.execv("/bin/gdb", args)
         else:  # This is the parent process.
             os.waitpid(gdb_pid, 0)  # Wait for the child process to finish.
