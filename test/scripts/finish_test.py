@@ -264,7 +264,7 @@ class FinishTest(unittest.TestCase):
         self.assertEqual(d.rip, C_ADDRESS)
 
 
-        # Place a breakpoint a location in between
+        # Place a breakpoint at a location inbetween
         d.breakpoint(BREAKPOINT_LOCATION)
 
         # Finish function c
@@ -314,10 +314,12 @@ class FinishTest(unittest.TestCase):
         d.finish(exact=False)
 
         self.assertEqual(d.rip, RETURN_POINT_FROM_C)
+        self.assertFalse(d.context.running)
 
         d.step()
 
         # Check that the execution is still running and nothing has broken
-        self.assertTrue(d.context.running)
+        self.assertFalse(d.context.running)
+        self.assertFalse(d.context.dead)
 
         d.kill()
