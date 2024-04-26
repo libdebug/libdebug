@@ -496,9 +496,6 @@ class _InternalDebugger:
 
         self._polling_thread_command_queue.put((self.__threaded_finish, (thread,exact)))
 
-        if not exact:
-            self._polling_thread_command_queue.put((self.__threaded_wait, ()))
-
         # Wait for the background thread to signal "task done" before returning
         # We don't want any asynchronous behaviour here
         self._polling_thread_command_queue.join()

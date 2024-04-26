@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2023-2024 Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -79,7 +79,7 @@ class Amd64StackUnwinder(StackUnwindingManager):
             return_address = target.memory[target.rsp, 4]
         else:
             return_address = target.memory[target.rsp + 8, 4]
-
+        
         return_address = int.from_bytes(return_address, byteorder="little")
 
         # Restore the thread to normal mode
