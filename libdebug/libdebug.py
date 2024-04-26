@@ -490,7 +490,18 @@ class _InternalDebugger:
             "ni",
         ]
 
-        initial_pid = Popen(libcontext.terminal + args).pid
+        bp_args = []
+        for bp in self.breakpoints.values():
+            if bp.enabled:
+                bp_args.append("-ex")
+                bp_args.append("b *" + hex(bp.address))
+
+                if self.instruction_pointer == bp.address:
+                    # We have to enqueue an additional continue
+                    bp_args.append("-ex")
+                    bp_args.append("ni")
+
+        initial_pid = Popen(libcontext.terminal + args + bp_args).pid
 
         os.waitpid(initial_pid, 0)
 
@@ -521,7 +532,19 @@ class _InternalDebugger:
                 "-ex",
                 "ni",
             ]
-            os.execv("/bin/gdb", args)
+
+            bp_args = []
+            for bp in self.breakpoints.values():
+                if bp.enabled:
+                    bp_args.append("-ex")
+                    bp_args.append("b *" + hex(bp.address))
+
+                    if self.instruction_pointer == bp.address:
+                        # We have to enqueue an additional continue
+                        bp_args.append("-ex")
+                        bp_args.append("ni")
+
+            os.execv("/bin/gdb", args + bp_args)
         else:  # This is the parent process.
             os.waitpid(gdb_pid, 0)  # Wait for the child process to finish.
 
