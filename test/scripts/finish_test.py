@@ -6,6 +6,7 @@
 import unittest
 
 from libdebug import debugger
+from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
 
 # Addresses of the dummy functions
 C_ADDRESS = 0x4011e3
@@ -37,7 +38,7 @@ class FinishTest(unittest.TestCase):
         # Finish function c
         d.finish(exact=True)
 
-        self.assertTrue(d.rip == RETURN_POINT_FROM_C)
+        self.assertEqual(d.rip, RETURN_POINT_FROM_C)
 
         d.kill()
 
@@ -48,8 +49,6 @@ class FinishTest(unittest.TestCase):
         # Reach function a
         d.run()
         d.breakpoint(A_ADDRESS)
-        # The first breakpoint is C, skip it
-        d.cont()
         d.cont()
 
         self.assertEqual(d.rip, A_ADDRESS)
@@ -57,7 +56,7 @@ class FinishTest(unittest.TestCase):
         # Finish function c
         d.finish(exact=True)
 
-        self.assertTrue(d.rip == RETURN_POINT_FROM_A)
+        self.assertEqual(d.rip, RETURN_POINT_FROM_A)
 
         d.kill()
 
@@ -78,7 +77,7 @@ class FinishTest(unittest.TestCase):
         # Finish function c
         d.finish(exact=False)
 
-        self.assertTrue(d.rip == RETURN_POINT_FROM_C)
+        self.assertEqual(d.rip, RETURN_POINT_FROM_C)
 
         d.kill()
 
@@ -89,8 +88,6 @@ class FinishTest(unittest.TestCase):
         # Reach function a
         d.run()
         d.breakpoint(A_ADDRESS)
-        # The first breakpoint is C, skip it
-        d.cont()
         d.cont()
 
         self.assertEqual(d.rip, A_ADDRESS)
@@ -98,7 +95,7 @@ class FinishTest(unittest.TestCase):
         # Finish function c
         d.finish(exact=False)
 
-        self.assertTrue(d.rip == RETURN_POINT_FROM_A)
+        self.assertEqual(d.rip, RETURN_POINT_FROM_A)
 
         d.kill()
 
@@ -120,7 +117,7 @@ class FinishTest(unittest.TestCase):
         # Finish function c
         d.finish(exact=True)
 
-        self.assertTrue(d.rip == RETURN_POINT_FROM_C)
+        self.assertEqual(d.rip, RETURN_POINT_FROM_C)
 
         d.kill()
 
@@ -131,9 +128,6 @@ class FinishTest(unittest.TestCase):
         # Reach function a
         d.run()
         d.breakpoint(A_ADDRESS)
-        # The first breakpoint is C, skip it
-        d.cont()
-        d.wait()
         d.cont()
         d.wait()
 
@@ -142,7 +136,7 @@ class FinishTest(unittest.TestCase):
         # Finish function c
         d.finish(exact=True)
 
-        self.assertTrue(d.rip == RETURN_POINT_FROM_A)
+        self.assertEqual(d.rip, RETURN_POINT_FROM_A)
 
         d.kill()
 
@@ -164,7 +158,7 @@ class FinishTest(unittest.TestCase):
         # Finish function c
         d.finish(exact=False)
 
-        self.assertTrue(d.rip == RETURN_POINT_FROM_C)
+        self.assertEqual(d.rip, RETURN_POINT_FROM_C)
 
         d.kill()
 
@@ -175,9 +169,6 @@ class FinishTest(unittest.TestCase):
         # Reach function a
         d.run()
         d.breakpoint(A_ADDRESS)
-        # The first breakpoint is C, skip it
-        d.cont()
-        d.wait()
         d.cont()
         d.wait()
 
@@ -186,7 +177,7 @@ class FinishTest(unittest.TestCase):
         # Finish function c
         d.finish(exact=False)
 
-        self.assertTrue(d.rip == RETURN_POINT_FROM_A)
+        self.assertEqual(d.rip, RETURN_POINT_FROM_A)
 
         d.kill()
 
@@ -205,7 +196,7 @@ class FinishTest(unittest.TestCase):
         # Finish function c
         d.finish(exact=True)
 
-        self.assertTrue(d.rip == A_ADDRESS)
+        self.assertEqual(d.rip, A_ADDRESS, f"Expected {hex(A_ADDRESS)} but got {hex(d.rip)}")
 
         d.kill()
 
@@ -224,6 +215,109 @@ class FinishTest(unittest.TestCase):
         # Finish function c
         d.finish(exact=False)
 
-        self.assertTrue(d.rip == A_ADDRESS)
+        self.assertEqual(d.rip, A_ADDRESS)
+
+        d.kill()
+
+    def test_heuristic_return_address(self):
+        d = debugger("binaries/finish_test", auto_interrupt_on_command=False)
+
+        # Reach function c
+        d.run()
+        d.breakpoint(C_ADDRESS)
+        d.cont()
+
+        self.assertEqual(d.rip, C_ADDRESS)
+
+        stack_unwinder = stack_unwinding_provider()
+
+        # We need to repeat the check for the three stages of the function preamble
+
+        # Get current return address
+        curr_srip = stack_unwinder.get_return_address(d)
+        self.assertEqual(curr_srip, RETURN_POINT_FROM_C)
+
+        d.step()
+
+        # Get current return address
+        curr_srip = stack_unwinder.get_return_address(d)
+        self.assertEqual(curr_srip, RETURN_POINT_FROM_C)
+
+        d.step()
+
+        # Get current return address
+        curr_srip = stack_unwinder.get_return_address(d)
+        self.assertEqual(curr_srip, RETURN_POINT_FROM_C)
+
+        d.kill()
+
+    def test_exact_breakpoint_return(self):
+        BREAKPOINT_LOCATION = 0x4011f1
+
+        d = debugger("binaries/finish_test", auto_interrupt_on_command=False)
+
+        # Reach function c
+        d.run()
+        d.breakpoint(C_ADDRESS)
+        d.cont()
+
+        self.assertEqual(d.rip, C_ADDRESS)
+
+
+        # Place a breakpoint a location in between
+        d.breakpoint(BREAKPOINT_LOCATION)
+
+        # Finish function c
+        d.finish(exact=True)
+
+        self.assertEqual(d.rip, BREAKPOINT_LOCATION)
+
+        d.kill()
+
+    def test_heuristic_breakpoint_return(self):
+        BREAKPOINT_LOCATION = 0x4011f1
+
+        d = debugger("binaries/finish_test", auto_interrupt_on_command=False)
+
+        # Reach function c
+        d.run()
+        d.breakpoint(C_ADDRESS)
+        d.cont()
+
+        self.assertEqual(d.rip, C_ADDRESS)
+
+
+        # Place a breakpoint a location in between
+        d.breakpoint(BREAKPOINT_LOCATION)
+
+        # Finish function c
+        d.finish(exact=False)
+
+        self.assertEqual(d.rip, BREAKPOINT_LOCATION)
+
+        d.kill()
+
+    def test_breakpoint_collision(self):
+        d = debugger("binaries/finish_test", auto_interrupt_on_command=False)
+
+        # Reach function c
+        d.run()
+        d.breakpoint(C_ADDRESS)
+        d.cont()
+
+        self.assertEqual(d.rip, C_ADDRESS)
+
+        # Place a breakpoint at the same location as the return address
+        d.breakpoint(RETURN_POINT_FROM_C)
+
+        # Finish function c
+        d.finish(exact=False)
+
+        self.assertEqual(d.rip, RETURN_POINT_FROM_C)
+
+        d.step()
+
+        # Check that the execution is still running and nothing has broken
+        self.assertTrue(d.context.running)
 
         d.kill()
