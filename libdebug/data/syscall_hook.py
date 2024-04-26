@@ -35,6 +35,7 @@ class SyscallHook:
     hit_count: int = 0
 
     _has_entered: bool = False
+    _skip_exit: bool = False
 
     def enable(self) -> None:
         """Enable the syscall hook."""

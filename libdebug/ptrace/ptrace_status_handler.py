@@ -145,6 +145,11 @@ class PtraceStatusHandler:
                         # Pretty print the syscall number
                         hook_hijack.on_enter_pprint(thread, syscall_number_after_hook)
                         hook_hijack._has_entered = True
+                        hook_hijack._skip_exit = True
+                    else:
+                        # Skip the exit hook of the syscall that has been hijacked
+                        hook_hijack._has_entered = True
+                        hook_hijack._skip_exit = True
             elif hook.on_enter_pprint:
                 # Pretty print the syscall number
                 hook.on_enter_pprint(thread, syscall_number, user_hooked=True)
@@ -194,29 +199,30 @@ class PtraceStatusHandler:
             # The syscall is being exited
             liblog.debugger("Syscall %d exited on thread %d", syscall_number, thread_id)
 
-            if hook.enable:
+            if hook.enable and not hook._skip_exit:
                 # Increment the hit count only if the syscall hook is enabled
                 hook.hit_count += 1
 
-                # Call the user-defined hook if it exists
-                if hook.on_exit_user:
-                    # Pretty print the return value before the hook
-                    if hook.on_exit_pprint:
-                        return_value_before_hook = thread.syscall_return
-                    hook.on_exit_user(thread, syscall_number)
-                    if hook.on_exit_pprint:
-                        return_value_after_hook = thread.syscall_return
-                        if return_value_after_hook != return_value_before_hook:
-                            hook.on_exit_pprint(
-                                (return_value_before_hook, return_value_after_hook)
-                            )
-                        else:
-                            hook.on_exit_pprint(return_value_after_hook)
+            # Call the user-defined hook if it exists
+            if hook.on_exit_user and hook.enabled and not hook._skip_exit:
+                # Pretty print the return value before the hook
+                if hook.on_exit_pprint:
+                    return_value_before_hook = thread.syscall_return
+                hook.on_exit_user(thread, syscall_number)
+                if hook.on_exit_pprint:
+                    return_value_after_hook = thread.syscall_return
+                    if return_value_after_hook != return_value_before_hook:
+                        hook.on_exit_pprint(
+                            (return_value_before_hook, return_value_after_hook)
+                        )
+                    else:
+                        hook.on_exit_pprint(return_value_after_hook)
             elif hook.on_exit_pprint:
                 # Pretty print the return value
                 hook.on_exit_pprint(thread.syscall_return)
 
             hook._has_entered = False
+            hook._skip_exit = False
 
         thread._in_background_op = False
 

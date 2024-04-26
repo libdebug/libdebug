@@ -489,7 +489,11 @@ class _InternalDebugger:
                     hook.on_enter_pprint = None
                     hook.on_exit_pprint = None
             else:
-                if syscall_number not in (self.context._syscalls_to_not_pprint or []):
+                if syscall_number not in (
+                    self.context._syscalls_to_not_pprint or []
+                ) and syscall_number in (
+                    self.context._syscalls_to_pprint or syscall_numbers
+                ):
                     hook = SyscallHook(
                         syscall_number, None, None, pprint_on_enter, pprint_on_exit
                     )
