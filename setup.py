@@ -78,7 +78,8 @@ setup(
         "pyelftools",
         "cffi",
         "requests",
-        "psutil"
+        "psutil",
+        "lxml",
     ],
     setup_requires=["cffi"],
     cffi_modules=[
