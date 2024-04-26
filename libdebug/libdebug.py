@@ -185,7 +185,9 @@ class _InternalDebugger:
     def _ensure_process_stopped(self):
         """Validates the state of the process."""
         if not self.instanced:
-            raise RuntimeError("Process not running, cannot continue.")
+            raise RuntimeError(
+                "Process not running, cannot continue. Did you call run()?"
+            )
 
         if not self.context.running:
             return
@@ -747,11 +749,6 @@ class _InternalDebugger:
 
         if not isinstance(value, bool):
             raise ValueError("pprint_syscalls must be a boolean")
-
-        if not self.instanced:
-            raise RuntimeError(
-                "Process not running, cannot set pprint_syscalls. Did you call run()?"
-            )
 
         if value:
             self._enable_pretty_print()
