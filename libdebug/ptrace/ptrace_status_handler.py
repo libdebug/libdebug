@@ -135,9 +135,10 @@ class PtraceStatusHandler:
 
                     # Check if the new syscall has to be hooked
                     if hook.hook_hijack:
-                        hijacked_list.append(syscall_number_after_hook)
-                        # Check if the new syscall has already been hijacked in the current chain
-                        if len(hijacked_list) != len(set(hijacked_list)):
+                        if syscall_number_after_hook not in hijacked_list: 
+                            hijacked_list.append(syscall_number_after_hook)
+                        else:
+                            # The syscall has already been hijacked in the current chain
                             raise RuntimeError(
                                 "Syscall hijacking loop detected. Check your hooks to avoid infinite loops."
                             )
