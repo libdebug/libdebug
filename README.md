@@ -635,10 +635,12 @@ libdebug also helps debug scripts by providing two loggers, accessible through t
 
 #### debugger
 The `debugger` option displays all logs related to the debugging operations performed on the process by libdebug.
+
 ![alt text](media/debugger_argv.png)
 
 #### pipe
 The `pipe` option, on the other hand, displays all logs related to interactions with the process, such as bytes received and sent.
+
 ![alt text](media/pipe_argv.png)
 
 Both logger levels can be modified at runtime using a `with` statement, as shown in the following example.
@@ -649,3 +651,8 @@ with libcontext.tmp(pipe_logger='INFO', debugger_logger='DEBUG'):
     r.sendline(b'gimme the flag')
 [...]
 ```
+
+####
+The `dbg` option, on the other hand, displays all logs shown with the `debugger` option as well as those displayed with the `pipe` option.
+
+![alt text](media/dbg_argv.png)
