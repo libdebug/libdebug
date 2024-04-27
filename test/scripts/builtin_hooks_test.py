@@ -8,7 +8,6 @@ import unittest
 import string
 
 from libdebug import debugger
-from libdebug.builtin import antidebug_escaping
 
 
 class AntidebugEscapingTest(unittest.TestCase):
@@ -23,8 +22,8 @@ class AntidebugEscapingTest(unittest.TestCase):
         d.kill()
 
         # validate that with the hook the binary can be debugged
+        d = debugger("binaries/antidebug_brute_test", escape_antidebug=True)
         r = d.run()
-        antidebug_escaping(d)
         d.cont()
         msg = r.recvline()
         self.assertEqual(msg, b"Write up to 64 chars")
@@ -38,7 +37,6 @@ class AntidebugEscapingTest(unittest.TestCase):
         while not flag or flag != "BRUTE":
             for c in string.printable:
                 r = d.run()
-                antidebug_escaping(d)
                 bp = d.breakpoint(0x401209, hardware=True)
                 d.cont()
 
