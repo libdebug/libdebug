@@ -106,7 +106,7 @@ class PtraceStatusHandler:
         hook: SyscallHook,
         thread: ThreadContext,
         syscall_number: int,
-        hijacked_list: list[int],
+        hijacked_set: set[int],
     ):
         """Manage the on_enter hook of a syscall."""
         # Call the user-defined hook if it exists
@@ -135,8 +135,8 @@ class PtraceStatusHandler:
 
                     # Check if the new syscall has to be hooked
                     if hook.hook_hijack:
-                        if syscall_number_after_hook not in hijacked_list: 
-                            hijacked_list.append(syscall_number_after_hook)
+                        if syscall_number_after_hook not in hijacked_set: 
+                            hijacked_set.add(syscall_number_after_hook)
                         else:
                             # The syscall has already been hijacked in the current chain
                             raise RuntimeError(
@@ -148,7 +148,7 @@ class PtraceStatusHandler:
                             hook_hijack,
                             thread,
                             syscall_number_after_hook,
-                            hijacked_list,
+                            hijacked_set,
                         )
                     elif hook_hijack.on_enter_pprint:
                         # Pretty print the syscall number
@@ -202,7 +202,7 @@ class PtraceStatusHandler:
                 "Syscall %d entered on thread %d", syscall_number, thread_id
             )
 
-            self._manage_on_enter(hook, thread, syscall_number, [syscall_number])
+            self._manage_on_enter(hook, thread, syscall_number, {syscall_number})
 
         else:
             # The syscall is being exited
