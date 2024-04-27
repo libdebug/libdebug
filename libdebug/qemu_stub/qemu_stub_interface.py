@@ -426,11 +426,11 @@ class QemuStubInterface(DebuggingInterface):
 
     def migrate_to_gdb(self):
         """Migrates the current process to GDB."""
-        pass
+        raise NotImplementedError("The QEMU GDBstub backend does not support migration to GDB.")
 
     def migrate_from_gdb(self):
         """Migrates the current process from GDB."""
-        pass
+        raise NotImplementedError("The QEMU GDBstub backend does not support migration from GDB.")
 
     def step(self, thread: ThreadContext):
         """Executes a single instruction of the specified thread.
