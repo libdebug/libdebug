@@ -742,7 +742,7 @@ class _InternalDebugger:
             bool: True if the debugger should pretty print syscalls, False otherwise.
         """
 
-        return self.context._pretty_print_syscalls
+        return self.context._pprint_syscalls
 
     @pprint_syscalls.setter
     def pprint_syscalls(self, value):
@@ -760,7 +760,7 @@ class _InternalDebugger:
         else:
             self._disable_pretty_print()
 
-        self.context._pretty_print_syscalls = value
+        self.context._pprint_syscalls = value
 
     @contextmanager
     def pprint_syscalls_context(self, value: bool):

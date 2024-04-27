@@ -84,7 +84,7 @@ class DebuggingContext:
     memory: MemoryView
     """The memory view of the debugged process."""
 
-    _pretty_print_syscalls: bool
+    _pprint_syscalls: bool
     """A flag that indicates if the debugger should pretty print syscalls."""
 
     _threaded_memory: MemoryView
@@ -248,24 +248,6 @@ class DebuggingContext:
 
         return not self._threads
 
-    @property
-    def _pretty_print_syscalls(self) -> bool:
-        """Get the state of the pprint_syscalls flag.
-
-        Returns:
-            bool: True if the debugger should pretty print syscalls, False otherwise.
-        """
-        return self._pprint_syscalls
-
-    @_pretty_print_syscalls.setter
-    def _pretty_print_syscalls(self, value: bool):
-        """Set the state of the pprint_syscalls flag.
-
-        Args:
-            value (bool): the value to set.
-        """
-
-        self._pprint_syscalls = value
 
     def resolve_address(self, address: int) -> int:
         """Normalizes and validates the specified address.
