@@ -56,14 +56,14 @@ class Amd64SyscallHijacker(SyscallHijackingManager):
 
         d.syscall_number = new_syscall
         if "syscall_arg0" in kwargs:
-            d.syscall_arg0 = kwargs.get("hijacked", False)
+            d.syscall_arg0 = kwargs.get("syscall_arg0", False)
         if "syscall_arg1" in kwargs:
-            d.syscall_arg1 = kwargs.get("hijacked", False)
+            d.syscall_arg1 = kwargs.get("syscall_arg1", False)
         if "syscall_arg2" in kwargs:
-            d.syscall_arg2 = kwargs.get("hijacked", False)
+            d.syscall_arg2 = kwargs.get("syscall_arg2", False)
         if "syscall_arg3" in kwargs:
-            d.syscall_arg3 = kwargs.get("hijacked", False)
+            d.syscall_arg3 = kwargs.get("syscall_arg3", False)
         if "syscall_arg4" in kwargs:
-            d.syscall_arg4 = kwargs.get("hijacked", False)
+            d.syscall_arg4 = kwargs.get("syscall_arg4", False)
         if "syscall_arg5" in kwargs:
-            d.syscall_arg5 = kwargs.get("hijacked", False)
+            d.syscall_arg5 = kwargs.get("syscall_arg5", False)
