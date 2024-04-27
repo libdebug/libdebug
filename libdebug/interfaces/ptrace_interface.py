@@ -366,9 +366,17 @@ class PtraceInterface(DebuggingInterface):
 
     def migrate_from_gdb(self):
         """Migrates the current process from GDB."""
+        self.lib_trace.ptrace_reattach_from_gdb(self._global_state, self.process_id)
+
         invalidate_process_cache()
         self.status_handler.check_for_new_threads(self.process_id)
-        self.lib_trace.ptrace_reattach_from_gdb(self._global_state, self.process_id)
+
+        # We have to reinstall any hardware breakpoint
+        for bp in self.context.breakpoints.values():
+            if bp.hardware and bp.enabled:
+                for helper in self.hardware_bp_helpers.values():
+                    helper.remove_breakpoint(bp)
+                    helper.install_breakpoint(bp)
 
     def register_new_thread(self, new_thread_id: int):
         """Registers a new thread."""
