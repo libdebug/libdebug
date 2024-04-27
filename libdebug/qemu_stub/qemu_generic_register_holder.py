@@ -59,35 +59,29 @@ class QemuGenericRegisterHolder(QemuRegisterHolder):
                     "instruction_pointer",
                 ),
             )
-
-            # Currently only for rsi/esi/si/sil, because we use them in the tests
+        elif hasattr(target_class, "eip"):
             setattr(
                 target_class,
-                "esi",
+                "instruction_pointer",
                 property(
-                    lambda self: self.rsi & 0xFFFFFFFF,
-                    lambda self, value: setattr(self, "rsi", value & 0xFFFFFFFF),
+                    lambda self: self.eip,
+                    lambda self, value: setattr(self, "eip", value),
                     None,
-                    "esi",
+                    "instruction_pointer",
                 ),
             )
+        elif hasattr(target_class, "pc"):
             setattr(
                 target_class,
-                "si",
+                "instruction_pointer",
                 property(
-                    lambda self: self.rsi & 0xFFFF,
-                    lambda self, value: setattr(self, "rsi", value & 0xFFFF),
+                    lambda self: self.pc,
+                    lambda self, value: setattr(self, "pc", value),
                     None,
-                    "si",
+                    "instruction_pointer",
                 ),
             )
-            setattr(
-                target_class,
-                "sil",
-                property(
-                    lambda self: self.rsi & 0xFF,
-                    lambda self, value: setattr(self, "rsi", value & 0xFF),
-                    None,
-                    "sil",
-                ),
+        else:
+            raise NotImplementedError(
+                "Cannot find the instruction pointer register for this architecture."
             )
