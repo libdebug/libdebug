@@ -17,3 +17,8 @@ class QemuRegisterFile:
     def __init__(self, register_file: bytes):
         self.internal_representation = register_file
         self.changed = False
+
+    def clear(self):
+        """Clear the register file."""
+        self.internal_representation = b"\xff" * len(self.internal_representation)
+        self.changed = True

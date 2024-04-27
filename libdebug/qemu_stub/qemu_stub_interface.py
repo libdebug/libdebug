@@ -58,6 +58,8 @@ class QemuStubInterface(DebuggingInterface):
     def __init__(self):
         super().__init__()
 
+        liblog.debugger("Initializing QEMU GDBstub interface")
+
         self.registers_xml_definition_file = None
         self.registers_definition = None
         self.xml_parser = etree.XMLParser(recover=True)
@@ -124,7 +126,6 @@ class QemuStubInterface(DebuggingInterface):
         return response[1:-3]
 
     def _open_connection(self, port: int):
-        time.sleep(0.01)
         if self._qemu_process.poll() is not None:
             return False
 
@@ -133,7 +134,7 @@ class QemuStubInterface(DebuggingInterface):
                 self.connection.connect(("localhost", port))
                 break
             except ConnectionRefusedError:
-                time.sleep(0.001)
+                time.sleep(0.01)
 
                 if self._qemu_process.poll() is not None:
                     # We must try starting QEMU again, but with a different port
@@ -221,12 +222,16 @@ class QemuStubInterface(DebuggingInterface):
         self._send_message("qC")
         response = self._recv_response()
 
+        liblog.debugger(f"Current thread ID: {response.decode()}")
+
         return int(response.decode()[2:], 16)
 
     def _read_thread_registers(self, thread_id: int):
         if thread_id != self._current_thread:
             # TODO: Implement thread switching
             raise NotImplementedError("Thread switching is not supported")
+
+        liblog.debugger(f"Reading registers for thread {thread_id}")
 
         self._send_message("g")
         response = self._recv_response()
@@ -237,6 +242,8 @@ class QemuStubInterface(DebuggingInterface):
         if thread_id != self._current_thread:
             # TODO: Implement thread switching
             raise NotImplementedError("Thread switching is not supported")
+
+        liblog.debugger(f"Writing registers for thread {thread_id}")
 
         self._send_message(f"G{data.hex()}")
         if self._recv_response() != b"OK":
@@ -251,6 +258,8 @@ class QemuStubInterface(DebuggingInterface):
         thread_id = int(
             response[response.find(b"thread:") + 7 : response.find(b";")], 16
         )
+
+        liblog.debugger(f"Initial stop reason: {response.decode()}")
 
         return thread_id
 
@@ -386,24 +395,31 @@ class QemuStubInterface(DebuggingInterface):
             try:
                 response = self._recv_response()
 
+                liblog.debugger(f"Received stop reason: {response.decode()}")
+
                 if self._is_process_dead(response):
                     raise RuntimeError("The process has died")
             except RuntimeError:
                 # Unexpected state, which probably means that the process died
+                liblog.debugger("The process has died")
+
                 self._killed = True
                 self._qemu_process.wait()
+
+                # Clear the register files
+                for register_file in self._thread_registers.values():
+                    register_file.clear()
             else:
                 # We must update the register files
-                for thread_id in self._thread_registers.keys():
-                    self._thread_registers[
-                        thread_id
-                    ].internal_representation = self._read_thread_registers(thread_id)
+                for id, file in self._thread_registers.items():
+                    file.internal_representation = self._read_thread_registers(id)
 
                 # Parse the stop reason
                 stop_reason = response.decode()
                 return self._status_handler.handle_response(stop_reason)
         else:
             # The process was killed, we need to wait for the subprocess to terminate
+            liblog.debugger("Waiting for the QEMU process to terminate")
             self._qemu_process.wait()
 
         return False
@@ -521,7 +537,7 @@ class QemuStubInterface(DebuggingInterface):
         Args:
             hook (SyscallHook): The syscall hook to set.
         """
-        pass
+        raise NotImplementedError("The QEMU GDBstub backend does not support syscall hooks.")
 
     def unset_syscall_hook(self, hook: SyscallHook):
         """Unsets a syscall hook.
@@ -529,7 +545,7 @@ class QemuStubInterface(DebuggingInterface):
         Args:
             hook (SyscallHook): The syscall hook to unset.
         """
-        pass
+        raise NotImplementedError("The QEMU GDBstub backend does not support syscall hooks.")
 
     def peek_memory(self, address: int) -> int:
         """Reads the memory at the specified address.
