@@ -87,7 +87,7 @@ Receives at most numb bytes from the child process stdout.
 ```
 Args:
     numb (int, optional): number of bytes to receive. Defaults to None.
-    timeout (int, optional): timeout in seconds. Defaults to timeout_default.
+    timeout (int, optional): timeout in seconds. Defaults to 2 seconds.
 
 Returns:
     bytes: received bytes from the child process stdout.
@@ -99,7 +99,7 @@ r = d.run()
 output = r.recv(
     numb = 4, 
     timeout = 2
-    )
+)
 ```
 
 #### recverr
@@ -108,7 +108,7 @@ Receives at most numb bytes from the child process stderr.
 ```
 Args:
     numb (int, optional): number of bytes to receive. Defaults to None.
-    timeout (int, optional): timeout in seconds. Defaults to timeout_default.
+    timeout (int, optional): timeout in seconds. Defaults to 2 seconds.
 
 Returns:
     bytes: received bytes from the child process stdout.
@@ -120,17 +120,17 @@ r = d.run()
 error = r.recverr(
     numb = 4, 
     timeout = 2
-    )
+)
 ```
 
 #### recvuntil
 Receives data from the child process stdout until the delimiters are found.
 ```
 Args:
-    delims (bytes): delimiters where stop.
+    delims (bytes): delimiters where to stop.
     occurences (int, optional): number of delimiters to find. Defaults to 1.
     drop (bool, optional): drop the delimiter. Defaults to False.
-    timeout (int, optional): timeout in seconds. Defaults to timeout_default.
+    timeout (int, optional): timeout in seconds. Defaults to 2 seconds.
 
 Returns:
     bytes: received data from the child process stdout.
@@ -144,17 +144,17 @@ output = r.recvuntil(
     occurences = 1,
     drop = False,
     timeout = 2
-    )
+)
 ```
 
 #### recverruntil
 Receives data from the child process stderr until the delimiters are found.
 ```
 Args:
-    delims (bytes): delimiters where stop.
+    delims (bytes): delimiters where to stop.
     occurences (int, optional): number of delimiters to find. Defaults to 1.
     drop (bool, optional): drop the delimiter. Defaults to False.
-    timeout (int, optional): timeout in seconds. Defaults to timeout_default.
+    timeout (int, optional): timeout in seconds. Defaults to 2 seconds.
 
 Returns:
     bytes: received data from the child process stdout.
@@ -168,7 +168,7 @@ error = r.recerrvuntil(
     occurences = 1,
     drop = False,
     timeout = 2
-    )
+)
 ```
 
 #### recvline
@@ -177,7 +177,7 @@ Receives numlines lines from the child process stdout.
 Args:
     numlines (int, optional): number of lines to receive. Defaults to 1.
     drop (bool, optional): drop the line ending. Defaults to True.
-    timeout (int, optional): timeout in seconds. Defaults to timeout_default.
+    timeout (int, optional): timeout in seconds. Defaults to 2 seconds.
 
 Returns:
     bytes: received lines from the child process stdout
@@ -199,7 +199,7 @@ Receives numlines lines from the child process stderr.
 Args:
     numlines (int, optional): number of lines to receive. Defaults to 1.
     drop (bool, optional): drop the line ending. Defaults to True.
-    timeout (int, optional): timeout in seconds. Defaults to timeout_default.
+    timeout (int, optional): timeout in seconds. Defaults to 2 seconds.
 
 Returns:
     bytes: received lines from the child process stdout
@@ -254,11 +254,11 @@ r.sendline(b"gimme the flag")
 Sends data to the child process stdin after the delimiters are found.
 ```
 Args:
-    delims (bytes): delimiters where stop.
+    delims (bytes): delimiters where to stop.
     data (bytes): data to send.
     occurences (int, optional): number of delimiters to find. Defaults to 1.
     drop (bool, optional): drop the delimiter. Defaults to False.
-    timeout (int, optional): timeout in seconds. Defaults to timeout_default.
+    timeout (int, optional): timeout in seconds. Defaults to 2 seconds.
 
 Returns:
     bytes: received data from the child process stdout.
@@ -280,11 +280,11 @@ r.sendafter(
 Sends line to the child process stdin after the delimiters are found.
 ```
 Args:
-    delims (bytes): delimiters where stop.
+    delims (bytes): delimiters where to stop.
     data (bytes): data to send.
     occurences (int, optional): number of delimiters to find. Defaults to 1.
     drop (bool, optional): drop the delimiter. Defaults to False.
-    timeout (int, optional): timeout in seconds. Defaults to timeout_default.
+    timeout (int, optional): timeout in seconds. Defaults to 2 seconds.
 
 Returns:
     bytes: received data from the child process stdout.
@@ -463,7 +463,7 @@ print(sys_hook.hit_count)
 ```
 Note: There can be at most one user-defined hook for each syscall. \
 The pretty print function (described below) is not considered a user-defined hook. Therefore, it is possible to hook/hijack and pretty print the same syscall simultaneously. \
-If a new hook is defined for a syscall that is already hooked or hijacked, the new hook replaces the old one, and a warning is showed.
+If a new hook is defined for a syscall that is already hooked or hijacked, the new hook replaces the old one, and a warning is shown.
 
 For example, the following code
 
@@ -618,7 +618,7 @@ with libcontext.tmp(sym_lvl = 5):
     d.breakpoint('main')
 [...]
 ```
-Lastly, libdebug can also demangle the C++ symbols.
+Lastly, libdebug automatically demangles the C++ symbols.
 
 ## Logging Levels
 libdebug also helps debug scripts by providing two loggers, accessible through two argv parameters, both of which must be written in lowercase. This choice is made to avoid conflicts with [pwntools](https://github.com/Gallopsled/pwntools), which uses uppercase arguments.
