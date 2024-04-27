@@ -116,7 +116,7 @@ d.memory["main_arena"] = b"12345678"
 
 `wait()` will block the execution of the Python script until the debugging process interrupts.
 
-`finish([thread=None], [exact=True])` will continue the execution until the current function returns or the process is stopped (e.g., breakpoint).
+`finish([exact=True])` will continue the execution until the current function returns or the process is stopped (e.g., breakpoint).
 
 In **exact** mode, the debugger will step until the return instruction of the current frame is executed. In **non-exact** mode, a breakpoint is placed on the return address and execution continues. Non-exact mode is faster but can fail in case of non-standard control flow (e.g., packing). Both will return on breakpoint.
 
