@@ -42,7 +42,7 @@ class DebuggingContext:
 
     env: dict[str, str] | None
     """The environment variables of the debugged process."""
-    
+
     escape_antidebug: bool
     """A flag that indicates if the debugger should escape anti-debugging techniques."""
 
@@ -51,7 +51,7 @@ class DebuggingContext:
 
     auto_interrupt_on_command: bool
     """A flag that indicates if the debugger should automatically interrupt the debugged process when a command is issued."""
-    
+
     _breakpoints: dict[int, Breakpoint]
     """A dictionary of all the breakpoints set on the process.
     Key: the address of the breakpoint."""
@@ -59,7 +59,7 @@ class DebuggingContext:
     _syscall_hooks: dict[int, SyscallHook]
     """A dictionary of all the syscall hooks set on the process.
     Key: the syscall number."""
-    
+
     _syscalls_to_pprint: list[int] | None = None
     """The syscalls to pretty print."""
 
@@ -83,7 +83,7 @@ class DebuggingContext:
 
     memory: MemoryView
     """The memory view of the debugged process."""
-    
+
     _pretty_print_syscalls: bool
     """A flag that indicates if the debugger should pretty print syscalls."""
 
@@ -247,7 +247,7 @@ class DebuggingContext:
         """
 
         return not self._threads
-    
+
     @property
     def _pretty_print_syscalls(self) -> bool:
         """Get the state of the pprint_syscalls flag.
@@ -256,7 +256,7 @@ class DebuggingContext:
             bool: True if the debugger should pretty print syscalls, False otherwise.
         """
         return self._pprint_syscalls
-    
+
     @_pretty_print_syscalls.setter
     def _pretty_print_syscalls(self, value: bool):
         """Set the state of the pprint_syscalls flag.
@@ -266,7 +266,7 @@ class DebuggingContext:
         """
 
         self._pprint_syscalls = value
-    
+
     def resolve_address(self, address: int) -> int:
         """Normalizes and validates the specified address.
 
