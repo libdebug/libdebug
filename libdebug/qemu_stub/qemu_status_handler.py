@@ -51,7 +51,7 @@ class QemuStatusHandler:
 
                     if bp.callback:
                         thread._in_background_op = True
-                        bp.callback(bp, thread)
+                        bp.callback(thread, bp)
                         thread._in_background_op = False
                         return True
 
