@@ -6,9 +6,12 @@
 
 import functools
 from lxml import etree
+import os
+import pty
 import socket
 import subprocess
 import time
+import tty
 
 from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.state.thread_context import ThreadContext
@@ -75,14 +78,30 @@ class QemuStubInterface(DebuggingInterface):
             str(port),
         ] + self.context.argv
 
+        # Creating pipes for stdin, stdout, stderr
+        self.stdin_read, self.stdin_write = os.pipe()
+        self.stdout_read, self.stdout_write = pty.openpty()
+        self.stderr_read, self.stderr_write = pty.openpty()
+
+        # Setting stdout, stderr to raw mode to avoid terminal control codes interfering with the
+        # output
+        tty.setraw(self.stdout_read)
+        tty.setraw(self.stderr_read)
+
         self._qemu_process = subprocess.Popen(
             argv,
             env=self.context.env,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdin=self.stdin_read,
+            stdout=self.stdout_write,
+            stderr=self.stderr_write,
             close_fds=True,
+            bufsize=0,
         )
+
+        # Closing the write end of the pipes
+        os.close(self.stdin_read)
+        os.close(self.stdout_write)
+        os.close(self.stderr_write)
 
     def _format_msg(self, msg: str) -> bytes:
         checksum = sum(msg.encode()) % 256
@@ -293,14 +312,8 @@ class QemuStubInterface(DebuggingInterface):
         if self.registers_definition is None:
             raise RuntimeError("Failed to read register definitions")
 
-        stdin, stdout, stderr = (
-            self._qemu_process.stdin,
-            self._qemu_process.stdout,
-            self._qemu_process.stderr,
-        )
-
         self.context.pipe_manager = PipeManager(
-            stdin.fileno(), stdout.fileno(), stderr.fileno()
+            self.stdin_write, self.stdout_read, self.stderr_read
         )
 
         thread_id = self._ask_initial_stop_reason()
