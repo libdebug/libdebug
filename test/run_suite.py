@@ -15,12 +15,11 @@ from scripts.breakpoint_test import BreakpointTest
 from scripts.brute_test import BruteTest
 from scripts.builtin_hooks_test import AntidebugEscapingTest
 from scripts.callback_test import CallbackTest
-<<<<<<< HEAD
 from scripts.finish_test import FinishTest
-=======
 from scripts.deep_dive_division import DeepDiveDivision
 from scripts.hijack_syscall_test import SyscallHijackTest
->>>>>>> dev
+from scripts.deep_dive_division import DeepDiveDivision
+from scripts.hijack_syscall_test import SyscallHijackTest
 from scripts.jumpout import Jumpout
 from scripts.large_binary_sym_test import LargeBinarySymTest
 from scripts.memory_test import MemoryTest
