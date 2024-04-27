@@ -153,7 +153,7 @@ class PipeManager:
         """Receives data from the child process until the delimiters are found.
 
         Args:
-            delims (bytes): delimiters where stop.
+            delims (bytes): delimiters where to stop.
             drop (bool, optional): drop the delimiter. Defaults to False.
             timeout (float, optional): timeout in seconds. Defaults to timeout_default.
             stderr (bool, optional): receive from stderr. Defaults to False.
@@ -208,7 +208,7 @@ class PipeManager:
         """Receives data from the child process until the delimiters are found occurences time.
 
         Args:
-            delims (bytes): delimiters where stop.
+            delims (bytes): delimiters where to stop.
             occurences (int, optional): number of delimiters to find. Defaults to 1.
             drop (bool, optional): drop the delimiter. Defaults to False.
             timeout (float, optional): timeout in seconds. Defaults to timeout_default.
@@ -249,7 +249,7 @@ class PipeManager:
         """Receives data from the child process stdout until the delimiters are found.
 
         Args:
-            delims (bytes): delimiters where stop.
+            delims (bytes): delimiters where to stop.
             occurences (int, optional): number of delimiters to find. Defaults to 1.
             drop (bool, optional): drop the delimiter. Defaults to False.
             timeout (int, optional): timeout in seconds. Defaults to timeout_default.
@@ -278,7 +278,7 @@ class PipeManager:
         """Receives data from the child process stderr until the delimiters are found.
 
         Args:
-            delims (bytes): delimiters where stop.
+            delims (bytes): delimiters where to stop.
             occurences (int, optional): number of delimiters to find. Defaults to 1.
             drop (bool, optional): drop the delimiter. Defaults to False.
             timeout (int, optional): timeout in seconds. Defaults to timeout_default.
@@ -384,7 +384,7 @@ class PipeManager:
         """Sends data to the child process stdin after the delimiters are found.
 
         Args:
-            delims (bytes): delimiters where stop.
+            delims (bytes): delimiters where to stop.
             data (bytes): data to send.
             occurences (int, optional): number of delimiters to find. Defaults to 1.
             drop (bool, optional): drop the delimiter. Defaults to False.
@@ -412,7 +412,7 @@ class PipeManager:
         """Sends line to the child process stdin after the delimiters are found.
 
         Args:
-            delims (bytes): delimiters where stop.
+            delims (bytes): delimiters where to stop.
             data (bytes): data to send.
             occurences (int, optional): number of delimiters to find. Defaults to 1.
             drop (bool, optional): drop the delimiter. Defaults to False.
