@@ -35,11 +35,21 @@ def pprint_on_enter(d: "ThreadContext", syscall_number: int, **kwargs: Any):
         d.syscall_arg5,
     ]
 
-    entries = [
-        f"{arg} = {PrintStyle.BRIGHT_YELLOW}0x{value:x}{PrintStyle.DEFAULT_COLOR}"
-        for arg, value in zip(syscall_args, values)
-        if arg is not None
-    ]
+    if "old_args" in kwargs:
+        old_args = kwargs["old_args"]
+        entries = [
+            f"{arg} = {PrintStyle.BRIGHT_YELLOW}0x{value:x}{PrintStyle.DEFAULT_COLOR}"
+            if old_value == value
+            else f"{arg} = {PrintStyle.BRIGHT_YELLOW}0x{old_value:x} -> {PrintStyle.BRIGHT_YELLOW}0x{value:x}{PrintStyle.DEFAULT_COLOR}"
+            for arg, value, old_value in zip(syscall_args, values, old_args)
+            if arg is not None
+        ]
+    else:
+        entries = [
+            f"{arg} = {PrintStyle.BRIGHT_YELLOW}0x{value:x}{PrintStyle.DEFAULT_COLOR}"
+            for arg, value in zip(syscall_args, values)
+            if arg is not None
+        ]
 
     hijacked = kwargs.get("hijacked", False)
     user_hooked = kwargs.get("user_hooked", False)

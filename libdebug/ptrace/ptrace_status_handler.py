@@ -111,6 +111,14 @@ class PtraceStatusHandler:
         """Manage the on_enter hook of a syscall."""
         # Call the user-defined hook if it exists
         if hook.on_enter_user and hook.enabled:
+            old_args = [
+                thread.syscall_arg0,
+                thread.syscall_arg1,
+                thread.syscall_arg2,
+                thread.syscall_arg3,
+                thread.syscall_arg4,
+                thread.syscall_arg5,
+            ]
             hook.on_enter_user(thread, syscall_number)
 
             # Check if the syscall number has changed
@@ -119,7 +127,7 @@ class PtraceStatusHandler:
             if syscall_number_after_hook != syscall_number:
                 # Pretty print the syscall number before the hook
                 if hook.on_enter_pprint:
-                    hook.on_enter_pprint(thread, syscall_number, hijacked=True)
+                    hook.on_enter_pprint(thread, syscall_number, hijacked=True, old_args=old_args)
 
                 # The syscall number has changed
                 if syscall_number_after_hook in self.context.syscall_hooks:
