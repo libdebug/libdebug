@@ -12,6 +12,17 @@ from libdebug.architectures.syscall_hijacking_manager import SyscallHijackingMan
 class Amd64SyscallHijacker(SyscallHijackingManager):
     """Class that provides syscall hijacking for the x86_64 architecture."""
 
+    # Allowed arguments for the hijacker
+    allowed_args : set[str] = {
+        "syscall_number",
+        "syscall_arg0",
+        "syscall_arg1",
+        "syscall_arg2",
+        "syscall_arg3",
+        "syscall_arg4",
+        "syscall_arg5",
+    }
+
     def create_hijacker(
         self, new_syscall: int, **kwargs: Any
     ) -> Callable[[ThreadContext, int], None]:
@@ -40,19 +51,6 @@ class Amd64SyscallHijacker(SyscallHijackingManager):
             new_syscall (int): The new syscall number.
             **kwargs: The keyword arguments.
         """
-
-        allowed_args = {
-            "syscall_number",
-            "syscall_arg0",
-            "syscall_arg1",
-            "syscall_arg2",
-            "syscall_arg3",
-            "syscall_arg4",
-            "syscall_arg5",
-        }
-
-        if set(kwargs) - allowed_args:
-            raise ValueError("Invalid keyword arguments in syscall hijack")
 
         d.syscall_number = new_syscall
         if "syscall_arg0" in kwargs:

@@ -666,7 +666,7 @@ class _InternalDebugger:
         original_syscall: int | str,
         new_syscall: int | str,
         hook_hijack: bool = True,
-        *kwargs,
+        **kwargs,
     ) -> SyscallHook:
         """Hijacks a syscall in the target process.
 
@@ -680,6 +680,9 @@ class _InternalDebugger:
             SyscallHook: The syscall hook object.
         """
         self._ensure_process_stopped()
+
+        if set(kwargs) - syscall_hijacking_provider().allowed_args:
+            raise ValueError("Invalid keyword arguments in syscall hijack")
 
         if isinstance(original_syscall, str):
             original_syscall_number = resolve_syscall_number(original_syscall)
@@ -697,7 +700,7 @@ class _InternalDebugger:
             )
 
         on_enter = syscall_hijacking_provider().create_hijacker(
-            new_syscall_number, *kwargs
+            new_syscall_number, **kwargs
         )
 
         # Check if the syscall is already hooked (by the user or by the pretty print hook)
