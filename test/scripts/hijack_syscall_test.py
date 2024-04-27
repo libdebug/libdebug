@@ -198,6 +198,108 @@ class SyscallHijackTest(unittest.TestCase):
         self.assertEqual(write_count, hook2.hit_count)
         self.assertEqual(hook2.hit_count, 2)
 
+    def test_hijack_syscall_args(self):
+        write_buffer = None
+
+        def on_enter_write(d, syscall_number):
+            nonlocal write_buffer
+            nonlocal write_count
+
+            write_buffer = d.syscall_arg1
+
+            write_count += 1
+
+        d = debugger("binaries/syscall_hook_test")
+
+        write_count = 0
+        r = d.run()
+
+        # Hook hijack is on, we expect the write hook to be called three times
+        hook2 = d.hook_syscall("write", on_enter=on_enter_write)
+        d.breakpoint(0x4011B0)
+
+        d.cont()
+        print(r.recvline())
+        # Install the hijack. We expect to receive the "Hello, World!" string
+
+        d.wait()
+
+        d.hijack_syscall(
+            "read",
+            "write",
+            syscall_arg0=0x1,
+            syscall_arg1=write_buffer,
+            syscall_arg2=14,
+        )
+
+        d.cont()
+
+        print(r.recvline())
+
+        d.kill()
+
+        self.assertEqual(self.capturedOutput.getvalue().count("Hello, World!"), 2)
+        self.assertEqual(write_count, hook2.hit_count)
+        self.assertEqual(hook2.hit_count, 3)
+
+    def test_hijack_syscall_args_with_pprint(self):
+        write_buffer = None
+
+        def on_enter_write(d, syscall_number):
+            nonlocal write_buffer
+            nonlocal write_count
+
+            write_buffer = d.syscall_arg1
+
+            write_count += 1
+
+        d = debugger("binaries/syscall_hook_test")
+
+        write_count = 0
+        r = d.run()
+
+        d.pprint_syscalls = True
+
+        # Hook hijack is on, we expect the write hook to be called three times
+        hook2 = d.hook_syscall("write", on_enter=on_enter_write)
+        d.breakpoint(0x4011B0)
+
+        d.cont()
+        print(r.recvline())
+        # Install the hijack. We expect to receive the "Hello, World!" string
+
+        d.wait()
+
+        d.hijack_syscall(
+            "read",
+            "write",
+            syscall_arg0=0x1,
+            syscall_arg1=write_buffer,
+            syscall_arg2=14,
+        )
+
+        d.cont()
+
+        print(r.recvline())
+
+        d.kill()
+
+        self.assertEqual(self.capturedOutput.getvalue().count("Hello, World!"), 2)
+        self.assertEqual(self.capturedOutput.getvalue().count("write"), 3)
+        self.assertEqual(self.capturedOutput.getvalue().count("0x402010"), 3)
+        self.assertEqual(write_count, hook2.hit_count)
+        self.assertEqual(hook2.hit_count, 3)
+
+    def test_hijack_syscall_wrong_args(self):
+        d = debugger("binaries/syscall_hook_test")
+
+        d.run()
+
+        with self.assertRaises(ValueError):
+            d.hijack_syscall("read", "write", syscall_arg26=0x1)
+
+        d.kill()
+
     def loop_detection_test(self):
         d = debugger("binaries/syscall_hook_test")
 
