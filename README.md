@@ -10,7 +10,8 @@ PyPy3 is supported but not recommended, as it performs worse on most of our test
 ### Installation Requirements:
 Ubuntu: `sudo apt install -y python3 python3-dev libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg`\
 Debian: `sudo apt install -y python3 python3-dev libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg`\
-Arch Linux: `sudo pacman -S python libelf libdwarf gcc make debuginfod`
+Arch Linux: `sudo pacman -S python libelf libdwarf gcc make debuginfod` \
+Fedora: `sudo dnf install -y python3 python3-devel kernel-devel binutils-devel libdwarf-devel`
 
 ## Run and Attach
 The first step of a libdebug script is creating a debugger object. This can be done with the function `debugger(argv,...)`. You can either provide a path or an array of arguments. Once your debugger object has been created, you can use the method `run` to start it
