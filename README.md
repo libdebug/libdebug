@@ -528,14 +528,24 @@ raises the following execption
 
 #### Hook on hijack
 After a syscall is hijacked, the user can choose whether to execute the hook or hijacking installed in the newly executed syscall, if any. \
+
+For example, if we hijack the syscall `read` with the syscall `write`, and the `write` is also hooked or hijacked, `hook_hijack` allows us to choose whether to execute the hook/hijack installed on the `write` when the read becomes a `write`. This helps reduce loops during hijacking and behaviors that are difficult to track
+
 The syscall hijacking loop detection takes this choice into account.
 ```py
 from libdebug import debugger
 
+def on_enter_write(d: ThreadContext, syscall_number: int):
+    print("entering write")
+
 d = debugger("/usr/bin/ls")
 d.run()
 
-hook = d.hijack_syscall("read", "write", hook_hijack=False)
+d.hook_syscall(syscall="write", on_enter=on_enter_write)
+
+"""We want to change the read in write but we do not want to execute on_enter_write during hijacking"""
+d.hijack_syscall("read", "write", hook_hijack=False)
+
 
 d.cont()
 [...]
