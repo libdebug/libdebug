@@ -344,12 +344,20 @@ class QemuStubInterface(DebuggingInterface):
         Args:
             pid (int): the pid of the process to attach to.
         """
-        pass
+        raise NotImplementedError(
+            "The QEMU GDBstub backend does not support attaching to a process. Please use the run method."
+        )
 
     def kill(self):
         """Instantly terminates the process."""
         self._send_message("k")
         self._killed = True
+
+    def interrupt(self):
+        """Interrupts the execution of the process."""
+        liblog.error(
+            "The QEMU GDBstub backend does not support interrupting the process. Waiting for the process to stop. This may break your script."
+        )
 
     def cont(self):
         """Continues the execution of the process."""
@@ -372,7 +380,7 @@ class QemuStubInterface(DebuggingInterface):
         self._recv_response()
         self._send_message("vCont;c:-1")
 
-    def wait(self):
+    def wait(self) -> bool:
         """Waits for the process to stop."""
         if not self._killed:
             try:
@@ -393,7 +401,7 @@ class QemuStubInterface(DebuggingInterface):
 
                 # Parse the stop reason
                 stop_reason = response.decode()
-                self._status_handler.handle_response(stop_reason)
+                return self._status_handler.handle_response(stop_reason)
         else:
             # The process was killed, we need to wait for the subprocess to terminate
             self._qemu_process.wait()
@@ -425,7 +433,23 @@ class QemuStubInterface(DebuggingInterface):
             address (int): The address to reach.
             max_steps (int): The maximum number of steps to execute.
         """
-        pass
+        self._flush_register_changes()
+
+        liblog.warning(
+            "The QEMU GDBstub backend does not support stepping until a specific address, so this command is emulated through manual stepping. This may take a while."
+        )
+
+        # QEMU does not support step_until through vCont
+        # So we have to do it manually
+        count = 0
+        while max_steps == -1 or count < max_steps:
+            self.step(thread)
+            self.wait()
+
+            count += 1
+
+            if thread.instruction_pointer == address:
+                break
 
     @functools.cache
     def maps(self) -> list[MemoryMap]:
@@ -458,7 +482,17 @@ class QemuStubInterface(DebuggingInterface):
         Args:
             breakpoint (Breakpoint): The breakpoint to set.
         """
-        self._send_message(f"Z0,{breakpoint.address:x},1")
+        if breakpoint.hardware:
+            if breakpoint.condition == "x":
+                message = f"Z1,{breakpoint.address:x},1"
+            else:
+                raise NotImplementedError(
+                    "The QEMU GDBstub backend does not support watchpoints."
+                )
+        else:
+            message = f"Z0,{breakpoint.address:x},1"
+
+        self._send_message(message)
 
         if self._recv_response() != b"OK":
             raise RuntimeError("Failed to set breakpoint")
@@ -471,7 +505,14 @@ class QemuStubInterface(DebuggingInterface):
         Args:
             breakpoint (Breakpoint): The breakpoint to restore.
         """
-        self._send_message(f"z0,{breakpoint.address:x},1")
+        if breakpoint.hardware:
+            self._send_message(f"z1,{breakpoint.address:x},1")
+        else:
+            self._send_message(f"z0,{breakpoint.address:x},1")
+
+        if self._recv_response() != b"OK":
+            raise RuntimeError("Failed to unset breakpoint")
+
         self.context.remove_breakpoint(breakpoint)
 
     def set_syscall_hook(self, hook: SyscallHook):

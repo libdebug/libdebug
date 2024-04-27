@@ -54,6 +54,11 @@ class DebuggingInterface(ABC):
         pass
 
     @abstractmethod
+    def interrupt(self):
+        """Interrupts the execution of the process."""
+        pass
+
+    @abstractmethod
     def cont(self):
         """Continues the execution of the process."""
         pass

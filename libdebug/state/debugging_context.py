@@ -6,8 +6,6 @@
 
 from __future__ import annotations
 
-import os
-import signal
 from contextlib import contextmanager
 from threading import Lock
 from typing import TYPE_CHECKING
@@ -265,10 +263,6 @@ class DebuggingContext:
         address = resolve_symbol_in_maps(symbol, maps)
         normalized_address = normalize_and_validate_address(address, maps)
         return normalized_address
-
-    def interrupt(self):
-        """Interrupt the debugged process."""
-        os.kill(self.process_id, signal.SIGSTOP)
 
 
 __debugging_contexts: WeakKeyDictionary = WeakKeyDictionary()

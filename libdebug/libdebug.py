@@ -165,7 +165,7 @@ class _InternalDebugger:
             return
 
         if self.context.auto_interrupt_on_command:
-            self.context.interrupt()
+            self.interface.interrupt()
 
         self._polling_thread_command_queue.join()
 
@@ -217,7 +217,7 @@ class _InternalDebugger:
         if not self.context.running:
             return
 
-        self.context.interrupt()
+        self.interface.interrupt()
 
         self.wait()
 
@@ -451,7 +451,7 @@ class _InternalDebugger:
         """Migrates the current debugging session to GDB."""
         self._ensure_process_stopped()
 
-        self.context.interrupt()
+        self.interface.interrupt()
 
         self._polling_thread_command_queue.put((self.__threaded_migrate_to_gdb, ()))
 
