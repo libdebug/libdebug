@@ -43,7 +43,7 @@ class QemuStatusHandler:
                 bp: None | "Breakpoint" = None
 
                 if ip in enabled_breakpoints:
-                    liblog.debugger(f"Breakpoint hit at {ip}")
+                    liblog.debugger(f"Breakpoint hit at {ip:x}")
                     bp = self.context.breakpoints[ip]
 
                 if bp:
