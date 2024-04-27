@@ -14,7 +14,6 @@ from libdebug.utils.syscall_utils import (
 if TYPE_CHECKING:
     from libdebug.state.thread_context import ThreadContext
 
-
 def pprint_on_enter(d: "ThreadContext", syscall_number: int, **kwargs: Any):
     """Function that will be called when a syscall is entered in pretty print mode.
 
