@@ -53,7 +53,7 @@ class FinishTest(unittest.TestCase):
 
         self.assertEqual(d.rip, A_ADDRESS)
 
-        # Finish function c
+        # Finish function a
         d.finish(exact=True)
 
         self.assertEqual(d.rip, RETURN_POINT_FROM_A)
@@ -92,7 +92,7 @@ class FinishTest(unittest.TestCase):
 
         self.assertEqual(d.rip, A_ADDRESS)
 
-        # Finish function c
+        # Finish function a
         d.finish(exact=False)
 
         self.assertEqual(d.rip, RETURN_POINT_FROM_A)
@@ -133,7 +133,7 @@ class FinishTest(unittest.TestCase):
 
         self.assertEqual(d.rip, A_ADDRESS)
 
-        # Finish function c
+        # Finish function a
         d.finish(exact=True)
 
         self.assertEqual(d.rip, RETURN_POINT_FROM_A)
@@ -174,7 +174,7 @@ class FinishTest(unittest.TestCase):
 
         self.assertEqual(d.rip, A_ADDRESS)
 
-        # Finish function c
+        # Finish function a
         d.finish(exact=False)
 
         self.assertEqual(d.rip, RETURN_POINT_FROM_A)

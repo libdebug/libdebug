@@ -914,6 +914,13 @@ class _InternalDebugger:
         # We don't want any asynchronous behaviour here
         self._polling_thread_command_queue.join()
 
+        # Check for any exceptions raised by the background thread
+        if not self._polling_thread_response_queue.empty():
+            response = self._polling_thread_response_queue.get()
+            self._polling_thread_response_queue.task_done()
+            if response is not None:
+                raise response
+
     def _craft_gdb_migration_command(self) -> list[str]:
         """Crafts the command to migrate to GDB."""
         gdb_command = [

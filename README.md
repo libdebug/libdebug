@@ -342,7 +342,7 @@ d.memory["main_arena"] = b"12345678"
 
 `finish([exact=True])` will continue the execution until the current function returns or the process is stopped (e.g., breakpoint).
 
-In **exact** mode, the debugger will step until the return instruction of the current frame is executed. In **non-exact** mode, a breakpoint is placed on the return address and execution continues. Non-exact mode is faster but can fail in case of non-standard control flow (e.g., packing). Both will return on breakpoint.
+In **exact** mode, the debugger will iteratively perform single hardware steps until the return instruction of the current frame is executed. In **non-exact** mode, a breakpoint is placed on the return address and execution continues. In most cases, when the function frame is aligned with the calling convention, the flow of both modes coincides. However, in case of packed or non-conventional binaries, it is possible that the address found on the stack is wrong or cannot be detected by a software breakpoint. The reason why non-exact mode could be preferred is speed, as allowing execution to continue is still faster than hardware stepping for big functions.
 
 `step_until(<address | symbol>, [max_steps=-1])` will step until the desired address is reached or for `max_steps` steps, whichever comes first.
 

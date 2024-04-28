@@ -270,12 +270,12 @@ class PtraceInterface(DebuggingInterface):
                     found = True
                     ip_breakpoint = bp
                     break
-            
-            # Check if we have enough hardware breakpoints available
-            # Otherwise we use a software breakpoint
-            install_hw_bp = self.hardware_bp_helpers[thread.thread_id].available_breakpoints() > 0
 
             if not found:
+                # Check if we have enough hardware breakpoints available
+                # Otherwise we use a software breakpoint
+                install_hw_bp = self.hardware_bp_helpers[thread.thread_id].available_breakpoints() > 0
+
                 ip_breakpoint = Breakpoint(last_saved_instruction_pointer, hardware=install_hw_bp)
                 self.set_breakpoint(ip_breakpoint)
             else:
@@ -508,7 +508,6 @@ class PtraceInterface(DebuggingInterface):
         error = self.ffi.errno
         if error:
             raise OSError(error, errno.errorcode[error])
-        
 
         return result
 

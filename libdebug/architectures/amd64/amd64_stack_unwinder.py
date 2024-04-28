@@ -73,11 +73,11 @@ class Amd64StackUnwinder(StackUnwindingManager):
         return_address = None
 
         if self._preamble_state(instruction_window) == 0:
-            return_address = target.memory[target.rbp + 8, 4]
+            return_address = target.memory[target.rbp + 8, 8]
         elif self._preamble_state(instruction_window) == 1:
-            return_address = target.memory[target.rsp, 4]
+            return_address = target.memory[target.rsp, 8]
         else:
-            return_address = target.memory[target.rsp + 8, 4]
+            return_address = target.memory[target.rsp + 8, 8]
         
         return_address = int.from_bytes(return_address, byteorder="little")
 

@@ -570,10 +570,8 @@ int exact_finish(struct global_state *state, int tid)
         return -1;
     }
 
-    uint64_t previous_ip;
-    uint64_t current_ip = INSTRUCTION_POINTER(stepping_thread->regs);
-    uint64_t opcode_window = 0x00;
-    uint8_t first_opcode_byte = 0x00;
+    uint64_t previous_ip, current_ip;
+    uint64_t opcode_window, first_opcode_byte;
 
     // We need to keep track of the nested calls
     int nested_call_counter = 1;
