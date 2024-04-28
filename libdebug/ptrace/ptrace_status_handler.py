@@ -16,6 +16,7 @@ from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_constants import SYSCALL_SIGTRAP, StopEvents
 from libdebug.state.debugging_context import provide_context
 from libdebug.state.thread_context import ThreadContext
+from libdebug.utils.signal_utils import resolve_signal_name
 
 if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
@@ -127,7 +128,9 @@ class PtraceStatusHandler:
             if syscall_number_after_hook != syscall_number:
                 # Pretty print the syscall number before the hook
                 if hook.on_enter_pprint:
-                    hook.on_enter_pprint(thread, syscall_number, hijacked=True, old_args=old_args)
+                    hook.on_enter_pprint(
+                        thread, syscall_number, hijacked=True, old_args=old_args
+                    )
 
                 # The syscall number has changed
                 if syscall_number_after_hook in self.context.syscall_hooks:
@@ -135,7 +138,7 @@ class PtraceStatusHandler:
 
                     # Check if the new syscall has to be hooked
                     if hook.hook_hijack:
-                        if syscall_number_after_hook not in hijacked_set: 
+                        if syscall_number_after_hook not in hijacked_set:
                             hijacked_set.add(syscall_number_after_hook)
                         else:
                             # The syscall has already been hijacked in the current chain
@@ -237,6 +240,33 @@ class PtraceStatusHandler:
 
         return True
 
+    def _handle_signal(self, thread_id: int, signum: int):
+        """Handle the signal trap."""
+        if thread_id == -1:
+            # This is a spurious trap, we don't know what to do with it
+            return False
+
+        thread = self.context.get_thread_by_id(thread_id)
+
+        if signum not in self.context.signal_hooks:
+            return False
+
+        hook = self.context.signal_hooks[signum]
+
+        thread._in_background_op = True
+
+        if hook.enabled:
+            hook.hit_count += 1
+
+            if hook.callback:
+                hook.callback(thread, signum)
+
+            if hook.pass_to_process:
+                thread.signal_to_deliver = signum
+
+        thread._in_background_op = False
+        return True
+
     def _handle_change(self, pid: int, status: int, results: list) -> bool:
         """Handle a change in the status of a traced process. Return True if the process should start waiting again."""
         event = status >> 8
@@ -247,6 +277,7 @@ class PtraceStatusHandler:
         if os.WIFSTOPPED(status):
             signum = os.WSTOPSIG(status)
 
+            restart_wait |= self._handle_signal(pid, signum)
             if signum == SYSCALL_SIGTRAP:
                 liblog.debugger("Child thread %d stopped on syscall hook", pid)
                 return self._handle_syscall(pid)

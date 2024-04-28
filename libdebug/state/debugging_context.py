@@ -16,6 +16,7 @@ from weakref import WeakKeyDictionary
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
 from libdebug.data.syscall_hook import SyscallHook
+from libdebug.data.signal_hook import SignalHook
 from libdebug.utils.debugging_utils import (
     normalize_and_validate_address,
     resolve_symbol_in_maps,
@@ -59,6 +60,10 @@ class DebuggingContext:
     _syscall_hooks: dict[int, SyscallHook]
     """A dictionary of all the syscall hooks set on the process.
     Key: the syscall number."""
+    
+    _signal_hooks: dict[int, SignalHook]
+    """A dictionary of all the signal hooks set on the process.
+    Key: the signal number."""
 
     _syscalls_to_pprint: list[int] | None = None
     """The syscalls to pretty print."""
@@ -101,6 +106,7 @@ class DebuggingContext:
         self.escape_antidebug = False
         self._breakpoints = {}
         self._syscall_hooks = {}
+        self._signal_hooks = {}
         self._threads = []
         self._pprint_syscalls = False
 
@@ -112,6 +118,7 @@ class DebuggingContext:
         # These must be reinitialized on every call to "run"
         self._breakpoints.clear()
         self._syscall_hooks.clear()
+        self._signal_hooks.clear()
         self._threads.clear()
         self.pipe_manager = None
         self._is_running = False
@@ -136,6 +143,16 @@ class DebuggingContext:
         """
 
         return self._syscall_hooks
+    
+    @property
+    def signal_hooks(self) -> dict[int, SignalHook]:
+        """Get the signal hooks dictionary.
+
+        Returns:
+            dict[int, SignalHook]: the signal hooks dictionary.
+        """
+
+        return self._signal_hooks
 
     def insert_new_breakpoint(self, breakpoint: Breakpoint):
         """Insert a new breakpoint in the context.
@@ -172,6 +189,24 @@ class DebuggingContext:
         """
 
         del self._syscall_hooks[syscall_hook.syscall_number]
+    
+    def insert_new_signal_hook(self, signal_hook: SignalHook):
+        """Insert a new signal hook in the context.
+
+        Args:
+            signal_hook (SignalHook): the signal hook to insert.
+        """
+
+        self._signal_hooks[signal_hook.signal_number] = signal_hook
+    
+    def remove_signal_hook(self, signal_hook: SignalHook):
+        """Remove a signal hook from the context.
+
+        Args:
+            signal_hook (SignalHook): the signal hook to remove.
+        """
+
+        del self._signal_hooks[signal_hook.signal_number]
 
     @property
     def threads(self) -> dict[int, "ThreadContext"]:

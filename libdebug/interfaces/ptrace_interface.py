@@ -23,6 +23,7 @@ from libdebug.data.memory_map import MemoryMap
 from libdebug.data.register_holder import RegisterHolder
 from libdebug.data.syscall_hook import SyscallHook
 from libdebug.interfaces.debugging_interface import DebuggingInterface
+from libdebug.data.signal_hook import SignalHook
 from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
 from libdebug.state.debugging_context import (
@@ -307,9 +308,30 @@ class PtraceInterface(DebuggingInterface):
 
         repeat = self.status_handler.check_result(results)
 
+        for tid, _ in results:
+            thread = self.context.get_thread_by_id(tid)
+            if thread is not None:
+                self._deliver_signal(thread)
+
         self.lib_trace.free_thread_status_list(result)
 
         return repeat
+
+    def _deliver_signal(self, thread: ThreadContext):
+        """Set the signal to deliver to the thread."""
+        # change the global_state
+        cursor = self._global_state.t_HEAD
+        while cursor != self.ffi.NULL:
+            if cursor.tid == thread.thread_id:
+                if thread.signal_to_deliver != 0:
+                    print(
+                        "Delivering signal %d to thread %d", cursor.signal, cursor.tid
+                    )
+                    cursor.signal = (
+                        thread.signal_to_deliver
+                    )  # set the signal to deliver
+                    thread.signal_to_deliver = 0  # reset the signal to deliver
+            cursor = cursor.next
 
     def migrate_to_gdb(self):
         """Migrates the current process to GDB."""
@@ -448,6 +470,22 @@ class PtraceInterface(DebuggingInterface):
             hook (SyscallHook): The syscall hook to unset.
         """
         self.context.remove_syscall_hook(hook)
+
+    def set_signal_hook(self, hook: SignalHook):
+        """Sets a signal hook.
+
+        Args:
+            hook (SignalHook): The signal hook to set.
+        """
+        self.context.insert_new_signal_hook(hook)
+
+    def unset_signal_hook(self, hook: SignalHook):
+        """Unsets a signal hook.
+
+        Args:
+            hook (SignalHook): The signal hook to unset.
+        """
+        self.context.remove_signal_hook(hook)
 
     def peek_memory(self, address: int) -> int:
         """Reads the memory at the specified address."""

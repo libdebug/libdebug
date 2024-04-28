@@ -38,6 +38,8 @@ from libdebug.utils.syscall_utils import (
     resolve_syscall_name,
     resolve_syscall_number,
 )
+from libdebug.utils.signal_utils import resolve_signal_number, resolve_signal_name
+from libdebug.data.signal_hook import SignalHook
 
 THREAD_TERMINATE = -1
 GDB_GOBACK_LOCATION = str((Path(__file__).parent / "utils" / "gdb.py").resolve())
@@ -471,6 +473,55 @@ class _InternalDebugger:
             length=length,
             callback=callback,
         )
+
+    def hook_signal(
+        self,
+        signal: int | str,
+        callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
+        pass_to_process: bool = False,
+    ) -> SignalHook:
+        """Hooks a signal in the target process.
+
+        Args:
+            signal (int | str): The signal to hook.
+            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the signal is received. Defaults to None.
+            pass_to_process (bool, optional): Whether the signal should be passed to the process after the hook. Defaults to True.
+        """
+        self._ensure_process_stopped()
+
+        if isinstance(signal, str):
+            signal_number = resolve_signal_number(signal)
+        elif isinstance(signal, int):
+            signal_number = signal
+        else:
+            raise ValueError("signal must be an int or a str")
+
+        if signal_number == 9:
+            raise ValueError(
+                "Cannot hook SIGKILL (9) as it cannot be caught or ignored. This is a kernel restriction."
+            )
+
+        if not isinstance(pass_to_process, bool):
+            raise ValueError("pass_to_process must be a boolean")
+
+        hook = SignalHook(signal_number, pass_to_process, callback)
+
+        link_context(hook, self)
+
+        self._polling_thread_command_queue.put((self.__threaded_signal_hook, (hook,)))
+
+        # Wait for the background thread to signal "task done" before returning
+        # We don't want any asynchronous behaviour here
+        self._polling_thread_command_queue.join()
+
+        # Check for any exceptions raised by the background thread
+        if not self._polling_thread_response_queue.empty():
+            response = self._polling_thread_response_queue.get()
+            self._polling_thread_response_queue.task_done()
+            if response is not None:
+                raise response
+
+        return hook
 
     def _enable_pretty_print(
         self,
@@ -1107,6 +1158,12 @@ class _InternalDebugger:
     def __threaded_syscall_hook(self, hook: SyscallHook):
         liblog.debugger(f"Hooking syscall {hook.syscall_number}.")
         self.interface.set_syscall_hook(hook)
+
+    def __threaded_signal_hook(self, hook: SignalHook):
+        liblog.debugger(
+            f"Hooking signal {resolve_signal_name(hook.signal_number)} ({hook.signal_number})."
+        )
+        self.interface.set_signal_hook(hook)
 
     def __threaded_syscall_unhook(self, hook: SyscallHook):
         liblog.debugger(f"Hooking syscall {hook.syscall_number}.")
