@@ -23,6 +23,9 @@ class SyscallHook:
         on_exit_user (Callable[[ThreadContext, int], None]): The callback defined by the user to execute when the syscall is exited.
         on_enter_pprint (Callable[[ThreadContext, int], None]): The callback defined by the pretty print to execute when the syscall is entered.
         on_exit_pprint (Callable[[ThreadContext, int], None]): The callback defined by the pretty print to execute when the syscall is exited.
+        hook_hijack (bool): Whether to esecute the hook/hijack of the new syscall after an hijack or not.
+        enabled (bool): Whether the hook is enabled or not.
+        hit_count (int): The number of times the hook has been hit.
     """
 
     syscall_number: int
