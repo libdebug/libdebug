@@ -30,6 +30,7 @@ from scripts.vmwhere1 import Vmwhere1
 from scripts.waiting_test import WaitingNcuts, WaitingTest
 from scripts.watchpoint_alias_test import WatchpointAliasTest
 from scripts.watchpoint_test import WatchpointTest
+from scripts.signal_hook_test import SignalHookTest
 
 
 def fast_suite():
@@ -108,6 +109,8 @@ def fast_suite():
     suite.addTest(
         PPrintSyscallsTest("test_pprint_which_syscalls_not_pprint_after_and_before")
     )
+    suite.addTest(SignalHookTest("test_signal_hooking"))
+    suite.addTest(SignalHookTest("test_signal_pass_to_process"))
     return suite
 
 
