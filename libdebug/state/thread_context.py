@@ -28,7 +28,7 @@ class ThreadContext:
     instruction_pointer: int
     """The thread's instruction pointer."""
     
-    signal_to_deliver: int = 0
+    signal_number: int = 0
     """The signal to deliver to the thread."""
 
     _needs_register_poll: bool = True

@@ -291,7 +291,7 @@ class PtraceInterface(DebuggingInterface):
         """
         raise RuntimeError("This method should never be called.")
 
-    def wait(self) -> bool:
+    def wait(self):
         """Waits for the process to stop. Returns True if the wait has to be repeated."""
         result = self.lib_trace.wait_all_and_update_regs(
             self._global_state, self.process_id
@@ -306,8 +306,9 @@ class PtraceInterface(DebuggingInterface):
             results.append((cursor.tid, cursor.status))
             cursor = cursor.next
 
-        repeat = self.status_handler.check_result(results)
+        self.status_handler.check_result(results)
 
+        # Deliver signals to the threads
         for tid, _ in results:
             thread = self.context.get_thread_by_id(tid)
             if thread is not None:
@@ -315,22 +316,21 @@ class PtraceInterface(DebuggingInterface):
 
         self.lib_trace.free_thread_status_list(result)
 
-        return repeat
-
     def _deliver_signal(self, thread: ThreadContext):
         """Set the signal to deliver to the thread."""
         # change the global_state
         cursor = self._global_state.t_HEAD
         while cursor != self.ffi.NULL:
             if cursor.tid == thread.thread_id:
-                if thread.signal_to_deliver != 0:
-                    print(
-                        "Delivering signal %d to thread %d", cursor.signal, cursor.tid
+                if (
+                    thread.signal_number != 0
+                    and thread.signal_number in self.context._signal_to_pass
+                ):
+                    liblog.debugger(
+                        f"Delivering signal {thread.signal_number} to thread {cursor.tid}"
                     )
-                    cursor.signal = (
-                        thread.signal_to_deliver
-                    )  # set the signal to deliver
-                    thread.signal_to_deliver = 0  # reset the signal to deliver
+                    cursor.signal = thread.signal_number  # set the signal to deliver
+                    thread.signal_number = 0  # reset the signal to deliver
             cursor = cursor.next
 
     def migrate_to_gdb(self):

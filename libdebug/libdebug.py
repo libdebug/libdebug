@@ -38,7 +38,11 @@ from libdebug.utils.syscall_utils import (
     resolve_syscall_name,
     resolve_syscall_number,
 )
-from libdebug.utils.signal_utils import resolve_signal_number, resolve_signal_name
+from libdebug.utils.signal_utils import (
+    resolve_signal_number,
+    resolve_signal_name,
+    get_all_signal_numbers,
+)
 from libdebug.data.signal_hook import SignalHook
 
 THREAD_TERMINATE = -1
@@ -478,16 +482,19 @@ class _InternalDebugger:
         self,
         signal: int | str,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
-        pass_to_process: bool = False,
+        hook_hijack: bool = True,
     ) -> SignalHook:
         """Hooks a signal in the target process.
 
         Args:
             signal (int | str): The signal to hook.
             callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the signal is received. Defaults to None.
-            pass_to_process (bool, optional): Whether the signal should be passed to the process after the hook. Defaults to True.
+            hook_hijack (bool, optional): Whether to execute the hook/hijack of the new signal after an hijack or not. Defaults to False.
         """
         self._ensure_process_stopped()
+
+        if callback is None:
+            raise ValueError("A callback must be specified.")
 
         if isinstance(signal, str):
             signal_number = resolve_signal_number(signal)
@@ -501,10 +508,10 @@ class _InternalDebugger:
                 "Cannot hook SIGKILL (9) as it cannot be caught or ignored. This is a kernel restriction."
             )
 
-        if not isinstance(pass_to_process, bool):
-            raise ValueError("pass_to_process must be a boolean")
+        if not isinstance(hook_hijack, bool):
+            raise ValueError("hook_hijack must be a boolean")
 
-        hook = SignalHook(signal_number, pass_to_process, callback)
+        hook = SignalHook(signal_number, callback, hook_hijack)
 
         link_context(hook, self)
 
@@ -898,6 +905,33 @@ class _InternalDebugger:
         if self.context._pprint_syscalls:
             self._enable_pretty_print()
 
+    @property
+    def signal_to_pass(self):
+        """Get the signal to pass to the process.
+
+        Returns:
+            list[str]: The signals to pass.
+        """
+        return [resolve_signal_name(v) for v in self.context._signal_to_pass]
+
+    @signal_to_pass.setter
+    def signal_to_pass(self, signals: list[int] | list[str]):
+        """Set the signal to pass to the process.
+
+        Args:
+            value (list[int] | list[str]): The signals to pass.
+        """
+        if not isinstance(signals, list):
+            raise ValueError("signal_to_pass must be a list of integers or strings")
+        signals = [
+            v if isinstance(v, int) else resolve_signal_number(v) for v in signals
+        ]
+
+        if not set(signals).issubset(get_all_signal_numbers()):
+            raise ValueError("Invalid signal number.")
+
+        self.context._signal_to_pass = signals
+
     def migrate_to_gdb(self, open_in_new_process: bool = True):
         """Migrates the current debugging session to GDB."""
         self._ensure_process_stopped()
@@ -1179,8 +1213,18 @@ class _InternalDebugger:
         else:
             liblog.debugger("Waiting for process %d to stop.", self.context.process_id)
 
-        while self.interface.wait():
-            self.interface.cont()
+        while True:
+            self.context._resume = None
+            self.interface.wait()
+            value = self.context._resume
+            match value:
+                case True:
+                    self.interface.cont()
+                case False:
+                    break
+                case None:
+                    liblog.warning("Stop due to unhandled signal. Trying to continue.")
+                    self.interface.cont()
 
         self.context.set_stopped()
 

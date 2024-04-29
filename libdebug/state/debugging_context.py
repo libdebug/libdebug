@@ -64,11 +64,14 @@ class DebuggingContext:
     _signal_hooks: dict[int, SignalHook]
     """A dictionary of all the signal hooks set on the process.
     Key: the signal number."""
+    
+    _signal_to_pass: list[int]
+    """The signals to pass to the process."""
 
-    _syscalls_to_pprint: list[int] | None = None
+    _syscalls_to_pprint: list[int] | None 
     """The syscalls to pretty print."""
 
-    _syscalls_to_not_pprint: list[int] | None = None
+    _syscalls_to_not_pprint: list[int] | None
     """The syscalls to not pretty print."""
 
     _threads: list[ThreadContext]
@@ -94,6 +97,12 @@ class DebuggingContext:
 
     _threaded_memory: MemoryView
     """The memory view of the debugged process, used for operations in the background thread."""
+    
+    _resume: bool
+    """A flag that indicates if the debugger should resume the debugged process."""
+    
+    _force_interrupt: bool
+    """A flag that indicates if the debugger has forced an interrupt of the debugged process."""
 
     def __init__(self):
         """Initialize the context"""
@@ -107,8 +116,13 @@ class DebuggingContext:
         self._breakpoints = {}
         self._syscall_hooks = {}
         self._signal_hooks = {}
+        self._signal_to_pass = []
+        self._syscalls_to_pprint = None
+        self._syscalls_to_not_pprint = None
         self._threads = []
         self._pprint_syscalls = False
+        self._resume = False
+        self._force_interrupt = False
 
         self.clear()
 
@@ -122,7 +136,12 @@ class DebuggingContext:
         self._threads.clear()
         self.pipe_manager = None
         self._is_running = False
+        self._syscalls_to_pprint = None
+        self._syscalls_to_not_pprint = None
+        self._signal_to_pass.clear()
         self.process_id = 0
+        self._resume = False
+        self._force_interrupt = False
 
     @property
     def breakpoints(self) -> dict[int, Breakpoint]:
@@ -313,6 +332,7 @@ class DebuggingContext:
 
     def interrupt(self):
         """Interrupt the debugged process."""
+        self._force_interrupt = True
         os.kill(self.process_id, signal.SIGSTOP)
 
 
