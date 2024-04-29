@@ -531,6 +531,31 @@ class _InternalDebugger:
 
         return hook
 
+    def unhook_signal(self, hook: SignalHook):
+        """Unhooks a signal in the target process.
+
+        Args:
+            hook (SignalHook): The signal hook to unhook.
+        """
+        self._ensure_process_stopped()
+
+        if hook.signal_number not in self.context.signal_hooks:
+            raise ValueError(f"Signal {hook.signal_number} is not hooked.")
+
+        hook = self.context.signal_hooks[hook.signal_number]
+
+        self._polling_thread_command_queue.put((self.__threaded_signal_unhook, (hook,)))
+
+        # Wait for the background thread to signal "task done" before returning
+        # We don't want any asynchronous behaviour here
+        self._polling_thread_command_queue.join()
+
+        # Check for any exceptions raised by the background thread
+        if not self._polling_thread_response_queue.empty():
+            response = self._polling_thread_response_queue.get()
+            if response is not None:
+                raise response
+
     def _enable_pretty_print(
         self,
     ) -> SyscallHook:
@@ -1201,8 +1226,12 @@ class _InternalDebugger:
         self.interface.set_signal_hook(hook)
 
     def __threaded_syscall_unhook(self, hook: SyscallHook):
-        liblog.debugger(f"Hooking syscall {hook.syscall_number}.")
+        liblog.debugger(f"Unhooking syscall {hook.syscall_number}.")
         self.interface.unset_syscall_hook(hook)
+
+    def __threaded_signal_unhook(self, hook: SignalHook):
+        liblog.debugger(f"Unhooking syscall {hook.signal_number}.")
+        self.interface.unset_signal_hook(hook)
 
     def __threaded_wait(self):
         if self.context.argv:
