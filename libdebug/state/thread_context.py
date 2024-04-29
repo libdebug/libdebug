@@ -105,3 +105,8 @@ class ThreadContext:
                 backtrace,
             )
         )
+    
+    def current_return_address(self):
+        """Returns the return address of the current function."""
+        stack_unwinder = stack_unwinding_provider()
+        return stack_unwinder.get_return_address(self)

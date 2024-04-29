@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Any, Callable, Tuple
 
 if TYPE_CHECKING:
     from libdebug.state.thread_context import ThreadContext
@@ -19,17 +19,23 @@ class SyscallHook:
 
     Attributes:
         syscall_number (int): The syscall number to hook.
-        on_enter (Callable[[ThreadContext, int], None]): The callback to execute when the syscall is entered.
-        on_exit (Callable[[ThreadContext, int], None]): The callback to execute when the syscall is exited.
+        on_enter_user (Callable[[ThreadContext, int], None]): The callback defined by the user to execute when the syscall is entered.
+        on_exit_user (Callable[[ThreadContext, int], None]): The callback defined by the user to execute when the syscall is exited.
+        on_enter_pprint (Callable[[ThreadContext, int], None]): The callback defined by the pretty print to execute when the syscall is entered.
+        on_exit_pprint (Callable[[ThreadContext, int], None]): The callback defined by the pretty print to execute when the syscall is exited.
     """
 
     syscall_number: int
-    on_enter: Callable[[ThreadContext, int], None]
-    on_exit: Callable[[ThreadContext, int], None]
+    on_enter_user: Callable[[ThreadContext, int], None]
+    on_exit_user: Callable[[ThreadContext, int], None]
+    on_enter_pprint: Callable[[ThreadContext, int, Any], None]
+    on_exit_pprint: Callable[[int | Tuple[int, int]], None]
+    hook_hijack: bool = True
     enabled: bool = True
     hit_count: int = 0
 
     _has_entered: bool = False
+    _skip_exit: bool = False
 
     def enable(self) -> None:
         """Enable the syscall hook."""
