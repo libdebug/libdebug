@@ -41,7 +41,7 @@ from libdebug.utils.process_utils import (
     get_process_maps,
     invalidate_process_cache,
 )
-
+from libdebug.state.resume_context import ResumeStatus
 
 JUMPSTART_LOCATION = str(
     (Path(__file__) / ".." / ".." / "ptrace" / "jumpstart" / "jumpstart").resolve()
@@ -307,22 +307,21 @@ class PtraceInterface(DebuggingInterface):
             cursor = cursor.next
 
         # Check the result of the waitpid and handle the changes.
-        self.status_handler.check_change(results)
-
-        # Deliver signals to the threads
-        for tid, _ in results:
-            thread = self.context.get_thread_by_id(tid)
-            if thread is not None:
-                self._deliver_signal(thread)
+        self.status_handler.manage_change(results)
 
         self.lib_trace.free_thread_status_list(result)
 
-    def _deliver_signal(self, thread: ThreadContext):
-        """Set the signal to deliver to the thread."""
+    def deliver_signal(self, threads: list[int]):
+        """Set the signals to deliver to the threads."""
         # change the global_state
         cursor = self._global_state.t_HEAD
+
         while cursor != self.ffi.NULL:
-            if cursor.tid == thread.thread_id:
+            if cursor.tid in threads:
+                thread = self.context.get_thread_by_id(cursor.tid)
+                if thread is None:
+                    # The thread is dead in the meantime
+                    continue
                 if (
                     thread.signal_number != 0
                     and thread.signal_number in self.context._signal_to_pass
@@ -330,8 +329,12 @@ class PtraceInterface(DebuggingInterface):
                     liblog.debugger(
                         f"Delivering signal {thread.signal_number} to thread {cursor.tid}"
                     )
-                    cursor.signal_to_deliver = thread.signal_number  # set the signal to deliver
-                    thread.signal_number = 0  # reset the signal to deliver
+                    # Set the signal to deliver
+                    cursor.signal_to_deliver = thread.signal_number
+                    # Reset the signal to deliver
+                    thread.signal_number = 0
+                    # We have an idea of what is going on, we can resume the thread if possible
+                    self.context._resume_context.resume = ResumeStatus.RESUME
             cursor = cursor.next
 
     def migrate_to_gdb(self):
