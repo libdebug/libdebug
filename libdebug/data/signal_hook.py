@@ -18,10 +18,9 @@ class SignalHook:
 
     Attributes:
         signal_number (int): The signal number to hook.
-        pass_to_process (bool): Whether to pass the signal to the process or not.
         callback (Callable[[ThreadContext, int], None]): The callback defined by the user to execute when the signal is received.
-        enabled (bool): Whether the hook is enabled or not.
         hook_hijack (bool): Whether to execute the hook/hijack of the new signal after an hijack or not.
+        enabled (bool): Whether the hook is enabled or not.
         hit_count (int): The number of times the hook has been hit."""
 
     signal_number: int

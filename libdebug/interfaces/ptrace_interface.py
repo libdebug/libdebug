@@ -306,7 +306,8 @@ class PtraceInterface(DebuggingInterface):
             results.append((cursor.tid, cursor.status))
             cursor = cursor.next
 
-        self.status_handler.check_result(results)
+        # Check the result of the waitpid and handle the changes.
+        self.status_handler.check_change(results)
 
         # Deliver signals to the threads
         for tid, _ in results:
@@ -329,7 +330,7 @@ class PtraceInterface(DebuggingInterface):
                     liblog.debugger(
                         f"Delivering signal {thread.signal_number} to thread {cursor.tid}"
                     )
-                    cursor.signal = thread.signal_number  # set the signal to deliver
+                    cursor.signal_to_deliver = thread.signal_number  # set the signal to deliver
                     thread.signal_number = 0  # reset the signal to deliver
             cursor = cursor.next
 
