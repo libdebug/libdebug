@@ -528,7 +528,7 @@ class _InternalDebugger:
         """
         self._ensure_process_stopped()
 
-        installed_hooks = self.context.syscall_hooks.values()
+        installed_hooks = list(self.context.syscall_hooks.values())
         for hook in installed_hooks:
             if hook.on_enter_pprint or hook.on_exit_pprint:
                 if hook.on_enter_user or hook.on_exit_user:
