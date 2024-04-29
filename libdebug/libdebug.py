@@ -481,14 +481,14 @@ class _InternalDebugger:
     def hook_signal(
         self,
         signal: int | str,
-        callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
+        callback: None | Callable[[ThreadContext, int], None] = None,
         hook_hijack: bool = True,
     ) -> SignalHook:
         """Hooks a signal in the target process.
 
         Args:
             signal (int | str): The signal to hook.
-            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the signal is received. Defaults to None.
+            callback (Callable[[ThreadContext, int], None], optional): A callback to be called when the signal is received. Defaults to None.
             hook_hijack (bool, optional): Whether to execute the hook/hijack of the new signal after an hijack or not. Defaults to False.
         """
         self._ensure_process_stopped()
