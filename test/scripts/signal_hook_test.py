@@ -107,12 +107,14 @@ class SignalHookTest(unittest.TestCase):
         d = debugger("binaries/signal_handling_test")
 
         r = d.run()
+        
+        d.signal_to_pass = [10, 15, 2, 3, 13]
 
-        hook1 = d.hook_signal("SIGUSR1", callback=hook_SIGUSR1, pass_to_process=True)
-        hook2 = d.hook_signal("SIGTERM", callback=hook_SIGTERM, pass_to_process=True)
-        hook3 = d.hook_signal("SIGINT", callback=hook_SIGINT, pass_to_process=True)
-        hook4 = d.hook_signal("SIGQUIT", callback=hook_SIGQUIT, pass_to_process=True)
-        hook5 = d.hook_signal("SIGPIPE", callback=hook_SIGPIPE, pass_to_process=True)
+        hook1 = d.hook_signal("SIGUSR1", callback=hook_SIGUSR1)
+        hook2 = d.hook_signal("SIGTERM", callback=hook_SIGTERM)
+        hook3 = d.hook_signal("SIGINT", callback=hook_SIGINT)
+        hook4 = d.hook_signal("SIGQUIT", callback=hook_SIGQUIT)
+        hook5 = d.hook_signal("SIGPIPE", callback=hook_SIGPIPE)
 
         d.cont()
 
