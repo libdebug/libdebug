@@ -22,6 +22,7 @@ from libdebug.utils.debugging_utils import (
     resolve_symbol_in_maps,
 )
 from libdebug.utils.pipe_manager import PipeManager
+from libdebug.state.resume_context import ResumeContext
 
 if TYPE_CHECKING:
     from libdebug.interfaces.debugging_interface import DebuggingInterface
@@ -60,15 +61,15 @@ class DebuggingContext:
     _syscall_hooks: dict[int, SyscallHook]
     """A dictionary of all the syscall hooks set on the process.
     Key: the syscall number."""
-    
+
     _signal_hooks: dict[int, SignalHook]
     """A dictionary of all the signal hooks set on the process.
     Key: the signal number."""
-    
+
     _signal_to_pass: list[int]
     """The signals to pass to the process."""
 
-    _syscalls_to_pprint: list[int] | None 
+    _syscalls_to_pprint: list[int] | None
     """The syscalls to pretty print."""
 
     _syscalls_to_not_pprint: list[int] | None
@@ -97,12 +98,9 @@ class DebuggingContext:
 
     _threaded_memory: MemoryView
     """The memory view of the debugged process, used for operations in the background thread."""
-    
-    _resume: bool
-    """A flag that indicates if the debugger should resume the debugged process."""
-    
-    _force_interrupt: bool
-    """A flag that indicates if the debugger has forced an interrupt of the debugged process."""
+
+    _resume_context: ResumeContext
+    """Context that indicates if the debugger should resume the debugged process."""
 
     def __init__(self):
         """Initialize the context"""
@@ -121,9 +119,7 @@ class DebuggingContext:
         self._syscalls_to_not_pprint = None
         self._threads = []
         self._pprint_syscalls = False
-        self._resume = False
-        self._force_interrupt = False
-
+        self._resume_context = ResumeContext()
         self.clear()
 
     def clear(self):
@@ -140,8 +136,7 @@ class DebuggingContext:
         self._syscalls_to_not_pprint = None
         self._signal_to_pass.clear()
         self.process_id = 0
-        self._resume = False
-        self._force_interrupt = False
+        self._resume_context = ResumeContext()
 
     @property
     def breakpoints(self) -> dict[int, Breakpoint]:
@@ -162,7 +157,7 @@ class DebuggingContext:
         """
 
         return self._syscall_hooks
-    
+
     @property
     def signal_hooks(self) -> dict[int, SignalHook]:
         """Get the signal hooks dictionary.
@@ -208,7 +203,7 @@ class DebuggingContext:
         """
 
         del self._syscall_hooks[syscall_hook.syscall_number]
-    
+
     def insert_new_signal_hook(self, signal_hook: SignalHook):
         """Insert a new signal hook in the context.
 
@@ -217,7 +212,7 @@ class DebuggingContext:
         """
 
         self._signal_hooks[signal_hook.signal_number] = signal_hook
-    
+
     def remove_signal_hook(self, signal_hook: SignalHook):
         """Remove a signal hook from the context.
 
@@ -302,7 +297,6 @@ class DebuggingContext:
 
         return not self._threads
 
-
     def resolve_address(self, address: int) -> int:
         """Normalizes and validates the specified address.
 
@@ -332,7 +326,7 @@ class DebuggingContext:
 
     def interrupt(self):
         """Interrupt the debugged process."""
-        self._force_interrupt = True
+        self._resume_context.force_interrupt = True
         os.kill(self.process_id, signal.SIGSTOP)
 
 

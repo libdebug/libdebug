@@ -18,6 +18,7 @@ from libdebug.ptrace.ptrace_constants import SYSCALL_SIGTRAP, StopEvents
 from libdebug.state.debugging_context import provide_context
 from libdebug.state.thread_context import ThreadContext
 from libdebug.utils.signal_utils import resolve_signal_name
+from libdebug.state.resume_context import ResumeStatus
 
 if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
@@ -54,7 +55,7 @@ class PtraceStatusHandler:
         if not hasattr(thread, "instruction_pointer"):
             # This is a signal trap hit on process startup
             # Do not resume the process until the user decides to do so
-            self.context._resume = False
+            self.context._resume_context.resume = ResumeStatus.NOT_RESUME
             return
 
         ip = thread.instruction_pointer
@@ -97,12 +98,10 @@ class PtraceStatusHandler:
                 thread._in_background_op = True
                 bp.callback(thread, bp)
                 thread._in_background_op = False
-                self.context._resume = (
-                    True if self.context._resume is None else self.context._resume
-                )
+                self.context._resume_context.resume = ResumeStatus.RESUME
                 return
         # If the breakpoint has no callback, we need to stop the process despite the other signals
-        self.context._resume = False
+        self.context._resume_context.resume = ResumeStatus.NOT_RESUME
 
     def _manage_syscall_on_enter(
         self,
@@ -192,9 +191,7 @@ class PtraceStatusHandler:
         if syscall_number not in self.context.syscall_hooks:
             # This is a syscall we don't care about
             # Resume the execution
-            self.context._resume = (
-                True if self.context._resume is None else self.context._resume
-            )
+            self.context._resume_context.resume = ResumeStatus.RESUME
             return
 
         hook = self.context.syscall_hooks[syscall_number]
@@ -242,9 +239,7 @@ class PtraceStatusHandler:
 
         thread._in_background_op = False
 
-        self.context._resume = (
-            True if self.context._resume is None else self.context._resume
-        )
+        self.context._resume_context.resume = ResumeStatus.RESUME
 
     def _manage_signal_callback(
         self,
@@ -300,9 +295,7 @@ class PtraceStatusHandler:
 
             thread._in_background_op = False
 
-            self.context._resume = (
-                True if self.context._resume is None else self.context._resume
-            )
+            self.context._resume_context.resume = ResumeStatus.RESUME
 
     def _internal_signal_handler(
         self, pid: int, signum: int, results: list, status: int
@@ -313,15 +306,15 @@ class PtraceStatusHandler:
             # We hit a syscall
             liblog.debugger("Child thread %d stopped on syscall hook", pid)
             self._handle_syscall(pid)
-        elif signum == signal.SIGSTOP and self.context._force_interrupt:
+        elif signum == signal.SIGSTOP and self.context._resume_context.force_interrupt:
             # The user has requested an interrupt, we need to stop the process despite the ohter signals
             liblog.debugger(
                 "Child thread %d stopped with signal %s",
                 pid,
                 resolve_signal_name(signum),
             )
-            self.context._resume = False
-            self.context._force_interrupt = False
+            self.context._resume_context.resume = ResumeStatus.NOT_RESUME
+            self.context._resume_context.force_interrupt = False
         elif signum == signal.SIGTRAP:
             # The trap decides if we hit a breakpoint. If so, it decides whether we should stop or
             # continue the execution and wait for the next trap
@@ -336,15 +329,11 @@ class PtraceStatusHandler:
                         "Process {} cloned, new thread_id: {}".format(pid, message)
                     )
                     self._handle_clone(message, results)
-                    self.context._resume = (
-                        True if self.context._resume is None else self.context._resume
-                    )
+                    self.context._resume_context.resume = ResumeStatus.RESUME
                 case StopEvents.SECCOMP_EVENT:
                     # The process has installed a seccomp
                     liblog.debugger("Process {} installed a seccomp".format(pid))
-                    self.context._resume = (
-                        True if self.context._resume is None else self.context._resume
-                    )
+                    self.context._resume_context.resume = ResumeStatus.RESUME
                 case StopEvents.EXIT_EVENT:
                     # The tracee is still alive; it needs
                     # to be PTRACE_CONTed or PTRACE_DETACHed to finish exiting.
@@ -354,9 +343,7 @@ class PtraceStatusHandler:
                     liblog.debugger(
                         "Thread {} exited with status: {}".format(pid, message)
                     )
-                    self.context._resume = (
-                        True if self.context._resume is None else self.context._resume
-                    )
+                    self.context._resume_context.resume = ResumeStatus.RESUME
 
     def _handle_change(self, pid: int, status: int, results: list):
         """Handle a change in the status of a traced process."""
@@ -371,29 +358,27 @@ class PtraceStatusHandler:
             if thread is not None:
                 thread.signal_number = signum
                 self._handle_signal(thread)
-                
+
         if os.WIFEXITED(status):
             # The thread has exited normally
             exitstatus = os.WEXITSTATUS(status)
             liblog.debugger("Child process %d exited with status %d", pid, exitstatus)
             self._handle_exit(pid)
-            self.context._resume = True if self.context._resume is None else self.context._resume
-            
+            self.context._resume_context.resume = ResumeStatus.RESUME
+
         if os.WIFSIGNALED(status):
             # The thread has exited with a signal
             termsig = os.WTERMSIG(status)
             liblog.debugger("Child process %d exited with signal %d", pid, termsig)
             self._handle_exit(pid)
-            self.context._resume = True if self.context._resume is None else self.context._resume
+            self.context._resume_context.resume = ResumeStatus.RESUME
 
     def check_change(self, result):
         """Check the result of the waitpid and handle the changes."""
         for pid, status in result:
             if pid == -1:
                 # This is a spurious trap, we can ignore it
-                self.context._resume = (
-                    True if self.context._resume is None else self.context._resume
-                )
+                self.context._resume_context.resume = ResumeStatus.RESUME
             else:
                 self._handle_change(pid, status, result)
 

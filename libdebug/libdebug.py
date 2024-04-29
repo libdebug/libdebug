@@ -44,6 +44,7 @@ from libdebug.utils.signal_utils import (
     get_all_signal_numbers,
 )
 from libdebug.data.signal_hook import SignalHook
+from libdebug.state.resume_context import ResumeStatus
 
 THREAD_TERMINATE = -1
 GDB_GOBACK_LOCATION = str((Path(__file__).parent / "utils" / "gdb.py").resolve())
@@ -1214,15 +1215,14 @@ class _InternalDebugger:
             liblog.debugger("Waiting for process %d to stop.", self.context.process_id)
 
         while True:
-            self.context._resume = None
+            self.context._resume_context.resume = ResumeStatus.UNDECIDED
             self.interface.wait()
-            value = self.context._resume
-            match value:
-                case True:
+            match self.context._resume_context.resume:
+                case ResumeStatus.RESUME:
                     self.interface.cont()
-                case False:
+                case ResumeStatus.NOT_RESUME:
                     break
-                case None:
+                case ResumeStatus.UNDECIDED:
                     liblog.warning("Stop due to unhandled signal. Trying to continue.")
                     self.interface.cont()
 
