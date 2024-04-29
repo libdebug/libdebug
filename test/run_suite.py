@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2023-2024 Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -15,6 +15,7 @@ from scripts.breakpoint_test import BreakpointTest
 from scripts.brute_test import BruteTest
 from scripts.builtin_hooks_test import AntidebugEscapingTest
 from scripts.callback_test import CallbackTest
+from scripts.finish_test import FinishTest
 from scripts.deep_dive_division import DeepDiveDivision
 from scripts.hijack_syscall_test import SyscallHijackTest
 from scripts.jumpout import Jumpout
@@ -59,6 +60,16 @@ def fast_suite():
     suite.addTest(CallbackTest("test_callback_memory"))
     suite.addTest(CallbackTest("test_callback_jumpout"))
     suite.addTest(CallbackTest("test_callback_intermixing"))
+    suite.addTest(FinishTest("test_finish_exact_no_auto_interrupt_no_breakpoint"))
+    suite.addTest(FinishTest("test_finish_heuristic_no_auto_interrupt_no_breakpoint"))
+    suite.addTest(FinishTest("test_finish_exact_auto_interrupt_no_breakpoint"))
+    suite.addTest(FinishTest("test_finish_heuristic_auto_interrupt_no_breakpoint"))
+    suite.addTest(FinishTest("test_finish_exact_no_auto_interrupt_breakpoint"))
+    suite.addTest(FinishTest("test_finish_heuristic_no_auto_interrupt_breakpoint"))
+    suite.addTest(FinishTest("test_heuristic_return_address"))
+    suite.addTest(FinishTest("test_exact_breakpoint_return"))
+    suite.addTest(FinishTest("test_heuristic_breakpoint_return"))
+    suite.addTest(FinishTest("test_breakpoint_collision"))
     suite.addTest(Jumpout("test_jumpout"))
     suite.addTest(Ncuts("test_ncuts"))
     suite.addTest(ControlFlowTest("test_step_until_1"))

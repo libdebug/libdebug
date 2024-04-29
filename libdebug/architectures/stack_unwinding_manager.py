@@ -20,3 +20,9 @@ class StackUnwindingManager:
         Unwind the stack of the target process.
         """
         pass
+
+    def get_return_address(self, target: "ThreadContext") -> int:
+        """
+        Get the return address of the current function.
+        """
+        pass
