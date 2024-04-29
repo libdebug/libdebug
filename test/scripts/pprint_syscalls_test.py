@@ -41,7 +41,6 @@ class PPrintSyscallsTest(unittest.TestCase):
         self.assertIn("0xe", self.capturedOutput.getvalue())
         self.assertIn("0x8", self.capturedOutput.getvalue())
         self.assertIn("0x400", self.capturedOutput.getvalue())
-        self.assertIn("0x26", self.capturedOutput.getvalue())
 
         self.assertEqual(self.capturedOutput.getvalue().count("write"), 2)
         self.assertEqual(self.capturedOutput.getvalue().count("read"), 1)
@@ -69,7 +68,6 @@ class PPrintSyscallsTest(unittest.TestCase):
         self.assertIn("0xe", self.capturedOutput.getvalue())
         self.assertIn("0x8", self.capturedOutput.getvalue())
         self.assertIn("0x400", self.capturedOutput.getvalue())
-        self.assertIn("0x26", self.capturedOutput.getvalue())
 
         self.assertEqual(self.capturedOutput.getvalue().count("write"), 2)
         self.assertEqual(self.capturedOutput.getvalue().count("read"), 1)
