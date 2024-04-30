@@ -36,6 +36,31 @@ int main() {
     // Send SIGPIPE to self
     raise(SIGPIPE);
 
+    // Now again
+
+    // Send SIGUSR1 to self
+    kill(getpid(), SIGUSR1);
+
+    // Send SIGTERM to self
+    raise(SIGTERM); 
+
+    // Send SIGINT to self
+    raise(SIGINT);
+
+    // Send SIGQUIT to self
+    raise(SIGQUIT);
+
+    // Send SIGPIPE to self
+    raise(SIGPIPE);
+
+    // Unbalace the number of signals sent
+
+    // Send SIGQUIT to self
+    raise(SIGQUIT);
+
+    // Send SIGPIPE to self
+    raise(SIGPIPE);
+
     // Normal program termination after handling signals
     printf("Exiting normally.\n");
     exit(0);
