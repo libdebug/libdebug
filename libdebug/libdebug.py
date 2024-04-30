@@ -1252,8 +1252,12 @@ class _InternalDebugger:
                 case ResumeStatus.NOT_RESUME:
                     break
                 case ResumeStatus.UNDECIDED:
-                    liblog.warning("Stop due to unhandled signal. Trying to continue.")
-                    self.interface.cont()
+                    if self.context.force_continue:
+                        liblog.warning("Stop due to unhandled signal. Trying to continue.")
+                        self.interface.cont()
+                    else:
+                        liblog.warning("Stop due to unhandled signal. Hanging.")
+                        break
 
         self.context.set_stopped()
 
@@ -1295,6 +1299,7 @@ def debugger(
     escape_antidebug: bool = False,
     continue_to_binary_entrypoint: bool = True,
     auto_interrupt_on_command: bool = False,
+    force_continue: bool = True,
 ) -> _InternalDebugger:
     """This function is used to create a new `_InternalDebugger` object. It takes as input the location of the binary to debug and returns a `_InternalDebugger` object.
 
@@ -1304,7 +1309,8 @@ def debugger(
         env (dict[str, str], optional): The environment variables to use. Defaults to the same environment of the debugging script.
         continue_to_binary_entrypoint (bool, optional): Whether to automatically continue to the binary entrypoint. Defaults to True.
         auto_interrupt_on_command (bool, optional): Whether to automatically interrupt the process when a command is issued. Defaults to False.
-
+        force_continue (bool, optional): Whether to force the process to continue after an unhandled signal is received. Defaults to True.
+        
     Returns:
         _InternalDebugger: The `_InternalDebugger` object.
     """
@@ -1326,6 +1332,7 @@ def debugger(
     debugging_context.autoreach_entrypoint = continue_to_binary_entrypoint
     debugging_context.auto_interrupt_on_command = auto_interrupt_on_command
     debugging_context.escape_antidebug = escape_antidebug
+    debugging_context.force_continue = force_continue
 
     debugger._post_init_()
 
