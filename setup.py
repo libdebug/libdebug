@@ -80,6 +80,9 @@ setup(
         f"./libdebug/cffi/{debug_sym_cffi}.py:ffibuilder",
     ],
     cmdclass={"build": JumpstartBuildCommand},
-    package_data={"libdebug.ptrace.jumpstart": ["jumpstart"]},
+    package_data={
+        "libdebug.ptrace.jumpstart": ["jumpstart", "jumpstart.c"],
+        "libdebug.cffi": ["*.c"],
+    },
     include_package_data=True,
 )
