@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_map import MemoryMap
 from libdebug.data.register_holder import RegisterHolder
+from libdebug.data.syscall_hook import SyscallHook
 from libdebug.state.debugging_context import provide_context
 from libdebug.state.thread_context import ThreadContext
 
@@ -93,6 +94,16 @@ class DebuggingInterface(ABC):
         pass
 
     @abstractmethod
+    def finish(self, thread: ThreadContext, exact: bool):
+        """Executes instructions of the specified thread until the current function returns.
+
+        Args:
+            thread (ThreadContext): The thread to step.
+            exact (bool): If True, the command is implemented as a series of `step` commands.
+        """
+        pass
+
+    @abstractmethod
     def maps(self) -> list[MemoryMap]:
         """Returns the memory maps of the process."""
         pass
@@ -119,6 +130,24 @@ class DebuggingInterface(ABC):
 
         Args:
             breakpoint (Breakpoint): The breakpoint to restore.
+        """
+        pass
+
+    @abstractmethod
+    def set_syscall_hook(self, hook: SyscallHook):
+        """Sets a syscall hook.
+
+        Args:
+            hook (SyscallHook): The syscall hook to set.
+        """
+        pass
+
+    @abstractmethod
+    def unset_syscall_hook(self, hook: SyscallHook):
+        """Unsets a syscall hook.
+
+        Args:
+            hook (SyscallHook): The syscall hook to unset.
         """
         pass
 

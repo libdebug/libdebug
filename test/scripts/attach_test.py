@@ -21,7 +21,7 @@ class AttachTest(unittest.TestCase):
     def test_attach(self):
         r = process("binaries/attach_test")
 
-        d = debugger("binaries/attach_test")
+        d = debugger()
         d.attach(r.pid)
         bp = d.breakpoint("printName", hardware=True)
         d.cont()

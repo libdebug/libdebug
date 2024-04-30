@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2023-2024 Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -21,6 +21,7 @@ from libdebug.cffi import _ptrace_cffi
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_map import MemoryMap
 from libdebug.data.register_holder import RegisterHolder
+from libdebug.data.syscall_hook import SyscallHook
 from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
@@ -195,6 +196,13 @@ class PtraceInterface(DebuggingInterface):
             else:
                 self.unset_breakpoint(bp, delete=False)
 
+        for hook in self.context.syscall_hooks.values():
+            if hook.enabled:
+                self._global_state.syscall_hooks_enabled = True
+                break
+        else:
+            self._global_state.syscall_hooks_enabled = False
+
         result = self.lib_trace.cont_all_and_set_bps(
             self._global_state, self.process_id
         )
@@ -231,6 +239,55 @@ class PtraceInterface(DebuggingInterface):
         if result == -1:
             errno_val = self.ffi.errno
             raise OSError(errno_val, errno.errorcode[errno_val])
+        
+    def finish(self, thread: ThreadContext, exact: bool):
+        """Executes instructions of the specified thread until the current function returns.
+
+        Args:
+            thread (ThreadContext): The thread to step.
+            exact (bool): If True, the command is implemented as a series of `step` commands.
+        """
+        
+        if exact:
+
+            result = self.lib_trace.exact_finish(
+                self._global_state, thread.thread_id
+            )
+            
+            if result == -1:
+                errno_val = self.ffi.errno
+                raise OSError(errno_val, errno.errorcode[errno_val])
+        else:
+            # Breakpoint to return address
+            last_saved_instruction_pointer = thread.current_return_address()
+
+            # If a breakpoint already exists at the return address, we don't need to set a new one
+            found = False
+            ip_breakpoint = None
+            
+            for bp in self.context.breakpoints.values():
+                if bp.address == last_saved_instruction_pointer:
+                    found = True
+                    ip_breakpoint = bp
+                    break
+
+            if not found:
+                # Check if we have enough hardware breakpoints available
+                # Otherwise we use a software breakpoint
+                install_hw_bp = self.hardware_bp_helpers[thread.thread_id].available_breakpoints() > 0
+
+                ip_breakpoint = Breakpoint(last_saved_instruction_pointer, hardware=install_hw_bp)
+                self.set_breakpoint(ip_breakpoint)
+            else:
+                if not ip_breakpoint.enabled:
+                    self._enable_breakpoint(ip_breakpoint)
+
+            self.cont()
+            self.wait()
+
+            # Remove the breakpoint if it was set by us
+            if not found:
+                self.unset_breakpoint(ip_breakpoint)
 
     def _setup_pipe(self):
         """
@@ -309,9 +366,17 @@ class PtraceInterface(DebuggingInterface):
 
     def migrate_from_gdb(self):
         """Migrates the current process from GDB."""
+        self.lib_trace.ptrace_reattach_from_gdb(self._global_state, self.process_id)
+
         invalidate_process_cache()
         self.status_handler.check_for_new_threads(self.process_id)
-        self.lib_trace.ptrace_reattach_from_gdb(self._global_state, self.process_id)
+
+        # We have to reinstall any hardware breakpoint
+        for bp in self.context.breakpoints.values():
+            if bp.hardware and bp.enabled:
+                for helper in self.hardware_bp_helpers.values():
+                    helper.remove_breakpoint(bp)
+                    helper.install_breakpoint(bp)
 
     def register_new_thread(self, new_thread_id: int):
         """Registers a new thread."""
@@ -416,6 +481,22 @@ class PtraceInterface(DebuggingInterface):
 
         if delete:
             self.context.remove_breakpoint(breakpoint)
+
+    def set_syscall_hook(self, hook: SyscallHook):
+        """Sets a syscall hook.
+
+        Args:
+            hook (SyscallHook): The syscall hook to set.
+        """
+        self.context.insert_new_syscall_hook(hook)
+
+    def unset_syscall_hook(self, hook: SyscallHook):
+        """Unsets a syscall hook.
+
+        Args:
+            hook (SyscallHook): The syscall hook to unset.
+        """
+        self.context.remove_syscall_hook(hook)
 
     def peek_memory(self, address: int) -> int:
         """Reads the memory at the specified address."""

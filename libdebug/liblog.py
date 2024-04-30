@@ -5,14 +5,7 @@
 #
 
 import logging
-
-
-class LogColors:
-    RED = "\033[91m"
-    BLUE = "\033[94m"
-    GREEN = "\033[92m"
-    ORANGE = "\033[93m"
-    RESET = "\033[0m"
+from libdebug.utils.print_style import PrintStyle
 
 
 class LibLog:
@@ -78,7 +71,7 @@ class LibLog:
             **kwargs: keyword arguments to pass to the logger.
         """
 
-        header = f"[{LogColors.RED}DEBUGGER{LogColors.RESET}]"
+        header = f"[{PrintStyle.RED}DEBUGGER{PrintStyle.DEFAULT_COLOR}]"
         self.debugger_logger.debug(f"{header} {message}", *args, **kwargs)
 
     def pipe(self, message: str, *args, **kwargs):
@@ -90,7 +83,7 @@ class LibLog:
             **kwargs: keyword arguments to pass to the logger.
         """
 
-        header = f"[{LogColors.BLUE}PIPE{LogColors.RESET}]"
+        header = f"[{PrintStyle.BLUE}PIPE{PrintStyle.DEFAULT_COLOR}]"
         self.pipe_logger.debug(f"{header} {message}", *args, **kwargs)
 
     def info(self, message: str, *args, **kwargs):
@@ -102,9 +95,9 @@ class LibLog:
             **kwargs: keyword arguments to pass to the logger.
         """
 
-        header = f"[{LogColors.GREEN}INFO{LogColors.RESET}]"
+        header = f"[{PrintStyle.GREEN}INFO{PrintStyle.DEFAULT_COLOR}]"
         self.general_logger.info(f"{header} {message}", *args, **kwargs)
-    
+
     def warning(self, message: str, *args, **kwargs):
         """Log a warning message to the general logger.
 
@@ -114,8 +107,20 @@ class LibLog:
             **kwargs: keyword arguments to pass to the logger.
         """
 
-        header = f"[{LogColors.ORANGE}WARNING{LogColors.RESET}]"
+        header = f"[{PrintStyle.BRIGHT_YELLOW}WARNING{PrintStyle.DEFAULT_COLOR}]"
         self.general_logger.warning(f"{header} {message}", *args, **kwargs)
+
+    def error(self, message: str, *args, **kwargs):
+        """Log an error message to the general logger.
+
+        Args:
+            message (str): the message to log.
+            *args: positional arguments to pass to the logger.
+            **kwargs: keyword arguments to pass to the logger.
+        """
+
+        header = f"[{PrintStyle.RED}ERROR{PrintStyle.DEFAULT_COLOR}]"
+        self.general_logger.error(f"{header} {message}", *args, **kwargs)
 
 
 # Create the logger instance

@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -15,6 +15,7 @@ from weakref import WeakKeyDictionary
 
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
+from libdebug.data.syscall_hook import SyscallHook
 from libdebug.utils.debugging_utils import (
     normalize_and_validate_address,
     resolve_symbol_in_maps,
@@ -42,6 +43,9 @@ class DebuggingContext:
     env: dict[str, str] | None
     """The environment variables of the debugged process."""
 
+    escape_antidebug: bool
+    """A flag that indicates if the debugger should escape anti-debugging techniques."""
+
     autoreach_entrypoint: bool
     """A flag that indicates if the debugger should automatically reach the entry point of the debugged process."""
 
@@ -51,6 +55,16 @@ class DebuggingContext:
     _breakpoints: dict[int, Breakpoint]
     """A dictionary of all the breakpoints set on the process.
     Key: the address of the breakpoint."""
+
+    _syscall_hooks: dict[int, SyscallHook]
+    """A dictionary of all the syscall hooks set on the process.
+    Key: the syscall number."""
+
+    _syscalls_to_pprint: list[int] | None = None
+    """The syscalls to pretty print."""
+
+    _syscalls_to_not_pprint: list[int] | None = None
+    """The syscalls to not pretty print."""
 
     _threads: list[ThreadContext]
     """A list of all the threads of the debugged process."""
@@ -70,6 +84,9 @@ class DebuggingContext:
     memory: MemoryView
     """The memory view of the debugged process."""
 
+    _pprint_syscalls: bool
+    """A flag that indicates if the debugger should pretty print syscalls."""
+
     _threaded_memory: MemoryView
     """The memory view of the debugged process, used for operations in the background thread."""
 
@@ -81,8 +98,11 @@ class DebuggingContext:
         self.autoreach_entrypoint = True
         self.argv = []
         self.env = {}
+        self.escape_antidebug = False
         self._breakpoints = {}
+        self._syscall_hooks = {}
         self._threads = []
+        self._pprint_syscalls = False
 
         self.clear()
 
@@ -91,6 +111,7 @@ class DebuggingContext:
 
         # These must be reinitialized on every call to "run"
         self._breakpoints.clear()
+        self._syscall_hooks.clear()
         self._threads.clear()
         self.pipe_manager = None
         self._is_running = False
@@ -105,6 +126,16 @@ class DebuggingContext:
         """
 
         return self._breakpoints
+
+    @property
+    def syscall_hooks(self) -> dict[int, SyscallHook]:
+        """Get the syscall hooks dictionary.
+
+        Returns:
+            dict[int, SyscallHook]: the syscall hooks dictionary.
+        """
+
+        return self._syscall_hooks
 
     def insert_new_breakpoint(self, breakpoint: Breakpoint):
         """Insert a new breakpoint in the context.
@@ -123,6 +154,24 @@ class DebuggingContext:
         """
 
         del self._breakpoints[breakpoint.address]
+
+    def insert_new_syscall_hook(self, syscall_hook: SyscallHook):
+        """Insert a new syscall hook in the context.
+
+        Args:
+            syscall_hook (SyscallHook): the syscall hook to insert.
+        """
+
+        self._syscall_hooks[syscall_hook.syscall_number] = syscall_hook
+
+    def remove_syscall_hook(self, syscall_hook: SyscallHook):
+        """Remove a syscall hook from the context.
+
+        Args:
+            syscall_hook (SyscallHook): the syscall hook to remove.
+        """
+
+        del self._syscall_hooks[syscall_hook.syscall_number]
 
     @property
     def threads(self) -> dict[int, "ThreadContext"]:
@@ -198,6 +247,7 @@ class DebuggingContext:
         """
 
         return not self._threads
+
 
     def resolve_address(self, address: int) -> int:
         """Normalizes and validates the specified address.
