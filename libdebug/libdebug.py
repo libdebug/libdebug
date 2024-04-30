@@ -509,6 +509,12 @@ class _InternalDebugger:
                 "Cannot hook SIGKILL (9) as it cannot be caught or ignored. This is a kernel restriction."
             )
 
+        if signal_number in self.context.signal_hooks:
+            liblog.warning(
+                f"Signal {resolve_signal_name(signal_number)} ({signal_number}) is already hooked. Overriding it."
+            )
+            self.unhook_signal(self.context.signal_hooks[signal_number])
+
         if not isinstance(hook_hijack, bool):
             raise ValueError("hook_hijack must be a boolean")
 
@@ -555,6 +561,44 @@ class _InternalDebugger:
             response = self._polling_thread_response_queue.get()
             if response is not None:
                 raise response
+
+    def hijack_signal(
+        self,
+        original_signal: int | str,
+        new_signal: int | str,
+        hook_hijack: bool = True,
+    ):
+        """
+        Hijacks a signal in the target process.
+
+        Args:
+            original_signal (int | str): The signal to hijack.
+            new_signal (int | str): The signal to replace the original signal with.
+            hook_hijack (bool, optional): Whether to execute the hook/hijack of the new signal after the hijack or not. Defaults to True.
+        """
+
+        self._ensure_process_stopped()
+
+        if isinstance(original_signal, str):
+            original_signal_number = resolve_signal_number(original_signal)
+        else:
+            original_signal_number = original_signal
+
+        if isinstance(new_signal, str):
+            new_signal_number = resolve_signal_number(new_signal)
+        else:
+            new_signal_number = new_signal
+
+        if original_signal_number == new_signal_number:
+            raise ValueError(
+                "The original signal and the new signal must be different during hijacking."
+            )
+
+        def callback(thread: ThreadContext, _: int):
+            """The callback to execute when the signal is received."""
+            thread.signal_number = new_signal_number
+
+        return self.hook_signal(original_signal_number, callback, hook_hijack)
 
     def _enable_pretty_print(
         self,
@@ -679,6 +723,9 @@ class _InternalDebugger:
             syscall_number = resolve_syscall_number(syscall)
         else:
             syscall_number = syscall
+
+        if not isinstance(hook_hijack, bool):
+            raise ValueError("hook_hijack must be a boolean")
 
         # Check if the syscall is already hooked (by the user or by the pretty print hook)
         if syscall_number in self.context.syscall_hooks:
@@ -1253,7 +1300,9 @@ class _InternalDebugger:
                     break
                 case ResumeStatus.UNDECIDED:
                     if self.context.force_continue:
-                        liblog.warning("Stop due to unhandled signal. Trying to continue.")
+                        liblog.warning(
+                            "Stop due to unhandled signal. Trying to continue."
+                        )
                         self.interface.cont()
                     else:
                         liblog.warning("Stop due to unhandled signal. Hanging.")
@@ -1310,7 +1359,7 @@ def debugger(
         continue_to_binary_entrypoint (bool, optional): Whether to automatically continue to the binary entrypoint. Defaults to True.
         auto_interrupt_on_command (bool, optional): Whether to automatically interrupt the process when a command is issued. Defaults to False.
         force_continue (bool, optional): Whether to force the process to continue after an unhandled signal is received. Defaults to True.
-        
+
     Returns:
         _InternalDebugger: The `_InternalDebugger` object.
     """
