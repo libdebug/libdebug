@@ -272,8 +272,8 @@ class PtraceStatusHandler:
                     if hook.hook_hijack:
                         if new_signal_number in self.context.signal_hooks:
                             hijack_hook = self.context.signal_hooks[new_signal_number]
-                            if new_signal_number not in hijack_hook._hijacked_set:
-                                hijack_hook._hijacked_set.add(new_signal_number)
+                            if new_signal_number not in hijacked_set:
+                                hijacked_set.add(new_signal_number)
                             else:
                                 # The signal has already been hijacked in the current chain
                                 raise RuntimeError(
