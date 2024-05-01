@@ -8,12 +8,14 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/types.h>
+#include <pthread.h>
 
 void signal_handler(int sig) {
+    
     printf("Received signal %d\n", sig);
 }
 
-int main() {
+void do_stuf() {
     // Set up signal handlers
     signal(SIGUSR1, signal_handler);
     signal(SIGTERM, signal_handler);
@@ -42,7 +44,7 @@ int main() {
     raise(SIGUSR1);
 
     // Send SIGTERM to self
-    raise(SIGTERM); 
+    raise(SIGTERM);  
 
     // Send SIGINT to self
     raise(SIGINT);
@@ -61,7 +63,23 @@ int main() {
     // Send SIGPIPE to self
     raise(SIGPIPE);
 
+    // Receive an input for synchronization
+    char input[100];
+    scanf("%s", input);
+
     // Normal program termination after handling signals
     printf("Exiting normally.\n");
-    exit(0);
+}
+
+int main()
+{
+    pthread_t thread_1, thread_2;
+    
+    pthread_create(&thread_1, NULL, (void *)do_stuf, NULL);
+    pthread_create(&thread_2, NULL, (void *)do_stuf, NULL);
+
+    pthread_join(thread_1, NULL);
+    pthread_join(thread_2, NULL);
+    
+    return 0;
 }

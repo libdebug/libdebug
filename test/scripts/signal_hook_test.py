@@ -6,8 +6,6 @@
 
 import io
 import logging
-import os
-import sys
 import unittest
 
 from libdebug import debugger
@@ -214,7 +212,7 @@ class SignalHookTest(unittest.TestCase):
         hook4 = d.hook_signal("SIGQUIT", callback=hook_SIGQUIT)
         hook5 = d.hook_signal("SIGPIPE", callback=hook_SIGPIPE)
 
-        bp = d.breakpoint(0x1312)
+        bp = d.breakpoint(0x12C4)
 
         d.cont()
 
@@ -303,7 +301,7 @@ class SignalHookTest(unittest.TestCase):
         hook4 = d.hook_signal("SIGQUIT", callback=hook_SIGQUIT)
         hook5 = d.hook_signal("SIGPIPE", callback=hook_SIGPIPE)
 
-        bp = d.breakpoint(0x1312)
+        bp = d.breakpoint(0x12C4)
 
         d.cont()
 
@@ -327,7 +325,7 @@ class SignalHookTest(unittest.TestCase):
 
         # If not passed, the process will not receive any signal and not print any message
         exiting = r.recvline()
-        self.assertRaises(TimeoutError, r.recvline, timeout=1)
+        self.assertRaises(RuntimeError, r.recvline, timeout=1)
 
         d.kill()
 
@@ -394,7 +392,7 @@ class SignalHookTest(unittest.TestCase):
         hook4 = d.hook_signal("SIGQUIT", callback=hook_SIGQUIT)
         hook5 = d.hook_signal("SIGPIPE", callback=hook_SIGPIPE)
 
-        bp = d.breakpoint(0x1312)
+        bp = d.breakpoint(0x12C4)
 
         d.cont()
 
@@ -420,7 +418,7 @@ class SignalHookTest(unittest.TestCase):
 
         # If not passed, the process will not receive any signal and not print any message
         exiting = r.recvline()
-        self.assertRaises(TimeoutError, r.recvline, timeout=1)
+        self.assertRaises(RuntimeError, r.recvline, timeout=1)
 
         d.kill()
 
@@ -460,7 +458,7 @@ class SignalHookTest(unittest.TestCase):
         self.assertEqual(exiting, b"Exiting normally.")
 
         # If not passed, the process will not receive any signal and not print any message
-        self.assertRaises(TimeoutError, r.recvline, timeout=1)
+        self.assertRaises(RuntimeError, r.recvline, timeout=1)
 
         d.kill()
 
@@ -500,7 +498,7 @@ class SignalHookTest(unittest.TestCase):
         self.assertEqual(exiting, b"Exiting normally.")
 
         # If not passed, the process will not receive any signal and not print any message
-        self.assertRaises(TimeoutError, r.recvline, timeout=1)
+        self.assertRaises(RuntimeError, r.recvline, timeout=1)
 
         d.kill()
 
@@ -923,7 +921,7 @@ class SignalHookTest(unittest.TestCase):
         hook4 = d.hijack_signal("SIGQUIT", "SIGTERM")
         hook5 = d.hijack_signal("SIGPIPE", "SIGTERM")
 
-        bp = d.breakpoint(0x1312)
+        bp = d.breakpoint(0x12C4)
 
         d.cont()
 
@@ -988,7 +986,7 @@ class SignalHookTest(unittest.TestCase):
 
         hook1 = d.hook_signal("SIGPIPE", callback=hook_SIGPIPE_first)
 
-        bp = d.breakpoint(0x1312)
+        bp = d.breakpoint(0x12C4)
 
         d.cont()
 
@@ -1044,7 +1042,7 @@ class SignalHookTest(unittest.TestCase):
 
         hook1 = d.hijack_signal("SIGPIPE", 15)
 
-        bp = d.breakpoint(0x1312)
+        bp = d.breakpoint(0x12C4)
 
         d.cont()
 
@@ -1104,7 +1102,7 @@ class SignalHookTest(unittest.TestCase):
 
         hook1 = d.hijack_signal("SIGPIPE", 15)
 
-        bp = d.breakpoint(0x1312)
+        bp = d.breakpoint(0x12C4)
 
         d.cont()
 
