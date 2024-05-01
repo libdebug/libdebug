@@ -38,6 +38,13 @@ from libdebug.utils.syscall_utils import (
     resolve_syscall_name,
     resolve_syscall_number,
 )
+from libdebug.utils.signal_utils import (
+    resolve_signal_number,
+    resolve_signal_name,
+    get_all_signal_numbers,
+)
+from libdebug.data.signal_hook import SignalHook
+from libdebug.state.resume_context import ResumeStatus
 
 THREAD_TERMINATE = -1
 GDB_GOBACK_LOCATION = str((Path(__file__).parent / "utils" / "gdb.py").resolve())
@@ -472,6 +479,127 @@ class _InternalDebugger:
             callback=callback,
         )
 
+    def hook_signal(
+        self,
+        signal: int | str,
+        callback: None | Callable[[ThreadContext, int], None] = None,
+        hook_hijack: bool = True,
+    ) -> SignalHook:
+        """Hooks a signal in the target process.
+
+        Args:
+            signal (int | str): The signal to hook.
+            callback (Callable[[ThreadContext, int], None], optional): A callback to be called when the signal is received. Defaults to None.
+            hook_hijack (bool, optional): Whether to execute the hook/hijack of the new signal after an hijack or not. Defaults to False.
+        """
+        self._ensure_process_stopped()
+
+        if callback is None:
+            raise ValueError("A callback must be specified.")
+
+        if isinstance(signal, str):
+            signal_number = resolve_signal_number(signal)
+        elif isinstance(signal, int):
+            signal_number = signal
+        else:
+            raise ValueError("signal must be an int or a str")
+
+        if signal_number == 9:
+            raise ValueError(
+                "Cannot hook SIGKILL (9) as it cannot be caught or ignored. This is a kernel restriction."
+            )
+
+        if signal_number in self.context.signal_hooks:
+            liblog.warning(
+                f"Signal {resolve_signal_name(signal_number)} ({signal_number}) is already hooked. Overriding it."
+            )
+            self.unhook_signal(self.context.signal_hooks[signal_number])
+
+        if not isinstance(hook_hijack, bool):
+            raise ValueError("hook_hijack must be a boolean")
+
+        hook = SignalHook(signal_number, callback, hook_hijack)
+
+        link_context(hook, self)
+
+        self._polling_thread_command_queue.put((self.__threaded_signal_hook, (hook,)))
+
+        # Wait for the background thread to signal "task done" before returning
+        # We don't want any asynchronous behaviour here
+        self._polling_thread_command_queue.join()
+
+        # Check for any exceptions raised by the background thread
+        if not self._polling_thread_response_queue.empty():
+            response = self._polling_thread_response_queue.get()
+            self._polling_thread_response_queue.task_done()
+            if response is not None:
+                raise response
+
+        return hook
+
+    def unhook_signal(self, hook: SignalHook):
+        """Unhooks a signal in the target process.
+
+        Args:
+            hook (SignalHook): The signal hook to unhook.
+        """
+        self._ensure_process_stopped()
+
+        if hook.signal_number not in self.context.signal_hooks:
+            raise ValueError(f"Signal {hook.signal_number} is not hooked.")
+
+        hook = self.context.signal_hooks[hook.signal_number]
+
+        self._polling_thread_command_queue.put((self.__threaded_signal_unhook, (hook,)))
+
+        # Wait for the background thread to signal "task done" before returning
+        # We don't want any asynchronous behaviour here
+        self._polling_thread_command_queue.join()
+
+        # Check for any exceptions raised by the background thread
+        if not self._polling_thread_response_queue.empty():
+            response = self._polling_thread_response_queue.get()
+            if response is not None:
+                raise response
+
+    def hijack_signal(
+        self,
+        original_signal: int | str,
+        new_signal: int | str,
+        hook_hijack: bool = True,
+    ):
+        """
+        Hijacks a signal in the target process.
+
+        Args:
+            original_signal (int | str): The signal to hijack.
+            new_signal (int | str): The signal to replace the original signal with.
+            hook_hijack (bool, optional): Whether to execute the hook/hijack of the new signal after the hijack or not. Defaults to True.
+        """
+
+        self._ensure_process_stopped()
+
+        if isinstance(original_signal, str):
+            original_signal_number = resolve_signal_number(original_signal)
+        else:
+            original_signal_number = original_signal
+
+        if isinstance(new_signal, str):
+            new_signal_number = resolve_signal_number(new_signal)
+        else:
+            new_signal_number = new_signal
+
+        if original_signal_number == new_signal_number:
+            raise ValueError(
+                "The original signal and the new signal must be different during hijacking."
+            )
+
+        def callback(thread: ThreadContext, _: int):
+            """The callback to execute when the signal is received."""
+            thread.signal_number = new_signal_number
+
+        return self.hook_signal(original_signal_number, callback, hook_hijack)
+
     def _enable_pretty_print(
         self,
     ) -> SyscallHook:
@@ -596,6 +724,9 @@ class _InternalDebugger:
             syscall_number = resolve_syscall_number(syscall)
         else:
             syscall_number = syscall
+
+        if not isinstance(hook_hijack, bool):
+            raise ValueError("hook_hijack must be a boolean")
 
         # Check if the syscall is already hooked (by the user or by the pretty print hook)
         if syscall_number in self.context.syscall_hooks:
@@ -847,6 +978,33 @@ class _InternalDebugger:
             )
         if self.context._pprint_syscalls:
             self._enable_pretty_print()
+
+    @property
+    def signal_to_pass(self):
+        """Get the signal to pass to the process.
+
+        Returns:
+            list[str]: The signals to pass.
+        """
+        return [resolve_signal_name(v) for v in self.context._signal_to_pass]
+
+    @signal_to_pass.setter
+    def signal_to_pass(self, signals: list[int] | list[str]):
+        """Set the signal to pass to the process.
+
+        Args:
+            value (list[int] | list[str]): The signals to pass.
+        """
+        if not isinstance(signals, list):
+            raise ValueError("signal_to_pass must be a list of integers or strings")
+        signals = [
+            v if isinstance(v, int) else resolve_signal_number(v) for v in signals
+        ]
+
+        if not set(signals).issubset(get_all_signal_numbers()):
+            raise ValueError("Invalid signal number.")
+
+        self.context._signal_to_pass = signals
 
     def migrate_to_gdb(self, open_in_new_process: bool = True):
         """Migrates the current debugging session to GDB."""
@@ -1141,9 +1299,19 @@ class _InternalDebugger:
         liblog.debugger(f"Hooking syscall {hook.syscall_number}.")
         self.interface.set_syscall_hook(hook)
 
+    def __threaded_signal_hook(self, hook: SignalHook):
+        liblog.debugger(
+            f"Hooking signal {resolve_signal_name(hook.signal_number)} ({hook.signal_number})."
+        )
+        self.interface.set_signal_hook(hook)
+
     def __threaded_syscall_unhook(self, hook: SyscallHook):
-        liblog.debugger(f"Hooking syscall {hook.syscall_number}.")
+        liblog.debugger(f"Unhooking syscall {hook.syscall_number}.")
         self.interface.unset_syscall_hook(hook)
+
+    def __threaded_signal_unhook(self, hook: SignalHook):
+        liblog.debugger(f"Unhooking syscall {hook.signal_number}.")
+        self.interface.unset_signal_hook(hook)
 
     def __threaded_wait(self):
         if self.context.argv:
@@ -1155,8 +1323,23 @@ class _InternalDebugger:
         else:
             liblog.debugger("Waiting for process %d to stop.", self.context.process_id)
 
-        while self.interface.wait():
-            self.interface.cont()
+        while True:
+            self.context._resume_context.resume = ResumeStatus.UNDECIDED
+            self.interface.wait()
+            match self.context._resume_context.resume:
+                case ResumeStatus.RESUME:
+                    self.interface.cont()
+                case ResumeStatus.NOT_RESUME:
+                    break
+                case ResumeStatus.UNDECIDED:
+                    if self.context.force_continue:
+                        liblog.warning(
+                            "Stop due to unhandled signal. Trying to continue."
+                        )
+                        self.interface.cont()
+                    else:
+                        liblog.warning("Stop due to unhandled signal. Hanging.")
+                        break
 
         self.context.set_stopped()
 
@@ -1206,6 +1389,7 @@ def debugger(
     escape_antidebug: bool = False,
     continue_to_binary_entrypoint: bool = True,
     auto_interrupt_on_command: bool = False,
+    force_continue: bool = True,
 ) -> _InternalDebugger:
     """This function is used to create a new `_InternalDebugger` object. It takes as input the location of the binary to debug and returns a `_InternalDebugger` object.
 
@@ -1215,6 +1399,7 @@ def debugger(
         env (dict[str, str], optional): The environment variables to use. Defaults to the same environment of the debugging script.
         continue_to_binary_entrypoint (bool, optional): Whether to automatically continue to the binary entrypoint. Defaults to True.
         auto_interrupt_on_command (bool, optional): Whether to automatically interrupt the process when a command is issued. Defaults to False.
+        force_continue (bool, optional): Whether to force the process to continue after an unhandled signal is received. Defaults to True.
 
     Returns:
         _InternalDebugger: The `_InternalDebugger` object.
@@ -1237,6 +1422,7 @@ def debugger(
     debugging_context.autoreach_entrypoint = continue_to_binary_entrypoint
     debugging_context.auto_interrupt_on_command = auto_interrupt_on_command
     debugging_context.escape_antidebug = escape_antidebug
+    debugging_context.force_continue = force_continue
 
     debugger._post_init_()
 

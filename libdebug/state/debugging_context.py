@@ -16,11 +16,13 @@ from weakref import WeakKeyDictionary
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
 from libdebug.data.syscall_hook import SyscallHook
+from libdebug.data.signal_hook import SignalHook
 from libdebug.utils.debugging_utils import (
     normalize_and_validate_address,
     resolve_symbol_in_maps,
 )
 from libdebug.utils.pipe_manager import PipeManager
+from libdebug.state.resume_context import ResumeContext
 
 if TYPE_CHECKING:
     from libdebug.interfaces.debugging_interface import DebuggingInterface
@@ -52,6 +54,9 @@ class DebuggingContext:
     auto_interrupt_on_command: bool
     """A flag that indicates if the debugger should automatically interrupt the debugged process when a command is issued."""
 
+    force_continue: bool
+    """A flag that indicates if the debugger should force the debugged process to continue after an unhandled signal is received."""
+
     _breakpoints: dict[int, Breakpoint]
     """A dictionary of all the breakpoints set on the process.
     Key: the address of the breakpoint."""
@@ -60,10 +65,17 @@ class DebuggingContext:
     """A dictionary of all the syscall hooks set on the process.
     Key: the syscall number."""
 
-    _syscalls_to_pprint: list[int] | None = None
+    _signal_hooks: dict[int, SignalHook]
+    """A dictionary of all the signal hooks set on the process.
+    Key: the signal number."""
+
+    _signal_to_pass: list[int]
+    """The signals to pass to the process."""
+
+    _syscalls_to_pprint: list[int] | None
     """The syscalls to pretty print."""
 
-    _syscalls_to_not_pprint: list[int] | None = None
+    _syscalls_to_not_pprint: list[int] | None
     """The syscalls to not pretty print."""
 
     _threads: list[ThreadContext]
@@ -90,6 +102,9 @@ class DebuggingContext:
     _threaded_memory: MemoryView
     """The memory view of the debugged process, used for operations in the background thread."""
 
+    _resume_context: ResumeContext
+    """Context that indicates if the debugger should resume the debugged process."""
+
     def __init__(self):
         """Initialize the context"""
 
@@ -101,9 +116,13 @@ class DebuggingContext:
         self.escape_antidebug = False
         self._breakpoints = {}
         self._syscall_hooks = {}
+        self._signal_hooks = {}
+        self._signal_to_pass = []
+        self._syscalls_to_pprint = None
+        self._syscalls_to_not_pprint = None
         self._threads = []
         self._pprint_syscalls = False
-
+        self._resume_context = ResumeContext()
         self.clear()
 
     def clear(self):
@@ -112,10 +131,15 @@ class DebuggingContext:
         # These must be reinitialized on every call to "run"
         self._breakpoints.clear()
         self._syscall_hooks.clear()
+        self._signal_hooks.clear()
         self._threads.clear()
         self.pipe_manager = None
         self._is_running = False
+        self._syscalls_to_pprint = None
+        self._syscalls_to_not_pprint = None
+        self._signal_to_pass.clear()
         self.process_id = 0
+        self._resume_context = ResumeContext()
 
     @property
     def breakpoints(self) -> dict[int, Breakpoint]:
@@ -136,6 +160,16 @@ class DebuggingContext:
         """
 
         return self._syscall_hooks
+
+    @property
+    def signal_hooks(self) -> dict[int, SignalHook]:
+        """Get the signal hooks dictionary.
+
+        Returns:
+            dict[int, SignalHook]: the signal hooks dictionary.
+        """
+
+        return self._signal_hooks
 
     def insert_new_breakpoint(self, breakpoint: Breakpoint):
         """Insert a new breakpoint in the context.
@@ -172,6 +206,24 @@ class DebuggingContext:
         """
 
         del self._syscall_hooks[syscall_hook.syscall_number]
+
+    def insert_new_signal_hook(self, signal_hook: SignalHook):
+        """Insert a new signal hook in the context.
+
+        Args:
+            signal_hook (SignalHook): the signal hook to insert.
+        """
+
+        self._signal_hooks[signal_hook.signal_number] = signal_hook
+
+    def remove_signal_hook(self, signal_hook: SignalHook):
+        """Remove a signal hook from the context.
+
+        Args:
+            signal_hook (SignalHook): the signal hook to remove.
+        """
+
+        del self._signal_hooks[signal_hook.signal_number]
 
     @property
     def threads(self) -> dict[int, "ThreadContext"]:
@@ -248,7 +300,6 @@ class DebuggingContext:
 
         return not self._threads
 
-
     def resolve_address(self, address: int) -> int:
         """Normalizes and validates the specified address.
 
@@ -278,6 +329,7 @@ class DebuggingContext:
 
     def interrupt(self):
         """Interrupt the debugged process."""
+        self._resume_context.force_interrupt = True
         os.kill(self.process_id, signal.SIGSTOP)
 
 
