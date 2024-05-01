@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import os
 from contextlib import contextmanager
+from functools import wraps
 from pathlib import Path
 from queue import Queue
 from subprocess import Popen
@@ -20,6 +21,7 @@ from libdebug.builtin.antidebug_syscall_hook import on_enter_ptrace, on_exit_ptr
 from libdebug.builtin.pretty_print_syscall_hook import pprint_on_enter, pprint_on_exit
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
+from libdebug.data.signal_hook import SignalHook
 from libdebug.data.syscall_hook import SyscallHook
 from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.interfaces.interface_helper import provide_debugging_interface
@@ -31,20 +33,19 @@ from libdebug.state.debugging_context import (
     link_context,
     provide_context,
 )
+from libdebug.state.resume_context import ResumeStatus
 from libdebug.state.thread_context import ThreadContext
 from libdebug.utils.libcontext import libcontext
+from libdebug.utils.signal_utils import (
+    get_all_signal_numbers,
+    resolve_signal_name,
+    resolve_signal_number,
+)
 from libdebug.utils.syscall_utils import (
     get_all_syscall_numbers,
     resolve_syscall_name,
     resolve_syscall_number,
 )
-from libdebug.utils.signal_utils import (
-    resolve_signal_number,
-    resolve_signal_name,
-    get_all_signal_numbers,
-)
-from libdebug.data.signal_hook import SignalHook
-from libdebug.state.resume_context import ResumeStatus
 
 THREAD_TERMINATE = -1
 GDB_GOBACK_LOCATION = str((Path(__file__).parent / "utils" / "gdb.py").resolve())
@@ -216,6 +217,26 @@ class _InternalDebugger:
             if response is not None:
                 raise response
 
+    def _threads_are_alive(self) -> bool:
+        """Checks if at least one thread is alive."""
+        return any(not thread.dead for thread in self.context.threads)
+
+    @staticmethod
+    def _control_flow_function(method):
+        """Decorator to perfom control flow checks before executing a method."""
+
+        @wraps(method)
+        def wrapper(self, *args, **kwargs):
+            # We have to ensure that the process is stopped before executing the method
+            self._ensure_process_stopped()
+
+            # We have to ensure that at least one thread is alive before executing the method
+            if not self._threads_are_alive():
+                raise RuntimeError("All threads are dead.")
+            return method(self, *args, **kwargs)
+
+        return wrapper
+
     def kill(self):
         """Kills the process."""
         try:
@@ -246,13 +267,13 @@ class _InternalDebugger:
         self.context.clear()
         self.interface.reset()
 
+    @_control_flow_function
     def cont(self, auto_wait: bool = True):
         """Continues the process.
 
         Args:
             auto_wait (bool, optional): Whether to automatically wait for the process to stop after continuing. Defaults to True.
         """
-        self._ensure_process_stopped()
 
         self._polling_thread_command_queue.put((self.__threaded_cont, ()))
 
@@ -317,13 +338,13 @@ class _InternalDebugger:
             if response is not None:
                 raise response
 
+    @_control_flow_function
     def step(self, thread: ThreadContext | None = None):
         """Executes a single instruction of the process.
 
         Args:
             thread (ThreadContext, optional): The thread to step. Defaults to None.
         """
-        self._ensure_process_stopped()
 
         if thread is None:
             # If no thread is specified, we use the first thread
@@ -343,6 +364,7 @@ class _InternalDebugger:
             if response is not None:
                 raise response
 
+    @_control_flow_function
     def step_until(
         self,
         position: int | str,
@@ -356,7 +378,6 @@ class _InternalDebugger:
             thread (ThreadContext, optional): The thread to step. Defaults to None.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
         """
-        self._ensure_process_stopped()
 
         if thread is None:
             # If no thread is specified, we use the first thread
@@ -1291,6 +1312,10 @@ class _InternalDebugger:
             liblog.debugger("Waiting for process %d to stop.", self.context.process_id)
 
         while True:
+            if not self._threads_are_alive():
+                # All threads are dead
+                liblog.debugger("All threads dead")
+                break
             self.context._resume_context.resume = ResumeStatus.UNDECIDED
             self.interface.wait()
             match self.context._resume_context.resume:
