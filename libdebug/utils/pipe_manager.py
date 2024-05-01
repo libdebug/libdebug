@@ -12,10 +12,6 @@ from typing import Tuple
 from libdebug.liblog import liblog
 
 
-class PipeFail(Exception):
-    pass
-
-
 class PipeManager:
     """Class for managing pipes of the child process"""
 
@@ -53,7 +49,7 @@ class PipeManager:
 
         Raises:
             ValueError: numb is negative.
-            PipeFail: no stdout pipe of the child process.
+            RuntimeError: no stdout pipe of the child process.
         """
 
         pipe_read: int
@@ -64,7 +60,7 @@ class PipeManager:
             pipe_read = self.stdout_read
 
         if not pipe_read:
-            raise PipeFail("No pipe of the child process")
+            raise RuntimeError("No pipe of the child process")
 
         # Buffer for the received data
         data_buffer = b""
@@ -91,7 +87,13 @@ class PipeManager:
                     # No data ready within the remaining timeout
                     break
 
-                data = os.read(pipe_read, numb)
+                try:
+                    data = os.read(pipe_read, numb)
+                except OSError:
+                    raise RuntimeError(
+                        "Broken pipe. Is the child process still running?"
+                    )
+
                 if not data:
                     # No more data available
                     break
@@ -162,10 +164,10 @@ class PipeManager:
             bytes: received data from the child process stdout.
 
         Raises:
-            PipeFail: no stdout pipe of the child process.
+            RuntimeError: no stdout pipe of the child process.
             TimeoutError: timeout reached.
         """
-        
+
         if isinstance(delims, str):
             liblog.warning("The delimiters are a string, converting to bytes")
             delims = delims.encode()
@@ -343,18 +345,18 @@ class PipeManager:
             int: number of bytes sent.
 
         Raises:
-            PipeFail: no stdin pipe of the child process.
+            RuntimeError: no stdin pipe of the child process.
         """
 
         if not self.stdin_write:
-            raise PipeFail("No stdin pipe of the child process")
+            raise RuntimeError("No stdin pipe of the child process")
 
         liblog.pipe(f"Sending {len(data)} bytes to the child process: {data!r}")
-        
+
         if isinstance(data, str):
             liblog.warning("The input data is a string, converting to bytes")
             data = data.encode()
-        
+
         return os.write(self.stdin_write, data)
 
     def sendline(self, data: bytes) -> int:
@@ -366,7 +368,7 @@ class PipeManager:
         Returns:
             int: number of bytes sent.
         """
-        
+
         if isinstance(data, str):
             liblog.warning("The input data is a string, converting to bytes")
             data = data.encode()
