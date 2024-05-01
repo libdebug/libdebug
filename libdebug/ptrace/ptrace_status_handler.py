@@ -31,6 +31,7 @@ class PtraceStatusHandler:
         self.context: "DebuggingContext" = provide_context(self)
         self.ptrace_interface: "DebuggingInterface" = self.context.debugging_interface
         self._threads_with_signals_to_deliver: list[int] = []
+        self._assume_race_sigstop: bool = True  # Assume the stop is due to a race condition with SIGSTOP sent by the debugger
 
     def _handle_clone(self, thread_id: int, results: list):
         # https://go.googlesource.com/debug/+/a09ead70f05c87ad67bd9a131ff8352cf39a6082/doc/ptrace-nptl.txt
@@ -73,7 +74,7 @@ class PtraceStatusHandler:
 
         if ip in enabled_breakpoints:
             # Hardware breakpoint hit
-            liblog.debugger("Hardware breakpoint hit at 0x%x", ip)
+            liblog.debugger("Hardware breakpoint hit at 0x%x" % ip)
             bp = self.context.breakpoints[ip]
         else:
             # If the trap was caused by a software breakpoint, we need to restore the original instruction
@@ -311,7 +312,6 @@ class PtraceStatusHandler:
         self, pid: int, signum: int, results: list, status: int
     ):
         """Internal handler for signals used by the debugger."""
-
         if signum == SYSCALL_SIGTRAP:
             # We hit a syscall
             liblog.debugger("Child thread %d stopped on syscall hook", pid)
@@ -361,10 +361,14 @@ class PtraceStatusHandler:
         if os.WIFSTOPPED(status):
             signum = os.WSTOPSIG(status)
 
+            if signum != signal.SIGSTOP:
+                self._assume_race_sigstop = False
+
             # Check if the debugger needs to handle the signal
             self._internal_signal_handler(pid, signum, results, status)
 
             thread = self.context.get_thread_by_id(pid)
+
             if thread is not None:
                 thread.signal_number = signum
 
@@ -390,12 +394,21 @@ class PtraceStatusHandler:
 
     def manage_change(self, result):
         """Manage the result of the waitpid and handle the changes."""
+
+        # Assume that the stop depends on SIGSTOP sent by the debugger
+        # This is a workaround for some race conditions that may happen
+        self._assume_race_sigstop = True
+
         for pid, status in result:
             if pid == -1:
                 # This is a spurious trap, we can ignore it
                 self.context._resume_context.resume = ResumeStatus.RESUME
             else:
                 self._handle_change(pid, status, result)
+
+        if self._assume_race_sigstop:
+            self.context._resume_context.resume = ResumeStatus.RESUME
+            return
 
         # Deliver the signals to the threads
         self.ptrace_interface.deliver_signal(self._threads_with_signals_to_deliver)
@@ -412,4 +425,4 @@ class PtraceStatusHandler:
         for tid in tids:
             if not self.context.get_thread_by_id(tid):
                 self.ptrace_interface.register_new_thread(tid)
-                print("Manually registered new thread %d", tid)
+                liblog.debugger("Manually registered new thread %d" % tid)
