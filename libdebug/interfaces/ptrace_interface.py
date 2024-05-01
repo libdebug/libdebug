@@ -189,7 +189,7 @@ class PtraceInterface(DebuggingInterface):
             bp._disabled_for_step = False
             if bp._changed:
                 changed.append(bp)
-                bp._changed
+                bp._changed = False
 
         for bp in changed:
             if bp.enabled:
