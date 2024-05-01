@@ -222,6 +222,8 @@ class PtraceInterface(DebuggingInterface):
             errno_val = self.ffi.errno
             raise OSError(errno_val, errno.errorcode[errno_val])
 
+        self.context._resume_context.is_a_step = True
+
     def step_until(self, thread: ThreadContext, address: int, max_steps: int):
         """Executes instructions of the specified thread until the specified address is reached.
 

@@ -105,7 +105,7 @@ ffibuilder.cdef(
 
     uint64_t ptrace_geteventmsg(int pid);
 
-    int singlestep(struct global_state *state, int tid);
+    long singlestep(struct global_state *state, int tid);
     int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps);
 
     int cont_all_and_set_bps(struct global_state *state, int pid);

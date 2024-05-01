@@ -232,17 +232,22 @@ uint64_t ptrace_geteventmsg(int pid)
     return data;
 }
 
-int singlestep(struct global_state *state, int tid)
+long singlestep(struct global_state *state, int tid)
 {
     // flush any register changes
     struct thread *t = state->t_HEAD;
+    int signal_to_deliver = 0;
     while (t != NULL) {
         if (ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs))
             perror("ptrace_setregs");
+        if (t->tid == tid) {
+            signal_to_deliver = t->signal_to_deliver;
+            t->signal_to_deliver = 0;
+        }
         t = t->next;
     }
 
-    return ptrace(PTRACE_SINGLESTEP, tid, NULL, NULL);
+    return ptrace(PTRACE_SINGLESTEP, tid, NULL, signal_to_deliver);
 }
 
 int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps)

@@ -52,7 +52,7 @@ class PtraceStatusHandler:
         if self.context.get_thread_by_id(thread_id):
             self.ptrace_interface.unregister_thread(thread_id)
 
-    def _handle_trap(self, thread_id: int) -> bool:
+    def _handle_breakpoints(self, thread_id: int) -> bool:
         thread = self.context.get_thread_by_id(thread_id)
 
         if not hasattr(thread, "instruction_pointer"):
@@ -328,7 +328,11 @@ class PtraceStatusHandler:
         elif signum == signal.SIGTRAP:
             # The trap decides if we hit a breakpoint. If so, it decides whether we should stop or
             # continue the execution and wait for the next trap
-            self._handle_trap(pid)
+            self._handle_breakpoints(pid)
+
+            if self.context._resume_context.is_a_step:
+                self.context._resume_context.resume = ResumeStatus.NOT_RESUME
+                self.context._resume_context.is_a_step = False
 
             event = status >> 8
             match event:

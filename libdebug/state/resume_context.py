@@ -28,6 +28,7 @@ class ResumeContext:
     def __init__(self):
         self._resume: ResumeStatus = ResumeStatus.UNDECIDED
         self.force_interrupt: bool = False
+        self.is_a_step: bool = False
 
     @property
     def resume(self):
