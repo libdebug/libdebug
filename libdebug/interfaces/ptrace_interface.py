@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2023-2024 Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -242,6 +242,55 @@ class PtraceInterface(DebuggingInterface):
         if result == -1:
             errno_val = self.ffi.errno
             raise OSError(errno_val, errno.errorcode[errno_val])
+        
+    def finish(self, thread: ThreadContext, exact: bool):
+        """Executes instructions of the specified thread until the current function returns.
+
+        Args:
+            thread (ThreadContext): The thread to step.
+            exact (bool): If True, the command is implemented as a series of `step` commands.
+        """
+        
+        if exact:
+
+            result = self.lib_trace.exact_finish(
+                self._global_state, thread.thread_id
+            )
+            
+            if result == -1:
+                errno_val = self.ffi.errno
+                raise OSError(errno_val, errno.errorcode[errno_val])
+        else:
+            # Breakpoint to return address
+            last_saved_instruction_pointer = thread.current_return_address()
+
+            # If a breakpoint already exists at the return address, we don't need to set a new one
+            found = False
+            ip_breakpoint = None
+            
+            for bp in self.context.breakpoints.values():
+                if bp.address == last_saved_instruction_pointer:
+                    found = True
+                    ip_breakpoint = bp
+                    break
+
+            if not found:
+                # Check if we have enough hardware breakpoints available
+                # Otherwise we use a software breakpoint
+                install_hw_bp = self.hardware_bp_helpers[thread.thread_id].available_breakpoints() > 0
+
+                ip_breakpoint = Breakpoint(last_saved_instruction_pointer, hardware=install_hw_bp)
+                self.set_breakpoint(ip_breakpoint)
+            else:
+                if not ip_breakpoint.enabled:
+                    self._enable_breakpoint(ip_breakpoint)
+
+            self.cont()
+            self.wait()
+
+            # Remove the breakpoint if it was set by us
+            if not found:
+                self.unset_breakpoint(ip_breakpoint)
 
     def _setup_pipe(self):
         """

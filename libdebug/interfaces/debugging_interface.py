@@ -95,6 +95,16 @@ class DebuggingInterface(ABC):
         pass
 
     @abstractmethod
+    def finish(self, thread: ThreadContext, exact: bool):
+        """Executes instructions of the specified thread until the current function returns.
+
+        Args:
+            thread (ThreadContext): The thread to step.
+            exact (bool): If True, the command is implemented as a series of `step` commands.
+        """
+        pass
+
+    @abstractmethod
     def maps(self) -> list[MemoryMap]:
         """Returns the memory maps of the process."""
         pass

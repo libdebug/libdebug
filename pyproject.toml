@@ -1,0 +1,63 @@
+[build-system]
+requires = [
+    "cffi>=1.15.1",
+    "setuptools>=61.0",
+    "wheel",
+]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "libdebug"
+authors = [
+    {name = "JinBlack"},
+    {name = "Io-no"},
+    {name = "MrIndeciso"},
+    {name = "Frank01001"},
+    {name = "MarcoDige"},
+]
+description = "A Python library for the debugging of binary executables."
+requires-python = ">= 3.10"
+license = {file = "LICENSE"}
+dynamic = ["version"]
+readme = {file = "README.md", content-type = "text/markdown"}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: C",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Topic :: Software Development :: Debuggers",
+    "Typing :: Typed",
+]
+keywords = ["libdebug", "debugger", "elf", "ptrace", "gdb", "debug", "ctf", "reverse-engineering", "reverse", "rev", "scriptable", "script"]
+dependencies = [
+    "capstone",
+    "cffi",
+    "psutil",
+    "pyelftools",
+    "requests",
+]
+
+
+[project.optional-dependencies]
+dev = [
+    "rich",
+]
+
+
+[project.urls]
+homepage = "https://pypi.org/project/libdebug/"
+repository = "https://github.com/libdebug/libdebug/"
+issues = "https://github.com/libdebug/libdebug/issues"
