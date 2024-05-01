@@ -58,7 +58,7 @@ class SignalMultithreadTest(unittest.TestCase):
         r.sendline(b"sync")
 
         # Receive the exit message
-        print(r.recvline(2))
+        r.recvline(2)
 
         d.kill()
 

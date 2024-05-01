@@ -31,6 +31,7 @@ from scripts.waiting_test import WaitingNcuts, WaitingTest
 from scripts.watchpoint_alias_test import WatchpointAliasTest
 from scripts.watchpoint_test import WatchpointTest
 from scripts.signal_hook_test import SignalHookTest
+from scripts.signals_multithread_test import SignalMultithreadTest
 
 
 def fast_suite():
@@ -79,7 +80,9 @@ def fast_suite():
     suite.addTest(AutoWaitingTest("test_jumpout_auto_waiting"))
     suite.addTest(AutoWaitingNcuts("test_ncuts"))
     suite.addTest(WatchpointTest("test_watchpoint"))
+    suite.addTest(WatchpointTest("test_watchpoint_callback"))
     suite.addTest(WatchpointAliasTest("test_watchpoint_alias"))
+    suite.addTest(WatchpointAliasTest("test_watchpoint_callback"))
     suite.addTest(SyscallHookTest("test_hooks"))
     suite.addTest(SyscallHookTest("test_hooks_with_pprint"))
     suite.addTest(SyscallHookTest("test_hook_disabling"))
@@ -128,6 +131,8 @@ def fast_suite():
     suite.addTest(SignalHookTest("test_override_hook"))
     suite.addTest(SignalHookTest("test_override_hijack"))
     suite.addTest(SignalHookTest("test_override_hybrid"))
+    suite.addTest(SignalMultithreadTest("test_signal_multithread_undet_hook"))
+    suite.addTest(SignalMultithreadTest("test_signal_multithread_undet_pass"))
     return suite
 
 
