@@ -45,7 +45,6 @@ class PtraceStatusHandler:
         # 4991 == (WIFSTOPPED && WSTOPSIG(status) == SIGSTOP)
         if (thread_id, 4991) not in results:
             os.waitpid(thread_id, 0)
-
         self.ptrace_interface.register_new_thread(thread_id)
 
     def _handle_exit(self, thread_id: int):
@@ -92,6 +91,14 @@ class PtraceStatusHandler:
                 # Link the breakpoint to the thread, so that we can step over it
                 bp._linked_thread_ids.append(thread_id)
 
+        # Manage watchpoints
+        if bp is None:
+            bp = self.ptrace_interface.hardware_bp_helpers[
+                thread_id
+            ].is_watchpoint_hit()
+            if bp is not None:
+                liblog.debugger("Watchpoint hit at 0x%x", bp.address)
+
         if bp:
             bp.hit_count += 1
 
@@ -102,9 +109,9 @@ class PtraceStatusHandler:
                 bp.callback(thread, bp)
                 thread._in_background_op = False
                 self.context._resume_context.resume = ResumeStatus.RESUME
-                return
-        # If the breakpoint has no callback, we need to stop the process despite the other signals
-        self.context._resume_context.resume = ResumeStatus.NOT_RESUME
+            else:
+                # If the breakpoint has no callback, we need to stop the process despite the other signals
+                self.context._resume_context.resume = ResumeStatus.NOT_RESUME
 
     def _manage_syscall_on_enter(
         self,
