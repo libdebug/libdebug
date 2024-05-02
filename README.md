@@ -441,6 +441,118 @@ wp = d.watchpoint(position=0x1234, condition='rw', length=8, callback=None)
 ```
 The function returns a `Breakpoint` object, which can be interacted with in the same manner as traditional breakpoints. Valid conditions for the breakpoint are `w`, `rw` and `x` (default is `w`). It is also possible to specify the length of the word being watched (default is 1 byte).
 
+## Signal Hooking
+libdebug supports the hooking of signals, that is, executing a callback when a specific signal directed at the child process is intercepted by the tracer.
+```python
+def hook_SIGUSR1(t, signal_number):
+    t.signal_number = 0x0
+    print("Ciao mamma, I'm hooking a signal")
+
+def hook_SIGINT(t, signal_number):
+    print("Ciao mamma, I'm hooking another signal")
+
+d = debugger("binary")
+
+d.run()
+
+hook1 = d.hook_signal(10, callback=hook_SIGUSR1)
+hook2 = d.hook_signal('SIGINT', callback=hook_SIGINT)
+
+d.cont()
+
+d.unhook_signal(hook1)
+[...]
+```
+As shown in the example above, libdebug supports both signal names and numeric values.
+
+Note: You cannot hook SIGSTOP, SIGTRAP, and SIGKILL. These signals are internally used either by ptrace or the debugger, or are enforced by the kernel to be passed directly to the child process without the possibility of interception. Thus, hooking them is not possible.
+
+Note: There can be at most one user-defined hook for each signal. \
+If a new hook is defined for a signal that is already hooked or hijacked, the new hook replaces the old one, and a warning is shown.
+
+## Signal Passing
+You can also decide which signals are forwarded to the child process during execution. By default, no signals are forwarded; instead, all are managed by the debugger.
+
+```python
+d = debugger("binary")
+
+r = d.run()
+
+d.signal_to_pass = [10, 15, 'SIGINT', 3, 13]
+
+d.cont()
+```
+
+You can also decide what libdebug should do when it encounters an unrecognized signal by using the `force_continue` flag of the debugger. This situation can occur with SIGTRAP signals not related to breakpoints, special signals not related to debugging operations and that are not explicitly hooked or passed to the process, and so on.
+libdebug already filters out as many spurious signals as possible that are raised due to the internal workings of ptrace.
+Regardless of the choice, a warning is displayed when an unmanaged signal is encountered.
+The default value is true, which means the debugger always tries to continue the execution.
+
+```python
+d = debugger("binary", force_continue=True)
+```
+
+## Signal Hijacking
+libdebug also provides a direct way to intercept a signal and modify it before sending it to the child process. In other words, it allows you to hijack a signal and change it to a different signal.
+
+The usual limitations on SIGTRAP, SIGSTOP, and SIGKILL still apply.
+
+```python
+d = debugger("binary")
+
+d.run()
+
+hook1 = d.hijack_signal("SIGQUIT", "SIGTERM")
+hook2 = d.hijack_signal("SIGINT", 10)
+
+d.cont()
+[...]
+```
+
+#### Signal Hijacking Loop Detection
+During execution, libdebug checks for loops in signal hijacking and raises an exception if infinite loops are detected. \
+For example, the following code
+```py
+from libdebug import debugger
+
+d = debugger("/usr/bin/ls")
+d.run()
+
+hook = d.hijack_signal("SIGPIPE", "SIGINT")
+hook = d.hijack_signal("SIGINT", "SIGPIPE")
+
+d.cont()
+[...]
+```
+raises an exception.
+
+#### Hook on hijack
+When a signal is hijacked by changing its signal number before execution, the user can choose whether to execute the hook installed on the newly raised signal, if one is available.
+
+For example, if we change the signal `SIGINT` with the signal `SIGPIPE`, and the `SIGPIPE` is also hooked or hijacked, `hook_hijack` allows us to choose whether to execute the hook/hijack installed on the `SIGPIPE` when the `SIGINT` becomes a `SIGPIPE`. This helps reduce loops during hijacking and behaviors that are difficult to track.
+
+The signal hijacking loop detection takes this choice into account.
+```py
+from libdebug import debugger
+
+def hook_SIGPIPE(d: ThreadContext, syscall_number: int):
+    print("entering write")
+
+d = debugger("/usr/bin/ls")
+d.run()
+
+d.hook_signal("SIGPIPE", callback=hook_SIGPIPE)
+
+"""We want to change the SIGINT in SIGPIPE but we do not want to execute hook_SIGPIPE after the signal number change"""
+d.hijack_signal("SIGINT", "SIGPIPE", hook_hijack=False)
+
+
+d.cont()
+[...]
+```
+The deafult value is True.
+
+
 ## Syscall Hooking
 libdebug supports hooking system calls in the debugged binary in the following way:
 ```python
@@ -531,9 +643,9 @@ raises the following execption
 ![alt text](media/syscall_hijacking_loop_detection.png)
 
 #### Hook on hijack
-After a syscall is hijacked, the user can choose whether to execute the hook or hijacking installed in the newly executed syscall, if any. \
+When a syscall is hijacked by changing its syscall number before execution, the user can choose whether to execute the hook installed on the newly executed syscall, if one is available.
 
-For example, if we hijack the syscall `read` with the syscall `write`, and the `write` is also hooked or hijacked, `hook_hijack` allows us to choose whether to execute the hook/hijack installed on the `write` when the read becomes a `write`. This helps reduce loops during hijacking and behaviors that are difficult to track
+For example, if we change the syscall `read` with the syscall `write`, and the `write` is also hooked or hijacked, `hook_hijack` allows us to choose whether to execute the hook/hijack installed on the `write` when the `read` becomes a `write`. This helps reduce loops during hijacking and behaviors that are difficult to track.
 
 The syscall hijacking loop detection takes this choice into account.
 ```py
@@ -555,7 +667,6 @@ d.cont()
 [...]
 ```
 The deafult value is True.
-
 
 ## Builtin Hooks
 libdebug provides some easy-to-use builtin hooks for syscalls.
