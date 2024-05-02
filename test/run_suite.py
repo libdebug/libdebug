@@ -31,7 +31,6 @@ from scripts.vmwhere1 import Vmwhere1
 from scripts.waiting_test import WaitingNcuts, WaitingTest
 from scripts.watchpoint_alias_test import WatchpointAliasTest
 from scripts.watchpoint_test import WatchpointTest
-from scripts.signal_hook_test import SignalHookTest
 
 
 def fast_suite():
@@ -120,25 +119,6 @@ def fast_suite():
     suite.addTest(
         PPrintSyscallsTest("test_pprint_which_syscalls_not_pprint_after_and_before")
     )
-    suite.addTest(SignalHookTest("test_signal_hooking"))
-    suite.addTest(SignalHookTest("test_signal_pass_to_process"))
-    suite.addTest(SignalHookTest("test_signal_unhooking"))
-    suite.addTest(SignalHookTest("test_signal_unpass"))
-    suite.addTest(SignalHookTest("test_signal_unhook_unpass"))
-    suite.addTest(SignalHookTest("test_force_continue_true"))
-    suite.addTest(SignalHookTest("test_force_continue_false"))
-    suite.addTest(SignalHookTest("test_hijack_signal_with_hooking"))
-    suite.addTest(SignalHookTest("test_hijack_signal_with_api"))
-    suite.addTest(SignalHookTest("test_hook_hijack_true_with_hook"))
-    suite.addTest(SignalHookTest("test_hook_hijack_true_with_api"))
-    suite.addTest(SignalHookTest("test_hook_hijack_false_with_hook"))
-    suite.addTest(SignalHookTest("test_hook_hijack_false_with_api"))
-    suite.addTest(SignalHookTest("test_hijack_signal_with_hooking_loop"))
-    suite.addTest(SignalHookTest("test_hijack_signal_with_api_loop"))
-    suite.addTest(SignalHookTest("test_signal_unhijacking"))
-    suite.addTest(SignalHookTest("test_override_hook"))
-    suite.addTest(SignalHookTest("test_override_hijack"))
-    suite.addTest(SignalHookTest("test_override_hybrid"))
     return suite
 
 

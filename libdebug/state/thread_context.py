@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2024 Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -27,9 +27,6 @@ class ThreadContext:
 
     instruction_pointer: int
     """The thread's instruction pointer."""
-    
-    signal_number: int = 0
-    """The signal to deliver to the thread."""
 
     _needs_register_poll: bool = True
     """Whether the registers need to be polled."""

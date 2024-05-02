@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2023-2024 Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -10,7 +10,6 @@ from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_map import MemoryMap
 from libdebug.data.register_holder import RegisterHolder
 from libdebug.data.syscall_hook import SyscallHook
-from libdebug.data.signal_hook import SignalHook
 from libdebug.state.debugging_context import provide_context
 from libdebug.state.thread_context import ThreadContext
 
@@ -149,24 +148,6 @@ class DebuggingInterface(ABC):
 
         Args:
             hook (SyscallHook): The syscall hook to unset.
-        """
-        pass
-    
-    @abstractmethod
-    def set_signal_hook(self, hook: SignalHook):
-        """Sets a signal hook.
-
-        Args:
-            hook (SignalHook): The signal hook to set.
-        """
-        pass
-
-    @abstractmethod
-    def unset_signal_hook(self, hook: SignalHook):
-        """Unsets a signal hook.
-
-        Args:
-            hook (SignalHook): The signal hook to unset.
         """
         pass
 

@@ -46,12 +46,3 @@ class PtraceHardwareBreakpointManager(ABC):
     def available_breakpoints(self) -> int:
         """Returns the number of available hardware breakpoint registers."""
         pass
-
-    @abstractmethod
-    def is_watchpoint_hit(self) -> Breakpoint | None:
-        """Checks if a watchpoint has been hit.
-
-        Returns:
-            Breakpoint | None: The watchpoint that has been hit, or None if no watchpoint has been hit.
-        """
-        pass
