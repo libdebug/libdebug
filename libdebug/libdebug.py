@@ -529,6 +529,14 @@ class _InternalDebugger:
             raise ValueError(
                 "Cannot hook SIGKILL (9) as it cannot be caught or ignored. This is a kernel restriction."
             )
+        elif signal_number == 19:
+            raise ValueError(
+                "Cannot hook SIGSTOP (19) as it is used by the debugger or ptrace for their internal operations."
+            )
+        elif signal_number == 5:
+            raise ValueError(
+                "Cannot hook SIGTRAP (5) as it is used by the debugger or ptrace for their internal operations."
+            )
 
         if signal_number in self.context.signal_hooks:
             liblog.warning(
