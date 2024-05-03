@@ -16,9 +16,12 @@ fi
 # Check if the system is Ubuntu
 if [ "$(uname -s)" = "Linux" ] && [ -f /etc/os-release ]; then
     if grep -q "^ID=ubuntu" /etc/os-release; then
-        cd /test/test
+        cd /test
+        source venv/bin/activate
+        cd test
         echo "Running Python3 tests..."
         python3 run_suite.py
+        deactivate
         exit 0
     fi
 fi

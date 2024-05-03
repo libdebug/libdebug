@@ -1,64 +1,83 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2024 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+from typing import TYPE_CHECKING, Tuple, Any
+from libdebug.utils.print_style import PrintStyle
 from libdebug.utils.syscall_utils import (
     resolve_syscall_name,
-    resolve_syscall_number,
     resolve_syscall_arguments,
-    get_all_syscall_numbers,
 )
-from libdebug.state.thread_context import ThreadContext
 
+if TYPE_CHECKING:
+    from libdebug.state.thread_context import ThreadContext
 
-def pretty_print_syscall(
-    d: ThreadContext, syscalls: list[str | int] = None, exclude: list[str | int] = None
-):
-    """Installs a syscall hook that will pretty print the syscall arguments and return value."""
+def pprint_on_enter(d: "ThreadContext", syscall_number: int, **kwargs: Any):
+    """Function that will be called when a syscall is entered in pretty print mode.
 
-    def on_enter_syscall(d, syscall_number):
-        syscall_name = resolve_syscall_name(syscall_number)
-        syscall_args = resolve_syscall_arguments(syscall_number)
+    Args:
+        d (ThreadContext): the thread context.
+        syscall_number (int): the syscall number.
+        **kwargs (bool): the keyword arguments.
+    """
+    syscall_name = resolve_syscall_name(syscall_number)
+    syscall_args = resolve_syscall_arguments(syscall_number)
 
-        values = [
-            d.syscall_arg0,
-            d.syscall_arg1,
-            d.syscall_arg2,
-            d.syscall_arg3,
-            d.syscall_arg4,
-            d.syscall_arg5,
-        ]
+    values = [
+        d.syscall_arg0,
+        d.syscall_arg1,
+        d.syscall_arg2,
+        d.syscall_arg3,
+        d.syscall_arg4,
+        d.syscall_arg5,
+    ]
 
+    if "old_args" in kwargs:
+        old_args = kwargs["old_args"]
         entries = [
-            f"{arg} = 0x{value:x}"
+            f"{arg} = {PrintStyle.BRIGHT_YELLOW}0x{value:x}{PrintStyle.DEFAULT_COLOR}"
+            if old_value == value
+            else f"{arg} = {PrintStyle.BRIGHT_YELLOW}0x{old_value:x} -> {PrintStyle.BRIGHT_YELLOW}0x{value:x}{PrintStyle.DEFAULT_COLOR}"
+            for arg, value, old_value in zip(syscall_args, values, old_args)
+            if arg is not None
+        ]
+    else:
+        entries = [
+            f"{arg} = {PrintStyle.BRIGHT_YELLOW}0x{value:x}{PrintStyle.DEFAULT_COLOR}"
             for arg, value in zip(syscall_args, values)
             if arg is not None
         ]
 
-        print(f"{syscall_name}({', '.join(entries)}) = ", end="")
+    hijacked = kwargs.get("hijacked", False)
+    user_hooked = kwargs.get("user_hooked", False)
+    if hijacked:
+        print(
+            f"{PrintStyle.RED}(user hijacked) {PrintStyle.STRIKE}{PrintStyle.BLUE}{syscall_name}{PrintStyle.DEFAULT_COLOR}({', '.join(entries)}){PrintStyle.RESET}"
+        )
+    elif user_hooked:
+        print(
+            f"{PrintStyle.RED}(user hooked) {PrintStyle.BLUE}{syscall_name}{PrintStyle.DEFAULT_COLOR}({', '.join(entries)}) = ",
+            end="",
+        )
+    else:
+        print(
+            f"{PrintStyle.BLUE}{syscall_name}{PrintStyle.DEFAULT_COLOR}({', '.join(entries)}) = ",
+            end="",
+        )
 
-    def on_exit_syscall(d, _):
-        print(f"0x{d.syscall_return:x}")
 
-    if syscalls is None:
-        syscalls = get_all_syscall_numbers()
+def pprint_on_exit(syscall_return: int | Tuple[int, int]):
+    """Function that will be called when a syscall is exited in pretty print mode.
 
-    syscall_numbers = []
+    Args:
+        syscall_return (int | list[int]): the syscall return value.
+    """
 
-    for syscall in syscalls:
-        if isinstance(syscall, str):
-            syscall_numbers.append(resolve_syscall_number(syscall))
-        else:
-            syscall_numbers.append(syscall)
-
-    if exclude is not None:
-        for excluded in exclude:
-            if isinstance(excluded, str):
-                excluded = resolve_syscall_number(excluded)
-
-            syscall_numbers.remove(excluded)
-
-    for syscall_number in syscall_numbers:
-        d.hook_syscall(syscall_number, on_enter_syscall, on_exit_syscall)
+    if isinstance(syscall_return, Tuple):
+        print(
+            f"{PrintStyle.YELLOW}{PrintStyle.STRIKE}0x{syscall_return[0]:x}{PrintStyle.RESET} {PrintStyle.YELLOW}0x{syscall_return[1]:x}{PrintStyle.RESET}"
+        )
+    else:
+        print(f"{PrintStyle.YELLOW}0x{syscall_return:x}{PrintStyle.RESET}")

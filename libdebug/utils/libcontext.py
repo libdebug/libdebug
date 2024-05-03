@@ -82,13 +82,13 @@ class LibContext:
     @sym_lvl.setter
     def sym_lvl(self, value: int):
         """
-        Property setter for sym_lvl, ensuring it's between 0 and 4.
+        Property setter for sym_lvl, ensuring it's between 0 and 5.
         """
 
         if 0 <= value <= 5:
             self._sym_lvl = value
         else:
-            raise ValueError("sym_lvl must be between 0 and 4")
+            raise ValueError("sym_lvl must be between 0 and 5")
 
     @property
     def debugger_logger(self) -> str:
