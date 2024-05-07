@@ -246,7 +246,6 @@ class _InternalDebugger:
 
         self._polling_thread_command_queue.put((self.__threaded_kill, ()))
 
-        self.memory = None
         self.instanced = None
 
         if self.context.pipe_manager is not None:
