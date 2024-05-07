@@ -89,6 +89,30 @@ class MemoryTest(unittest.TestCase):
         self.assertTrue(d.memory[address : address + 256] == prev)
 
         d.kill()
+    
+    def test_memory_multiple_runs(self):
+        d = self.d
+        
+        for _ in range(10):
+            d.run()
+
+            bp = d.breakpoint("change_memory")
+
+            d.cont()
+
+            assert d.rip == bp.address
+
+            address = d.rdi
+            prev = bytes(range(256))
+
+            self.assertTrue(d.memory[address, 256] == prev)
+
+            d.memory[address + 128 :] = b"abcd123456"
+            prev = prev[:128] + b"abcd123456" + prev[138:]
+
+            self.assertTrue(d.memory[address : address + 256] == prev)
+
+            d.kill()
 
 
 if __name__ == "__main__":
