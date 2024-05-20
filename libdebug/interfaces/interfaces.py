@@ -7,5 +7,6 @@
 from enum import Enum
 
 
-class AvailableInterfaces(Enum):
+class BackendInterface(Enum):
     PTRACE = 1
+    QEMU_STUB = 3

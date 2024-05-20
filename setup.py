@@ -72,7 +72,14 @@ setup(
     author="JinBlack",
     description="A library to debug binary programs",
     packages=find_packages(include=["libdebug", "libdebug.*"]),
-    install_requires=["capstone", "pyelftools", "cffi", "requests", "psutil"],
+    install_requires=[
+        "capstone",
+        "pyelftools",
+        "cffi",
+        "requests",
+        "psutil",
+        "lxml",
+    ],
     setup_requires=["cffi"],
     cffi_modules=[
         "./libdebug/cffi/ptrace_cffi_build.py:ffibuilder",

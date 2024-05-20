@@ -138,6 +138,8 @@ class BreakpointTest(unittest.TestCase):
 
             d.cont()
 
+        d.kill()
+
         self.assertEqual(bp2.hit_count, 1)
 
     def test_bp_disable_reenable(self):

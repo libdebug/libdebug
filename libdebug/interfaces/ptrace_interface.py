@@ -7,6 +7,7 @@
 import errno
 import os
 import pty
+import signal
 import tty
 from pathlib import Path
 
@@ -178,6 +179,10 @@ class PtraceInterface(DebuggingInterface):
         assert self.process_id is not None
 
         self.lib_trace.ptrace_detach_all(self._global_state, self.process_id)
+
+    def interrupt(self):
+        """Interrupts the execution of the process."""
+        os.kill(self.process_id, signal.SIGSTOP)
 
     def cont(self):
         """Continues the execution of the process."""

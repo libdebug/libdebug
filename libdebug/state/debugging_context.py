@@ -6,8 +6,6 @@
 
 from __future__ import annotations
 
-import os
-import signal
 from contextlib import contextmanager
 from threading import Lock
 from typing import TYPE_CHECKING
@@ -16,6 +14,7 @@ from weakref import WeakKeyDictionary
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
 from libdebug.data.syscall_hook import SyscallHook
+from libdebug.interfaces.interfaces import BackendInterface
 from libdebug.utils.debugging_utils import (
     normalize_and_validate_address,
     resolve_symbol_in_maps,
@@ -51,6 +50,9 @@ class DebuggingContext:
 
     auto_interrupt_on_command: bool
     """A flag that indicates if the debugger should automatically interrupt the debugged process when a command is issued."""
+
+    backend: BackendInterface
+    """The backend interface used to communicate with the debugged process."""
 
     _breakpoints: dict[int, Breakpoint]
     """A dictionary of all the breakpoints set on the process.
@@ -102,6 +104,7 @@ class DebuggingContext:
         self._breakpoints = {}
         self._syscall_hooks = {}
         self._threads = []
+        self.backend = BackendInterface.PTRACE
         self._pprint_syscalls = False
 
         self.clear()
@@ -275,10 +278,6 @@ class DebuggingContext:
         address = resolve_symbol_in_maps(symbol, maps)
         normalized_address = normalize_and_validate_address(address, maps)
         return normalized_address
-
-    def interrupt(self):
-        """Interrupt the debugged process."""
-        os.kill(self.process_id, signal.SIGSTOP)
 
 
 __debugging_contexts: WeakKeyDictionary = WeakKeyDictionary()
