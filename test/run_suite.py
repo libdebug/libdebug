@@ -7,7 +7,7 @@
 import sys
 import unittest
 
-from scripts.attach_test import AttachTest
+from scripts.attach_detach_test import AttachDetachTest
 from scripts.auto_waiting_test import AutoWaitingNcuts, AutoWaitingTest
 from scripts.backtrace_test import BacktraceTest
 from scripts.basic_test import BasicPieTest, BasicTest, ControlFlowTest, HwBasicTest
@@ -54,7 +54,11 @@ def fast_suite():
     suite.addTest(HwBasicTest("test_basic"))
     suite.addTest(HwBasicTest("test_registers"))
     suite.addTest(BacktraceTest("test_backtrace"))
-    suite.addTest(AttachTest("test_attach"))
+    suite.addTest(AttachDetachTest("test_attach"))
+    suite.addTest(AttachDetachTest("test_attach_and_detach_1"))
+    suite.addTest(AttachDetachTest("test_attach_and_detach_2"))
+    suite.addTest(AttachDetachTest("test_attach_and_detach_3"))
+    suite.addTest(AttachDetachTest("test_attach_and_detach_4"))
     suite.addTest(ThreadTest("test_thread"))
     suite.addTest(ThreadTest("test_thread_hardware"))
     suite.addTest(ComplexThreadTest("test_thread"))
