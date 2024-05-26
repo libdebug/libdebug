@@ -1076,15 +1076,11 @@ class _InternalDebugger:
         # TODO: once we have signal handling, we should remove this
         self.step()
 
-    def finish(
-        self,
-        thread: ThreadContext | None = None,
-        exact: bool = True
-    ):
+    def finish(self, thread: ThreadContext | None = None, exact: bool = True):
         """Continues the process until the current function returns or the process stops. When used in step mode,
         it will step until a return instruction is executed. Otherwise, it uses a heuristic
         based on the call stack to breakpoint (exact is slower).
-        
+
         Args:
             thread (ThreadContext, optional): The thread to affect. Defaults to None.
             exact (bool, optional): Whether or not to execute in step mode. Defaults to True.
@@ -1095,7 +1091,9 @@ class _InternalDebugger:
             # If no thread is specified, we use the first thread
             thread = self.threads[0]
 
-        self._polling_thread_command_queue.put((self.__threaded_finish, (thread,exact)))
+        self._polling_thread_command_queue.put(
+            (self.__threaded_finish, (thread, exact))
+        )
 
         # Wait for the background thread to signal "task done" before returning
         # We don't want any asynchronous behaviour here
@@ -1155,7 +1153,11 @@ class _InternalDebugger:
         liblog.debugger("Waiting for GDB process to terminate...")
 
         for proc in psutil.process_iter():
-            cmdline = proc.cmdline()
+            try:
+                cmdline = proc.cmdline()
+            except psutil.ZombieProcess:
+                # This is a zombie process, which psutil tracks but we cannot interact with
+                continue
 
             if args == cmdline:
                 gdb_process = proc
@@ -1163,7 +1165,10 @@ class _InternalDebugger:
         else:
             raise RuntimeError("GDB process not found.")
 
-        gdb_process.wait()
+        while gdb_process.is_running() and gdb_process.status() != psutil.STATUS_ZOMBIE:
+            # As the GDB process is in a different group, we do not have the authority to wait on it
+            # So we must keep polling it until it is no longer running
+            pass
 
     def _open_gdb_in_shell(self):
         """Open GDB in the current shell."""
@@ -1388,11 +1393,11 @@ class _InternalDebugger:
         self.context.set_stopped()
 
     def __threaded_finish(self, thread: ThreadContext, exact: bool):
-        prefix = 'Exact' if exact else 'Heuristic'
-        
+        prefix = "Exact" if exact else "Heuristic"
+
         liblog.debugger(f"{prefix} finish on thread %s", thread.thread_id)
         self.interface.finish(thread, exact=exact)
-        
+
         self.context.set_stopped()
 
     def __threaded_peek_memory(self, address: int) -> bytes | BaseException:
