@@ -119,6 +119,7 @@ ffibuilder.cdef(
 
     int ptrace_trace_me(void);
     int ptrace_attach(int pid);
+    void ptrace_detach_and_cont(struct global_state *state, int pid);
     void ptrace_detach_for_kill(struct global_state *state, int pid);
     void ptrace_detach_for_migration(struct global_state *state, int pid);
     void ptrace_reattach_from_gdb(struct global_state *state, int pid);

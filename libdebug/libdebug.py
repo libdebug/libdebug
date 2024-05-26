@@ -185,6 +185,26 @@ class _InternalDebugger:
             if response is not None:
                 raise response
 
+    def detach(self):
+        """Detaches from the process."""
+        if not self.instanced:
+            raise RuntimeError("Process not running, cannot detach.")
+
+        self._ensure_process_stopped()
+
+        self._polling_thread_command_queue.put((self.__threaded_detach, ()))
+
+        # Wait for the background thread to signal "task done" before returning
+        # We don't want any asynchronous behaviour here
+        self._polling_thread_command_queue.join()
+
+        # Check for any exceptions raised by the background thread
+        if not self._polling_thread_response_queue.empty():
+            response = self._polling_thread_response_queue.get()
+            self._polling_thread_response_queue.task_done()
+            if response is not None:
+                raise response
+
     def _start_processing_thread(self):
         """Starts the thread that will poll the traced process for state change."""
         # Set as daemon so that the Python interpreter can exit even if the thread is still running
@@ -1297,6 +1317,12 @@ class _InternalDebugger:
     def __threaded_attach(self, pid: int):
         liblog.debugger("Attaching to process %d.", pid)
         self.interface.attach(pid)
+
+        self.context.set_stopped()
+
+    def __threaded_detach(self):
+        liblog.debugger("Detaching from process %d.", self.context.process_id)
+        self.interface.detach()
 
         self.context.set_stopped()
 

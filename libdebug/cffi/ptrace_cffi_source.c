@@ -187,6 +187,14 @@ void ptrace_reattach_from_gdb(struct global_state *state, int pid)
     }
 }
 
+void ptrace_detach_and_cont(struct global_state *state, int pid)
+{
+    ptrace_detach_for_migration(state, pid);
+
+    // continue the execution of the process
+    kill(pid, SIGCONT);
+}
+
 void ptrace_set_options(int pid)
 {
     int options = PTRACE_O_TRACEFORK | PTRACE_O_TRACEVFORK | PTRACE_O_TRACESYSGOOD |

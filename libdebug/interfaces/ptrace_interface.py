@@ -69,6 +69,9 @@ class PtraceInterface(DebuggingInterface):
     process_id: int | None
     """The process ID of the debugged process."""
 
+    detached: bool
+    """Whether the process was detached or not."""
+
     def __init__(self):
         super().__init__()
 
@@ -83,6 +86,7 @@ class PtraceInterface(DebuggingInterface):
         self._global_state = self.ffi.new("struct global_state*")
 
         self.process_id = 0
+        self.detached = False
 
         self.hardware_bp_helpers = {}
 
@@ -146,6 +150,7 @@ class PtraceInterface(DebuggingInterface):
         )
 
         self.process_id = child_pid
+        self.detached = False
         self.context.process_id = child_pid
         self.register_new_thread(child_pid)
         continue_to_entry_point = self.context.autoreach_entrypoint
@@ -168,17 +173,37 @@ class PtraceInterface(DebuggingInterface):
             raise OSError(errno_val, errno.errorcode[errno_val])
 
         self.process_id = pid
+        self.detached = False
         self.context.process_id = pid
         self.register_new_thread(pid)
         # If we are attaching to a process, we don't want to continue to the entry point
         # which we have probably already passed
         self._setup_parent(continue_to_entry_point=False)
 
+    def detach(self):
+        """Detaches from the process."""
+        assert self.process_id is not None
+
+        # We must disable all breakpoints before detaching
+        for bp in list(self.context.breakpoints.values()):
+            if bp.enabled:
+                self.unset_breakpoint(bp, delete=True)
+
+        self.lib_trace.ptrace_detach_and_cont(self._global_state, self.process_id)
+
+        self.detached = True
+
     def kill(self):
         """Instantly terminates the process."""
         assert self.process_id is not None
 
-        self.lib_trace.ptrace_detach_for_kill(self._global_state, self.process_id)
+        if not self.detached:
+            self.lib_trace.ptrace_detach_for_kill(self._global_state, self.process_id)
+        else:
+            # If we detached from the process, there's no reason to attempt to detach again
+            # We can just kill the process
+            os.kill(self.process_id, 9)
+            os.waitpid(self.process_id, 0)
 
     def cont(self):
         """Continues the execution of the process."""

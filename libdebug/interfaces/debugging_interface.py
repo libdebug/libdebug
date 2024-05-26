@@ -50,6 +50,11 @@ class DebuggingInterface(ABC):
         pass
 
     @abstractmethod
+    def detach(self):
+        """Detaches from the process."""
+        pass
+
+    @abstractmethod
     def kill(self):
         """Instantly terminates the process."""
         pass
