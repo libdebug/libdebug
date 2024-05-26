@@ -113,7 +113,7 @@ int ptrace_attach(int pid)
     return ptrace(PTRACE_ATTACH, pid, NULL, NULL);
 }
 
-void ptrace_detach_all(struct global_state *state, int pid)
+void ptrace_detach_for_kill(struct global_state *state, int pid)
 {
     struct thread *t = state->t_HEAD;
     // note that the order is important: the main thread must be detached last

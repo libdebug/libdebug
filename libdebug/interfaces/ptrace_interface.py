@@ -178,7 +178,7 @@ class PtraceInterface(DebuggingInterface):
         """Instantly terminates the process."""
         assert self.process_id is not None
 
-        self.lib_trace.ptrace_detach_all(self._global_state, self.process_id)
+        self.lib_trace.ptrace_detach_for_kill(self._global_state, self.process_id)
 
     def cont(self):
         """Continues the execution of the process."""
