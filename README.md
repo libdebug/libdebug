@@ -606,7 +606,7 @@ sys_hook_2 = d.hook_syscall(syscall="open", on_enter=on_enter_open_2, on_exit=on
 ```
 will override `sys_hook_1` with `sys_hook_2` showing the following warning
 
-![alt text](media/syscall_hook_override_warning.png)
+![syscall hook override](https://github.com/libdebug/libdebug/blob/fix-defcon/media/syscall_hook_override_warning.png?raw=true)
 
 ## Syscall Hijacking
 libdebug also facilitates easy hijacking of syscalls, as shown in the following example:
@@ -640,7 +640,7 @@ d.cont()
 ```
 raises the following execption
 
-![alt text](media/syscall_hijacking_loop_detection.png)
+![syscall loop detection](https://github.com/libdebug/libdebug/blob/fix-defcon/media/syscall_hijacking_loop_detection.png?raw=true)
 
 #### Hook on hijack
 When a syscall is hijacked by changing its syscall number before execution, the user can choose whether to execute the hook installed on the newly executed syscall, if one is available.
@@ -715,7 +715,7 @@ with d.pprint_syscalls_context(True):
 
 This results in an output similar to:
 
-![alt text](media/pprint_syscalls.png)
+![pprint_syscalls](https://github.com/libdebug/libdebug/blob/fix-defcon/media/pprint_syscalls.png?raw=true)
 
 ## Symbol Resolution
 As anticipated, libdebug can accept ELF symbols as an alternative to addresses, thanks to its capability to parse the ELF file to find debugging symbols. libdebug offers five different levels for symbol resolutions, as follows:
@@ -751,12 +751,12 @@ libdebug also helps debug scripts by providing two loggers, accessible through t
 #### debugger
 The `debugger` option displays all logs related to the debugging operations performed on the process by libdebug.
 
-![alt text](media/debugger_argv.png)
+![debugger argv option](https://github.com/libdebug/libdebug/blob/fix-defcon/media/debugger_argv.png?raw=true)
 
 #### pipe
 The `pipe` option, on the other hand, displays all logs related to interactions with the process, such as bytes received and sent.
 
-![alt text](media/pipe_argv.png)
+![pipe argv option](https://github.com/libdebug/libdebug/blob/fix-defcon/media/pipe_argv.png?raw=true)
 
 Both logger levels can be modified at runtime using a `with` statement, as shown in the following example.
 ```py
@@ -770,4 +770,4 @@ with libcontext.tmp(pipe_logger='INFO', debugger_logger='DEBUG'):
 ####
 The `dbg` option, on the other hand, displays all logs shown with the `debugger` option as well as those displayed with the `pipe` option.
 
-![alt text](media/dbg_argv.png)
+![dbg argv option](https://raw.githubusercontent.com/libdebug/libdebug/fix-defcon/media/dbg_argv.png)
