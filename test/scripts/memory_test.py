@@ -72,9 +72,8 @@ class MemoryTest(unittest.TestCase):
             self.assertTrue(False)
         except ValueError:
             self.assertTrue(False)
-        except RuntimeError:
+        except OSError:
             self.assertTrue(True)
-            pass
 
         assert d.rip == bp.address
 
@@ -113,6 +112,22 @@ class MemoryTest(unittest.TestCase):
             self.assertTrue(d.memory[address : address + 256] == prev)
 
             d.kill()
+
+    def test_memory_access_while_running(self):
+        d = debugger("binaries/memory_test_2")
+
+        d.run()
+
+        bp = d.breakpoint("do_nothing")
+
+        d.cont()
+
+        # Verify that memory access is only possible when the process is stopped
+        value = int.from_bytes(d.memory["state"], "little")
+        self.assertEqual(value, 0xdeadbeef)
+        self.assertEqual(d.rip, bp.address)
+
+        d.kill()
 
 
 if __name__ == "__main__":
