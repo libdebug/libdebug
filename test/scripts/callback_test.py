@@ -229,7 +229,6 @@ class CallbackTest(unittest.TestCase):
         r.sendline(b"A" * 0x1D)
 
         while True:
-
             if d.rip == bp.address:
                 address = d.r13 + d.rbx
                 third = int.from_bytes(d.memory[address : address + 1], "little")
@@ -248,3 +247,38 @@ class CallbackTest(unittest.TestCase):
 
         if self.exceptions:
             raise self.exceptions[0]
+
+    def test_callback_exception(self):
+        self.exceptions.clear()
+
+        d = debugger("binaries/basic_test")
+
+        d.run()
+
+        def callback(thread, bp):
+            # This operation should not raise any exception
+            _ = d.rax
+
+        d.breakpoint("register_test", callback=callback, hardware=True)
+
+        d.cont()
+
+        d.kill()
+
+    def test_callback_step(self):
+        self.exceptions.clear()
+
+        d = debugger("binaries/basic_test")
+
+        d.run()
+
+        def callback(t, bp):
+            self.assertEqual(t.rip, bp.address)
+            d.step()
+            self.assertEqual(t.rip, bp.address + 1)
+
+        d.breakpoint("register_test", callback=callback)
+
+        d.cont()
+
+        d.kill()
