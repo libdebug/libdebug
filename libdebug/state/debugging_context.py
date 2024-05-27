@@ -99,9 +99,6 @@ class DebuggingContext:
     _pprint_syscalls: bool
     """A flag that indicates if the debugger should pretty print syscalls."""
 
-    _threaded_memory: MemoryView
-    """The memory view of the debugged process, used for operations in the background thread."""
-
     _resume_context: ResumeContext
     """Context that indicates if the debugger should resume the debugged process."""
 

@@ -7,11 +7,10 @@ from __future__ import annotations
 
 import os
 from contextlib import contextmanager
-from functools import wraps
 from pathlib import Path
 from queue import Queue
 from subprocess import Popen
-from threading import Thread
+from threading import Thread, current_thread
 from typing import Callable
 
 import psutil
@@ -46,6 +45,7 @@ from libdebug.utils.syscall_utils import (
     resolve_syscall_name,
     resolve_syscall_number,
 )
+from libdebug.utils.debugger_wrappers import control_flow_function, background_alias
 
 THREAD_TERMINATE = -1
 GDB_GOBACK_LOCATION = str((Path(__file__).parent / "utils" / "gdb.py").resolve())
@@ -80,9 +80,6 @@ class _InternalDebugger:
 
     _polling_thread_response_queue: Queue | None = None
     """The queue used to receive responses from the background thread."""
-
-    _threaded_memory: MemoryView | None = None
-    """The memory view of the process, used for operations in the background thread."""
 
     def __init__(self):
         pass
@@ -188,6 +185,17 @@ class _InternalDebugger:
         )
         self._polling_thread.start()
 
+    def _background_ensure_process_stopped(self):
+        """Validates the state of the process."""
+
+        # In background mode, there shouldn't be anything to do here
+        pass
+
+    def _background_invalid_call(self):
+        """Raises an error when an invalid call is made in background mode."""
+        raise RuntimeError("This method is not available in a callback.")
+
+    @background_alias(_background_ensure_process_stopped)
     def _ensure_process_stopped(self):
         """Validates the state of the process."""
         if not self.instanced:
@@ -207,22 +215,6 @@ class _InternalDebugger:
         """Checks if at least one thread is alive."""
         return any(not thread.dead for thread in self.context.threads)
 
-    @staticmethod
-    def _control_flow_function(method):
-        """Decorator to perfom control flow checks before executing a method."""
-
-        @wraps(method)
-        def wrapper(self, *args, **kwargs):
-            # We have to ensure that the process is stopped before executing the method
-            self._ensure_process_stopped()
-
-            # We have to ensure that at least one thread is alive before executing the method
-            if not self._threads_are_alive():
-                raise RuntimeError("All threads are dead.")
-            return method(self, *args, **kwargs)
-
-        return wrapper
-
     def _join_and_check_status(self):
         # Wait for the background thread to signal "task done" before returning
         # We don't want any asynchronous behaviour here
@@ -235,6 +227,7 @@ class _InternalDebugger:
             if response is not None:
                 raise response
 
+    @background_alias(_background_invalid_call)
     def kill(self):
         """Kills the process."""
         try:
@@ -255,7 +248,8 @@ class _InternalDebugger:
         self.context.clear()
         self.interface.reset()
 
-    @_control_flow_function
+    @background_alias(_background_invalid_call)
+    @control_flow_function
     def cont(self, auto_wait: bool = True):
         """Continues the process.
 
@@ -270,6 +264,7 @@ class _InternalDebugger:
         if auto_wait:
             self._polling_thread_command_queue.put((self.__threaded_wait, ()))
 
+    @background_alias(_background_invalid_call)
     def interrupt(self):
         """Interrupts the process."""
         if not self.instanced:
@@ -282,6 +277,7 @@ class _InternalDebugger:
 
         self.wait()
 
+    @background_alias(_background_invalid_call)
     def wait(self):
         """Waits for the process to stop."""
         if not self.instanced:
@@ -301,7 +297,21 @@ class _InternalDebugger:
 
         self._join_and_check_status()
 
-    @_control_flow_function
+    def _background_step(self, thread: ThreadContext | None = None):
+        """Executes a single instruction of the process.
+
+        Args:
+            thread (ThreadContext, optional): The thread to step. Defaults to None.
+        """
+        if thread is None:
+            # If no thread is specified, we use the first thread
+            thread = self.threads[0]
+
+        self.__threaded_step(thread)
+        self.__threaded_wait()
+
+    @background_alias(_background_step)
+    @control_flow_function
     def step(self, thread: ThreadContext | None = None):
         """Executes a single instruction of the process.
 
@@ -318,7 +328,33 @@ class _InternalDebugger:
 
         self._join_and_check_status()
 
-    @_control_flow_function
+    def _background_step_until(
+        self,
+        position: int | str,
+        thread: ThreadContext | None = None,
+        max_steps: int = -1,
+    ):
+        """Executes instructions of the process until the specified location is reached.
+
+        Args:
+            position (int | bytes): The location to reach.
+            thread (ThreadContext, optional): The thread to step. Defaults to None.
+            max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
+        """
+
+        if thread is None:
+            # If no thread is specified, we use the first thread
+            thread = self.threads[0]
+
+        if isinstance(position, str):
+            address = self.context.resolve_symbol(position)
+        else:
+            address = self.context.resolve_address(position)
+
+        self.__threaded_step_until(thread, address, max_steps)
+
+    @background_alias(_background_step_until)
+    @control_flow_function
     def step_until(
         self,
         position: int | str,
@@ -352,6 +388,7 @@ class _InternalDebugger:
 
         self._join_and_check_status()
 
+    @background_alias(_background_invalid_call)
     def breakpoint(
         self,
         position: int | str,
@@ -409,6 +446,7 @@ class _InternalDebugger:
 
         return bp
 
+    @background_alias(_background_invalid_call)
     def watchpoint(
         self,
         position: int | str,
@@ -432,6 +470,7 @@ class _InternalDebugger:
             callback=callback,
         )
 
+    @background_alias(_background_invalid_call)
     def hook_signal(
         self,
         signal: int | str,
@@ -489,6 +528,7 @@ class _InternalDebugger:
 
         return hook
 
+    @background_alias(_background_invalid_call)
     def unhook_signal(self, hook: SignalHook):
         """Unhooks a signal in the target process.
 
@@ -506,6 +546,7 @@ class _InternalDebugger:
 
         self._join_and_check_status()
 
+    @background_alias(_background_invalid_call)
     def hijack_signal(
         self,
         original_signal: int | str,
@@ -621,6 +662,7 @@ class _InternalDebugger:
         hook._traceme_called = False
         hook._command = None
 
+    @background_alias(_background_invalid_call)
     def hook_syscall(
         self,
         syscall: int | str,
@@ -680,6 +722,7 @@ class _InternalDebugger:
 
         return hook
 
+    @background_alias(_background_invalid_call)
     def unhook_syscall(self, hook: SyscallHook):
         """Unhooks a syscall in the target process.
 
@@ -703,6 +746,7 @@ class _InternalDebugger:
 
             self._join_and_check_status()
 
+    @background_alias(_background_invalid_call)
     def hijack_syscall(
         self,
         original_syscall: int | str,
@@ -908,6 +952,7 @@ class _InternalDebugger:
 
         self.context._signal_to_pass = signals
 
+    @background_alias(_background_invalid_call)
     def migrate_to_gdb(self, open_in_new_process: bool = True):
         """Migrates the current debugging session to GDB."""
         self._ensure_process_stopped()
@@ -935,6 +980,24 @@ class _InternalDebugger:
         # TODO: once we have signal handling, we should remove this
         self.step()
 
+    def _background_finish(
+        self, thread: ThreadContext | None = None, exact: bool = True
+    ):
+        """Continues the process until the current function returns or the process stops. When used in step mode,
+        it will step until a return instruction is executed. Otherwise, it uses a heuristic
+        based on the call stack to breakpoint (exact is slower).
+
+        Args:
+            thread (ThreadContext, optional): The thread to affect. Defaults to None.
+            exact (bool, optional): Whether or not to execute in step mode. Defaults to True.
+        """
+        if thread is None:
+            # If no thread is specified, we use the first thread
+            thread = self.threads[0]
+
+        self.__threaded_finish(thread, exact)
+
+    @background_alias(_background_finish)
     def finish(self, thread: ThreadContext | None = None, exact: bool = True):
         """Continues the process until the current function returns or the process stops. When used in step mode,
         it will step until a return instruction is executed. Otherwise, it uses a heuristic
@@ -1055,6 +1118,19 @@ class _InternalDebugger:
             thread_context = self.threads[0]
             setattr(thread_context, name, value)
 
+    def __threaded_peek_memory(self, address: int) -> bytes | BaseException:
+        try:
+            value = self.interface.peek_memory(address)
+            # TODO: this is only for amd64
+            return value.to_bytes(8, "little")
+        except BaseException as e:
+            return e
+
+    def __threaded_poke_memory(self, address: int, data: bytes):
+        int_data = int.from_bytes(data, "little")
+        self.interface.poke_memory(address, int_data)
+
+    @background_alias(__threaded_peek_memory)
     def _peek_memory(self, address: int) -> bytes:
         """Reads memory from the process."""
         if not self.instanced:
@@ -1084,6 +1160,7 @@ class _InternalDebugger:
 
         return value
 
+    @background_alias(__threaded_poke_memory)
     def _poke_memory(self, address: int, data: bytes) -> None:
         """Writes memory to the process."""
         if not self.instanced:
@@ -1111,14 +1188,11 @@ class _InternalDebugger:
             self._poke_memory,
             self.interface.maps,
         )
-        self._threaded_memory = MemoryView(
-            self.__threaded_peek_memory,
-            self.__threaded_poke_memory,
-            self.interface.maps,
-        )
 
         self.context.memory = self.memory
-        self.context._threaded_memory = self._threaded_memory
+
+    def _is_in_background(self):
+        return current_thread() == self._polling_thread
 
     def _polling_thread_function(self):
         """This function is run in a thread. It is used to poll the process for state change."""
@@ -1263,18 +1337,6 @@ class _InternalDebugger:
         self.interface.finish(thread, exact=exact)
 
         self.context.set_stopped()
-
-    def __threaded_peek_memory(self, address: int) -> bytes | BaseException:
-        try:
-            value = self.interface.peek_memory(address)
-            # TODO: this is only for amd64
-            return value.to_bytes(8, "little")
-        except BaseException as e:
-            return e
-
-    def __threaded_poke_memory(self, address: int, data: bytes):
-        int_data = int.from_bytes(data, "little")
-        self.interface.poke_memory(address, int_data)
 
     def __threaded_migrate_to_gdb(self):
         self.interface.migrate_to_gdb()

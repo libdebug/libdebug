@@ -104,11 +104,7 @@ class PtraceStatusHandler:
             bp.hit_count += 1
 
             if bp.callback:
-                # This is a bit of a hack, but we will make it work for now
-                # Better than swapping global variables for everyone
-                thread._in_background_op = True
                 bp.callback(thread, bp)
-                thread._in_background_op = False
                 self.context._resume_context.resume = ResumeStatus.RESUME
             else:
                 # If the breakpoint has no callback, we need to stop the process despite the other signals
@@ -207,8 +203,6 @@ class PtraceStatusHandler:
 
         hook = self.context.syscall_hooks[syscall_number]
 
-        thread._in_background_op = True
-
         if not hook._has_entered:
             # The syscall is being entered
             liblog.debugger(
@@ -247,8 +241,6 @@ class PtraceStatusHandler:
 
             hook._has_entered = False
             hook._skip_exit = False
-
-        thread._in_background_op = False
 
         self.context._resume_context.resume = ResumeStatus.RESUME
 
@@ -300,11 +292,7 @@ class PtraceStatusHandler:
         if signal_number in self.context.signal_hooks:
             hook = self.context.signal_hooks[signal_number]
 
-            thread._in_background_op = True
-
             self._manage_signal_callback(hook, thread, signal_number, {signal_number})
-
-            thread._in_background_op = False
 
             self.context._resume_context.resume = ResumeStatus.RESUME
 

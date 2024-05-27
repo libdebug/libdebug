@@ -27,7 +27,7 @@ class ThreadContext:
 
     instruction_pointer: int
     """The thread's instruction pointer."""
-    
+
     signal_number: int = 0
     """The signal to deliver to the thread."""
 
@@ -39,9 +39,6 @@ class ThreadContext:
 
     _dirty: bool = False
     """Whether the registers have been modified."""
-
-    _in_background_op: bool = False
-    """Whether the thread is being interacted with from the background thread."""
 
     def __init__(self, thread_id: int):
         self.thread_id = thread_id
@@ -70,13 +67,7 @@ class ThreadContext:
     @property
     def memory(self):
         """The memory view of the debugged process."""
-        # This is not the best way to do it, but it should not cause issues
-        # Even if the library is multi-threaded, we don't expect the memory view
-        # to be used while a background operation is in progress
-        if not self._in_background_op:
-            return provide_context(self).memory
-        else:
-            return provide_context(self)._threaded_memory
+        return provide_context(self).memory
 
     def _poll_registers(self):
         """Updates the register values."""
@@ -108,7 +99,7 @@ class ThreadContext:
                 backtrace,
             )
         )
-    
+
     def current_return_address(self):
         """Returns the return address of the current function."""
         stack_unwinder = stack_unwinding_provider()
