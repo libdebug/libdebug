@@ -338,11 +338,9 @@ class _InternalDebugger:
             thread = self.threads[0]
 
         if isinstance(position, str):
-            with context_extend_from(self):
-                address = self.context.resolve_symbol(position)
+            address = self.context.resolve_symbol(position)
         else:
-            with context_extend_from(self):
-                address = self.context.resolve_address(position)
+            address = self.context.resolve_address(position)
 
         arguments = (
             thread,
@@ -374,11 +372,9 @@ class _InternalDebugger:
         self._ensure_process_stopped()
 
         if isinstance(position, str):
-            with context_extend_from(self):
-                address = self.context.resolve_symbol(position)
+            address = self.context.resolve_symbol(position)
         else:
-            with context_extend_from(self):
-                address = self.context.resolve_address(position)
+            address = self.context.resolve_address(position)
             position = hex(address)
 
         if condition:

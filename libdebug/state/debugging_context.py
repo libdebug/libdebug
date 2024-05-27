@@ -322,7 +322,7 @@ class DebuggingContext:
         Returns:
             int: The address of the symbol.
         """
-        maps = debugging_context().debugging_interface.maps()
+        maps = self.debugging_interface.maps()
         address = resolve_symbol_in_maps(symbol, maps)
         normalized_address = normalize_and_validate_address(address, maps)
         return normalized_address
