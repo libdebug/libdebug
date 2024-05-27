@@ -201,14 +201,7 @@ class _InternalDebugger:
         if self.context.auto_interrupt_on_command:
             self.context.interrupt()
 
-        self._polling_thread_command_queue.join()
-
-        # Check for any exceptions raised by the background thread
-        if not self._polling_thread_response_queue.empty():
-            response = self._polling_thread_response_queue.get()
-            self._polling_thread_response_queue.task_done()
-            if response is not None:
-                raise response
+        self._join_and_check_status()
 
     def _threads_are_alive(self) -> bool:
         """Checks if at least one thread is alive."""
@@ -294,21 +287,14 @@ class _InternalDebugger:
         if not self.instanced:
             raise RuntimeError("Process not running, cannot wait.")
 
-        # Wait for the background thread to signal "task done"
-        # Our background might be waiting, and if so we must stop until it's done
-        self._polling_thread_command_queue.join()
-
-        # Check for any exceptions raised by the background thread
-        if not self._polling_thread_response_queue.empty():
-            response = self._polling_thread_response_queue.get()
-            self._polling_thread_response_queue.task_done()
-            if response is not None:
-                raise response
+        self._join_and_check_status()
 
         if self.context.dead:
             raise RuntimeError("Process is dead.")
 
         if not self.context.running:
+            # Most of the time the function returns here, as there was a wait already
+            # queued by the previous command
             return
 
         self._polling_thread_command_queue.put((self.__threaded_wait, ()))
@@ -522,15 +508,7 @@ class _InternalDebugger:
 
         self._polling_thread_command_queue.put((self.__threaded_signal_unhook, (hook,)))
 
-        # Wait for the background thread to signal "task done" before returning
-        # We don't want any asynchronous behaviour here
-        self._polling_thread_command_queue.join()
-
-        # Check for any exceptions raised by the background thread
-        if not self._polling_thread_response_queue.empty():
-            response = self._polling_thread_response_queue.get()
-            if response is not None:
-                raise response
+        self._join_and_check_status()
 
     def hijack_signal(
         self,
@@ -702,15 +680,7 @@ class _InternalDebugger:
                 (self.__threaded_syscall_hook, (hook,))
             )
 
-            # Wait for the background thread to signal "task done" before returning
-            # We don't want any asynchronous behaviour here
-            self._polling_thread_command_queue.join()
-
-            # Check for any exceptions raised by the background thread
-            if not self._polling_thread_response_queue.empty():
-                response = self._polling_thread_response_queue.get()
-                if response is not None:
-                    raise response
+            self._join_and_check_status()
 
         return hook
 
@@ -735,15 +705,7 @@ class _InternalDebugger:
                 (self.__threaded_syscall_unhook, (hook,))
             )
 
-            # Wait for the background thread to signal "task done" before returning
-            # We don't want any asynchronous behaviour here
-            self._polling_thread_command_queue.join()
-
-            # Check for any exceptions raised by the background thread
-            if not self._polling_thread_response_queue.empty():
-                response = self._polling_thread_response_queue.get()
-                if response is not None:
-                    raise response
+            self._join_and_check_status()
 
     def hijack_syscall(
         self,
@@ -809,15 +771,7 @@ class _InternalDebugger:
                 (self.__threaded_syscall_hook, (hook,))
             )
 
-            # Wait for the background thread to signal "task done" before returning
-            # We don't want any asynchronous behaviour here
-            self._polling_thread_command_queue.join()
-
-            # Check for any exceptions raised by the background thread
-            if not self._polling_thread_response_queue.empty():
-                response = self._polling_thread_response_queue.get()
-                if response is not None:
-                    raise response
+            self._join_and_check_status()
 
         return hook
 
@@ -978,14 +932,8 @@ class _InternalDebugger:
             self._open_gdb_in_shell()
 
         self._polling_thread_command_queue.put((self.__threaded_migrate_from_gdb, ()))
-        self._polling_thread_command_queue.join()
 
-        # Check for any exceptions raised by the background thread
-        if not self._polling_thread_response_queue.empty():
-            response = self._polling_thread_response_queue.get()
-            self._polling_thread_response_queue.task_done()
-            if response is not None:
-                raise response
+        self._join_and_check_status()
 
         # We have to ignore a SIGSTOP signal that is sent by GDB
         # TODO: once we have signal handling, we should remove this
@@ -1128,6 +1076,8 @@ class _InternalDebugger:
         self._polling_thread_command_queue.put(
             (self.__threaded_peek_memory, (address,))
         )
+
+        # We cannot call _join_and_check_status here, as we need the return value which might not be an exception
         self._polling_thread_command_queue.join()
 
         value = self._polling_thread_response_queue.get()
@@ -1155,14 +1105,8 @@ class _InternalDebugger:
         self._polling_thread_command_queue.put(
             (self.__threaded_poke_memory, (address, data))
         )
-        self._polling_thread_command_queue.join()
 
-        # Check for any exceptions raised by the background thread
-        if not self._polling_thread_response_queue.empty():
-            response = self._polling_thread_response_queue.get()
-            self._polling_thread_response_queue.task_done()
-            if response is not None:
-                raise response
+        self._join_and_check_status()
 
     def _setup_memory_view(self):
         """Sets up the memory view of the process."""
