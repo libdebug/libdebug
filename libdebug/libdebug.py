@@ -1231,7 +1231,13 @@ class _InternalDebugger:
             raise RuntimeError("Process not running, cannot step.")
 
         if self.context.running:
-            raise RuntimeError("Cannot read memory while the process is running.")
+            # Reading memory while the process is running could lead to concurrency issues
+            # and corrupted values
+            liblog.debugger(
+                "Process is running. Waiting for it to stop before reading memory."
+            )
+
+        self._ensure_process_stopped()
 
         self._polling_thread_command_queue.put(
             (self.__threaded_peek_memory, (address,))
@@ -1252,7 +1258,13 @@ class _InternalDebugger:
             raise RuntimeError("Process not running, cannot step.")
 
         if self.context.running:
-            raise RuntimeError("Cannot write memory while the process is running.")
+            # Reading memory while the process is running could lead to concurrency issues
+            # and corrupted values
+            liblog.debugger(
+                "Process is running. Waiting for it to stop before writing to memory."
+            )
+
+        self._ensure_process_stopped()
 
         self._polling_thread_command_queue.put(
             (self.__threaded_poke_memory, (address, data))
