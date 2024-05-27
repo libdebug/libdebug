@@ -140,3 +140,30 @@ class Amd64PtraceHardwareBreakpointManager(PtraceHardwareBreakpointManager):
     def available_breakpoints(self) -> int:
         """Returns the number of available hardware breakpoint registers."""
         return AMD64_DBREGS_COUNT - self.breakpoint_count
+
+    def is_watchpoint_hit(self) -> Breakpoint | None:
+        """Checks if a watchpoint has been hit.
+
+        Returns:
+            Breakpoint | None: The watchpoint that has been hit, or None if no watchpoint has been hit.
+        """
+        dr6 = self.peek_user(self.thread.thread_id, AMD64_DBGREGS_OFF["DR6"])
+
+        watchpoint: Breakpoint | None = None
+
+        # Check the DR6 register to see which watchpoint has been hit
+        if dr6 & 0x1:
+            watchpoint = self.breakpoint_registers["DR0"]
+        elif dr6 & 0x2:
+            watchpoint = self.breakpoint_registers["DR1"]
+        elif dr6 & 0x4:
+            watchpoint = self.breakpoint_registers["DR2"]
+        elif dr6 & 0x8:
+            watchpoint = self.breakpoint_registers["DR3"]
+
+        if watchpoint is not None:
+            if watchpoint.condition == "x":
+                # It is a breakpoint, we do not care here
+                watchpoint = None
+
+        return watchpoint

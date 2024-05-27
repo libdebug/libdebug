@@ -1,6 +1,6 @@
 //
 // This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-// Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
+// Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for details.
 //
 
@@ -32,6 +32,7 @@ struct software_breakpoint {
 struct thread {
     int tid;
     struct user_regs_struct regs;
+    int signal_to_deliver;
     struct thread *next;
 };
 
@@ -58,6 +59,7 @@ struct user_regs_struct *register_thread(struct global_state *state, int tid)
 
     t = malloc(sizeof(struct thread));
     t->tid = tid;
+    t->signal_to_deliver = 0;
 
     ptrace(PTRACE_GETREGS, tid, NULL, &t->regs);
 
@@ -358,9 +360,10 @@ int cont_all_and_set_bps(struct global_state *state, int pid)
     // continue the execution of all the threads
     struct thread *t = state->t_HEAD;
     while (t != NULL) {
-        if (ptrace(state->syscall_hooks_enabled ? PTRACE_SYSCALL : PTRACE_CONT, t->tid, NULL, NULL))
-            fprintf(stderr, "ptrace_cont failed for thread %d: %s\\n", t->tid,
+        if (ptrace(state->syscall_hooks_enabled ? PTRACE_SYSCALL : PTRACE_CONT, t->tid, NULL, t->signal_to_deliver))
+            fprintf(stderr, "ptrace_cont failed for thread %d with signal %d: %s\\n", t->tid, t->signal_to_deliver,
                     strerror(errno));
+        t->signal_to_deliver = 0;
         t = t->next;
     }
 
