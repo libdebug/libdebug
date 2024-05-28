@@ -282,3 +282,24 @@ class CallbackTest(unittest.TestCase):
         d.cont()
 
         d.kill()
+
+    def test_callback_pid_accessible(self):
+        self.exceptions.clear()
+
+        d = debugger("binaries/basic_test")
+
+        d.run()
+
+        hit = False
+
+        def callback(t, bp):
+            nonlocal hit
+            self.assertEqual(t.process_id, d.process_id)
+            hit = True
+
+        d.breakpoint("register_test", callback=callback)
+
+        d.cont()
+        d.kill()
+
+        self.assertTrue(hit)
