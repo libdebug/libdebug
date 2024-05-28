@@ -7,8 +7,8 @@
 from collections.abc import MutableSequence
 from typing import Callable
 
-from libdebug.data.memory_map import MemoryMap
-from libdebug.utils.debugging_utils import resolve_symbol_in_maps
+from libdebug.liblog import liblog
+from libdebug.state.debugging_context import DebuggingContext, debugging_context
 
 
 class MemoryView(MutableSequence):
@@ -23,19 +23,23 @@ class MemoryView(MutableSequence):
             align_to (int, optional): The address alignment that must be used when reading and writing memory. Defaults to 1.
     """
 
+    context: DebuggingContext
+    """The debugging context of the target process."""
+
     def __init__(
         self,
         getter: Callable[[int], bytes],
         setter: Callable[[int, bytes], None],
-        maps_provider: Callable[[], list[MemoryMap]],
         unit_size: int = 8,
         align_to: int = 1,
     ):
         self.getter = getter
         self.setter = setter
-        self.maps_provider = maps_provider
         self.unit_size = unit_size
         self.align_to = align_to
+
+        self.context = debugging_context()
+        self.maps_provider = self.context.debugging_interface.maps
 
     def read(self, address: int, size: int) -> bytes:
         """Reads memory from the target process.
@@ -112,19 +116,38 @@ class MemoryView(MutableSequence):
 
     def __getitem__(self, key) -> bytes:
         if isinstance(key, int):
-            return self.read(key, 1)
+            address = self.context.resolve_address(key)
+
+            return self.read(address, 1)
         elif isinstance(key, slice):
-            return self.read(key.start, key.stop - key.start)
+            if isinstance(key.start, str):
+                start = self.context.resolve_symbol(key.start)
+            else:
+                start = self.context.resolve_address(key.start)
+
+            if isinstance(key.stop, str):
+                stop = self.context.resolve_symbol(key.stop)
+            else:
+                stop = self.context.resolve_address(key.stop)
+
+            if stop < start:
+                raise ValueError("Invalid slice range")
+
+            return self.read(start, stop - start)
         elif isinstance(key, str):
-            address = resolve_symbol_in_maps(key, self.maps_provider())
-            return self.read(address, self.unit_size)
+            address = self.context.resolve_symbol(key)
+
+            return self.read(address, 1)
         elif isinstance(key, tuple):
             address, size = key
+
             if not isinstance(size, int):
                 raise TypeError("Invalid size type")
 
             if isinstance(address, str):
-                address = resolve_symbol_in_maps(address, self.maps_provider())
+                address = self.context.resolve_symbol(address)
+            else:
+                address = self.context.resolve_address(address)
 
             return self.read(address, size)
         else:
@@ -132,22 +155,53 @@ class MemoryView(MutableSequence):
 
     def __setitem__(self, key, value):
         if isinstance(key, int):
-            self.write(key, value)
+            address = self.context.resolve_address(key)
+
+            self.write(address, value)
         elif isinstance(key, slice):
-            self.write(key.start, value)
+            if isinstance(key.start, str):
+                start = self.context.resolve_symbol(key.start)
+            else:
+                start = self.context.resolve_address(key.start)
+
+            if key.stop is not None:
+                if isinstance(key.stop, str):
+                    stop = self.context.resolve_symbol(key.stop)
+                else:
+                    stop = self.context.resolve_address(key.stop)
+
+                if stop < start:
+                    raise ValueError("Invalid slice range")
+
+                if len(value) != stop - start:
+                    liblog.warning(
+                        "Mismatch between slice width and value size, writing {} bytes.".format(
+                            len(value)
+                        )
+                    )
+
+            self.write(start, value)
         elif isinstance(key, str):
-            address = resolve_symbol_in_maps(key, self.maps_provider())
+            address = self.context.resolve_symbol(key)
+
             self.write(address, value)
         elif isinstance(key, tuple):
             address, size = key
+
             if not isinstance(size, int):
                 raise TypeError("Invalid size type")
 
             if isinstance(address, str):
-                address = resolve_symbol_in_maps(address, self.maps_provider())
+                address = self.context.resolve_symbol(address)
+            else:
+                address = self.context.resolve_address(address)
 
             if len(value) != size:
-                raise ValueError("Invalid size")
+                liblog.warning(
+                    "Mismatch between specified size and actual value size, writing {} bytes.".format(
+                        len(value)
+                    )
+                )
 
             self.write(address, value)
         else:

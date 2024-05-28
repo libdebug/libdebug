@@ -1183,11 +1183,8 @@ class _InternalDebugger:
 
     def _setup_memory_view(self):
         """Sets up the memory view of the process."""
-        self.memory = MemoryView(
-            self._peek_memory,
-            self._poke_memory,
-            self.interface.maps,
-        )
+        with context_extend_from(self):
+            self.memory = MemoryView(self._peek_memory, self._poke_memory)
 
         self.context.memory = self.memory
 

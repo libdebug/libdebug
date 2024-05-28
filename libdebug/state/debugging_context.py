@@ -14,7 +14,6 @@ from typing import TYPE_CHECKING
 from weakref import WeakKeyDictionary
 
 from libdebug.data.breakpoint import Breakpoint
-from libdebug.data.memory_view import MemoryView
 from libdebug.data.syscall_hook import SyscallHook
 from libdebug.data.signal_hook import SignalHook
 from libdebug.utils.debugging_utils import (
@@ -25,6 +24,7 @@ from libdebug.utils.pipe_manager import PipeManager
 from libdebug.state.resume_context import ResumeContext
 
 if TYPE_CHECKING:
+    from libdebug.data.memory_view import MemoryView
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.state.thread_context import ThreadContext
 
@@ -93,7 +93,7 @@ class DebuggingContext:
     debugging_interface: "DebuggingInterface"
     """The debugging interface used to communicate with the debugged process."""
 
-    memory: MemoryView
+    memory: "MemoryView"
     """The memory view of the debugged process."""
 
     _pprint_syscalls: bool
