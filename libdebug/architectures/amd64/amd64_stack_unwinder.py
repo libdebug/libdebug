@@ -47,7 +47,7 @@ class Amd64StackUnwinder(StackUnwindingManager):
                 )
 
                 stack_trace.append(return_address)
-            except OSError:
+            except (OSError, ValueError):
                 break
 
         return stack_trace
