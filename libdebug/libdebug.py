@@ -8,10 +8,11 @@ from __future__ import annotations
 import os
 from contextlib import contextmanager
 from pathlib import Path
-from queue import Queue
+from queue import Queue, Empty
 from subprocess import Popen
 from threading import Thread, current_thread
 from typing import Callable
+from weakref import WeakMethod, ref
 
 import psutil
 
@@ -180,6 +181,7 @@ class _InternalDebugger:
         # Set as daemon so that the Python interpreter can exit even if the thread is still running
         self._polling_thread = Thread(
             target=self._polling_thread_function,
+            args=(ref(self),),
             name="libdebug_polling_thread",
             daemon=True,
         )
@@ -1184,22 +1186,33 @@ class _InternalDebugger:
     def _setup_memory_view(self):
         """Sets up the memory view of the process."""
         with context_extend_from(self):
-            self.memory = MemoryView(self._peek_memory, self._poke_memory)
+            self.memory = MemoryView(WeakMethod(self._peek_memory), WeakMethod(self._poke_memory))
 
         self.context.memory = self.memory
 
     def _is_in_background(self):
         return current_thread() == self._polling_thread
 
-    def _polling_thread_function(self):
+    @staticmethod
+    def _polling_thread_function(weak_debugger):
         """This function is run in a thread. It is used to poll the process for state change."""
         while True:
+            try:
+                command_queue = weak_debugger()._polling_thread_command_queue
+                response_queue = weak_debugger()._polling_thread_response_queue
+            except AttributeError:
+                # The debugger has been garbage collected
+                return
+
             # Wait for the main thread to signal a command to execute
-            command, args = self._polling_thread_command_queue.get()
+            try:
+                command, args = command_queue.get(timeout=1)
+            except Empty:
+                continue
 
             if command == THREAD_TERMINATE:
                 # Signal that the command has been executed
-                self._polling_thread_command_queue.task_done()
+                command_queue.task_done()
                 return
 
             # Execute the command
@@ -1209,13 +1222,13 @@ class _InternalDebugger:
                 return_value = e
 
             if return_value is not None:
-                self._polling_thread_response_queue.put(return_value)
+                response_queue.put(return_value)
 
             # Signal that the command has been executed
-            self._polling_thread_command_queue.task_done()
+            command_queue.task_done()
 
             if return_value is not None:
-                self._polling_thread_response_queue.join()
+                response_queue.join()
 
     def __threaded_run(self):
         liblog.debugger("Starting process %s.", self.context.argv[0])

@@ -57,27 +57,27 @@ class MemoryView(MutableSequence):
             remainder = size % self.unit_size
 
             for i in range(address, address + size - remainder, self.unit_size):
-                data += self.getter(i)
+                data += self.getter()(i)
 
             if remainder:
-                data += self.getter(address + size - remainder)[:remainder]
+                data += self.getter()(address + size - remainder)[:remainder]
 
             return data
         else:
             prefix = address % self.align_to
             prefix_size = self.unit_size - prefix
 
-            data = self.getter(address - prefix)[prefix:]
+            data = self.getter()(address - prefix)[prefix:]
 
             remainder = (size - prefix_size) % self.unit_size
 
             for i in range(
                 address + prefix_size, address + size - remainder, self.unit_size
             ):
-                data += self.getter(i)
+                data += self.getter()(i)
 
             if remainder:
-                data += self.getter(address + size - remainder)[:remainder]
+                data += self.getter()(address + size - remainder)[:remainder]
 
             return data
 
@@ -97,19 +97,19 @@ class MemoryView(MutableSequence):
             prefix = address % self.align_to
             prefix_size = self.unit_size - prefix
 
-            prev_data = self.getter(address - prefix)
+            prev_data = self.getter()(address - prefix)
 
-            self.setter(address - prefix, prev_data[:prefix_size] + data[:prefix])
+            self.setter()(address - prefix, prev_data[:prefix_size] + data[:prefix])
 
             remainder = (size - prefix_size) % self.unit_size
             base = address + prefix_size
 
         for i in range(base, address + size - remainder, self.unit_size):
-            self.setter(i, data[i - address : i - address + self.unit_size])
+            self.setter()(i, data[i - address : i - address + self.unit_size])
 
         if remainder:
-            prev_data = self.getter(address + size - remainder)
-            self.setter(
+            prev_data = self.getter()(address + size - remainder)
+            self.setter()(
                 address + size - remainder,
                 data[size - remainder :] + prev_data[remainder:],
             )
