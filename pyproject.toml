@@ -56,7 +56,7 @@ dev = [
 ]
 
 [project.urls]
-homepage = "https://pypi.org/project/libdebug/"
+homepage = "https://libdebug.org"
 repository = "https://github.com/libdebug/libdebug/"
 issues = "https://github.com/libdebug/libdebug/issues"
 
