@@ -34,17 +34,18 @@ class Amd64StackUnwinder(StackUnwindingManager):
         current_rbp = target.rbp
         stack_trace = [target.rip]
 
+        vmaps = target.context.debugging_interface.maps()
+
         while current_rbp:
             try:
                 # Read the return address
-                return_address = int.from_bytes(
-                    target.memory[current_rbp + 8, 8], byteorder="little"
-                )
+                return_address = int.from_bytes(target.memory[current_rbp + 8, 8], byteorder="little")
+
+                if not any(vmap.start <= return_address < vmap.end for vmap in vmaps):
+                    break
 
                 # Read the previous rbp and set it as the current one
-                current_rbp = int.from_bytes(
-                    target.memory[current_rbp, 8], byteorder="little"
-                )
+                current_rbp = int.from_bytes(target.memory[current_rbp, 8], byteorder="little")
 
                 stack_trace.append(return_address)
             except (OSError, ValueError):
