@@ -16,18 +16,18 @@ from scripts.brute_test import BruteTest
 from scripts.builtin_hooks_test import AntidebugEscapingTest
 from scripts.callback_test import CallbackTest
 from scripts.finish_test import FinishTest
-from scripts.deep_dive_division import DeepDiveDivision
+from scripts.deep_dive_division_test import DeepDiveDivision
 from scripts.hijack_syscall_test import SyscallHijackTest
-from scripts.jumpout import Jumpout
+from scripts.jumpout_test import Jumpout
 from scripts.large_binary_sym_test import LargeBinarySymTest
 from scripts.memory_test import MemoryTest
 from scripts.multiple_debuggers_test import MultipleDebuggersTest
-from scripts.ncuts import Ncuts
+from scripts.ncuts_test import Ncuts
 from scripts.pprint_syscalls_test import PPrintSyscallsTest
 from scripts.speed_test import SpeedTest
 from scripts.syscall_hook_test import SyscallHookTest
 from scripts.thread_test import ComplexThreadTest, ThreadTest
-from scripts.vmwhere1 import Vmwhere1
+from scripts.vmwhere1_test import Vmwhere1
 from scripts.waiting_test import WaitingNcuts, WaitingTest
 from scripts.watchpoint_alias_test import WatchpointAliasTest
 from scripts.watchpoint_test import WatchpointTest
