@@ -259,6 +259,9 @@ class PtraceInterface(DebuggingInterface):
             errno_val = self.ffi.errno
             raise OSError(errno_val, errno.errorcode[errno_val])
 
+        # As the wait is done internally, we must invalidate the cache
+        invalidate_process_cache()
+
     def finish(self: PtraceInterface, thread: ThreadContext, exact: bool) -> None:
         """Executes instructions of the specified thread until the current function returns.
 
@@ -275,6 +278,9 @@ class PtraceInterface(DebuggingInterface):
             if result == -1:
                 errno_val = self.ffi.errno
                 raise OSError(errno_val, errno.errorcode[errno_val])
+
+            # As the wait is done internally, we must invalidate the cache
+            invalidate_process_cache()
         else:
             # Breakpoint to return address
             last_saved_instruction_pointer = thread.current_return_address()
