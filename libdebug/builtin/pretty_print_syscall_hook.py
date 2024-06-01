@@ -4,17 +4,21 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-from typing import TYPE_CHECKING, Tuple, Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from libdebug.utils.print_style import PrintStyle
 from libdebug.utils.syscall_utils import (
-    resolve_syscall_name,
     resolve_syscall_arguments,
+    resolve_syscall_name,
 )
 
 if TYPE_CHECKING:
     from libdebug.state.thread_context import ThreadContext
 
-def pprint_on_enter(d: "ThreadContext", syscall_number: int, **kwargs: Any):
+
+def pprint_on_enter(d: ThreadContext, syscall_number: int, **kwargs: int) -> None:
     """Function that will be called when a syscall is entered in pretty print mode.
 
     Args:
@@ -40,13 +44,13 @@ def pprint_on_enter(d: "ThreadContext", syscall_number: int, **kwargs: Any):
             f"{arg} = {PrintStyle.BRIGHT_YELLOW}0x{value:x}{PrintStyle.DEFAULT_COLOR}"
             if old_value == value
             else f"{arg} = {PrintStyle.BRIGHT_YELLOW}0x{old_value:x} -> {PrintStyle.BRIGHT_YELLOW}0x{value:x}{PrintStyle.DEFAULT_COLOR}"
-            for arg, value, old_value in zip(syscall_args, values, old_args)
+            for arg, value, old_value in zip(syscall_args, values, old_args, strict=False)
             if arg is not None
         ]
     else:
         entries = [
             f"{arg} = {PrintStyle.BRIGHT_YELLOW}0x{value:x}{PrintStyle.DEFAULT_COLOR}"
-            for arg, value in zip(syscall_args, values)
+            for arg, value in zip(syscall_args, values, strict=False)
             if arg is not None
         ]
 
@@ -54,7 +58,7 @@ def pprint_on_enter(d: "ThreadContext", syscall_number: int, **kwargs: Any):
     user_hooked = kwargs.get("user_hooked", False)
     if hijacked:
         print(
-            f"{PrintStyle.RED}(user hijacked) {PrintStyle.STRIKE}{PrintStyle.BLUE}{syscall_name}{PrintStyle.DEFAULT_COLOR}({', '.join(entries)}){PrintStyle.RESET}"
+            f"{PrintStyle.RED}(user hijacked) {PrintStyle.STRIKE}{PrintStyle.BLUE}{syscall_name}{PrintStyle.DEFAULT_COLOR}({', '.join(entries)}){PrintStyle.RESET}",
         )
     elif user_hooked:
         print(
@@ -68,16 +72,15 @@ def pprint_on_enter(d: "ThreadContext", syscall_number: int, **kwargs: Any):
         )
 
 
-def pprint_on_exit(syscall_return: int | Tuple[int, int]):
+def pprint_on_exit(syscall_return: int | tuple[int, int]) -> None:
     """Function that will be called when a syscall is exited in pretty print mode.
 
     Args:
         syscall_return (int | list[int]): the syscall return value.
     """
-
-    if isinstance(syscall_return, Tuple):
+    if isinstance(syscall_return, tuple):
         print(
-            f"{PrintStyle.YELLOW}{PrintStyle.STRIKE}0x{syscall_return[0]:x}{PrintStyle.RESET} {PrintStyle.YELLOW}0x{syscall_return[1]:x}{PrintStyle.RESET}"
+            f"{PrintStyle.YELLOW}{PrintStyle.STRIKE}0x{syscall_return[0]:x}{PrintStyle.RESET} {PrintStyle.YELLOW}0x{syscall_return[1]:x}{PrintStyle.RESET}",
         )
     else:
         print(f"{PrintStyle.YELLOW}0x{syscall_return:x}{PrintStyle.RESET}")
