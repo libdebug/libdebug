@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from libdebug.data.register_holder import PtraceRegisterHolder
+from libdebug.ptrace.ptrace_register_holder import PtraceRegisterHolder
 
 if TYPE_CHECKING:
     from libdebug.state.thread_context import ThreadContext
