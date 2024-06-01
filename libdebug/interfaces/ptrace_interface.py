@@ -361,12 +361,6 @@ class PtraceInterface(DebuggingInterface):
 
         invalidate_process_cache()
 
-    def get_register_holder(self, thread_id: int) -> RegisterHolder:
-        """Returns the current value of all the available registers.
-        Note: the register holder should then be used to automatically setup getters and setters for each register.
-        """
-        raise RuntimeError("This method should never be called.")
-
     def wait(self):
         """Waits for the process to stop. Returns True if the wait has to be repeated."""
         result = self.lib_trace.wait_all_and_update_regs(
