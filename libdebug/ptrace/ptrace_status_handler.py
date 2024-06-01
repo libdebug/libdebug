@@ -4,36 +4,44 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+from __future__ import annotations
+
 import os
 import signal
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from libdebug.architectures.ptrace_software_breakpoint_patcher import (
     software_breakpoint_byte_size,
 )
-from libdebug.data.syscall_hook import SyscallHook
-from libdebug.data.signal_hook import SignalHook
 from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_constants import SYSCALL_SIGTRAP, StopEvents
 from libdebug.state.debugging_context import provide_context
-from libdebug.state.thread_context import ThreadContext
-from libdebug.utils.signal_utils import resolve_signal_name
 from libdebug.state.resume_context import ResumeStatus
+from libdebug.utils.signal_utils import resolve_signal_name
 
 if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
+    from libdebug.data.signal_hook import SignalHook
+    from libdebug.data.syscall_hook import SyscallHook
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.state.debugging_context import DebuggingContext
+    from libdebug.state.thread_context import ThreadContext
 
 
 class PtraceStatusHandler:
-    def __init__(self):
-        self.context: "DebuggingContext" = provide_context(self)
-        self.ptrace_interface: "DebuggingInterface" = self.context.debugging_interface
-        self._threads_with_signals_to_deliver: list[int] = []
-        self._assume_race_sigstop: bool = True  # Assume the stop is due to a race condition with SIGSTOP sent by the debugger
+    """This class handles the states return by the waitpid calls on the debugger process."""
 
-    def _handle_clone(self, thread_id: int, results: list):
+    def __init__(self: PtraceStatusHandler) -> None:
+        """Initializes the PtraceStatusHandler class."""
+        self.context: DebuggingContext = provide_context(self)
+        self.ptrace_interface: DebuggingInterface = self.context.debugging_interface
+        self._threads_with_signals_to_deliver: list[int] = []
+        self._assume_race_sigstop: bool = (
+            True  # Assume the stop is due to a race condition with SIGSTOP sent by the debugger
+        )
+
+    def _handle_clone(self: PtraceStatusHandler, thread_id: int, results: list) -> None:
         # https://go.googlesource.com/debug/+/a09ead70f05c87ad67bd9a131ff8352cf39a6082/doc/ptrace-nptl.txt
         # "At this time, the new thread will exist, but will initially
         # be stopped with a SIGSTOP.  The new thread will automatically be
@@ -48,11 +56,11 @@ class PtraceStatusHandler:
             os.waitpid(thread_id, 0)
         self.ptrace_interface.register_new_thread(thread_id)
 
-    def _handle_exit(self, thread_id: int):
+    def _handle_exit(self: PtraceStatusHandler, thread_id: int) -> None:
         if self.context.get_thread_by_id(thread_id):
             self.ptrace_interface.unregister_thread(thread_id)
 
-    def _handle_breakpoints(self, thread_id: int) -> bool:
+    def _handle_breakpoints(self: PtraceStatusHandler, thread_id: int) -> bool:
         thread = self.context.get_thread_by_id(thread_id)
 
         if not hasattr(thread, "instruction_pointer"):
@@ -63,7 +71,7 @@ class PtraceStatusHandler:
 
         ip = thread.instruction_pointer
 
-        bp: None | "Breakpoint"
+        bp: None | Breakpoint
 
         enabled_breakpoints = {}
         for bp in self.context.breakpoints.values():
@@ -74,7 +82,7 @@ class PtraceStatusHandler:
 
         if ip in enabled_breakpoints:
             # Hardware breakpoint hit
-            liblog.debugger("Hardware breakpoint hit at 0x%x" % ip)
+            liblog.debugger("Hardware breakpoint hit at 0x%x", ip)
             bp = self.context.breakpoints[ip]
         else:
             # If the trap was caused by a software breakpoint, we need to restore the original instruction
@@ -94,9 +102,7 @@ class PtraceStatusHandler:
 
         # Manage watchpoints
         if bp is None:
-            bp = self.ptrace_interface.hardware_bp_helpers[
-                thread_id
-            ].is_watchpoint_hit()
+            bp = self.ptrace_interface.hardware_bp_helpers[thread_id].is_watchpoint_hit()
             if bp is not None:
                 liblog.debugger("Watchpoint hit at 0x%x", bp.address)
 
@@ -111,12 +117,12 @@ class PtraceStatusHandler:
                 self.context._resume_context.resume = ResumeStatus.NOT_RESUME
 
     def _manage_syscall_on_enter(
-        self,
+        self: PtraceStatusHandler,
         hook: SyscallHook,
         thread: ThreadContext,
         syscall_number: int,
         hijacked_set: set[int],
-    ):
+    ) -> None:
         """Manage the on_enter hook of a syscall."""
         # Call the user-defined hook if it exists
         if hook.on_enter_user and hook.enabled:
@@ -137,7 +143,10 @@ class PtraceStatusHandler:
                 # Pretty print the syscall number before the hook
                 if hook.on_enter_pprint:
                     hook.on_enter_pprint(
-                        thread, syscall_number, hijacked=True, old_args=old_args
+                        thread,
+                        syscall_number,
+                        hijacked=True,
+                        old_args=old_args,
                     )
 
                 # The syscall number has changed
@@ -151,7 +160,7 @@ class PtraceStatusHandler:
                         else:
                             # The syscall has already been hijacked in the current chain
                             raise RuntimeError(
-                                "Syscall hijacking loop detected. Check your hooks to avoid infinite loops."
+                                "Syscall hijacking loop detected. Check your hooks to avoid infinite loops.",
                             )
 
                         # Call recursively the function to manage the new syscall
@@ -184,9 +193,8 @@ class PtraceStatusHandler:
             # The syscall has been entered but the user did not define an on_enter hook
             hook._has_entered = True
 
-    def _handle_syscall(self, thread_id: int) -> bool:
+    def _handle_syscall(self: PtraceStatusHandler, thread_id: int) -> bool:
         """Handle a syscall trap."""
-
         thread = self.context.get_thread_by_id(thread_id)
 
         if not hasattr(thread, "syscall_number"):
@@ -206,11 +214,16 @@ class PtraceStatusHandler:
         if not hook._has_entered:
             # The syscall is being entered
             liblog.debugger(
-                "Syscall %d entered on thread %d", syscall_number, thread_id
+                "Syscall %d entered on thread %d",
+                syscall_number,
+                thread_id,
             )
 
             self._manage_syscall_on_enter(
-                hook, thread, syscall_number, {syscall_number}
+                hook,
+                thread,
+                syscall_number,
+                {syscall_number},
             )
 
         else:
@@ -231,7 +244,7 @@ class PtraceStatusHandler:
                     return_value_after_hook = thread.syscall_return
                     if return_value_after_hook != return_value_before_hook:
                         hook.on_exit_pprint(
-                            (return_value_before_hook, return_value_after_hook)
+                            (return_value_before_hook, return_value_after_hook),
                         )
                     else:
                         hook.on_exit_pprint(return_value_after_hook)
@@ -245,7 +258,7 @@ class PtraceStatusHandler:
         self.context._resume_context.resume = ResumeStatus.RESUME
 
     def _manage_signal_callback(
-        self,
+        self: PtraceStatusHandler,
         hook: SignalHook,
         thread: ThreadContext,
         signal_number: int,
@@ -269,24 +282,25 @@ class PtraceStatusHandler:
                         new_signal_number,
                     )
 
-                    if hook.hook_hijack:
-                        if new_signal_number in self.context.signal_hooks:
-                            hijack_hook = self.context.signal_hooks[new_signal_number]
-                            if new_signal_number not in hijacked_set:
-                                hijacked_set.add(new_signal_number)
-                            else:
-                                # The signal has already been hijacked in the current chain
-                                raise RuntimeError(
-                                    "Signal hijacking loop detected. Check your hooks to avoid infinite loops."
-                                )
-                            # Call recursively the function to manage the new signal
-                            self._manage_signal_callback(
-                                hijack_hook, thread, new_signal_number, hijacked_set
+                    if hook.hook_hijack and new_signal_number in self.context.signal_hooks:
+                        hijack_hook = self.context.signal_hooks[new_signal_number]
+                        if new_signal_number not in hijacked_set:
+                            hijacked_set.add(new_signal_number)
+                        else:
+                            # The signal has already been hijacked in the current chain
+                            raise RuntimeError(
+                                "Signal hijacking loop detected. Check your hooks to avoid infinite loops.",
                             )
+                        # Call recursively the function to manage the new signal
+                        self._manage_signal_callback(
+                            hijack_hook,
+                            thread,
+                            new_signal_number,
+                            hijacked_set,
+                        )
 
-    def _handle_signal(self, thread: ThreadContext) -> bool:
+    def _handle_signal(self: PtraceStatusHandler, thread: ThreadContext) -> bool:
         """Handle the signal trap."""
-
         signal_number = thread.signal_number
 
         if signal_number in self.context.signal_hooks:
@@ -297,8 +311,12 @@ class PtraceStatusHandler:
             self.context._resume_context.resume = ResumeStatus.RESUME
 
     def _internal_signal_handler(
-        self, pid: int, signum: int, results: list, status: int
-    ):
+        self: PtraceStatusHandler,
+        pid: int,
+        signum: int,
+        results: list,
+        status: int,
+    ) -> None:
         """Internal handler for signals used by the debugger."""
         if signum == SYSCALL_SIGTRAP:
             # We hit a syscall
@@ -328,13 +346,13 @@ class PtraceStatusHandler:
                     # The process has been cloned
                     message = self.ptrace_interface._get_event_msg(pid)
                     liblog.debugger(
-                        "Process {} cloned, new thread_id: {}".format(pid, message)
+                        f"Process {pid} cloned, new thread_id: {message}",
                     )
                     self._handle_clone(message, results)
                     self.context._resume_context.resume = ResumeStatus.RESUME
                 case StopEvents.SECCOMP_EVENT:
                     # The process has installed a seccomp
-                    liblog.debugger("Process {} installed a seccomp".format(pid))
+                    liblog.debugger(f"Process {pid} installed a seccomp")
                     self.context._resume_context.resume = ResumeStatus.RESUME
                 case StopEvents.EXIT_EVENT:
                     # The tracee is still alive; it needs
@@ -343,13 +361,12 @@ class PtraceStatusHandler:
                     # it will be called at the next wait (hopefully)
                     message = self.ptrace_interface._get_event_msg(pid)
                     liblog.debugger(
-                        "Thread {} exited with status: {}".format(pid, message)
+                        f"Thread {pid} exited with status: {message}",
                     )
                     self.context._resume_context.resume = ResumeStatus.RESUME
 
-    def _handle_change(self, pid: int, status: int, results: list):
+    def _handle_change(self: PtraceStatusHandler, pid: int, status: int, results: list) -> None:
         """Handle a change in the status of a traced process."""
-
         if os.WIFSTOPPED(status):
             signum = os.WSTOPSIG(status)
 
@@ -384,9 +401,8 @@ class PtraceStatusHandler:
             self._handle_exit(pid)
             self.context._resume_context.resume = ResumeStatus.RESUME
 
-    def manage_change(self, result):
+    def manage_change(self: PtraceStatusHandler, result: list[tuple]) -> None:
         """Manage the result of the waitpid and handle the changes."""
-
         # Assume that the stop depends on SIGSTOP sent by the debugger
         # This is a workaround for some race conditions that may happen
         self._assume_race_sigstop = True
@@ -408,9 +424,9 @@ class PtraceStatusHandler:
         # Clear the list of threads with signals to deliver
         self._threads_with_signals_to_deliver.clear()
 
-    def check_for_new_threads(self, pid: int):
+    def check_for_new_threads(self: PtraceStatusHandler, pid: int) -> None:
         """Check for new threads in the process and register them."""
-        if not os.path.exists(f"/proc/{pid}/task"):
+        if not Path(f"/proc/{pid}/task").exists():
             return
 
         tids = [int(x) for x in os.listdir(f"/proc/{pid}/task")]

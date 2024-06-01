@@ -4,34 +4,31 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+from __future__ import annotations
+
 import errno
 import os
 import pty
 import tty
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from libdebug.architectures.ptrace_hardware_breakpoint_manager import (
-    PtraceHardwareBreakpointManager,
-)
 from libdebug.architectures.ptrace_hardware_breakpoint_provider import (
     ptrace_hardware_breakpoint_manager_provider,
 )
 from libdebug.architectures.register_helper import register_holder_provider
 from libdebug.cffi import _ptrace_cffi
 from libdebug.data.breakpoint import Breakpoint
-from libdebug.data.memory_map import MemoryMap
-from libdebug.data.register_holder import RegisterHolder
-from libdebug.data.syscall_hook import SyscallHook
 from libdebug.interfaces.debugging_interface import DebuggingInterface
-from libdebug.data.signal_hook import SignalHook
 from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
 from libdebug.state.debugging_context import (
+    DebuggingContext,
     context_extend_from,
     link_context,
     provide_context,
 )
-from libdebug.state.debugging_context import DebuggingContext
+from libdebug.state.resume_context import ResumeStatus
 from libdebug.state.thread_context import ThreadContext
 from libdebug.utils.debugging_utils import normalize_and_validate_address
 from libdebug.utils.elf_utils import get_entry_point
@@ -41,21 +38,27 @@ from libdebug.utils.process_utils import (
     get_process_maps,
     invalidate_process_cache,
 )
-from libdebug.state.resume_context import ResumeStatus
 
 JUMPSTART_LOCATION = str(
-    (Path(__file__) / ".." / ".." / "ptrace" / "jumpstart" / "jumpstart").resolve()
+    (Path(__file__) / ".." / ".." / "ptrace" / "jumpstart" / "jumpstart").resolve(),
 )
 
 if hasattr(os, "posix_spawn"):
-    from os import posix_spawn, POSIX_SPAWN_CLOSE, POSIX_SPAWN_DUP2
+    from os import POSIX_SPAWN_CLOSE, POSIX_SPAWN_DUP2, posix_spawn
 else:
     from libdebug.utils.posix_spawn import (
-        posix_spawn,
         POSIX_SPAWN_CLOSE,
         POSIX_SPAWN_DUP2,
+        posix_spawn,
     )
 
+if TYPE_CHECKING:
+    from libdebug.architectures.ptrace_hardware_breakpoint_manager import (
+        PtraceHardwareBreakpointManager,
+    )
+    from libdebug.data.memory_map import MemoryMap
+    from libdebug.data.signal_hook import SignalHook
+    from libdebug.data.syscall_hook import SyscallHook
 
 class PtraceInterface(DebuggingInterface):
     """The interface used by `_InternalDebugger` to communicate with the `ptrace` debugging backend."""
@@ -72,7 +75,7 @@ class PtraceInterface(DebuggingInterface):
     detached: bool
     """Whether the process was detached or not."""
 
-    def __init__(self):
+    def __init__(self: PtraceInterface) -> None:
         super().__init__()
 
         self.lib_trace = _ptrace_cffi.lib
@@ -92,17 +95,17 @@ class PtraceInterface(DebuggingInterface):
 
         self.reset()
 
-    def reset(self):
+    def reset(self: PtraceInterface) -> None:
         """Resets the state of the interface."""
         self.hardware_bp_helpers.clear()
         self.lib_trace.free_thread_list(self._global_state)
         self.lib_trace.free_breakpoints(self._global_state)
 
-    def _set_options(self):
+    def _set_options(self: PtraceInterface) -> None:
         """Sets the tracer options."""
         self.lib_trace.ptrace_set_options(self.process_id)
 
-    def _trace_self(self):
+    def _trace_self(self: PtraceInterface) -> None:
         """Traces the current process."""
         result = self.lib_trace.ptrace_trace_me()
         # TODO: investigate errno handling
@@ -110,7 +113,7 @@ class PtraceInterface(DebuggingInterface):
             errno_val = self.ffi.errno
             raise OSError(errno_val, errno.errorcode[errno_val])
 
-    def run(self):
+    def run(self: PtraceInterface) -> None:
         """Runs the specified process."""
         argv = self.context.argv
         env = self.context.env
@@ -133,7 +136,7 @@ class PtraceInterface(DebuggingInterface):
 
         child_pid = posix_spawn(
             JUMPSTART_LOCATION,
-            [JUMPSTART_LOCATION] + argv,
+            [JUMPSTART_LOCATION, *argv],
             env,
             file_actions=[
                 (POSIX_SPAWN_CLOSE, self.stdin_write),
@@ -157,7 +160,7 @@ class PtraceInterface(DebuggingInterface):
         self._setup_parent(continue_to_entry_point)
         self.context.pipe_manager = self._setup_pipe()
 
-    def attach(self, pid: int):
+    def attach(self: PtraceInterface, pid: int) -> None:
         """Attaches to the specified process.
 
         Args:
@@ -180,10 +183,8 @@ class PtraceInterface(DebuggingInterface):
         # which we have probably already passed
         self._setup_parent(continue_to_entry_point=False)
 
-    def detach(self):
+    def detach(self: PtraceInterface) -> None:
         """Detaches from the process."""
-        assert self.process_id is not None
-
         # We must disable all breakpoints before detaching
         for bp in list(self.context.breakpoints.values()):
             if bp.enabled:
@@ -193,10 +194,8 @@ class PtraceInterface(DebuggingInterface):
 
         self.detached = True
 
-    def kill(self):
+    def kill(self: PtraceInterface) -> None:
         """Instantly terminates the process."""
-        assert self.process_id is not None
-
         if not self.detached:
             self.lib_trace.ptrace_detach_for_kill(self._global_state, self.process_id)
         else:
@@ -205,7 +204,7 @@ class PtraceInterface(DebuggingInterface):
             os.kill(self.process_id, 9)
             os.waitpid(self.process_id, 0)
 
-    def cont(self):
+    def cont(self: PtraceInterface) -> None:
         """Continues the execution of the process."""
         # Enable all breakpoints if they were disabled for a single step
         changed = []
@@ -230,13 +229,13 @@ class PtraceInterface(DebuggingInterface):
             self._global_state.syscall_hooks_enabled = False
 
         result = self.lib_trace.cont_all_and_set_bps(
-            self._global_state, self.process_id
+            self._global_state, self.process_id,
         )
         if result < 0:
             errno_val = self.ffi.errno
             raise OSError(errno_val, errno.errorcode[errno_val])
 
-    def step(self, thread: ThreadContext):
+    def step(self: PtraceInterface, thread: ThreadContext) -> None:
         """Executes a single instruction of the process."""
         # Disable all breakpoints for the single step
         for bp in self.context.breakpoints.values():
@@ -249,7 +248,7 @@ class PtraceInterface(DebuggingInterface):
 
         self.context._resume_context.is_a_step = True
 
-    def step_until(self, thread: ThreadContext, address: int, max_steps: int):
+    def step_until(self: PtraceInterface, thread: ThreadContext, address: int, max_steps: int) -> None:
         """Executes instructions of the specified thread until the specified address is reached.
 
         Args:
@@ -262,26 +261,25 @@ class PtraceInterface(DebuggingInterface):
             bp._disabled_for_step = True
 
         result = self.lib_trace.step_until(
-            self._global_state, thread.thread_id, address, max_steps
+            self._global_state, thread.thread_id, address, max_steps,
         )
         if result == -1:
             errno_val = self.ffi.errno
             raise OSError(errno_val, errno.errorcode[errno_val])
-        
-    def finish(self, thread: ThreadContext, exact: bool):
+
+    def finish(self: PtraceInterface, thread: ThreadContext, exact: bool) -> None:
         """Executes instructions of the specified thread until the current function returns.
 
         Args:
             thread (ThreadContext): The thread to step.
             exact (bool): If True, the command is implemented as a series of `step` commands.
         """
-        
         if exact:
 
             result = self.lib_trace.exact_finish(
-                self._global_state, thread.thread_id
+                self._global_state, thread.thread_id,
             )
-            
+
             if result == -1:
                 errno_val = self.ffi.errno
                 raise OSError(errno_val, errno.errorcode[errno_val])
@@ -292,7 +290,7 @@ class PtraceInterface(DebuggingInterface):
             # If a breakpoint already exists at the return address, we don't need to set a new one
             found = False
             ip_breakpoint = None
-            
+
             for bp in self.context.breakpoints.values():
                 if bp.address == last_saved_instruction_pointer:
                     found = True
@@ -306,9 +304,8 @@ class PtraceInterface(DebuggingInterface):
 
                 ip_breakpoint = Breakpoint(last_saved_instruction_pointer, hardware=install_hw_bp)
                 self.set_breakpoint(ip_breakpoint)
-            else:
-                if not ip_breakpoint.enabled:
-                    self._enable_breakpoint(ip_breakpoint)
+            elif not ip_breakpoint.enabled:
+                self._enable_breakpoint(ip_breakpoint)
 
             self.cont()
             self.wait()
@@ -317,9 +314,8 @@ class PtraceInterface(DebuggingInterface):
             if not found:
                 self.unset_breakpoint(ip_breakpoint)
 
-    def _setup_pipe(self):
-        """
-        Sets up the pipe manager for the child process.
+    def _setup_pipe(self: PtraceInterface) -> None:
+        """Sets up the pipe manager for the child process.
 
         Close the read end for stdin and the write ends for stdout and stderr
         in the parent process since we are going to write to stdin and read from
@@ -331,13 +327,11 @@ class PtraceInterface(DebuggingInterface):
             os.close(self.stderr_write)
         except Exception as e:
             # TODO: custom exception
-            raise Exception("Closing fds failed: %r" % e)
+            raise Exception("Closing fds failed: %r" % e) from e
         return PipeManager(self.stdin_write, self.stdout_read, self.stderr_read)
 
-    def _setup_parent(self, continue_to_entry_point: bool):
-        """
-        Sets up the parent process after the child process has been created or attached to.
-        """
+    def _setup_parent(self: PtraceInterface, continue_to_entry_point: bool) -> None:
+        """Sets up the parent process after the child process has been created or attached to."""
         liblog.debugger("Polling child process status")
         self.wait()
         liblog.debugger("Child process ready, setting options")
@@ -361,10 +355,10 @@ class PtraceInterface(DebuggingInterface):
 
         invalidate_process_cache()
 
-    def wait(self):
+    def wait(self: PtraceInterface) -> None:
         """Waits for the process to stop. Returns True if the wait has to be repeated."""
         result = self.lib_trace.wait_all_and_update_regs(
-            self._global_state, self.process_id
+            self._global_state, self.process_id,
         )
         cursor = result
 
@@ -381,7 +375,7 @@ class PtraceInterface(DebuggingInterface):
 
         self.lib_trace.free_thread_status_list(result)
 
-    def deliver_signal(self, threads: list[int]):
+    def deliver_signal(self: PtraceInterface, threads: list[int]) -> None:
         """Set the signals to deliver to the threads."""
         # change the global_state
         cursor = self._global_state.t_HEAD
@@ -397,7 +391,7 @@ class PtraceInterface(DebuggingInterface):
                     and thread.signal_number in self.context._signal_to_pass
                 ):
                     liblog.debugger(
-                        f"Delivering signal {thread.signal_number} to thread {cursor.tid}"
+                        f"Delivering signal {thread.signal_number} to thread {cursor.tid}",
                     )
                     # Set the signal to deliver
                     cursor.signal_to_deliver = thread.signal_number
@@ -407,11 +401,11 @@ class PtraceInterface(DebuggingInterface):
                     self.context._resume_context.resume = ResumeStatus.RESUME
             cursor = cursor.next
 
-    def migrate_to_gdb(self):
+    def migrate_to_gdb(self: PtraceInterface) -> None:
         """Migrates the current process to GDB."""
         self.lib_trace.ptrace_detach_for_migration(self._global_state, self.process_id)
 
-    def migrate_from_gdb(self):
+    def migrate_from_gdb(self: PtraceInterface) -> None:
         """Migrates the current process from GDB."""
         self.lib_trace.ptrace_reattach_from_gdb(self._global_state, self.process_id)
 
@@ -425,11 +419,11 @@ class PtraceInterface(DebuggingInterface):
                     helper.remove_breakpoint(bp)
                     helper.install_breakpoint(bp)
 
-    def register_new_thread(self, new_thread_id: int):
+    def register_new_thread(self: PtraceInterface, new_thread_id: int) -> None:
         """Registers a new thread."""
         # The FFI implementation returns a pointer to the register file
         register_file = self.lib_trace.register_thread(
-            self._global_state, new_thread_id
+            self._global_state, new_thread_id,
         )
 
         register_holder = register_holder_provider(register_file)
@@ -441,7 +435,7 @@ class PtraceInterface(DebuggingInterface):
 
         self.context.insert_new_thread(thread)
         thread_hw_bp_helper = ptrace_hardware_breakpoint_manager_provider(
-            thread, self._peek_user, self._poke_user
+            thread, self._peek_user, self._poke_user,
         )
         self.hardware_bp_helpers[new_thread_id] = thread_hw_bp_helper
 
@@ -450,7 +444,7 @@ class PtraceInterface(DebuggingInterface):
             if bp.hardware:
                 thread_hw_bp_helper.install_breakpoint(bp)
 
-    def unregister_thread(self, thread_id: int):
+    def unregister_thread(self: PtraceInterface, thread_id: int) -> None:
         """Unregisters a thread."""
         self.lib_trace.unregister_thread(self._global_state, thread_id)
 
@@ -459,77 +453,77 @@ class PtraceInterface(DebuggingInterface):
         # Remove the hardware breakpoint manager for the thread
         self.hardware_bp_helpers.pop(thread_id)
 
-    def _set_sw_breakpoint(self, breakpoint: Breakpoint):
+    def _set_sw_breakpoint(self: PtraceInterface, bp: Breakpoint) -> None:
         """Sets a software breakpoint at the specified address.
 
         Args:
-            breakpoint (Breakpoint): The breakpoint to set.
+            bp (Breakpoint): The breakpoint to set.
         """
         self.lib_trace.register_breakpoint(
-            self._global_state, self.process_id, breakpoint.address
+            self._global_state, self.process_id, bp.address,
         )
 
-    def _unset_sw_breakpoint(self, breakpoint: Breakpoint):
+    def _unset_sw_breakpoint(self: PtraceInterface, bp: Breakpoint) -> None:
         """Unsets a software breakpoint at the specified address.
 
         Args:
-            breakpoint (Breakpoint): The breakpoint to unset.
+            bp (Breakpoint): The breakpoint to unset.
         """
-        self.lib_trace.unregister_breakpoint(self._global_state, breakpoint.address)
+        self.lib_trace.unregister_breakpoint(self._global_state, bp.address)
 
-    def _enable_breakpoint(self, breakpoint: Breakpoint):
+    def _enable_breakpoint(self: PtraceInterface, bp: Breakpoint) -> None:
         """Enables a breakpoint at the specified address.
 
         Args:
-            breakpoint (Breakpoint): The breakpoint to enable.
+            bp (Breakpoint): The breakpoint to enable.
         """
-        self.lib_trace.enable_breakpoint(self._global_state, breakpoint.address)
+        self.lib_trace.enable_breakpoint(self._global_state, bp.address)
 
-    def _disable_breakpoint(self, breakpoint: Breakpoint):
+    def _disable_breakpoint(self: PtraceInterface, bp: Breakpoint) -> None:
         """Disables a breakpoint at the specified address.
 
         Args:
-            breakpoint (Breakpoint): The breakpoint to disable.
+            bp (Breakpoint): The breakpoint to disable.
         """
-        self.lib_trace.disable_breakpoint(self._global_state, breakpoint.address)
+        self.lib_trace.disable_breakpoint(self._global_state, bp.address)
 
-    def set_breakpoint(self, breakpoint: Breakpoint, insert: bool = True):
+    def set_breakpoint(self: PtraceInterface, bp: Breakpoint, insert: bool = True) -> None:
         """Sets a breakpoint at the specified address.
 
         Args:
-            breakpoint (Breakpoint): The breakpoint to set.
+            bp (Breakpoint): The breakpoint to set.
+            insert (bool): Whether the breakpoint has to be inserted or just enabled.
         """
-        if breakpoint.hardware:
+        if bp.hardware:
             for helper in self.hardware_bp_helpers.values():
-                helper.install_breakpoint(breakpoint)
+                helper.install_breakpoint(bp)
+        elif insert:
+            self._set_sw_breakpoint(bp)
         else:
-            if insert:
-                self._set_sw_breakpoint(breakpoint)
-            else:
-                self._enable_breakpoint(breakpoint)
+            self._enable_breakpoint(bp)
 
         if insert:
-            self.context.insert_new_breakpoint(breakpoint)
+            self.context.insert_new_breakpoint(bp)
 
-    def unset_breakpoint(self, breakpoint: Breakpoint, delete: bool = True):
+    def unset_breakpoint(self: PtraceInterface, bp: Breakpoint, delete: bool = True) -> None:
         """Restores the breakpoint at the specified address.
 
         Args:
-            breakpoint (Breakpoint): The breakpoint to unset.
+            bp (Breakpoint): The breakpoint to unset.
+            delete (bool): Whether the breakpoint has to be deleted or just disabled.
         """
-        if breakpoint.hardware:
+        if bp.hardware:
             for helper in self.hardware_bp_helpers.values():
-                helper.remove_breakpoint(breakpoint)
+                helper.remove_breakpoint(bp)
+        elif delete:
+            self._unset_sw_breakpoint(bp)
         else:
-            if delete:
-                self._unset_sw_breakpoint(breakpoint)
-            else:
-                self._disable_breakpoint(breakpoint)
+            self._disable_breakpoint(bp)
 
         if delete:
-            self.context.remove_breakpoint(breakpoint)
+            self.context.remove_breakpoint(bp)
 
-    def set_syscall_hook(self, hook: SyscallHook):
+    def set_syscall_hook(self: PtraceInterface, hook: SyscallHook) -> None:
         """Sets a syscall hook.
 
         Args:
@@ -537,7 +531,7 @@ class PtraceInterface(DebuggingInterface):
         """
         self.context.insert_new_syscall_hook(hook)
 
-    def unset_syscall_hook(self, hook: SyscallHook):
+    def unset_syscall_hook(self: PtraceInterface, hook: SyscallHook) -> None:
         """Unsets a syscall hook.
 
         Args:
@@ -545,7 +539,7 @@ class PtraceInterface(DebuggingInterface):
         """
         self.context.remove_syscall_hook(hook)
 
-    def set_signal_hook(self, hook: SignalHook):
+    def set_signal_hook(self: PtraceInterface, hook: SignalHook) -> None:
         """Sets a signal hook.
 
         Args:
@@ -553,7 +547,7 @@ class PtraceInterface(DebuggingInterface):
         """
         self.context.insert_new_signal_hook(hook)
 
-    def unset_signal_hook(self, hook: SignalHook):
+    def unset_signal_hook(self: PtraceInterface, hook: SignalHook) -> None:
         """Unsets a signal hook.
 
         Args:
@@ -561,11 +555,11 @@ class PtraceInterface(DebuggingInterface):
         """
         self.context.remove_signal_hook(hook)
 
-    def peek_memory(self, address: int) -> int:
+    def peek_memory(self: PtraceInterface, address: int) -> int:
         """Reads the memory at the specified address."""
         result = self.lib_trace.ptrace_peekdata(self.process_id, address)
         liblog.debugger(
-            "PEEKDATA at address %d returned with result %x", address, result
+            "PEEKDATA at address %d returned with result %x", address, result,
         )
 
         error = self.ffi.errno
@@ -574,22 +568,22 @@ class PtraceInterface(DebuggingInterface):
 
         return result
 
-    def poke_memory(self, address: int, value: int):
+    def poke_memory(self: PtraceInterface, address: int, value: int) -> None:
         """Writes the memory at the specified address."""
         result = self.lib_trace.ptrace_pokedata(self.process_id, address, value)
         liblog.debugger(
-            "POKEDATA at address %d returned with result %d", address, result
+            "POKEDATA at address %d returned with result %d", address, result,
         )
 
         if result == -1:
             error = self.ffi.errno
             raise OSError(error, errno.errorcode[error])
 
-    def _peek_user(self, thread_id: int, address: int) -> int:
+    def _peek_user(self: PtraceInterface, thread_id: int, address: int) -> int:
         """Reads the memory at the specified address."""
         result = self.lib_trace.ptrace_peekuser(thread_id, address)
         liblog.debugger(
-            "PEEKUSER at address %d returned with result %x", address, result
+            "PEEKUSER at address %d returned with result %x", address, result,
         )
 
         error = self.ffi.errno
@@ -598,23 +592,21 @@ class PtraceInterface(DebuggingInterface):
 
         return result
 
-    def _poke_user(self, thread_id: int, address: int, value: int):
+    def _poke_user(self: PtraceInterface, thread_id: int, address: int, value: int) -> None:
         """Writes the memory at the specified address."""
         result = self.lib_trace.ptrace_pokeuser(thread_id, address, value)
         liblog.debugger(
-            "POKEUSER at address %d returned with result %d", address, result
+            "POKEUSER at address %d returned with result %d", address, result,
         )
 
         if result == -1:
             error = self.ffi.errno
             raise OSError(error, errno.errorcode[error])
 
-    def _get_event_msg(self, thread_id: int) -> int:
+    def _get_event_msg(self: PtraceInterface, thread_id: int) -> int:
         """Returns the event message."""
         return self.lib_trace.ptrace_geteventmsg(thread_id)
 
-    def maps(self) -> list[MemoryMap]:
+    def maps(self: PtraceInterface) -> list[MemoryMap]:
         """Returns the memory maps of the process."""
-        assert self.process_id is not None
-
         return get_process_maps(self.process_id)
