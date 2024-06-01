@@ -16,7 +16,7 @@ class LibLog:
 
     _instance = None
 
-    def __new__(cls: type) -> "Self":
+    def __new__(cls: type):
         """Create a new instance of the class if it does not exist yet.
 
         Returns:
