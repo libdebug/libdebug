@@ -105,14 +105,6 @@ class PtraceInterface(DebuggingInterface):
         """Sets the tracer options."""
         self.lib_trace.ptrace_set_options(self.process_id)
 
-    def _trace_self(self: PtraceInterface) -> None:
-        """Traces the current process."""
-        result = self.lib_trace.ptrace_trace_me()
-        # TODO: investigate errno handling
-        if result == -1:
-            errno_val = self.ffi.errno
-            raise OSError(errno_val, errno.errorcode[errno_val])
-
     def run(self: PtraceInterface) -> None:
         """Runs the specified process."""
         argv = self.context.argv
