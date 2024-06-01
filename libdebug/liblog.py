@@ -7,7 +7,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Self
 
 from libdebug.utils.print_style import PrintStyle
 
@@ -17,7 +16,7 @@ class LibLog:
 
     _instance = None
 
-    def __new__(cls: type) -> Self:
+    def __new__(cls: type) -> "Self":
         """Create a new instance of the class if it does not exist yet.
 
         Returns:

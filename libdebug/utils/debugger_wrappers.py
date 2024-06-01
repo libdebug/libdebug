@@ -4,14 +4,20 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+from __future__ import annotations
+
 from functools import wraps
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from libdebug.libdebug import _InternalDebugger
 
 
-def control_flow_function(method):
+def control_flow_function(method: callable) -> callable:
     """Decorator to perfom control flow checks before executing a method."""
 
     @wraps(method)
-    def wrapper(self, *args, **kwargs):
+    def wrapper(self: _InternalDebugger, *args: ..., **kwargs: ...) -> ...:
         # We have to ensure that the process is stopped before executing the method
         self._ensure_process_stopped()
 
@@ -23,13 +29,13 @@ def control_flow_function(method):
     return wrapper
 
 
-def background_alias(alias_method):
+def background_alias(alias_method: callable) -> callable:
     """Decorator that automatically resolves the call to a different method if coming from the background thread."""
 
     # This is the stupidest thing I've ever seen. Why Python, why?
-    def _background_alias(method):
+    def _background_alias(method: callable) -> callable:
         @wraps(method)
-        def inner(self, *args, **kwargs):
+        def inner(self: _InternalDebugger, *args: ..., **kwargs: ...) -> ...:
             if self._is_in_background():
                 return alias_method(self, *args, **kwargs)
             return method(self, *args, **kwargs)

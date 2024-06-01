@@ -327,7 +327,7 @@ class PtraceInterface(DebuggingInterface):
             os.close(self.stderr_write)
         except Exception as e:
             # TODO: custom exception
-            raise Exception("Closing fds failed: %r" % e) from e
+            raise Exception("Closing fds failed: %r", e) from e
         return PipeManager(self.stdin_write, self.stdout_read, self.stderr_read)
 
     def _setup_parent(self: PtraceInterface, continue_to_entry_point: bool) -> None:

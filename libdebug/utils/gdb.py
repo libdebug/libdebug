@@ -5,6 +5,8 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+from __future__ import annotations
+
 import gdb
 
 # To enable this command you need to source this file from a gdb console or a gdbinit script
@@ -12,12 +14,14 @@ import gdb
 
 
 class GoBack(gdb.Command):
-    def __init__(self):
-        super(GoBack, self).__init__(
-            "goback", gdb.COMMAND_OBSCURE, gdb.COMPLETE_NONE, True
-        )
+    """This extension adds a new command to GDB that allows to detach from the current process and quit GDB."""
 
-    def invoke(self, args, from_tty):
+    def __init__(self: GoBack) -> None:
+        """Initializes the GoBack command."""
+        super().__init__("goback", gdb.COMMAND_OBSCURE, gdb.COMPLETE_NONE, True)
+
+    def invoke(self: GoBack, _: ..., __: bool) -> None:
+        """Detaches and quits from GDB on invocation."""
         gdb.execute("detach")
         gdb.execute("quit")
 

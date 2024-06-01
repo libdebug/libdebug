@@ -840,7 +840,7 @@ class _InternalDebugger:
         self.context._pprint_syscalls = value
 
     @contextmanager
-    def pprint_syscalls_context(self: _InternalDebugger, value: bool):
+    def pprint_syscalls_context(self: _InternalDebugger, value: bool) -> ...:
         """A context manager to temporarily change the state of the pprint_syscalls flag.
 
         Args:

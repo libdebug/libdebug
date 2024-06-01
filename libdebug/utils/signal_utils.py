@@ -4,12 +4,13 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-import signal
 import functools
+import signal
 
 
 @functools.cache
-def create_signal_mappings():
+def create_signal_mappings() -> tuple[dict, dict]:
+    """Create mappings between signal names and numbers."""
     signal_to_number = {}
     number_to_signal = {}
 
@@ -36,8 +37,8 @@ def resolve_signal_number(name: str) -> int:
 
     try:
         return signal_to_number[name]
-    except KeyError:
-        raise ValueError(f"Signal {name} not found.")
+    except KeyError as e:
+        raise ValueError(f"Signal {name} not found.") from e
 
 
 @functools.cache
@@ -54,8 +55,8 @@ def resolve_signal_name(number: int) -> str:
 
     try:
         return number_to_signal[number]
-    except KeyError:
-        raise ValueError(f"Signal {number} not found.")
+    except KeyError as e:
+        raise ValueError(f"Signal {number} not found.") from e
 
 
 @functools.cache

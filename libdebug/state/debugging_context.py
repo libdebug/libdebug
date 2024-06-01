@@ -373,7 +373,7 @@ def link_context(reference: object, referrer: object = None) -> None:
 
 
 @contextmanager
-def context_extend_from(referrer: object):
+def context_extend_from(referrer: object) -> ...:
     """Extend the debugging context.
 
     Args:

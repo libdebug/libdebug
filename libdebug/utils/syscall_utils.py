@@ -6,17 +6,18 @@
 
 import functools
 import json
-import os
 from pathlib import Path
+
 import requests
 
 from libdebug.utils.libcontext import libcontext
 
 SYSCALLS_REMOTE = "https://syscalls.mebeim.net/db"
-LOCAL_FOLDER_PATH = str((Path(__file__) / ".." / "syscalls").resolve())
+LOCAL_FOLDER_PATH = (Path(__file__) / ".." / "syscalls").resolve()
 
 
 def get_remote_definition_url(arch: str) -> str:
+    """Get the URL of the remote syscall definition file."""
     match arch:
         case "amd64":
             return f"{SYSCALLS_REMOTE}/x86/64/x64/latest/table.json"
@@ -25,13 +26,14 @@ def get_remote_definition_url(arch: str) -> str:
 
 
 def fetch_remote_syscall_definition(arch: str) -> dict:
+    """Fetch the syscall definition file from the remote server."""
     url = get_remote_definition_url(arch)
 
-    response = requests.get(url)
+    response = requests.get(url, timeout=1)
     response.raise_for_status()
 
     # Save the response to a local file
-    with open(f"{LOCAL_FOLDER_PATH}/{arch}.json", "w") as f:
+    with Path(f"{LOCAL_FOLDER_PATH}/{arch}.json").open("w") as f:
         f.write(response.text)
 
     return response.json()
@@ -39,12 +41,12 @@ def fetch_remote_syscall_definition(arch: str) -> dict:
 
 @functools.cache
 def get_syscall_definitions(arch: str) -> dict:
-    if not os.path.exists(LOCAL_FOLDER_PATH):
-        os.makedirs(LOCAL_FOLDER_PATH)
+    """Get the syscall definitions for the specified architecture."""
+    LOCAL_FOLDER_PATH.mkdir(parents=True, exist_ok=True)
 
-    if os.path.exists(f"{LOCAL_FOLDER_PATH}/{arch}.json"):
+    if (LOCAL_FOLDER_PATH / "{arch}.json").exists():
         try:
-            with open(f"{LOCAL_FOLDER_PATH}/{arch}.json", "r") as f:
+            with (LOCAL_FOLDER_PATH / "{arch}.json").open() as f:
                 return json.load(f)
         except json.decoder.JSONDecodeError:
             pass
@@ -54,44 +56,43 @@ def get_syscall_definitions(arch: str) -> dict:
 
 @functools.cache
 def resolve_syscall_number(name: str) -> int:
+    """Resolve a syscall name to its number."""
     definitions = get_syscall_definitions(libcontext.arch)
 
-    try:
-        for syscall in definitions["syscalls"]:
-            if syscall["name"] == name:
-                return syscall["number"]
-        else:
-            raise KeyError()
-    except KeyError:
-        raise ValueError(f'Syscall "{name}" not found')
+    for syscall in definitions["syscalls"]:
+        if syscall["name"] == name:
+            return syscall["number"]
+
+    raise ValueError(f'Syscall "{name}" not found')
 
 
 @functools.cache
 def resolve_syscall_name(number: int) -> str:
+    """Resolve a syscall number to its name."""
     definitions = get_syscall_definitions(libcontext.arch)
 
-    try:
-        for syscall in definitions["syscalls"]:
-            if syscall["number"] == number:
-                return syscall["name"]
-    except KeyError:
-        raise ValueError(f'Syscall number "{number}" not found')
+    for syscall in definitions["syscalls"]:
+        if syscall["number"] == number:
+            return syscall["name"]
+
+    raise ValueError(f'Syscall number "{number}" not found')
 
 
 @functools.cache
 def resolve_syscall_arguments(number: int) -> list[str]:
+    """Resolve a syscall number to its argument definition."""
     definitions = get_syscall_definitions(libcontext.arch)
 
-    try:
-        for syscall in definitions["syscalls"]:
-            if syscall["number"] == number:
-                return syscall["signature"]
-    except KeyError:
-        raise ValueError(f'Syscall number "{number}" not found')
+    for syscall in definitions["syscalls"]:
+        if syscall["number"] == number:
+            return syscall["signature"]
+
+    raise ValueError(f'Syscall number "{number}" not found')
 
 
 @functools.cache
 def get_all_syscall_numbers() -> list[int]:
+    """Retrieves all the syscall numbers."""
     definitions = get_syscall_definitions(libcontext.arch)
 
     return [syscall["number"] for syscall in definitions["syscalls"]]
