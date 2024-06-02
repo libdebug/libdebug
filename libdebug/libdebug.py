@@ -1308,6 +1308,7 @@ class _InternalDebugger:
                         liblog.warning(
                             "Stop due to unhandled signal. Trying to continue."
                         )
+                        exit(0)
                         self.interface.cont()
                     else:
                         liblog.warning("Stop due to unhandled signal. Hanging.")

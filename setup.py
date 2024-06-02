@@ -6,7 +6,7 @@
 
 import os
 
-from setuptools import find_packages, setup
+from setuptools import find_packages, setup, Extension
 
 try:
     from setuptools.command.build import build
@@ -84,5 +84,13 @@ setup(
         "libdebug.ptrace.jumpstart": ["jumpstart", "jumpstart.c"],
         "libdebug.cffi": ["*.c"],
     },
+    ext_modules=[
+        Extension(
+            "libdebug.native.libptrace",
+            ["libdebug/native/libptrace.c"],
+            include_dirs=["/usr/include"],
+            extra_compile_args=["-O3", "-march=native"],
+        ),
+    ],
     include_package_data=True,
 )
