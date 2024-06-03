@@ -339,27 +339,27 @@ class PtraceInterface(DebuggingInterface):
         # Check the result of the waitpid and handle the changes.
         self.status_handler.manage_change(results)
 
-    def deliver_signal(self: PtraceInterface, threads: list[int]):
+    def deliver_signal(self: PtraceInterface, threads: list[int]) -> None:
         """Set the signals to deliver to the threads."""
-        # change the global_state
-        for thread in threads:
-            thread = self.context.get_thread_by_id(thread)
+        for thread_id in threads:
+            thread = self.context.get_thread_by_id(thread_id)
+
             if thread is None:
                 # The thread is dead in the meantime
                 continue
-            if (
-                thread.signal_number != 0
-                and thread.signal_number in self.context._signal_to_pass
-            ):
-                liblog.debugger(
-                    f"Delivering signal {thread.signal_number} to thread {thread.thread_id}",
-                )
-                # Set the signal to deliver
-                self.lib_trace.deliver_signal_to_thread(thread.thread_id, thread.signal_number)
-                # Reset the signal to deliver
-                thread.signal_number = 0
-                # We have an idea of what is going on, we can resume the thread if possible
-                self.context._resume_context.resume = ResumeStatus.RESUME
+
+            if thread.signal_number == 0 or thread.signal_number not in self.context._signal_to_pass:
+                continue
+
+            liblog.debugger(
+                f"Delivering signal {thread.signal_number} to thread {thread.thread_id}",
+            )
+            # Set the signal to deliver
+            self.lib_trace.deliver_signal_to_thread(thread.thread_id, thread.signal_number)
+            # Reset the signal to deliver
+            thread.signal_number = 0
+            # We have an idea of what is going on, we can resume the thread if possible
+            self.context._resume_context.resume = ResumeStatus.RESUME
 
     def migrate_to_gdb(self: PtraceInterface) -> None:
         """Migrates the current process to GDB."""
