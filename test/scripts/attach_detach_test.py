@@ -81,14 +81,15 @@ class AttachDetachTest(unittest.TestCase):
         d.kill()
 
     def test_attach_and_detach_4(self):
-        d = debugger("binaries/attach_test")
+        r = process("binaries/attach_test")
 
-        r = d.run()
+        d = debugger()
+        d.attach(r.pid)
         d.detach()
         d.kill()
 
         # Validate that, after detaching and killing, the process is effectively terminated
-        self.assertRaises(OSError, r.recvuntil, b"name:", timeout=1)
+        self.assertRaises(EOFError, r.sendline, b"provola")
 
 
 if __name__ == "__main__":
