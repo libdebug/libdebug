@@ -75,7 +75,6 @@ setup(
     install_requires=["capstone", "pyelftools", "cffi", "requests", "psutil"],
     setup_requires=["cffi"],
     cffi_modules=[
-        "./libdebug/cffi/ptrace_cffi_build.py:ffibuilder",
         "./libdebug/cffi/personality_cffi_build.py:ffibuilder",
         f"./libdebug/cffi/{debug_sym_cffi}.py:ffibuilder",
     ],
