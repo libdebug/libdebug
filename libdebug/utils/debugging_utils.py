@@ -22,11 +22,11 @@ def normalize_and_validate_address(address: int, maps: list[MemoryMap]) -> int:
         # The address is lower than the base address of the process. Suppose it is a relative address for a PIE binary.
         address += maps[0].start
 
-    for map in maps:
-        if map.start <= address < map.end:
+    for vmap in maps:
+        if vmap.start <= address < vmap.end:
             return address
-    else:
-        raise ValueError(f"Address {hex(address)} does not belong to any memory map.")
+
+    raise ValueError(f"Address {hex(address)} does not belong to any memory map.")
 
 
 def resolve_symbol_in_maps(symbol: str, maps: list[MemoryMap]) -> int:
@@ -50,13 +50,9 @@ def resolve_symbol_in_maps(symbol: str, maps: list[MemoryMap]) -> int:
     else:
         offset = 0
 
-    for map in maps:
-        if (
-            map.backing_file
-            and map.backing_file not in mapped_files
-            and map.backing_file[0] != "["
-        ):
-            mapped_files[map.backing_file] = map.start
+    for vmap in maps:
+        if vmap.backing_file and vmap.backing_file not in mapped_files and vmap.backing_file[0] != "[":
+            mapped_files[vmap.backing_file] = vmap.start
 
     for file, base_address in mapped_files.items():
         try:
@@ -70,10 +66,8 @@ def resolve_symbol_in_maps(symbol: str, maps: list[MemoryMap]) -> int:
             liblog.debugger(f"Error while resolving symbol {symbol} in {file}: {e}")
         except ValueError:
             pass
-    else:
-        raise ValueError(
-            f"Symbol {symbol} not found in any mapped file. Please specify a valid symbol."
-        )
+
+    raise ValueError(f"Symbol {symbol} not found in any mapped file. Please specify a valid symbol.")
 
 
 def resolve_address_in_maps(address: int, maps: list[MemoryMap]) -> str:
@@ -91,15 +85,15 @@ def resolve_address_in_maps(address: int, maps: list[MemoryMap]) -> str:
     """
     mapped_files = {}
 
-    for map in maps:
-        file = map.backing_file
+    for vmap in maps:
+        file = vmap.backing_file
         if not file or file[0] == "[":
             continue
 
         if file not in mapped_files:
-            mapped_files[file] = (map.start, map.end)
+            mapped_files[file] = (vmap.start, vmap.end)
         else:
-            mapped_files[file] = (mapped_files[file][0], map.end)
+            mapped_files[file] = (mapped_files[file][0], vmap.end)
 
     for file, (base_address, top_address) in mapped_files.items():
         # Check if the address is in the range of the current section
@@ -107,17 +101,10 @@ def resolve_address_in_maps(address: int, maps: list[MemoryMap]) -> str:
             continue
 
         try:
-            if is_pie(file):
-                symbol = resolve_address(file, address - base_address)
-            else:
-                symbol = resolve_address(file, address)
-
-            return symbol
+            return resolve_address(file, address - base_address) if is_pie(file) else resolve_address(file, address)
         except OSError as e:
-            liblog.debugger(
-                f"Error while resolving address {hex(address)} in {file}: {e}"
-            )
+            liblog.debugger(f"Error while resolving address {hex(address)} in {file}: {e}")
         except ValueError:
             pass
-    else:
-        return hex(address)
+
+    return hex(address)

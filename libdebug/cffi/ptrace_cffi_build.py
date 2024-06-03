@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
+# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -100,6 +100,7 @@ ffibuilder.cdef(
     struct thread {
         int tid;
         struct user_regs_struct regs;
+        int signal_to_deliver;
         struct thread *next;
     };
 
@@ -118,7 +119,8 @@ ffibuilder.cdef(
 
     int ptrace_trace_me(void);
     int ptrace_attach(int pid);
-    void ptrace_detach_all(struct global_state *state, int pid);
+    void ptrace_detach_and_cont(struct global_state *state, int pid);
+    void ptrace_detach_for_kill(struct global_state *state, int pid);
     void ptrace_detach_for_migration(struct global_state *state, int pid);
     void ptrace_reattach_from_gdb(struct global_state *state, int pid);
     void ptrace_set_options(int pid);
@@ -131,7 +133,7 @@ ffibuilder.cdef(
 
     uint64_t ptrace_geteventmsg(int pid);
 
-    int singlestep(struct global_state *state, int tid);
+    long singlestep(struct global_state *state, int tid);
     int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps);
 
     int cont_all_and_set_bps(struct global_state *state, int pid);

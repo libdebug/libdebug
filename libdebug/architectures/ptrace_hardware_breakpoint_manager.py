@@ -4,11 +4,16 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-from abc import ABC, abstractmethod
-from typing import Callable
+from __future__ import annotations
 
-from libdebug.data.breakpoint import Breakpoint
-from libdebug.state.thread_context import ThreadContext
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from libdebug.data.breakpoint import Breakpoint
+    from libdebug.state.thread_context import ThreadContext
 
 
 class PtraceHardwareBreakpointManager(ABC):
@@ -22,27 +27,33 @@ class PtraceHardwareBreakpointManager(ABC):
     """
 
     def __init__(
-        self,
+        self: PtraceHardwareBreakpointManager,
         thread: ThreadContext,
         peek_user: Callable[[int, int], int],
         poke_user: Callable[[int, int, int], None],
-    ):
+    ) -> None:
+        """Initializes the hardware breakpoint manager."""
         self.thread = thread
         self.peek_user = peek_user
         self.poke_user = poke_user
         self.breakpoint_count = 0
 
     @abstractmethod
-    def install_breakpoint(self, bp: Breakpoint):
+    def install_breakpoint(self: PtraceHardwareBreakpointManager, bp: Breakpoint) -> None:
         """Installs a hardware breakpoint at the provided location."""
-        pass
 
     @abstractmethod
-    def remove_breakpoint(self, bp: Breakpoint):
+    def remove_breakpoint(self: PtraceHardwareBreakpointManager, bp: Breakpoint) -> None:
         """Removes a hardware breakpoint at the provided location."""
-        pass
 
     @abstractmethod
-    def available_breakpoints(self) -> int:
+    def available_breakpoints(self: PtraceHardwareBreakpointManager) -> int:
         """Returns the number of available hardware breakpoint registers."""
-        pass
+
+    @abstractmethod
+    def is_watchpoint_hit(self: PtraceHardwareBreakpointManager) -> Breakpoint | None:
+        """Checks if a watchpoint has been hit.
+
+        Returns:
+            Breakpoint | None: The watchpoint that has been hit, or None if no watchpoint has been hit.
+        """

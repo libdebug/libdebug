@@ -23,30 +23,22 @@ class ThreadTest(unittest.TestCase):
         bp_t2 = d.breakpoint("thread_2_function")
         bp_t3 = d.breakpoint("thread_3_function")
 
-        t1, t2, t3 = None, None, None
         t1_done, t2_done, t3_done = False, False, False
 
         d.cont()
 
         for _ in range(150):
-            if len(d.threads) == 2:
-                t1 = d.threads[1]
-            if len(d.threads) == 3:
-                t2 = d.threads[2]
-            if len(d.threads) == 4:
-                t3 = d.threads[3]
-
             if bp_t0.address == d.rip:
                 self.assertTrue(t1_done)
                 self.assertTrue(t2_done)
                 self.assertTrue(t3_done)
                 break
 
-            if t1 and bp_t1.address == t1.rip:
+            if len(d.threads) > 1 and bp_t1.address == d.threads[1].rip:
                 t1_done = True
-            if t2 and bp_t2.address == t2.rip:
+            if len(d.threads) > 2 and bp_t2.address == d.threads[2].rip:
                 t2_done = True
-            if t3 and bp_t3.address == t3.rip:
+            if len(d.threads) > 3 and bp_t3.address == d.threads[3].rip:
                 t3_done = True
 
             d.cont()
@@ -64,31 +56,22 @@ class ThreadTest(unittest.TestCase):
         bp_t2 = d.breakpoint("thread_2_function", hardware=True)
         bp_t3 = d.breakpoint("thread_3_function", hardware=True)
 
-        t1, t2, t3 = None, None, None
         t1_done, t2_done, t3_done = False, False, False
 
         d.cont()
 
         for _ in range(15):
-            # TODO: This is a workaround for the fact that the threads are not kept around after they die
-            if len(d.threads) == 2:
-                t1 = d.threads[1]
-            if len(d.threads) == 3:
-                t2 = d.threads[2]
-            if len(d.threads) == 4:
-                t3 = d.threads[3]
-
             if bp_t0.address == d.rip:
                 self.assertTrue(t1_done)
                 self.assertTrue(t2_done)
                 self.assertTrue(t3_done)
                 break
 
-            if t1 and bp_t1.address == t1.rip:
+            if len(d.threads) > 1 and bp_t1.address == d.threads[1].rip:
                 t1_done = True
-            if t2 and bp_t2.address == t2.rip:
+            if len(d.threads) > 2 and bp_t2.address == d.threads[2].rip:
                 t2_done = True
-            if t3 and bp_t3.address == t3.rip:
+            if len(d.threads) > 3 and bp_t3.address == d.threads[3].rip:
                 t3_done = True
 
             d.cont()
@@ -122,7 +105,6 @@ class ComplexThreadTest(unittest.TestCase):
         d.cont()
 
         while True:
-
             if len(d.threads) == 2:
                 t1 = d.threads[1]
 

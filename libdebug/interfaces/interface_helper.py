@@ -6,7 +6,7 @@
 
 from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.interfaces.interfaces import AvailableInterfaces
-from libdebug.interfaces.ptrace_interface import PtraceInterface
+from libdebug.ptrace.ptrace_interface import PtraceInterface
 
 
 def provide_debugging_interface(

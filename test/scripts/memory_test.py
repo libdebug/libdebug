@@ -67,14 +67,11 @@ class MemoryTest(unittest.TestCase):
 
         d.cont()
 
-        try:
-            print(d.memory[0x0, 256])
-            self.assertTrue(False)
-        except ValueError:
-            self.assertTrue(False)
-        except RuntimeError:
-            self.assertTrue(True)
-            pass
+        # This should not raise an exception
+        file = d.memory[0x0, 256]
+
+        # File should start with ELF magic number
+        self.assertTrue(file.startswith(b"\x7fELF"))
 
         assert d.rip == bp.address
 
@@ -87,6 +84,115 @@ class MemoryTest(unittest.TestCase):
         prev = prev[:128] + b"abcd123456" + prev[138:]
 
         self.assertTrue(d.memory[address : address + 256] == prev)
+
+        d.kill()
+    
+    def test_memory_multiple_runs(self):
+        d = self.d
+        
+        for _ in range(10):
+            d.run()
+
+            bp = d.breakpoint("change_memory")
+
+            d.cont()
+
+            assert d.rip == bp.address
+
+            address = d.rdi
+            prev = bytes(range(256))
+
+            self.assertTrue(d.memory[address, 256] == prev)
+
+            d.memory[address + 128 :] = b"abcd123456"
+            prev = prev[:128] + b"abcd123456" + prev[138:]
+
+            self.assertTrue(d.memory[address : address + 256] == prev)
+
+            d.kill()
+
+    def test_memory_access_while_running(self):
+        d = debugger("binaries/memory_test_2")
+
+        d.run()
+
+        bp = d.breakpoint("do_nothing")
+
+        d.cont()
+
+        # Verify that memory access is only possible when the process is stopped
+        value = int.from_bytes(d.memory["state", 8], "little")
+        self.assertEqual(value, 0xdeadbeef)
+        self.assertEqual(d.rip, bp.address)
+
+        d.kill()
+
+    def test_memory_access_methods(self):
+        d = debugger("binaries/memory_test_2")
+
+        d.run()
+
+        base = d.rip & 0xfffffffffffff000 - 0x1000
+
+        # Test different ways to access memory at the start of the file
+        file_0 = d.memory[base, 256]
+        file_1 = d.memory[0x0, 256]
+        file_2 = d.memory[0x0:0x100]
+
+        self.assertEqual(file_0, file_1)
+        self.assertEqual(file_0, file_2)
+
+        # Validate that the length of the read bytes is correct
+        file_0 = d.memory[0x0]
+        file_1 = d.memory[base]
+
+        self.assertEqual(file_0, file_1)
+        self.assertEqual(len(file_0), 1)
+
+        # Validate that slices work correctly
+        file_0 = d.memory[0x0 : "do_nothing"]
+        file_1 = d.memory[base : "do_nothing"]
+
+        self.assertEqual(file_0, file_1)
+
+        self.assertRaises(ValueError, lambda: d.memory[0x1000 : 0x0])
+        # _fini is after main
+        self.assertRaises(ValueError, lambda: d.memory["_fini" : "main"])
+
+
+        # Test different ways to write memory
+        d.memory[0x0, 8] = b"abcd1234"
+        self.assertEqual(d.memory[0x0, 8], b"abcd1234")
+
+        d.memory[0x0, 8] = b"\x00\x00\x00\x00\x00\x00\x00\x00"
+
+        d.memory[base:] = b"abcd1234"
+        self.assertEqual(d.memory[base, 8], b"abcd1234")
+
+        d.memory[base:] = b"\x00\x00\x00\x00\x00\x00\x00\x00"
+
+        d.memory[base] = b"abcd1234"
+        self.assertEqual(d.memory[base, 8], b"abcd1234")
+
+        d.memory[base] = b"\x00\x00\x00\x00\x00\x00\x00\x00"
+
+        d.memory[0x0:0x8] = b"abcd1234"
+        self.assertEqual(d.memory[0x0, 8], b"abcd1234")
+
+        d.memory[0x0, 8] = b"\x00\x00\x00\x00\x00\x00\x00\x00"
+
+        d.memory["main":] = b"abcd1234"
+        self.assertEqual(d.memory["main", 8], b"abcd1234")
+
+        d.memory["main":] = b"\x00\x00\x00\x00\x00\x00\x00\x00"
+
+        d.memory["main"] = b"abcd1234"
+        self.assertEqual(d.memory["main", 8], b"abcd1234")
+
+        d.memory["main"] = b"\x00\x00\x00\x00\x00\x00\x00\x00"
+
+        d.memory["main":"main+8"] = b"abcd1234"
+        self.assertEqual(d.memory["main", 8], b"abcd1234")
 
         d.kill()
 

@@ -1,6 +1,6 @@
 //
 // This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-// Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
+// Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for details.
 //
 
@@ -32,6 +32,7 @@ struct software_breakpoint {
 struct thread {
     int tid;
     struct user_regs_struct regs;
+    int signal_to_deliver;
     struct thread *next;
 };
 
@@ -58,6 +59,7 @@ struct user_regs_struct *register_thread(struct global_state *state, int tid)
 
     t = malloc(sizeof(struct thread));
     t->tid = tid;
+    t->signal_to_deliver = 0;
 
     ptrace(PTRACE_GETREGS, tid, NULL, &t->regs);
 
@@ -111,7 +113,7 @@ int ptrace_attach(int pid)
     return ptrace(PTRACE_ATTACH, pid, NULL, NULL);
 }
 
-void ptrace_detach_all(struct global_state *state, int pid)
+void ptrace_detach_for_kill(struct global_state *state, int pid)
 {
     struct thread *t = state->t_HEAD;
     // note that the order is important: the main thread must be detached last
@@ -185,6 +187,14 @@ void ptrace_reattach_from_gdb(struct global_state *state, int pid)
     }
 }
 
+void ptrace_detach_and_cont(struct global_state *state, int pid)
+{
+    ptrace_detach_for_migration(state, pid);
+
+    // continue the execution of the process
+    kill(pid, SIGCONT);
+}
+
 void ptrace_set_options(int pid)
 {
     int options = PTRACE_O_TRACEFORK | PTRACE_O_TRACEVFORK | PTRACE_O_TRACESYSGOOD |
@@ -230,17 +240,22 @@ uint64_t ptrace_geteventmsg(int pid)
     return data;
 }
 
-int singlestep(struct global_state *state, int tid)
+long singlestep(struct global_state *state, int tid)
 {
     // flush any register changes
     struct thread *t = state->t_HEAD;
+    int signal_to_deliver = 0;
     while (t != NULL) {
         if (ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs))
             perror("ptrace_setregs");
+        if (t->tid == tid) {
+            signal_to_deliver = t->signal_to_deliver;
+            t->signal_to_deliver = 0;
+        }
         t = t->next;
     }
 
-    return ptrace(PTRACE_SINGLESTEP, tid, NULL, NULL);
+    return ptrace(PTRACE_SINGLESTEP, tid, NULL, signal_to_deliver);
 }
 
 int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps)
@@ -358,9 +373,10 @@ int cont_all_and_set_bps(struct global_state *state, int pid)
     // continue the execution of all the threads
     struct thread *t = state->t_HEAD;
     while (t != NULL) {
-        if (ptrace(state->syscall_hooks_enabled ? PTRACE_SYSCALL : PTRACE_CONT, t->tid, NULL, NULL))
-            fprintf(stderr, "ptrace_cont failed for thread %d: %s\\n", t->tid,
+        if (ptrace(state->syscall_hooks_enabled ? PTRACE_SYSCALL : PTRACE_CONT, t->tid, NULL, t->signal_to_deliver))
+            fprintf(stderr, "ptrace_cont failed for thread %d with signal %d: %s\\n", t->tid, t->signal_to_deliver,
                     strerror(errno));
+        t->signal_to_deliver = 0;
         t = t->next;
     }
 

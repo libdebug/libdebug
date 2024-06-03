@@ -7,7 +7,7 @@
 import sys
 import unittest
 
-from scripts.attach_test import AttachTest
+from scripts.attach_detach_test import AttachDetachTest
 from scripts.auto_waiting_test import AutoWaitingNcuts, AutoWaitingTest
 from scripts.backtrace_test import BacktraceTest
 from scripts.basic_test import BasicPieTest, BasicTest, ControlFlowTest, HwBasicTest
@@ -16,21 +16,23 @@ from scripts.brute_test import BruteTest
 from scripts.builtin_hooks_test import AntidebugEscapingTest
 from scripts.callback_test import CallbackTest
 from scripts.finish_test import FinishTest
-from scripts.deep_dive_division import DeepDiveDivision
+from scripts.deep_dive_division_test import DeepDiveDivision
 from scripts.hijack_syscall_test import SyscallHijackTest
-from scripts.jumpout import Jumpout
+from scripts.jumpout_test import Jumpout
 from scripts.large_binary_sym_test import LargeBinarySymTest
 from scripts.memory_test import MemoryTest
 from scripts.multiple_debuggers_test import MultipleDebuggersTest
-from scripts.ncuts import Ncuts
+from scripts.ncuts_test import Ncuts
 from scripts.pprint_syscalls_test import PPrintSyscallsTest
 from scripts.speed_test import SpeedTest
 from scripts.syscall_hook_test import SyscallHookTest
 from scripts.thread_test import ComplexThreadTest, ThreadTest
-from scripts.vmwhere1 import Vmwhere1
+from scripts.vmwhere1_test import Vmwhere1
 from scripts.waiting_test import WaitingNcuts, WaitingTest
 from scripts.watchpoint_alias_test import WatchpointAliasTest
 from scripts.watchpoint_test import WatchpointTest
+from scripts.signal_hook_test import SignalHookTest
+from scripts.signals_multithread_test import SignalMultithreadTest
 
 
 def fast_suite():
@@ -48,10 +50,17 @@ def fast_suite():
     suite.addTest(MemoryTest("test_memory"))
     suite.addTest(MemoryTest("test_mem_access_libs"))
     suite.addTest(MemoryTest("test_memory_exceptions"))
+    suite.addTest(MemoryTest("test_memory_multiple_runs"))
+    suite.addTest(MemoryTest("test_memory_access_while_running"))
+    suite.addTest(MemoryTest("test_memory_access_methods"))
     suite.addTest(HwBasicTest("test_basic"))
     suite.addTest(HwBasicTest("test_registers"))
     suite.addTest(BacktraceTest("test_backtrace"))
-    suite.addTest(AttachTest("test_attach"))
+    suite.addTest(AttachDetachTest("test_attach"))
+    suite.addTest(AttachDetachTest("test_attach_and_detach_1"))
+    suite.addTest(AttachDetachTest("test_attach_and_detach_2"))
+    suite.addTest(AttachDetachTest("test_attach_and_detach_3"))
+    suite.addTest(AttachDetachTest("test_attach_and_detach_4"))
     suite.addTest(ThreadTest("test_thread"))
     suite.addTest(ThreadTest("test_thread_hardware"))
     suite.addTest(ComplexThreadTest("test_thread"))
@@ -60,6 +69,9 @@ def fast_suite():
     suite.addTest(CallbackTest("test_callback_memory"))
     suite.addTest(CallbackTest("test_callback_jumpout"))
     suite.addTest(CallbackTest("test_callback_intermixing"))
+    suite.addTest(CallbackTest("test_callback_exception"))
+    suite.addTest(CallbackTest("test_callback_step"))
+    suite.addTest(CallbackTest("test_callback_pid_accessible"))
     suite.addTest(FinishTest("test_finish_exact_no_auto_interrupt_no_breakpoint"))
     suite.addTest(FinishTest("test_finish_heuristic_no_auto_interrupt_no_breakpoint"))
     suite.addTest(FinishTest("test_finish_exact_auto_interrupt_no_breakpoint"))
@@ -89,7 +101,9 @@ def fast_suite():
     suite.addTest(AutoWaitingTest("test_jumpout_auto_waiting"))
     suite.addTest(AutoWaitingNcuts("test_ncuts"))
     suite.addTest(WatchpointTest("test_watchpoint"))
+    suite.addTest(WatchpointTest("test_watchpoint_callback"))
     suite.addTest(WatchpointAliasTest("test_watchpoint_alias"))
+    suite.addTest(WatchpointAliasTest("test_watchpoint_callback"))
     suite.addTest(SyscallHookTest("test_hooks"))
     suite.addTest(SyscallHookTest("test_hooks_with_pprint"))
     suite.addTest(SyscallHookTest("test_hook_disabling"))
@@ -119,6 +133,27 @@ def fast_suite():
     suite.addTest(
         PPrintSyscallsTest("test_pprint_which_syscalls_not_pprint_after_and_before")
     )
+    suite.addTest(SignalHookTest("test_signal_hooking"))
+    suite.addTest(SignalHookTest("test_signal_pass_to_process"))
+    suite.addTest(SignalHookTest("test_signal_unhooking"))
+    suite.addTest(SignalHookTest("test_signal_unpass"))
+    suite.addTest(SignalHookTest("test_signal_unhook_unpass"))
+    suite.addTest(SignalHookTest("test_force_continue_true"))
+    suite.addTest(SignalHookTest("test_force_continue_false"))
+    suite.addTest(SignalHookTest("test_hijack_signal_with_hooking"))
+    suite.addTest(SignalHookTest("test_hijack_signal_with_api"))
+    suite.addTest(SignalHookTest("test_hook_hijack_true_with_hook"))
+    suite.addTest(SignalHookTest("test_hook_hijack_true_with_api"))
+    suite.addTest(SignalHookTest("test_hook_hijack_false_with_hook"))
+    suite.addTest(SignalHookTest("test_hook_hijack_false_with_api"))
+    suite.addTest(SignalHookTest("test_hijack_signal_with_hooking_loop"))
+    suite.addTest(SignalHookTest("test_hijack_signal_with_api_loop"))
+    suite.addTest(SignalHookTest("test_signal_unhijacking"))
+    suite.addTest(SignalHookTest("test_override_hook"))
+    suite.addTest(SignalHookTest("test_override_hijack"))
+    suite.addTest(SignalHookTest("test_override_hybrid"))
+    suite.addTest(SignalMultithreadTest("test_signal_multithread_undet_hook"))
+    suite.addTest(SignalMultithreadTest("test_signal_multithread_undet_pass"))
     return suite
 
 

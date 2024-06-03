@@ -4,23 +4,21 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from libdebug.architectures.stack_unwinding_manager import StackUnwindingManager
-from libdebug.state.debugging_context import provide_context
 
 if TYPE_CHECKING:
     from libdebug.state.thread_context import ThreadContext
 
 
 class Amd64StackUnwinder(StackUnwindingManager):
-    """
-    Class that provides stack unwinding for the x86_64 architecture.
-    """
+    """Class that provides stack unwinding for the x86_64 architecture."""
 
-    def unwind(self, target: "ThreadContext") -> list:
-        """
-        Unwind the stack of a process.
+    def unwind(self: Amd64StackUnwinder, target: ThreadContext) -> list:
+        """Unwind the stack of a process.
 
         Args:
             target (ThreadContext): The target ThreadContext.
@@ -28,34 +26,33 @@ class Amd64StackUnwinder(StackUnwindingManager):
         Returns:
             list: A list of return addresses.
         """
-
         assert hasattr(target, "rip")
         assert hasattr(target, "rbp")
 
         current_rbp = target.rbp
         stack_trace = [target.rip]
 
+        vmaps = target.context.debugging_interface.maps()
+
         while current_rbp:
             try:
                 # Read the return address
-                return_address = int.from_bytes(
-                    target.memory[current_rbp + 8, 8], byteorder="little"
-                )
+                return_address = int.from_bytes(target.memory[current_rbp + 8, 8], byteorder="little")
+
+                if not any(vmap.start <= return_address < vmap.end for vmap in vmaps):
+                    break
 
                 # Read the previous rbp and set it as the current one
-                current_rbp = int.from_bytes(
-                    target.memory[current_rbp, 8], byteorder="little"
-                )
+                current_rbp = int.from_bytes(target.memory[current_rbp, 8], byteorder="little")
 
                 stack_trace.append(return_address)
-            except OSError:
+            except (OSError, ValueError):
                 break
 
         return stack_trace
 
-    def get_return_address(self, target: "ThreadContext") -> int:
-        """
-        Get the return address of the current function.
+    def get_return_address(self: Amd64StackUnwinder, target: ThreadContext) -> int:
+        """Get the return address of the current function.
 
         Args:
             target (ThreadContext): The target ThreadContext.
@@ -63,10 +60,6 @@ class Amd64StackUnwinder(StackUnwindingManager):
         Returns:
             int: The return address.
         """
-
-        # Set the thread to background mode to avoid deadlock
-        target._in_background_op = True
-
         instruction_window = target.memory[target.rip, 4]
 
         # Check if the instruction window is a function preamble and handle each case
@@ -78,17 +71,11 @@ class Amd64StackUnwinder(StackUnwindingManager):
             return_address = target.memory[target.rsp, 8]
         else:
             return_address = target.memory[target.rsp + 8, 8]
-        
-        return_address = int.from_bytes(return_address, byteorder="little")
 
-        # Restore the thread to normal mode
-        target._in_background_op = False
+        return int.from_bytes(return_address, byteorder="little")
 
-        return return_address
-
-    def _preamble_state(self, instruction_window: bytes) -> int:
-        """
-        Check if the instruction window is a function preamble and if so at what stage.
+    def _preamble_state(self: Amd64StackUnwinder, instruction_window: bytes) -> int:
+        """Check if the instruction window is a function preamble and if so at what stage.
 
         Args:
             instruction_window (bytes): The instruction window.
@@ -96,17 +83,13 @@ class Amd64StackUnwinder(StackUnwindingManager):
         Returns:
             int: 0 if not a preamble, 1 if rbp has not been pushed yet, 2 otherwise
         """
+        preamble_state = 0
 
-        preambleState = 0
-
-        # endbr64
-        if b'\xf3\x0f\x1e\xfa' in instruction_window:
-            preambleState = 1
-        # push rbp
-        elif b'\x55' in instruction_window:
-            preambleState = 1
+        # endbr64 and push rbp
+        if b"\xf3\x0f\x1e\xfa" in instruction_window or b"\x55" in instruction_window:
+            preamble_state = 1
         # mov rbp, rsp
-        elif b'\x48\x89\xe5' in instruction_window:
-            preambleState = 2
+        elif b"\x48\x89\xe5" in instruction_window:
+            preamble_state = 2
 
-        return preambleState
+        return preamble_state

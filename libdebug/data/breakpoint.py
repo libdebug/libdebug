@@ -7,9 +7,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from libdebug.state.thread_context import ThreadContext
 
 
@@ -31,7 +33,7 @@ class Breakpoint:
     symbol: str = ""
     hit_count: int = 0
     hardware: bool = False
-    callback: None | Callable[["ThreadContext", Breakpoint], None] = None
+    callback: None | Callable[[ThreadContext, Breakpoint], None] = None
     condition: str = "x"
     length: int = 1
     enabled: bool = True
@@ -42,33 +44,34 @@ class Breakpoint:
     _disabled_for_step: bool = False
     _changed: bool = False
 
-    def enable(self) -> None:
+    def enable(self: Breakpoint) -> None:
         """Enable the breakpoint."""
         from libdebug.state.debugging_context import provide_context
 
         if provide_context(self).running:
             raise RuntimeError(
-                "Cannot enable a breakpoint while the target process is running."
+                "Cannot enable a breakpoint while the target process is running.",
             )
 
         self.enabled = True
         self._changed = True
 
-    def disable(self) -> None:
+    def disable(self: Breakpoint) -> None:
         """Disable the breakpoint."""
         from libdebug.state.debugging_context import provide_context
 
         if provide_context(self).running:
             raise RuntimeError(
-                "Cannot disable a breakpoint while the target process is running."
+                "Cannot disable a breakpoint while the target process is running.",
             )
 
         self.enabled = False
         self._changed = True
 
-    def hit_on(self, thread_context: "ThreadContext") -> bool:
+    def hit_on(self: Breakpoint, thread_context: ThreadContext) -> bool:
         """Returns whether the breakpoint has been hit on the given thread context."""
         return self.enabled and thread_context.instruction_pointer == self.address
 
-    def __hash__(self) -> int:
+    def __hash__(self: Breakpoint) -> int:
+        """Hash the breakpoint by its address, so that it can be used in sets and maps correctly."""
         return hash(self.address)
