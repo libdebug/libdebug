@@ -6,13 +6,13 @@
 
 import os
 
-
 POSIX_SPAWN_CLOSE = 0
 POSIX_SPAWN_DUP2 = 1
 POSIX_SPAWN_OPEN = 2
 
 
-def posix_spawn(file, argv, env, file_actions, setpgroup):
+def posix_spawn(file: str, argv: list, env: dict, file_actions: list, setpgroup: bool) -> int:
+    """Spawn a new process, emulating the POSIX spawn function."""
     child_pid = os.fork()
     if child_pid == 0:
         for element in file_actions:

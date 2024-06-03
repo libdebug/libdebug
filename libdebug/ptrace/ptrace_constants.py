@@ -19,6 +19,7 @@ SYSCALL_SIGTRAP         = 0x80 | SIGTRAP
 
 
 class StopEvents(IntEnum):
+    """An enumeration of the stop events that ptrace can return."""
     CLONE_EVENT = (SIGTRAP | (PTRACE_EVENT_CLONE << 8))
     EXEC_EVENT = (SIGTRAP | (PTRACE_EVENT_EXEC << 8))
     EXIT_EVENT = (SIGTRAP | (PTRACE_EVENT_EXIT << 8))
@@ -29,6 +30,7 @@ class StopEvents(IntEnum):
 
 
 class Commands(IntEnum):
+    """An enumeration of the available ptrace commands."""
     PTRACE_TRACEME = 0
     PTRACE_PEEKTEXT = 1
     PTRACE_PEEKDATA = 2

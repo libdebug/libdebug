@@ -4,21 +4,15 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-from dataclasses import dataclass
+from __future__ import annotations
 
-from libdebug.data.register_holder import PtraceRegisterHolder
-from libdebug.utils.register_utils import (
-    get_reg_8h,
-    get_reg_8l,
-    get_reg_16,
-    get_reg_32,
-    get_reg_64,
-    set_reg_8h,
-    set_reg_8l,
-    set_reg_16,
-    set_reg_32,
-    set_reg_64,
-)
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+from libdebug.ptrace.ptrace_register_holder import PtraceRegisterHolder
+
+if TYPE_CHECKING:
+    from libdebug.state.thread_context import ThreadContext
 
 AMD64_GP_REGS = ["a", "b", "c", "d"]
 
@@ -57,61 +51,70 @@ AMD64_REGS = [
 ]
 
 
+def _get_property_64(name: str) -> property:
+    def getter(self: ThreadContext) -> int:
+        return getattr(self.regs, name)
+
+    def setter(self: ThreadContext, value: int) -> None:
+        setattr(self.regs, name, value)
+
+    return property(getter, setter, None, name)
+
+
+def _get_property_32(name: str) -> property:
+    def getter(self: ThreadContext) -> int:
+        return getattr(self.regs, name) & 0xFFFFFFFF
+
+    def setter(self: ThreadContext, value: int) -> None:
+        return setattr(self.regs, name, value & 0xFFFFFFFF)
+
+    return property(getter, setter, None, name)
+
+
+def _get_property_16(name: str) -> property:
+    def getter(self: ThreadContext) -> int:
+        return getattr(self.regs, name) & 0xFFFF
+
+    def setter(self: ThreadContext, value: int) -> None:
+        value = getattr(self.regs, name) & ~0xFFFF | (value & 0xFFFF)
+        setattr(self.regs, name, value)
+
+    return property(getter, setter, None, name)
+
+
+def _get_property_8l(name: str) -> property:
+    def getter(self: ThreadContext) -> int:
+        return getattr(self.regs, name) & 0xFF
+
+    def setter(self: ThreadContext, value: int) -> None:
+        value = getattr(self.regs, name) & ~0xFF | (value & 0xFF)
+        setattr(self.regs, name, value)
+
+    return property(getter, setter, None, name)
+
+
+def _get_property_8h(name: str) -> property:
+    def getter(self: ThreadContext) -> int:
+        return getattr(self.regs, name) >> 8 & 0xFF
+
+    def setter(self: ThreadContext, value: int) -> None:
+        value = getattr(self.regs, name) & ~0xFF00 | (value & 0xFF) << 8
+        setattr(self.regs, name, value)
+
+    return property(getter, setter, None, name)
+
+
 @dataclass
 class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
-    """A class that provides views and setters for the registers of an x86_64 process, specifically for the `ptrace` debugging backend."""
+    """A class that provides views and setters for the registers of an x86_64 process."""
 
-    def apply_on(self, target, target_class):
+    def apply_on(self: Amd64PtraceRegisterHolder, target: ThreadContext, target_class: type) -> None:
+        """Apply the register accessors to the target class."""
         target.regs = self.register_file
 
         # If the accessors are already defined, we don't need to redefine them
         if hasattr(target_class, "instruction_pointer"):
             return
-
-        def get_property_64(name):
-            def getter(self):
-                return get_reg_64(self.regs, name)
-
-            def setter(self, value):
-                set_reg_64(self.regs, name, value)
-
-            return property(getter, setter, None, name)
-
-        def get_property_32(name):
-            def getter(self):
-                return get_reg_32(self.regs, name)
-
-            def setter(self, value):
-                set_reg_32(self.regs, name, value)
-
-            return property(getter, setter, None, name)
-
-        def get_property_16(name):
-            def getter(self):
-                return get_reg_16(self.regs, name)
-
-            def setter(self, value):
-                set_reg_16(self.regs, name, value)
-
-            return property(getter, setter, None, name)
-
-        def get_property_8l(name):
-            def getter(self):
-                return get_reg_8l(self.regs, name)
-
-            def setter(self, value):
-                set_reg_8l(self.regs, name, value)
-
-            return property(getter, setter, None, name)
-
-        def get_property_8h(name):
-            def getter(self):
-                return get_reg_8h(self.regs, name)
-
-            def setter(self, value):
-                set_reg_8h(self.regs, name, value)
-
-            return property(getter, setter, None, name)
 
         # setup accessors
         for name in AMD64_GP_REGS:
@@ -121,11 +124,11 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
             name_8l = name + "l"
             name_8h = name + "h"
 
-            setattr(target_class, name_64, get_property_64(name_64))
-            setattr(target_class, name_32, get_property_32(name_64))
-            setattr(target_class, name_16, get_property_16(name_64))
-            setattr(target_class, name_8l, get_property_8l(name_64))
-            setattr(target_class, name_8h, get_property_8h(name_64))
+            setattr(target_class, name_64, _get_property_64(name_64))
+            setattr(target_class, name_32, _get_property_32(name_64))
+            setattr(target_class, name_16, _get_property_16(name_64))
+            setattr(target_class, name_8l, _get_property_8l(name_64))
+            setattr(target_class, name_8h, _get_property_8h(name_64))
 
         for name in AMD64_BASE_REGS:
             name_64 = "r" + name
@@ -133,10 +136,10 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
             name_16 = name
             name_8l = name + "l"
 
-            setattr(target_class, name_64, get_property_64(name_64))
-            setattr(target_class, name_32, get_property_32(name_64))
-            setattr(target_class, name_16, get_property_16(name_64))
-            setattr(target_class, name_8l, get_property_8l(name_64))
+            setattr(target_class, name_64, _get_property_64(name_64))
+            setattr(target_class, name_32, _get_property_32(name_64))
+            setattr(target_class, name_16, _get_property_16(name_64))
+            setattr(target_class, name_8l, _get_property_8l(name_64))
 
         for name in AMD64_EXT_REGS:
             name_64 = name
@@ -144,23 +147,23 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
             name_16 = name + "w"
             name_8l = name + "b"
 
-            setattr(target_class, name_64, get_property_64(name_64))
-            setattr(target_class, name_32, get_property_32(name_64))
-            setattr(target_class, name_16, get_property_16(name_64))
-            setattr(target_class, name_8l, get_property_8l(name_64))
+            setattr(target_class, name_64, _get_property_64(name_64))
+            setattr(target_class, name_32, _get_property_32(name_64))
+            setattr(target_class, name_16, _get_property_16(name_64))
+            setattr(target_class, name_8l, _get_property_8l(name_64))
 
         # setup special registers
-        setattr(target_class, "rip", get_property_64("rip"))
+        target_class.rip = _get_property_64("rip")
 
         # setup generic "instruction_pointer" property
-        setattr(target_class, "instruction_pointer", get_property_64("rip"))
+        target_class.instruction_pointer = _get_property_64("rip")
 
         # setup generic syscall properties
-        setattr(target_class, "syscall_number", get_property_64("orig_rax"))
-        setattr(target_class, "syscall_return", get_property_64("rax"))
-        setattr(target_class, "syscall_arg0", get_property_64("rdi"))
-        setattr(target_class, "syscall_arg1", get_property_64("rsi"))
-        setattr(target_class, "syscall_arg2", get_property_64("rdx"))
-        setattr(target_class, "syscall_arg3", get_property_64("r10"))
-        setattr(target_class, "syscall_arg4", get_property_64("r8"))
-        setattr(target_class, "syscall_arg5", get_property_64("r9"))
+        target_class.syscall_number = _get_property_64("orig_rax")
+        target_class.syscall_return = _get_property_64("rax")
+        target_class.syscall_arg0 = _get_property_64("rdi")
+        target_class.syscall_arg1 = _get_property_64("rsi")
+        target_class.syscall_arg2 = _get_property_64("rdx")
+        target_class.syscall_arg3 = _get_property_64("r10")
+        target_class.syscall_arg4 = _get_property_64("r8")
+        target_class.syscall_arg5 = _get_property_64("r9")

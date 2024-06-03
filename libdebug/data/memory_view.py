@@ -4,8 +4,9 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-from collections.abc import MutableSequence
-from typing import Callable
+from __future__ import annotations
+
+from collections.abc import Callable, MutableSequence
 
 from libdebug.liblog import liblog
 from libdebug.state.debugging_context import DebuggingContext, debugging_context
@@ -13,6 +14,7 @@ from libdebug.state.debugging_context import DebuggingContext, debugging_context
 
 class MemoryView(MutableSequence):
     """A memory interface for the target process.
+
     This class must be used to read and write memory of the target process.
 
     Attributes:
@@ -27,12 +29,13 @@ class MemoryView(MutableSequence):
     """The debugging context of the target process."""
 
     def __init__(
-        self,
+        self: MemoryView,
         getter: Callable[[int], bytes],
         setter: Callable[[int, bytes], None],
         unit_size: int = 8,
         align_to: int = 1,
-    ):
+    ) -> None:
+        """Initializes the MemoryView."""
         self.getter = getter
         self.setter = setter
         self.unit_size = unit_size
@@ -41,7 +44,7 @@ class MemoryView(MutableSequence):
         self.context = debugging_context()
         self.maps_provider = self.context.debugging_interface.maps
 
-    def read(self, address: int, size: int) -> bytes:
+    def read(self: MemoryView, address: int, size: int) -> bytes:
         """Reads memory from the target process.
 
         Args:
@@ -72,7 +75,7 @@ class MemoryView(MutableSequence):
             remainder = (size - prefix_size) % self.unit_size
 
             for i in range(
-                address + prefix_size, address + size - remainder, self.unit_size
+                address + prefix_size, address + size - remainder, self.unit_size,
             ):
                 data += self.getter(i)
 
@@ -81,7 +84,7 @@ class MemoryView(MutableSequence):
 
             return data
 
-    def write(self, address: int, data: bytes):
+    def write(self: MemoryView, address: int, data: bytes) -> None:
         """Writes memory to the target process.
 
         Args:
@@ -114,7 +117,8 @@ class MemoryView(MutableSequence):
                 data[size - remainder :] + prev_data[remainder:],
             )
 
-    def __getitem__(self, key) -> bytes:
+    def __getitem__(self: MemoryView, key: int | slice | str | tuple) -> bytes:
+        """Read from memory, either a single byte or a byte string."""
         if isinstance(key, int):
             address = self.context.resolve_address(key)
 
@@ -153,7 +157,8 @@ class MemoryView(MutableSequence):
         else:
             raise TypeError("Invalid key type")
 
-    def __setitem__(self, key, value):
+    def __setitem__(self: MemoryView, key: int | slice | str | tuple, value: bytes) -> None:
+        """Write to memory, either a single byte or a byte string."""
         if isinstance(key, int):
             address = self.context.resolve_address(key)
 
@@ -174,11 +179,7 @@ class MemoryView(MutableSequence):
                     raise ValueError("Invalid slice range")
 
                 if len(value) != stop - start:
-                    liblog.warning(
-                        "Mismatch between slice width and value size, writing {} bytes.".format(
-                            len(value)
-                        )
-                    )
+                    liblog.warning(f"Mismatch between slice width and value size, writing {len(value)} bytes.")
 
             self.write(start, value)
         elif isinstance(key, str):
@@ -197,21 +198,20 @@ class MemoryView(MutableSequence):
                 address = self.context.resolve_address(address)
 
             if len(value) != size:
-                liblog.warning(
-                    "Mismatch between specified size and actual value size, writing {} bytes.".format(
-                        len(value)
-                    )
-                )
+                liblog.warning(f"Mismatch between specified size and actual value size, writing {len(value)} bytes.")
 
             self.write(address, value)
         else:
             raise TypeError("Invalid key type")
 
-    def __delitem__(self, key):
+    def __delitem__(self: MemoryView, key: int | slice | str | tuple) -> None:
+        """MemoryView doesn't support deletion."""
         raise NotImplementedError("MemoryView doesn't support deletion")
 
-    def __len__(self):
+    def __len__(self: MemoryView) -> None:
+        """MemoryView doesn't support length."""
         raise NotImplementedError("MemoryView doesn't support length")
 
-    def insert(self, index, value):
+    def insert(self: MemoryView, index: int, value: int) -> None:
+        """MemoryView doesn't support insertion."""
         raise NotImplementedError("MemoryView doesn't support insertion")

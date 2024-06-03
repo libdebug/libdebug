@@ -83,6 +83,7 @@ setup(
     package_data={
         "libdebug.ptrace.jumpstart": ["jumpstart", "jumpstart.c"],
         "libdebug.cffi": ["*.c"],
+        "libdebug": ["py.typed"],
     },
     ext_modules=[
         Extension(
