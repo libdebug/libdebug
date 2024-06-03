@@ -291,7 +291,7 @@ static PyObject* Ptracer_register_thread(Ptracer* self, PyObject* args)
     ThreadRegs* regs = (ThreadRegs*)ThreadRegs_new(&ThreadRegsType, NULL, NULL);
     regs->regs = &new_thread->regs;
 
-    // Py_INCREF(regs);
+    Py_INCREF(regs);
 
     return (PyObject*)regs;
 }
@@ -598,8 +598,6 @@ int prepare_for_run(struct tracer_state *state, int pid)
 
 static PyObject* Ptracer_cont_all_and_set_bps(Ptracer *self, PyObject *const *args, Py_ssize_t nargs)
 {
-    Py_BEGIN_ALLOW_THREADS
-
     _Bool syscall_hooks_enabled;
 
     if (nargs == 1) {
@@ -608,6 +606,8 @@ static PyObject* Ptracer_cont_all_and_set_bps(Ptracer *self, PyObject *const *ar
         PyErr_SetString(PyExc_TypeError, "cont_all_and_set_bps() takes exactly 1 argument");
         return NULL;
     }
+
+    Py_BEGIN_ALLOW_THREADS
 
     int status = prepare_for_run(&self->state, self->state.pid);
 
@@ -852,14 +852,14 @@ static PyObject* disable_breakpoint(Ptracer* self, PyObject *arg)
 
 static PyObject* Ptracer_step_until(Ptracer *self, PyObject *args)
 {
-    Py_BEGIN_ALLOW_THREADS
-
     pid_t tid;
     unsigned long addr;
     int max_steps = -1;
     if (!PyArg_ParseTuple(args, "iK|i", &tid, &addr, &max_steps)) {
         return NULL;
     }
+
+    Py_BEGIN_ALLOW_THREADS
 
     struct tracer_state *state = &self->state;
 
@@ -954,12 +954,12 @@ static PyObject* ptrace_detach_and_cont(Ptracer* self)
 
 static PyObject* exact_finish(Ptracer *self, PyObject *arg)
 {
-    Py_BEGIN_ALLOW_THREADS
-
     pid_t tid;
     if (!PyArg_ParseTuple(arg, "i", &tid)) {
         return NULL;
     }
+
+    Py_BEGIN_ALLOW_THREADS
 
     struct tracer_state *state = &self->state;
 
