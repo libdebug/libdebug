@@ -1375,9 +1375,6 @@ def debugger(
 
     debugging_context.clear()
 
-    if not env:
-        env = os.environ
-
     debugging_context.argv = argv
     debugging_context.env = env
     debugging_context.aslr_enabled = enable_aslr
