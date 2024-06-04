@@ -917,30 +917,30 @@ class _InternalDebugger:
             self._enable_pretty_print()
 
     @property
-    def signal_to_pass(self: _InternalDebugger) -> list[str]:
-        """Get the signal to pass to the process.
+    def signal_to_block(self: _InternalDebugger) -> list[str]:
+        """Get the signal to not forward to the process.
 
         Returns:
-            list[str]: The signals to pass.
+            list[str]: The signals to block.
         """
-        return [resolve_signal_name(v) for v in self.context._signal_to_pass]
+        return [resolve_signal_name(v) for v in self.context._signal_to_block]
 
-    @signal_to_pass.setter
-    def signal_to_pass(self: _InternalDebugger, signals: list[int] | list[str]) -> None:
-        """Set the signal to pass to the process.
+    @signal_to_block.setter
+    def signal_to_block(self: _InternalDebugger, signals: list[int] | list[str]) -> None:
+        """Set the signal to not forward to the process.
 
         Args:
-            signals (list[int] | list[str]): The signals to pass.
+            signals (list[int] | list[str]): The signals to block.
         """
         if not isinstance(signals, list):
-            raise TypeError("signal_to_pass must be a list of integers or strings")
+            raise TypeError("signal_to_block must be a list of integers or strings")
 
         signals = [v if isinstance(v, int) else resolve_signal_number(v) for v in signals]
 
         if not set(signals).issubset(get_all_signal_numbers()):
             raise ValueError("Invalid signal number.")
 
-        self.context._signal_to_pass = signals
+        self.context._signal_to_block = signals
 
     @background_alias(_background_invalid_call)
     def migrate_to_gdb(self: _InternalDebugger, open_in_new_process: bool = True) -> None:

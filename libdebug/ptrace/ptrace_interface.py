@@ -380,8 +380,8 @@ class PtraceInterface(DebuggingInterface):
 
         self.lib_trace.free_thread_status_list(result)
 
-    def deliver_signal(self: PtraceInterface, threads: list[int]) -> None:
-        """Set the signals to deliver to the threads."""
+    def forward_signal(self: PtraceInterface, threads: list[int]) -> None:
+        """Set the signals to forward to the threads."""
         # change the global_state
         cursor = self._global_state.t_HEAD
 
@@ -391,13 +391,13 @@ class PtraceInterface(DebuggingInterface):
                 if thread is None:
                     # The thread is dead in the meantime
                     continue
-                if thread.signal_number != 0 and thread.signal_number not in self.context._signal_to_pass:
+                if thread.signal_number != 0 and thread.signal_number not in self.context._signal_to_block:
                     liblog.debugger(
-                        f"Delivering signal {thread.signal_number} to thread {cursor.tid}",
+                        f"Forward signal {thread.signal_number} to thread {cursor.tid}",
                     )
-                    # Set the signal to deliver
-                    cursor.signal_to_deliver = thread.signal_number
-                    # Reset the signal to deliver
+                    # Set the signal to forward
+                    cursor.signal_to_forward = thread.signal_number
+                    # Reset the signal to forward
                     thread.signal_number = 0
                     # We have an idea of what is going on, we can resume the thread if possible
                     self.context._resume_context.resume = ResumeStatus.RESUME

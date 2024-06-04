@@ -37,7 +37,7 @@ class ThreadContext:
     """The register holder object. It provides access to the thread's registers."""
 
     signal_number: int = 0
-    """The signal to deliver to the thread."""
+    """The signal to forward to the thread."""
 
     thread_id: int
     """The thread's ID."""
