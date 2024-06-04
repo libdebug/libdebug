@@ -8,7 +8,7 @@ class Heap(Allocator):
     """Implementation of ptmalloc2 heap allocator"""
     def __init__(self: Heap) -> None:
         super().__init__()
-        self._main_arena = None
+        self._main_arena : Arena | None = None
 
     def name(self) -> str:
         return "ptmalloc2"
@@ -20,17 +20,22 @@ class Heap(Allocator):
         raise NotImplementedError("Not implemented yet")
     
     @property
-    def main_arena(self):
+    def main_arena(self) -> Arena:
+        from libdebug import libcontext
         if self._main_arena is None:            
             # Initialize the main arena
-            main_arena_address = self.context.resolve_symbol("main_arena")
+            with libcontext.tmp(sym_lvl = 5):
+                main_arena_address = self.context.resolve_symbol("main_arena")
             
             with context_extend_from(self):
                 self._main_arena = Arena(main_arena_address)
-
-            print(self.main_arena)
         
         return self._main_arena
+
+    @property
+    def fastbins(self) -> dict[int, list[int]]:
+        return self.main_arena.fastbins
+
 
 
 
