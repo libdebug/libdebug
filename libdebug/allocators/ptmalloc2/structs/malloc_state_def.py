@@ -1,6 +1,7 @@
 import ctypes
 from libdebug.allocators.ptmalloc2.structs import *
 
+# Based on pwndbg project
 fastbinsY_t = c_pvoid * NFASTBINS
 class c_malloc_state_2_27(ctypes.Structure):
     _fields_ = [
