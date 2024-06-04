@@ -23,7 +23,10 @@ from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
 from libdebug.data.signal_hook import SignalHook
 from libdebug.data.syscall_hook import SyscallHook
+from libdebug.allocators.allocator import Allocator
 from libdebug.interfaces.interface_helper import provide_debugging_interface
+from libdebug.allocators.allocator_helper import provide_allocator_interface
+
 from libdebug.liblog import liblog
 from libdebug.state.debugging_context import (
     DebuggingContext,
@@ -78,6 +81,9 @@ class _InternalDebugger:
     threads: list[ThreadContext] = None
     """A dictionary of all the threads in the process. The keys are the thread IDs."""
 
+    heap: Allocator | None = None
+    """The object to interacti with the allocator of the process."""
+
     _polling_thread: Thread | None = None
     """The background thread used to poll the process for state change."""
 
@@ -97,6 +103,9 @@ class _InternalDebugger:
         with context_extend_from(self):
             self.interface = provide_debugging_interface()
             self.context.debugging_interface = self.interface
+            
+            # Init the heap
+            self.heap = provide_allocator_interface()
 
         # threading utilities
         self._polling_thread_command_queue = Queue()
