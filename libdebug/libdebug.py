@@ -82,7 +82,7 @@ class _InternalDebugger:
     """A dictionary of all the threads in the process. The keys are the thread IDs."""
 
     heap: Allocator | None = None
-    """The object to interacti with the allocator of the process."""
+    """The object to interact with the allocator of the process."""
 
     _polling_thread: Thread | None = None
     """The background thread used to poll the process for state change."""
