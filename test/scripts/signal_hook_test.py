@@ -29,7 +29,7 @@ class SignalHookTest(unittest.TestCase):
         self.logger.handlers = self.original_handlers
         self.log_handler.close()
 
-    def test_signal_hooking(self):
+    def test_signal_hooking_block(self):
         SIGUSR1_count = 0
         SIGINT_count = 0
         SIGQUIT_count = 0
@@ -62,6 +62,8 @@ class SignalHookTest(unittest.TestCase):
             SIGPIPE_count += 1
 
         d = debugger("binaries/signal_handling_test")
+
+        d.signal_to_block = ["SIGUSR1", 15, "SIGINT", 3, 13]
 
         d.run()
 
@@ -122,8 +124,6 @@ class SignalHookTest(unittest.TestCase):
         d = debugger("binaries/signal_handling_test")
 
         r = d.run()
-
-        d.signal_to_pass = ["SIGUSR1", 15, "SIGINT", 3, 13]
 
         hook1 = d.hook_signal("SIGUSR1", callback=hook_SIGUSR1)
         hook2 = d.hook_signal("SIGTERM", callback=hook_SIGTERM)
@@ -204,8 +204,6 @@ class SignalHookTest(unittest.TestCase):
 
         r = d.run()
 
-        d.signal_to_pass = [10, 15, 2, 3, 13]
-
         hook1 = d.hook_signal("SIGUSR1", callback=hook_SIGUSR1)
         hook2 = d.hook_signal("SIGTERM", callback=hook_SIGTERM)
         hook3 = d.hook_signal("SIGINT", callback=hook_SIGINT)
@@ -257,7 +255,7 @@ class SignalHookTest(unittest.TestCase):
         self.assertEqual(SIGQUIT, b"Received signal 3" * 3)
         self.assertEqual(SIGPIPE, b"Received signal 13" * 3)
 
-    def test_signal_unpass(self):
+    def test_signal_unblock(self):
         SIGUSR1_count = 0
         SIGINT_count = 0
         SIGQUIT_count = 0
@@ -293,7 +291,7 @@ class SignalHookTest(unittest.TestCase):
 
         r = d.run()
 
-        d.signal_to_pass = [10, 15, 2, 3, 13]
+        d.signal_to_block = [10, 15, 2, 3, 13]
 
         hook1 = d.hook_signal("SIGUSR1", callback=hook_SIGUSR1)
         hook2 = d.hook_signal("SIGTERM", callback=hook_SIGTERM)
@@ -305,27 +303,18 @@ class SignalHookTest(unittest.TestCase):
 
         d.cont()
 
-        SIGUSR1 = r.recvline()
-        SIGTERM = r.recvline()
-        SIGINT = r.recvline()
-        SIGQUIT = r.recvline()
-        SIGPIPE = r.recvline()
-
-        SIGUSR1 += r.recvline()
-        SIGTERM += r.recvline()
-        SIGINT += r.recvline()
-        SIGQUIT += r.recvline()
-        SIGPIPE += r.recvline()
-
-        # No pass the signals to the process anymore
-        if bp.hit_on:
-            d.signal_to_pass = []
+        # No block the signals anymore
+        if bp.hit_on(d):
+            d.signal_to_block = []
 
         d.cont()
 
-        # If not passed, the process will not receive any signal and not print any message
-        exiting = r.recvline()
-        self.assertRaises(RuntimeError, r.recvline, timeout=1)
+        signal_received = []
+        while True:
+            try:
+                signal_received.append(r.recvline())
+            except RuntimeError:
+                break
 
         d.kill()
 
@@ -341,14 +330,13 @@ class SignalHookTest(unittest.TestCase):
         self.assertEqual(SIGQUIT_count, hook4.hit_count)
         self.assertEqual(SIGPIPE_count, hook5.hit_count)
 
-        self.assertEqual(SIGUSR1, b"Received signal 10" * 2)
-        self.assertEqual(SIGTERM, b"Received signal 15" * 2)
-        self.assertEqual(SIGINT, b"Received signal 2" * 2)
-        self.assertEqual(SIGQUIT, b"Received signal 3" * 2)
-        self.assertEqual(SIGPIPE, b"Received signal 13" * 2)
-        self.assertEqual(exiting, b"Exiting normally.")
+        self.assertEqual(signal_received[0], b"Received signal 3")
+        self.assertEqual(signal_received[1], b"Received signal 13")
+        self.assertEqual(signal_received[2], b"Exiting normally.")
 
-    def test_signal_unhook_unpass(self):
+        self.assertEqual(len(signal_received), 3)
+
+    def test_signal_unhook_unblock(self):
         SIGUSR1_count = 0
         SIGINT_count = 0
         SIGQUIT_count = 0
@@ -384,7 +372,7 @@ class SignalHookTest(unittest.TestCase):
 
         r = d.run()
 
-        d.signal_to_pass = [10, 15, 2, 3, 13]
+        d.signal_to_block = [10, 15, 2, 3, 13]
 
         hook1 = d.hook_signal("SIGUSR1", callback=hook_SIGUSR1)
         hook2 = d.hook_signal("SIGTERM", callback=hook_SIGTERM)
@@ -396,29 +384,20 @@ class SignalHookTest(unittest.TestCase):
 
         d.cont()
 
-        SIGUSR1 = r.recvline()
-        SIGTERM = r.recvline()
-        SIGINT = r.recvline()
-        SIGQUIT = r.recvline()
-        SIGPIPE = r.recvline()
-
-        SIGUSR1 += r.recvline()
-        SIGTERM += r.recvline()
-        SIGINT += r.recvline()
-        SIGQUIT += r.recvline()
-        SIGPIPE += r.recvline()
-
-        # No pass the signals to the process anymore
-        if bp.hit_on:
-            d.signal_to_pass = []
+        # No block the signals anymore
+        if bp.hit_on(d):
+            d.signal_to_block = []
             d.unhook_signal(hook4)
             d.unhook_signal(hook5)
 
         d.cont()
 
-        # If not passed, the process will not receive any signal and not print any message
-        exiting = r.recvline()
-        self.assertRaises(RuntimeError, r.recvline, timeout=1)
+        signal_received = []
+        while True:
+            try:
+                signal_received.append(r.recvline())
+            except RuntimeError:
+                break
 
         d.kill()
 
@@ -434,73 +413,11 @@ class SignalHookTest(unittest.TestCase):
         self.assertEqual(SIGQUIT_count, hook4.hit_count)
         self.assertEqual(SIGPIPE_count, hook5.hit_count)
 
-        self.assertEqual(SIGUSR1, b"Received signal 10" * 2)
-        self.assertEqual(SIGTERM, b"Received signal 15" * 2)
-        self.assertEqual(SIGINT, b"Received signal 2" * 2)
-        self.assertEqual(SIGQUIT, b"Received signal 3" * 2)
-        self.assertEqual(SIGPIPE, b"Received signal 13" * 2)
-        self.assertEqual(exiting, b"Exiting normally.")
+        self.assertEqual(signal_received[0], b"Received signal 3")
+        self.assertEqual(signal_received[1], b"Received signal 13")
+        self.assertEqual(signal_received[2], b"Exiting normally.")
 
-        # We expect two warnings, one for each unmanaged signal (not passed, not hooked)
-        self.assertEqual(self.log_capture_string.getvalue().count("WARNING"), 2)
-
-    def test_force_continue_true(self):
-        # force_continue=True will make the debugger to continue the process even if there are unmanaged signals
-        d = debugger("binaries/signal_handling_test", force_continue=True)
-
-        r = d.run()
-
-        # We do not hook or pass any signal
-
-        d.cont()
-
-        exiting = r.recvline()
-        self.assertEqual(exiting, b"Exiting normally.")
-
-        # If not passed, the process will not receive any signal and not print any message
-        self.assertRaises(RuntimeError, r.recvline, timeout=1)
-
-        d.kill()
-
-        # We expect 12 warnings, one for each unmanaged signal (not passed, not hooked)
-        self.assertEqual(self.log_capture_string.getvalue().count("WARNING"), 12)
-        self.assertEqual(
-            self.log_capture_string.getvalue().count(
-                "Stop due to unhandled signal. Trying to continue."
-            ),
-            12,
-        )
-
-    def test_force_continue_false(self):
-        # force_continue=False will make the debugger to stop the process if there are unmanaged signals
-        d = debugger("binaries/signal_handling_test", force_continue=False)
-
-        r = d.run()
-
-        # We do not hook or pass any signal
-
-        d.cont()
-
-        # We expect 12 warnings, one for each unmanaged signal (not passed, not hooked)
-
-        for i in range(1, 13):
-            d.wait()
-            self.assertEqual(self.log_capture_string.getvalue().count("WARNING"), i)
-            self.assertEqual(
-                self.log_capture_string.getvalue().count(
-                    "Stop due to unhandled signal. Hanging."
-                ),
-                i,
-            )
-            d.cont()
-
-        exiting = r.recvline()
-        self.assertEqual(exiting, b"Exiting normally.")
-
-        # If not passed, the process will not receive any signal and not print any message
-        self.assertRaises(RuntimeError, r.recvline, timeout=1)
-
-        d.kill()
+        self.assertEqual(len(signal_received), 3)
 
     def test_hijack_signal_with_hooking(self):
         def hook_SIGUSR1(t, signal_number):
@@ -510,8 +427,6 @@ class SignalHookTest(unittest.TestCase):
         d = debugger("binaries/signal_handling_test")
 
         r = d.run()
-
-        d.signal_to_pass = ["SIGUSR1", 15, "SIGINT", 3, 13]
 
         hook1 = d.hook_signal("SIGUSR1", callback=hook_SIGUSR1)
 
@@ -546,8 +461,6 @@ class SignalHookTest(unittest.TestCase):
         d = debugger("binaries/signal_handling_test")
 
         r = d.run()
-
-        d.signal_to_pass = ["SIGUSR1", 15, "SIGINT", 3, 13]
 
         # Hijack to SIGTERM
         hook1 = d.hijack_signal("SIGUSR1", 15)
@@ -599,8 +512,6 @@ class SignalHookTest(unittest.TestCase):
 
         r = d.run()
 
-        d.signal_to_pass = ["SIGUSR1", 15, "SIGINT", 3, 13]
-
         hook1 = d.hook_signal(10, callback=hook_SIGUSR1, hook_hijack=True)
         hook2 = d.hook_signal("SIGTERM", callback=hook_SIGTERM)
 
@@ -646,8 +557,6 @@ class SignalHookTest(unittest.TestCase):
         d = debugger("binaries/signal_handling_test")
 
         r = d.run()
-
-        d.signal_to_pass = ["SIGUSR1", 15, "SIGINT", 3, 13]
 
         hook1 = d.hijack_signal(10, 15, hook_hijack=True)
         hook2 = d.hook_signal("SIGTERM", callback=hook_SIGTERM)
@@ -701,8 +610,6 @@ class SignalHookTest(unittest.TestCase):
 
         r = d.run()
 
-        d.signal_to_pass = ["SIGUSR1", 15, "SIGINT", 3, 13]
-
         hook1 = d.hook_signal(10, callback=hook_SIGUSR1, hook_hijack=False)
         hook2 = d.hook_signal("SIGTERM", callback=hook_SIGTERM)
 
@@ -726,9 +633,7 @@ class SignalHookTest(unittest.TestCase):
         d.kill()
 
         self.assertEqual(SIGUSR1_count, 2)
-        self.assertEqual(
-            SIGTERM_count, 2
-        )  # 2 times in total because of the hook_hijack=False
+        self.assertEqual(SIGTERM_count, 2)  # 2 times in total because of the hook_hijack=False
 
         self.assertEqual(SIGUSR1_count, hook1.hit_count)
         self.assertEqual(SIGTERM_count, hook2.hit_count)
@@ -750,8 +655,6 @@ class SignalHookTest(unittest.TestCase):
         d = debugger("binaries/signal_handling_test")
 
         r = d.run()
-
-        d.signal_to_pass = ["SIGUSR1", 15, "SIGINT", 3, 13]
 
         hook1 = d.hijack_signal(10, 15, hook_hijack=False)
         hook2 = d.hook_signal("SIGTERM", callback=hook_SIGTERM)
@@ -776,9 +679,7 @@ class SignalHookTest(unittest.TestCase):
         d.kill()
 
         self.assertEqual(hook1.hit_count, 2)
-        self.assertEqual(
-            SIGTERM_count, 2
-        )  # 2 times in total because of the hook_hijack=False
+        self.assertEqual(SIGTERM_count, 2)  # 2 times in total because of the hook_hijack=False
         self.assertEqual(SIGTERM_count, hook2.hit_count)
 
         self.assertEqual(SIGUSR1, b"Received signal 15" * 2)  # hijacked signal
@@ -802,8 +703,6 @@ class SignalHookTest(unittest.TestCase):
 
         d.run()
 
-        d.signal_to_pass = ["SIGUSR1", 15, "SIGINT", 3, 13]
-
         d.hook_signal("SIGUSR1", callback=hook_SIGUSR1)
         d.hook_signal("SIGTERM", callback=hook_SIGTERM)
 
@@ -814,8 +713,6 @@ class SignalHookTest(unittest.TestCase):
         # Now we set hook_hijack=False to avoid the loop
         d.run()
 
-        d.signal_to_pass = ["SIGUSR1", 15, "SIGINT", 3, 13]
-
         d.hook_signal("SIGUSR1", callback=hook_SIGUSR1, hook_hijack=False)
         d.hook_signal("SIGTERM", callback=hook_SIGTERM)
 
@@ -824,8 +721,6 @@ class SignalHookTest(unittest.TestCase):
 
         d.run()
 
-        d.signal_to_pass = ["SIGUSR1", 15, "SIGINT", 3, 13]
-
         d.hook_signal("SIGUSR1", callback=hook_SIGUSR1)
         d.hook_signal("SIGTERM", callback=hook_SIGTERM, hook_hijack=False)
 
@@ -833,8 +728,6 @@ class SignalHookTest(unittest.TestCase):
         d.kill()
 
         d.run()
-
-        d.signal_to_pass = ["SIGUSR1", 15, "SIGINT", 3, 13]
 
         d.hook_signal("SIGUSR1", callback=hook_SIGUSR1, hook_hijack=False)
         d.hook_signal("SIGTERM", callback=hook_SIGTERM, hook_hijack=False)
@@ -849,8 +742,6 @@ class SignalHookTest(unittest.TestCase):
 
         d.run()
 
-        d.signal_to_pass = ["SIGUSR1", 15, "SIGINT", 3, 13]
-
         d.hijack_signal("SIGUSR1", "SIGTERM")
         d.hijack_signal(15, 10)
 
@@ -861,8 +752,6 @@ class SignalHookTest(unittest.TestCase):
         # Now we set hook_hijack=False to avoid the loop
         d.run()
 
-        d.signal_to_pass = ["SIGUSR1", 15, "SIGINT", 3, 13]
-
         d.hijack_signal("SIGUSR1", "SIGTERM", hook_hijack=False)
         d.hijack_signal(15, 10)
 
@@ -871,8 +760,6 @@ class SignalHookTest(unittest.TestCase):
 
         d.run()
 
-        d.signal_to_pass = ["SIGUSR1", 15, "SIGINT", 3, 13]
-
         d.hijack_signal("SIGUSR1", "SIGTERM")
         d.hijack_signal(15, 10, hook_hijack=False)
 
@@ -880,8 +767,6 @@ class SignalHookTest(unittest.TestCase):
         d.kill()
 
         d.run()
-
-        d.signal_to_pass = ["SIGUSR1", 15, "SIGINT", 3, 13]
 
         d.hijack_signal("SIGUSR1", "SIGTERM", hook_hijack=False)
         d.hijack_signal(15, 10, hook_hijack=False)
@@ -912,8 +797,6 @@ class SignalHookTest(unittest.TestCase):
         d = debugger("binaries/signal_handling_test")
 
         r = d.run()
-
-        d.signal_to_pass = [10, 15, 2, 3, 13]
 
         hook1 = d.hook_signal("SIGUSR1", callback=hook_SIGUSR1)
         hook2 = d.hook_signal("SIGTERM", callback=hook_SIGTERM)
@@ -949,9 +832,7 @@ class SignalHookTest(unittest.TestCase):
         d.kill()
 
         self.assertEqual(SIGUSR1_count, 2)
-        self.assertEqual(
-            SIGTERM_count, 2 + 2 + 2
-        )  # 2 times more because of the hijacking * 2 (SIGQUIT and SIGPIPE)
+        self.assertEqual(SIGTERM_count, 2 + 2 + 2)  # 2 times more because of the hijacking * 2 (SIGQUIT and SIGPIPE)
         self.assertEqual(SIGINT_count, 2)
 
         self.assertEqual(SIGUSR1_count, hook1.hit_count)
@@ -981,8 +862,6 @@ class SignalHookTest(unittest.TestCase):
         d = debugger("binaries/signal_handling_test")
 
         r = d.run()
-
-        d.signal_to_pass = ["SIGUSR1", 15, "SIGINT", 3, 13]
 
         hook1 = d.hook_signal("SIGPIPE", callback=hook_SIGPIPE_first)
 
@@ -1027,9 +906,7 @@ class SignalHookTest(unittest.TestCase):
 
         self.assertEqual(self.log_capture_string.getvalue().count("WARNING"), 1)
         self.assertEqual(
-            self.log_capture_string.getvalue().count(
-                "is already hooked. Overriding it."
-            ),
+            self.log_capture_string.getvalue().count("is already hooked. Overriding it."),
             1,
         )
 
@@ -1037,8 +914,6 @@ class SignalHookTest(unittest.TestCase):
         d = debugger("binaries/signal_handling_test")
 
         r = d.run()
-
-        d.signal_to_pass = ["SIGUSR1", 15, "SIGINT", 3, 13]
 
         hook1 = d.hijack_signal("SIGPIPE", 15)
 
@@ -1080,9 +955,7 @@ class SignalHookTest(unittest.TestCase):
 
         self.assertEqual(self.log_capture_string.getvalue().count("WARNING"), 1)
         self.assertEqual(
-            self.log_capture_string.getvalue().count(
-                "is already hooked. Overriding it."
-            ),
+            self.log_capture_string.getvalue().count("is already hooked. Overriding it."),
             1,
         )
 
@@ -1097,8 +970,6 @@ class SignalHookTest(unittest.TestCase):
         d = debugger("binaries/signal_handling_test")
 
         r = d.run()
-
-        d.signal_to_pass = ["SIGUSR1", 15, "SIGINT", 3, 13]
 
         hook1 = d.hijack_signal("SIGPIPE", 15)
 
@@ -1141,8 +1012,6 @@ class SignalHookTest(unittest.TestCase):
 
         self.assertEqual(self.log_capture_string.getvalue().count("WARNING"), 1)
         self.assertEqual(
-            self.log_capture_string.getvalue().count(
-                "is already hooked. Overriding it."
-            ),
+            self.log_capture_string.getvalue().count("is already hooked. Overriding it."),
             1,
         )

@@ -133,13 +133,11 @@ def fast_suite():
     suite.addTest(
         PPrintSyscallsTest("test_pprint_which_syscalls_not_pprint_after_and_before")
     )
-    suite.addTest(SignalHookTest("test_signal_hooking"))
+    suite.addTest(SignalHookTest("test_signal_hooking_block"))
     suite.addTest(SignalHookTest("test_signal_pass_to_process"))
     suite.addTest(SignalHookTest("test_signal_unhooking"))
-    suite.addTest(SignalHookTest("test_signal_unpass"))
-    suite.addTest(SignalHookTest("test_signal_unhook_unpass"))
-    suite.addTest(SignalHookTest("test_force_continue_true"))
-    suite.addTest(SignalHookTest("test_force_continue_false"))
+    suite.addTest(SignalHookTest("test_signal_unblock"))
+    suite.addTest(SignalHookTest("test_signal_unhook_unblock"))
     suite.addTest(SignalHookTest("test_hijack_signal_with_hooking"))
     suite.addTest(SignalHookTest("test_hijack_signal_with_api"))
     suite.addTest(SignalHookTest("test_hook_hijack_true_with_hook"))
@@ -152,7 +150,7 @@ def fast_suite():
     suite.addTest(SignalHookTest("test_override_hook"))
     suite.addTest(SignalHookTest("test_override_hijack"))
     suite.addTest(SignalHookTest("test_override_hybrid"))
-    suite.addTest(SignalMultithreadTest("test_signal_multithread_undet_hook"))
+    suite.addTest(SignalMultithreadTest("test_signal_multithread_undet_hook_block"))
     suite.addTest(SignalMultithreadTest("test_signal_multithread_undet_pass"))
     return suite
 

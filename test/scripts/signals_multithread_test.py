@@ -10,7 +10,7 @@ from libdebug import debugger
 
 
 class SignalMultithreadTest(unittest.TestCase):
-    def test_signal_multithread_undet_hook(self):
+    def test_signal_multithread_undet_hook_block(self):
         SIGUSR1_count = 0
         SIGINT_count = 0
         SIGQUIT_count = 0
@@ -51,6 +51,8 @@ class SignalMultithreadTest(unittest.TestCase):
         hook3 = d.hook_signal(2, callback=hook_SIGINT)
         hook4 = d.hook_signal("SIGQUIT", callback=hook_SIGQUIT)
         hook5 = d.hook_signal("SIGPIPE", callback=hook_SIGPIPE)
+
+        d.signal_to_block = ["SIGUSR1", 15, "SIGINT", 3, 13]
 
         d.cont()
 
@@ -109,8 +111,6 @@ class SignalMultithreadTest(unittest.TestCase):
         d = debugger("binaries/signals_multithread_undet_test")
 
         r = d.run()
-
-        d.signal_to_pass = ["SIGUSR1", 15, "SIGINT", 3, 13]
 
         hook1 = d.hook_signal("SIGUSR1", callback=hook_SIGUSR1)
         hook2 = d.hook_signal("SIGTERM", callback=hook_SIGTERM)
