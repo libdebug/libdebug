@@ -13,7 +13,7 @@ import requests
 from libdebug.utils.libcontext import libcontext
 
 SYSCALLS_REMOTE = "https://syscalls.mebeim.net/db"
-LOCAL_FOLDER_PATH = (Path(__file__) / ".." / "syscalls").resolve()
+LOCAL_FOLDER_PATH = (Path.home() / ".cache" / "libdebug" / "syscalls").resolve()
 
 
 def get_remote_definition_url(arch: str) -> str:
