@@ -28,7 +28,6 @@ from libdebug.state.debugging_context import (
     link_context,
     provide_context,
 )
-from libdebug.state.resume_context import ResumeStatus
 from libdebug.state.thread_context import ThreadContext
 from libdebug.utils.debugging_utils import normalize_and_validate_address
 from libdebug.utils.elf_utils import get_entry_point
@@ -399,8 +398,6 @@ class PtraceInterface(DebuggingInterface):
                     cursor.signal_to_forward = thread.signal_number
                     # Reset the signal to forward
                     thread.signal_number = 0
-                    # We have an idea of what is going on, we can resume the thread if possible
-                    self.context._resume_context.resume = ResumeStatus.RESUME
             cursor = cursor.next
 
     def migrate_to_gdb(self: PtraceInterface) -> None:

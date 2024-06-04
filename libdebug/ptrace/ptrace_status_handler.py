@@ -17,7 +17,6 @@ from libdebug.architectures.ptrace_software_breakpoint_patcher import (
 from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_constants import SYSCALL_SIGTRAP, StopEvents
 from libdebug.state.debugging_context import provide_context
-from libdebug.state.resume_context import ResumeStatus
 from libdebug.utils.signal_utils import resolve_signal_name
 
 if TYPE_CHECKING:
@@ -67,7 +66,7 @@ class PtraceStatusHandler:
         if not hasattr(thread, "instruction_pointer"):
             # This is a signal trap hit on process startup
             # Do not resume the process until the user decides to do so
-            self.context._resume_context.resume = ResumeStatus.NOT_RESUME
+            self.context._resume_context.resume = False
             self.forward_signal = False
             return
 
@@ -114,10 +113,9 @@ class PtraceStatusHandler:
 
             if bp.callback:
                 bp.callback(thread, bp)
-                self.context._resume_context.resume = ResumeStatus.RESUME
             else:
                 # If the breakpoint has no callback, we need to stop the process despite the other signals
-                self.context._resume_context.resume = ResumeStatus.NOT_RESUME
+                self.context._resume_context.resume = False
 
     def _manage_syscall_on_enter(
         self: PtraceStatusHandler,
@@ -209,7 +207,6 @@ class PtraceStatusHandler:
         if syscall_number not in self.context.syscall_hooks:
             # This is a syscall we don't care about
             # Resume the execution
-            self.context._resume_context.resume = ResumeStatus.RESUME
             return
 
         hook = self.context.syscall_hooks[syscall_number]
@@ -257,8 +254,6 @@ class PtraceStatusHandler:
 
             hook._has_entered = False
             hook._skip_exit = False
-
-        self.context._resume_context.resume = ResumeStatus.RESUME
 
     def _manage_signal_callback(
         self: PtraceStatusHandler,
@@ -311,8 +306,6 @@ class PtraceStatusHandler:
 
             self._manage_signal_callback(hook, thread, signal_number, {signal_number})
 
-            self.context._resume_context.resume = ResumeStatus.RESUME
-
     def _internal_signal_handler(
         self: PtraceStatusHandler,
         pid: int,
@@ -333,7 +326,7 @@ class PtraceStatusHandler:
                 pid,
                 resolve_signal_name(signum),
             )
-            self.context._resume_context.resume = ResumeStatus.NOT_RESUME
+            self.context._resume_context.resume = False
             self.context._resume_context.force_interrupt = False
             self.forward_signal = False
         elif signum == signal.SIGTRAP:
@@ -342,7 +335,8 @@ class PtraceStatusHandler:
             self._handle_breakpoints(pid)
 
             if self.context._resume_context.is_a_step:
-                self.context._resume_context.resume = ResumeStatus.NOT_RESUME
+                # The process is stepping, we need to stop the execution
+                self.context._resume_context.resume = False
                 self.context._resume_context.is_a_step = False
                 self.forward_signal = False
 
@@ -355,12 +349,10 @@ class PtraceStatusHandler:
                         f"Process {pid} cloned, new thread_id: {message}",
                     )
                     self._handle_clone(message, results)
-                    self.context._resume_context.resume = ResumeStatus.RESUME
                     self.forward_signal = False
                 case StopEvents.SECCOMP_EVENT:
                     # The process has installed a seccomp
                     liblog.debugger(f"Process {pid} installed a seccomp")
-                    self.context._resume_context.resume = ResumeStatus.RESUME
                     self.forward_signal = False
                 case StopEvents.EXIT_EVENT:
                     # The tracee is still alive; it needs
@@ -371,14 +363,12 @@ class PtraceStatusHandler:
                     liblog.debugger(
                         f"Thread {pid} exited with status: {message}",
                     )
-                    self.context._resume_context.resume = ResumeStatus.RESUME
                     self.forward_signal = False
                 case StopEvents.FORK_EVENT:
                     # The process has been forked
                     liblog.warning(
                         f"Process {pid} forked. Continuing execution of the parent process. The child process will be stopped until the user decides to attach to it."
                     )
-                    self.context._resume_context.resume = ResumeStatus.RESUME
                     self.forward_signal = False
 
     def _handle_change(self: PtraceStatusHandler, pid: int, status: int, results: list) -> None:
@@ -416,14 +406,12 @@ class PtraceStatusHandler:
             exitstatus = os.WEXITSTATUS(status)
             liblog.debugger("Child process %d exited with status %d", pid, exitstatus)
             self._handle_exit(pid)
-            self.context._resume_context.resume = ResumeStatus.RESUME
 
         if os.WIFSIGNALED(status):
             # The thread has exited with a signal
             termsig = os.WTERMSIG(status)
             liblog.debugger("Child process %d exited with signal %d", pid, termsig)
             self._handle_exit(pid)
-            self.context._resume_context.resume = ResumeStatus.RESUME
 
     def manage_change(self: PtraceStatusHandler, result: list[tuple]) -> None:
         """Manage the result of the waitpid and handle the changes."""
@@ -432,14 +420,12 @@ class PtraceStatusHandler:
         self._assume_race_sigstop = True
 
         for pid, status in result:
-            if pid == -1:
-                # This is a spurious trap, we can ignore it
-                self.context._resume_context.resume = ResumeStatus.RESUME
-            else:
+            if pid != -1:
+                # Otherwise, this is a spurious trap
                 self._handle_change(pid, status, result)
 
         if self._assume_race_sigstop:
-            self.context._resume_context.resume = ResumeStatus.RESUME
+            # Resume the process if the stop was due to a race condition with SIGSTOP sent by the debugger
             return
 
         if len(self._threads_with_signals_to_forward) > 0:

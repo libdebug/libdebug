@@ -32,7 +32,6 @@ from libdebug.state.debugging_context import (
     link_context,
     provide_context,
 )
-from libdebug.state.resume_context import ResumeStatus
 from libdebug.utils.debugger_wrappers import background_alias, control_flow_function
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.signal_utils import (
@@ -1294,22 +1293,12 @@ class _InternalDebugger:
                 # All threads are dead
                 liblog.debugger("All threads dead")
                 break
-            self.context._resume_context.resume = ResumeStatus.UNDECIDED
+            self.context._resume_context.resume = True
             self.interface.wait()
-            match self.context._resume_context.resume:
-                case ResumeStatus.RESUME:
-                    self.interface.cont()
-                case ResumeStatus.NOT_RESUME:
-                    break
-                case ResumeStatus.UNDECIDED:
-                    if self.context.force_continue:
-                        liblog.warning(
-                            "Stop due to unhandled signal. Trying to continue.",
-                        )
-                        self.interface.cont()
-                    else:
-                        liblog.warning("Stop due to unhandled signal. Hanging.")
-                        break
+            if self.context._resume_context.resume:
+                self.interface.cont()
+            else:
+                break
 
         self.context.set_stopped()
 

@@ -6,46 +6,14 @@
 
 from __future__ import annotations
 
-from enum import Enum
-
-
-class ResumeStatus(Enum):
-    """Enum representing if the process should be resumed or not after a wait.
-
-    Attributes:
-        UNDECIDED (int): The stop reason is not managed. In this case, the decision is left to the user
-        according to what specified by the force_resume parameter of the debugger.
-        NOT_RESUME (int): The process should not be resumed.
-        RESUME (int): The process should be resumed.
-    """
-
-    UNDECIDED: int = 0
-    NOT_RESUME: int = 1
-    RESUME: int = 2
-
 
 class ResumeContext:
     """A class representing the context of the resume decision."""
 
     def __init__(self: ResumeContext) -> None:
         """Initializes the ResumeContext."""
-        self._resume: ResumeStatus = ResumeStatus.UNDECIDED
+        self.resume: bool = True
         self.force_interrupt: bool = False
         self.is_a_step: bool = False
         self.is_startup: bool = False
-
-    @property
-    def resume(self: ResumeContext) -> ResumeStatus:
-        """The current status of the ResumeContext."""
-        return self._resume
-
-    @resume.setter
-    def resume(self: ResumeContext, value: ResumeStatus) -> None:
-        if not isinstance(value, ResumeStatus):
-            raise TypeError("Invalid value for resume status.")
-
-        if value == ResumeStatus.RESUME:
-            if self._resume == ResumeStatus.UNDECIDED:
-                self._resume = ResumeStatus.RESUME
-        else:
-            self._resume = value
+        self.block_on_signal: bool = False
