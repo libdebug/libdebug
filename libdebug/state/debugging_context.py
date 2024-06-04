@@ -67,8 +67,8 @@ class DebuggingContext:
     """A dictionary of all the signal hooks set on the process.
     Key: the signal number."""
 
-    _signal_to_pass: list[int]
-    """The signals to pass to the process."""
+    _signal_to_block: list[int]
+    """The signals to not forward to the process."""
 
     _syscalls_to_pprint: list[int] | None
     """The syscalls to pretty print."""
@@ -111,7 +111,7 @@ class DebuggingContext:
         self._breakpoints = {}
         self._syscall_hooks = {}
         self._signal_hooks = {}
-        self._signal_to_pass = []
+        self._signal_to_block = []
         self._syscalls_to_pprint = None
         self._syscalls_to_not_pprint = None
         self._threads = []
@@ -130,7 +130,7 @@ class DebuggingContext:
         self._is_running = False
         self._syscalls_to_pprint = None
         self._syscalls_to_not_pprint = None
-        self._signal_to_pass.clear()
+        self._signal_to_block.clear()
         self.process_id = 0
         self._resume_context = ResumeContext()
 
