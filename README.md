@@ -472,14 +472,14 @@ Note: There can be at most one user-defined hook for each signal. \
 If a new hook is defined for a signal that is already hooked or hijacked, the new hook replaces the old one, and a warning is shown.
 
 ## Signal Passing
-You can also decide which signals are forwarded to the child process during execution. By default, no signals are forwarded; instead, all are managed by the debugger.
+You can also decide which signals are not forwarded to the child process during execution. By default, all signals not related to the libdebug internal working are forwarded. SIGSTOP is never passed to the process.
 
 ```python
 d = debugger("binary")
 
 r = d.run()
 
-d.signal_to_pass = [10, 15, 'SIGINT', 3, 13]
+d.signal_to_block = [10, 15, 'SIGINT', 3, 13]
 
 d.cont()
 ```
