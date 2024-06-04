@@ -60,6 +60,7 @@ if TYPE_CHECKING:
     from libdebug.data.signal_hook import SignalHook
     from libdebug.data.syscall_hook import SyscallHook
 
+
 class PtraceInterface(DebuggingInterface):
     """The interface used by `_InternalDebugger` to communicate with the `ptrace` debugging backend."""
 
@@ -221,7 +222,8 @@ class PtraceInterface(DebuggingInterface):
             self._global_state.syscall_hooks_enabled = False
 
         result = self.lib_trace.cont_all_and_set_bps(
-            self._global_state, self.process_id,
+            self._global_state,
+            self.process_id,
         )
         if result < 0:
             errno_val = self.ffi.errno
@@ -253,7 +255,10 @@ class PtraceInterface(DebuggingInterface):
             bp._disabled_for_step = True
 
         result = self.lib_trace.step_until(
-            self._global_state, thread.thread_id, address, max_steps,
+            self._global_state,
+            thread.thread_id,
+            address,
+            max_steps,
         )
         if result == -1:
             errno_val = self.ffi.errno
@@ -270,9 +275,9 @@ class PtraceInterface(DebuggingInterface):
             exact (bool): If True, the command is implemented as a series of `step` commands.
         """
         if exact:
-
             result = self.lib_trace.exact_finish(
-                self._global_state, thread.thread_id,
+                self._global_state,
+                thread.thread_id,
             )
 
             if result == -1:
@@ -331,7 +336,9 @@ class PtraceInterface(DebuggingInterface):
     def _setup_parent(self: PtraceInterface, continue_to_entry_point: bool) -> None:
         """Sets up the parent process after the child process has been created or attached to."""
         liblog.debugger("Polling child process status")
+        self.context._resume_context.is_startup = True
         self.wait()
+        self.context._resume_context.is_startup = False
         liblog.debugger("Child process ready, setting options")
         self._set_options()
         liblog.debugger("Options set")
@@ -345,7 +352,6 @@ class PtraceInterface(DebuggingInterface):
 
             bp = Breakpoint(entry_point, hardware=True)
             self.set_breakpoint(bp)
-
             self.cont()
             self.wait()
 
@@ -356,7 +362,8 @@ class PtraceInterface(DebuggingInterface):
     def wait(self: PtraceInterface) -> None:
         """Waits for the process to stop. Returns True if the wait has to be repeated."""
         result = self.lib_trace.wait_all_and_update_regs(
-            self._global_state, self.process_id,
+            self._global_state,
+            self.process_id,
         )
         cursor = result
 
@@ -384,10 +391,7 @@ class PtraceInterface(DebuggingInterface):
                 if thread is None:
                     # The thread is dead in the meantime
                     continue
-                if (
-                    thread.signal_number != 0
-                    and thread.signal_number in self.context._signal_to_pass
-                ):
+                if thread.signal_number != 0 and thread.signal_number not in self.context._signal_to_pass:
                     liblog.debugger(
                         f"Delivering signal {thread.signal_number} to thread {cursor.tid}",
                     )
@@ -421,7 +425,8 @@ class PtraceInterface(DebuggingInterface):
         """Registers a new thread."""
         # The FFI implementation returns a pointer to the register file
         register_file = self.lib_trace.register_thread(
-            self._global_state, new_thread_id,
+            self._global_state,
+            new_thread_id,
         )
 
         register_holder = register_holder_provider(register_file)
@@ -433,7 +438,9 @@ class PtraceInterface(DebuggingInterface):
 
         self.context.insert_new_thread(thread)
         thread_hw_bp_helper = ptrace_hardware_breakpoint_manager_provider(
-            thread, self._peek_user, self._poke_user,
+            thread,
+            self._peek_user,
+            self._poke_user,
         )
         self.hardware_bp_helpers[new_thread_id] = thread_hw_bp_helper
 
@@ -458,7 +465,9 @@ class PtraceInterface(DebuggingInterface):
             bp (Breakpoint): The breakpoint to set.
         """
         self.lib_trace.register_breakpoint(
-            self._global_state, self.process_id, bp.address,
+            self._global_state,
+            self.process_id,
+            bp.address,
         )
 
     def _unset_sw_breakpoint(self: PtraceInterface, bp: Breakpoint) -> None:
@@ -557,7 +566,9 @@ class PtraceInterface(DebuggingInterface):
         """Reads the memory at the specified address."""
         result = self.lib_trace.ptrace_peekdata(self.process_id, address)
         liblog.debugger(
-            "PEEKDATA at address %d returned with result %x", address, result,
+            "PEEKDATA at address %d returned with result %x",
+            address,
+            result,
         )
 
         error = self.ffi.errno
@@ -570,7 +581,9 @@ class PtraceInterface(DebuggingInterface):
         """Writes the memory at the specified address."""
         result = self.lib_trace.ptrace_pokedata(self.process_id, address, value)
         liblog.debugger(
-            "POKEDATA at address %d returned with result %d", address, result,
+            "POKEDATA at address %d returned with result %d",
+            address,
+            result,
         )
 
         if result == -1:
@@ -581,7 +594,9 @@ class PtraceInterface(DebuggingInterface):
         """Reads the memory at the specified address."""
         result = self.lib_trace.ptrace_peekuser(thread_id, address)
         liblog.debugger(
-            "PEEKUSER at address %d returned with result %x", address, result,
+            "PEEKUSER at address %d returned with result %x",
+            address,
+            result,
         )
 
         error = self.ffi.errno
@@ -594,7 +609,9 @@ class PtraceInterface(DebuggingInterface):
         """Writes the memory at the specified address."""
         result = self.lib_trace.ptrace_pokeuser(thread_id, address, value)
         liblog.debugger(
-            "POKEUSER at address %d returned with result %d", address, result,
+            "POKEUSER at address %d returned with result %d",
+            address,
+            result,
         )
 
         if result == -1:

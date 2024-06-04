@@ -37,6 +37,7 @@ class PtraceStatusHandler:
         self.context: DebuggingContext = provide_context(self)
         self.ptrace_interface: DebuggingInterface = self.context.debugging_interface
         self._threads_with_signals_to_deliver: list[int] = []
+        self.forward_signal: bool = True
         self._assume_race_sigstop: bool = (
             True  # Assume the stop is due to a race condition with SIGSTOP sent by the debugger
         )
@@ -67,6 +68,7 @@ class PtraceStatusHandler:
             # This is a signal trap hit on process startup
             # Do not resume the process until the user decides to do so
             self.context._resume_context.resume = ResumeStatus.NOT_RESUME
+            self.forward_signal = False
             return
 
         ip = thread.instruction_pointer
@@ -107,6 +109,7 @@ class PtraceStatusHandler:
                 liblog.debugger("Watchpoint hit at 0x%x", bp.address)
 
         if bp:
+            self.forward_signal = False
             bp.hit_count += 1
 
             if bp.callback:
@@ -322,6 +325,7 @@ class PtraceStatusHandler:
             # We hit a syscall
             liblog.debugger("Child thread %d stopped on syscall hook", pid)
             self._handle_syscall(pid)
+            self.forward_signal = False
         elif signum == signal.SIGSTOP and self.context._resume_context.force_interrupt:
             # The user has requested an interrupt, we need to stop the process despite the ohter signals
             liblog.debugger(
@@ -331,6 +335,7 @@ class PtraceStatusHandler:
             )
             self.context._resume_context.resume = ResumeStatus.NOT_RESUME
             self.context._resume_context.force_interrupt = False
+            self.forward_signal = False
         elif signum == signal.SIGTRAP:
             # The trap decides if we hit a breakpoint. If so, it decides whether we should stop or
             # continue the execution and wait for the next trap
@@ -339,6 +344,7 @@ class PtraceStatusHandler:
             if self.context._resume_context.is_a_step:
                 self.context._resume_context.resume = ResumeStatus.NOT_RESUME
                 self.context._resume_context.is_a_step = False
+                self.forward_signal = False
 
             event = status >> 8
             match event:
@@ -350,10 +356,12 @@ class PtraceStatusHandler:
                     )
                     self._handle_clone(message, results)
                     self.context._resume_context.resume = ResumeStatus.RESUME
+                    self.forward_signal = False
                 case StopEvents.SECCOMP_EVENT:
                     # The process has installed a seccomp
                     liblog.debugger(f"Process {pid} installed a seccomp")
                     self.context._resume_context.resume = ResumeStatus.RESUME
+                    self.forward_signal = False
                 case StopEvents.EXIT_EVENT:
                     # The tracee is still alive; it needs
                     # to be PTRACE_CONTed or PTRACE_DETACHed to finish exiting.
@@ -364,10 +372,25 @@ class PtraceStatusHandler:
                         f"Thread {pid} exited with status: {message}",
                     )
                     self.context._resume_context.resume = ResumeStatus.RESUME
+                    self.forward_signal = False
+                case StopEvents.FORK_EVENT:
+                    # The process has been forked
+                    liblog.warning(
+                        f"Process {pid} forked. Continuing execution of the parent process. The child process will be stopped until the user decides to attach to it."
+                    )
+                    self.context._resume_context.resume = ResumeStatus.RESUME
+                    self.forward_signal = False
 
     def _handle_change(self: PtraceStatusHandler, pid: int, status: int, results: list) -> None:
         """Handle a change in the status of a traced process."""
+
+        # Initialize the forward_signal flag
+        self.forward_signal = True
+
         if os.WIFSTOPPED(status):
+            if self.context._resume_context.is_startup:
+                # The process has just started
+                return
             signum = os.WSTOPSIG(status)
 
             if signum != signal.SIGSTOP:
@@ -384,8 +407,9 @@ class PtraceStatusHandler:
                 # Handle the signal
                 self._handle_signal(thread)
 
-                # We might have to deliver the signal to the thread
-                self._threads_with_signals_to_deliver.append(pid)
+                if self.forward_signal and signum != signal.SIGSTOP:
+                    # We have to deliver the signal to the thread
+                    self._threads_with_signals_to_deliver.append(pid)
 
         if os.WIFEXITED(status):
             # The thread has exited normally
@@ -418,8 +442,8 @@ class PtraceStatusHandler:
             self.context._resume_context.resume = ResumeStatus.RESUME
             return
 
-        # Deliver the signals to the threads
-        self.ptrace_interface.deliver_signal(self._threads_with_signals_to_deliver)
+        if len(self._threads_with_signals_to_deliver) > 0:
+            self.ptrace_interface.deliver_signal(self._threads_with_signals_to_deliver)
 
         # Clear the list of threads with signals to deliver
         self._threads_with_signals_to_deliver.clear()
