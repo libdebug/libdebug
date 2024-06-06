@@ -1,4 +1,4 @@
-![logo](https://github.com/libdebug/libdebug/blob/fix-defcon/media/libdebug_logo_horiz.png?raw=true)
+![logo](https://github.com/libdebug/libdebug/blob/dev/media/libdebug_logo_horiz.png?raw=true)
 # libdebug
 libdebug is a Python library to automate the debugging of a binary executable.
 
