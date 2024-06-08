@@ -32,6 +32,7 @@ from libdebug.state.debugging_context import (
     link_context,
     provide_context,
 )
+from libdebug.data.thread_list import ThreadList
 from libdebug.utils.debugger_wrappers import background_alias, control_flow_function
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.signal_utils import (
@@ -74,7 +75,7 @@ class _InternalDebugger:
     interface: DebuggingInterface | None = None
     """The debugging interface used to interact with the process."""
 
-    threads: list[ThreadContext] = None
+    _threads: ThreadList[ThreadContext] = None
     """A dictionary of all the threads in the process. The keys are the thread IDs."""
 
     _polling_thread: Thread | None = None
@@ -93,6 +94,9 @@ class _InternalDebugger:
         """Do not use this constructor directly. Use the `debugger` function instead."""
         self.context = provide_context(self)
 
+        self._threads = ThreadList(self)
+        self.context.threads = self.threads
+
         with context_extend_from(self):
             self.interface = provide_debugging_interface()
             self.context.debugging_interface = self.interface
@@ -102,7 +106,6 @@ class _InternalDebugger:
         self._polling_thread_response_queue = Queue()
 
         self.breakpoints = self.context.breakpoints
-        self.threads = self.context.threads
 
         self._start_processing_thread()
         self._setup_memory_view()
@@ -299,7 +302,9 @@ class _InternalDebugger:
 
         self._join_and_check_status()
 
-    def _background_step(self: _InternalDebugger, thread: ThreadContext | None = None) -> None:
+    def _background_step(
+        self: _InternalDebugger, thread: ThreadContext | None = None
+    ) -> None:
         """Executes a single instruction of the process.
 
         Args:
@@ -567,7 +572,11 @@ class _InternalDebugger:
         else:
             original_signal_number = original_signal
 
-        new_signal_number = resolve_signal_number(new_signal) if isinstance(new_signal, str) else new_signal
+        new_signal_number = (
+            resolve_signal_number(new_signal)
+            if isinstance(new_signal, str)
+            else new_signal
+        )
 
         if original_signal_number == new_signal_number:
             raise ValueError(
@@ -592,7 +601,9 @@ class _InternalDebugger:
             # Check if the syscall is already hooked (by the user or by the pretty print hook)
             if syscall_number in self.context.syscall_hooks:
                 hook = self.context.syscall_hooks[syscall_number]
-                if syscall_number not in (self.context._syscalls_to_not_pprint or []) and syscall_number in (
+                if syscall_number not in (
+                    self.context._syscalls_to_not_pprint or []
+                ) and syscall_number in (
                     self.context._syscalls_to_pprint or syscall_numbers
                 ):
                     hook.on_enter_pprint = pprint_on_enter
@@ -601,7 +612,9 @@ class _InternalDebugger:
                     # Remove the pretty print hook from previous pretty print calls
                     hook.on_enter_pprint = None
                     hook.on_exit_pprint = None
-            elif syscall_number not in (self.context._syscalls_to_not_pprint or []) and syscall_number in (
+            elif syscall_number not in (
+                self.context._syscalls_to_not_pprint or []
+            ) and syscall_number in (
                 self.context._syscalls_to_pprint or syscall_numbers
             ):
                 hook = SyscallHook(
@@ -680,7 +693,9 @@ class _InternalDebugger:
                 "At least one callback between on_enter and on_exit should be specified.",
             )
 
-        syscall_number = resolve_syscall_number(syscall) if isinstance(syscall, str) else syscall
+        syscall_number = (
+            resolve_syscall_number(syscall) if isinstance(syscall, str) else syscall
+        )
 
         if not isinstance(hook_hijack, bool):
             raise TypeError("hook_hijack must be a boolean")
@@ -769,7 +784,11 @@ class _InternalDebugger:
         else:
             original_syscall_number = original_syscall
 
-        new_syscall_number = resolve_syscall_number(new_syscall) if isinstance(new_syscall, str) else new_syscall
+        new_syscall_number = (
+            resolve_syscall_number(new_syscall)
+            if isinstance(new_syscall, str)
+            else new_syscall
+        )
 
         if original_syscall_number == new_syscall_number:
             raise ValueError(
@@ -866,7 +885,9 @@ class _InternalDebugger:
             return [resolve_syscall_name(v) for v in self.context._syscalls_to_pprint]
 
     @syscalls_to_pprint.setter
-    def syscalls_to_pprint(self: _InternalDebugger, value: list[int] | list[str] | None) -> None:
+    def syscalls_to_pprint(
+        self: _InternalDebugger, value: list[int] | list[str] | None
+    ) -> None:
         """Get the syscalls to pretty print.
 
         Args:
@@ -875,7 +896,9 @@ class _InternalDebugger:
         if value is None:
             self.context._syscalls_to_pprint = None
         elif isinstance(value, list):
-            self.context._syscalls_to_pprint = [v if isinstance(v, int) else resolve_syscall_number(v) for v in value]
+            self.context._syscalls_to_pprint = [
+                v if isinstance(v, int) else resolve_syscall_number(v) for v in value
+            ]
         else:
             raise ValueError(
                 "syscalls_to_pprint must be a list of integers or strings or None.",
@@ -893,10 +916,14 @@ class _InternalDebugger:
         if self.context._syscalls_to_not_pprint is None:
             return None
         else:
-            return [resolve_syscall_name(v) for v in self.context._syscalls_to_not_pprint]
+            return [
+                resolve_syscall_name(v) for v in self.context._syscalls_to_not_pprint
+            ]
 
     @syscalls_to_not_pprint.setter
-    def syscalls_to_not_pprint(self: _InternalDebugger, value: list[int] | list[str] | None) -> None:
+    def syscalls_to_not_pprint(
+        self: _InternalDebugger, value: list[int] | list[str] | None
+    ) -> None:
         """Get the syscalls to not pretty print.
 
         Args:
@@ -925,7 +952,9 @@ class _InternalDebugger:
         return [resolve_signal_name(v) for v in self.context._signal_to_block]
 
     @signal_to_block.setter
-    def signal_to_block(self: _InternalDebugger, signals: list[int] | list[str]) -> None:
+    def signal_to_block(
+        self: _InternalDebugger, signals: list[int] | list[str]
+    ) -> None:
         """Set the signal to not forward to the process.
 
         Args:
@@ -934,15 +963,24 @@ class _InternalDebugger:
         if not isinstance(signals, list):
             raise TypeError("signal_to_block must be a list of integers or strings")
 
-        signals = [v if isinstance(v, int) else resolve_signal_number(v) for v in signals]
+        signals = [
+            v if isinstance(v, int) else resolve_signal_number(v) for v in signals
+        ]
 
         if not set(signals).issubset(get_all_signal_numbers()):
             raise ValueError("Invalid signal number.")
 
         self.context._signal_to_block = signals
 
+    @property
+    def threads(self: _InternalDebugger) -> ThreadList:
+        """Get the list of threads in the process."""
+        return self._threads
+
     @background_alias(_background_invalid_call)
-    def migrate_to_gdb(self: _InternalDebugger, open_in_new_process: bool = True) -> None:
+    def migrate_to_gdb(
+        self: _InternalDebugger, open_in_new_process: bool = True
+    ) -> None:
         """Migrates the current debugging session to GDB."""
         self._ensure_process_stopped()
 
@@ -990,7 +1028,9 @@ class _InternalDebugger:
         self.__threaded_finish(thread, exact)
 
     @background_alias(_background_finish)
-    def finish(self: _InternalDebugger, thread: ThreadContext | None = None, exact: bool = True) -> None:
+    def finish(
+        self: _InternalDebugger, thread: ThreadContext | None = None, exact: bool = True
+    ) -> None:
         """Continues the process until the current function returns or the process stops.
 
         When used in step mode, it will step until a return instruction is executed. Otherwise, it uses a heuristic
@@ -1093,8 +1133,6 @@ class _InternalDebugger:
         if not self.threads:
             raise AttributeError(f"'debugger has no attribute '{name}'")
 
-        self._ensure_process_stopped()
-
         thread_context = self.threads[0]
 
         if not hasattr(thread_context, name):
@@ -1115,7 +1153,9 @@ class _InternalDebugger:
             thread_context = self.threads[0]
             setattr(thread_context, name, value)
 
-    def __threaded_peek_memory(self: _InternalDebugger, address: int) -> bytes | BaseException:
+    def __threaded_peek_memory(
+        self: _InternalDebugger, address: int
+    ) -> bytes | BaseException:
         try:
             value = self.interface.peek_memory(address)
             # TODO: this is only for amd64
@@ -1123,7 +1163,9 @@ class _InternalDebugger:
         except BaseException as e:
             return e
 
-    def __threaded_poke_memory(self: _InternalDebugger, address: int, data: bytes) -> None:
+    def __threaded_poke_memory(
+        self: _InternalDebugger, address: int, data: bytes
+    ) -> None:
         int_data = int.from_bytes(data, "little")
         self.interface.poke_memory(address, int_data)
 
@@ -1317,7 +1359,9 @@ class _InternalDebugger:
         self.interface.step_until(thread, address, max_steps)
         self.context.set_stopped()
 
-    def __threaded_finish(self: _InternalDebugger, thread: ThreadContext, exact: bool) -> None:
+    def __threaded_finish(
+        self: _InternalDebugger, thread: ThreadContext, exact: bool
+    ) -> None:
         prefix = "Exact" if exact else "Heuristic"
 
         liblog.debugger(f"{prefix} finish on thread %s", thread.thread_id)
@@ -1359,8 +1403,6 @@ def debugger(
     debugger = _InternalDebugger()
 
     debugging_context = create_context(debugger)
-
-    debugging_context.clear()
 
     if not env:
         env = os.environ
