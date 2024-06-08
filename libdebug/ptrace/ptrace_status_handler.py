@@ -267,7 +267,7 @@ class PtraceStatusHandler:
                 # Execute the user-defined callback
                 hook.callback(thread, signal_number)
 
-                new_signal_number = thread.signal_number
+                new_signal_number = thread._signal_number
 
                 if new_signal_number != signal_number:
                     # The signal number has changed
@@ -298,7 +298,7 @@ class PtraceStatusHandler:
 
     def _handle_signal(self: PtraceStatusHandler, thread: ThreadContext) -> bool:
         """Handle the signal trap."""
-        signal_number = thread.signal_number
+        signal_number = thread._signal_number
 
         if signal_number in self.context.signal_hooks:
             hook = self.context.signal_hooks[signal_number]
@@ -391,7 +391,7 @@ class PtraceStatusHandler:
             thread = self.context.get_thread_by_id(pid)
 
             if thread is not None:
-                thread.signal_number = signum
+                thread._signal_number = signum
 
                 # Handle the signal
                 self._handle_signal(thread)

@@ -396,14 +396,14 @@ class PtraceInterface(DebuggingInterface):
                 if thread is None:
                     # The thread is dead in the meantime
                     continue
-                if thread.signal_number != 0 and thread.signal_number not in self.context._signal_to_block:
+                if thread._signal_number != 0 and thread._signal_number not in self.context._signal_to_block:
                     liblog.debugger(
-                        f"Forward signal {thread.signal_number} to thread {cursor.tid}",
+                        f"Forward signal {thread._signal_number} to thread {cursor.tid}",
                     )
                     # Set the signal to forward
-                    cursor.signal_to_forward = thread.signal_number
+                    cursor.signal_to_forward = thread._signal_number
                     # Reset the signal to forward
-                    thread.signal_number = 0
+                    thread._signal_number = 0
             cursor = cursor.next
 
         # Clear the list of threads with signals to forward

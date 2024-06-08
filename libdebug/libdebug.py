@@ -585,7 +585,7 @@ class _InternalDebugger:
 
         def callback(thread: ThreadContext, _: int) -> None:
             """The callback to execute when the signal is received."""
-            thread.signal_number = new_signal_number
+            thread.signal = new_signal_number
 
         return self.hook_signal(original_signal_number, callback, hook_hijack)
 

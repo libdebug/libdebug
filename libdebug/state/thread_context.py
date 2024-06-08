@@ -11,6 +11,7 @@ from libdebug.architectures.stack_unwinding_provider import stack_unwinding_prov
 from libdebug.liblog import liblog
 from libdebug.state.debugging_context import debugging_context
 from libdebug.utils.debugging_utils import resolve_address_in_maps
+from libdebug.utils.signal_utils import resolve_signal_name, resolve_signal_number
 
 if TYPE_CHECKING:
     from libdebug.data.memory_view import MemoryView
@@ -33,7 +34,7 @@ class ThreadContext:
     registers: RegisterHolder | None = None
     """The register holder object. It provides access to the thread's registers."""
 
-    signal_number: int = 0
+    _signal_number: int = 0
     """The signal to forward to the thread."""
 
     _thread_id: int
@@ -106,6 +107,26 @@ class ThreadContext:
     def tid(self: ThreadContext) -> int:
         """The thread ID."""
         return self._thread_id
+
+    @property
+    def signal(self: ThreadContext) -> str | None:
+        """The signal will be forwarded to the thread."""
+        if self._signal_number == 0:
+            signal_name = None
+        else:
+            signal_name = resolve_signal_name(self._signal_number)
+        return signal_name
+
+    @signal.setter
+    def signal(self: ThreadContext, signal: str | int) -> None:
+        """Set the signal to forward to the thread."""
+        if self._signal_number != 0:
+            liblog.debugger(
+                f"Overwriting signal {resolve_signal_name(self._signal_number)} with {resolve_signal_name(signal) if isinstance(signal, int) else signal}."
+            )
+        if isinstance(signal, str):
+            signal = resolve_signal_number(signal)
+        self._signal_number = signal
 
     def _poll_registers(self: ThreadContext) -> None:
         """Updates the register values."""

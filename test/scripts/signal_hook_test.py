@@ -422,7 +422,7 @@ class SignalHookTest(unittest.TestCase):
     def test_hijack_signal_with_hooking(self):
         def hook_SIGUSR1(t, signal_number):
             # Hijack to SIGTERM
-            t.signal_number = 15
+            t.signal = 15
 
         d = debugger("binaries/signal_handling_test")
 
@@ -499,7 +499,7 @@ class SignalHookTest(unittest.TestCase):
         def hook_SIGUSR1(t, signal_number):
             nonlocal SIGUSR1_count
             # Hijack to SIGTERM
-            t.signal_number = 15
+            t.signal = 15
 
             SIGUSR1_count += 1
 
@@ -597,7 +597,7 @@ class SignalHookTest(unittest.TestCase):
         def hook_SIGUSR1(t, signal_number):
             nonlocal SIGUSR1_count
             # Hijack to SIGTERM
-            t.signal_number = 15
+            t.signal = 15
 
             SIGUSR1_count += 1
 
@@ -693,11 +693,11 @@ class SignalHookTest(unittest.TestCase):
 
         def hook_SIGUSR1(t, signal_number):
             # Hijack to SIGTERM
-            t.signal_number = 15
+            t.signal = 15
 
         def hook_SIGTERM(t, signal_number):
             # Hijack to SIGINT
-            t.signal_number = 10
+            t.signal = 10
 
         d = debugger("binaries/signal_handling_test")
 
