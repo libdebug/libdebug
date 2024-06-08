@@ -633,9 +633,7 @@ class SignalHookTest(unittest.TestCase):
         d.kill()
 
         self.assertEqual(SIGUSR1_count, 2)
-        self.assertEqual(
-            SIGTERM_count, 2
-        )  # 2 times in total because of the hook_hijack=False
+        self.assertEqual(SIGTERM_count, 2)  # 2 times in total because of the hook_hijack=False
 
         self.assertEqual(SIGUSR1_count, hook1.hit_count)
         self.assertEqual(SIGTERM_count, hook2.hit_count)
@@ -681,9 +679,7 @@ class SignalHookTest(unittest.TestCase):
         d.kill()
 
         self.assertEqual(hook1.hit_count, 2)
-        self.assertEqual(
-            SIGTERM_count, 2
-        )  # 2 times in total because of the hook_hijack=False
+        self.assertEqual(SIGTERM_count, 2)  # 2 times in total because of the hook_hijack=False
         self.assertEqual(SIGTERM_count, hook2.hit_count)
 
         self.assertEqual(SIGUSR1, b"Received signal 15" * 2)  # hijacked signal
@@ -836,9 +832,7 @@ class SignalHookTest(unittest.TestCase):
         d.kill()
 
         self.assertEqual(SIGUSR1_count, 2)
-        self.assertEqual(
-            SIGTERM_count, 2 + 2 + 2
-        )  # 2 times more because of the hijacking * 2 (SIGQUIT and SIGPIPE)
+        self.assertEqual(SIGTERM_count, 2 + 2 + 2)  # 2 times more because of the hijacking * 2 (SIGQUIT and SIGPIPE)
         self.assertEqual(SIGINT_count, 2)
 
         self.assertEqual(SIGUSR1_count, hook1.hit_count)
@@ -912,9 +906,7 @@ class SignalHookTest(unittest.TestCase):
 
         self.assertEqual(self.log_capture_string.getvalue().count("WARNING"), 1)
         self.assertEqual(
-            self.log_capture_string.getvalue().count(
-                "is already hooked. Overriding it."
-            ),
+            self.log_capture_string.getvalue().count("is already hooked. Overriding it."),
             1,
         )
 
@@ -963,9 +955,7 @@ class SignalHookTest(unittest.TestCase):
 
         self.assertEqual(self.log_capture_string.getvalue().count("WARNING"), 1)
         self.assertEqual(
-            self.log_capture_string.getvalue().count(
-                "is already hooked. Overriding it."
-            ),
+            self.log_capture_string.getvalue().count("is already hooked. Overriding it."),
             1,
         )
 
@@ -1022,9 +1012,7 @@ class SignalHookTest(unittest.TestCase):
 
         self.assertEqual(self.log_capture_string.getvalue().count("WARNING"), 1)
         self.assertEqual(
-            self.log_capture_string.getvalue().count(
-                "is already hooked. Overriding it."
-            ),
+            self.log_capture_string.getvalue().count("is already hooked. Overriding it."),
             1,
         )
 
@@ -1097,3 +1085,77 @@ class SignalHookTest(unittest.TestCase):
         self.assertEqual(SIGINT_count, hook3.hit_count)
         self.assertEqual(SIGQUIT_count, hook4.hit_count)
         self.assertEqual(SIGPIPE_count, hook5.hit_count)
+
+    def test_signal_send_signal(self):
+        SIGUSR1_count = 0
+        SIGINT_count = 0
+        SIGTERM_count = 0
+
+        def hook_SIGUSR1(t, signal_number):
+            nonlocal SIGUSR1_count
+
+            SIGUSR1_count += 1
+
+        def hook_SIGTERM(t, signal_number):
+            nonlocal SIGTERM_count
+
+            SIGTERM_count += 1
+
+        def hook_SIGINT(t, signal_number):
+            nonlocal SIGINT_count
+
+            SIGINT_count += 1
+
+        d = debugger("binaries/signal_handling_test")
+
+        r = d.run()
+
+        hook1 = d.hook_signal("SIGUSR1", callback=hook_SIGUSR1)
+        hook2 = d.hook_signal("SIGTERM", callback=hook_SIGTERM)
+        hook3 = d.hook_signal("SIGINT", callback=hook_SIGINT)
+        hook4 = d.hijack_signal("SIGQUIT", "SIGTERM")
+        hook5 = d.hijack_signal("SIGPIPE", "SIGTERM")
+
+        bp = d.breakpoint(0x12C4)
+
+        d.cont()
+
+        SIGUSR1 = r.recvline()
+        SIGTERM = r.recvline()
+        SIGINT = r.recvline()
+        SIGQUIT = r.recvline()
+        SIGPIPE = r.recvline()
+
+        SIGUSR1 += r.recvline()
+        SIGTERM += r.recvline()
+        SIGINT += r.recvline()
+        SIGQUIT += r.recvline()
+        SIGPIPE += r.recvline()
+
+        # Unhooking signals
+        if bp.hit_on:
+            d.unhook_signal(hook4)
+            d.unhook_signal(hook5)
+            print(d.signal)
+            d.signal = 10
+        d.cont()
+
+        SIGUSR1 += r.recvline()
+        SIGQUIT += r.recvline()
+        SIGPIPE += r.recvline()
+
+        d.kill()
+
+        self.assertEqual(SIGUSR1_count, 2)
+        self.assertEqual(SIGTERM_count, 2 + 2 + 2)  # 2 times more because of the hijacking * 2 (SIGQUIT and SIGPIPE)
+        self.assertEqual(SIGINT_count, 2)
+
+        self.assertEqual(SIGUSR1_count, hook1.hit_count)
+        self.assertEqual(SIGTERM_count, hook2.hit_count)
+        self.assertEqual(SIGINT_count, hook3.hit_count)
+
+        self.assertEqual(SIGUSR1, b"Received signal 10" * 3)
+        self.assertEqual(SIGTERM, b"Received signal 15" * 2)
+        self.assertEqual(SIGINT, b"Received signal 2" * 2)
+        self.assertEqual(SIGQUIT, b"Received signal 15" * 2 + b"Received signal 3")
+        self.assertEqual(SIGPIPE, b"Received signal 15" * 2 + b"Received signal 13")
