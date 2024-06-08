@@ -52,9 +52,6 @@ class DebuggingContext:
     auto_interrupt_on_command: bool
     """A flag that indicates if the debugger should automatically interrupt the debugged process when a command is issued."""
 
-    force_continue: bool
-    """A flag that indicates if the debugger should force the debugged process to continue after an unhandled signal is received."""
-
     _breakpoints: dict[int, Breakpoint]
     """A dictionary of all the breakpoints set on the process.
     Key: the address of the breakpoint."""
