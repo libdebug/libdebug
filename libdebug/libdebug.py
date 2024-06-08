@@ -977,6 +977,16 @@ class _InternalDebugger:
         """Get the list of threads in the process."""
         return self._threads
 
+    @property
+    def process_id(self: _InternalDebugger) -> int:
+        """Get the process ID of the process."""
+        return self.context.process_id
+
+    @property
+    def pid(self: _InternalDebugger) -> int:
+        """Get the process ID of the process."""
+        return self.context.process_id
+
     @background_alias(_background_invalid_call)
     def migrate_to_gdb(
         self: _InternalDebugger, open_in_new_process: bool = True
