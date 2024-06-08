@@ -126,10 +126,31 @@ class PtraceInterface(DebuggingInterface):
         tty.setraw(self.stdout_read)
         tty.setraw(self.stderr_read)
 
+        # argv[1] is the length of the custom environment variables
+        # argv[2:2 + env_len] is the custom environment variables
+        # argv[2 + env_len] should be NULL
+        # argv[2 + env_len + 1:] is the new argv
+        if env is None:
+            env_len = -1
+            env = {}
+        else:
+            env_len = len(env)
+
+        argv = [
+            JUMPSTART_LOCATION,
+            str(env_len),
+            *[
+                f"{key}={value}"
+                for key, value in env.items()
+            ],
+            "NULL",
+            *argv,
+        ]
+
         child_pid = posix_spawn(
             JUMPSTART_LOCATION,
-            [JUMPSTART_LOCATION, *argv],
-            env,
+            argv,
+            os.environ,
             file_actions=[
                 (POSIX_SPAWN_CLOSE, self.stdin_write),
                 (POSIX_SPAWN_CLOSE, self.stdout_read),

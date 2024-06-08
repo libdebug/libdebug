@@ -19,6 +19,7 @@ from scripts.finish_test import FinishTest
 from scripts.deep_dive_division_test import DeepDiveDivision
 from scripts.hijack_syscall_test import SyscallHijackTest
 from scripts.jumpout_test import Jumpout
+from scripts.jumpstart_test import JumpstartTest
 from scripts.large_binary_sym_test import LargeBinarySymTest
 from scripts.memory_test import MemoryTest
 from scripts.multiple_debuggers_test import MultipleDebuggersTest
@@ -86,6 +87,7 @@ def fast_suite():
     suite.addTest(FinishTest("test_breakpoint_collision"))
     suite.addTest(Jumpout("test_jumpout"))
     suite.addTest(Ncuts("test_ncuts"))
+    suite.addTest(JumpstartTest("test_cursed_ldpreload"))
     suite.addTest(ControlFlowTest("test_step_until_1"))
     suite.addTest(ControlFlowTest("test_step_until_2"))
     suite.addTest(ControlFlowTest("test_step_until_3"))
