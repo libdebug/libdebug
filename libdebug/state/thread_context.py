@@ -54,9 +54,7 @@ class ThreadContext:
         self._thread_id = thread_id
 
     @staticmethod
-    def new(
-        thread_id: int | None = None, registers: RegisterHolder | None = None
-    ) -> ThreadContext:
+    def new(thread_id: int | None = None, registers: RegisterHolder | None = None) -> ThreadContext:
         """Creates a new thread context object.
 
         Args:
@@ -71,9 +69,7 @@ class ThreadContext:
             thread_id = debugging_context().process_id
 
         if registers is None:
-            raise RuntimeError(
-                "A register view must be provided during ThreadContext initialization."
-            )
+            raise RuntimeError("A register view must be provided during ThreadContext initialization.")
 
         thread = ThreadContext(thread_id)
         thread.registers = registers
@@ -111,11 +107,7 @@ class ThreadContext:
     @property
     def signal(self: ThreadContext) -> str | None:
         """The signal will be forwarded to the thread."""
-        if self._signal_number == 0:
-            signal_name = None
-        else:
-            signal_name = resolve_signal_name(self._signal_number)
-        return signal_name
+        return None if self._signal_number == 0 else resolve_signal_name(self._signal_number)
 
     @signal.setter
     def signal(self: ThreadContext, signal: str | int) -> None:
@@ -127,6 +119,7 @@ class ThreadContext:
         if isinstance(signal, str):
             signal = resolve_signal_number(signal)
         self._signal_number = signal
+        self.context._resume_context.threads_with_signals_to_forward.append(self.process_id)
 
     def _poll_registers(self: ThreadContext) -> None:
         """Updates the register values."""
