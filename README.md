@@ -446,7 +446,7 @@ The function returns a `Breakpoint` object, which can be interacted with in the 
 libdebug supports the hooking of signals, that is, executing a callback when a specific signal directed at the child process is intercepted by the tracer.
 ```python
 def hook_SIGUSR1(t, signal_number):
-    t.signal_number = 0x0
+    t.signal = 0x0
     print("Ciao mamma, I'm hooking a signal")
 
 def hook_SIGINT(t, signal_number):
@@ -483,15 +483,8 @@ d.signal_to_block = [10, 15, 'SIGINT', 3, 13]
 
 d.cont()
 ```
+By default, all signals unrelated to debugger operations are forwarded to the process.
 
-You can also decide what libdebug should do when it encounters an unrecognized signal by using the `force_continue` flag of the debugger. This situation can occur with SIGTRAP signals not related to breakpoints, special signals not related to debugging operations and that are not explicitly hooked or passed to the process, and so on.
-libdebug already filters out as many spurious signals as possible that are raised due to the internal workings of ptrace.
-Regardless of the choice, a warning is displayed when an unmanaged signal is encountered.
-The default value is true, which means the debugger always tries to continue the execution.
-
-```python
-d = debugger("binary", force_continue=True)
-```
 
 ## Signal Hijacking
 libdebug also provides a direct way to intercept a signal and modify it before sending it to the child process. In other words, it allows you to hijack a signal and change it to a different signal.
