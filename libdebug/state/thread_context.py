@@ -36,7 +36,7 @@ class ThreadContext:
     signal_number: int = 0
     """The signal to forward to the thread."""
 
-    thread_id: int
+    _thread_id: int
     """The thread's ID."""
 
     _dirty: bool = False
@@ -50,10 +50,12 @@ class ThreadContext:
 
     def __init__(self: ThreadContext, thread_id: int) -> None:
         """Initializes the Thread Context."""
-        self.thread_id = thread_id
+        self._thread_id = thread_id
 
     @staticmethod
-    def new(thread_id: int | None = None, registers: RegisterHolder | None = None) -> ThreadContext:
+    def new(
+        thread_id: int | None = None, registers: RegisterHolder | None = None
+    ) -> ThreadContext:
         """Creates a new thread context object.
 
         Args:
@@ -68,7 +70,9 @@ class ThreadContext:
             thread_id = debugging_context().process_id
 
         if registers is None:
-            raise RuntimeError("A register view must be provided during ThreadContext initialization.")
+            raise RuntimeError(
+                "A register view must be provided during ThreadContext initialization."
+            )
 
         thread = ThreadContext(thread_id)
         thread.registers = registers
@@ -87,11 +91,21 @@ class ThreadContext:
     def process_id(self: ThreadContext) -> int:
         """The process ID of the thread."""
         return self.context.process_id
-    
+
     @property
     def pid(self: ThreadContext) -> int:
         """The process ID of the thread."""
         return self.context.process_id
+
+    @property
+    def thread_id(self: ThreadContext) -> int:
+        """The thread ID."""
+        return self._thread_id
+
+    @property
+    def tid(self: ThreadContext) -> int:
+        """The thread ID."""
+        return self._thread_id
 
     def _poll_registers(self: ThreadContext) -> None:
         """Updates the register values."""
