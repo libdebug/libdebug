@@ -30,9 +30,6 @@ class ThreadContext:
     instruction_pointer: int
     """The thread's instruction pointer."""
 
-    process_id: int
-    """The process ID of the thread."""
-
     registers: RegisterHolder | None = None
     """The register holder object. It provides access to the thread's registers."""
 
@@ -88,6 +85,11 @@ class ThreadContext:
 
     @property
     def process_id(self: ThreadContext) -> int:
+        """The process ID of the thread."""
+        return self.context.process_id
+    
+    @property
+    def pid(self: ThreadContext) -> int:
         """The process ID of the thread."""
         return self.context.process_id
 
