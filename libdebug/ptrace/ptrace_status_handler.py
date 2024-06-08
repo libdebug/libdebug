@@ -35,7 +35,6 @@ class PtraceStatusHandler:
         """Initializes the PtraceStatusHandler class."""
         self.context: DebuggingContext = provide_context(self)
         self.ptrace_interface: DebuggingInterface = self.context.debugging_interface
-        self._threads_with_signals_to_forward: list[int] = []
         self.forward_signal: bool = True
         self._assume_race_sigstop: bool = (
             True  # Assume the stop is due to a race condition with SIGSTOP sent by the debugger
@@ -399,7 +398,7 @@ class PtraceStatusHandler:
 
                 if self.forward_signal and signum != signal.SIGSTOP:
                     # We have to forward the signal to the thread
-                    self._threads_with_signals_to_forward.append(pid)
+                    self.context._resume_context.threads_with_signals_to_forward.append(pid)
 
         if os.WIFEXITED(status):
             # The thread has exited normally
@@ -427,12 +426,6 @@ class PtraceStatusHandler:
         if self._assume_race_sigstop:
             # Resume the process if the stop was due to a race condition with SIGSTOP sent by the debugger
             return
-
-        if len(self._threads_with_signals_to_forward) > 0:
-            self.ptrace_interface.forward_signal(self._threads_with_signals_to_forward)
-
-        # Clear the list of threads with signals to forward
-        self._threads_with_signals_to_forward.clear()
 
     def check_for_new_threads(self: PtraceStatusHandler, pid: int) -> None:
         """Check for new threads in the process and register them."""

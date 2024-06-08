@@ -17,3 +17,4 @@ class ResumeContext:
         self.is_a_step: bool = False
         self.is_startup: bool = False
         self.block_on_signal: bool = False
+        self.threads_with_signals_to_forward: list[int] = []

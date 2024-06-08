@@ -198,6 +198,11 @@ class PtraceInterface(DebuggingInterface):
 
     def cont(self: PtraceInterface) -> None:
         """Continues the execution of the process."""
+
+        # Forward signals to the threads
+        if len(self.context._resume_context.threads_with_signals_to_forward) > 0:
+            self.forward_signal()
+
         # Enable all breakpoints if they were disabled for a single step
         changed = []
 
@@ -379,10 +384,11 @@ class PtraceInterface(DebuggingInterface):
 
         self.lib_trace.free_thread_status_list(result)
 
-    def forward_signal(self: PtraceInterface, threads: list[int]) -> None:
+    def forward_signal(self: PtraceInterface) -> None:
         """Set the signals to forward to the threads."""
         # change the global_state
         cursor = self._global_state.t_HEAD
+        threads = self.context._resume_context.threads_with_signals_to_forward
 
         while cursor != self.ffi.NULL:
             if cursor.tid in threads:
@@ -399,6 +405,9 @@ class PtraceInterface(DebuggingInterface):
                     # Reset the signal to forward
                     thread.signal_number = 0
             cursor = cursor.next
+
+        # Clear the list of threads with signals to forward
+        self.context._resume_context.threads_with_signals_to_forward.clear()
 
     def migrate_to_gdb(self: PtraceInterface) -> None:
         """Migrates the current process to GDB."""
