@@ -485,6 +485,14 @@ d.cont()
 ```
 By default, all signals unrelated to debugger operations are forwarded to the process.
 
+You can also decide to send a new signal to the process that will be forwarded at first, following `d.cont()`.
+
+```python
+if bp.hit_on:
+    d.signal = 10
+d.cont()
+```
+
 
 ## Signal Hijacking
 libdebug also provides a direct way to intercept a signal and modify it before sending it to the child process. In other words, it allows you to hijack a signal and change it to a different signal.
