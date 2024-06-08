@@ -20,6 +20,7 @@ from libdebug.utils.debugging_utils import (
 )
 
 if TYPE_CHECKING:
+    from libdebug.data.thread_list import ThreadList
     from libdebug.data.breakpoint import Breakpoint
     from libdebug.data.memory_view import MemoryView
     from libdebug.data.signal_hook import SignalHook
@@ -73,7 +74,7 @@ class DebuggingContext:
     _syscalls_to_not_pprint: list[int] | None
     """The syscalls to not pretty print."""
 
-    _threads: list[ThreadContext]
+    threads: ThreadList[ThreadContext]
     """A list of all the threads of the debugged process."""
 
     pipe_manager: PipeManager
@@ -111,10 +112,11 @@ class DebuggingContext:
         self._signal_to_block = []
         self._syscalls_to_pprint = None
         self._syscalls_to_not_pprint = None
-        self._threads = []
         self._pprint_syscalls = False
+        self.pipe_manager = None
+        self.process_id = 0
+        self._is_running = False
         self._resume_context = ResumeContext()
-        self.clear()
 
     def clear(self: DebuggingContext) -> None:
         """Reinitializes the context, so it is ready for a new run."""
@@ -122,7 +124,7 @@ class DebuggingContext:
         self._breakpoints.clear()
         self._syscall_hooks.clear()
         self._signal_hooks.clear()
-        self._threads.clear()
+        self.threads.clear()
         self.pipe_manager = None
         self._is_running = False
         self._syscalls_to_pprint = None
@@ -174,7 +176,9 @@ class DebuggingContext:
         """
         del self._breakpoints[bp.address]
 
-    def insert_new_syscall_hook(self: DebuggingContext, syscall_hook: SyscallHook) -> None:
+    def insert_new_syscall_hook(
+        self: DebuggingContext, syscall_hook: SyscallHook
+    ) -> None:
         """Insert a new syscall hook in the context.
 
         Args:
@@ -206,25 +210,16 @@ class DebuggingContext:
         """
         del self._signal_hooks[signal_hook.signal_number]
 
-    @property
-    def threads(self: DebuggingContext) -> dict[int, ThreadContext]:
-        """Get the threads dictionary.
-
-        Returns:
-            dict[int, ThreadContext]: the threads dictionary.
-        """
-        return self._threads
-
     def insert_new_thread(self: DebuggingContext, thread: ThreadContext) -> None:
         """Insert a new thread in the context.
 
         Args:
             thread (ThreadContext): the thread to insert.
         """
-        if thread in self._threads:
+        if thread in self.threads:
             raise RuntimeError("Thread already registered.")
 
-        self._threads.append(thread)
+        self.threads.append(thread)
 
     def set_thread_as_dead(self: DebuggingContext, thread_id: int) -> None:
         """Remove a thread from the context.
@@ -232,7 +227,7 @@ class DebuggingContext:
         Args:
             thread_id (int): the ID of the thread to remove.
         """
-        for thread in self._threads:
+        for thread in self.threads:
             if thread.thread_id == thread_id:
                 thread.dead = True
                 break
@@ -246,7 +241,7 @@ class DebuggingContext:
         Returns:
             ThreadContext: the thread with the specified ID.
         """
-        for thread in self._threads:
+        for thread in self.threads:
             if thread.thread_id == thread_id and not thread.dead:
                 return thread
 
@@ -276,7 +271,7 @@ class DebuggingContext:
         Returns:
             bool: True if the process is dead, False otherwise.
         """
-        return not self._threads
+        return not self.threads
 
     def resolve_address(self: DebuggingContext, address: int) -> int:
         """Normalizes and validates the specified address.
