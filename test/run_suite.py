@@ -72,6 +72,8 @@ def fast_suite():
     suite.addTest(CallbackTest("test_callback_exception"))
     suite.addTest(CallbackTest("test_callback_step"))
     suite.addTest(CallbackTest("test_callback_pid_accessible"))
+    suite.addTest(CallbackTest("test_callback_pid_accessible_alias"))
+    suite.addTest(CallbackTest("test_callback_tid_accessible_alias"))
     suite.addTest(FinishTest("test_finish_exact_no_auto_interrupt_no_breakpoint"))
     suite.addTest(FinishTest("test_finish_heuristic_no_auto_interrupt_no_breakpoint"))
     suite.addTest(FinishTest("test_finish_exact_auto_interrupt_no_breakpoint"))
