@@ -227,7 +227,7 @@ class SignalHookTest(unittest.TestCase):
         SIGPIPE += r.recvline()
 
         # Unhooking signals
-        if bp.hit_on:
+        if bp.hit_on(d):
             d.unhook_signal(hook4)
             d.unhook_signal(hook5)
         d.cont()
@@ -821,7 +821,7 @@ class SignalHookTest(unittest.TestCase):
         SIGPIPE += r.recvline()
 
         # Unhooking signals
-        if bp.hit_on:
+        if bp.hit_on(d):
             d.unhook_signal(hook4)
             d.unhook_signal(hook5)
         d.cont()
@@ -882,7 +882,7 @@ class SignalHookTest(unittest.TestCase):
         SIGPIPE += r.recvline()
 
         # Overriding the hook
-        if bp.hit_on:
+        if bp.hit_on(d):
             self.assertEqual(hook1.hit_count, 2)
             hook2 = d.hook_signal("SIGPIPE", callback=hook_SIGPIPE_second)
         d.cont()
@@ -934,7 +934,7 @@ class SignalHookTest(unittest.TestCase):
         SIGPIPE += r.recvline()
 
         # Overriding the hook
-        if bp.hit_on:
+        if bp.hit_on(d):
             self.assertEqual(hook1.hit_count, 2)
             hook2 = d.hijack_signal("SIGPIPE", "SIGINT")
         d.cont()
@@ -990,7 +990,7 @@ class SignalHookTest(unittest.TestCase):
         SIGPIPE += r.recvline()
 
         # Overriding the hook
-        if bp.hit_on:
+        if bp.hit_on(d):
             self.assertEqual(hook1.hit_count, 2)
             hook2 = d.hook_signal("SIGPIPE", callback=hook_SIGPIPE)
         d.cont()
@@ -1133,7 +1133,7 @@ class SignalHookTest(unittest.TestCase):
         SIGPIPE += r.recvline()
 
         # Unhooking signals
-        if bp.hit_on:
+        if bp.hit_on(d):
             d.unhook_signal(hook4)
             d.unhook_signal(hook5)
             print(d.signal)
