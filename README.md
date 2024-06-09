@@ -488,7 +488,7 @@ By default, all signals unrelated to debugger operations are forwarded to the pr
 You can also decide to send a new signal to the process that will be forwarded at first, following `d.cont()`.
 
 ```python
-if bp.hit_on:
+if bp.hit_on(d):
     d.signal = 10
 d.cont()
 ```
