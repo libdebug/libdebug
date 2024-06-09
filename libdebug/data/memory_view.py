@@ -1,15 +1,20 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
 from __future__ import annotations
 
 from collections.abc import Callable, MutableSequence
+from typing import TYPE_CHECKING
 
 from libdebug.liblog import liblog
-from libdebug.state.debugging_context import DebuggingContext, debugging_context
+from libdebug.state.debugging_context import debugging_context
+
+
+if TYPE_CHECKING:
+    from libdebug.state.debugging_context import DebuggingContext
 
 
 class MemoryView(MutableSequence):

@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -53,67 +53,85 @@ AMD64_REGS = [
 
 def _get_property_64(name: str) -> property:
     def getter(self: ThreadContext) -> int:
-        return getattr(self.regs, name)
+        self._context._ensure_process_stopped()
+        return getattr(self.register_file, name)
 
     def setter(self: ThreadContext, value: int) -> None:
-        setattr(self.regs, name, value)
+        self._context._ensure_process_stopped()
+        setattr(self.register_file, name, value)
 
     return property(getter, setter, None, name)
 
 
 def _get_property_32(name: str) -> property:
     def getter(self: ThreadContext) -> int:
-        return getattr(self.regs, name) & 0xFFFFFFFF
+        self._context._ensure_process_stopped()
+        return getattr(self.register_file, name) & 0xFFFFFFFF
 
     def setter(self: ThreadContext, value: int) -> None:
-        return setattr(self.regs, name, value & 0xFFFFFFFF)
+        self._context._ensure_process_stopped()
+        return setattr(self.register_file, name, value & 0xFFFFFFFF)
 
     return property(getter, setter, None, name)
 
 
 def _get_property_16(name: str) -> property:
     def getter(self: ThreadContext) -> int:
-        return getattr(self.regs, name) & 0xFFFF
+        self._context._ensure_process_stopped()
+        return getattr(self.register_file, name) & 0xFFFF
 
     def setter(self: ThreadContext, value: int) -> None:
-        value = getattr(self.regs, name) & ~0xFFFF | (value & 0xFFFF)
-        setattr(self.regs, name, value)
+        self._context._ensure_process_stopped()
+        value = getattr(self.register_file, name) & ~0xFFFF | (value & 0xFFFF)
+        setattr(self.register_file, name, value)
 
     return property(getter, setter, None, name)
 
 
 def _get_property_8l(name: str) -> property:
     def getter(self: ThreadContext) -> int:
-        return getattr(self.regs, name) & 0xFF
+        self._context._ensure_process_stopped()
+        return getattr(self.register_file, name) & 0xFF
 
     def setter(self: ThreadContext, value: int) -> None:
-        value = getattr(self.regs, name) & ~0xFF | (value & 0xFF)
-        setattr(self.regs, name, value)
+        self._context._ensure_process_stopped()
+        value = getattr(self.register_file, name) & ~0xFF | (value & 0xFF)
+        setattr(self.register_file, name, value)
 
     return property(getter, setter, None, name)
 
 
 def _get_property_8h(name: str) -> property:
     def getter(self: ThreadContext) -> int:
-        return getattr(self.regs, name) >> 8 & 0xFF
+        self._context._ensure_process_stopped()
+        return getattr(self.register_file, name) >> 8 & 0xFF
 
     def setter(self: ThreadContext, value: int) -> None:
-        value = getattr(self.regs, name) & ~0xFF00 | (value & 0xFF) << 8
-        setattr(self.regs, name, value)
+        self._context._ensure_process_stopped()
+        value = getattr(self.register_file, name) & ~0xFF00 | (value & 0xFF) << 8
+        setattr(self.register_file, name, value)
 
     return property(getter, setter, None, name)
 
+@dataclass
+class Amd64Regs():
+    pass
 
 @dataclass
 class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
     """A class that provides views and setters for the registers of an x86_64 process."""
+    
+    def provide_regs_class(self: Amd64PtraceRegisterHolder) -> type:
+        """Provide a class to hold the register accessors."""
+        return Amd64Regs
 
-    def apply_on(self: Amd64PtraceRegisterHolder, target: ThreadContext, target_class: type) -> None:
-        """Apply the register accessors to the target class."""
-        target.regs = self.register_file
-
+    def apply_on_regs(self: Amd64PtraceRegisterHolder, target: Amd64Regs, target_class: type) -> None:
+        """Apply the register accessors to the Amd64Regs class."""
+        
+        target.register_file = self.register_file
+        
         # If the accessors are already defined, we don't need to redefine them
-        if hasattr(target_class, "instruction_pointer"):
+        if hasattr(target_class, "rip"):
             return
 
         # setup accessors
@@ -151,6 +169,18 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
             setattr(target_class, name_32, _get_property_32(name_64))
             setattr(target_class, name_16, _get_property_16(name_64))
             setattr(target_class, name_8l, _get_property_8l(name_64))
+
+        # setup special registers
+        target_class.rip = _get_property_64("rip")
+        
+        
+    def apply_on_thread(self: Amd64PtraceRegisterHolder, target: ThreadContext, target_class: type) -> None:
+        """Apply the register accessors to the thread class."""
+        target.register_file = self.register_file
+
+        # If the accessors are already defined, we don't need to redefine them
+        if hasattr(target_class, "instruction_pointer"):
+            return
 
         # setup special registers
         target_class.rip = _get_property_64("rip")

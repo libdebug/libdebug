@@ -19,5 +19,5 @@ class ThreadList(list):
 
     def __getitem__(self, index: int):
         # Ensure the process is stopped before accessing the thread list
-        self.debugger._ensure_process_stopped()
+        self.debugger._context._ensure_process_stopped()
         return super().__getitem__(index)

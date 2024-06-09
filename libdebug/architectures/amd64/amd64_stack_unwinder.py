@@ -26,13 +26,13 @@ class Amd64StackUnwinder(StackUnwindingManager):
         Returns:
             list: A list of return addresses.
         """
-        assert hasattr(target, "rip")
-        assert hasattr(target, "rbp")
+        assert hasattr(target.regs, "rip")
+        assert hasattr(target.regs, "rbp")
 
-        current_rbp = target.rbp
+        current_rbp = target.regs.rbp
         stack_trace = [target.rip]
 
-        vmaps = target.context.debugging_interface.maps()
+        vmaps = target._context.debugging_interface.maps()
 
         while current_rbp:
             try:
@@ -66,11 +66,11 @@ class Amd64StackUnwinder(StackUnwindingManager):
         return_address = None
 
         if self._preamble_state(instruction_window) == 0:
-            return_address = target.memory[target.rbp + 8, 8]
+            return_address = target.memory[target.regs.rbp + 8, 8]
         elif self._preamble_state(instruction_window) == 1:
-            return_address = target.memory[target.rsp, 8]
+            return_address = target.memory[target.regs.rsp, 8]
         else:
-            return_address = target.memory[target.rsp + 8, 8]
+            return_address = target.memory[target.regs.rsp + 8, 8]
 
         return int.from_bytes(return_address, byteorder="little")
 

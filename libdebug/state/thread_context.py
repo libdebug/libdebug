@@ -18,12 +18,13 @@ if TYPE_CHECKING:
     from libdebug.data.register_holder import RegisterHolder
     from libdebug.state.debugging_context import DebuggingContext
 
-
 class ThreadContext:
     """This object represents a thread in the context of the target process. It holds information about the thread's state, registers and stack."""
 
-    context: DebuggingContext | None = None
+    _context: DebuggingContext | None = None
     """The debugging context this thread belongs to."""
+    
+    regs: object | None = None
 
     dead: bool = False
     """Whether the thread is dead."""
@@ -45,15 +46,6 @@ class ThreadContext:
 
     _thread_id: int
     """The thread's ID."""
-
-    _dirty: bool = False
-    """Whether the registers have been modified."""
-
-    _needs_register_poll: bool = True
-    """Whether the registers need to be polled."""
-
-    _needs_sigcont: bool = False
-    """Whether the thread needs to be continued after a signal stop."""
 
     def __init__(self: ThreadContext, thread_id: int) -> None:
         """Initializes the Thread Context."""
@@ -78,27 +70,33 @@ class ThreadContext:
             raise RuntimeError("A register view must be provided during ThreadContext initialization.")
 
         thread = ThreadContext(thread_id)
+        
+        thread._context = debugging_context()
+        
         thread.registers = registers
-        thread.registers.apply_on(thread, ThreadContext)
+        regs_class = registers.provide_regs_class()
+        thread.regs = regs_class()
+        thread.regs._context = thread._context
+        thread.registers.apply_on_regs(thread.regs, regs_class)
+        thread.registers.apply_on_thread(thread, ThreadContext)
 
-        thread.context = debugging_context()
 
         return thread
 
     @property
     def memory(self: ThreadContext) -> MemoryView:
         """The memory view of the debugged process."""
-        return self.context.memory
+        return self._context.memory
 
     @property
     def process_id(self: ThreadContext) -> int:
         """The process ID of the thread."""
-        return self.context.process_id
+        return self._context.process_id
 
     @property
     def pid(self: ThreadContext) -> int:
         """The process ID of the thread."""
-        return self.context.process_id
+        return self._context.process_id
 
     @property
     def thread_id(self: ThreadContext) -> int:
@@ -113,11 +111,13 @@ class ThreadContext:
     @property
     def signal(self: ThreadContext) -> str | None:
         """The signal will be forwarded to the thread."""
+        self._context._ensure_process_stopped()
         return None if self._signal_number == 0 else resolve_signal_name(self._signal_number)
 
     @property
     def exit_code(self: ThreadContext) -> int | None:
         """The thread's exit code."""
+        self._context._ensure_process_stopped()
         if not self.dead:
             liblog.warning("Thread is not dead. No exit code available.")
         elif self._exit_code is None and self._exit_signal is not None:
@@ -129,6 +129,7 @@ class ThreadContext:
     @property
     def exit_signal(self: ThreadContext) -> int | None:
         """The thread's exit signal."""
+        self._context._ensure_process_stopped()
         if not self.dead:
             liblog.warning("Thread is not dead. No exit signal available.")
             return None
@@ -140,6 +141,7 @@ class ThreadContext:
     @signal.setter
     def signal(self: ThreadContext, signal: str | int) -> None:
         """Set the signal to forward to the thread."""
+        self._context._ensure_process_stopped()
         if self._signal_number != 0:
             liblog.debugger(
                 f"Overwriting signal {resolve_signal_name(self._signal_number)} with {resolve_signal_name(signal) if isinstance(signal, int) else signal}."
@@ -147,34 +149,36 @@ class ThreadContext:
         if isinstance(signal, str):
             signal = resolve_signal_number(signal)
         self._signal_number = signal
-        self.context._resume_context.threads_with_signals_to_forward.append(self.process_id)
-
-    def _poll_registers(self: ThreadContext) -> None:
-        """Updates the register values."""
-        if not self._needs_register_poll:
-            self._needs_register_poll = True
-            return
-
-        liblog.debugger("Polling registers for thread %d", self.thread_id)
-
-        self.registers.poll(self)
-        self._dirty = False
-
-    def _flush_registers(self: ThreadContext) -> None:
-        """Flushes the register values."""
-        liblog.debugger("Flushing registers for thread %d", self.thread_id)
-
-        if self._dirty:
-            self.registers.flush(self)
+        self._context._resume_context.threads_with_signals_to_forward.append(self.process_id)
 
     def backtrace(self: ThreadContext) -> list:
         """Returns the current backtrace of the thread."""
+        self._context._ensure_process_stopped()
         stack_unwinder = stack_unwinding_provider()
         backtrace = stack_unwinder.unwind(self)
-        maps = self.context.debugging_interface.maps()
+        maps = self._context.debugging_interface.maps()
         return [resolve_address_in_maps(x, maps) for x in backtrace]
 
     def current_return_address(self: ThreadContext) -> int:
         """Returns the return address of the current function."""
+        self._context._ensure_process_stopped()
         stack_unwinder = stack_unwinding_provider()
         return stack_unwinder.get_return_address(self)
+    
+    def step(self: ThreadContext) -> None:
+        """Executes a single instruction of the process."""
+        self._context.step(self)
+
+    def step_until(
+        self: DebuggingContext,
+        position: int | str,
+        max_steps: int = -1,
+    ) -> None:
+        """Executes instructions of the process until the specified location is reached.
+
+        Args:
+            position (int | bytes): The location to reach.
+            max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
+        """
+        self._context.step_until(position, self, max_steps)
+
