@@ -10,8 +10,7 @@ from collections.abc import Callable, MutableSequence
 from typing import TYPE_CHECKING
 
 from libdebug.liblog import liblog
-from libdebug.state.debugging_context import debugging_context
-
+from libdebug.state.debugging_context_instance_manager import debugging_context
 
 if TYPE_CHECKING:
     from libdebug.state.debugging_context import DebuggingContext
@@ -80,7 +79,9 @@ class MemoryView(MutableSequence):
             remainder = (size - prefix_size) % self.unit_size
 
             for i in range(
-                address + prefix_size, address + size - remainder, self.unit_size,
+                address + prefix_size,
+                address + size - remainder,
+                self.unit_size,
             ):
                 data += self.getter(i)
 
@@ -162,7 +163,9 @@ class MemoryView(MutableSequence):
         else:
             raise TypeError("Invalid key type")
 
-    def __setitem__(self: MemoryView, key: int | slice | str | tuple, value: bytes) -> None:
+    def __setitem__(
+        self: MemoryView, key: int | slice | str | tuple, value: bytes
+    ) -> None:
         """Write to memory, either a single byte or a byte string."""
         if isinstance(key, int):
             address = self.context.resolve_address(key)
@@ -184,7 +187,9 @@ class MemoryView(MutableSequence):
                     raise ValueError("Invalid slice range")
 
                 if len(value) != stop - start:
-                    liblog.warning(f"Mismatch between slice width and value size, writing {len(value)} bytes.")
+                    liblog.warning(
+                        f"Mismatch between slice width and value size, writing {len(value)} bytes."
+                    )
 
             self.write(start, value)
         elif isinstance(key, str):
@@ -203,7 +208,9 @@ class MemoryView(MutableSequence):
                 address = self.context.resolve_address(address)
 
             if len(value) != size:
-                liblog.warning(f"Mismatch between specified size and actual value size, writing {len(value)} bytes.")
+                liblog.warning(
+                    f"Mismatch between specified size and actual value size, writing {len(value)} bytes."
+                )
 
             self.write(address, value)
         else:

@@ -9,7 +9,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
-from libdebug.state.debugging_context import provide_context
+from libdebug.state.debugging_context_instance_manager import provide_context
 
 if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
@@ -84,7 +84,9 @@ class DebuggingInterface(ABC):
         """
 
     @abstractmethod
-    def step_until(self: DebuggingInterface, thread: ThreadContext, address: int, max_steps: int) -> None:
+    def step_until(
+        self: DebuggingInterface, thread: ThreadContext, address: int, max_steps: int
+    ) -> None:
         """Executes instructions of the specified thread until the specified address is reached.
 
         Args:

@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from libdebug.state.debugging_context_instance_manager import provide_context
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -44,7 +46,6 @@ class SyscallHook:
 
     def enable(self: SyscallHook) -> None:
         """Enable the syscall hook."""
-        from libdebug.state.debugging_context import provide_context
 
         if provide_context(self).running:
             raise RuntimeError(
@@ -56,7 +57,6 @@ class SyscallHook:
 
     def disable(self: SyscallHook) -> None:
         """Disable the syscall hook."""
-        from libdebug.state.debugging_context import provide_context
 
         if provide_context(self).running:
             raise RuntimeError(

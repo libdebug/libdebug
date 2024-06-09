@@ -16,7 +16,7 @@ from libdebug.architectures.ptrace_software_breakpoint_patcher import (
 )
 from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_constants import SYSCALL_SIGTRAP, StopEvents
-from libdebug.state.debugging_context import provide_context
+from libdebug.state.debugging_context_instance_manager import provide_context
 from libdebug.utils.signal_utils import resolve_signal_name
 
 if TYPE_CHECKING:
@@ -36,9 +36,7 @@ class PtraceStatusHandler:
         self.context: DebuggingContext = provide_context(self)
         self.ptrace_interface: DebuggingInterface = self.context.debugging_interface
         self.forward_signal: bool = True
-        self._assume_race_sigstop: bool = (
-            True  # Assume the stop is due to a race condition with SIGSTOP sent by the debugger
-        )
+        self._assume_race_sigstop: bool = True  # Assume the stop is due to a race condition with SIGSTOP sent by the debugger
 
     def _handle_clone(self: PtraceStatusHandler, thread_id: int, results: list) -> None:
         # https://go.googlesource.com/debug/+/a09ead70f05c87ad67bd9a131ff8352cf39a6082/doc/ptrace-nptl.txt
@@ -55,9 +53,16 @@ class PtraceStatusHandler:
             os.waitpid(thread_id, 0)
         self.ptrace_interface.register_new_thread(thread_id)
 
-    def _handle_exit(self: PtraceStatusHandler, thread_id: int, exit_code: int | None, exit_signal: int | None) -> None:
+    def _handle_exit(
+        self: PtraceStatusHandler,
+        thread_id: int,
+        exit_code: int | None,
+        exit_signal: int | None,
+    ) -> None:
         if self.context.get_thread_by_id(thread_id):
-            self.ptrace_interface.unregister_thread(thread_id, exit_code=exit_code, exit_signal=exit_signal)
+            self.ptrace_interface.unregister_thread(
+                thread_id, exit_code=exit_code, exit_signal=exit_signal
+            )
 
     def _handle_breakpoints(self: PtraceStatusHandler, thread_id: int) -> bool:
         thread = self.context.get_thread_by_id(thread_id)
@@ -102,7 +107,9 @@ class PtraceStatusHandler:
 
         # Manage watchpoints
         if bp is None:
-            bp = self.ptrace_interface.hardware_bp_helpers[thread_id].is_watchpoint_hit()
+            bp = self.ptrace_interface.hardware_bp_helpers[
+                thread_id
+            ].is_watchpoint_hit()
             if bp is not None:
                 liblog.debugger("Watchpoint hit at 0x%x", bp.address)
 
@@ -279,7 +286,10 @@ class PtraceStatusHandler:
                         new_signal_number,
                     )
 
-                    if hook.hook_hijack and new_signal_number in self.context.signal_hooks:
+                    if (
+                        hook.hook_hijack
+                        and new_signal_number in self.context.signal_hooks
+                    ):
                         hijack_hook = self.context.signal_hooks[new_signal_number]
                         if new_signal_number not in hijacked_set:
                             hijacked_set.add(new_signal_number)
@@ -370,7 +380,9 @@ class PtraceStatusHandler:
                     )
                     self.forward_signal = False
 
-    def _handle_change(self: PtraceStatusHandler, pid: int, status: int, results: list) -> None:
+    def _handle_change(
+        self: PtraceStatusHandler, pid: int, status: int, results: list
+    ) -> None:
         """Handle a change in the status of a traced process."""
 
         # Initialize the forward_signal flag
@@ -398,7 +410,9 @@ class PtraceStatusHandler:
 
                 if self.forward_signal and signum != signal.SIGSTOP:
                     # We have to forward the signal to the thread
-                    self.context._resume_context.threads_with_signals_to_forward.append(pid)
+                    self.context._resume_context.threads_with_signals_to_forward.append(
+                        pid
+                    )
 
         if os.WIFEXITED(status):
             # The thread has exited normally

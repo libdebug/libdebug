@@ -9,16 +9,9 @@ import os
 from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
-from libdebug.data.breakpoint import Breakpoint
-from libdebug.data.memory_view import MemoryView
-from libdebug.data.signal_hook import SignalHook
-from libdebug.data.syscall_hook import SyscallHook
-from libdebug.data.thread_list import ThreadList
-from libdebug.interfaces.interface_helper import provide_debugging_interface
-from libdebug.state.debugging_context import (
-    DebuggingContext,
+from libdebug.state.debugging_context import DebuggingContext
+from libdebug.state.debugging_context_instance_manager import (
     context_extend_from,
-    create_context,
     provide_context,
 )
 from libdebug.utils.signal_utils import (
@@ -34,20 +27,15 @@ from libdebug.utils.syscall_utils import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from libdebug.data.breakpoint import Breakpoint
+    from libdebug.data.memory_view import MemoryView
+    from libdebug.data.signal_hook import SignalHook
+    from libdebug.data.syscall_hook import SyscallHook
     from libdebug.state.thread_context import ThreadContext
 
 
 class _InternalDebugger:
     """The _InternalDebugger class is the main class of `libdebug`. It contains all the methods needed to run and interact with the process."""
-
-    memory: MemoryView | None = None
-    """The memory view of the process."""
-
-    _threads: list[ThreadContext] = None
-    """A list of all the threads in the process."""
-
-    breakpoints: dict[int, Breakpoint] = None
-    """A dictionary of all the breakpoints set on the process. The keys are the absolute addresses of the breakpoints."""
 
     _context: DebuggingContext | None = None
     """The debugging context of the process."""
@@ -63,15 +51,22 @@ class _InternalDebugger:
         self._context = provide_context(self)
 
         with context_extend_from(self):
-            self._context.debugging_interface = provide_debugging_interface()
+            self._context.start_up()
 
-        self._threads = self._context.threads
-        self.breakpoints = self._context.breakpoints
+    @property
+    def threads(self: _InternalDebugger) -> list[ThreadContext]:
+        """Get the list of threads in the process."""
+        return self._context.threads
 
-        self._context._start_processing_thread()
-        with context_extend_from(self):
-            self._context.setup_memory_view()
-        self.memory = self._context.memory
+    @property
+    def memory(self: _InternalDebugger) -> MemoryView:
+        """Get the memory view of the process."""
+        return self._context.memory
+
+    @property
+    def breakpoints(self: _InternalDebugger) -> dict[int, Breakpoint]:
+        """Get the breakpoints set on the process."""
+        return self._context.breakpoints
 
     def terminate(self: _InternalDebugger) -> None:
         """Terminates the background thread.
@@ -398,11 +393,6 @@ class _InternalDebugger:
         self._context._signal_to_block = signals
 
     @property
-    def threads(self: _InternalDebugger) -> ThreadList:
-        """Get the list of threads in the process."""
-        return self._threads
-
-    @property
     def process_id(self: _InternalDebugger) -> int:
         """Get the process ID of the process."""
         return self._context.process_id
@@ -488,7 +478,7 @@ def debugger(
 
     debugger = _InternalDebugger()
 
-    debugging_context = create_context(debugger)
+    debugging_context = DebuggingContext(debugger)
 
     if not env:
         env = os.environ

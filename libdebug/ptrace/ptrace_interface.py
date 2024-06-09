@@ -22,8 +22,7 @@ from libdebug.data.breakpoint import Breakpoint
 from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
-from libdebug.state.debugging_context import (
-    DebuggingContext,
+from libdebug.state.debugging_context_instance_manager import (
     context_extend_from,
     link_context,
     provide_context,
@@ -58,6 +57,7 @@ if TYPE_CHECKING:
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.signal_hook import SignalHook
     from libdebug.data.syscall_hook import SyscallHook
+    from libdebug.state.debugging_context import DebuggingContext
 
 
 class PtraceInterface(DebuggingInterface):
@@ -264,7 +264,9 @@ class PtraceInterface(DebuggingInterface):
 
         self.context._resume_context.is_a_step = True
 
-    def step_until(self: PtraceInterface, thread: ThreadContext, address: int, max_steps: int) -> None:
+    def step_until(
+        self: PtraceInterface, thread: ThreadContext, address: int, max_steps: int
+    ) -> None:
         """Executes instructions of the specified thread until the specified address is reached.
 
         Args:
@@ -325,9 +327,14 @@ class PtraceInterface(DebuggingInterface):
             if not found:
                 # Check if we have enough hardware breakpoints available
                 # Otherwise we use a software breakpoint
-                install_hw_bp = self.hardware_bp_helpers[thread.thread_id].available_breakpoints() > 0
+                install_hw_bp = (
+                    self.hardware_bp_helpers[thread.thread_id].available_breakpoints()
+                    > 0
+                )
 
-                ip_breakpoint = Breakpoint(last_saved_instruction_pointer, hardware=install_hw_bp)
+                ip_breakpoint = Breakpoint(
+                    last_saved_instruction_pointer, hardware=install_hw_bp
+                )
                 self.set_breakpoint(ip_breakpoint)
             elif not ip_breakpoint.enabled:
                 self._enable_breakpoint(ip_breakpoint)
@@ -414,7 +421,10 @@ class PtraceInterface(DebuggingInterface):
                 if thread is None:
                     # The thread is dead in the meantime
                     continue
-                if thread._signal_number != 0 and thread._signal_number not in self.context._signal_to_block:
+                if (
+                    thread._signal_number != 0
+                    and thread._signal_number not in self.context._signal_to_block
+                ):
                     liblog.debugger(
                         f"Forward signal {thread._signal_number} to thread {cursor.tid}",
                     )
@@ -474,12 +484,17 @@ class PtraceInterface(DebuggingInterface):
                 thread_hw_bp_helper.install_breakpoint(bp)
 
     def unregister_thread(
-        self: PtraceInterface, thread_id: int, exit_code: int | None, exit_signal: int | None
+        self: PtraceInterface,
+        thread_id: int,
+        exit_code: int | None,
+        exit_signal: int | None,
     ) -> None:
         """Unregisters a thread."""
         self.lib_trace.unregister_thread(self._global_state, thread_id)
 
-        self.context.set_thread_as_dead(thread_id, exit_code=exit_code, exit_signal=exit_signal)
+        self.context.set_thread_as_dead(
+            thread_id, exit_code=exit_code, exit_signal=exit_signal
+        )
 
         # Remove the hardware breakpoint manager for the thread
         self.hardware_bp_helpers.pop(thread_id)
@@ -520,7 +535,9 @@ class PtraceInterface(DebuggingInterface):
         """
         self.lib_trace.disable_breakpoint(self._global_state, bp.address)
 
-    def set_breakpoint(self: PtraceInterface, bp: Breakpoint, insert: bool = True) -> None:
+    def set_breakpoint(
+        self: PtraceInterface, bp: Breakpoint, insert: bool = True
+    ) -> None:
         """Sets a breakpoint at the specified address.
 
         Args:
@@ -538,7 +555,9 @@ class PtraceInterface(DebuggingInterface):
         if insert:
             self.context.insert_new_breakpoint(bp)
 
-    def unset_breakpoint(self: PtraceInterface, bp: Breakpoint, delete: bool = True) -> None:
+    def unset_breakpoint(
+        self: PtraceInterface, bp: Breakpoint, delete: bool = True
+    ) -> None:
         """Restores the breakpoint at the specified address.
 
         Args:
@@ -631,7 +650,9 @@ class PtraceInterface(DebuggingInterface):
 
         return result
 
-    def _poke_user(self: PtraceInterface, thread_id: int, address: int, value: int) -> None:
+    def _poke_user(
+        self: PtraceInterface, thread_id: int, address: int, value: int
+    ) -> None:
         """Writes the memory at the specified address."""
         result = self.lib_trace.ptrace_pokeuser(thread_id, address, value)
         liblog.debugger(

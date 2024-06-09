@@ -14,34 +14,35 @@
 
 from __future__ import annotations
 
+import os
+import signal
 from pathlib import Path
 from queue import Queue
 from subprocess import Popen
-from threading import Thread, current_thread, Lock
+from threading import Thread, current_thread
+from typing import TYPE_CHECKING
 
 import psutil
 
-import os
-import signal
-from contextlib import contextmanager
-from typing import TYPE_CHECKING
-from weakref import WeakKeyDictionary
-
-from libdebug.state.resume_context import ResumeContext
-from libdebug.builtin.pretty_print_syscall_hook import pprint_on_enter, pprint_on_exit
-
 # from libdebug.builtin.antidebug_syscall_hook import on_enter_ptrace, on_exit_ptrace
 from libdebug.architectures.syscall_hijacking_provider import syscall_hijacking_provider
-from libdebug.utils.libcontext import libcontext
-from libdebug.data.signal_hook import SignalHook
+from libdebug.builtin.antidebug_syscall_hook import on_enter_ptrace, on_exit_ptrace
+from libdebug.builtin.pretty_print_syscall_hook import pprint_on_enter, pprint_on_exit
 from libdebug.data.breakpoint import Breakpoint
+from libdebug.data.debugging_context_holder import global_debugging_holder
+from libdebug.data.memory_view import MemoryView
+from libdebug.data.signal_hook import SignalHook
 from libdebug.data.syscall_hook import SyscallHook
-from libdebug.utils.debugger_wrappers import background_alias, control_flow_function
+from libdebug.interfaces.interface_helper import provide_debugging_interface
 from libdebug.liblog import liblog
+from libdebug.state.debugging_context_instance_manager import provide_context
+from libdebug.state.resume_context import ResumeContext
+from libdebug.utils.debugger_wrappers import background_alias, control_flow_function
 from libdebug.utils.debugging_utils import (
     normalize_and_validate_address,
     resolve_symbol_in_maps,
 )
+from libdebug.utils.libcontext import libcontext
 from libdebug.utils.signal_utils import (
     resolve_signal_name,
     resolve_signal_number,
@@ -54,6 +55,7 @@ from libdebug.utils.syscall_utils import (
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
     from libdebug.data.breakpoint import Breakpoint
     from libdebug.data.memory_view import MemoryView
     from libdebug.data.signal_hook import SignalHook
@@ -146,8 +148,12 @@ class DebuggingContext:
     _resume_context: ResumeContext
     """Context that indicates if the debugger should resume the debugged process."""
 
-    def __init__(self: DebuggingContext) -> None:
-        """Initialize the context."""
+    def __init__(self: DebuggingContext, owner: object) -> None:
+        """Initialize the context.
+
+        Args:
+            owner (object): the owener of the debugging context.
+        """
         # These must be reinitialized on every call to "debugger"
         self.aslr_enabled = False
         self.autoreach_entrypoint = True
@@ -169,6 +175,7 @@ class DebuggingContext:
         self._resume_context = ResumeContext()
         self._polling_thread_command_queue = Queue()
         self._polling_thread_response_queue = Queue()
+        global_debugging_holder.debugging_contexts[owner] = self
 
     def clear(self: DebuggingContext) -> None:
         """Reinitializes the context, so it is ready for a new run."""
@@ -185,6 +192,12 @@ class DebuggingContext:
         self.process_id = 0
         self.instanced = False
         self._resume_context = ResumeContext()
+
+    def start_up(self: DebuggingContext) -> None:
+        """Starts up the context."""
+        self.debugging_interface = provide_debugging_interface()
+        self.start_processing_thread()
+        self.setup_memory_view()
 
     @property
     def breakpoints(self: DebuggingContext) -> dict[int, Breakpoint]:
@@ -1122,7 +1135,7 @@ class DebuggingContext:
         else:  # This is the parent process.
             os.waitpid(gdb_pid, 0)  # Wait for the child process to finish.
 
-    def _start_processing_thread(self: DebuggingContext) -> None:
+    def start_processing_thread(self: DebuggingContext) -> None:
         """Starts the thread that will poll the traced process for state change."""
         # Set as daemon so that the Python interpreter can exit even if the thread is still running
         self._polling_thread = Thread(
@@ -1368,8 +1381,6 @@ class DebuggingContext:
 
     def setup_memory_view(self: DebuggingContext) -> None:
         """Sets up the memory view of the process."""
-        from libdebug.data.memory_view import MemoryView
-
         self.memory = MemoryView(self._peek_memory, self._poke_memory)
 
     def _enable_antidebug_escaping(self: DebuggingContext) -> None:
@@ -1404,97 +1415,3 @@ class DebuggingContext:
         liblog.debugger("Stepping thread %s until 0x%x.", thread.thread_id, address)
         self.debugging_interface.step_until(thread, address, max_steps)
         self.set_stopped()
-
-__debugging_contexts: WeakKeyDictionary = WeakKeyDictionary()
-
-__debugging_global_context = None
-__debugging_context_lock = Lock()
-
-
-def debugging_context() -> DebuggingContext:
-    """Can be used to retrieve a temporarily-global debugging context."""
-    if __debugging_global_context is None:
-        raise RuntimeError("No debugging context available")
-    return __debugging_global_context
-
-
-def create_context(owner: object) -> DebuggingContext:
-    """Create a debugging context.
-
-    Args:
-        owner (object): the owener of the debugging context.
-
-    Returns:
-        DebuggingContext: the debugging context.
-    """
-    __debugging_contexts[owner] = DebuggingContext()
-    return __debugging_contexts[owner]
-
-
-def provide_context(reference: object) -> DebuggingContext:
-    """Provide a debugging context.
-
-    Args:
-        reference (object): the object that needs the debugging context.
-
-    Returns:
-        DebuggingContext: the debugging context.
-    """
-    if reference in __debugging_contexts:
-        return __debugging_contexts[reference]
-
-    if __debugging_global_context is None:
-        raise RuntimeError("No debugging context available")
-
-    __debugging_contexts[reference] = __debugging_global_context
-    return __debugging_global_context
-
-
-def link_context(reference: object, referrer: object = None) -> None:
-    """Link a reference to a referrer.
-
-    Args:
-        reference (object): the object that needs the debugging context.
-        referrer (object): the referrer object.
-    """
-    if referrer is not None:
-        __debugging_contexts[reference] = __debugging_contexts[referrer]
-    elif __debugging_global_context is not None:
-        __debugging_contexts[reference] = __debugging_global_context
-    else:
-        raise RuntimeError("No debugging context available")
-
-
-@contextmanager
-def context_extend_from(referrer: object) -> ...:
-    """Extend the debugging context.
-
-    Args:
-        referrer (object): the referrer object.
-
-    Yields:
-        DebuggingContext: the debugging context.
-    """
-    global __debugging_global_context
-
-    with __debugging_context_lock:
-        if referrer not in __debugging_contexts:
-            raise RuntimeError("Referrer isn't linked to any context.")
-
-        __debugging_global_context = __debugging_contexts[referrer]
-        yield
-        __debugging_global_context = None
-
-
-def clear_context(reference: object) -> None:
-    """Clear the debugging context.
-
-    Args:
-        reference (object): the object that needs the debugging context.
-    """
-    if reference in __debugging_contexts:
-        context = __debugging_contexts[reference]
-        # delete all keys whose value is context
-        for key in list(__debugging_contexts):
-            if __debugging_contexts[key] == context:
-                del __debugging_contexts[key]

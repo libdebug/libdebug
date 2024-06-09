@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from libdebug.state.debugging_context_instance_manager import provide_context
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -35,7 +37,6 @@ class SignalHook:
 
     def enable(self: SignalHook) -> None:
         """Enable the signal hook."""
-        from libdebug.state.debugging_context import provide_context
 
         if provide_context(self).running:
             raise RuntimeError(
@@ -46,7 +47,6 @@ class SignalHook:
 
     def disable(self: SignalHook) -> None:
         """Disable the signal hook."""
-        from libdebug.state.debugging_context import provide_context
 
         if provide_context(self).running:
             raise RuntimeError(
