@@ -25,6 +25,7 @@ all:
 	$(CC) $(CFLAGS) $(SRC_DIR)/watchpoint_test.c -o $(BIN_DIR)/watchpoint_test $(LDFLAGS)
 	$(CC) $(CFLAGS) $(SRC_DIR)/signal_handling_test.c -o $(BIN_DIR)/signal_handling_test $(LDFLAGS)
 	$(CC) $(CFLAGS) $(SRC_DIR)/signals_multithread_undet_test.c -o $(BIN_DIR)/signals_multithread_undet_test $(LDFLAGS)
+	$(CC) $(CFLAGS) $(SRC_DIR)/segfault_test.c -o $(BIN_DIR)/segfault_test $(LDFLAGS)
 	
 
 # Clean rule to remove compiled files

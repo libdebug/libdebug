@@ -34,6 +34,7 @@ from scripts.watchpoint_alias_test import WatchpointAliasTest
 from scripts.watchpoint_test import WatchpointTest
 from scripts.signal_hook_test import SignalHookTest
 from scripts.signals_multithread_test import SignalMultithreadTest
+from scripts.death_test import DeathTest
 
 
 def fast_suite():
@@ -158,6 +159,12 @@ def fast_suite():
     suite.addTest(SignalHookTest("test_signal_send_signal"))
     suite.addTest(SignalMultithreadTest("test_signal_multithread_undet_hook_block"))
     suite.addTest(SignalMultithreadTest("test_signal_multithread_undet_pass"))
+    suite.addTest(DeathTest("test_io_death"))
+    suite.addTest(DeathTest("test_cont_death"))
+    suite.addTest(DeathTest("test_instr_death"))
+    suite.addTest(DeathTest("test_exit_signal_death"))
+    suite.addTest(DeathTest("test_exit_code_death"))
+    suite.addTest(DeathTest("test_exit_code_normal"))
     return suite
 
 
