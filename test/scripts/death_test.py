@@ -73,7 +73,7 @@ class DeathTest(unittest.TestCase):
 
         d.wait()
 
-        self.assertEqual(d.rip, 0x55555555517F)
+        self.assertEqual(d.regs.rip, 0x55555555517F)
 
         d.kill()
 
@@ -118,7 +118,7 @@ class DeathTest(unittest.TestCase):
     def test_exit_code_normal(self):
         d = debugger("binaries/basic_test")
 
-        r = d.run()
+        d.run()
         
         d.cont()
 

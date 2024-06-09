@@ -464,7 +464,7 @@ class SignalHookTest(unittest.TestCase):
 
         # Hijack to SIGTERM
         hook1 = d.hijack_signal("SIGUSR1", 15)
-
+        
         d.cont()
 
         SIGUSR1 = r.recvline()
