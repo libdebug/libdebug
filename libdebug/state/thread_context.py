@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
 from libdebug.liblog import liblog
-from libdebug.state.debugging_context import debugging_context
+from libdebug.state.debugging_context_instance_manager import debugging_context
 from libdebug.utils.debugging_utils import resolve_address_in_maps
 from libdebug.utils.signal_utils import resolve_signal_name, resolve_signal_number
 
@@ -18,12 +18,13 @@ if TYPE_CHECKING:
     from libdebug.data.register_holder import RegisterHolder
     from libdebug.state.debugging_context import DebuggingContext
 
+
 class ThreadContext:
     """This object represents a thread in the context of the target process. It holds information about the thread's state, registers and stack."""
 
     _context: DebuggingContext | None = None
     """The debugging context this thread belongs to."""
-    
+
     regs: object | None = None
 
     dead: bool = False
@@ -52,7 +53,9 @@ class ThreadContext:
         self._thread_id = thread_id
 
     @staticmethod
-    def new(thread_id: int | None = None, registers: RegisterHolder | None = None) -> ThreadContext:
+    def new(
+        thread_id: int | None = None, registers: RegisterHolder | None = None
+    ) -> ThreadContext:
         """Creates a new thread context object.
 
         Args:
@@ -67,19 +70,20 @@ class ThreadContext:
             thread_id = debugging_context().process_id
 
         if registers is None:
-            raise RuntimeError("A register view must be provided during ThreadContext initialization.")
+            raise RuntimeError(
+                "A register view must be provided during ThreadContext initialization."
+            )
 
         thread = ThreadContext(thread_id)
-        
+
         thread._context = debugging_context()
-        
+
         thread.registers = registers
         regs_class = registers.provide_regs_class()
         thread.regs = regs_class()
         thread.regs._context = thread._context
         thread.registers.apply_on_regs(thread.regs, regs_class)
         thread.registers.apply_on_thread(thread, ThreadContext)
-
 
         return thread
 
@@ -112,7 +116,11 @@ class ThreadContext:
     def signal(self: ThreadContext) -> str | None:
         """The signal will be forwarded to the thread."""
         self._context._ensure_process_stopped()
-        return None if self._signal_number == 0 else resolve_signal_name(self._signal_number)
+        return (
+            None
+            if self._signal_number == 0
+            else resolve_signal_name(self._signal_number)
+        )
 
     @property
     def exit_code(self: ThreadContext) -> int | None:
@@ -122,7 +130,8 @@ class ThreadContext:
             liblog.warning("Thread is not dead. No exit code available.")
         elif self._exit_code is None and self._exit_signal is not None:
             liblog.warning(
-                "Thread exited with signal %s. No exit code available.", resolve_signal_name(self._exit_signal)
+                "Thread exited with signal %s. No exit code available.",
+                resolve_signal_name(self._exit_signal),
             )
         return self._exit_code
 
@@ -134,7 +143,9 @@ class ThreadContext:
             liblog.warning("Thread is not dead. No exit signal available.")
             return None
         elif self._exit_signal is None and self._exit_code is not None:
-            liblog.warning("Thread exited with code %d. No exit signal available.", self._exit_code)
+            liblog.warning(
+                "Thread exited with code %d. No exit signal available.", self._exit_code
+            )
             return None
         return resolve_signal_name(self._exit_signal)
 
@@ -149,7 +160,9 @@ class ThreadContext:
         if isinstance(signal, str):
             signal = resolve_signal_number(signal)
         self._signal_number = signal
-        self._context._resume_context.threads_with_signals_to_forward.append(self.process_id)
+        self._context._resume_context.threads_with_signals_to_forward.append(
+            self.process_id
+        )
 
     def backtrace(self: ThreadContext) -> list:
         """Returns the current backtrace of the thread."""
@@ -164,7 +177,7 @@ class ThreadContext:
         self._context._ensure_process_stopped()
         stack_unwinder = stack_unwinding_provider()
         return stack_unwinder.get_return_address(self)
-    
+
     def step(self: ThreadContext) -> None:
         """Executes a single instruction of the process."""
         self._context.step(self)
@@ -181,4 +194,3 @@ class ThreadContext:
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
         """
         self._context.step_until(position, self, max_steps)
-
