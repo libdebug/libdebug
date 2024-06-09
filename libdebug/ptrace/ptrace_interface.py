@@ -218,7 +218,7 @@ class PtraceInterface(DebuggingInterface):
         """Continues the execution of the process."""
 
         # Forward signals to the threads
-        if len(self.context._resume_context.threads_with_signals_to_forward) > 0:
+        if self.context._resume_context.threads_with_signals_to_forward:
             self.forward_signal()
 
         # Enable all breakpoints if they were disabled for a single step
