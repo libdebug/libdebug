@@ -139,10 +139,7 @@ class PtraceInterface(DebuggingInterface):
         argv = [
             JUMPSTART_LOCATION,
             str(env_len),
-            *[
-                f"{key}={value}"
-                for key, value in env.items()
-            ],
+            *[f"{key}={value}" for key, value in env.items()],
             "NULL",
             *argv,
         ]
@@ -476,11 +473,13 @@ class PtraceInterface(DebuggingInterface):
             if bp.hardware:
                 thread_hw_bp_helper.install_breakpoint(bp)
 
-    def unregister_thread(self: PtraceInterface, thread_id: int) -> None:
+    def unregister_thread(
+        self: PtraceInterface, thread_id: int, exit_code: int | None, exit_signal: int | None
+    ) -> None:
         """Unregisters a thread."""
         self.lib_trace.unregister_thread(self._global_state, thread_id)
 
-        self.context.set_thread_as_dead(thread_id)
+        self.context.set_thread_as_dead(thread_id, exit_code=exit_code, exit_signal=exit_signal)
 
         # Remove the hardware breakpoint manager for the thread
         self.hardware_bp_helpers.pop(thread_id)

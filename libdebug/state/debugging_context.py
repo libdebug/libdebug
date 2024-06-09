@@ -176,9 +176,7 @@ class DebuggingContext:
         """
         del self._breakpoints[bp.address]
 
-    def insert_new_syscall_hook(
-        self: DebuggingContext, syscall_hook: SyscallHook
-    ) -> None:
+    def insert_new_syscall_hook(self: DebuggingContext, syscall_hook: SyscallHook) -> None:
         """Insert a new syscall hook in the context.
 
         Args:
@@ -221,15 +219,21 @@ class DebuggingContext:
 
         self.threads.append(thread)
 
-    def set_thread_as_dead(self: DebuggingContext, thread_id: int) -> None:
-        """Remove a thread from the context.
+    def set_thread_as_dead(
+        self: DebuggingContext, thread_id: int, exit_code: int | None, exit_signal: int | None
+    ) -> None:
+        """Set a thread as dead and update its exit code and exit signal.
 
         Args:
-            thread_id (int): the ID of the thread to remove.
+            thread_id (int): the ID of the thread to set as dead.
+            exit_code (int, optional): the exit code of the thread.
+            exit_signal (int, optional): the exit signal of the thread.
         """
         for thread in self.threads:
             if thread.thread_id == thread_id:
                 thread.dead = True
+                thread._exit_code = exit_code
+                thread._exit_signal = exit_signal
                 break
 
     def get_thread_by_id(self: DebuggingContext, thread_id: int) -> ThreadContext:

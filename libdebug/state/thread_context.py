@@ -34,6 +34,12 @@ class ThreadContext:
     registers: RegisterHolder | None = None
     """The register holder object. It provides access to the thread's registers."""
 
+    _exit_code: int | None = None
+    """The thread's exit code."""
+
+    _exit_signal: int | None = None
+    """The thread's exit signal."""
+
     _signal_number: int = 0
     """The signal to forward to the thread."""
 
@@ -108,6 +114,28 @@ class ThreadContext:
     def signal(self: ThreadContext) -> str | None:
         """The signal will be forwarded to the thread."""
         return None if self._signal_number == 0 else resolve_signal_name(self._signal_number)
+
+    @property
+    def exit_code(self: ThreadContext) -> int | None:
+        """The thread's exit code."""
+        if not self.dead:
+            liblog.warning("Thread is not dead. No exit code available.")
+        elif self._exit_code is None and self._exit_signal is not None:
+            liblog.warning(
+                "Thread exited with signal %s. No exit code available.", resolve_signal_name(self._exit_signal)
+            )
+        return self._exit_code
+
+    @property
+    def exit_signal(self: ThreadContext) -> int | None:
+        """The thread's exit signal."""
+        if not self.dead:
+            liblog.warning("Thread is not dead. No exit signal available.")
+            return None
+        elif self._exit_signal is None and self._exit_code is not None:
+            liblog.warning("Thread exited with code %d. No exit signal available.", self._exit_code)
+            return None
+        return resolve_signal_name(self._exit_signal)
 
     @signal.setter
     def signal(self: ThreadContext, signal: str | int) -> None:

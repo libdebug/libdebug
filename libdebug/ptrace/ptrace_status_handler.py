@@ -55,9 +55,9 @@ class PtraceStatusHandler:
             os.waitpid(thread_id, 0)
         self.ptrace_interface.register_new_thread(thread_id)
 
-    def _handle_exit(self: PtraceStatusHandler, thread_id: int) -> None:
+    def _handle_exit(self: PtraceStatusHandler, thread_id: int, exit_code: int | None, exit_signal: int | None) -> None:
         if self.context.get_thread_by_id(thread_id):
-            self.ptrace_interface.unregister_thread(thread_id)
+            self.ptrace_interface.unregister_thread(thread_id, exit_code=exit_code, exit_signal=exit_signal)
 
     def _handle_breakpoints(self: PtraceStatusHandler, thread_id: int) -> bool:
         thread = self.context.get_thread_by_id(thread_id)
@@ -402,15 +402,15 @@ class PtraceStatusHandler:
 
         if os.WIFEXITED(status):
             # The thread has exited normally
-            exitstatus = os.WEXITSTATUS(status)
-            liblog.debugger("Child process %d exited with status %d", pid, exitstatus)
-            self._handle_exit(pid)
+            exit_code = os.WEXITSTATUS(status)
+            liblog.debugger("Child process %d exited with exit code %d", pid, exit_code)
+            self._handle_exit(pid, exit_code=exit_code, exit_signal=None)
 
         if os.WIFSIGNALED(status):
             # The thread has exited with a signal
-            termsig = os.WTERMSIG(status)
-            liblog.debugger("Child process %d exited with signal %d", pid, termsig)
-            self._handle_exit(pid)
+            exit_signal = os.WTERMSIG(status)
+            liblog.debugger("Child process %d exited with signal %d", pid, exit_signal)
+            self._handle_exit(pid, exit_code=None, exit_signal=exit_signal)
 
     def manage_change(self: PtraceStatusHandler, result: list[tuple]) -> None:
         """Manage the result of the waitpid and handle the changes."""
