@@ -18,3 +18,12 @@ class ResumeContext:
         self.is_startup: bool = False
         self.block_on_signal: bool = False
         self.threads_with_signals_to_forward: list[int] = []
+
+    def clear(self: ResumeContext) -> None:
+        """Clears the context."""
+        self.resume = True
+        self.force_interrupt = False
+        self.is_a_step = False
+        self.is_startup = False
+        self.block_on_signal = False
+        self.threads_with_signals_to_forward = []
