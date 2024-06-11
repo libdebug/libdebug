@@ -1136,7 +1136,6 @@ class SignalHookTest(unittest.TestCase):
         if bp.hit_on(d):
             d.unhook_signal(hook4)
             d.unhook_signal(hook5)
-            print(d.signal)
             d.signal = 10
         d.cont()
 
