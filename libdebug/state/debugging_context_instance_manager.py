@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2024 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -43,23 +43,28 @@ def provide_context(reference: object) -> DebuggingContext:
     return global_debugging_holder.debugging_global_context
 
 
-def link_context(reference: object, referrer: object = None) -> None:
-    """Link a reference to a referrer.
+def inherit_context(reference: object, referrer: object) -> None:
+    """Inherit a debugging context.
 
     Args:
         reference (object): the object that needs the debugging context.
-        referrer (object): the referrer object.
+        referrer (object): the referrer object from which to inherit the context.
     """
-    if referrer is not None:
-        global_debugging_holder.debugging_contexts[reference] = (
-            global_debugging_holder.debugging_contexts[referrer]
-        )
-    elif global_debugging_holder.debugging_global_context is not None:
-        global_debugging_holder.debugging_contexts[reference] = (
-            global_debugging_holder.debugging_global_context
-        )
-    else:
-        raise RuntimeError("No debugging context available")
+    if referrer not in global_debugging_holder.debugging_contexts:
+        raise RuntimeError("Referrer isn't linked to any context.")
+    global_debugging_holder.debugging_contexts[reference] = (
+        global_debugging_holder.debugging_contexts[referrer]
+    )
+
+
+def link_context(reference: object, context: DebuggingContext) -> None:
+    """Link a reference to a DebuggingContext.
+
+    Args:
+        reference (object): the object that needs the debugging context.
+        context (DebuggingContext): the debugging context.
+    """
+    global_debugging_holder.debugging_contexts[reference] = context
 
 
 @contextmanager

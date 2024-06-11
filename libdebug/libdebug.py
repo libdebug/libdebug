@@ -10,10 +10,7 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
 from libdebug.state.debugging_context import DebuggingContext
-from libdebug.state.debugging_context_instance_manager import (
-    context_extend_from,
-    provide_context,
-)
+from libdebug.state.debugging_context_instance_manager import provide_context
 from libdebug.utils.signal_utils import (
     get_all_signal_numbers,
     resolve_signal_name,
@@ -49,32 +46,7 @@ class _InternalDebugger:
     def _post_init_(self: _InternalDebugger) -> None:
         """Do not use this constructor directly. Use the `debugger` function instead."""
         self._context = provide_context(self)
-
-        with context_extend_from(self):
-            self._context.start_up()
-
-    @property
-    def threads(self: _InternalDebugger) -> list[ThreadContext]:
-        """Get the list of threads in the process."""
-        return self._context.threads
-
-    @property
-    def memory(self: _InternalDebugger) -> MemoryView:
-        """Get the memory view of the process."""
-        return self._context.memory
-
-    @property
-    def breakpoints(self: _InternalDebugger) -> dict[int, Breakpoint]:
-        """Get the breakpoints set on the process."""
-        return self._context.breakpoints
-
-    def terminate(self: _InternalDebugger) -> None:
-        """Terminates the background thread.
-
-        The debugger object cannot be used after this method is called.
-        This method should only be called to free up resources when the debugger object is no longer needed.
-        """
-        self._context.terminate()
+        self._context.start_up()
 
     def run(self: _InternalDebugger) -> None:
         """Starts the process and waits for it to stop."""
@@ -92,13 +64,17 @@ class _InternalDebugger:
         """Kills the process."""
         self._context.kill()
 
-    def cont(self: _InternalDebugger, auto_wait: bool = True) -> None:
-        """Continues the process.
+    def terminate(self: _InternalDebugger) -> None:
+        """Terminates the background thread.
 
-        Args:
-            auto_wait (bool, optional): Whether to automatically wait for the process to stop after continuing. Defaults to True.
+        The debugger object cannot be used after this method is called.
+        This method should only be called to free up resources when the debugger object is no longer needed.
         """
-        self._context.cont(auto_wait)
+        self._context.terminate()
+
+    def cont(self: _InternalDebugger) -> None:
+        """Continues the process."""
+        self._context.cont()
 
     def interrupt(self: _InternalDebugger) -> None:
         """Interrupts the process."""
@@ -125,10 +101,7 @@ class _InternalDebugger:
             length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
             callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the breakpoint is hit. Defaults to None.
         """
-        with context_extend_from(self):
-            return self._context.breakpoint(
-                position, hardware, condition, length, callback
-            )
+        return self._context.breakpoint(position, hardware, condition, length, callback)
 
     def watchpoint(
         self: _InternalDebugger,
@@ -145,14 +118,13 @@ class _InternalDebugger:
             length (int, optional): The size of the word in being watched (1, 2, 4 or 8). Defaults to 1.
             callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the watchpoint is hit. Defaults to None.
         """
-        with context_extend_from(self):
-            return self._context.breakpoint(
-                position,
-                hardware=True,
-                condition=condition,
-                length=length,
-                callback=callback,
-            )
+        return self._context.breakpoint(
+            position,
+            hardware=True,
+            condition=condition,
+            length=length,
+            callback=callback,
+        )
 
     def hook_signal(
         self: _InternalDebugger,
@@ -167,8 +139,7 @@ class _InternalDebugger:
             callback (Callable[[ThreadContext, int], None], optional): A callback to be called when the signal is received. Defaults to None.
             hook_hijack (bool, optional): Whether to execute the hook/hijack of the new signal after an hijack or not. Defaults to False.
         """
-        with context_extend_from(self):
-            return self._context.hook_signal(signal_to_hook, callback, hook_hijack)
+        return self._context.hook_signal(signal_to_hook, callback, hook_hijack)
 
     def unhook_signal(self: _InternalDebugger, hook: SignalHook) -> None:
         """Unhooks a signal in the target process.
@@ -191,8 +162,7 @@ class _InternalDebugger:
             new_signal (int | str): The signal to replace the original signal with.
             hook_hijack (bool, optional): Whether to execute the hook/hijack of the new signal after the hijack or not. Defaults to True.
         """
-        with context_extend_from(self):
-            return self._context.hijack_signal(original_signal, new_signal, hook_hijack)
+        return self._context.hijack_signal(original_signal, new_signal, hook_hijack)
 
     def hook_syscall(
         self: _InternalDebugger,
@@ -212,8 +182,7 @@ class _InternalDebugger:
         Returns:
             SyscallHook: The syscall hook object.
         """
-        with context_extend_from(self):
-            return self._context.hook_syscall(syscall, on_enter, on_exit, hook_hijack)
+        return self._context.hook_syscall(syscall, on_enter, on_exit, hook_hijack)
 
     def unhook_syscall(self: _InternalDebugger, hook: SyscallHook) -> None:
         """Unhooks a syscall in the target process.
@@ -241,10 +210,48 @@ class _InternalDebugger:
         Returns:
             SyscallHook: The syscall hook object.
         """
-        with context_extend_from(self):
-            return self._context.hijack_syscall(
-                original_syscall, new_syscall, hook_hijack, **kwargs
-            )
+        return self._context.hijack_syscall(
+            original_syscall, new_syscall, hook_hijack, **kwargs
+        )
+
+    def migrate_to_gdb(
+        self: _InternalDebugger, open_in_new_process: bool = True
+    ) -> None:
+        """Migrates the current debugging session to GDB."""
+        self._context.migrate_to_gdb(open_in_new_process)
+
+    @property
+    def threads(self: _InternalDebugger) -> list[ThreadContext]:
+        """Get the list of threads in the process."""
+        return self._context.threads
+
+    @property
+    def memory(self: _InternalDebugger) -> MemoryView:
+        """Get the memory view of the process."""
+        return self._context.memory
+
+    @property
+    def breakpoints(self: _InternalDebugger) -> dict[int, Breakpoint]:
+        """Get the breakpoints set on the process."""
+        return self._context.breakpoints
+
+    @property
+    def syscall_hooks(self: DebuggingContext) -> dict[int, SyscallHook]:
+        """Get the syscall hooks dictionary.
+
+        Returns:
+            dict[int, SyscallHook]: the syscall hooks dictionary.
+        """
+        return self._context.syscall_hooks
+
+    @property
+    def signal_hooks(self: DebuggingContext) -> dict[int, SignalHook]:
+        """Get the signal hooks dictionary.
+
+        Returns:
+            dict[int, SignalHook]: the signal hooks dictionary.
+        """
+        return self._context.signal_hooks
 
     @property
     def pprint_syscalls(self: _InternalDebugger) -> bool:
@@ -253,8 +260,7 @@ class _InternalDebugger:
         Returns:
             bool: True if the debugger should pretty print syscalls, False otherwise.
         """
-        with context_extend_from(self):
-            return self._context._pprint_syscalls
+        return self._context.pprint_syscalls
 
     @pprint_syscalls.setter
     def pprint_syscalls(self: _InternalDebugger, value: bool) -> None:
@@ -265,15 +271,12 @@ class _InternalDebugger:
         """
         if not isinstance(value, bool):
             raise TypeError("pprint_syscalls must be a boolean")
-
         if value:
-            with context_extend_from(self):
-                self._context.enable_pretty_print()
+            self._context.enable_pretty_print()
         else:
-            with context_extend_from(self):
-                self._context.disable_pretty_print()
+            self._context.disable_pretty_print()
 
-        self._context._pprint_syscalls = value
+        self._context.pprint_syscalls = value
 
     @contextmanager
     def pprint_syscalls_context(self: _InternalDebugger, value: bool) -> ...:
@@ -321,9 +324,8 @@ class _InternalDebugger:
             raise ValueError(
                 "syscalls_to_pprint must be a list of integers or strings or None.",
             )
-        if self._context._pprint_syscalls:
-            with context_extend_from(self):
-                self._context.enable_pretty_print()
+        if self._context.pprint_syscalls:
+            self._context.enable_pretty_print()
 
     @property
     def syscalls_to_not_pprint(self: _InternalDebugger) -> list[str] | None:
@@ -358,9 +360,8 @@ class _InternalDebugger:
             raise ValueError(
                 "syscalls_to_not_pprint must be a list of integers or strings or None.",
             )
-        if self._context._pprint_syscalls:
-            with context_extend_from(self):
-                self._context.enable_pretty_print()
+        if self._context.pprint_syscalls:
+            self._context.enable_pretty_print()
 
     @property
     def signal_to_block(self: _InternalDebugger) -> list[str]:
@@ -369,7 +370,7 @@ class _InternalDebugger:
         Returns:
             list[str]: The signals to block.
         """
-        return [resolve_signal_name(v) for v in self._context._signal_to_block]
+        return [resolve_signal_name(v) for v in self._context.signal_to_block]
 
     @signal_to_block.setter
     def signal_to_block(
@@ -390,37 +391,7 @@ class _InternalDebugger:
         if not set(signals).issubset(get_all_signal_numbers()):
             raise ValueError("Invalid signal number.")
 
-        self._context._signal_to_block = signals
-
-    @property
-    def process_id(self: _InternalDebugger) -> int:
-        """Get the process ID of the process."""
-        return self._context.process_id
-
-    @property
-    def pid(self: _InternalDebugger) -> int:
-        """Get the process ID of the process."""
-        return self._context.process_id
-
-    def migrate_to_gdb(
-        self: _InternalDebugger, open_in_new_process: bool = True
-    ) -> None:
-        """Migrates the current debugging session to GDB."""
-        self._context.migrate_to_gdb(open_in_new_process)
-
-    def finish(
-        self: _InternalDebugger, thread: ThreadContext | None = None, exact: bool = True
-    ) -> None:
-        """Continues the process until the current function returns or the process stops.
-
-        When used in step mode, it will step until a return instruction is executed. Otherwise, it uses a heuristic
-        based on the call stack to breakpoint (exact is slower).
-
-        Args:
-            thread (ThreadContext, optional): The thread to affect. Defaults to None.
-            exact (bool, optional): Whether or not to execute in step mode. Defaults to True.
-        """
-        self._context.finish(thread, exact)
+        self._context.signal_to_block = signals
 
     def __getattr__(self: _InternalDebugger, name: str) -> object:
         """This function is called when an attribute is not found in the `_InternalDebugger` object.

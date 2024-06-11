@@ -160,7 +160,7 @@ class ThreadContext:
         if isinstance(signal, str):
             signal = resolve_signal_number(signal)
         self._signal_number = signal
-        self._context._resume_context.threads_with_signals_to_forward.append(
+        self._context.resume_context.threads_with_signals_to_forward.append(
             self.process_id
         )
 
@@ -183,7 +183,7 @@ class ThreadContext:
         self._context.step(self)
 
     def step_until(
-        self: DebuggingContext,
+        self: ThreadContext,
         position: int | str,
         max_steps: int = -1,
     ) -> None:
@@ -194,3 +194,14 @@ class ThreadContext:
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
         """
         self._context.step_until(position, self, max_steps)
+
+    def finish(self: ThreadContext, exact: bool = True) -> None:
+        """Continues the process until the current function returns or the process stops.
+
+        When used in step mode, it will step until a return instruction is executed. Otherwise, it uses a heuristic
+        based on the call stack to breakpoint (exact is slower).
+
+        Args:
+            exact (bool, optional): Whether or not to execute in step mode. Defaults to True.
+        """
+        self._context.finish(self, exact)

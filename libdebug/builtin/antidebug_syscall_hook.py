@@ -11,7 +11,7 @@ from libdebug.state.thread_context import ThreadContext
 
 def on_enter_ptrace(t: ThreadContext, syscall_number: int) -> None:
     """Callback for ptrace syscall onenter."""
-    this_hook = t.context.syscall_hooks[syscall_number]
+    this_hook = t._context.syscall_hooks[syscall_number]
 
     this_hook._command = t.syscall_arg0
 
@@ -21,10 +21,12 @@ def on_enter_ptrace(t: ThreadContext, syscall_number: int) -> None:
 
 def on_exit_ptrace(t: ThreadContext, syscall_number: int) -> None:
     """Callback for ptrace syscall onexit."""
-    this_hook = t.context.syscall_hooks[syscall_number]
+    this_hook = t._context.syscall_hooks[syscall_number]
 
     if this_hook._command is None:
-        liblog.error("ptrace onexit called without corresponding onenter. This should not happen.")
+        liblog.error(
+            "ptrace onexit called without corresponding onenter. This should not happen."
+        )
         return
 
     match this_hook._command:
@@ -33,4 +35,6 @@ def on_exit_ptrace(t: ThreadContext, syscall_number: int) -> None:
                 this_hook._traceme_called = True
                 t.syscall_return = 0
         case _:
-            liblog.error(f"ptrace syscall with request {this_hook._command} not supported")
+            liblog.error(
+                f"ptrace syscall with request {this_hook._command} not supported"
+            )

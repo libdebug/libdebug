@@ -70,7 +70,7 @@ class PtraceStatusHandler:
         if not hasattr(thread, "instruction_pointer"):
             # This is a signal trap hit on process startup
             # Do not resume the process until the user decides to do so
-            self.context._resume_context.resume = False
+            self.context.resume_context.resume = False
             self.forward_signal = False
             return
 
@@ -121,7 +121,7 @@ class PtraceStatusHandler:
                 bp.callback(thread, bp)
             else:
                 # If the breakpoint has no callback, we need to stop the process despite the other signals
-                self.context._resume_context.resume = False
+                self.context.resume_context.resume = False
 
     def _manage_syscall_on_enter(
         self: PtraceStatusHandler,
@@ -328,25 +328,25 @@ class PtraceStatusHandler:
             liblog.debugger("Child thread %d stopped on syscall hook", pid)
             self._handle_syscall(pid)
             self.forward_signal = False
-        elif signum == signal.SIGSTOP and self.context._resume_context.force_interrupt:
+        elif signum == signal.SIGSTOP and self.context.resume_context.force_interrupt:
             # The user has requested an interrupt, we need to stop the process despite the ohter signals
             liblog.debugger(
                 "Child thread %d stopped with signal %s",
                 pid,
                 resolve_signal_name(signum),
             )
-            self.context._resume_context.resume = False
-            self.context._resume_context.force_interrupt = False
+            self.context.resume_context.resume = False
+            self.context.resume_context.force_interrupt = False
             self.forward_signal = False
         elif signum == signal.SIGTRAP:
             # The trap decides if we hit a breakpoint. If so, it decides whether we should stop or
             # continue the execution and wait for the next trap
             self._handle_breakpoints(pid)
 
-            if self.context._resume_context.is_a_step:
+            if self.context.resume_context.is_a_step:
                 # The process is stepping, we need to stop the execution
-                self.context._resume_context.resume = False
-                self.context._resume_context.is_a_step = False
+                self.context.resume_context.resume = False
+                self.context.resume_context.is_a_step = False
                 self.forward_signal = False
 
             event = status >> 8
@@ -389,7 +389,7 @@ class PtraceStatusHandler:
         self.forward_signal = True
 
         if os.WIFSTOPPED(status):
-            if self.context._resume_context.is_startup:
+            if self.context.resume_context.is_startup:
                 # The process has just started
                 return
             signum = os.WSTOPSIG(status)
@@ -410,7 +410,7 @@ class PtraceStatusHandler:
 
                 if self.forward_signal and signum != signal.SIGSTOP:
                     # We have to forward the signal to the thread
-                    self.context._resume_context.threads_with_signals_to_forward.append(
+                    self.context.resume_context.threads_with_signals_to_forward.append(
                         pid
                     )
 

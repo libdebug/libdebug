@@ -32,7 +32,7 @@ class DebuggingInterface(ABC):
 
     def __init__(self: DebuggingInterface) -> None:
         """Initializes the DebuggingInterface classs."""
-        self.breakpoints = provide_context(self)._breakpoints
+        self.breakpoints = provide_context(self).breakpoints
         self.threads = provide_context(self).threads
 
     @abstractmethod
