@@ -23,7 +23,8 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
-    'sphinx.ext.viewcode'
+    'sphinx.ext.viewcode',
+    'sphinx_code_tabs'
 ]
 
 templates_path = ['_templates']
@@ -34,7 +35,6 @@ autodoc_default_options = {
     'private-members': True,  # To include private members
     'member-order': 'bysource'
 }
-
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
