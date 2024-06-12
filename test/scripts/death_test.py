@@ -98,7 +98,7 @@ class DeathTest(unittest.TestCase):
         d = debugger("binaries/segfault_test")
 
         r = d.run()
-        
+
         d.cont()
 
         self.assertEqual(r.recvline(), b"Hello, World!")
@@ -114,23 +114,37 @@ class DeathTest(unittest.TestCase):
         )
 
         d.kill()
-    
+
     def test_exit_code_normal(self):
         d = debugger("binaries/basic_test")
 
         d.run()
-        
+
         d.cont()
 
         d.wait()
 
         self.assertEqual(d.exit_code, 0)
-        
+
         d.exit_signal
-        
+
         self.assertEqual(
             self.log_capture_string.getvalue().count("No exit signal available."),
             1,
         )
 
         d.kill()
+
+    def test_exit_code_kill(self):
+        d = debugger("binaries/basic_test")
+
+        d.run()
+
+        d.cont()
+
+        d.interrupt()
+        d.kill()
+
+        d.regs.rax
+        d.regs.rbx
+        d.regs.rcx

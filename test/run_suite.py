@@ -165,6 +165,7 @@ def fast_suite():
     suite.addTest(DeathTest("test_exit_signal_death"))
     suite.addTest(DeathTest("test_exit_code_death"))
     suite.addTest(DeathTest("test_exit_code_normal"))
+    suite.addTest(DeathTest("test_exit_code_kill"))
     return suite
 
 
