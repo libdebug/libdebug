@@ -20,7 +20,9 @@ def change_state_function_process(method: callable) -> callable:
     @wraps(method)
     def wrapper(self: DebuggingContext, *args: ..., **kwargs: ...) -> ...:
         if not self.instanced:
-            raise RuntimeError("Process not running, cannot interrupt.")
+            raise RuntimeError(
+                "Process not running. Did you call run()?",
+            )
 
         # We have to ensure that the process is stopped before executing the method
         self._ensure_process_stopped()
@@ -41,7 +43,9 @@ def change_state_function_thread(method: callable) -> callable:
         self: DebuggingContext, thread: ThreadContext, *args: ..., **kwargs: ...
     ) -> ...:
         if not self.instanced:
-            raise RuntimeError("Process not running, cannot interrupt.")
+            raise RuntimeError(
+                "Process not running. Did you call run()?",
+            )
 
         # We have to ensure that the process is stopped before executing the method
         self._ensure_process_stopped()

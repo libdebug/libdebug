@@ -1050,10 +1050,6 @@ class DebuggingContext:
     @background_alias(_background_ensure_process_stopped)
     def _ensure_process_stopped(self: DebuggingContext) -> None:
         """Validates the state of the process."""
-        if not self.instanced:
-            raise RuntimeError(
-                "Process not running, cannot continue. Did you call run()?",
-            )
         if not self.running:
             return
 
