@@ -30,7 +30,7 @@ class Amd64StackUnwinder(StackUnwindingManager):
         assert hasattr(target.regs, "rbp")
 
         current_rbp = target.regs.rbp
-        stack_trace = [target.rip]
+        stack_trace = [target.regs.rip]
 
         vmaps = target._context.debugging_interface.maps()
 
@@ -60,7 +60,7 @@ class Amd64StackUnwinder(StackUnwindingManager):
         Returns:
             int: The return address.
         """
-        instruction_window = target.memory[target.rip, 4]
+        instruction_window = target.memory[target.regs.rip, 4]
 
         # Check if the instruction window is a function preamble and handle each case
         return_address = None

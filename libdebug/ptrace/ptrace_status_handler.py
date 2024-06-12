@@ -16,7 +16,7 @@ from libdebug.architectures.ptrace_software_breakpoint_patcher import (
 )
 from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_constants import SYSCALL_SIGTRAP, StopEvents
-from libdebug.state.debugging_context_instance_manager import provide_context
+from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 from libdebug.utils.signal_utils import resolve_signal_name
 
 if TYPE_CHECKING:
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from libdebug.data.signal_hook import SignalHook
     from libdebug.data.syscall_hook import SyscallHook
     from libdebug.interfaces.debugging_interface import DebuggingInterface
-    from libdebug.state.debugging_context import DebuggingContext
+    from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.state.thread_context import ThreadContext
 
 
@@ -33,7 +33,7 @@ class PtraceStatusHandler:
 
     def __init__(self: PtraceStatusHandler) -> None:
         """Initializes the PtraceStatusHandler class."""
-        self.context: DebuggingContext = provide_context(self)
+        self.context: InternalDebugger = provide_internal_debugger(self)
         self.ptrace_interface: DebuggingInterface = self.context.debugging_interface
         self.forward_signal: bool = True
         self._assume_race_sigstop: bool = True  # Assume the stop is due to a race condition with SIGSTOP sent by the debugger

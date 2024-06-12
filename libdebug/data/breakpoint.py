@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from libdebug.state.debugging_context_instance_manager import provide_context
+from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -49,7 +49,7 @@ class Breakpoint:
     def enable(self: Breakpoint) -> None:
         """Enable the breakpoint."""
 
-        if provide_context(self).running:
+        if provide_internal_debugger(self).running:
             raise RuntimeError(
                 "Cannot enable a breakpoint while the target process is running.",
             )
@@ -60,7 +60,7 @@ class Breakpoint:
     def disable(self: Breakpoint) -> None:
         """Disable the breakpoint."""
 
-        if provide_context(self).running:
+        if provide_internal_debugger(self).running:
             raise RuntimeError(
                 "Cannot disable a breakpoint while the target process is running.",
             )

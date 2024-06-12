@@ -22,10 +22,10 @@ from libdebug.data.breakpoint import Breakpoint
 from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
-from libdebug.state.debugging_context_instance_manager import (
-    context_extend_from,
-    inherit_context,
-    provide_context,
+from libdebug.debugger.internal_debugger_instance_manager import (
+    extend_internal_debugger,
+    inherit_internal_debugger,
+    provide_internal_debugger,
 )
 from libdebug.state.thread_context import ThreadContext
 from libdebug.utils.debugging_utils import normalize_and_validate_address
@@ -57,13 +57,13 @@ if TYPE_CHECKING:
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.signal_hook import SignalHook
     from libdebug.data.syscall_hook import SyscallHook
-    from libdebug.state.debugging_context import DebuggingContext
+    from libdebug.debugger.internal_debugger import InternalDebugger
 
 
 class PtraceInterface(DebuggingInterface):
     """The interface used by `_InternalDebugger` to communicate with the `ptrace` debugging backend."""
 
-    context: DebuggingContext
+    context: InternalDebugger
     """The debugging context."""
 
     hardware_bp_helpers: dict[int, PtraceHardwareBreakpointManager]
@@ -81,7 +81,7 @@ class PtraceInterface(DebuggingInterface):
         self.lib_trace = _ptrace_cffi.lib
         self.ffi = _ptrace_cffi.ffi
 
-        self.context = provide_context(self)
+        self.context = provide_internal_debugger(self)
 
         if not self.context.aslr_enabled:
             disable_self_aslr()
@@ -113,7 +113,7 @@ class PtraceInterface(DebuggingInterface):
         liblog.debugger("Running %s", argv)
 
         # Setup ptrace wait status handler after debugging_context has been properly initialized
-        with context_extend_from(self):
+        with extend_internal_debugger(self):
             self.status_handler = PtraceStatusHandler()
 
         # Creating pipes for stdin, stdout, stderr
@@ -177,7 +177,7 @@ class PtraceInterface(DebuggingInterface):
             pid (int): the pid of the process to attach to.
         """
         # Setup ptrace wait status handler after debugging_context has been properly initialized
-        with context_extend_from(self):
+        with extend_internal_debugger(self):
             self.status_handler = PtraceStatusHandler()
 
         res = self.lib_trace.ptrace_attach(pid)
@@ -465,10 +465,10 @@ class PtraceInterface(DebuggingInterface):
 
         register_holder = register_holder_provider(register_file)
 
-        with context_extend_from(self):
+        with extend_internal_debugger(self):
             thread = ThreadContext.new(new_thread_id, register_holder)
 
-        inherit_context(thread, self)
+        inherit_internal_debugger(thread, self)
 
         self.context.insert_new_thread(thread)
         thread_hw_bp_helper = ptrace_hardware_breakpoint_manager_provider(

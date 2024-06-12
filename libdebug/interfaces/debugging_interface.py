@@ -9,7 +9,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
-from libdebug.state.debugging_context_instance_manager import provide_context
+from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 
 if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
@@ -32,8 +32,8 @@ class DebuggingInterface(ABC):
 
     def __init__(self: DebuggingInterface) -> None:
         """Initializes the DebuggingInterface classs."""
-        self.breakpoints = provide_context(self).breakpoints
-        self.threads = provide_context(self).threads
+        self.breakpoints = provide_internal_debugger(self).breakpoints
+        self.threads = provide_internal_debugger(self).threads
 
     @abstractmethod
     def reset(self: DebuggingInterface) -> None:

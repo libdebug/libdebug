@@ -9,32 +9,27 @@ from typing import TYPE_CHECKING
 
 from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
 from libdebug.liblog import liblog
-from libdebug.state.debugging_context_instance_manager import debugging_context
+from libdebug.debugger.internal_debugger_instance_manager import get_global_internal_debugger
 from libdebug.utils.debugging_utils import resolve_address_in_maps
 from libdebug.utils.signal_utils import resolve_signal_name, resolve_signal_number
 
 if TYPE_CHECKING:
     from libdebug.data.memory_view import MemoryView
     from libdebug.data.register_holder import RegisterHolder
-    from libdebug.state.debugging_context import DebuggingContext
+    from libdebug.debugger.internal_debugger import InternalDebugger
 
 
 class ThreadContext:
     """This object represents a thread in the context of the target process. It holds information about the thread's state, registers and stack."""
 
-    _context: DebuggingContext | None = None
+    _context: InternalDebugger | None = None
     """The debugging context this thread belongs to."""
 
-    regs: object | None = None
-
-    dead: bool = False
+    _thread_dead: bool = False
     """Whether the thread is dead."""
 
     instruction_pointer: int
     """The thread's instruction pointer."""
-
-    registers: RegisterHolder | None = None
-    """The register holder object. It provides access to the thread's registers."""
 
     _exit_code: int | None = None
     """The thread's exit code."""
@@ -67,7 +62,7 @@ class ThreadContext:
         """
         if thread_id is None:
             # If no thread ID is specified, we assume the main thread which has tid = pid
-            thread_id = debugging_context().process_id
+            thread_id = get_global_internal_debugger().process_id
 
         if registers is None:
             raise RuntimeError(
@@ -76,16 +71,39 @@ class ThreadContext:
 
         thread = ThreadContext(thread_id)
 
-        thread._context = debugging_context()
+        thread._context = get_global_internal_debugger()
 
-        thread.registers = registers
         regs_class = registers.provide_regs_class()
         thread.regs = regs_class()
         thread.regs._context = thread._context
-        thread.registers.apply_on_regs(thread.regs, regs_class)
-        thread.registers.apply_on_thread(thread, ThreadContext)
+        registers.apply_on_regs(thread.regs, regs_class)
+        registers.apply_on_thread(thread, ThreadContext)
 
         return thread
+
+    def set_as_dead(self: ThreadContext) -> None:
+        """Set the thread as dead."""
+        self._thread_dead = True
+        
+    @property
+    def thread_dead(self: ThreadContext) -> bool:
+        """Whether the thread is dead."""
+        return self._thread_dead
+
+    @property
+    def tdead(self: ThreadContext) -> bool:
+        """Whether the thread is dead."""
+        return self._thread_dead
+
+    @property
+    def process_dead(self: ThreadContext) -> bool:
+        """Check if the process is dead."""
+        return self._context.dead
+
+    @property
+    def pdead(self: ThreadContext) -> bool:
+        """Check if the process is dead."""
+        return self._context.dead
 
     @property
     def memory(self: ThreadContext) -> MemoryView:
@@ -126,7 +144,7 @@ class ThreadContext:
     def exit_code(self: ThreadContext) -> int | None:
         """The thread's exit code."""
         self._context._ensure_process_stopped()
-        if not self.dead:
+        if not self.thread_dead:
             liblog.warning("Thread is not dead. No exit code available.")
         elif self._exit_code is None and self._exit_signal is not None:
             liblog.warning(
@@ -139,7 +157,7 @@ class ThreadContext:
     def exit_signal(self: ThreadContext) -> int | None:
         """The thread's exit signal."""
         self._context._ensure_process_stopped()
-        if not self.dead:
+        if not self.thread_dead:
             liblog.warning("Thread is not dead. No exit signal available.")
             return None
         elif self._exit_signal is None and self._exit_code is not None:

@@ -10,10 +10,10 @@ from collections.abc import Callable, MutableSequence
 from typing import TYPE_CHECKING
 
 from libdebug.liblog import liblog
-from libdebug.state.debugging_context_instance_manager import debugging_context
+from libdebug.debugger.internal_debugger_instance_manager import get_global_internal_debugger
 
 if TYPE_CHECKING:
-    from libdebug.state.debugging_context import DebuggingContext
+    from libdebug.debugger.internal_debugger import InternalDebugger
 
 
 class MemoryView(MutableSequence):
@@ -29,7 +29,7 @@ class MemoryView(MutableSequence):
             align_to (int, optional): The address alignment that must be used when reading and writing memory. Defaults to 1.
     """
 
-    context: DebuggingContext
+    context: InternalDebugger
     """The debugging context of the target process."""
 
     def __init__(
@@ -45,7 +45,7 @@ class MemoryView(MutableSequence):
         self.unit_size = unit_size
         self.align_to = align_to
 
-        self.context = debugging_context()
+        self.context = get_global_internal_debugger()
         self.maps_provider = self.context.debugging_interface.maps
 
     def read(self: MemoryView, address: int, size: int) -> bytes:

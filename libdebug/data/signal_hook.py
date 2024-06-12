@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from libdebug.state.debugging_context_instance_manager import provide_context
+from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -38,7 +38,7 @@ class SignalHook:
     def enable(self: SignalHook) -> None:
         """Enable the signal hook."""
 
-        if provide_context(self).running:
+        if provide_internal_debugger(self).running:
             raise RuntimeError(
                 "Cannot enable a signal hook while the target process is running.",
             )
@@ -48,7 +48,7 @@ class SignalHook:
     def disable(self: SignalHook) -> None:
         """Disable the signal hook."""
 
-        if provide_context(self).running:
+        if provide_internal_debugger(self).running:
             raise RuntimeError(
                 "Cannot disable a signal hook while the target process is running.",
             )
