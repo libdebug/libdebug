@@ -182,9 +182,6 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
         if hasattr(target_class, "instruction_pointer"):
             return
 
-        # setup special registers
-        target_class.rip = _get_property_64("rip")
-
         # setup generic "instruction_pointer" property
         target_class.instruction_pointer = _get_property_64("rip")
 
