@@ -35,7 +35,11 @@ from libdebug.state.debugging_context_instance_manager import (
     context_extend_from,
 )
 from libdebug.state.resume_context import ResumeContext
-from libdebug.utils.debugger_wrappers import background_alias, control_flow_function
+from libdebug.utils.debugger_wrappers import (
+    background_alias,
+    change_state_function_process,
+    change_state_function_thread,
+)
 from libdebug.utils.debugging_utils import (
     normalize_and_validate_address,
     resolve_symbol_in_maps,
@@ -120,18 +124,6 @@ class DebuggingContext:
     memory: MemoryView
     """The memory view of the debugged process."""
 
-    _polling_thread: Thread | None
-    """The background thread used to poll the process for state change."""
-
-    _polling_thread_command_queue: Queue | None
-    """The queue used to send commands to the background thread."""
-
-    _polling_thread_response_queue: Queue | None
-    """The queue used to receive responses from the background thread."""
-
-    _is_running: bool
-    """The overall state of the debugged process. True if the process is running, False otherwise."""
-
     debugging_interface: DebuggingInterface
     """The debugging interface used to communicate with the debugged process."""
 
@@ -143,6 +135,18 @@ class DebuggingContext:
 
     resume_context: ResumeContext
     """Context that indicates if the debugger should resume the debugged process."""
+
+    _polling_thread: Thread | None
+    """The background thread used to poll the process for state change."""
+
+    _polling_thread_command_queue: Queue | None
+    """The queue used to send commands to the background thread."""
+
+    _polling_thread_response_queue: Queue | None
+    """The queue used to receive responses from the background thread."""
+
+    _is_running: bool
+    """The overall state of the debugged process. True if the process is running, False otherwise."""
 
     def __init__(self: DebuggingContext, owner: object) -> None:
         """Initialize the context.
@@ -183,7 +187,9 @@ class DebuggingContext:
         self.syscalls_to_not_pprint = None
         self.signal_to_block.clear()
         self.pprint_syscalls = False
-        self.pipe_manager = None
+        if self.pipe_manager:
+            self.pipe_manager.close()
+            self.pipe_manager = None
         self.process_id = 0
         self.threads.clear()
         self.instanced = False
@@ -231,6 +237,9 @@ class DebuggingContext:
         if self.instanced:
             liblog.debugger("Process already running, stopping it before restarting.")
             self.kill()
+        if self.threads:
+            self.clear()
+            self.debugging_interface.reset()
 
         self.instanced = True
 
@@ -254,7 +263,10 @@ class DebuggingContext:
         """Attaches to an existing process."""
         if self.instanced:
             liblog.debugger("Process already running, stopping it before restarting.")
-
+            self.kill()
+        if self.threads:
+            self.clear()
+            self.debugging_interface.reset()
         self.instanced = True
 
         if not self.__polling_thread_command_queue.empty():
@@ -286,16 +298,9 @@ class DebuggingContext:
 
         self.__polling_thread_command_queue.put((self.__threaded_kill, ()))
 
-        self.instanced = None
-
-        if self.pipe_manager is not None:
-            self.pipe_manager.close()
-            self.pipe_manager = None
+        self.instanced = False
 
         self._join_and_check_status()
-
-        self.clear()
-        self.debugging_interface.reset()
 
     def terminate(self: DebuggingContext) -> None:
         """Terminates the background thread.
@@ -310,7 +315,7 @@ class DebuggingContext:
             self.__polling_thread = None
 
     @background_alias(_background_invalid_call)
-    @control_flow_function
+    @change_state_function_process
     def cont(self: DebuggingContext) -> None:
         """Continues the process.
 
@@ -329,6 +334,10 @@ class DebuggingContext:
         if not self.instanced:
             raise RuntimeError("Process not running, cannot interrupt.")
 
+        # We have to ensure that at least one thread is alive before executing the method
+        if self.dead:
+            raise RuntimeError("All threads are dead.")
+
         if not self.running:
             return
 
@@ -345,10 +354,7 @@ class DebuggingContext:
 
         self._join_and_check_status()
 
-        if self.dead:
-            raise RuntimeError("Process is dead.")
-
-        if not self.running:
+        if self.dead or not self.running:
             # Most of the time the function returns here, as there was a wait already
             # queued by the previous command
             return
@@ -358,6 +364,7 @@ class DebuggingContext:
         self._join_and_check_status()
 
     @background_alias(_background_invalid_call)
+    @change_state_function_process
     def breakpoint(
         self: DebuggingContext,
         position: int | str,
@@ -375,7 +382,6 @@ class DebuggingContext:
             length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
             callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the breakpoint is hit. Defaults to None.
         """
-        self._ensure_process_stopped()
 
         if isinstance(position, str):
             address = self.resolve_symbol(position)
@@ -417,6 +423,7 @@ class DebuggingContext:
         return bp
 
     @background_alias(_background_invalid_call)
+    @change_state_function_process
     def hook_signal(
         self: DebuggingContext,
         signal_to_hook: int | str,
@@ -430,7 +437,6 @@ class DebuggingContext:
             callback (Callable[[ThreadContext, int], None], optional): A callback to be called when the signal is received. Defaults to None.
             hook_hijack (bool, optional): Whether to execute the hook/hijack of the new signal after an hijack or not. Defaults to False.
         """
-        self._ensure_process_stopped()
 
         if callback is None:
             raise ValueError("A callback must be specified.")
@@ -476,13 +482,13 @@ class DebuggingContext:
         return hook
 
     @background_alias(_background_invalid_call)
+    @change_state_function_process
     def unhook_signal(self: DebuggingContext, hook: SignalHook) -> None:
         """Unhooks a signal in the target process.
 
         Args:
             hook (SignalHook): The signal hook to unhook.
         """
-        self._ensure_process_stopped()
 
         if hook.signal_number not in self.signal_hooks:
             raise ValueError(f"Signal {hook.signal_number} is not hooked.")
@@ -496,6 +502,7 @@ class DebuggingContext:
         self._join_and_check_status()
 
     @background_alias(_background_invalid_call)
+    @change_state_function_process
     def hijack_signal(
         self: DebuggingContext,
         original_signal: int | str,
@@ -509,7 +516,6 @@ class DebuggingContext:
             new_signal (int | str): The signal to replace the original signal with.
             hook_hijack (bool, optional): Whether to execute the hook/hijack of the new signal after the hijack or not. Defaults to True.
         """
-        self._ensure_process_stopped()
 
         if isinstance(original_signal, str):
             original_signal_number = resolve_signal_number(original_signal)
@@ -534,6 +540,7 @@ class DebuggingContext:
         return self.hook_signal(original_signal_number, callback, hook_hijack)
 
     @background_alias(_background_invalid_call)
+    @change_state_function_process
     def hook_syscall(
         self: DebuggingContext,
         syscall: int | str,
@@ -552,7 +559,6 @@ class DebuggingContext:
         Returns:
             SyscallHook: The syscall hook object.
         """
-        self._ensure_process_stopped()
 
         if on_enter is None and on_exit is None:
             raise ValueError(
@@ -598,13 +604,13 @@ class DebuggingContext:
         return hook
 
     @background_alias(_background_invalid_call)
+    @change_state_function_process
     def unhook_syscall(self: DebuggingContext, hook: SyscallHook) -> None:
         """Unhooks a syscall in the target process.
 
         Args:
             hook (SyscallHook): The syscall hook to unhook.
         """
-        self._ensure_process_stopped()
 
         if hook.syscall_number not in self.syscall_hooks:
             raise ValueError(f"Syscall {hook.syscall_number} is not hooked.")
@@ -622,6 +628,7 @@ class DebuggingContext:
             self._join_and_check_status()
 
     @background_alias(_background_invalid_call)
+    @change_state_function_process
     def hijack_syscall(
         self: DebuggingContext,
         original_syscall: int | str,
@@ -640,7 +647,6 @@ class DebuggingContext:
         Returns:
             SyscallHook: The syscall hook object.
         """
-        self._ensure_process_stopped()
 
         if set(kwargs) - syscall_hijacking_provider().allowed_args:
             raise ValueError("Invalid keyword arguments in syscall hijack")
@@ -698,11 +704,11 @@ class DebuggingContext:
         return hook
 
     @background_alias(_background_invalid_call)
+    @change_state_function_process
     def migrate_to_gdb(
         self: DebuggingContext, open_in_new_process: bool = True
     ) -> None:
         """Migrates the current debugging session to GDB."""
-        self._ensure_process_stopped()
 
         # TODO: not needed?
         self.interrupt()
@@ -811,7 +817,7 @@ class DebuggingContext:
         self.__threaded_wait()
 
     @background_alias(_background_step)
-    @control_flow_function
+    @change_state_function_thread
     def step(self: DebuggingContext, thread: ThreadContext) -> None:
         """Executes a single instruction of the process.
 
@@ -825,15 +831,15 @@ class DebuggingContext:
 
     def _background_step_until(
         self: DebuggingContext,
-        position: int | str,
         thread: ThreadContext,
+        position: int | str,
         max_steps: int = -1,
     ) -> None:
         """Executes instructions of the process until the specified location is reached.
 
         Args:
-            position (int | bytes): The location to reach.
             thread (ThreadContext): The thread to step. Defaults to None.
+            position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
         """
         if isinstance(position, str):
@@ -844,21 +850,20 @@ class DebuggingContext:
         self.__threaded_step_until(thread, address, max_steps)
 
     @background_alias(_background_step_until)
-    @control_flow_function
+    @change_state_function_thread
     def step_until(
         self: DebuggingContext,
+        thread: ThreadContext,
         position: int | str,
-        thread: ThreadContext | None = None,
         max_steps: int = -1,
     ) -> None:
         """Executes instructions of the process until the specified location is reached.
 
         Args:
+            thread (ThreadContext): The thread to step. Defaults to None.
             position (int | bytes): The location to reach.
-            thread (ThreadContext, optional): The thread to step. Defaults to None.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
         """
-        self._ensure_process_stopped()
         if isinstance(position, str):
             address = self.resolve_symbol(position)
         else:
@@ -876,7 +881,7 @@ class DebuggingContext:
 
     def _background_finish(
         self: DebuggingContext,
-        thread: ThreadContext | None = None,
+        thread: ThreadContext,
         exact: bool = True,
     ) -> None:
         """Continues the process until the current function returns or the process stops.
@@ -885,16 +890,13 @@ class DebuggingContext:
         based on the call stack to breakpoint (exact is slower).
 
         Args:
-            thread (ThreadContext, optional): The thread to affect. Defaults to None.
+            thread (ThreadContext): The thread to affect. Defaults to None.
             exact (bool, optional): Whether or not to execute in step mode. Defaults to True.
         """
-        if thread is None:
-            # If no thread is specified, we use the first thread
-            thread = self.threads[0]
-
         self.__threaded_finish(thread, exact)
 
     @background_alias(_background_finish)
+    @change_state_function_thread
     def finish(
         self: DebuggingContext, thread: ThreadContext, exact: bool = True
     ) -> None:
@@ -907,8 +909,6 @@ class DebuggingContext:
             thread (ThreadContext): The thread to affect. Defaults to None.
             exact (bool, optional): Whether or not to execute in step mode. Defaults to True.
         """
-        self._ensure_process_stopped()
-
         self.__polling_thread_command_queue.put(
             (self.__threaded_finish, (thread, exact)),
         )
@@ -969,7 +969,7 @@ class DebuggingContext:
                     self.__polling_thread_command_queue.put(
                         (self.__threaded_syscall_unhook, (hook,)),
                     )
-        
+
         self._join_and_check_status()
 
     def insert_new_thread(self: DebuggingContext, thread: ThreadContext) -> None:
@@ -1065,10 +1065,6 @@ class DebuggingContext:
     def _is_in_background(self: DebuggingContext) -> None:
         return current_thread() == self.__polling_thread
 
-    def _threads_are_alive(self: DebuggingContext) -> bool:
-        """Checks if at least one thread is alive."""
-        return any(not thread.dead for thread in self.threads)
-
     def __polling_thread_function(self: DebuggingContext) -> None:
         """This function is run in a thread. It is used to poll the process for state change."""
         while True:
@@ -1160,7 +1156,7 @@ class DebuggingContext:
             liblog.debugger("Waiting for process %d to stop.", self.process_id)
 
         while True:
-            if not self._threads_are_alive():
+            if self.dead:
                 # All threads are dead
                 liblog.debugger("All threads dead")
                 break
@@ -1329,9 +1325,9 @@ class DebuggingContext:
 
     @property
     def dead(self: DebuggingContext) -> bool:
-        """Get the state of the process.
+        """Checks if at least one thread is alive.
 
         Returns:
-            bool: True if the process is dead, False otherwise.
+            bool: True if at least one thread is alive, False otherwise.
         """
-        return not self.threads
+        return not any(not thread.dead for thread in self.threads)

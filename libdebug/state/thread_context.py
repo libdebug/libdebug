@@ -193,7 +193,7 @@ class ThreadContext:
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
         """
-        self._context.step_until(position, self, max_steps)
+        self._context.step_until(self, position, max_steps)
 
     def finish(self: ThreadContext, exact: bool = True) -> None:
         """Continues the process until the current function returns or the process stops.
