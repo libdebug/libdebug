@@ -314,12 +314,12 @@ class FinishTest(unittest.TestCase):
         d.finish(exact=False)
 
         self.assertEqual(d.regs.rip, RETURN_POINT_FROM_C)
-        self.assertFalse(d._context.running)
+        self.assertFalse(d._internal_debugger.running)
 
         d.step()
 
         # Check that the execution is still running and nothing has broken
-        self.assertFalse(d._context.running)
-        self.assertFalse(d._context.dead)
+        self.assertFalse(d._internal_debugger.running)
+        self.assertFalse(d.pdead)
 
         d.kill()

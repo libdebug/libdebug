@@ -273,9 +273,9 @@ class CallbackTest(unittest.TestCase):
         d.run()
 
         def callback(t, bp):
-            self.assertEqual(t.rip, bp.address)
+            self.assertEqual(t.regs.rip, bp.address)
             d.step()
-            self.assertEqual(t.rip, bp.address + 1)
+            self.assertEqual(t.regs.rip, bp.address + 1)
 
         d.breakpoint("register_test", callback=callback)
 
