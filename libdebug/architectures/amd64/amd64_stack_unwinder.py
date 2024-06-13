@@ -13,7 +13,6 @@ from libdebug.architectures.stack_unwinding_manager import StackUnwindingManager
 if TYPE_CHECKING:
     from libdebug.state.thread_context import ThreadContext
 
-
 class Amd64StackUnwinder(StackUnwindingManager):
     """Class that provides stack unwinding for the x86_64 architecture."""
 
@@ -32,7 +31,7 @@ class Amd64StackUnwinder(StackUnwindingManager):
         current_rbp = target.regs.rbp
         stack_trace = [target.regs.rip]
 
-        vmaps = target._context.debugging_interface.maps()
+        vmaps = target._internal_debugger.debugging_interface.maps()
 
         while current_rbp:
             try:

@@ -21,7 +21,6 @@ from libdebug.architectures.syscall_hijacking_provider import syscall_hijacking_
 from libdebug.builtin.antidebug_syscall_hook import on_enter_ptrace, on_exit_ptrace
 from libdebug.builtin.pretty_print_syscall_hook import pprint_on_enter, pprint_on_exit
 from libdebug.data.breakpoint import Breakpoint
-from libdebug.debugger.internal_debugger_holder import internal_debugger_holder
 from libdebug.data.memory_view import MemoryView
 from libdebug.data.signal_hook import SignalHook
 from libdebug.data.syscall_hook import SyscallHook
@@ -180,7 +179,6 @@ class InternalDebugger:
         self.signal_to_block.clear()
         self.pprint_syscalls = False
         if self.pipe_manager:
-            self.pipe_manager.close()
             self.pipe_manager = None
         self.process_id = 0
         self.threads.clear()
@@ -259,6 +257,7 @@ class InternalDebugger:
         if self.threads:
             self.clear()
             self.debugging_interface.reset()
+            
         self.instanced = True
 
         if not self.__polling_thread_command_queue.empty():
@@ -291,6 +290,9 @@ class InternalDebugger:
         self.__polling_thread_command_queue.put((self.__threaded_kill, ()))
 
         self.instanced = False
+        
+        if self.pipe_manager:
+            self.pipe_manager.close()
 
         self._join_and_check_status()
 
@@ -1199,7 +1201,7 @@ class InternalDebugger:
         prefix = "Exact" if exact else "Heuristic"
 
         liblog.debugger(f"{prefix} finish on thread %s", thread.thread_id)
-        self.debugging_interface.finish(thread, exact=exact)
+        self.debugging_interface.finish(thread, exact)
 
         self.set_stopped()
 

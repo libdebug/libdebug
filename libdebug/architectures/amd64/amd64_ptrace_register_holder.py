@@ -9,6 +9,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from libdebug.debugger.internal_debugger_instance_manager import (
+    get_global_internal_debugger,
+)
 from libdebug.ptrace.ptrace_register_holder import PtraceRegisterHolder
 
 if TYPE_CHECKING:
@@ -52,36 +55,36 @@ AMD64_REGS = [
 
 
 def _get_property_64(name: str) -> property:
-    def getter(self: ThreadContext) -> int:
-        self._context._ensure_process_stopped()
+    def getter(self: Amd64Regs) -> int:
+        self._internal_debugger._ensure_process_stopped()
         return getattr(self.register_file, name)
 
-    def setter(self: ThreadContext, value: int) -> None:
-        self._context._ensure_process_stopped()
+    def setter(self: Amd64Regs, value: int) -> None:
+        self._internal_debugger._ensure_process_stopped()
         setattr(self.register_file, name, value)
 
     return property(getter, setter, None, name)
 
 
 def _get_property_32(name: str) -> property:
-    def getter(self: ThreadContext) -> int:
-        self._context._ensure_process_stopped()
+    def getter(self: Amd64Regs) -> int:
+        self._internal_debugger._ensure_process_stopped()
         return getattr(self.register_file, name) & 0xFFFFFFFF
 
-    def setter(self: ThreadContext, value: int) -> None:
-        self._context._ensure_process_stopped()
+    def setter(self: Amd64Regs, value: int) -> None:
+        self._internal_debugger._ensure_process_stopped()
         return setattr(self.register_file, name, value & 0xFFFFFFFF)
 
     return property(getter, setter, None, name)
 
 
 def _get_property_16(name: str) -> property:
-    def getter(self: ThreadContext) -> int:
-        self._context._ensure_process_stopped()
+    def getter(self: Amd64Regs) -> int:
+        self._internal_debugger._ensure_process_stopped()
         return getattr(self.register_file, name) & 0xFFFF
 
-    def setter(self: ThreadContext, value: int) -> None:
-        self._context._ensure_process_stopped()
+    def setter(self: Amd64Regs, value: int) -> None:
+        self._internal_debugger._ensure_process_stopped()
         value = getattr(self.register_file, name) & ~0xFFFF | (value & 0xFFFF)
         setattr(self.register_file, name, value)
 
@@ -89,12 +92,12 @@ def _get_property_16(name: str) -> property:
 
 
 def _get_property_8l(name: str) -> property:
-    def getter(self: ThreadContext) -> int:
-        self._context._ensure_process_stopped()
+    def getter(self: Amd64Regs) -> int:
+        self._internal_debugger._ensure_process_stopped()
         return getattr(self.register_file, name) & 0xFF
 
-    def setter(self: ThreadContext, value: int) -> None:
-        self._context._ensure_process_stopped()
+    def setter(self: Amd64Regs, value: int) -> None:
+        self._internal_debugger._ensure_process_stopped()
         value = getattr(self.register_file, name) & ~0xFF | (value & 0xFF)
         setattr(self.register_file, name, value)
 
@@ -102,12 +105,12 @@ def _get_property_8l(name: str) -> property:
 
 
 def _get_property_8h(name: str) -> property:
-    def getter(self: ThreadContext) -> int:
-        self._context._ensure_process_stopped()
+    def getter(self: Amd64Regs) -> int:
+        self._internal_debugger._ensure_process_stopped()
         return getattr(self.register_file, name) >> 8 & 0xFF
 
-    def setter(self: ThreadContext, value: int) -> None:
-        self._context._ensure_process_stopped()
+    def setter(self: Amd64Regs, value: int) -> None:
+        self._internal_debugger._ensure_process_stopped()
         value = getattr(self.register_file, name) & ~0xFF00 | (value & 0xFF) << 8
         setattr(self.register_file, name, value)
 
@@ -115,7 +118,8 @@ def _get_property_8h(name: str) -> property:
 
 @dataclass
 class Amd64Regs():
-    pass
+    def __init__(self: Amd64Regs):
+        self._internal_debugger = get_global_internal_debugger()
 
 @dataclass
 class Amd64PtraceRegisterHolder(PtraceRegisterHolder):

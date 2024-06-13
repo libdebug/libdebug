@@ -5,11 +5,8 @@
 
 from __future__ import annotations
 
-import os
-
 from libdebug.debugger.debugger import Debugger
 from libdebug.debugger.internal_debugger import InternalDebugger
-from libdebug.debugger.internal_debugger_instance_manager import link_internal_debugger
 
 
 def debugger(
@@ -36,11 +33,7 @@ def debugger(
     if isinstance(argv, str):
         argv = [argv]
 
-    debugger = Debugger()
-
     internal_debugger = InternalDebugger()
-    link_internal_debugger(debugger, internal_debugger)
-    
     internal_debugger.argv = argv
     internal_debugger.env = env
     internal_debugger.aslr_enabled = enable_aslr
@@ -48,6 +41,7 @@ def debugger(
     internal_debugger.auto_interrupt_on_command = auto_interrupt_on_command
     internal_debugger.escape_antidebug = escape_antidebug
     
-    debugger.post_init_()
+    debugger = Debugger() 
+    debugger.post_init_(internal_debugger)
 
     return debugger

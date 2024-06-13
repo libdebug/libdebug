@@ -10,7 +10,7 @@ from collections.abc import Callable, MutableSequence
 from typing import TYPE_CHECKING
 
 from libdebug.liblog import liblog
-from libdebug.debugger.internal_debugger_instance_manager import get_global_internal_debugger
+from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 
 if TYPE_CHECKING:
     from libdebug.debugger.internal_debugger import InternalDebugger
@@ -44,9 +44,8 @@ class MemoryView(MutableSequence):
         self.setter = setter
         self.unit_size = unit_size
         self.align_to = align_to
-
-        self.context = get_global_internal_debugger()
-        self.maps_provider = self.context.debugging_interface.maps
+        self._internal_debugger = provide_internal_debugger(self)
+        self.maps_provider = self._internal_debugger.debugging_interface.maps
 
     def read(self: MemoryView, address: int, size: int) -> bytes:
         """Reads memory from the target process.
@@ -126,26 +125,26 @@ class MemoryView(MutableSequence):
     def __getitem__(self: MemoryView, key: int | slice | str | tuple) -> bytes:
         """Read from memory, either a single byte or a byte string."""
         if isinstance(key, int):
-            address = self.context.resolve_address(key)
+            address = self._internal_debugger.resolve_address(key)
 
             return self.read(address, 1)
         elif isinstance(key, slice):
             if isinstance(key.start, str):
-                start = self.context.resolve_symbol(key.start)
+                start = self._internal_debugger.resolve_symbol(key.start)
             else:
-                start = self.context.resolve_address(key.start)
+                start = self._internal_debugger.resolve_address(key.start)
 
             if isinstance(key.stop, str):
-                stop = self.context.resolve_symbol(key.stop)
+                stop = self._internal_debugger.resolve_symbol(key.stop)
             else:
-                stop = self.context.resolve_address(key.stop)
+                stop = self._internal_debugger.resolve_address(key.stop)
 
             if stop < start:
                 raise ValueError("Invalid slice range")
 
             return self.read(start, stop - start)
         elif isinstance(key, str):
-            address = self.context.resolve_symbol(key)
+            address = self._internal_debugger.resolve_symbol(key)
 
             return self.read(address, 1)
         elif isinstance(key, tuple):
@@ -155,9 +154,9 @@ class MemoryView(MutableSequence):
                 raise TypeError("Invalid size type")
 
             if isinstance(address, str):
-                address = self.context.resolve_symbol(address)
+                address = self._internal_debugger.resolve_symbol(address)
             else:
-                address = self.context.resolve_address(address)
+                address = self._internal_debugger.resolve_address(address)
 
             return self.read(address, size)
         else:
@@ -168,20 +167,20 @@ class MemoryView(MutableSequence):
     ) -> None:
         """Write to memory, either a single byte or a byte string."""
         if isinstance(key, int):
-            address = self.context.resolve_address(key)
+            address = self._internal_debugger.resolve_address(key)
 
             self.write(address, value)
         elif isinstance(key, slice):
             if isinstance(key.start, str):
-                start = self.context.resolve_symbol(key.start)
+                start = self._internal_debugger.resolve_symbol(key.start)
             else:
-                start = self.context.resolve_address(key.start)
+                start = self._internal_debugger.resolve_address(key.start)
 
             if key.stop is not None:
                 if isinstance(key.stop, str):
-                    stop = self.context.resolve_symbol(key.stop)
+                    stop = self._internal_debugger.resolve_symbol(key.stop)
                 else:
-                    stop = self.context.resolve_address(key.stop)
+                    stop = self._internal_debugger.resolve_address(key.stop)
 
                 if stop < start:
                     raise ValueError("Invalid slice range")
@@ -193,7 +192,7 @@ class MemoryView(MutableSequence):
 
             self.write(start, value)
         elif isinstance(key, str):
-            address = self.context.resolve_symbol(key)
+            address = self._internal_debugger.resolve_symbol(key)
 
             self.write(address, value)
         elif isinstance(key, tuple):
@@ -203,9 +202,9 @@ class MemoryView(MutableSequence):
                 raise TypeError("Invalid size type")
 
             if isinstance(address, str):
-                address = self.context.resolve_symbol(address)
+                address = self._internal_debugger.resolve_symbol(address)
             else:
-                address = self.context.resolve_address(address)
+                address = self._internal_debugger.resolve_address(address)
 
             if len(value) != size:
                 liblog.warning(

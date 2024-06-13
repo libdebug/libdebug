@@ -7,11 +7,12 @@
 from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_constants import Commands
 from libdebug.state.thread_context import ThreadContext
+from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 
 
 def on_enter_ptrace(t: ThreadContext, syscall_number: int) -> None:
     """Callback for ptrace syscall onenter."""
-    this_hook = t._context.syscall_hooks[syscall_number]
+    this_hook = provide_internal_debugger(t).syscall_hooks[syscall_number]
 
     this_hook._command = t.syscall_arg0
 
@@ -21,7 +22,7 @@ def on_enter_ptrace(t: ThreadContext, syscall_number: int) -> None:
 
 def on_exit_ptrace(t: ThreadContext, syscall_number: int) -> None:
     """Callback for ptrace syscall onexit."""
-    this_hook = t._context.syscall_hooks[syscall_number]
+    this_hook = provide_internal_debugger(t).syscall_hooks[syscall_number]
 
     if this_hook._command is None:
         liblog.error(

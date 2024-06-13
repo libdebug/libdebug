@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+
 from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
@@ -19,7 +20,6 @@ def get_global_internal_debugger() -> InternalDebugger:
     if internal_debugger_holder.global_internal_debugger is None:
         raise RuntimeError("No internal debugger available")
     return internal_debugger_holder.global_internal_debugger
-
 
 def provide_internal_debugger(reference: object) -> InternalDebugger:
     """Provide a internal debugger.
@@ -41,21 +41,6 @@ def provide_internal_debugger(reference: object) -> InternalDebugger:
     )
     return internal_debugger_holder.global_internal_debugger
 
-
-def inherit_internal_debugger(reference: object, referrer: object) -> None:
-    """Inherit a internal debugger.
-
-    Args:
-        reference (object): the object that needs the internal debugger.
-        referrer (object): the referrer object from which to inherit the internal debugger.
-    """
-    if referrer not in internal_debugger_holder.internal_debuggers:
-        raise RuntimeError("Referrer isn't linked to any internal debugger.")
-    internal_debugger_holder.internal_debuggers[reference] = (
-        internal_debugger_holder.internal_debuggers[referrer]
-    )
-
-
 def link_internal_debugger(reference: object, internal_debugger: InternalDebugger) -> None:
     """Link a reference to a InternalDebugger.
 
@@ -64,7 +49,6 @@ def link_internal_debugger(reference: object, internal_debugger: InternalDebugge
         internal_debugger (InternalDebugger): the internal debugger.
     """
     internal_debugger_holder.internal_debuggers[reference] = internal_debugger
-
 
 @contextmanager
 def extend_internal_debugger(referrer: object) -> ...:

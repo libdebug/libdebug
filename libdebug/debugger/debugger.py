@@ -9,7 +9,6 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
 from libdebug.debugger.internal_debugger import InternalDebugger
-from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 from libdebug.utils.signal_utils import (
     get_all_signal_numbers,
     resolve_signal_name,
@@ -33,35 +32,35 @@ if TYPE_CHECKING:
 class Debugger:
     """The Debugger class is the main class of `libdebug`. It contains all the methods needed to run and interact with the process."""
 
-    _context: InternalDebugger | None = None
-    """The debugging context of the process."""
-
     _sentinel: object = object()
     """A sentinel object."""
+    
+    _internal_debugger: InternalDebugger | None = None
+    """The internal debugger object."""
 
     def __init__(self: Debugger) -> None:
         pass
 
-    def post_init_(self: Debugger) -> None:
+    def post_init_(self: Debugger, internal_debugger: InternalDebugger) -> None:
         """Do not use this constructor directly. Use the `debugger` function instead."""
-        self._context = provide_internal_debugger(self)
-        self._context.start_up()
+        self._internal_debugger = internal_debugger
+        self._internal_debugger.start_up()
 
     def run(self: Debugger) -> None:
         """Starts the process and waits for it to stop."""
-        return self._context.run()
+        return self._internal_debugger.run()
 
     def attach(self: Debugger, pid: int) -> None:
         """Attaches to an existing process."""
-        self._context.attach(pid)
+        self._internal_debugger.attach(pid)
 
     def detach(self: Debugger) -> None:
         """Detaches from the process."""
-        self._context.detach()
+        self._internal_debugger.detach()
 
     def kill(self: Debugger) -> None:
         """Kills the process."""
-        self._context.kill()
+        self._internal_debugger.kill()
 
     def terminate(self: Debugger) -> None:
         """Terminates the background thread.
@@ -69,19 +68,19 @@ class Debugger:
         The debugger object cannot be used after this method is called.
         This method should only be called to free up resources when the debugger object is no longer needed.
         """
-        self._context.terminate()
+        self._internal_debugger.terminate()
 
     def cont(self: Debugger) -> None:
         """Continues the process."""
-        self._context.cont()
+        self._internal_debugger.cont()
 
     def interrupt(self: Debugger) -> None:
         """Interrupts the process."""
-        self._context.interrupt()
+        self._internal_debugger.interrupt()
 
     def wait(self: Debugger) -> None:
         """Waits for the process to stop."""
-        self._context.wait()
+        self._internal_debugger.wait()
 
     def breakpoint(
         self: Debugger,
@@ -100,7 +99,7 @@ class Debugger:
             length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
             callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the breakpoint is hit. Defaults to None.
         """
-        return self._context.breakpoint(position, hardware, condition, length, callback)
+        return self._internal_debugger.breakpoint(position, hardware, condition, length, callback)
 
     def watchpoint(
         self: Debugger,
@@ -117,7 +116,7 @@ class Debugger:
             length (int, optional): The size of the word in being watched (1, 2, 4 or 8). Defaults to 1.
             callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the watchpoint is hit. Defaults to None.
         """
-        return self._context.breakpoint(
+        return self._internal_debugger.breakpoint(
             position,
             hardware=True,
             condition=condition,
@@ -138,7 +137,7 @@ class Debugger:
             callback (Callable[[ThreadContext, int], None], optional): A callback to be called when the signal is received. Defaults to None.
             hook_hijack (bool, optional): Whether to execute the hook/hijack of the new signal after an hijack or not. Defaults to False.
         """
-        return self._context.hook_signal(signal_to_hook, callback, hook_hijack)
+        return self._internal_debugger.hook_signal(signal_to_hook, callback, hook_hijack)
 
     def unhook_signal(self: Debugger, hook: SignalHook) -> None:
         """Unhooks a signal in the target process.
@@ -146,7 +145,7 @@ class Debugger:
         Args:
             hook (SignalHook): The signal hook to unhook.
         """
-        self._context.unhook_signal(hook)
+        self._internal_debugger.unhook_signal(hook)
 
     def hijack_signal(
         self: Debugger,
@@ -161,7 +160,7 @@ class Debugger:
             new_signal (int | str): The signal to replace the original signal with.
             hook_hijack (bool, optional): Whether to execute the hook/hijack of the new signal after the hijack or not. Defaults to True.
         """
-        return self._context.hijack_signal(original_signal, new_signal, hook_hijack)
+        return self._internal_debugger.hijack_signal(original_signal, new_signal, hook_hijack)
 
     def hook_syscall(
         self: Debugger,
@@ -181,7 +180,7 @@ class Debugger:
         Returns:
             SyscallHook: The syscall hook object.
         """
-        return self._context.hook_syscall(syscall, on_enter, on_exit, hook_hijack)
+        return self._internal_debugger.hook_syscall(syscall, on_enter, on_exit, hook_hijack)
 
     def unhook_syscall(self: Debugger, hook: SyscallHook) -> None:
         """Unhooks a syscall in the target process.
@@ -189,7 +188,7 @@ class Debugger:
         Args:
             hook (SyscallHook): The syscall hook to unhook.
         """
-        self._context.unhook_syscall(hook)
+        self._internal_debugger.unhook_syscall(hook)
 
     def hijack_syscall(
         self: Debugger,
@@ -209,7 +208,7 @@ class Debugger:
         Returns:
             SyscallHook: The syscall hook object.
         """
-        return self._context.hijack_syscall(
+        return self._internal_debugger.hijack_syscall(
             original_syscall, new_syscall, hook_hijack, **kwargs
         )
 
@@ -217,22 +216,22 @@ class Debugger:
         self: Debugger, open_in_new_process: bool = True
     ) -> None:
         """Migrates the current debugging session to GDB."""
-        self._context.migrate_to_gdb(open_in_new_process)
+        self._internal_debugger.migrate_to_gdb(open_in_new_process)
 
     @property
     def threads(self: Debugger) -> list[ThreadContext]:
         """Get the list of threads in the process."""
-        return self._context.threads
+        return self._internal_debugger.threads
 
     @property
     def memory(self: Debugger) -> MemoryView:
         """Get the memory view of the process."""
-        return self._context.memory
+        return self._internal_debugger.memory
 
     @property
     def breakpoints(self: Debugger) -> dict[int, Breakpoint]:
         """Get the breakpoints set on the process."""
-        return self._context.breakpoints
+        return self._internal_debugger.breakpoints
 
     @property
     def syscall_hooks(self: InternalDebugger) -> dict[int, SyscallHook]:
@@ -241,7 +240,7 @@ class Debugger:
         Returns:
             dict[int, SyscallHook]: the syscall hooks dictionary.
         """
-        return self._context.syscall_hooks
+        return self._internal_debugger.syscall_hooks
 
     @property
     def signal_hooks(self: InternalDebugger) -> dict[int, SignalHook]:
@@ -250,7 +249,7 @@ class Debugger:
         Returns:
             dict[int, SignalHook]: the signal hooks dictionary.
         """
-        return self._context.signal_hooks
+        return self._internal_debugger.signal_hooks
 
     @property
     def pprint_syscalls(self: Debugger) -> bool:
@@ -259,7 +258,7 @@ class Debugger:
         Returns:
             bool: True if the debugger should pretty print syscalls, False otherwise.
         """
-        return self._context.pprint_syscalls
+        return self._internal_debugger.pprint_syscalls
 
     @pprint_syscalls.setter
     def pprint_syscalls(self: Debugger, value: bool) -> None:
@@ -271,11 +270,11 @@ class Debugger:
         if not isinstance(value, bool):
             raise TypeError("pprint_syscalls must be a boolean")
         if value:
-            self._context.enable_pretty_print()
+            self._internal_debugger.enable_pretty_print()
         else:
-            self._context.disable_pretty_print()
+            self._internal_debugger.disable_pretty_print()
 
-        self._context.pprint_syscalls = value
+        self._internal_debugger.pprint_syscalls = value
 
     @contextmanager
     def pprint_syscalls_context(self: Debugger, value: bool) -> ...:
@@ -299,10 +298,10 @@ class Debugger:
         Returns:
             list[str]: The syscalls to pretty print.
         """
-        if self._context.syscalls_to_pprint is None:
+        if self._internal_debugger.syscalls_to_pprint is None:
             return None
         else:
-            return [resolve_syscall_name(v) for v in self._context.syscalls_to_pprint]
+            return [resolve_syscall_name(v) for v in self._internal_debugger.syscalls_to_pprint]
 
     @syscalls_to_pprint.setter
     def syscalls_to_pprint(
@@ -314,17 +313,17 @@ class Debugger:
             value (list[int] | list[str] | None): The syscalls to pretty print.
         """
         if value is None:
-            self._context.syscalls_to_pprint = None
+            self._internal_debugger.syscalls_to_pprint = None
         elif isinstance(value, list):
-            self._context.syscalls_to_pprint = [
+            self._internal_debugger.syscalls_to_pprint = [
                 v if isinstance(v, int) else resolve_syscall_number(v) for v in value
             ]
         else:
             raise ValueError(
                 "syscalls_to_pprint must be a list of integers or strings or None.",
             )
-        if self._context.pprint_syscalls:
-            self._context.enable_pretty_print()
+        if self._internal_debugger.pprint_syscalls:
+            self._internal_debugger.enable_pretty_print()
 
     @property
     def syscalls_to_not_pprint(self: Debugger) -> list[str] | None:
@@ -333,11 +332,11 @@ class Debugger:
         Returns:
             list[str]: The syscalls to not pretty print.
         """
-        if self._context.syscalls_to_not_pprint is None:
+        if self._internal_debugger.syscalls_to_not_pprint is None:
             return None
         else:
             return [
-                resolve_syscall_name(v) for v in self._context.syscalls_to_not_pprint
+                resolve_syscall_name(v) for v in self._internal_debugger.syscalls_to_not_pprint
             ]
 
     @syscalls_to_not_pprint.setter
@@ -350,17 +349,17 @@ class Debugger:
             value (list[int] | list[str] | None): The syscalls to not pretty print.
         """
         if value is None:
-            self._context.syscalls_to_not_pprint = None
+            self._internal_debugger.syscalls_to_not_pprint = None
         elif isinstance(value, list):
-            self._context.syscalls_to_not_pprint = [
+            self._internal_debugger.syscalls_to_not_pprint = [
                 v if isinstance(v, int) else resolve_syscall_number(v) for v in value
             ]
         else:
             raise ValueError(
                 "syscalls_to_not_pprint must be a list of integers or strings or None.",
             )
-        if self._context.pprint_syscalls:
-            self._context.enable_pretty_print()
+        if self._internal_debugger.pprint_syscalls:
+            self._internal_debugger.enable_pretty_print()
 
     @property
     def signal_to_block(self: Debugger) -> list[str]:
@@ -369,7 +368,7 @@ class Debugger:
         Returns:
             list[str]: The signals to block.
         """
-        return [resolve_signal_name(v) for v in self._context.signal_to_block]
+        return [resolve_signal_name(v) for v in self._internal_debugger.signal_to_block]
 
     @signal_to_block.setter
     def signal_to_block(
@@ -390,7 +389,7 @@ class Debugger:
         if not set(signals).issubset(get_all_signal_numbers()):
             raise ValueError("Invalid signal number.")
 
-        self._context.signal_to_block = signals
+        self._internal_debugger.signal_to_block = signals
 
     def __getattr__(self: Debugger, name: str) -> object:
         """This function is called when an attribute is not found in the `Debugger` object.
@@ -417,6 +416,6 @@ class Debugger:
         if hasattr(Debugger, name):
             super().__setattr__(name, value)
         else:
-            self._context._ensure_process_stopped()
+            self._internal_debugger._ensure_process_stopped()
             thread_context = self.threads[0]
             setattr(thread_context, name, value)

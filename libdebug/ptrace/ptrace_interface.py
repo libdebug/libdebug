@@ -24,7 +24,6 @@ from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
 from libdebug.debugger.internal_debugger_instance_manager import (
     extend_internal_debugger,
-    inherit_internal_debugger,
     provide_internal_debugger,
 )
 from libdebug.state.thread_context import ThreadContext
@@ -63,9 +62,6 @@ if TYPE_CHECKING:
 class PtraceInterface(DebuggingInterface):
     """The interface used by `_InternalDebugger` to communicate with the `ptrace` debugging backend."""
 
-    context: InternalDebugger
-    """The debugging context."""
-
     hardware_bp_helpers: dict[int, PtraceHardwareBreakpointManager]
     """The hardware breakpoint managers (one for each thread)."""
 
@@ -74,6 +70,9 @@ class PtraceInterface(DebuggingInterface):
 
     detached: bool
     """Whether the process was detached or not."""
+    
+    _internal_debugger: InternalDebugger
+    """The internal debugger instance."""
 
     def __init__(self: PtraceInterface) -> None:
         super().__init__()
@@ -81,9 +80,8 @@ class PtraceInterface(DebuggingInterface):
         self.lib_trace = _ptrace_cffi.lib
         self.ffi = _ptrace_cffi.ffi
 
-        self.context = provide_internal_debugger(self)
-
-        if not self.context.aslr_enabled:
+        self._internal_debugger = provide_internal_debugger(self)
+        if not self._internal_debugger.aslr_enabled:
             disable_self_aslr()
 
         self._global_state = self.ffi.new("struct global_state*")
@@ -107,8 +105,8 @@ class PtraceInterface(DebuggingInterface):
 
     def run(self: PtraceInterface) -> None:
         """Runs the specified process."""
-        argv = self.context.argv
-        env = self.context.env
+        argv = self._internal_debugger.argv
+        env = self._internal_debugger.env
 
         liblog.debugger("Running %s", argv)
 
@@ -164,11 +162,11 @@ class PtraceInterface(DebuggingInterface):
 
         self.process_id = child_pid
         self.detached = False
-        self.context.process_id = child_pid
+        self._internal_debugger.process_id = child_pid
         self.register_new_thread(child_pid)
-        continue_to_entry_point = self.context.autoreach_entrypoint
+        continue_to_entry_point = self._internal_debugger.autoreach_entrypoint
         self._setup_parent(continue_to_entry_point)
-        self.context.pipe_manager = self._setup_pipe()
+        self._internal_debugger.pipe_manager = self._setup_pipe()
 
     def attach(self: PtraceInterface, pid: int) -> None:
         """Attaches to the specified process.
@@ -187,16 +185,16 @@ class PtraceInterface(DebuggingInterface):
 
         self.process_id = pid
         self.detached = False
-        self.context.process_id = pid
+        self._internal_debugger.process_id = pid
         self.register_new_thread(pid)
         # If we are attaching to a process, we don't want to continue to the entry point
         # which we have probably already passed
-        self._setup_parent(continue_to_entry_point=False)
+        self._setup_parent(False)
 
     def detach(self: PtraceInterface) -> None:
         """Detaches from the process."""
         # We must disable all breakpoints before detaching
-        for bp in list(self.context.breakpoints.values()):
+        for bp in list(self._internal_debugger.breakpoints.values()):
             if bp.enabled:
                 self.unset_breakpoint(bp, delete=True)
 
@@ -218,13 +216,13 @@ class PtraceInterface(DebuggingInterface):
         """Continues the execution of the process."""
 
         # Forward signals to the threads
-        if self.context.resume_context.threads_with_signals_to_forward:
+        if self._internal_debugger.resume_context.threads_with_signals_to_forward:
             self.forward_signal()
 
         # Enable all breakpoints if they were disabled for a single step
         changed = []
 
-        for bp in self.context.breakpoints.values():
+        for bp in self._internal_debugger.breakpoints.values():
             bp._disabled_for_step = False
             if bp._changed:
                 changed.append(bp)
@@ -236,7 +234,7 @@ class PtraceInterface(DebuggingInterface):
             else:
                 self.unset_breakpoint(bp, delete=False)
 
-        for hook in self.context.syscall_hooks.values():
+        for hook in self._internal_debugger.syscall_hooks.values():
             if hook.enabled:
                 self._global_state.syscall_hooks_enabled = True
                 break
@@ -252,9 +250,13 @@ class PtraceInterface(DebuggingInterface):
             raise OSError(errno_val, errno.errorcode[errno_val])
 
     def step(self: PtraceInterface, thread: ThreadContext) -> None:
-        """Executes a single instruction of the process."""
+        """Executes a single instruction of the process.
+        
+        Args:
+            thread (ThreadContext): The thread to step.
+        """
         # Disable all breakpoints for the single step
-        for bp in self.context.breakpoints.values():
+        for bp in self._internal_debugger.breakpoints.values():
             bp._disabled_for_step = True
 
         result = self.lib_trace.singlestep(self._global_state, thread.thread_id)
@@ -262,7 +264,7 @@ class PtraceInterface(DebuggingInterface):
             errno_val = self.ffi.errno
             raise OSError(errno_val, errno.errorcode[errno_val])
 
-        self.context.resume_context.is_a_step = True
+        self._internal_debugger.resume_context.is_a_step = True
 
     def step_until(
         self: PtraceInterface, thread: ThreadContext, address: int, max_steps: int
@@ -275,7 +277,7 @@ class PtraceInterface(DebuggingInterface):
             max_steps (int): The maximum number of steps to execute.
         """
         # Disable all breakpoints for the single step
-        for bp in self.context.breakpoints.values():
+        for bp in self._internal_debugger.breakpoints.values():
             bp._disabled_for_step = True
 
         result = self.lib_trace.step_until(
@@ -318,7 +320,7 @@ class PtraceInterface(DebuggingInterface):
             found = False
             ip_breakpoint = None
 
-            for bp in self.context.breakpoints.values():
+            for bp in self._internal_debugger.breakpoints.values():
                 if bp.address == last_saved_instruction_pointer:
                     found = True
                     ip_breakpoint = bp
@@ -365,16 +367,16 @@ class PtraceInterface(DebuggingInterface):
     def _setup_parent(self: PtraceInterface, continue_to_entry_point: bool) -> None:
         """Sets up the parent process after the child process has been created or attached to."""
         liblog.debugger("Polling child process status")
-        self.context.resume_context.is_startup = True
+        self._internal_debugger.resume_context.is_startup = True
         self.wait()
-        self.context.resume_context.is_startup = False
+        self._internal_debugger.resume_context.is_startup = False
         liblog.debugger("Child process ready, setting options")
         self._set_options()
         liblog.debugger("Options set")
 
         if continue_to_entry_point:
             # Now that the process is running, we must continue until we have reached the entry point
-            entry_point = get_entry_point(self.context.argv[0])
+            entry_point = get_entry_point(self._internal_debugger.argv[0])
 
             # For PIE binaries, the entry point is a relative address
             entry_point = normalize_and_validate_address(entry_point, self.maps())
@@ -413,17 +415,17 @@ class PtraceInterface(DebuggingInterface):
         """Set the signals to forward to the threads."""
         # change the global_state
         cursor = self._global_state.t_HEAD
-        threads = self.context.resume_context.threads_with_signals_to_forward
+        threads = self._internal_debugger.resume_context.threads_with_signals_to_forward
 
         while cursor != self.ffi.NULL:
             if cursor.tid in threads:
-                thread = self.context.get_thread_by_id(cursor.tid)
+                thread = self._internal_debugger.get_thread_by_id(cursor.tid)
                 if thread is None:
                     # The thread is dead in the meantime
                     continue
                 if (
                     thread._signal_number != 0
-                    and thread._signal_number not in self.context.signal_to_block
+                    and thread._signal_number not in self._internal_debugger.signal_to_block
                 ):
                     liblog.debugger(
                         f"Forward signal {thread._signal_number} to thread {cursor.tid}",
@@ -435,7 +437,7 @@ class PtraceInterface(DebuggingInterface):
             cursor = cursor.next
 
         # Clear the list of threads with signals to forward
-        self.context.resume_context.threads_with_signals_to_forward.clear()
+        self._internal_debugger.resume_context.threads_with_signals_to_forward.clear()
 
     def migrate_to_gdb(self: PtraceInterface) -> None:
         """Migrates the current process to GDB."""
@@ -449,14 +451,18 @@ class PtraceInterface(DebuggingInterface):
         self.status_handler.check_for_new_threads(self.process_id)
 
         # We have to reinstall any hardware breakpoint
-        for bp in self.context.breakpoints.values():
+        for bp in self._internal_debugger.breakpoints.values():
             if bp.hardware and bp.enabled:
                 for helper in self.hardware_bp_helpers.values():
                     helper.remove_breakpoint(bp)
                     helper.install_breakpoint(bp)
 
     def register_new_thread(self: PtraceInterface, new_thread_id: int) -> None:
-        """Registers a new thread."""
+        """Registers a new thread.
+        
+        Args:
+            new_thread_id (int): The new thread ID.
+        """
         # The FFI implementation returns a pointer to the register file
         register_file = self.lib_trace.register_thread(
             self._global_state,
@@ -465,12 +471,10 @@ class PtraceInterface(DebuggingInterface):
 
         register_holder = register_holder_provider(register_file)
 
-        with extend_internal_debugger(self):
-            thread = ThreadContext.new(new_thread_id, register_holder)
+        with extend_internal_debugger(self._internal_debugger):
+            thread = ThreadContext(new_thread_id, register_holder)
 
-        inherit_internal_debugger(thread, self)
-
-        self.context.insert_new_thread(thread)
+        self._internal_debugger.insert_new_thread(thread)
         thread_hw_bp_helper = ptrace_hardware_breakpoint_manager_provider(
             thread,
             self._peek_user,
@@ -479,7 +483,7 @@ class PtraceInterface(DebuggingInterface):
         self.hardware_bp_helpers[new_thread_id] = thread_hw_bp_helper
 
         # For any hardware breakpoints, we need to reapply them to the new thread
-        for bp in self.context.breakpoints.values():
+        for bp in self._internal_debugger.breakpoints.values():
             if bp.hardware:
                 thread_hw_bp_helper.install_breakpoint(bp)
 
@@ -489,10 +493,16 @@ class PtraceInterface(DebuggingInterface):
         exit_code: int | None,
         exit_signal: int | None,
     ) -> None:
-        """Unregisters a thread."""
+        """Unregisters a thread.
+        
+        Args:
+            thread_id (int): The thread ID.
+            exit_code (int): The exit code of the thread.
+            exit_signal (int): The exit signal of the thread.
+        """
         self.lib_trace.unregister_thread(self._global_state, thread_id)
 
-        self.context.set_thread_as_dead(
+        self._internal_debugger.set_thread_as_dead(
             thread_id, exit_code=exit_code, exit_signal=exit_signal
         )
 
@@ -553,7 +563,7 @@ class PtraceInterface(DebuggingInterface):
             self._enable_breakpoint(bp)
 
         if insert:
-            self.context.breakpoints[bp.address] = bp
+            self._internal_debugger.breakpoints[bp.address] = bp
 
     def unset_breakpoint(
         self: PtraceInterface, bp: Breakpoint, delete: bool = True
@@ -573,7 +583,7 @@ class PtraceInterface(DebuggingInterface):
             self._disable_breakpoint(bp)
 
         if delete:
-            del self.context.breakpoints[bp.address]
+            del self._internal_debugger.breakpoints[bp.address]
 
     def set_syscall_hook(self: PtraceInterface, hook: SyscallHook) -> None:
         """Sets a syscall hook.
@@ -581,7 +591,7 @@ class PtraceInterface(DebuggingInterface):
         Args:
             hook (SyscallHook): The syscall hook to set.
         """
-        self.context.syscall_hooks[hook.syscall_number] = hook
+        self._internal_debugger.syscall_hooks[hook.syscall_number] = hook
 
     def unset_syscall_hook(self: PtraceInterface, hook: SyscallHook) -> None:
         """Unsets a syscall hook.
@@ -589,7 +599,7 @@ class PtraceInterface(DebuggingInterface):
         Args:
             hook (SyscallHook): The syscall hook to unset.
         """
-        del self.context.syscall_hooks[hook.syscall_number]
+        del self._internal_debugger.syscall_hooks[hook.syscall_number]
 
     def set_signal_hook(self: PtraceInterface, hook: SignalHook) -> None:
         """Sets a signal hook.
@@ -597,7 +607,7 @@ class PtraceInterface(DebuggingInterface):
         Args:
             hook (SignalHook): The signal hook to set.
         """
-        self.context.signal_hooks[hook.signal_number] = hook
+        self._internal_debugger.signal_hooks[hook.signal_number] = hook
 
     def unset_signal_hook(self: PtraceInterface, hook: SignalHook) -> None:
         """Unsets a signal hook.
@@ -605,7 +615,7 @@ class PtraceInterface(DebuggingInterface):
         Args:
             hook (SignalHook): The signal hook to unset.
         """
-        del self.context.signal_hooks[hook.signal_number]
+        del self._internal_debugger.signal_hooks[hook.signal_number]
 
     def peek_memory(self: PtraceInterface, address: int) -> int:
         """Reads the memory at the specified address."""
