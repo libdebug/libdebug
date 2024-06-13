@@ -8,7 +8,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
-from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
+from libdebug.debugger.internal_debugger_instance_manager import (
+    provide_internal_debugger,
+)
 from libdebug.liblog import liblog
 from libdebug.utils.debugging_utils import resolve_address_in_maps
 from libdebug.utils.signal_utils import resolve_signal_name, resolve_signal_number
@@ -103,14 +105,9 @@ class ThreadContext:
         return self._thread_id
 
     @property
-    def signal(self: ThreadContext) -> str | None:
-        """The signal will be forwarded to the thread."""
-        self._internal_debugger._ensure_process_stopped()
-        return (
-            None
-            if self._signal_number == 0
-            else resolve_signal_name(self._signal_number)
-        )
+    def running(self: ThreadContext) -> bool:
+        """Whether the process is running."""
+        return self._internal_debugger.running
 
     @property
     def exit_code(self: ThreadContext) -> int | None:
@@ -139,6 +136,16 @@ class ThreadContext:
             return None
         return resolve_signal_name(self._exit_signal)
 
+    @property
+    def signal(self: ThreadContext) -> str | None:
+        """The signal will be forwarded to the thread."""
+        self._internal_debugger._ensure_process_stopped()
+        return (
+            None
+            if self._signal_number == 0
+            else resolve_signal_name(self._signal_number)
+        )
+    
     @signal.setter
     def signal(self: ThreadContext, signal: str | int) -> None:
         """Set the signal to forward to the thread."""
