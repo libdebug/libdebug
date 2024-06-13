@@ -49,6 +49,7 @@ def fast_suite():
     suite.addTest(BreakpointTest("test_bp_disable_hw"))
     suite.addTest(BreakpointTest("test_bp_disable_reenable"))
     suite.addTest(BreakpointTest("test_bp_disable_reenable_hw"))
+    suite.addTest(BreakpointTest("test_bps_running"))
     suite.addTest(MemoryTest("test_memory"))
     suite.addTest(MemoryTest("test_mem_access_libs"))
     suite.addTest(MemoryTest("test_memory_exceptions"))
