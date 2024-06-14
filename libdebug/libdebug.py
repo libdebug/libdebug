@@ -400,7 +400,7 @@ class _InternalDebugger:
         """Sets a breakpoint at the specified location.
 
         Args:
-            position (int | bytes): The location of the breakpoint.
+            position (int | str): The location of the breakpoint.
             hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software. Defaults to False.
             condition (str, optional): The trigger condition for the breakpoint. Defaults to None.
             length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
@@ -458,7 +458,7 @@ class _InternalDebugger:
         """Sets a watchpoint at the specified location. Internally, watchpoints are implemented as breakpoints.
 
         Args:
-            position (int | bytes): The location of the breakpoint.
+            position (int | str): The location of the breakpoint.
             condition (str, optional): The trigger condition for the watchpoint (either "r", "rw" or "x"). Defaults to "w".
             length (int, optional): The size of the word in being watched (1, 2, 4 or 8). Defaults to 1.
             callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the watchpoint is hit. Defaults to None.
