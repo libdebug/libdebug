@@ -101,6 +101,7 @@ The above script will run the binary `test` in the working directory and stop at
     :caption: Contents:
     
     basic_features
+    breakpoints
     syscall_hooking
     signal_hooking
     multithreading

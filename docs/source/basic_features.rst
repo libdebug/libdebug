@@ -1,23 +1,13 @@
 
 The libdebug flow
 ====================================
-When writing a script to debug a program, the first step is to create a debugger object:
+When writing a script to debug a program, the first step is to create a debugger object :class:`libdebug._InternalDebugger`:
 
 .. code-block:: python
 
     from libdebug import debugger
     debugger = debugger(argv=["./program", "arg1", "arg2"])
 
-
-.. def debugger(
-..     argv: str | list[str] = [],
-..     enable_aslr: bool = False,
-..     env: dict[str, str] | None = None,
-..     escape_antidebug: bool = False,
-..     continue_to_binary_entrypoint: bool = True,
-..     auto_interrupt_on_command: bool = False,
-..     force_continue: bool = True,
-.. ) -> _InternalDebugger:
 
 This will be your main interface to the debugger. You can either pass the name of the executable as a string, or a list of argv parameters for the execution.
 Just as you would expect, you can also pass environment variables to the program using the env parameter. Here, the variables are passed as a string-string dictionary.
@@ -82,6 +72,7 @@ You can manually send a stopping signal to the program using the interrupt() met
 
 Register Access
 ====================================
+.. _register-access-paragraph:
 
 libdebug offers a simple register access interface for supported architectures. The registers are accessed through the regs attribute of the debugger object. The field includes both general purpose and special registers, as well as the flags register. For example, for the AMD64 architecture, the following registers are available:
 
