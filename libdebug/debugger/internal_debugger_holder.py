@@ -7,11 +7,12 @@
 from dataclasses import dataclass
 from threading import Lock
 from weakref import WeakKeyDictionary
+from dataclasses import field
 
 
 @dataclass
 class InternalDebuggerHolder:
-    internal_debuggers: WeakKeyDictionary = WeakKeyDictionary()
+    internal_debuggers: WeakKeyDictionary = field(default_factory=WeakKeyDictionary)
     global_internal_debugger = None
     internal_debugger_lock = Lock()
 
