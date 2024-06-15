@@ -139,11 +139,26 @@ def test_deep_dive_division():
                 if candidate != []:
                     flag = flag_
                     break
-
+                
+def test_step():
+    d = debugger("../binaries/node")
+    d.run()
+    for _ in range(199999):
+        d.step()
+    d.kill()
+    
+def test_signal():
+    d = debugger("../binaries/node")
+    d.run()
+    for _ in range(100000):
+        d.cont()
+        d.interrupt()
+        d.signal = "SIGCONT"
+    d.kill()
 
 n_executions = 500
 
-print("Starting benchmark...")
+print("Starting benchmark...\n")
 
 print("Starting vmwhere1...")
 time_sum = 0
@@ -174,3 +189,21 @@ for i in tqdm(range_n_executions):
     end = time.perf_counter()
     time_sum += end - start
 print("Result:", time_sum / n_executions)
+
+print("Starting test_step...")
+time_sum = 0
+range_n_executions = range(n_executions)
+for i in tqdm(range_n_executions):
+    start = time.perf_counter()
+    test_step()
+    end = time.perf_counter()
+    time_sum += end - start
+
+print("Starting test_signal...")
+time_sum = 0
+range_n_executions = range(n_executions)
+for i in tqdm(range_n_executions):
+    start = time.perf_counter()
+    test_signal()
+    end = time.perf_counter()
+    time_sum += end - start
