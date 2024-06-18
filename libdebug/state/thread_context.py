@@ -26,7 +26,7 @@ class ThreadContext:
 
     instruction_pointer: int
     """The thread's instruction pointer."""
-    
+
     _internal_debugger: InternalDebugger | None = None
     """The debugging context this thread belongs to."""
 
@@ -54,11 +54,10 @@ class ThreadContext:
         registers.apply_on_regs(self.regs, regs_class)
         registers.apply_on_thread(self, ThreadContext)
 
-
     def set_as_dead(self: ThreadContext) -> None:
         """Set the thread as dead."""
         self._thread_dead = True
-        
+
     @property
     def thread_dead(self: ThreadContext) -> bool:
         """Whether the thread is dead."""
@@ -130,9 +129,7 @@ class ThreadContext:
             liblog.warning("Thread is not dead. No exit signal available.")
             return None
         elif self._exit_signal is None and self._exit_code is not None:
-            liblog.warning(
-                "Thread exited with code %d. No exit signal available.", self._exit_code
-            )
+            liblog.warning("Thread exited with code %d. No exit signal available.", self._exit_code)
             return None
         return resolve_signal_name(self._exit_signal)
 
@@ -140,12 +137,8 @@ class ThreadContext:
     def signal(self: ThreadContext) -> str | None:
         """The signal will be forwarded to the thread."""
         self._internal_debugger._ensure_process_stopped()
-        return (
-            None
-            if self._signal_number == 0
-            else resolve_signal_name(self._signal_number)
-        )
-    
+        return None if self._signal_number == 0 else resolve_signal_name(self._signal_number)
+
     @signal.setter
     def signal(self: ThreadContext, signal: str | int) -> None:
         """Set the signal to forward to the thread."""
@@ -157,9 +150,7 @@ class ThreadContext:
         if isinstance(signal, str):
             signal = resolve_signal_number(signal)
         self._signal_number = signal
-        self._internal_debugger.resume_context.threads_with_signals_to_forward.append(
-            self.thread_id
-        )
+        self._internal_debugger.resume_context.threads_with_signals_to_forward.append(self.thread_id)
 
     def backtrace(self: ThreadContext) -> list:
         """Returns the current backtrace of the thread."""

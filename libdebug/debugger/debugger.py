@@ -34,7 +34,7 @@ class Debugger:
 
     _sentinel: object = object()
     """A sentinel object."""
-    
+
     _internal_debugger: InternalDebugger | None = None
     """The internal debugger object."""
 
@@ -208,13 +208,9 @@ class Debugger:
         Returns:
             SyscallHook: The syscall hook object.
         """
-        return self._internal_debugger.hijack_syscall(
-            original_syscall, new_syscall, hook_hijack, **kwargs
-        )
+        return self._internal_debugger.hijack_syscall(original_syscall, new_syscall, hook_hijack, **kwargs)
 
-    def migrate_to_gdb(
-        self: Debugger, open_in_new_process: bool = True
-    ) -> None:
+    def migrate_to_gdb(self: Debugger, open_in_new_process: bool = True) -> None:
         """Migrates the current debugging session to GDB."""
         self._internal_debugger.migrate_to_gdb(open_in_new_process)
 
@@ -304,9 +300,7 @@ class Debugger:
             return [resolve_syscall_name(v) for v in self._internal_debugger.syscalls_to_pprint]
 
     @syscalls_to_pprint.setter
-    def syscalls_to_pprint(
-        self: Debugger, value: list[int] | list[str] | None
-    ) -> None:
+    def syscalls_to_pprint(self: Debugger, value: list[int] | list[str] | None) -> None:
         """Get the syscalls to pretty print.
 
         Args:
@@ -335,14 +329,10 @@ class Debugger:
         if self._internal_debugger.syscalls_to_not_pprint is None:
             return None
         else:
-            return [
-                resolve_syscall_name(v) for v in self._internal_debugger.syscalls_to_not_pprint
-            ]
+            return [resolve_syscall_name(v) for v in self._internal_debugger.syscalls_to_not_pprint]
 
     @syscalls_to_not_pprint.setter
-    def syscalls_to_not_pprint(
-        self: Debugger, value: list[int] | list[str] | None
-    ) -> None:
+    def syscalls_to_not_pprint(self: Debugger, value: list[int] | list[str] | None) -> None:
         """Get the syscalls to not pretty print.
 
         Args:
@@ -371,9 +361,7 @@ class Debugger:
         return [resolve_signal_name(v) for v in self._internal_debugger.signal_to_block]
 
     @signal_to_block.setter
-    def signal_to_block(
-        self: Debugger, signals: list[int] | list[str]
-    ) -> None:
+    def signal_to_block(self: Debugger, signals: list[int] | list[str]) -> None:
         """Set the signal to not forward to the process.
 
         Args:
@@ -382,9 +370,7 @@ class Debugger:
         if not isinstance(signals, list):
             raise TypeError("signal_to_block must be a list of integers or strings")
 
-        signals = [
-            v if isinstance(v, int) else resolve_signal_number(v) for v in signals
-        ]
+        signals = [v if isinstance(v, int) else resolve_signal_number(v) for v in signals]
 
         if not set(signals).issubset(get_all_signal_numbers()):
             raise ValueError("Invalid signal number.")

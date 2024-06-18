@@ -4,14 +4,14 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from threading import Lock
 from weakref import WeakKeyDictionary
-from dataclasses import field
 
 
 @dataclass
 class InternalDebuggerHolder:
+    """A holder for internal debuggers."""
     internal_debuggers: WeakKeyDictionary = field(default_factory=WeakKeyDictionary)
     global_internal_debugger = None
     internal_debugger_lock = Lock()

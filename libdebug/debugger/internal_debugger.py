@@ -24,12 +24,12 @@ from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
 from libdebug.data.signal_hook import SignalHook
 from libdebug.data.syscall_hook import SyscallHook
+from libdebug.debugger.internal_debugger_instance_manager import (
+    extend_internal_debugger,
+    link_internal_debugger,
+)
 from libdebug.interfaces.interface_helper import provide_debugging_interface
 from libdebug.liblog import liblog
-from libdebug.debugger.internal_debugger_instance_manager import (
-    link_internal_debugger,
-    extend_internal_debugger,
-)
 from libdebug.state.resume_context import ResumeContext
 from libdebug.utils.debugger_wrappers import (
     background_alias,
@@ -257,7 +257,7 @@ class InternalDebugger:
         if self.threads:
             self.clear()
             self.debugging_interface.reset()
-            
+
         self.instanced = True
 
         if not self.__polling_thread_command_queue.empty():
@@ -290,7 +290,7 @@ class InternalDebugger:
         self.__polling_thread_command_queue.put((self.__threaded_kill, ()))
 
         self.instanced = False
-        
+
         if self.pipe_manager:
             self.pipe_manager.close()
 
@@ -489,9 +489,7 @@ class InternalDebugger:
 
         hook = self.signal_hooks[hook.signal_number]
 
-        self.__polling_thread_command_queue.put(
-            (self.__threaded_signal_unhook, (hook,))
-        )
+        self.__polling_thread_command_queue.put((self.__threaded_signal_unhook, (hook,)))
 
         self._join_and_check_status()
 
@@ -516,11 +514,7 @@ class InternalDebugger:
         else:
             original_signal_number = original_signal
 
-        new_signal_number = (
-            resolve_signal_number(new_signal)
-            if isinstance(new_signal, str)
-            else new_signal
-        )
+        new_signal_number = resolve_signal_number(new_signal) if isinstance(new_signal, str) else new_signal
 
         if original_signal_number == new_signal_number:
             raise ValueError(
@@ -559,9 +553,7 @@ class InternalDebugger:
                 "At least one callback between on_enter and on_exit should be specified.",
             )
 
-        syscall_number = (
-            resolve_syscall_number(syscall) if isinstance(syscall, str) else syscall
-        )
+        syscall_number = resolve_syscall_number(syscall) if isinstance(syscall, str) else syscall
 
         if not isinstance(hook_hijack, bool):
             raise TypeError("hook_hijack must be a boolean")
@@ -650,11 +642,7 @@ class InternalDebugger:
         else:
             original_syscall_number = original_syscall
 
-        new_syscall_number = (
-            resolve_syscall_number(new_syscall)
-            if isinstance(new_syscall, str)
-            else new_syscall
-        )
+        new_syscall_number = resolve_syscall_number(new_syscall) if isinstance(new_syscall, str) else new_syscall
 
         if original_syscall_number == new_syscall_number:
             raise ValueError(
@@ -699,9 +687,7 @@ class InternalDebugger:
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
-    def migrate_to_gdb(
-        self: InternalDebugger, open_in_new_process: bool = True
-    ) -> None:
+    def migrate_to_gdb(self: InternalDebugger, open_in_new_process: bool = True) -> None:
         """Migrates the current debugging session to GDB."""
 
         # TODO: not needed?
@@ -891,9 +877,7 @@ class InternalDebugger:
 
     @background_alias(_background_finish)
     @change_state_function_thread
-    def finish(
-        self: InternalDebugger, thread: ThreadContext, exact: bool = True
-    ) -> None:
+    def finish(self: InternalDebugger, thread: ThreadContext, exact: bool = True) -> None:
         """Continues the process until the current function returns or the process stops.
 
         When used in step mode, it will step until a return instruction is executed. Otherwise, it uses a heuristic
@@ -921,18 +905,18 @@ class InternalDebugger:
             # Check if the syscall is already hooked (by the user or by the pretty print hook)
             if syscall_number in self.syscall_hooks:
                 hook = self.syscall_hooks[syscall_number]
-                if syscall_number not in (
-                    self.syscalls_to_not_pprint or []
-                ) and syscall_number in (self.syscalls_to_pprint or syscall_numbers):
+                if syscall_number not in (self.syscalls_to_not_pprint or []) and syscall_number in (
+                    self.syscalls_to_pprint or syscall_numbers
+                ):
                     hook.on_enter_pprint = pprint_on_enter
                     hook.on_exit_pprint = pprint_on_exit
                 else:
                     # Remove the pretty print hook from previous pretty print calls
                     hook.on_enter_pprint = None
                     hook.on_exit_pprint = None
-            elif syscall_number not in (
-                self.syscalls_to_not_pprint or []
-            ) and syscall_number in (self.syscalls_to_pprint or syscall_numbers):
+            elif syscall_number not in (self.syscalls_to_not_pprint or []) and syscall_number in (
+                self.syscalls_to_pprint or syscall_numbers
+            ):
                 hook = SyscallHook(
                     syscall_number,
                     None,
@@ -1195,9 +1179,7 @@ class InternalDebugger:
         self.debugging_interface.step_until(thread, address, max_steps)
         self.set_stopped()
 
-    def __threaded_finish(
-        self: InternalDebugger, thread: ThreadContext, exact: bool
-    ) -> None:
+    def __threaded_finish(self: InternalDebugger, thread: ThreadContext, exact: bool) -> None:
         prefix = "Exact" if exact else "Heuristic"
 
         liblog.debugger(f"{prefix} finish on thread %s", thread.thread_id)
@@ -1211,9 +1193,7 @@ class InternalDebugger:
     def __threaded_migrate_from_gdb(self: InternalDebugger) -> None:
         self.debugging_interface.migrate_from_gdb()
 
-    def __threaded_peek_memory(
-        self: InternalDebugger, address: int
-    ) -> bytes | BaseException:
+    def __threaded_peek_memory(self: InternalDebugger, address: int) -> bytes | BaseException:
         try:
             value = self.debugging_interface.peek_memory(address)
             # TODO: this is only for amd64
@@ -1221,9 +1201,7 @@ class InternalDebugger:
         except BaseException as e:
             return e
 
-    def __threaded_poke_memory(
-        self: InternalDebugger, address: int, data: bytes
-    ) -> None:
+    def __threaded_poke_memory(self: InternalDebugger, address: int, data: bytes) -> None:
         int_data = int.from_bytes(data, "little")
         self.debugging_interface.poke_memory(address, int_data)
 

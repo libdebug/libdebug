@@ -40,8 +40,8 @@ def debugger(
     internal_debugger.autoreach_entrypoint = continue_to_binary_entrypoint
     internal_debugger.auto_interrupt_on_command = auto_interrupt_on_command
     internal_debugger.escape_antidebug = escape_antidebug
-    
-    debugger = Debugger() 
+
+    debugger = Debugger()
     debugger.post_init_(internal_debugger)
 
     return debugger

@@ -4,10 +4,10 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_constants import Commands
 from libdebug.state.thread_context import ThreadContext
-from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 
 
 def on_enter_ptrace(t: ThreadContext, syscall_number: int) -> None:
@@ -25,9 +25,7 @@ def on_exit_ptrace(t: ThreadContext, syscall_number: int) -> None:
     this_hook = provide_internal_debugger(t).syscall_hooks[syscall_number]
 
     if this_hook._command is None:
-        liblog.error(
-            "ptrace onexit called without corresponding onenter. This should not happen."
-        )
+        liblog.error("ptrace onexit called without corresponding onenter. This should not happen.")
         return
 
     match this_hook._command:
@@ -36,6 +34,4 @@ def on_exit_ptrace(t: ThreadContext, syscall_number: int) -> None:
                 this_hook._traceme_called = True
                 t.syscall_return = 0
         case _:
-            liblog.error(
-                f"ptrace syscall with request {this_hook._command} not supported"
-            )
+            liblog.error(f"ptrace syscall with request {this_hook._command} not supported")

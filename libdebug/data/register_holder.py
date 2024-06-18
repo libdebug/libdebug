@@ -24,7 +24,7 @@ class RegisterHolder(ABC):
             target (ThreadContext): The object to which the register values should be applied.
             target_class (type): The class of the target object, needed to set the attributes.
         """
-        
+
     @abstractmethod
     def apply_on_regs(self: RegisterHolder, target: object, target_class: type) -> None:
         """Applies the current register values to the specified regs target.

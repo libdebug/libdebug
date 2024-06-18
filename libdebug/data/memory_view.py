@@ -9,8 +9,8 @@ from __future__ import annotations
 from collections.abc import Callable, MutableSequence
 from typing import TYPE_CHECKING
 
-from libdebug.liblog import liblog
 from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
+from libdebug.liblog import liblog
 
 if TYPE_CHECKING:
     from libdebug.debugger.internal_debugger import InternalDebugger
@@ -162,9 +162,7 @@ class MemoryView(MutableSequence):
         else:
             raise TypeError("Invalid key type")
 
-    def __setitem__(
-        self: MemoryView, key: int | slice | str | tuple, value: bytes
-    ) -> None:
+    def __setitem__(self: MemoryView, key: int | slice | str | tuple, value: bytes) -> None:
         """Write to memory, either a single byte or a byte string."""
         if isinstance(key, int):
             address = self._internal_debugger.resolve_address(key)
@@ -186,9 +184,7 @@ class MemoryView(MutableSequence):
                     raise ValueError("Invalid slice range")
 
                 if len(value) != stop - start:
-                    liblog.warning(
-                        f"Mismatch between slice width and value size, writing {len(value)} bytes."
-                    )
+                    liblog.warning(f"Mismatch between slice width and value size, writing {len(value)} bytes.")
 
             self.write(start, value)
         elif isinstance(key, str):
@@ -207,9 +203,7 @@ class MemoryView(MutableSequence):
                 address = self._internal_debugger.resolve_address(address)
 
             if len(value) != size:
-                liblog.warning(
-                    f"Mismatch between specified size and actual value size, writing {len(value)} bytes."
-                )
+                liblog.warning(f"Mismatch between specified size and actual value size, writing {len(value)} bytes.")
 
             self.write(address, value)
         else:

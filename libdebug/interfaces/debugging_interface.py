@@ -72,9 +72,7 @@ class DebuggingInterface(ABC):
         """
 
     @abstractmethod
-    def step_until(
-        self: DebuggingInterface, thread: ThreadContext, address: int, max_steps: int
-    ) -> None:
+    def step_until(self: DebuggingInterface, thread: ThreadContext, address: int, max_steps: int) -> None:
         """Executes instructions of the specified thread until the specified address is reached.
 
         Args:
