@@ -1132,7 +1132,7 @@ class SignalHookTest(unittest.TestCase):
         SIGQUIT += r.recvline()
         SIGPIPE += r.recvline()
 
-        # Unhooking signals
+        # Unhooking and send signals
         if bp.hit_on(d):
             d.unhook_signal(hook4)
             d.unhook_signal(hook5)

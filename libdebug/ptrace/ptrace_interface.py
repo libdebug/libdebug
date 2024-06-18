@@ -428,7 +428,7 @@ class PtraceInterface(DebuggingInterface):
                     and thread._signal_number not in self._internal_debugger.signal_to_block
                 ):
                     liblog.debugger(
-                        f"Forward signal {thread._signal_number} to thread {cursor.tid}",
+                        f"Forwarding signal {thread._signal_number} to thread {cursor.tid}",
                     )
                     # Set the signal to forward
                     cursor.signal_to_forward = thread._signal_number

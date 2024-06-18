@@ -158,7 +158,7 @@ class ThreadContext:
             signal = resolve_signal_number(signal)
         self._signal_number = signal
         self._internal_debugger.resume_context.threads_with_signals_to_forward.append(
-            self.process_id
+            self.thread_id
         )
 
     def backtrace(self: ThreadContext) -> list:
