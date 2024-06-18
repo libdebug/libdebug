@@ -416,7 +416,7 @@ class PtraceInterface(DebuggingInterface):
                     continue
                 if thread._signal_number != 0 and thread._signal_number not in self.context._signal_to_block:
                     liblog.debugger(
-                        f"Forward signal {thread._signal_number} to thread {cursor.tid}",
+                        f"Forwarding signal {thread._signal_number} to thread {cursor.tid}",
                     )
                     # Set the signal to forward
                     cursor.signal_to_forward = thread._signal_number
