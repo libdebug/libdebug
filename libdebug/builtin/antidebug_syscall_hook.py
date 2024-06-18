@@ -4,7 +4,6 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_constants import Commands
 from libdebug.state.thread_context import ThreadContext
