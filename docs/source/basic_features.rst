@@ -11,8 +11,8 @@ When writing a script to debug a program, the first step is to create a debugger
 
 This will be your main interface to the debugger. You can either pass the name of the executable as a string, or a list of argv parameters for the execution.
 Just as you would expect, you can also pass environment variables to the program using the env parameter. Here, the variables are passed as a string-string dictionary.
-By default, debugged programs are run with ASLR disabled. If you want to enable it, you can set the enable_aslr parameter to True.
-You can also choose to debug the program starting from the just after the *execve* call, following the flow of the loader. By default, the debugger will continue to the entry point of the binary before giving you control. You can change this behavior by setting the continue_to_binary_entrypoint parameter to False.
+By default, debugged programs are run with ASLR disabled. If you want to enable it, you can set the `enable_aslr` parameter to True.
+You can also choose to debug the program starting from the just after the *execve* call, following the flow of the loader. By default, the debugger will continue to the entry point of the binary before giving you control. You can change this behavior by setting the `continue_to_binary_entrypoint` parameter to False.
 Please keep in mind that creating a debugger object will not start the execution automatically. In fact, you can reuse the same debugger to iteratively run multiple instances of the program. This is particularly useful for smart bruteforcing or fuzzing scripts. 
 
 As for the other parameters of the debugger, we will mention them later in the documentation.
@@ -20,14 +20,14 @@ As for the other parameters of the debugger, we will mention them later in the d
 Running the program
 -------------------
 
-After creating the debugger object, you can start the execution of the program using the run() method. This method will start execution on a child process and, unless otherwise specified, continue to the entry point.
+After creating the debugger object, you can start the execution of the program using the `run()` method. This method will start execution on a child process and, unless otherwise specified, continue to the entry point.
 
 .. code-block:: python
     d = debugger("program")
 
     pipes = d.run()
 
-The run() command returns a PipeManager object, which you can use to interact with the program's standard input, output, and error. To read more about the PipeManager interface, please refer to the PipeManager documentation :class:`libdebug.utils.PipeManager`. The run command also resets breakpoints so that you can keep them between different executions of a program with the same debugger.
+The `run()` command returns a `PipeManager` object, which you can use to interact with the program's standard input, output, and error. To read more about the PipeManager interface, please refer to the PipeManager documentation :class:`libdebug.utils.PipeManager`. The run command also resets breakpoints so that you can keep them between different executions of a program with the same debugger.
 
 The command queue
 -----------------
@@ -49,7 +49,7 @@ In the following example, the content of the RAX register is printed after the p
     print(f"RAX: {hex(d.regs.rax)}")
 
 This flow is similar to how a GDB script would work, allowing for a more intuitive starting point. If you would like to have more control, however, you can disable this behavior to make sure the command queue is polled as soon as possible.
-This can be done by setting the auto_interrupt_on_command parameter to True when creating the debugger object. In this new scenario, we would have to modify the script to recreate the previous flow.
+This can be done by setting the `auto_interrupt_on_command` parameter to True when creating the debugger object. In this new scenario, we would have to modify the script to recreate the previous flow.
 
 .. code-block:: python
 
@@ -62,9 +62,9 @@ This can be done by setting the auto_interrupt_on_command parameter to True when
 
     print(f"RAX: {hex(d.regs.rax)}")
 
-The wait() method waits for the running process to stop before going forward with the script. Adding the d.wait() command will make sure the register access doesn't happen before hitting the breakpoint or any other stopping event. If the wait() method is omitted, the register access will happen as soon as possible after the continue command is issued. Please note that while this "asyncronous" behavior is possible with registers, memory access will not be allowed when the program is running.
+The `wait()` method waits for the running process to stop before going forward with the script. Adding the `d.wait()` command will make sure the register access doesn't happen before hitting the breakpoint or any other stopping event. If the `wait()` method is omitted, the register access will happen as soon as possible after the continue command is issued. Please note that while this "asyncronous" behavior is possible with registers, memory access will not be allowed when the program is running.
 
-You can manually send a stopping signal to the program using the interrupt() method. This will stop the execution of the program and allow you to access the registers and memory. The syntax is as follows:
+You can manually send a stopping signal to the program using the `interrupt()` method. This will stop the execution of the program and allow you to access the registers and memory. The syntax is as follows:
 
 .. code-block:: python
 
@@ -136,7 +136,7 @@ You can access a range of bytes by providing the base address and the length as 
     d.memory[0x1000, 0x10]
 
 - **Symbol access**
-You can access memory by providing a symbol name. For example, to access the bytes from the address of the symbol *main_arena* to the address of the symbol *main_arena+8*, you would use the following code:
+You can access memory by providing a symbol name. For example, to access the bytes from the address of the symbol `main_arena` to the address of the symbol `main_arena+8`, you would use the following code:
 
 .. code-block:: python
 
@@ -177,7 +177,7 @@ When debuggin an executable, it is sometimes useful to step through the program 
 Single Step
 ^^^^
 
-The step command will execute the next instruction and stop the execution. The syntax is as follows:
+The `step` command will execute the next instruction and stop the execution. The syntax is as follows:
 
 .. code-block:: python
 
@@ -186,7 +186,7 @@ The step command will execute the next instruction and stop the execution. The s
 Step Until
 ^^^^^^^^^^
 
-Sometimes, you may want to step through the program until a specific address is reached. The step_until command will execute steps (hardware step if available) until the program counter reaches the specified address. Optionally, you can specify a maximum number of steps that are performed before returning. The syntax is as follows:
+Sometimes, you may want to step through the program until a specific address is reached. The `step_until` command will execute steps (hardware step if available) until the program counter reaches the specified address. Optionally, you can specify a maximum number of steps that are performed before returning. The syntax is as follows:
 
 .. code-block:: python
     d.step_until(position=0x40003b, max_steps=1000)
@@ -194,7 +194,7 @@ Sometimes, you may want to step through the program until a specific address is 
 Continuing
 ----------
 
-Exactly as you would expect, the continue command will continue the execution of the program until a breakpoint is hit or the program stops for any other reason. The syntax is as follows:
+Exactly as you would expect, the `cont()` command will continue the execution of the program until a breakpoint is hit or the program stops for any other reason. The syntax is as follows:
 
 .. code-block:: python
 
@@ -203,7 +203,7 @@ Exactly as you would expect, the continue command will continue the execution of
 Finish
 ^^^^^^
 
-The finish command is a more advanced version of the continue command. It will continue the execution of the program until the current function returns, a breakpoint is hit or the program stop for any other reason.
+The `finish` command is a more advanced version of the continue command. It will continue the execution of the program until the current function returns, a breakpoint is hit or the program stop for any other reason.
 Please note that the concept of "current function" is not as simple as it may seem. Boundaries between functions can become nuanced as a result of compiler optimizations, packing and inlining.
 Because of this, the finish command needs to use one of the available heuristics to resolve the end of the function. 
 
@@ -223,23 +223,23 @@ The default heuristic when none is specified is "backtrace".
 Detach and GDB Migration
 ====================================
 
-If at any time during your script you want to take a more interactive approach to debugging, you can use the gdb() method. This will temporarily detach libdebug from the program and give you control over the program using GDB. Quitting GDB will return control to libdebug. The syntax is as follows:
+If at any time during your script you want to take a more interactive approach to debugging, you can use the `gdb()` method. This will temporarily detach libdebug from the program and give you control over the program using GDB. Quitting GDB will return control to libdebug. The syntax is as follows:
 
 .. code-block:: python
 
     d.gdb()
 
-Optionally, you can specify open_in_new_process=False to execute GDB on the same process as the script. Of course, in this case you will not be able to return to libdebug afterwards. The syntax is as follows:
+Optionally, you can specify `open_in_new_process=False` to execute GDB on the same process as the script. Of course, in this case you will not be able to return to libdebug afterwards. The syntax is as follows:
 
 **Verify this is correct**
 
-Depending on your use case, you may want to detach from the program and continue execution without either libdebug or GDB. The detach() method will detach libdebug from the program and continue execution. The syntax is as follows:
+Depending on your use case, you may want to detach from the program and continue execution without either libdebug or GDB. The `detach()` method will detach libdebug from the program and continue execution. The syntax is as follows:
 
 .. code-block:: python
 
     d.detach()
 
-An alternative to running the program from the beginning and to resume libdebug control after detaching is to use the attach() method. The syntax is as follows:
+An alternative to running the program from the beginning and to resume libdebug control after detaching is to use the `attach()` method. The syntax is as follows:
 
 .. code-block:: python
 
@@ -248,13 +248,13 @@ An alternative to running the program from the beginning and to resume libdebug 
 Graceful Termination
 ====================================
 
-When you are done with the debugger object, you can terminate the background thread using the terminate() method. This will free up resources and should be used only when the debugger object is no longer needed. The syntax is as follows:
+When you are done with the debugger object, you can terminate the background thread using the `terminate()` method. This will free up resources and should be used only when the debugger object is no longer needed. The syntax is as follows:
 
 .. code-block:: python
 
     d.terminate()
 
-If you want to kill the process being debugged, you can use the kill() method. When repeatedly running new instances of debugged program, remember to call the kill() command on old instances to avoid large memory usage. The syntax is as follows:
+If you want to kill the process being debugged, you can use the `kill()` method. When repeatedly running new instances of debugged program, remember to call the `kill()` command on old instances to avoid large memory usage. The syntax is as follows:
 
 .. code-block:: python
 
