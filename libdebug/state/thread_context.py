@@ -147,7 +147,7 @@ class ThreadContext:
         if isinstance(signal, str):
             signal = resolve_signal_number(signal)
         self._signal_number = signal
-        self.context._resume_context.threads_with_signals_to_forward.append(self.process_id)
+        self.context._resume_context.threads_with_signals_to_forward.append(self.thread_id)
 
     def _poll_registers(self: ThreadContext) -> None:
         """Updates the register values."""
