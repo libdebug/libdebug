@@ -30,7 +30,7 @@ class ThreadContext:
     _internal_debugger: InternalDebugger | None = None
     """The debugging context this thread belongs to."""
 
-    _thread_dead: bool = False
+    _dead: bool = False
     """Whether the thread is dead."""
 
     _exit_code: int | None = None
@@ -56,27 +56,12 @@ class ThreadContext:
 
     def set_as_dead(self: ThreadContext) -> None:
         """Set the thread as dead."""
-        self._thread_dead = True
+        self._dead = True
 
     @property
-    def thread_dead(self: ThreadContext) -> bool:
+    def dead(self: ThreadContext) -> bool:
         """Whether the thread is dead."""
-        return self._thread_dead
-
-    @property
-    def tdead(self: ThreadContext) -> bool:
-        """Whether the thread is dead."""
-        return self._thread_dead
-
-    @property
-    def process_dead(self: ThreadContext) -> bool:
-        """Check if the process is dead."""
-        return self._internal_debugger.dead
-
-    @property
-    def pdead(self: ThreadContext) -> bool:
-        """Check if the process is dead."""
-        return self._internal_debugger.dead
+        return self._dead
 
     @property
     def memory(self: ThreadContext) -> MemoryView:
@@ -112,7 +97,7 @@ class ThreadContext:
     def exit_code(self: ThreadContext) -> int | None:
         """The thread's exit code."""
         self._internal_debugger._ensure_process_stopped()
-        if not self.thread_dead:
+        if not self.dead:
             liblog.warning("Thread is not dead. No exit code available.")
         elif self._exit_code is None and self._exit_signal is not None:
             liblog.warning(
@@ -125,7 +110,7 @@ class ThreadContext:
     def exit_signal(self: ThreadContext) -> int | None:
         """The thread's exit signal."""
         self._internal_debugger._ensure_process_stopped()
-        if not self.thread_dead:
+        if not self.dead:
             liblog.warning("Thread is not dead. No exit signal available.")
             return None
         elif self._exit_signal is None and self._exit_code is not None:

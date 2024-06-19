@@ -28,7 +28,7 @@ def change_state_function_process(method: callable) -> callable:
         self._ensure_process_stopped()
 
         # We have to ensure that at least one thread is alive before executing the method
-        if self.dead:
+        if self.threads[0].dead:
             raise RuntimeError("All threads are dead.")
         return method(self, *args, **kwargs)
 
@@ -51,7 +51,7 @@ def change_state_function_thread(method: callable) -> callable:
         self._ensure_process_stopped()
 
         # We have to ensure that at least one thread is alive before executing the method
-        if thread.thread_dead:
+        if thread.dead:
             raise RuntimeError("The threads is dead.")
         return method(self, thread, *args, **kwargs)
 

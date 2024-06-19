@@ -320,6 +320,6 @@ class FinishTest(unittest.TestCase):
 
         # Check that the execution is still running and nothing has broken
         self.assertFalse(d.running)
-        self.assertFalse(d.pdead)
+        self.assertFalse(d.dead)
 
         d.kill()

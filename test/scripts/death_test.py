@@ -59,8 +59,8 @@ class DeathTest(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             d.cont()
                        
-        self.assertEqual(d.process_dead, True)
-        self.assertEqual(d.pdead, True)
+        self.assertEqual(d.dead, True)
+        self.assertEqual(d.threads[0].dead, True)
 
         d.kill()
 

@@ -324,7 +324,7 @@ class InternalDebugger:
             raise RuntimeError("Process not running, cannot interrupt.")
 
         # We have to ensure that at least one thread is alive before executing the method
-        if self.dead:
+        if self.threads[0].dead:
             raise RuntimeError("All threads are dead.")
 
         if not self.running:
@@ -343,7 +343,7 @@ class InternalDebugger:
 
         self._join_and_check_status()
 
-        if self.dead or not self.running:
+        if self.threads[0].dead or not self.running:
             # Most of the time the function returns here, as there was a wait already
             # queued by the previous command
             return
@@ -986,7 +986,7 @@ class InternalDebugger:
             ThreadContext: the thread with the specified ID.
         """
         for thread in self.threads:
-            if thread.thread_id == thread_id and not thread.thread_dead:
+            if thread.thread_id == thread_id and not thread.dead:
                 return thread
 
         return None
@@ -1125,7 +1125,7 @@ class InternalDebugger:
             liblog.debugger("Waiting for process %d to stop.", self.process_id)
 
         while True:
-            if self.dead:
+            if self.threads[0].dead:
                 # All threads are dead
                 liblog.debugger("All threads dead")
                 break
@@ -1285,12 +1285,3 @@ class InternalDebugger:
     def set_stopped(self: InternalDebugger) -> None:
         """Set the state of the process to stopped."""
         self._is_running = False
-
-    @property
-    def dead(self: InternalDebugger) -> bool:
-        """Checks if at least one thread is alive.
-
-        Returns:
-            bool: True if at least one thread is alive, False otherwise.
-        """
-        return not any(not thread.thread_dead for thread in self.threads)
