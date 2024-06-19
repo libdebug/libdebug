@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2023-2024 Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
+# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -17,7 +17,7 @@ def debugger(
     continue_to_binary_entrypoint: bool = True,
     auto_interrupt_on_command: bool = False,
 ) -> Debugger:
-    """This function is used to create a new `Debugger` object. It takes as input the location of the binary to debug and returns a `Debugger` object.
+    """This function is used to create a new `Debugger` object. It returns a `Debugger` object.
 
     Args:
         argv (str | list[str], optional): The location of the binary to debug, and any additional arguments to pass to it.
