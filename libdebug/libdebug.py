@@ -32,7 +32,7 @@ from libdebug.state.debugging_context import (
     link_context,
     provide_context,
 )
-from libdebug.state.resume_context import ResumeStatus
+from libdebug.data.thread_list import ThreadList
 from libdebug.utils.debugger_wrappers import background_alias, control_flow_function
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.signal_utils import (
@@ -75,7 +75,7 @@ class _InternalDebugger:
     interface: DebuggingInterface | None = None
     """The debugging interface used to interact with the process."""
 
-    threads: list[ThreadContext] = None
+    _threads: ThreadList[ThreadContext] = None
     """A dictionary of all the threads in the process. The keys are the thread IDs."""
 
     _polling_thread: Thread | None = None
@@ -87,12 +87,18 @@ class _InternalDebugger:
     _polling_thread_response_queue: Queue | None = None
     """The queue used to receive responses from the background thread."""
 
+    _sentinel: object = object()
+    """A sentinel object."""
+
     def __init__(self: _InternalDebugger) -> None:
         pass
 
     def _post_init_(self: _InternalDebugger) -> None:
         """Do not use this constructor directly. Use the `debugger` function instead."""
         self.context = provide_context(self)
+
+        self._threads = ThreadList(self)
+        self.context.threads = self.threads
 
         with context_extend_from(self):
             self.interface = provide_debugging_interface()
@@ -103,7 +109,6 @@ class _InternalDebugger:
         self._polling_thread_response_queue = Queue()
 
         self.breakpoints = self.context.breakpoints
-        self.threads = self.context.threads
 
         self._start_processing_thread()
         self._setup_memory_view()
@@ -577,7 +582,7 @@ class _InternalDebugger:
 
         def callback(thread: ThreadContext, _: int) -> None:
             """The callback to execute when the signal is received."""
-            thread.signal_number = new_signal_number
+            thread.signal = new_signal_number
 
         return self.hook_signal(original_signal_number, callback, hook_hijack)
 
@@ -917,30 +922,45 @@ class _InternalDebugger:
             self._enable_pretty_print()
 
     @property
-    def signal_to_pass(self: _InternalDebugger) -> list[str]:
-        """Get the signal to pass to the process.
+    def signal_to_block(self: _InternalDebugger) -> list[str]:
+        """Get the signal to not forward to the process.
 
         Returns:
-            list[str]: The signals to pass.
+            list[str]: The signals to block.
         """
-        return [resolve_signal_name(v) for v in self.context._signal_to_pass]
+        return [resolve_signal_name(v) for v in self.context._signal_to_block]
 
-    @signal_to_pass.setter
-    def signal_to_pass(self: _InternalDebugger, signals: list[int] | list[str]) -> None:
-        """Set the signal to pass to the process.
+    @signal_to_block.setter
+    def signal_to_block(self: _InternalDebugger, signals: list[int] | list[str]) -> None:
+        """Set the signal to not forward to the process.
 
         Args:
-            signals (list[int] | list[str]): The signals to pass.
+            signals (list[int] | list[str]): The signals to block.
         """
         if not isinstance(signals, list):
-            raise TypeError("signal_to_pass must be a list of integers or strings")
+            raise TypeError("signal_to_block must be a list of integers or strings")
 
         signals = [v if isinstance(v, int) else resolve_signal_number(v) for v in signals]
 
         if not set(signals).issubset(get_all_signal_numbers()):
             raise ValueError("Invalid signal number.")
 
-        self.context._signal_to_pass = signals
+        self.context._signal_to_block = signals
+
+    @property
+    def threads(self: _InternalDebugger) -> ThreadList:
+        """Get the list of threads in the process."""
+        return self._threads
+
+    @property
+    def process_id(self: _InternalDebugger) -> int:
+        """Get the process ID of the process."""
+        return self.context.process_id
+
+    @property
+    def pid(self: _InternalDebugger) -> int:
+        """Get the process ID of the process."""
+        return self.context.process_id
 
     @background_alias(_background_invalid_call)
     def migrate_to_gdb(self: _InternalDebugger, open_in_new_process: bool = True) -> None:
@@ -1094,14 +1114,13 @@ class _InternalDebugger:
         if not self.threads:
             raise AttributeError(f"'debugger has no attribute '{name}'")
 
-        self._ensure_process_stopped()
-
         thread_context = self.threads[0]
 
-        if not hasattr(thread_context, name):
-            raise AttributeError(f"'debugger has no attribute '{name}'")
-
-        return getattr(thread_context, name)
+        # hasattr internally calls getattr, so we use this to avoid double access to the attribute
+        # do not use None as default value, as it is a valid value
+        if (attr := getattr(thread_context, name, self._sentinel)) == self._sentinel:
+            raise AttributeError(f"'Debugger has no attribute '{name}'")
+        return attr
 
     def __setattr__(self: _InternalDebugger, name: str, value: object) -> None:
         """This function is called when an attribute is set in the `_InternalDebugger` object.
@@ -1294,22 +1313,12 @@ class _InternalDebugger:
                 # All threads are dead
                 liblog.debugger("All threads dead")
                 break
-            self.context._resume_context.resume = ResumeStatus.UNDECIDED
+            self.context._resume_context.resume = True
             self.interface.wait()
-            match self.context._resume_context.resume:
-                case ResumeStatus.RESUME:
-                    self.interface.cont()
-                case ResumeStatus.NOT_RESUME:
-                    break
-                case ResumeStatus.UNDECIDED:
-                    if self.context.force_continue:
-                        liblog.warning(
-                            "Stop due to unhandled signal. Trying to continue.",
-                        )
-                        self.interface.cont()
-                    else:
-                        liblog.warning("Stop due to unhandled signal. Hanging.")
-                        break
+            if self.context._resume_context.resume:
+                self.interface.cont()
+            else:
+                break
 
         self.context.set_stopped()
 
@@ -1350,7 +1359,6 @@ def debugger(
     escape_antidebug: bool = False,
     continue_to_binary_entrypoint: bool = True,
     auto_interrupt_on_command: bool = False,
-    force_continue: bool = True,
 ) -> _InternalDebugger:
     """This function is used to create a new `_InternalDebugger` object. It takes as input the location of the binary to debug and returns a `_InternalDebugger` object.
 
@@ -1361,7 +1369,6 @@ def debugger(
         escape_antidebug (bool): Whether to automatically attempt to patch antidebugger detectors based on the ptrace syscall.
         continue_to_binary_entrypoint (bool, optional): Whether to automatically continue to the binary entrypoint. Defaults to True.
         auto_interrupt_on_command (bool, optional): Whether to automatically interrupt the process when a command is issued. Defaults to False.
-        force_continue (bool, optional): Whether to force the process to continue after an unhandled signal is received. Defaults to True.
 
     Returns:
         _InternalDebugger: The `_InternalDebugger` object.
@@ -1373,15 +1380,12 @@ def debugger(
 
     debugging_context = create_context(debugger)
 
-    debugging_context.clear()
-
     debugging_context.argv = argv
     debugging_context.env = env
     debugging_context.aslr_enabled = enable_aslr
     debugging_context.autoreach_entrypoint = continue_to_binary_entrypoint
     debugging_context.auto_interrupt_on_command = auto_interrupt_on_command
     debugging_context.escape_antidebug = escape_antidebug
-    debugging_context.force_continue = force_continue
 
     debugger._post_init_()
 

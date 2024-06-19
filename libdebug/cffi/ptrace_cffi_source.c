@@ -32,7 +32,7 @@ struct software_breakpoint {
 struct thread {
     int tid;
     struct user_regs_struct regs;
-    int signal_to_deliver;
+    int signal_to_forward;
     struct thread *next;
 };
 
@@ -59,7 +59,7 @@ struct user_regs_struct *register_thread(struct global_state *state, int tid)
 
     t = malloc(sizeof(struct thread));
     t->tid = tid;
-    t->signal_to_deliver = 0;
+    t->signal_to_forward = 0;
 
     ptrace(PTRACE_GETREGS, tid, NULL, &t->regs);
 
@@ -244,18 +244,18 @@ long singlestep(struct global_state *state, int tid)
 {
     // flush any register changes
     struct thread *t = state->t_HEAD;
-    int signal_to_deliver = 0;
+    int signal_to_forward = 0;
     while (t != NULL) {
         if (ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs))
             perror("ptrace_setregs");
         if (t->tid == tid) {
-            signal_to_deliver = t->signal_to_deliver;
-            t->signal_to_deliver = 0;
+            signal_to_forward = t->signal_to_forward;
+            t->signal_to_forward = 0;
         }
         t = t->next;
     }
 
-    return ptrace(PTRACE_SINGLESTEP, tid, NULL, signal_to_deliver);
+    return ptrace(PTRACE_SINGLESTEP, tid, NULL, signal_to_forward);
 }
 
 int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps)
@@ -373,10 +373,10 @@ int cont_all_and_set_bps(struct global_state *state, int pid)
     // continue the execution of all the threads
     struct thread *t = state->t_HEAD;
     while (t != NULL) {
-        if (ptrace(state->syscall_hooks_enabled ? PTRACE_SYSCALL : PTRACE_CONT, t->tid, NULL, t->signal_to_deliver))
-            fprintf(stderr, "ptrace_cont failed for thread %d with signal %d: %s\\n", t->tid, t->signal_to_deliver,
+        if (ptrace(state->syscall_hooks_enabled ? PTRACE_SYSCALL : PTRACE_CONT, t->tid, NULL, t->signal_to_forward))
+            fprintf(stderr, "ptrace_cont failed for thread %d with signal %d: %s\\n", t->tid, t->signal_to_forward,
                     strerror(errno));
-        t->signal_to_deliver = 0;
+        t->signal_to_forward = 0;
         t = t->next;
     }
 

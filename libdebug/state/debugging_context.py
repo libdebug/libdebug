@@ -20,6 +20,7 @@ from libdebug.utils.debugging_utils import (
 )
 
 if TYPE_CHECKING:
+    from libdebug.data.thread_list import ThreadList
     from libdebug.data.breakpoint import Breakpoint
     from libdebug.data.memory_view import MemoryView
     from libdebug.data.signal_hook import SignalHook
@@ -52,9 +53,6 @@ class DebuggingContext:
     auto_interrupt_on_command: bool
     """A flag that indicates if the debugger should automatically interrupt the debugged process when a command is issued."""
 
-    force_continue: bool
-    """A flag that indicates if the debugger should force the debugged process to continue after an unhandled signal is received."""
-
     _breakpoints: dict[int, Breakpoint]
     """A dictionary of all the breakpoints set on the process.
     Key: the address of the breakpoint."""
@@ -67,8 +65,8 @@ class DebuggingContext:
     """A dictionary of all the signal hooks set on the process.
     Key: the signal number."""
 
-    _signal_to_pass: list[int]
-    """The signals to pass to the process."""
+    _signal_to_block: list[int]
+    """The signals to not forward to the process."""
 
     _syscalls_to_pprint: list[int] | None
     """The syscalls to pretty print."""
@@ -76,7 +74,7 @@ class DebuggingContext:
     _syscalls_to_not_pprint: list[int] | None
     """The syscalls to not pretty print."""
 
-    _threads: list[ThreadContext]
+    threads: ThreadList[ThreadContext]
     """A list of all the threads of the debugged process."""
 
     pipe_manager: PipeManager
@@ -111,13 +109,14 @@ class DebuggingContext:
         self._breakpoints = {}
         self._syscall_hooks = {}
         self._signal_hooks = {}
-        self._signal_to_pass = []
+        self._signal_to_block = []
         self._syscalls_to_pprint = None
         self._syscalls_to_not_pprint = None
-        self._threads = []
         self._pprint_syscalls = False
+        self.pipe_manager = None
+        self.process_id = 0
+        self._is_running = False
         self._resume_context = ResumeContext()
-        self.clear()
 
     def clear(self: DebuggingContext) -> None:
         """Reinitializes the context, so it is ready for a new run."""
@@ -125,12 +124,12 @@ class DebuggingContext:
         self._breakpoints.clear()
         self._syscall_hooks.clear()
         self._signal_hooks.clear()
-        self._threads.clear()
+        self.threads.clear()
         self.pipe_manager = None
         self._is_running = False
         self._syscalls_to_pprint = None
         self._syscalls_to_not_pprint = None
-        self._signal_to_pass.clear()
+        self._signal_to_block.clear()
         self.process_id = 0
         self._resume_context = ResumeContext()
 
@@ -209,35 +208,32 @@ class DebuggingContext:
         """
         del self._signal_hooks[signal_hook.signal_number]
 
-    @property
-    def threads(self: DebuggingContext) -> dict[int, ThreadContext]:
-        """Get the threads dictionary.
-
-        Returns:
-            dict[int, ThreadContext]: the threads dictionary.
-        """
-        return self._threads
-
     def insert_new_thread(self: DebuggingContext, thread: ThreadContext) -> None:
         """Insert a new thread in the context.
 
         Args:
             thread (ThreadContext): the thread to insert.
         """
-        if thread in self._threads:
+        if thread in self.threads:
             raise RuntimeError("Thread already registered.")
 
-        self._threads.append(thread)
+        self.threads.append(thread)
 
-    def set_thread_as_dead(self: DebuggingContext, thread_id: int) -> None:
-        """Remove a thread from the context.
+    def set_thread_as_dead(
+        self: DebuggingContext, thread_id: int, exit_code: int | None, exit_signal: int | None
+    ) -> None:
+        """Set a thread as dead and update its exit code and exit signal.
 
         Args:
-            thread_id (int): the ID of the thread to remove.
+            thread_id (int): the ID of the thread to set as dead.
+            exit_code (int, optional): the exit code of the thread.
+            exit_signal (int, optional): the exit signal of the thread.
         """
-        for thread in self._threads:
+        for thread in self.threads:
             if thread.thread_id == thread_id:
                 thread.dead = True
+                thread._exit_code = exit_code
+                thread._exit_signal = exit_signal
                 break
 
     def get_thread_by_id(self: DebuggingContext, thread_id: int) -> ThreadContext:
@@ -249,7 +245,7 @@ class DebuggingContext:
         Returns:
             ThreadContext: the thread with the specified ID.
         """
-        for thread in self._threads:
+        for thread in self.threads:
             if thread.thread_id == thread_id and not thread.dead:
                 return thread
 
@@ -279,7 +275,7 @@ class DebuggingContext:
         Returns:
             bool: True if the process is dead, False otherwise.
         """
-        return not self._threads
+        return not self.threads
 
     def resolve_address(self: DebuggingContext, address: int) -> int:
         """Normalizes and validates the specified address.

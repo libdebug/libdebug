@@ -11,6 +11,7 @@ from libdebug.architectures.stack_unwinding_provider import stack_unwinding_prov
 from libdebug.liblog import liblog
 from libdebug.state.debugging_context import debugging_context
 from libdebug.utils.debugging_utils import resolve_address_in_maps
+from libdebug.utils.signal_utils import resolve_signal_name, resolve_signal_number
 
 if TYPE_CHECKING:
     from libdebug.data.memory_view import MemoryView
@@ -30,16 +31,19 @@ class ThreadContext:
     instruction_pointer: int
     """The thread's instruction pointer."""
 
-    process_id: int
-    """The process ID of the thread."""
-
     registers: RegisterHolder | None = None
     """The register holder object. It provides access to the thread's registers."""
 
-    signal_number: int = 0
-    """The signal to deliver to the thread."""
+    _exit_code: int | None = None
+    """The thread's exit code."""
 
-    thread_id: int
+    _exit_signal: int | None = None
+    """The thread's exit signal."""
+
+    _signal_number: int = 0
+    """The signal to forward to the thread."""
+
+    _thread_id: int
     """The thread's ID."""
 
     _dirty: bool = False
@@ -53,7 +57,7 @@ class ThreadContext:
 
     def __init__(self: ThreadContext, thread_id: int) -> None:
         """Initializes the Thread Context."""
-        self.thread_id = thread_id
+        self._thread_id = thread_id
 
     @staticmethod
     def new(thread_id: int | None = None, registers: RegisterHolder | None = None) -> ThreadContext:
@@ -90,6 +94,60 @@ class ThreadContext:
     def process_id(self: ThreadContext) -> int:
         """The process ID of the thread."""
         return self.context.process_id
+
+    @property
+    def pid(self: ThreadContext) -> int:
+        """The process ID of the thread."""
+        return self.context.process_id
+
+    @property
+    def thread_id(self: ThreadContext) -> int:
+        """The thread ID."""
+        return self._thread_id
+
+    @property
+    def tid(self: ThreadContext) -> int:
+        """The thread ID."""
+        return self._thread_id
+
+    @property
+    def signal(self: ThreadContext) -> str | None:
+        """The signal will be forwarded to the thread."""
+        return None if self._signal_number == 0 else resolve_signal_name(self._signal_number)
+
+    @property
+    def exit_code(self: ThreadContext) -> int | None:
+        """The thread's exit code."""
+        if not self.dead:
+            liblog.warning("Thread is not dead. No exit code available.")
+        elif self._exit_code is None and self._exit_signal is not None:
+            liblog.warning(
+                "Thread exited with signal %s. No exit code available.", resolve_signal_name(self._exit_signal)
+            )
+        return self._exit_code
+
+    @property
+    def exit_signal(self: ThreadContext) -> int | None:
+        """The thread's exit signal."""
+        if not self.dead:
+            liblog.warning("Thread is not dead. No exit signal available.")
+            return None
+        elif self._exit_signal is None and self._exit_code is not None:
+            liblog.warning("Thread exited with code %d. No exit signal available.", self._exit_code)
+            return None
+        return resolve_signal_name(self._exit_signal)
+
+    @signal.setter
+    def signal(self: ThreadContext, signal: str | int) -> None:
+        """Set the signal to forward to the thread."""
+        if self._signal_number != 0:
+            liblog.debugger(
+                f"Overwriting signal {resolve_signal_name(self._signal_number)} with {resolve_signal_name(signal) if isinstance(signal, int) else signal}."
+            )
+        if isinstance(signal, str):
+            signal = resolve_signal_number(signal)
+        self._signal_number = signal
+        self.context._resume_context.threads_with_signals_to_forward.append(self.thread_id)
 
     def _poll_registers(self: ThreadContext) -> None:
         """Updates the register values."""

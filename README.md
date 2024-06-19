@@ -446,7 +446,7 @@ The function returns a `Breakpoint` object, which can be interacted with in the 
 libdebug supports the hooking of signals, that is, executing a callback when a specific signal directed at the child process is intercepted by the tracer.
 ```python
 def hook_SIGUSR1(t, signal_number):
-    t.signal_number = 0x0
+    t.signal = 0x0
     print("Ciao mamma, I'm hooking a signal")
 
 def hook_SIGINT(t, signal_number):
@@ -472,26 +472,27 @@ Note: There can be at most one user-defined hook for each signal. \
 If a new hook is defined for a signal that is already hooked or hijacked, the new hook replaces the old one, and a warning is shown.
 
 ## Signal Passing
-You can also decide which signals are forwarded to the child process during execution. By default, no signals are forwarded; instead, all are managed by the debugger.
+You can also decide which signals are not forwarded to the child process during execution. By default, all signals not related to the libdebug internal working are forwarded. SIGSTOP is never passed to the process.
 
 ```python
 d = debugger("binary")
 
 r = d.run()
 
-d.signal_to_pass = [10, 15, 'SIGINT', 3, 13]
+d.signal_to_block = [10, 15, 'SIGINT', 3, 13]
 
 d.cont()
 ```
+By default, all signals unrelated to debugger operations are forwarded to the process.
 
-You can also decide what libdebug should do when it encounters an unrecognized signal by using the `force_continue` flag of the debugger. This situation can occur with SIGTRAP signals not related to breakpoints, special signals not related to debugging operations and that are not explicitly hooked or passed to the process, and so on.
-libdebug already filters out as many spurious signals as possible that are raised due to the internal workings of ptrace.
-Regardless of the choice, a warning is displayed when an unmanaged signal is encountered.
-The default value is true, which means the debugger always tries to continue the execution.
+You can also decide to send a new signal to the process that will be forwarded at first, following `d.cont()`.
 
 ```python
-d = debugger("binary", force_continue=True)
+if bp.hit_on(d):
+    d.signal = 10
+d.cont()
 ```
+
 
 ## Signal Hijacking
 libdebug also provides a direct way to intercept a signal and modify it before sending it to the child process. In other words, it allows you to hijack a signal and change it to a different signal.
