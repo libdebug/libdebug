@@ -9,9 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from libdebug.debugger.internal_debugger_instance_manager import (
-    get_global_internal_debugger,
-)
+from libdebug.architectures.amd64.amd64_registers import Amd64Registers
 from libdebug.ptrace.ptrace_register_holder import PtraceRegisterHolder
 
 if TYPE_CHECKING:
@@ -55,11 +53,11 @@ AMD64_REGS = [
 
 
 def _get_property_64(name: str) -> property:
-    def getter(self: Amd64Regs) -> int:
+    def getter(self: Amd64Registers) -> int:
         self._internal_debugger._ensure_process_stopped()
         return getattr(self.register_file, name)
 
-    def setter(self: Amd64Regs, value: int) -> None:
+    def setter(self: Amd64Registers, value: int) -> None:
         self._internal_debugger._ensure_process_stopped()
         setattr(self.register_file, name, value)
 
@@ -67,11 +65,11 @@ def _get_property_64(name: str) -> property:
 
 
 def _get_property_32(name: str) -> property:
-    def getter(self: Amd64Regs) -> int:
+    def getter(self: Amd64Registers) -> int:
         self._internal_debugger._ensure_process_stopped()
         return getattr(self.register_file, name) & 0xFFFFFFFF
 
-    def setter(self: Amd64Regs, value: int) -> None:
+    def setter(self: Amd64Registers, value: int) -> None:
         self._internal_debugger._ensure_process_stopped()
         return setattr(self.register_file, name, value & 0xFFFFFFFF)
 
@@ -79,11 +77,11 @@ def _get_property_32(name: str) -> property:
 
 
 def _get_property_16(name: str) -> property:
-    def getter(self: Amd64Regs) -> int:
+    def getter(self: Amd64Registers) -> int:
         self._internal_debugger._ensure_process_stopped()
         return getattr(self.register_file, name) & 0xFFFF
 
-    def setter(self: Amd64Regs, value: int) -> None:
+    def setter(self: Amd64Registers, value: int) -> None:
         self._internal_debugger._ensure_process_stopped()
         value = getattr(self.register_file, name) & ~0xFFFF | (value & 0xFFFF)
         setattr(self.register_file, name, value)
@@ -92,11 +90,11 @@ def _get_property_16(name: str) -> property:
 
 
 def _get_property_8l(name: str) -> property:
-    def getter(self: Amd64Regs) -> int:
+    def getter(self: Amd64Registers) -> int:
         self._internal_debugger._ensure_process_stopped()
         return getattr(self.register_file, name) & 0xFF
 
-    def setter(self: Amd64Regs, value: int) -> None:
+    def setter(self: Amd64Registers, value: int) -> None:
         self._internal_debugger._ensure_process_stopped()
         value = getattr(self.register_file, name) & ~0xFF | (value & 0xFF)
         setattr(self.register_file, name, value)
@@ -105,35 +103,30 @@ def _get_property_8l(name: str) -> property:
 
 
 def _get_property_8h(name: str) -> property:
-    def getter(self: Amd64Regs) -> int:
+    def getter(self: Amd64Registers) -> int:
         self._internal_debugger._ensure_process_stopped()
         return getattr(self.register_file, name) >> 8 & 0xFF
 
-    def setter(self: Amd64Regs, value: int) -> None:
+    def setter(self: Amd64Registers, value: int) -> None:
         self._internal_debugger._ensure_process_stopped()
         value = getattr(self.register_file, name) & ~0xFF00 | (value & 0xFF) << 8
         setattr(self.register_file, name, value)
 
     return property(getter, setter, None, name)
 
-@dataclass
-class Amd64Regs():
-    def __init__(self: Amd64Regs):
-        self._internal_debugger = get_global_internal_debugger()
 
 @dataclass
 class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
     """A class that provides views and setters for the registers of an x86_64 process."""
-    
+
     def provide_regs_class(self: Amd64PtraceRegisterHolder) -> type:
         """Provide a class to hold the register accessors."""
-        return Amd64Regs
+        return Amd64Registers
 
-    def apply_on_regs(self: Amd64PtraceRegisterHolder, target: Amd64Regs, target_class: type) -> None:
-        """Apply the register accessors to the Amd64Regs class."""
-        
+    def apply_on_regs(self: Amd64PtraceRegisterHolder, target: Amd64Registers, target_class: type) -> None:
+        """Apply the register accessors to the Amd64Registers class."""
         target.register_file = self.register_file
-        
+
         # If the accessors are already defined, we don't need to redefine them
         if hasattr(target_class, "rip"):
             return
@@ -176,8 +169,7 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
 
         # setup special registers
         target_class.rip = _get_property_64("rip")
-        
-        
+
     def apply_on_thread(self: Amd64PtraceRegisterHolder, target: ThreadContext, target_class: type) -> None:
         """Apply the register accessors to the thread class."""
         target.register_file = self.register_file
