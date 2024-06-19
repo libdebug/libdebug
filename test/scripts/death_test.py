@@ -58,7 +58,7 @@ class DeathTest(unittest.TestCase):
 
         with self.assertRaises(RuntimeError):
             d.cont()
-                       
+
         self.assertEqual(d.dead, True)
         self.assertEqual(d.threads[0].dead, True)
 
@@ -138,7 +138,7 @@ class DeathTest(unittest.TestCase):
 
         d.kill()
 
-    def test_exit_code_kill(self):
+    def test_post_mortem_after_kill(self):
         d = debugger("binaries/basic_test")
 
         d.run()
@@ -148,6 +148,7 @@ class DeathTest(unittest.TestCase):
         d.interrupt()
         d.kill()
 
+        # We should be able to access the registers also after the process has been killed
         d.regs.rax
         d.regs.rbx
         d.regs.rcx
