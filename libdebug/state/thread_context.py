@@ -207,3 +207,38 @@ class ThreadContext:
             exact (bool, optional): Whether or not to execute in step mode. Defaults to True.
         """
         self._internal_debugger.finish(self, exact)
+
+    def si(self: ThreadContext) -> None:
+        """Alias for the `step` method.
+
+        Executes a single instruction of the process.
+        """
+        self._internal_debugger.step(self)
+
+    def su(
+        self: ThreadContext,
+        position: int | str,
+        max_steps: int = -1,
+    ) -> None:
+        """Alias for the `step_until` method.
+
+        Executes instructions of the process until the specified location is reached.
+
+        Args:
+            position (int | bytes): The location to reach.
+            max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
+        """
+        self._internal_debugger.step_until(self, position, max_steps)
+
+    def fin(self: ThreadContext, exact: bool = True) -> None:
+        """Alias for the `finish` method.
+
+        Continues the process until the current function returns or the process stops.
+
+        When used in step mode, it will step until a return instruction is executed. Otherwise, it uses a heuristic
+        based on the call stack to breakpoint (exact is slower).
+
+        Args:
+            exact (bool, optional): Whether or not to execute in step mode. Defaults to True.
+        """
+        self._internal_debugger.finish(self, exact)
