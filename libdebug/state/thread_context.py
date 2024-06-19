@@ -18,6 +18,7 @@ from libdebug.utils.signal_utils import resolve_signal_name, resolve_signal_numb
 if TYPE_CHECKING:
     from libdebug.data.memory_view import MemoryView
     from libdebug.data.register_holder import RegisterHolder
+    from libdebug.data.registers import Registers
     from libdebug.debugger.internal_debugger import InternalDebugger
 
 
@@ -26,6 +27,33 @@ class ThreadContext:
 
     instruction_pointer: int
     """The thread's instruction pointer."""
+
+    syscall_arg0: int
+    """The thread's syscall argument 0."""
+
+    syscall_arg1: int
+    """The thread's syscall argument 1."""
+
+    syscall_arg2: int
+    """The thread's syscall argument 2."""
+
+    syscall_arg3: int
+    """The thread's syscall argument 3."""
+
+    syscall_arg4: int
+    """The thread's syscall argument 4."""
+
+    syscall_arg5: int
+    """The thread's syscall argument 5."""
+
+    syscall_number: int
+    """The thread's syscall number."""
+
+    syscall_return: int
+    """The thread's syscall return value."""
+
+    regs: Registers
+    """The thread's registers."""
 
     _internal_debugger: InternalDebugger | None = None
     """The debugging context this thread belongs to."""
