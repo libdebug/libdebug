@@ -52,7 +52,7 @@ class SignalMultithreadTest(unittest.TestCase):
         hook4 = d.hook_signal("SIGQUIT", callback=hook_SIGQUIT)
         hook5 = d.hook_signal("SIGPIPE", callback=hook_SIGPIPE)
 
-        d.signal_to_block = ["SIGUSR1", 15, "SIGINT", 3, 13]
+        d.signals_to_block = ["SIGUSR1", 15, "SIGINT", 3, 13]
 
         d.cont()
 
@@ -209,7 +209,7 @@ class SignalMultithreadTest(unittest.TestCase):
         hook4 = d.hook_signal("SIGQUIT", callback=hook_SIGQUIT)
         hook5 = d.hook_signal("SIGPIPE", callback=hook_SIGPIPE)
 
-        d.signal_to_block = ["SIGUSR1", 15, "SIGINT", 3, 13]
+        d.signals_to_block = ["SIGUSR1", 15, "SIGINT", 3, 13]
 
         d.cont()
 

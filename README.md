@@ -479,7 +479,7 @@ d = debugger("binary")
 
 r = d.run()
 
-d.signal_to_block = [10, 15, 'SIGINT', 3, 13]
+d.signals_to_block = [10, 15, 'SIGINT', 3, 13]
 
 d.cont()
 ```

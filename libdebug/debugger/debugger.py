@@ -300,11 +300,11 @@ class Debugger:
             return [resolve_syscall_name(v) for v in self._internal_debugger.syscalls_to_pprint]
 
     @syscalls_to_pprint.setter
-    def syscalls_to_pprint(self: Debugger, value: list[int] | list[str] | None) -> None:
+    def syscalls_to_pprint(self: Debugger, value: list[int | str] | None) -> None:
         """Get the syscalls to pretty print.
 
         Args:
-            value (list[int] | list[str] | None): The syscalls to pretty print.
+            value (list[int | str] | None): The syscalls to pretty print.
         """
         if value is None:
             self._internal_debugger.syscalls_to_pprint = None
@@ -332,11 +332,11 @@ class Debugger:
             return [resolve_syscall_name(v) for v in self._internal_debugger.syscalls_to_not_pprint]
 
     @syscalls_to_not_pprint.setter
-    def syscalls_to_not_pprint(self: Debugger, value: list[int] | list[str] | None) -> None:
+    def syscalls_to_not_pprint(self: Debugger, value: list[int | str] | None) -> None:
         """Get the syscalls to not pretty print.
 
         Args:
-            value (list[int] | list[str] | None): The syscalls to not pretty print.
+            value (list[int | str] | None): The syscalls to not pretty print.
         """
         if value is None:
             self._internal_debugger.syscalls_to_not_pprint = None
@@ -352,30 +352,30 @@ class Debugger:
             self._internal_debugger.enable_pretty_print()
 
     @property
-    def signal_to_block(self: Debugger) -> list[str]:
-        """Get the signal to not forward to the process.
+    def signals_to_block(self: Debugger) -> list[str]:
+        """Get the signals to not forward to the process.
 
         Returns:
             list[str]: The signals to block.
         """
-        return [resolve_signal_name(v) for v in self._internal_debugger.signal_to_block]
+        return [resolve_signal_name(v) for v in self._internal_debugger.signals_to_block]
 
-    @signal_to_block.setter
-    def signal_to_block(self: Debugger, signals: list[int] | list[str]) -> None:
+    @signals_to_block.setter
+    def signals_to_block(self: Debugger, signals: list[int | str]) -> None:
         """Set the signal to not forward to the process.
 
         Args:
-            signals (list[int] | list[str]): The signals to block.
+            signals (list[int | str]): The signals to block.
         """
         if not isinstance(signals, list):
-            raise TypeError("signal_to_block must be a list of integers or strings")
+            raise TypeError("signals_to_block must be a list of integers or strings")
 
         signals = [v if isinstance(v, int) else resolve_signal_number(v) for v in signals]
 
         if not set(signals).issubset(get_all_signal_numbers()):
             raise ValueError("Invalid signal number.")
 
-        self._internal_debugger.signal_to_block = signals
+        self._internal_debugger.signals_to_block = signals
 
     def __getattr__(self: Debugger, name: str) -> object:
         """This function is called when an attribute is not found in the `Debugger` object.

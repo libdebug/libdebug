@@ -54,10 +54,6 @@ from libdebug.utils.syscall_utils import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from libdebug.data.breakpoint import Breakpoint
-    from libdebug.data.memory_view import MemoryView
-    from libdebug.data.signal_hook import SignalHook
-    from libdebug.data.syscall_hook import SyscallHook
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.state.thread_context import ThreadContext
     from libdebug.utils.pipe_manager import PipeManager
@@ -99,7 +95,7 @@ class InternalDebugger:
     """A dictionary of all the signal hooks set on the process.
     Key: the signal number."""
 
-    signal_to_block: list[int]
+    signals_to_block: list[int]
     """The signals to not forward to the process."""
 
     syscalls_to_pprint: list[int] | None
@@ -157,7 +153,7 @@ class InternalDebugger:
         self.signal_hooks = {}
         self.syscalls_to_pprint = None
         self.syscalls_to_not_pprint = None
-        self.signal_to_block = []
+        self.signals_to_block = []
         self.pprint_syscalls = False
         self.pipe_manager = None
         self.process_id = 0
@@ -176,7 +172,7 @@ class InternalDebugger:
         self.signal_hooks.clear()
         self.syscalls_to_pprint = None
         self.syscalls_to_not_pprint = None
-        self.signal_to_block.clear()
+        self.signals_to_block.clear()
         self.pprint_syscalls = False
         if self.pipe_manager:
             self.pipe_manager = None
