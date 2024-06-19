@@ -15,7 +15,7 @@ class WatchpointAliasTest(unittest.TestCase):
 
         d.run()
 
-        d.watchpoint("global_char", condition="rw", length=1)
+        d.wp("global_char", condition="rw", length=1)
         d.watchpoint("global_int", condition="w", length=4)
         d.watchpoint("global_long", condition="rw", length=8)
 
@@ -29,9 +29,7 @@ class WatchpointAliasTest(unittest.TestCase):
 
         d.cont()
 
-        self.assertEqual(
-            d.regs.rip, 0x401135
-        )  # mov qword ptr [global_long], 0x8090a0b0c0d0e0f
+        self.assertEqual(d.regs.rip, 0x401135)  # mov qword ptr [global_long], 0x8090a0b0c0d0e0f
 
         d.cont()
 
@@ -69,33 +67,19 @@ class WatchpointAliasTest(unittest.TestCase):
 
         d.run()
 
-        wp1 = d.watchpoint(
-            "global_char", condition="rw", length=1, callback=watchpoint_global_char
-        )
-        wp2 = d.watchpoint(
-            "global_int", condition="w", length=4, callback=watchpoint_global_int
-        )
-        wp3 = d.watchpoint(
-            "global_long", condition="rw", length=8, callback=watchpoint_global_long
-        )
+        wp1 = d.watchpoint("global_char", condition="rw", length=1, callback=watchpoint_global_char)
+        wp2 = d.wp("global_int", condition="w", length=4, callback=watchpoint_global_int)
+        wp3 = d.watchpoint("global_long", condition="rw", length=8, callback=watchpoint_global_long)
 
         d.cont()
 
         d.kill()
 
         self.assertEqual(global_char_ip[0], 0x401111)  # mov byte ptr [global_char], 0x1
-        self.assertEqual(
-            global_int_ip[0], 0x401124
-        )  # mov dword ptr [global_int], 0x4050607
-        self.assertEqual(
-            global_long_ip[0], 0x401135
-        )  # mov qword ptr [global_long], 0x8090a0b0c0d0e0f
-        self.assertEqual(
-            global_char_ip[1], 0x401155
-        )  # movzx eax, byte ptr [global_char]
-        self.assertEqual(
-            global_long_ip[1], 0x401173
-        )  # mov rax, qword ptr [global_long]
+        self.assertEqual(global_int_ip[0], 0x401124)  # mov dword ptr [global_int], 0x4050607
+        self.assertEqual(global_long_ip[0], 0x401135)  # mov qword ptr [global_long], 0x8090a0b0c0d0e0f
+        self.assertEqual(global_char_ip[1], 0x401155)  # movzx eax, byte ptr [global_char]
+        self.assertEqual(global_long_ip[1], 0x401173)  # mov rax, qword ptr [global_long]
 
         self.assertEqual(len(global_char_ip), 2)
         self.assertEqual(len(global_int_ip), 1)

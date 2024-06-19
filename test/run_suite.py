@@ -7,6 +7,7 @@
 import sys
 import unittest
 
+from scripts.alias_test import AliasTest
 from scripts.attach_detach_test import AttachDetachTest
 from scripts.auto_waiting_test import AutoWaitingNcuts, AutoWaitingTest
 from scripts.backtrace_test import BacktraceTest
@@ -15,8 +16,9 @@ from scripts.breakpoint_test import BreakpointTest
 from scripts.brute_test import BruteTest
 from scripts.builtin_hooks_test import AntidebugEscapingTest
 from scripts.callback_test import CallbackTest
-from scripts.finish_test import FinishTest
+from scripts.death_test import DeathTest
 from scripts.deep_dive_division_test import DeepDiveDivision
+from scripts.finish_test import FinishTest
 from scripts.hijack_syscall_test import SyscallHijackTest
 from scripts.jumpout_test import Jumpout
 from scripts.jumpstart_test import JumpstartTest
@@ -25,6 +27,8 @@ from scripts.memory_test import MemoryTest
 from scripts.multiple_debuggers_test import MultipleDebuggersTest
 from scripts.ncuts_test import Ncuts
 from scripts.pprint_syscalls_test import PPrintSyscallsTest
+from scripts.signal_hook_test import SignalHookTest
+from scripts.signals_multithread_test import SignalMultithreadTest
 from scripts.speed_test import SpeedTest
 from scripts.syscall_hook_test import SyscallHookTest
 from scripts.thread_test import ComplexThreadTest, ThreadTest
@@ -32,9 +36,6 @@ from scripts.vmwhere1_test import Vmwhere1
 from scripts.waiting_test import WaitingNcuts, WaitingTest
 from scripts.watchpoint_alias_test import WatchpointAliasTest
 from scripts.watchpoint_test import WatchpointTest
-from scripts.signal_hook_test import SignalHookTest
-from scripts.signals_multithread_test import SignalMultithreadTest
-from scripts.death_test import DeathTest
 
 
 def fast_suite():
@@ -131,14 +132,10 @@ def fast_suite():
     suite.addTest(PPrintSyscallsTest("test_pprint_hijack_syscall"))
     suite.addTest(PPrintSyscallsTest("test_pprint_which_syscalls_pprint_after"))
     suite.addTest(PPrintSyscallsTest("test_pprint_which_syscalls_pprint_before"))
-    suite.addTest(
-        PPrintSyscallsTest("test_pprint_which_syscalls_pprint_after_and_before")
-    )
+    suite.addTest(PPrintSyscallsTest("test_pprint_which_syscalls_pprint_after_and_before"))
     suite.addTest(PPrintSyscallsTest("test_pprint_which_syscalls_not_pprint_after"))
     suite.addTest(PPrintSyscallsTest("test_pprint_which_syscalls_not_pprint_before"))
-    suite.addTest(
-        PPrintSyscallsTest("test_pprint_which_syscalls_not_pprint_after_and_before")
-    )
+    suite.addTest(PPrintSyscallsTest("test_pprint_which_syscalls_not_pprint_after_and_before"))
     suite.addTest(SignalHookTest("test_signal_hooking_block"))
     suite.addTest(SignalHookTest("test_signal_pass_to_process"))
     suite.addTest(SignalHookTest("test_signal_unhooking"))
@@ -170,6 +167,13 @@ def fast_suite():
     suite.addTest(DeathTest("test_exit_code_death"))
     suite.addTest(DeathTest("test_exit_code_normal"))
     suite.addTest(DeathTest("test_post_mortem_after_kill"))
+    suite.addTest(AliasTest("test_basic_alias"))
+    suite.addTest(AliasTest("test_step_alias"))
+    suite.addTest(AliasTest("test_step_until_alias"))
+    suite.addTest(AliasTest("test_memory_alias"))
+    suite.addTest(AliasTest("test_finish_alias"))
+    suite.addTest(AliasTest("test_waiting_alias"))
+    suite.addTest(AliasTest("test_interrupt_alias"))
     return suite
 
 
