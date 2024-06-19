@@ -107,7 +107,7 @@ class ThreadContext:
         return self._exit_code
 
     @property
-    def exit_signal(self: ThreadContext) -> int | None:
+    def exit_signal(self: ThreadContext) -> str | None:
         """The thread's exit signal."""
         self._internal_debugger._ensure_process_stopped()
         if not self.dead:

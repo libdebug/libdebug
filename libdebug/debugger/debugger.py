@@ -8,7 +8,6 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
-from libdebug.debugger.internal_debugger import InternalDebugger
 from libdebug.utils.signal_utils import (
     get_all_signal_numbers,
     resolve_signal_name,
@@ -26,6 +25,7 @@ if TYPE_CHECKING:
     from libdebug.data.memory_view import MemoryView
     from libdebug.data.signal_hook import SignalHook
     from libdebug.data.syscall_hook import SyscallHook
+    from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.state.thread_context import ThreadContext
 
 
