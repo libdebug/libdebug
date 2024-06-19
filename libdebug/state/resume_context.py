@@ -26,4 +26,4 @@ class ResumeContext:
         self.is_a_step = False
         self.is_startup = False
         self.block_on_signal = False
-        self.threads_with_signals_to_forward = []
+        self.threads_with_signals_to_forward.clear()

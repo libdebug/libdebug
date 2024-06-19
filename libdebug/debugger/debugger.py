@@ -402,6 +402,5 @@ class Debugger:
         if hasattr(Debugger, name):
             super().__setattr__(name, value)
         else:
-            self._internal_debugger._ensure_process_stopped()
             thread_context = self.threads[0]
             setattr(thread_context, name, value)

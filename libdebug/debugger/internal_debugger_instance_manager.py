@@ -41,7 +41,7 @@ def provide_internal_debugger(reference: object) -> InternalDebugger:
     return internal_debugger_holder.global_internal_debugger
 
 
-def link_internal_debugger(reference: object, internal_debugger: InternalDebugger) -> None:
+def link_to_internal_debugger(reference: object, internal_debugger: InternalDebugger) -> None:
     """Link a reference to a InternalDebugger.
 
     Args:

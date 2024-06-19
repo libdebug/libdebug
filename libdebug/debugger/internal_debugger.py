@@ -26,7 +26,7 @@ from libdebug.data.signal_hook import SignalHook
 from libdebug.data.syscall_hook import SyscallHook
 from libdebug.debugger.internal_debugger_instance_manager import (
     extend_internal_debugger,
-    link_internal_debugger,
+    link_to_internal_debugger,
 )
 from libdebug.interfaces.interface_helper import provide_debugging_interface
 from libdebug.liblog import liblog
@@ -174,8 +174,7 @@ class InternalDebugger:
         self.syscalls_to_not_pprint = None
         self.signals_to_block.clear()
         self.pprint_syscalls = False
-        if self.pipe_manager:
-            self.pipe_manager = None
+        self.pipe_manager = None
         self.process_id = 0
         self.threads.clear()
         self.instanced = False
@@ -186,7 +185,7 @@ class InternalDebugger:
         """Starts up the context."""
 
         # The context is linked to itself
-        link_internal_debugger(self, self)
+        link_to_internal_debugger(self, self)
 
         self.start_processing_thread()
         with extend_internal_debugger(self):
@@ -400,7 +399,7 @@ class InternalDebugger:
 
         bp = Breakpoint(address, position, 0, hardware, callback, condition, length)
 
-        link_internal_debugger(bp, self)
+        link_to_internal_debugger(bp, self)
 
         self.__polling_thread_command_queue.put((self.__threaded_breakpoint, (bp,)))
 
@@ -463,7 +462,7 @@ class InternalDebugger:
 
         hook = SignalHook(signal_number, callback, hook_hijack)
 
-        link_internal_debugger(hook, self)
+        link_to_internal_debugger(hook, self)
 
         self.__polling_thread_command_queue.put((self.__threaded_signal_hook, (hook,)))
 
@@ -575,7 +574,7 @@ class InternalDebugger:
                 hook_hijack,
             )
 
-            link_internal_debugger(hook, self)
+            link_to_internal_debugger(hook, self)
 
             self.__polling_thread_command_queue.put(
                 (self.__threaded_syscall_hook, (hook,)),
@@ -671,7 +670,7 @@ class InternalDebugger:
                 hook_hijack,
             )
 
-            link_internal_debugger(hook, self)
+            link_to_internal_debugger(hook, self)
 
             self.__polling_thread_command_queue.put(
                 (self.__threaded_syscall_hook, (hook,)),
@@ -921,7 +920,7 @@ class InternalDebugger:
                     pprint_on_exit,
                 )
 
-                link_internal_debugger(hook, self)
+                link_to_internal_debugger(hook, self)
 
                 self.__polling_thread_command_queue.put(
                     (self.__threaded_syscall_hook, (hook,)),
@@ -1262,7 +1261,7 @@ class InternalDebugger:
             None,
         )
 
-        link_internal_debugger(hook, self)
+        link_to_internal_debugger(hook, self)
 
         self.__polling_thread_command_queue.put((self.__threaded_syscall_hook, (hook,)))
 
