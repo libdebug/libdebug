@@ -104,7 +104,7 @@ class AliasTest(unittest.TestCase):
         self.assertEqual(d.regs.rip, 0x4011E3)
 
         # Finish function c
-        d.fin(exact=True)
+        d.fin(heuristic="step-mode")
 
         self.assertEqual(d.regs.rip, 0x401202)
 
@@ -122,7 +122,7 @@ class AliasTest(unittest.TestCase):
         self.assertEqual(d.regs.rip, 0x401146)
 
         # Finish function a
-        d.fin(exact=True)
+        d.fin(heuristic="step-mode")
 
         self.assertEqual(d.regs.rip, 0x4011E0)
 

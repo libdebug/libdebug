@@ -341,10 +341,14 @@ d.memory["main_arena"] = b"12345678"
 
 `wait()` will block the execution of the Python script until the debugging process interrupts.
 
-`finish([exact=True])` will continue the execution until the current function returns or the process is stopped (e.g., breakpoint).
+`finish([heuristic="backtrace"])` will continue the execution until the current function returns or the process is stopped (e.g., breakpoint).
 
-In **exact** mode, the debugger will iteratively perform single hardware steps until the return instruction of the current frame is executed. In **non-exact** mode, a breakpoint is placed on the return address and execution continues. In most cases, when the function frame is aligned with the calling convention, the flow of both modes coincides. However, in case of packed or non-conventional binaries, it is possible that the address found on the stack is wrong or cannot be detected by a software breakpoint. The reason why non-exact mode could be preferred is speed, as allowing execution to continue is still faster than hardware stepping for big functions.
+The available heuristics are:
 
+- **backtrace**: This heuristic uses the saved return address found on the stack or on a dedicated register to find the return address of the current function. A breakpoint is applied to the resolved address and execution is continued. This is the fastest heuristic and is fairly reliable, but it may not work in the presence of self-modifying code.
+- **step-mode**: This heuristic steps one instruction at a time until the ret instruction is executed in the current frame (nested calls are handled). This is a reliable heuristic, but is slow and fails in the case of tailcalls or similar optimizations.
+
+The default heuristic when none is specified is **backtrace**.
 `step_until(<address | symbol>, [max_steps=-1])` will step until the desired address is reached or for `max_steps` steps, whichever comes first.
 
 `breakpoint(<address | symbol>, [hardware=False])` will set a breakpoint, which can be hardware-assisted.
