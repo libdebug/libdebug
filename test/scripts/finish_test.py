@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Francesco Panebianco. All rights reserved.
+# Copyright (c) 2024 Francesco Panebianco, Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 import unittest
@@ -33,12 +33,12 @@ class FinishTest(unittest.TestCase):
         d.breakpoint(C_ADDRESS)
         d.cont()
 
-        self.assertEqual(d.rip, C_ADDRESS)
+        self.assertEqual(d.regs.rip, C_ADDRESS)
 
         # Finish function c
         d.finish(exact=True)
 
-        self.assertEqual(d.rip, RETURN_POINT_FROM_C)
+        self.assertEqual(d.regs.rip, RETURN_POINT_FROM_C)
 
         d.kill()
 
@@ -51,12 +51,12 @@ class FinishTest(unittest.TestCase):
         d.breakpoint(A_ADDRESS)
         d.cont()
 
-        self.assertEqual(d.rip, A_ADDRESS)
+        self.assertEqual(d.regs.rip, A_ADDRESS)
 
         # Finish function a
         d.finish(exact=True)
 
-        self.assertEqual(d.rip, RETURN_POINT_FROM_A)
+        self.assertEqual(d.regs.rip, RETURN_POINT_FROM_A)
 
         d.kill()
 
@@ -72,12 +72,12 @@ class FinishTest(unittest.TestCase):
         d.breakpoint(C_ADDRESS)
         d.cont()
 
-        self.assertEqual(d.rip, C_ADDRESS)
+        self.assertEqual(d.regs.rip, C_ADDRESS)
 
         # Finish function c
         d.finish(exact=False)
 
-        self.assertEqual(d.rip, RETURN_POINT_FROM_C)
+        self.assertEqual(d.regs.rip, RETURN_POINT_FROM_C)
 
         d.kill()
 
@@ -90,12 +90,12 @@ class FinishTest(unittest.TestCase):
         d.breakpoint(A_ADDRESS)
         d.cont()
 
-        self.assertEqual(d.rip, A_ADDRESS)
+        self.assertEqual(d.regs.rip, A_ADDRESS)
 
         # Finish function a
         d.finish(exact=False)
 
-        self.assertEqual(d.rip, RETURN_POINT_FROM_A)
+        self.assertEqual(d.regs.rip, RETURN_POINT_FROM_A)
 
         d.kill()
 
@@ -112,12 +112,12 @@ class FinishTest(unittest.TestCase):
         d.cont()
         d.wait()
 
-        self.assertEqual(d.rip, C_ADDRESS)
+        self.assertEqual(d.regs.rip, C_ADDRESS)
 
         # Finish function c
         d.finish(exact=True)
 
-        self.assertEqual(d.rip, RETURN_POINT_FROM_C)
+        self.assertEqual(d.regs.rip, RETURN_POINT_FROM_C)
 
         d.kill()
 
@@ -131,12 +131,12 @@ class FinishTest(unittest.TestCase):
         d.cont()
         d.wait()
 
-        self.assertEqual(d.rip, A_ADDRESS)
+        self.assertEqual(d.regs.rip, A_ADDRESS)
 
         # Finish function a
         d.finish(exact=True)
 
-        self.assertEqual(d.rip, RETURN_POINT_FROM_A)
+        self.assertEqual(d.regs.rip, RETURN_POINT_FROM_A)
 
         d.kill()
 
@@ -153,12 +153,12 @@ class FinishTest(unittest.TestCase):
         d.cont()
         d.wait()
 
-        self.assertEqual(d.rip, C_ADDRESS)
+        self.assertEqual(d.regs.rip, C_ADDRESS)
 
         # Finish function c
         d.finish(exact=False)
 
-        self.assertEqual(d.rip, RETURN_POINT_FROM_C)
+        self.assertEqual(d.regs.rip, RETURN_POINT_FROM_C)
 
         d.kill()
 
@@ -172,12 +172,12 @@ class FinishTest(unittest.TestCase):
         d.cont()
         d.wait()
 
-        self.assertEqual(d.rip, A_ADDRESS)
+        self.assertEqual(d.regs.rip, A_ADDRESS)
 
         # Finish function a
         d.finish(exact=False)
 
-        self.assertEqual(d.rip, RETURN_POINT_FROM_A)
+        self.assertEqual(d.regs.rip, RETURN_POINT_FROM_A)
 
         d.kill()
 
@@ -189,14 +189,14 @@ class FinishTest(unittest.TestCase):
         d.breakpoint(C_ADDRESS)
         d.cont()
 
-        self.assertEqual(d.rip, C_ADDRESS)
+        self.assertEqual(d.regs.rip, C_ADDRESS)
 
         d.breakpoint(A_ADDRESS)
 
         # Finish function c
         d.finish(exact=True)
 
-        self.assertEqual(d.rip, A_ADDRESS, f"Expected {hex(A_ADDRESS)} but got {hex(d.rip)}")
+        self.assertEqual(d.regs.rip, A_ADDRESS, f"Expected {hex(A_ADDRESS)} but got {hex(d.regs.rip)}")
 
         d.kill()
 
@@ -208,14 +208,14 @@ class FinishTest(unittest.TestCase):
         d.breakpoint(C_ADDRESS)
         d.cont()
 
-        self.assertEqual(d.rip, C_ADDRESS)
+        self.assertEqual(d.regs.rip, C_ADDRESS)
 
         d.breakpoint(A_ADDRESS)
 
         # Finish function c
         d.finish(exact=False)
 
-        self.assertEqual(d.rip, A_ADDRESS)
+        self.assertEqual(d.regs.rip, A_ADDRESS)
 
         d.kill()
 
@@ -227,7 +227,7 @@ class FinishTest(unittest.TestCase):
         d.breakpoint(C_ADDRESS)
         d.cont()
 
-        self.assertEqual(d.rip, C_ADDRESS)
+        self.assertEqual(d.regs.rip, C_ADDRESS)
 
         stack_unwinder = stack_unwinding_provider()
 
@@ -261,7 +261,7 @@ class FinishTest(unittest.TestCase):
         d.breakpoint(C_ADDRESS)
         d.cont()
 
-        self.assertEqual(d.rip, C_ADDRESS)
+        self.assertEqual(d.regs.rip, C_ADDRESS)
 
 
         # Place a breakpoint at a location inbetween
@@ -270,7 +270,7 @@ class FinishTest(unittest.TestCase):
         # Finish function c
         d.finish(exact=True)
 
-        self.assertEqual(d.rip, BREAKPOINT_LOCATION)
+        self.assertEqual(d.regs.rip, BREAKPOINT_LOCATION)
 
         d.kill()
 
@@ -284,7 +284,7 @@ class FinishTest(unittest.TestCase):
         d.breakpoint(C_ADDRESS)
         d.cont()
 
-        self.assertEqual(d.rip, C_ADDRESS)
+        self.assertEqual(d.regs.rip, C_ADDRESS)
 
 
         # Place a breakpoint a location in between
@@ -293,7 +293,7 @@ class FinishTest(unittest.TestCase):
         # Finish function c
         d.finish(exact=False)
 
-        self.assertEqual(d.rip, BREAKPOINT_LOCATION)
+        self.assertEqual(d.regs.rip, BREAKPOINT_LOCATION)
 
         d.kill()
 
@@ -305,7 +305,7 @@ class FinishTest(unittest.TestCase):
         d.breakpoint(C_ADDRESS)
         d.cont()
 
-        self.assertEqual(d.rip, C_ADDRESS)
+        self.assertEqual(d.regs.rip, C_ADDRESS)
 
         # Place a breakpoint at the same location as the return address
         d.breakpoint(RETURN_POINT_FROM_C)
@@ -313,13 +313,13 @@ class FinishTest(unittest.TestCase):
         # Finish function c
         d.finish(exact=False)
 
-        self.assertEqual(d.rip, RETURN_POINT_FROM_C)
-        self.assertFalse(d.context.running)
+        self.assertEqual(d.regs.rip, RETURN_POINT_FROM_C)
+        self.assertFalse(d.running)
 
         d.step()
 
         # Check that the execution is still running and nothing has broken
-        self.assertFalse(d.context.running)
-        self.assertFalse(d.context.dead)
+        self.assertFalse(d.running)
+        self.assertFalse(d.dead)
 
         d.kill()

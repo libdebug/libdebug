@@ -1,15 +1,19 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
 from __future__ import annotations
 
 from collections.abc import Callable, MutableSequence
+from typing import TYPE_CHECKING
 
+from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 from libdebug.liblog import liblog
-from libdebug.state.debugging_context import DebuggingContext, debugging_context
+
+if TYPE_CHECKING:
+    from libdebug.debugger.internal_debugger import InternalDebugger
 
 
 class MemoryView(MutableSequence):
@@ -25,7 +29,7 @@ class MemoryView(MutableSequence):
             align_to (int, optional): The address alignment that must be used when reading and writing memory. Defaults to 1.
     """
 
-    context: DebuggingContext
+    context: InternalDebugger
     """The debugging context of the target process."""
 
     def __init__(
@@ -40,9 +44,8 @@ class MemoryView(MutableSequence):
         self.setter = setter
         self.unit_size = unit_size
         self.align_to = align_to
-
-        self.context = debugging_context()
-        self.maps_provider = self.context.debugging_interface.maps
+        self._internal_debugger = provide_internal_debugger(self)
+        self.maps_provider = self._internal_debugger.debugging_interface.maps
 
     def read(self: MemoryView, address: int, size: int) -> bytes:
         """Reads memory from the target process.
@@ -75,7 +78,9 @@ class MemoryView(MutableSequence):
             remainder = (size - prefix_size) % self.unit_size
 
             for i in range(
-                address + prefix_size, address + size - remainder, self.unit_size,
+                address + prefix_size,
+                address + size - remainder,
+                self.unit_size,
             ):
                 data += self.getter(i)
 
@@ -120,26 +125,26 @@ class MemoryView(MutableSequence):
     def __getitem__(self: MemoryView, key: int | slice | str | tuple) -> bytes:
         """Read from memory, either a single byte or a byte string."""
         if isinstance(key, int):
-            address = self.context.resolve_address(key)
+            address = self._internal_debugger.resolve_address(key)
 
             return self.read(address, 1)
         elif isinstance(key, slice):
             if isinstance(key.start, str):
-                start = self.context.resolve_symbol(key.start)
+                start = self._internal_debugger.resolve_symbol(key.start)
             else:
-                start = self.context.resolve_address(key.start)
+                start = self._internal_debugger.resolve_address(key.start)
 
             if isinstance(key.stop, str):
-                stop = self.context.resolve_symbol(key.stop)
+                stop = self._internal_debugger.resolve_symbol(key.stop)
             else:
-                stop = self.context.resolve_address(key.stop)
+                stop = self._internal_debugger.resolve_address(key.stop)
 
             if stop < start:
                 raise ValueError("Invalid slice range")
 
             return self.read(start, stop - start)
         elif isinstance(key, str):
-            address = self.context.resolve_symbol(key)
+            address = self._internal_debugger.resolve_symbol(key)
 
             return self.read(address, 1)
         elif isinstance(key, tuple):
@@ -149,9 +154,9 @@ class MemoryView(MutableSequence):
                 raise TypeError("Invalid size type")
 
             if isinstance(address, str):
-                address = self.context.resolve_symbol(address)
+                address = self._internal_debugger.resolve_symbol(address)
             else:
-                address = self.context.resolve_address(address)
+                address = self._internal_debugger.resolve_address(address)
 
             return self.read(address, size)
         else:
@@ -160,20 +165,20 @@ class MemoryView(MutableSequence):
     def __setitem__(self: MemoryView, key: int | slice | str | tuple, value: bytes) -> None:
         """Write to memory, either a single byte or a byte string."""
         if isinstance(key, int):
-            address = self.context.resolve_address(key)
+            address = self._internal_debugger.resolve_address(key)
 
             self.write(address, value)
         elif isinstance(key, slice):
             if isinstance(key.start, str):
-                start = self.context.resolve_symbol(key.start)
+                start = self._internal_debugger.resolve_symbol(key.start)
             else:
-                start = self.context.resolve_address(key.start)
+                start = self._internal_debugger.resolve_address(key.start)
 
             if key.stop is not None:
                 if isinstance(key.stop, str):
-                    stop = self.context.resolve_symbol(key.stop)
+                    stop = self._internal_debugger.resolve_symbol(key.stop)
                 else:
-                    stop = self.context.resolve_address(key.stop)
+                    stop = self._internal_debugger.resolve_address(key.stop)
 
                 if stop < start:
                     raise ValueError("Invalid slice range")
@@ -183,7 +188,7 @@ class MemoryView(MutableSequence):
 
             self.write(start, value)
         elif isinstance(key, str):
-            address = self.context.resolve_symbol(key)
+            address = self._internal_debugger.resolve_symbol(key)
 
             self.write(address, value)
         elif isinstance(key, tuple):
@@ -193,9 +198,9 @@ class MemoryView(MutableSequence):
                 raise TypeError("Invalid size type")
 
             if isinstance(address, str):
-                address = self.context.resolve_symbol(address)
+                address = self._internal_debugger.resolve_symbol(address)
             else:
-                address = self.context.resolve_address(address)
+                address = self._internal_debugger.resolve_address(address)
 
             if len(value) != size:
                 liblog.warning(f"Mismatch between specified size and actual value size, writing {len(value)} bytes.")

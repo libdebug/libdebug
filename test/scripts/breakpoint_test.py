@@ -27,23 +27,23 @@ class BreakpointTest(unittest.TestCase):
         d.cont()
 
         while True:
-            if d.rip == bp1.address:
+            if d.regs.rip == bp1.address:
                 self.assertTrue(bp1.hit_count == 1)
                 self.assertTrue(bp1.hit_on(d))
                 self.assertFalse(bp2.hit_on(d))
                 self.assertFalse(bp3.hit_on(d))
-            elif d.rip == bp2.address:
+            elif d.regs.rip == bp2.address:
                 self.assertTrue(bp2.hit_count == counter)
                 self.assertTrue(bp2.hit_on(d))
                 self.assertFalse(bp1.hit_on(d))
                 self.assertFalse(bp3.hit_on(d))
                 counter += 1
-            elif d.rip == bp3.address:
+            elif d.regs.rip == bp3.address:
                 self.assertTrue(bp3.hit_count == 1)
-                self.assertTrue(d.rsi == 45)
-                self.assertTrue(d.esi == 45)
-                self.assertTrue(d.si == 45)
-                self.assertTrue(d.sil == 45)
+                self.assertTrue(d.regs.rsi == 45)
+                self.assertTrue(d.regs.esi == 45)
+                self.assertTrue(d.regs.si == 45)
+                self.assertTrue(d.regs.sil == 45)
                 self.assertTrue(bp3.hit_on(d))
                 self.assertFalse(bp1.hit_on(d))
                 self.assertFalse(bp2.hit_on(d))
@@ -69,23 +69,23 @@ class BreakpointTest(unittest.TestCase):
         d.cont()
 
         while True:
-            if d.rip == bp1.address:
+            if d.regs.rip == bp1.address:
                 self.assertTrue(bp1.hit_count == 1)
                 self.assertTrue(bp1.hit_on(d))
                 self.assertFalse(bp2.hit_on(d))
                 self.assertFalse(bp3.hit_on(d))
-            elif d.rip == bp2.address:
+            elif d.regs.rip == bp2.address:
                 self.assertTrue(bp2.hit_count == counter)
                 self.assertTrue(bp2.hit_on(d))
                 self.assertFalse(bp1.hit_on(d))
                 self.assertFalse(bp3.hit_on(d))
                 bp2.disable()
-            elif d.rip == bp3.address:
+            elif d.regs.rip == bp3.address:
                 self.assertTrue(bp3.hit_count == 1)
-                self.assertTrue(d.rsi == 45)
-                self.assertTrue(d.esi == 45)
-                self.assertTrue(d.si == 45)
-                self.assertTrue(d.sil == 45)
+                self.assertTrue(d.regs.rsi == 45)
+                self.assertTrue(d.regs.esi == 45)
+                self.assertTrue(d.regs.si == 45)
+                self.assertTrue(d.regs.sil == 45)
                 self.assertTrue(bp3.hit_on(d))
                 self.assertFalse(bp1.hit_on(d))
                 self.assertFalse(bp2.hit_on(d))
@@ -111,23 +111,23 @@ class BreakpointTest(unittest.TestCase):
         d.cont()
 
         while True:
-            if d.rip == bp1.address:
+            if d.regs.rip == bp1.address:
                 self.assertTrue(bp1.hit_count == 1)
                 self.assertTrue(bp1.hit_on(d))
                 self.assertFalse(bp2.hit_on(d))
                 self.assertFalse(bp3.hit_on(d))
-            elif d.rip == bp2.address:
+            elif d.regs.rip == bp2.address:
                 self.assertTrue(bp2.hit_count == counter)
                 self.assertTrue(bp2.hit_on(d))
                 self.assertFalse(bp1.hit_on(d))
                 self.assertFalse(bp3.hit_on(d))
                 bp2.disable()
-            elif d.rip == bp3.address:
+            elif d.regs.rip == bp3.address:
                 self.assertTrue(bp3.hit_count == 1)
-                self.assertTrue(d.rsi == 45)
-                self.assertTrue(d.esi == 45)
-                self.assertTrue(d.si == 45)
-                self.assertTrue(d.sil == 45)
+                self.assertTrue(d.regs.rsi == 45)
+                self.assertTrue(d.regs.esi == 45)
+                self.assertTrue(d.regs.si == 45)
+                self.assertTrue(d.regs.sil == 45)
                 self.assertTrue(bp3.hit_on(d))
                 self.assertFalse(bp1.hit_on(d))
                 self.assertFalse(bp2.hit_on(d))
@@ -152,12 +152,12 @@ class BreakpointTest(unittest.TestCase):
         d.cont()
 
         while True:
-            if d.rip == bp1.address:
+            if d.regs.rip == bp1.address:
                 self.assertTrue(bp1.hit_count == 1)
                 self.assertTrue(bp1.hit_on(d))
                 self.assertFalse(bp2.hit_on(d))
                 self.assertFalse(bp3.hit_on(d))
-            elif d.rip == bp2.address:
+            elif d.regs.rip == bp2.address:
                 self.assertTrue(bp2.hit_count == counter)
                 self.assertTrue(bp2.hit_on(d))
                 self.assertFalse(bp1.hit_on(d))
@@ -167,12 +167,12 @@ class BreakpointTest(unittest.TestCase):
                 else:
                     bp4.enable()
                 counter += 1
-            elif d.rip == bp3.address:
+            elif d.regs.rip == bp3.address:
                 self.assertTrue(bp3.hit_count == 1)
-                self.assertTrue(d.rsi == 45)
-                self.assertTrue(d.esi == 45)
-                self.assertTrue(d.si == 45)
-                self.assertTrue(d.sil == 45)
+                self.assertTrue(d.regs.rsi == 45)
+                self.assertTrue(d.regs.esi == 45)
+                self.assertTrue(d.regs.si == 45)
+                self.assertTrue(d.regs.sil == 45)
                 self.assertTrue(bp3.hit_on(d))
                 self.assertFalse(bp1.hit_on(d))
                 self.assertFalse(bp2.hit_on(d))
@@ -201,12 +201,12 @@ class BreakpointTest(unittest.TestCase):
         d.cont()
 
         while True:
-            if d.rip == bp1.address:
+            if d.regs.rip == bp1.address:
                 self.assertTrue(bp1.hit_count == 1)
                 self.assertTrue(bp1.hit_on(d))
                 self.assertFalse(bp2.hit_on(d))
                 self.assertFalse(bp3.hit_on(d))
-            elif d.rip == bp2.address:
+            elif d.regs.rip == bp2.address:
                 self.assertTrue(bp2.hit_count == counter)
                 self.assertTrue(bp2.hit_on(d))
                 self.assertFalse(bp1.hit_on(d))
@@ -216,12 +216,12 @@ class BreakpointTest(unittest.TestCase):
                 else:
                     bp4.enable()
                 counter += 1
-            elif d.rip == bp3.address:
+            elif d.regs.rip == bp3.address:
                 self.assertTrue(bp3.hit_count == 1)
-                self.assertTrue(d.rsi == 45)
-                self.assertTrue(d.esi == 45)
-                self.assertTrue(d.si == 45)
-                self.assertTrue(d.sil == 45)
+                self.assertTrue(d.regs.rsi == 45)
+                self.assertTrue(d.regs.esi == 45)
+                self.assertTrue(d.regs.si == 45)
+                self.assertTrue(d.regs.sil == 45)
                 self.assertTrue(bp3.hit_on(d))
                 self.assertFalse(bp1.hit_on(d))
                 self.assertFalse(bp2.hit_on(d))
@@ -232,6 +232,53 @@ class BreakpointTest(unittest.TestCase):
             d.cont()
 
         self.assertEqual(bp4.hit_count, bp2.hit_count // 2 + 1)
+
+        self.d.kill()
+        
+    def test_bps_running(self):
+        d = self.d
+
+        d.run()
+
+        bp1 = d.breakpoint("random_function")
+        bp2 = d.breakpoint(0x40115B)
+        bp3 = d.breakpoint(0x40116D)
+
+        counter = 1
+
+        d.cont()
+
+        while True:
+            if d.running:
+                pass
+            if d.regs.rip == bp1.address:
+                self.assertFalse(d.running)
+                self.assertTrue(bp1.hit_count == 1)
+                self.assertTrue(bp1.hit_on(d))
+                self.assertFalse(bp2.hit_on(d))
+                self.assertFalse(bp3.hit_on(d))
+            elif d.regs.rip == bp2.address:
+                self.assertFalse(d.running)
+                self.assertTrue(bp2.hit_count == counter)
+                self.assertTrue(bp2.hit_on(d))
+                self.assertFalse(bp1.hit_on(d))
+                self.assertFalse(bp3.hit_on(d))
+                counter += 1
+            elif d.regs.rip == bp3.address:
+                self.assertFalse(d.running)
+                self.assertTrue(bp3.hit_count == 1)
+                self.assertTrue(d.regs.rsi == 45)
+                self.assertTrue(d.regs.esi == 45)
+                self.assertTrue(d.regs.si == 45)
+                self.assertTrue(d.regs.sil == 45)
+                self.assertTrue(bp3.hit_on(d))
+                self.assertFalse(bp1.hit_on(d))
+                self.assertFalse(bp2.hit_on(d))
+                break
+
+            d.cont()
+
+        self.assertEqual(bp2.hit_count, 10)
 
         self.d.kill()
 

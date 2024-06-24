@@ -34,10 +34,10 @@ class Jumpout(unittest.TestCase):
         r.sendline(b"A" * 0x1D)
 
         while True:
-            if d.rip == bp1.address:
-                second = d.r9
-            elif d.rip == bp2.address:
-                address = d.r13 + d.rbx
+            if d.regs.rip == bp1.address:
+                second = d.regs.r9
+            elif d.regs.rip == bp2.address:
+                address = d.regs.r13 + d.regs.rbx
                 third = int.from_bytes(d.memory[address, 1], "little")
                 flag += chr((first ^ second ^ third ^ (bp2.hit_count - 1)))
 

@@ -100,7 +100,7 @@ ffibuilder.cdef(
     struct thread {
         int tid;
         struct user_regs_struct regs;
-        int signal_to_deliver;
+        int signal_to_forward;
         struct thread *next;
     };
 

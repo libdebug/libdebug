@@ -22,9 +22,9 @@ class MemoryTest(unittest.TestCase):
 
         d.cont()
 
-        assert d.rip == bp.address
+        assert d.regs.rip == bp.address
 
-        address = d.rdi
+        address = d.regs.rdi
         prev = bytes(range(256))
 
         self.assertTrue(d.memory[address, 256] == prev)
@@ -45,9 +45,9 @@ class MemoryTest(unittest.TestCase):
 
         d.cont()
 
-        assert d.rip == bp.address
+        assert d.regs.rip == bp.address
 
-        address = d.rdi
+        address = d.regs.rdi
         with libcontext.tmp(sym_lvl=5):
             arena = d.memory["main_arena", 256]
 
@@ -73,9 +73,9 @@ class MemoryTest(unittest.TestCase):
         # File should start with ELF magic number
         self.assertTrue(file.startswith(b"\x7fELF"))
 
-        assert d.rip == bp.address
+        assert d.regs.rip == bp.address
 
-        address = d.rdi
+        address = d.regs.rdi
         prev = bytes(range(256))
 
         self.assertTrue(d.memory[address, 256] == prev)
@@ -97,9 +97,9 @@ class MemoryTest(unittest.TestCase):
 
             d.cont()
 
-            assert d.rip == bp.address
+            assert d.regs.rip == bp.address
 
-            address = d.rdi
+            address = d.regs.rdi
             prev = bytes(range(256))
 
             self.assertTrue(d.memory[address, 256] == prev)
@@ -123,7 +123,7 @@ class MemoryTest(unittest.TestCase):
         # Verify that memory access is only possible when the process is stopped
         value = int.from_bytes(d.memory["state", 8], "little")
         self.assertEqual(value, 0xdeadbeef)
-        self.assertEqual(d.rip, bp.address)
+        self.assertEqual(d.regs.rip, bp.address)
 
         d.kill()
 
@@ -132,7 +132,7 @@ class MemoryTest(unittest.TestCase):
 
         d.run()
 
-        base = d.rip & 0xfffffffffffff000 - 0x1000
+        base = d.regs.rip & 0xfffffffffffff000 - 0x1000
 
         # Test different ways to access memory at the start of the file
         file_0 = d.memory[base, 256]

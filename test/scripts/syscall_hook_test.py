@@ -65,7 +65,7 @@ class SyscallHookTest(unittest.TestCase):
 
             nonlocal ptr
 
-            ptr = d.rax
+            ptr = d.regs.rax
 
         def on_enter_getcwd(d, syscall_number):
             self.assertTrue(syscall_number == 0x4F)
@@ -119,7 +119,7 @@ class SyscallHookTest(unittest.TestCase):
 
             nonlocal ptr
 
-            ptr = d.rax
+            ptr = d.regs.rax
 
         def on_enter_getcwd(d, syscall_number):
             self.assertTrue(syscall_number == 0x4F)
@@ -171,7 +171,7 @@ class SyscallHookTest(unittest.TestCase):
 
             nonlocal ptr
 
-            ptr = d.rax
+            ptr = d.regs.rax
 
         def on_enter_getcwd(d, syscall_number):
             self.assertTrue(syscall_number == 0x4F)
@@ -193,7 +193,7 @@ class SyscallHookTest(unittest.TestCase):
 
         d.wait()
 
-        self.assertEqual(d.rip, 0x401196)
+        self.assertEqual(d.regs.rip, 0x401196)
         hook1.disable()
 
         d.cont()
@@ -234,7 +234,7 @@ class SyscallHookTest(unittest.TestCase):
 
             nonlocal ptr
 
-            ptr = d.rax
+            ptr = d.regs.rax
 
         def on_enter_getcwd(d, syscall_number):
             self.assertTrue(syscall_number == 0x4F)
@@ -256,7 +256,7 @@ class SyscallHookTest(unittest.TestCase):
 
         d.wait()
 
-        self.assertEqual(d.rip, 0x401196)
+        self.assertEqual(d.regs.rip, 0x401196)
         hook1.disable()
 
         d.cont()
@@ -298,7 +298,7 @@ class SyscallHookTest(unittest.TestCase):
 
             nonlocal ptr
 
-            ptr = d.rax
+            ptr = d.regs.rax
 
         def on_enter_getcwd(d, syscall_number):
             self.assertTrue(syscall_number == 0x4F)
@@ -320,7 +320,7 @@ class SyscallHookTest(unittest.TestCase):
 
         d.wait()
 
-        self.assertEqual(d.rip, 0x401196)
+        self.assertEqual(d.regs.rip, 0x401196)
         hook1_2 = d.hook_syscall(1, on_enter_write_second, None)
 
         d.cont()
@@ -372,7 +372,7 @@ class SyscallHookTest(unittest.TestCase):
 
             nonlocal ptr
 
-            ptr = d.rax
+            ptr = d.regs.rax
 
         def on_enter_getcwd(d, syscall_number):
             self.assertTrue(syscall_number == 0x4F)
@@ -394,7 +394,7 @@ class SyscallHookTest(unittest.TestCase):
 
         d.wait()
 
-        self.assertEqual(d.rip, 0x401196)
+        self.assertEqual(d.regs.rip, 0x401196)
         hook1_2 = d.hook_syscall(1, on_enter_write_second, None)
 
         d.cont()

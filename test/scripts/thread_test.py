@@ -28,17 +28,17 @@ class ThreadTest(unittest.TestCase):
         d.cont()
 
         for _ in range(150):
-            if bp_t0.address == d.rip:
+            if bp_t0.address == d.regs.rip:
                 self.assertTrue(t1_done)
                 self.assertTrue(t2_done)
                 self.assertTrue(t3_done)
                 break
 
-            if len(d.threads) > 1 and bp_t1.address == d.threads[1].rip:
+            if len(d.threads) > 1 and bp_t1.address == d.threads[1].regs.rip:
                 t1_done = True
-            if len(d.threads) > 2 and bp_t2.address == d.threads[2].rip:
+            if len(d.threads) > 2 and bp_t2.address == d.threads[2].regs.rip:
                 t2_done = True
-            if len(d.threads) > 3 and bp_t3.address == d.threads[3].rip:
+            if len(d.threads) > 3 and bp_t3.address == d.threads[3].regs.rip:
                 t3_done = True
 
             d.cont()
@@ -61,17 +61,17 @@ class ThreadTest(unittest.TestCase):
         d.cont()
 
         for _ in range(15):
-            if bp_t0.address == d.rip:
+            if bp_t0.address == d.regs.rip:
                 self.assertTrue(t1_done)
                 self.assertTrue(t2_done)
                 self.assertTrue(t3_done)
                 break
 
-            if len(d.threads) > 1 and bp_t1.address == d.threads[1].rip:
+            if len(d.threads) > 1 and bp_t1.address == d.threads[1].regs.rip:
                 t1_done = True
-            if len(d.threads) > 2 and bp_t2.address == d.threads[2].rip:
+            if len(d.threads) > 2 and bp_t2.address == d.threads[2].regs.rip:
                 t2_done = True
-            if len(d.threads) > 3 and bp_t3.address == d.threads[3].rip:
+            if len(d.threads) > 3 and bp_t3.address == d.threads[3].regs.rip:
                 t3_done = True
 
             d.cont()
@@ -111,20 +111,20 @@ class ComplexThreadTest(unittest.TestCase):
             if len(d.threads) == 3:
                 t2 = d.threads[2]
 
-            if t1 and bp2_t1.address == t1.rip:
+            if t1 and bp2_t1.address == t1.regs.rip:
                 bp2_hit = True
-                self.assertTrue(bp2_t1.hit_count == (t1.rax + 1))
+                self.assertTrue(bp2_t1.hit_count == (t1.regs.rax + 1))
 
-            if bp1_t0.address == d.rip:
+            if bp1_t0.address == d.regs.rip:
                 bp1_hit = True
                 self.assertTrue(bp2_hit)
                 self.assertEqual(bp2_t1.hit_count, 50)
                 self.assertFalse(bp3_hit)
                 self.assertEqual(bp1_t0.hit_count, 1)
 
-            if t2 and bp3_t2.address == t2.rip:
+            if t2 and bp3_t2.address == t2.regs.rip:
                 bp3_hit = True
-                self.assertTrue(factorial(bp3_t2.hit_count) == t2.rax)
+                self.assertTrue(factorial(bp3_t2.hit_count) == t2.regs.rax)
                 self.assertTrue(bp2_hit)
                 self.assertTrue(bp1_hit)
 

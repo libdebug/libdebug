@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
+
+from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -46,9 +48,8 @@ class Breakpoint:
 
     def enable(self: Breakpoint) -> None:
         """Enable the breakpoint."""
-        from libdebug.state.debugging_context import provide_context
 
-        if provide_context(self).running:
+        if provide_internal_debugger(self).running:
             raise RuntimeError(
                 "Cannot enable a breakpoint while the target process is running.",
             )
@@ -58,9 +59,8 @@ class Breakpoint:
 
     def disable(self: Breakpoint) -> None:
         """Disable the breakpoint."""
-        from libdebug.state.debugging_context import provide_context
 
-        if provide_context(self).running:
+        if provide_internal_debugger(self).running:
             raise RuntimeError(
                 "Cannot disable a breakpoint while the target process is running.",
             )

@@ -28,28 +28,28 @@ class BacktraceTest(unittest.TestCase):
 
         d.cont()
 
-        self.assertTrue(d.rip == bp0.address)
+        self.assertTrue(d.regs.rip == bp0.address)
         backtrace = d.backtrace()
         self.assertIn("_start", backtrace.pop())
         self.assertEqual(backtrace[:1], ["main+8"])
 
         d.cont()
 
-        self.assertTrue(d.rip == bp1.address)
+        self.assertTrue(d.regs.rip == bp1.address)
         backtrace = d.backtrace()
         self.assertIn("_start", backtrace.pop())
         self.assertEqual(backtrace[:2], ["function1+8", "main+16"])
 
         d.cont()
 
-        self.assertTrue(d.rip == bp2.address)
+        self.assertTrue(d.regs.rip == bp2.address)
         backtrace = d.backtrace()
         self.assertIn("_start", backtrace.pop())
         self.assertEqual(backtrace[:3], ["function2+8", "function1+12", "main+16"])
 
         d.cont()
 
-        self.assertTrue(d.rip == bp3.address)
+        self.assertTrue(d.regs.rip == bp3.address)
         backtrace = d.backtrace()
         self.assertIn("_start", backtrace.pop())
         self.assertEqual(
@@ -58,7 +58,7 @@ class BacktraceTest(unittest.TestCase):
 
         d.cont()
 
-        self.assertTrue(d.rip == bp4.address)
+        self.assertTrue(d.regs.rip == bp4.address)
         backtrace = d.backtrace()
         self.assertIn("_start", backtrace.pop())
         self.assertEqual(
@@ -68,7 +68,7 @@ class BacktraceTest(unittest.TestCase):
 
         d.cont()
 
-        self.assertTrue(d.rip == bp5.address)
+        self.assertTrue(d.regs.rip == bp5.address)
         backtrace = d.backtrace()
         self.assertIn("_start", backtrace.pop())
         self.assertEqual(
@@ -85,7 +85,7 @@ class BacktraceTest(unittest.TestCase):
 
         d.cont()
 
-        self.assertTrue(d.rip == bp6.address)
+        self.assertTrue(d.regs.rip == bp6.address)
         backtrace = d.backtrace()
         self.assertIn("_start", backtrace.pop())
         self.assertEqual(

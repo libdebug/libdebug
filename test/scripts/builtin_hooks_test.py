@@ -42,7 +42,7 @@ class AntidebugEscapingTest(unittest.TestCase):
 
                 r.sendlineafter(b"chars\n", (flag + c).encode())
 
-                while bp.address == d.rip:
+                while bp.address == d.regs.rip:
                     d.cont()
 
                 if bp.hit_count > counter:

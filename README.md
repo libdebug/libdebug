@@ -1,4 +1,4 @@
-![logo](https://github.com/libdebug/libdebug/blob/fix-defcon/media/libdebug_logo_horiz.png?raw=true)
+![logo](https://github.com/libdebug/libdebug/blob/dev/media/libdebug_logo_horiz.png?raw=true)
 # libdebug
 libdebug is a Python library to automate the debugging of a binary executable.
 
@@ -56,7 +56,7 @@ d.run()
 d.cont()
 
 # Here the register access is performed after the breakpoint is hit
-print(hex(d.rip))
+print(hex(d.regs.rip))
 
 d.kill()
 ```
@@ -74,7 +74,7 @@ d.cont()
 # If you do not call d.wait() here, the register access will be performed
 # shortly after the process is allowed to continue
 d.wait()
-print(hex(d.rip))
+print(hex(d.regs.rip))
 
 d.kill()
 ```
@@ -310,8 +310,8 @@ d = debugger("./test")
 
 d.run()
 
-print(d.rax)
-d.rax = 0
+print(d.regs.rax)
+d.regs.rax = 0
 ```
 
 ## Memory Access
@@ -323,14 +323,14 @@ d = debugger("./test")
 
 d.run()
 
-print("[rsp]: ", d.memory[d.rsp])
-print("[rsp]: ", d.memory[d.rsp:d.rsp+0x10])
-print("[rsp]: ", d.memory[d.rsp, 0x10])
+print("[rsp]: ", d.memory[d.regs.rsp])
+print("[rsp]: ", d.memory[d.regs.rsp:d.regs.rsp+0x10])
+print("[rsp]: ", d.memory[d.regs.rsp, 0x10])
 
 print("[main_arena]: ", d.memory["main_arena"])
 print("[main_arena+8:main_arena+18]: ", d.memory["main_arena+8", 0x10])
 
-d.memory[d.rsp, 0x10] = b"AAAAAAABC"
+d.memory[d.regs.rsp, 0x10] = b"AAAAAAABC"
 d.memory["main_arena"] = b"12345678"
 ```
 
@@ -356,7 +356,7 @@ bp = d.breakpoint(0x1234)
 
 d.cont()
 
-assert d.rip == bp.address
+assert d.regs.rip == bp.address
 ```
 
 ## Asynchronous Callbacks
@@ -366,9 +366,9 @@ d = debugger("./test")
 d.run()
 
 def callback(d, bp):
-    print(hex(d.rip))
-    assert d.rip == bp.address
-    print(hex(d.memory[d.rax, 0x10]))
+    print(hex(d.regs.rip))
+    assert d.regs.rip == bp.address
+    print(hex(d.memory[d.regs.rax, 0x10]))
 
 d.breakpoint(0x1234, callback=callback)
 
@@ -387,7 +387,7 @@ d.cont()
 
 for _ in range(15):
     for thread in d.threads:
-        print(thread.thread_id, hex(thread.rip))
+        print(thread.thread_id, hex(thread.regs.rip))
 
     d.cont()
 
@@ -409,7 +409,7 @@ d.cont()
 for i in range(15):
     d.wait()
 
-    assert d.rip == bp.address
+    assert d.regs.rip == bp.address
     assert bp.hit_count == i
 
     d.cont()
@@ -425,7 +425,7 @@ d.cont()
 
 for i in range(15):
     
-    assert d.rip == bp.address
+    assert d.regs.rip == bp.address
     assert bp.hit_on(chosen_thread)
 
     if bp.hit_on(chosen_thread):
@@ -446,7 +446,7 @@ The function returns a `Breakpoint` object, which can be interacted with in the 
 libdebug supports the hooking of signals, that is, executing a callback when a specific signal directed at the child process is intercepted by the tracer.
 ```python
 def hook_SIGUSR1(t, signal_number):
-    t.signal_number = 0x0
+    t.signal = 0x0
     print("Ciao mamma, I'm hooking a signal")
 
 def hook_SIGINT(t, signal_number):
@@ -472,26 +472,27 @@ Note: There can be at most one user-defined hook for each signal. \
 If a new hook is defined for a signal that is already hooked or hijacked, the new hook replaces the old one, and a warning is shown.
 
 ## Signal Passing
-You can also decide which signals are forwarded to the child process during execution. By default, no signals are forwarded; instead, all are managed by the debugger.
+You can also decide which signals are not forwarded to the child process during execution. By default, all signals not related to the libdebug internal working are forwarded. SIGSTOP is never passed to the process.
 
 ```python
 d = debugger("binary")
 
 r = d.run()
 
-d.signal_to_pass = [10, 15, 'SIGINT', 3, 13]
+d.signals_to_block = [10, 15, 'SIGINT', 3, 13]
 
 d.cont()
 ```
+By default, all signals unrelated to debugger operations are forwarded to the process.
 
-You can also decide what libdebug should do when it encounters an unrecognized signal by using the `force_continue` flag of the debugger. This situation can occur with SIGTRAP signals not related to breakpoints, special signals not related to debugging operations and that are not explicitly hooked or passed to the process, and so on.
-libdebug already filters out as many spurious signals as possible that are raised due to the internal workings of ptrace.
-Regardless of the choice, a warning is displayed when an unmanaged signal is encountered.
-The default value is true, which means the debugger always tries to continue the execution.
+You can also decide to send a new signal to the process that will be forwarded at first, following `d.cont()`.
 
 ```python
-d = debugger("binary", force_continue=True)
+if bp.hit_on(d):
+    d.signal = 10
+d.cont()
 ```
+
 
 ## Signal Hijacking
 libdebug also provides a direct way to intercept a signal and modify it before sending it to the child process. In other words, it allows you to hijack a signal and change it to a different signal.

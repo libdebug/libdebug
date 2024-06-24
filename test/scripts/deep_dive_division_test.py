@@ -19,7 +19,7 @@ class DeepDiveDivision(unittest.TestCase):
         def brutone(flag, current):
             def checkino(d, b):
                 nonlocal counter
-                if int.from_bytes(d.memory[d.rax + d.r9, 1], "little") == 0:
+                if int.from_bytes(d.memory[d.regs.rax + d.regs.r9, 1], "little") == 0:
                     counter += 1
 
             candidate = []

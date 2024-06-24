@@ -32,11 +32,11 @@ class Ncuts(unittest.TestCase):
         r.send(previous_flag + b"a" * 8)
 
         for _ in range(8):
-            self.assertTrue(d.rip == bp.address)
+            self.assertTrue(d.regs.rip == bp.address)
 
-            offset = ord("a") ^ d.rbp
-            d.rbp = d.r13
-            flag += (offset ^ d.r13).to_bytes(1, "little")
+            offset = ord("a") ^ d.regs.rbp
+            d.regs.rbp = d.regs.r13
+            flag += (offset ^ d.regs.r13).to_bytes(1, "little")
 
             d.cont()
 
@@ -65,14 +65,14 @@ class Ncuts(unittest.TestCase):
         r.send(previous_flag + b"a" * 8)
 
         while True:
-            if d.rip == bp1.address:
-                lastpos = d.rbp
-                d.rbp = d.r13 + 1
-            elif d.rip == bp2.address:
-                bitmap[d.r12 & 0xFF] = lastpos & 0xFF
-            elif d.rip == bp3.address:
-                d.rbp = d.r13
-                wanted = d.rbp
+            if d.regs.rip == bp1.address:
+                lastpos = d.regs.rbp
+                d.regs.rbp = d.regs.r13 + 1
+            elif d.regs.rip == bp2.address:
+                bitmap[d.regs.r12 & 0xFF] = lastpos & 0xFF
+            elif d.regs.rip == bp3.address:
+                d.regs.rbp = d.regs.r13
+                wanted = d.regs.rbp
                 needed = 0
                 for i in range(8):
                     if wanted & (2**i):
@@ -103,12 +103,12 @@ class Ncuts(unittest.TestCase):
 
         for _ in range(8):
 
-            self.assertTrue(d.rip == bp.address)
+            self.assertTrue(d.regs.rip == bp.address)
 
-            offset = ord("a") - d.rbp
-            d.rbp = d.r13
+            offset = ord("a") - d.regs.rbp
+            d.regs.rbp = d.regs.r13
 
-            flag += chr((d.r13 + offset) % 256).encode("latin-1")
+            flag += chr((d.regs.r13 + offset) % 256).encode("latin-1")
 
             d.cont()
 

@@ -10,21 +10,50 @@ from functools import wraps
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from libdebug.libdebug import _InternalDebugger
+    from libdebug.debugger.internal_debugger import InternalDebugger
+    from libdebug.state.thread_context import ThreadContext
 
 
-def control_flow_function(method: callable) -> callable:
+def change_state_function_process(method: callable) -> callable:
     """Decorator to perfom control flow checks before executing a method."""
 
     @wraps(method)
-    def wrapper(self: _InternalDebugger, *args: ..., **kwargs: ...) -> ...:
+    def wrapper(self: InternalDebugger, *args: ..., **kwargs: ...) -> ...:
+        if not self.instanced:
+            raise RuntimeError(
+                "Process not running. Did you call run()?",
+            )
+
         # We have to ensure that the process is stopped before executing the method
         self._ensure_process_stopped()
 
         # We have to ensure that at least one thread is alive before executing the method
-        if not self._threads_are_alive():
+        if self.threads[0].dead:
             raise RuntimeError("All threads are dead.")
         return method(self, *args, **kwargs)
+
+    return wrapper
+
+
+def change_state_function_thread(method: callable) -> callable:
+    """Decorator to perfom control flow checks before executing a method."""
+
+    @wraps(method)
+    def wrapper(
+        self: InternalDebugger, thread: ThreadContext, *args: ..., **kwargs: ...
+    ) -> ...:
+        if not self.instanced:
+            raise RuntimeError(
+                "Process not running. Did you call run()?",
+            )
+
+        # We have to ensure that the process is stopped before executing the method
+        self._ensure_process_stopped()
+
+        # We have to ensure that at least one thread is alive before executing the method
+        if thread.dead:
+            raise RuntimeError("The threads is dead.")
+        return method(self, thread, *args, **kwargs)
 
     return wrapper
 
@@ -35,7 +64,7 @@ def background_alias(alias_method: callable) -> callable:
     # This is the stupidest thing I've ever seen. Why Python, why?
     def _background_alias(method: callable) -> callable:
         @wraps(method)
-        def inner(self: _InternalDebugger, *args: ..., **kwargs: ...) -> ...:
+        def inner(self: InternalDebugger, *args: ..., **kwargs: ...) -> ...:
             if self._is_in_background():
                 return alias_method(self, *args, **kwargs)
             return method(self, *args, **kwargs)
