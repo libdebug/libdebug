@@ -82,12 +82,16 @@ class DebuggingInterface(ABC):
         """
 
     @abstractmethod
-    def finish(self: DebuggingInterface, thread: ThreadContext, exact: bool) -> None:
-        """Executes instructions of the specified thread until the current function returns.
+    def finish(self: DebuggingInterface, thread: ThreadContext, heuristic: str) -> None:
+        """Continues execution until the current function returns or the process stops.
+
+        The command requires a heuristic to determine the end of the function. The available heuristics are:
+        - `backtrace`: The debugger will place a breakpoint on the saved return address found on the stack and continue execution on all threads.
+        - `step-mode`: The debugger will step on the specified thread until the current function returns. This will be slower.
 
         Args:
-            thread (ThreadContext): The thread to step.
-            exact (bool): If True, the command is implemented as a series of `step` commands.
+            thread (ThreadContext): The thread to finish.
+            heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
         """
 
     @abstractmethod

@@ -568,7 +568,7 @@ void free_breakpoints(struct global_state *state)
     state->b_HEAD = NULL;
 }
 
-int exact_finish(struct global_state *state, int tid)
+int stepping_finish(struct global_state *state, int tid)
 {
     int status = prepare_for_run(state, tid);
 
