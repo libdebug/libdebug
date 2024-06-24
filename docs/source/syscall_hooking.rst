@@ -30,7 +30,52 @@ When choosing which syscall to hook, you can either specify its number or its na
 
     sys_hook = d.hook_syscall(syscall="open", on_enter=on_enter_open, on_exit=on_exit_open)
 
-If the user chooses to pass the common name of the syscall, a definition list for Linux syscalls will be downloaded from `Mebeim's list`__ <syscalls.mebeim.net>. The list is then cached internally. 
+If the user chooses to pass the common name of the syscall, a definition list for Linux syscalls will be fetched from `Mebeim's list`__ <syscalls.mebeim.net>. The list is then cached internally. 
+
+You can enable and disable a syscall hook `sys_hook` with the `sys_hook.enable()` and `sys_hook.disable()` functions, respectively.
+
+Exactly as with breakpoints, you can access the `hit_count` property to get the number of times the syscall was executed:
+
+.. code-block:: python
+
+    while sys_hook.hit_count < 100:
+        d.cont()
+        print(f"Hit count: {sys_hook.hit_count}")
+
+Please note that there can be at most **one** user-defined hook for each syscall. \
+Builtin hooking of syscalls within libdebug does not cound toward that limit. For example, the pretty print function (described in :doc:`multithreading`) will not count as a user-defined hook.
+If a new hook is defined for a syscall that is already hooked or hijacked, the new hook will replace the old one, and a warning will be printed.
+
+For example, in the following code, `sys_hook_2` will override `sys_hook_1`, showing a warning:
+
+.. code-block:: python
+
+    sys_hook_1 = d.hook_syscall(syscall="open", on_enter=on_enter_open_1, on_exit=on_exit_open_1)
+    sys_hook_2 = d.hook_syscall(syscall="open", on_enter=on_enter_open_2, on_exit=on_exit_open_2)
 
 Hijacking
 ---------
+
+While hooking a syscall allows the user to monitor the syscall execution, hijacking a syscall allows the user to *alter* the syscall execution. 
+When hijacking a syscall, the user can provide an alternative syscall to be executed in place of the original one:
+
+.. code-block:: python
+    hook = d.hijack_syscall("read", "write")
+
+In this example, the `read` syscall will be replaced by the `write` syscall. The parameters of the `read` syscall will be passed to the `write` syscall.
+Again, it is possible to specify a syscall by its number in the syscall table or by its common name.
+
+Hijacking Loop Detection
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+When carelessly hijacking syscalls, it could happen that loops are created. libdebug automatically performs checks to avoid these situations with syscall hijacking and raises an exception if an infinite loop is detected.
+For example, the following code raises a `RuntimeError`:
+.. code-block:: python
+    hook = d.hijack_syscall("read", "write")
+    hook = d.hijack_syscall("write", "read")
+
+
+Hook on Hijack
+^^^^^^^^^^^^^^
+When mixing syscall hooking and hijacking can become messy. Because of this, libdebug provides users with the choice of whether to execute the callback function for a syscall that was triggered *by* a hijack.
+This behavior is enabled by the parameter `hook_hijack`, available when instantiating a hijack. By default, the parameter is set to True, making the "hook on hijack" a predefined behavior.
