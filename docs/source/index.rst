@@ -106,6 +106,7 @@ The above script will run the binary `test` in the working directory and stop at
     signal_hooking
     multithreading
     quality_of_life
+    logging
 
 .. toctree::
    :maxdepth: 2
