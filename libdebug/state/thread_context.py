@@ -242,4 +242,4 @@ class ThreadContext:
             heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
 """
 
-        self._internal_debugger.finish(self, heuristc)
+        self._internal_debugger.finish(self, heuristic)
