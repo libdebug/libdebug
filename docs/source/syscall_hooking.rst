@@ -1,5 +1,5 @@
-Syscall Handling
-================
+Syscalls
+========
 
 libdebug allows the user to handle syscalls of the debugged program. Specifically, you can choose to **hook** or **hijack** a specific syscall. 
 In the case of *hooking*, the user can provide a callback function that will be called whenever the hooked syscall is executed.
@@ -20,6 +20,7 @@ The second parameter is the number of the syscall as defined by the kernel.
 When choosing which syscall to hook, you can either specify its number or its name. The following example shows how to hook the `open` syscall:
 
 .. code-block:: python
+
     def on_enter_open(d: ThreadContext, syscall_number: int):
         print("entering open")
         d.syscall_arg0 = 0x1
@@ -30,7 +31,7 @@ When choosing which syscall to hook, you can either specify its number or its na
 
     sys_hook = d.hook_syscall(syscall="open", on_enter=on_enter_open, on_exit=on_exit_open)
 
-If the user chooses to pass the common name of the syscall, a definition list for Linux syscalls will be fetched from `Mebeim's list`__ <syscalls.mebeim.net>. The list is then cached internally. 
+If the user chooses to pass the common name of the syscall, a definition list for Linux syscalls will be fetched from `mebeim's syscall list list <https://syscalls.mebeim.net>`__. The list is then cached internally. 
 
 You can enable and disable a syscall hook `sys_hook` with the `sys_hook.enable()` and `sys_hook.disable()` functions, respectively.
 
@@ -60,6 +61,7 @@ While hooking a syscall allows the user to monitor the syscall execution, hijack
 When hijacking a syscall, the user can provide an alternative syscall to be executed in place of the original one:
 
 .. code-block:: python
+
     hook = d.hijack_syscall("read", "write")
 
 In this example, the `read` syscall will be replaced by the `write` syscall. The parameters of the `read` syscall will be passed to the `write` syscall.
@@ -70,7 +72,9 @@ Hijacking Loop Detection
 
 When carelessly hijacking syscalls, it could happen that loops are created. libdebug automatically performs checks to avoid these situations with syscall hijacking and raises an exception if an infinite loop is detected.
 For example, the following code raises a `RuntimeError`:
+
 .. code-block:: python
+
     hook = d.hijack_syscall("read", "write")
     hook = d.hijack_syscall("write", "read")
 

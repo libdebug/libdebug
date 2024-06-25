@@ -70,7 +70,7 @@ This will install the stable build of the library. If you don't mind a few hicup
 
 
 Your first script
-------------
+-----------------
 
 Now that you have libdebug installed, you can start using it in your scripts. Here is a simple example of how to use libdebug to debug a binary:
 

@@ -1,5 +1,6 @@
 import os
 import sys
+import sphinx
 
 
 # Configuration file for the Sphinx documentation builder.
@@ -31,8 +32,8 @@ templates_path = ['_templates']
 exclude_patterns = []
 
 autodoc_default_options = {
-    'undoc-members': True,    # To include undocumented members
-    'private-members': True,  # To include private members
+    'undoc-members': True,
+    'private-members': True, 
     'member-order': 'bysource'
 }
 
@@ -40,12 +41,15 @@ autodoc_default_options = {
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = 'pydata_sphinx_theme'
-
 html_static_path = ['_static']
+
+# Logging setup
+logger = sphinx.util.logging.getLogger(__name__)
 
 def skip_modules(app, what, name, obj, skip, options):
     excluded_modules = ['libdebug.cffi']
     if any(name.startswith(mod) for mod in excluded_modules):
+        logger.info(f"Skipping module: {name}")
         return True  # Skip module
     return skip
 

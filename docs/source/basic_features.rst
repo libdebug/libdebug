@@ -1,7 +1,7 @@
 
-The libdebug flow
-====================================
-When writing a script to debug a program, the first step is to create a debugger object :class:`libdebug._InternalDebugger`:
+Basic Features
+==============
+When writing a script to debug a program, the first step is to create a Debugger object :class:`libdebug.debugger.debugger.Debugger`:
 
 .. code-block:: python
 
@@ -23,9 +23,10 @@ Running the program
 After creating the debugger object, you can start the execution of the program using the `run()` method. This method will start execution on a child process and, unless otherwise specified, continue to the entry point.
 
 .. code-block:: python
-    d = debugger("program")
 
+    d = debugger("program")
     pipes = d.run()
+
 
 The `run()` command returns a `PipeManager` object, which you can use to interact with the program's standard input, output, and error. To read more about the PipeManager interface, please refer to the PipeManager documentation :class:`libdebug.utils.PipeManager`. The run command also resets breakpoints so that you can keep them between different executions of a program with the same debugger.
 
@@ -71,7 +72,7 @@ You can manually send a stopping signal to the program using the `interrupt()` m
     d.interrupt()
 
 Register Access
-====================================
+===============
 .. _register-access-paragraph:
 
 libdebug offers a simple register access interface for supported architectures. The registers are accessed through the regs attribute of the debugger object. The field includes both general purpose and special registers, as well as the flags register. For example, for the AMD64 architecture, the following registers are available:
@@ -175,7 +176,7 @@ Stepping
 When debuggin an executable, it is sometimes useful to step through the program one assembly instruction at a time. Just like in other debuggers, libdebug offers the step commands to help you with this task.
 
 Single Step
-^^^^
+^^^^^^^^^^^
 
 The `step` command will execute the next instruction and stop the execution. The syntax is as follows:
 
@@ -189,6 +190,7 @@ Step Until
 Sometimes, you may want to step through the program until a specific address is reached. The `step_until` command will execute steps (hardware step if available) until the program counter reaches the specified address. Optionally, you can specify a maximum number of steps that are performed before returning. The syntax is as follows:
 
 .. code-block:: python
+    
     d.step_until(position=0x40003b, max_steps=1000)
 
 Continuing

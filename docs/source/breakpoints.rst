@@ -1,5 +1,5 @@
-Debugging with breakpoints
-=========================
+Breakpoints
+===========
 
 Breakpoints and watchpoints are a powerful way to debug your code. They allow you to pause the execution of your code at a specific point and inspect the state of your program. 
 Software breakpoints in the Linux kernel are implemented by patching the running code with an interrupt instruction that is conventionally used for debugging. For example, in the i386 and AMD64 architectures, `int3` is used. When the `int3` instruction is executed, the CPU raises a `SIGTRAP` signal, which is caught by the debugger. The debugger then restores the original instruction and resumes the execution of the program. Software breakpoints are unlimited, but they can break when the program uses self-modifying code.
@@ -49,7 +49,7 @@ As for the hit_count property, the following is an example of how to it:
 
 .. code-block:: python
 
-    while d.hit_count < 100:
+    while br.hit_count < 100:
         d.cont()
         print(f"Hit count: {d.hit_count}")
 
@@ -86,6 +86,7 @@ Watchpoints
 Watchpoints are a special type of hardware breakpoint that triggers when a specific memory location is accessed. You can set a watchpoint to trigger on read, write, read/write, or execute access. Features of watchpoints are shared with breakpoints, so you can set callbacks, check the `hit_count` and activate / deactivate the watchpoint in the same way. While you can use the breakpoint API to set up a breakpoint, a specific API is provided on watchpoints for your convenience:
 
 .. code-block:: python
+
     def watchpoint(
         position=...,
         condition=...,
@@ -94,16 +95,20 @@ Watchpoints are a special type of hardware breakpoint that triggers when a speci
 
 Again, the position can be specified both as a relative address or as a symbol.
 The condition parameter specifies the type of access that triggers the watchpoint. The following values are supported:
-- "r": read access
-- "w": write access
-- "rw": read/write access
-- "x": execute access
+
+- ``"r"``: read access
+- ``"w"``: write access
+- ``"rw"``: read/write access
+- ``"x"``: execute access
+
 By default, the watchpoint is triggered only on write access.
 
 The length parameter specifies the size of the word being watched. The following values are supported:
-- 1: byte
-- 2: half-word
-- 4: word
-- 8: double-word
+
+- ``1``: byte
+- ``2``: half-word
+- ``4``: word
+- ``8``: double-word
+
 By default, the watchpoint is set to watch a byte.
 

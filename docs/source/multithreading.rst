@@ -1,5 +1,5 @@
-Multithreading Debugging
-=======================
+Multithreading
+==============
 .. _multithreading:
 
 libdebug provides a simple way to debug multithreaded programs. Each time the process forks, the new thread is automatically traced and registered in the `threads` property of the debugger object.
@@ -22,7 +22,7 @@ libdebug provides a simple way to debug multithreaded programs. Each time the pr
     # Kill the running process TODO: Does this kill all threads? I think it does.
     d.kill()
 
-Objects in the `threads` list are `ThreadContext` objects, which behave similarly to the debugger. Each thread object has a `regs` property that exposes the registers of the thread and a `memory` property that exposes the memory of the thread. These properties work exactly as the :ref:`corresponding properties<_register-access-paragraph>` of the debugger object.
+Objects in the `threads` list are `ThreadContext` objects, which behave similarly to the debugger. Each thread object has a `regs` property that exposes the registers of the thread and a `memory` property that exposes the memory of the thread. These properties work exactly as the :ref:`corresponding properties<basic_features:register-access-paragraph>` of the debugger object.
 
 Control Flow Operations
 -----------------------
@@ -35,7 +35,7 @@ Control flow is synchronous between threads: they are either either are all stop
     - `backtrace` will continue on all threads but will stop at any breakpoint that any of the threads hit.
     - `step-mode` will step exclusively on the thread that has been specified.
 
-.. TODO: Write here the fact that you need to pass the thread context
+When performing thread-specific control flow operations, such as step and finish, the thread context object must be passed as an argument. 
 
 Breakpoints
 -----------

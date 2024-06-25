@@ -1,9 +1,9 @@
-Quality of Life Functions
-=======================
+Quality of Life
+===============
 For your convenience, libdebug offers a few functions that will speed up your debugging process.
 
 Automatic Evasion of Anti-Debugging Techniques
----------------------------------------------
+----------------------------------------------
 
 A common anti-debugging technique for Linux ELF binaries is to invoke the `ptrace` syscall with the `PTRACE_TRACEME` argument. The syscall will fail if the binary is currently being traced by a debugger. Bypassing this technique involves intercepting such syscalls and altering the return value to make the binary believe that it is not being traced. While this can absolutely be performed manually in libdebug, there is also the possibility of passing `escape_antidebug=True` when creating the debugger object. The debugger will take care of the rest.
 
@@ -31,6 +31,7 @@ There are six different levels for symbol resolutions, as follows:
 
 The default value is level 4 can be modified at runtime in the following way:
 .. code-block:: python
+
     from libdebug import libcontext
 
     libcontext.sym_lvl = 5
@@ -39,6 +40,7 @@ The default value is level 4 can be modified at runtime in the following way:
 or also
 
 .. code-block:: python
+
     from libdebug import libcontext
 
     with libcontext.tmp(sym_lvl = 5):

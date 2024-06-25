@@ -1,5 +1,5 @@
-Logging Levels
-==============
+Logging
+=======
 Debugging an application with the freedom of a rich API can lead to flows which are hard to unravel. To aid the user in the debugging process, libdebug provides logging, which can be enabled through `argv` parameters.
 
 The available logging levels are:
@@ -7,7 +7,7 @@ The available logging levels are:
 - `pipe`
 - `dbg`
 
-As reported in this documentation, the `argv` parameters are *lowercase*. This choice is made to avoid conflicts with [pwntools](https://github.com/Gallopsled/pwntools), which intercepts uppercase arguments.
+As reported in this documentation, the `argv` parameters are *lowercase*. This choice is made to avoid conflicts with (https://github.com/Gallopsled/pwntools), which intercepts uppercase arguments.
 
 Debugger Logging
 ----------------
@@ -34,6 +34,7 @@ Temporary Logging
 Logger levels can be temporarily enabled at runtime using a `with` statement, as shown in the following example.
 
 .. code-block:: python
+
     from libdebug import libcontext
     with libcontext.tmp(pipe_logger='INFO', debugger_logger='DEBUG'):
         r.sendline(b'gimme the flag')
