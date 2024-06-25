@@ -36,6 +36,14 @@ libdebug.data.register\_holder module
    :undoc-members:
    :show-inheritance:
 
+libdebug.data.registers module
+------------------------------
+
+.. automodule:: libdebug.data.registers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 libdebug.data.signal\_hook module
 ---------------------------------
 

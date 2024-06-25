@@ -12,7 +12,7 @@ Syscall Trace Pretty Print
 
 When debugging a binary, it is often much faster to guess what the intended functionality is by looking at the syscalls that are being invoked. libdebug offers a function that will intercept any syscall and print its arguments and return value. This can be done by setting the property `pprint_syscalls = True` in the debugger object. The output will be printed to the console in color. Additionally, syscalls hijacked through the libdebug API will be highlighted as striken through, allowing you to monitor both the original behavior and your own changes to the flow.
 
-TODO: Put an example here @Io_no, you certainly have one
+.. image:: https://github.com/libdebug/libdebug/blob/dev/media/pprint_syscalls.png?raw=true
 
 Symbol Resolution
 -----------------
@@ -30,13 +30,14 @@ There are six different levels for symbol resolutions, as follows:
 - 5: Download the external debug file using `debuginfod`. The file is cached in the default folder for `debuginfod`.
 
 The default value is level 4 can be modified at runtime in the following way:
+
 .. code-block:: python
 
     from libdebug import libcontext
 
     libcontext.sym_lvl = 5
     d.breakpoint('main')
-    
+
 or also
 
 .. code-block:: python

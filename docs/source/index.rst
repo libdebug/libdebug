@@ -108,6 +108,10 @@ The above script will run the binary `test` in the working directory and stop at
     quality_of_life
     logging
 
+
+.. autosummary::
+   :toctree: _autosummary
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:

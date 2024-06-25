@@ -11,6 +11,7 @@ Subpackages
    libdebug.builtin
    libdebug.cffi
    libdebug.data
+   libdebug.debugger
    libdebug.interfaces
    libdebug.ptrace
    libdebug.state

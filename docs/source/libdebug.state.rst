@@ -4,14 +4,6 @@ libdebug.state package
 Submodules
 ----------
 
-libdebug.state.debugging\_context module
-----------------------------------------
-
-.. automodule:: libdebug.state.debugging_context
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 libdebug.state.resume\_context module
 -------------------------------------
 

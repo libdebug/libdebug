@@ -4,6 +4,14 @@ libdebug.cffi package
 Submodules
 ----------
 
+libdebug.cffi.debug\_sym\_cffi module
+-------------------------------------
+
+.. automodule:: libdebug.cffi.debug_sym_cffi
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 libdebug.cffi.debug\_sym\_cffi\_build module
 --------------------------------------------
 

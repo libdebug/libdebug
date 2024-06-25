@@ -8,7 +8,6 @@ import sphinx
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
@@ -33,7 +32,7 @@ exclude_patterns = []
 
 autodoc_default_options = {
     'undoc-members': True,
-    'private-members': True, 
+    'private-members': False, 
     'member-order': 'bysource'
 }
 
@@ -45,13 +44,3 @@ html_static_path = ['_static']
 
 # Logging setup
 logger = sphinx.util.logging.getLogger(__name__)
-
-def skip_modules(app, what, name, obj, skip, options):
-    excluded_modules = ['libdebug.cffi']
-    if any(name.startswith(mod) for mod in excluded_modules):
-        logger.info(f"Skipping module: {name}")
-        return True  # Skip module
-    return skip
-
-def setup(app):
-    app.connect('autodoc-skip-member', skip_modules)

@@ -19,7 +19,7 @@ libdebug provides a simple way to debug multithreaded programs. Each time the pr
 
     d.cont()
 
-    # Kill the running process TODO: Does this kill all threads? I think it does.
+    # Kill all threads
     d.kill()
 
 Objects in the `threads` list are `ThreadContext` objects, which behave similarly to the debugger. Each thread object has a `regs` property that exposes the registers of the thread and a `memory` property that exposes the memory of the thread. These properties work exactly as the :ref:`corresponding properties<basic_features:register-access-paragraph>` of the debugger object.

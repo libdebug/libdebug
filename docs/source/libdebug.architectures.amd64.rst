@@ -20,6 +20,14 @@ libdebug.architectures.amd64.amd64\_ptrace\_register\_holder module
    :undoc-members:
    :show-inheritance:
 
+libdebug.architectures.amd64.amd64\_registers module
+----------------------------------------------------
+
+.. automodule:: libdebug.architectures.amd64.amd64_registers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 libdebug.architectures.amd64.amd64\_stack\_unwinder module
 ----------------------------------------------------------
 
