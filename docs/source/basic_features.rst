@@ -10,9 +10,13 @@ When writing a script to debug a program, the first step is to create a Debugger
 
 
 This will be your main interface to the debugger. You can either pass the name of the executable as a string, or a list of argv parameters for the execution.
+
 Just as you would expect, you can also pass environment variables to the program using the env parameter. Here, the variables are passed as a string-string dictionary.
+
 By default, debugged programs are run with ASLR disabled. If you want to enable it, you can set the `enable_aslr` parameter to True.
-You can also choose to debug the program starting from the just after the *execve* call, following the flow of the loader. By default, the debugger will continue to the entry point of the binary before giving you control. You can change this behavior by setting the `continue_to_binary_entrypoint` parameter to False.
+
+You can also choose to debug the program starting from the just after the *execve* call, following the flow of the loader. By default, the debugger will continue to the entry point of the binary before giving you control. You can change this behavior by setting the `continue_to_binary_entrypoint` parameter to False. 
+
 Please keep in mind that creating a debugger object will not start the execution automatically. In fact, you can reuse the same debugger to iteratively run multiple instances of the program. This is particularly useful for smart bruteforcing or fuzzing scripts. 
 
 As for the other parameters of the debugger, we will mention them later in the documentation.
@@ -28,7 +32,9 @@ After creating the debugger object, you can start the execution of the program u
     pipes = d.run()
 
 
-The `run()` command returns a `PipeManager` object, which you can use to interact with the program's standard input, output, and error. To read more about the PipeManager interface, please refer to the PipeManager documentation :class:`libdebug.utils.PipeManager`. The run command also resets breakpoints so that you can keep them between different executions of a program with the same debugger.
+The `run()` command returns a `PipeManager` object, which you can use to interact with the program's standard input, output, and error. To read more about the PipeManager interface, please refer to the PipeManager documentation :class:`libdebug.utils.pipe_manager.PipeManager`. 
+
+The run command also resets breakpoints so that you can keep them between different executions of a program with the same debugger.
 
 The command queue
 -----------------
@@ -50,6 +56,7 @@ In the following example, the content of the RAX register is printed after the p
     print(f"RAX: {hex(d.regs.rax)}")
 
 This flow is similar to how a GDB script would work, allowing for a more intuitive starting point. If you would like to have more control, however, you can disable this behavior to make sure the command queue is polled as soon as possible.
+
 This can be done by setting the `auto_interrupt_on_command` parameter to True when creating the debugger object. In this new scenario, we would have to modify the script to recreate the previous flow.
 
 .. code-block:: python
@@ -63,7 +70,9 @@ This can be done by setting the `auto_interrupt_on_command` parameter to True wh
 
     print(f"RAX: {hex(d.regs.rax)}")
 
-The `wait()` method waits for the running process to stop before going forward with the script. Adding the `d.wait()` command will make sure the register access doesn't happen before hitting the breakpoint or any other stopping event. If the `wait()` method is omitted, the register access will happen as soon as possible after the continue command is issued. Please note that while this "asyncronous" behavior is possible with registers, memory access will not be allowed when the program is running.
+The `wait()` method waits for the running process to stop before going forward with the script. Adding the `d.wait()` command will make sure the register access doesn't happen before hitting the breakpoint or any other stopping event. If the `wait()` method is omitted, the register access will happen as soon as possible after the continue command is issued.
+
+Please note that while this "asyncronous" behavior is possible with registers, memory access will not be allowed when the program is running.
 
 You can manually send a stopping signal to the program using the `interrupt()` method. This will stop the execution of the program and allow you to access the registers and memory. The syntax is as follows:
 
@@ -187,7 +196,9 @@ The `step` command will execute the next instruction and stop the execution. The
 Step Until
 ^^^^^^^^^^
 
-Sometimes, you may want to step through the program until a specific address is reached. The `step_until` command will execute steps (hardware step if available) until the program counter reaches the specified address. Optionally, you can specify a maximum number of steps that are performed before returning. The syntax is as follows:
+Sometimes, you may want to step through the program until a specific address is reached. The `step_until` command will execute steps (hardware step if available) until the program counter reaches the specified address.
+
+Optionally, you can specify a maximum number of steps that are performed before returning. The syntax is as follows:
 
 .. code-block:: python
     
@@ -206,7 +217,9 @@ Finish
 ^^^^^^
 
 The `finish` command is a more advanced version of the continue command. It will continue the execution of the program until the current function returns, a breakpoint is hit or the program stop for any other reason.
+
 Please note that the concept of "current function" is not as simple as it may seem. Boundaries between functions can become nuanced as a result of compiler optimizations, packing and inlining.
+
 Because of this, the finish command needs to use one of the available heuristics to resolve the end of the function. 
 
 Remember that some cases may not be handled correctly by any of the heuristics, causing unexpected behavior. The syntax is as follows:

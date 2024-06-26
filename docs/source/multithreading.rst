@@ -27,7 +27,9 @@ Objects in the `threads` list are `ThreadContext` objects, which behave similarl
 Control Flow Operations
 -----------------------
 
-Control flow is synchronous between threads: they are either either are all stopped or all running. To this end, the debugger stops all the threads every time a single thread stops. This is a design choice to avoid unexpected behavior as a result of concurrency. The following is a list of behaviors to keep in mind when using control flow funcions in multithreaded programs.
+Control flow is synchronous between threads: they are either either are all stopped or all running. To this end, the debugger stops all the threads every time a single thread stops. This is a design choice to avoid unexpected behavior as a result of concurrency.
+
+The following is a list of behaviors to keep in mind when using control flow funcions in multithreaded programs.
 
 - `cont` will continue all threads.
 - `step` and `step_until` will step the selected thread.
@@ -41,7 +43,8 @@ Breakpoints
 -----------
 
 Breakpoints are shared between all threads. This means that if a breakpoint is hit by one thread, all threads will stop. This is a design choice to avoid unexpected behavior as a result of concurrency. This, of course, requires a way for the user to distinguish which thread has hit the breakpoint.
-The :class:`libdebug.data.Breakpoint` class contains a function called `hit_on`. Given a thread, it will return whether the breakpoint has been hit on that thread.
+
+The :class:`libdebug.data.breakpoint.Breakpoint` class contains a function called `hit_on`. Given a thread, it will return whether the breakpoint has been hit on that thread.
 
 .. code-block:: python
 

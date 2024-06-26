@@ -1,13 +1,16 @@
 Syscalls
 ========
 
-libdebug allows the user to handle syscalls of the debugged program. Specifically, you can choose to **hook** or **hijack** a specific syscall. 
+libdebug allows the user to handle syscalls of the debugged program. Specifically, you can choose to **hook** or **hijack** a specific syscall.
+
 In the case of *hooking*, the user can provide a callback function that will be called whenever the hooked syscall is executed.
+
 In the case of *hijacking*, the user can modify the syscall that was supposed to be executed, either by cancelling it, changing its parameters or .replacing it with another syscall.
 
 Hooking
 -------
-When hooking a syscall, the user can provide up to two callback functions that will be called whenever the hooked syscall is executed. One that is called before executing the syscall (`on_enter`), the other is called after executing the syscall (`on_exit`). 
+When hooking a syscall, the user can provide up to two callback functions that will be called whenever the hooked syscall is executed. One that is called before executing the syscall (`on_enter`), the other is called after executing the syscall (`on_exit`).
+
 Please note that it is not necessary to specify both `on_enter` and `on_exit` callbacks. It is sufficient to specify only one of them. The callback function must have the following signature:
 
 .. code-block:: python
@@ -43,8 +46,10 @@ Exactly as with breakpoints, you can access the `hit_count` property to get the 
         d.cont()
         print(f"Hit count: {sys_hook.hit_count}")
 
-Please note that there can be at most **one** user-defined hook for each syscall. \
+Please note that there can be at most **one** user-defined hook for each syscall.
+
 Builtin hooking of syscalls within libdebug does not cound toward that limit. For example, the pretty print function (described in :doc:`multithreading`) will not count as a user-defined hook.
+
 If a new hook is defined for a syscall that is already hooked or hijacked, the new hook will replace the old one, and a warning will be printed.
 
 For example, in the following code, `sys_hook_2` will override `sys_hook_1`, showing a warning:
@@ -58,6 +63,7 @@ Hijacking
 ---------
 
 While hooking a syscall allows the user to monitor the syscall execution, hijacking a syscall allows the user to *alter* the syscall execution. 
+
 When hijacking a syscall, the user can provide an alternative syscall to be executed in place of the original one:
 
 .. code-block:: python
@@ -71,6 +77,7 @@ Hijacking Loop Detection
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 When carelessly hijacking syscalls, it could happen that loops are created. libdebug automatically performs checks to avoid these situations with syscall hijacking and raises an exception if an infinite loop is detected.
+
 For example, the following code raises a `RuntimeError`:
 
 .. code-block:: python
@@ -81,5 +88,6 @@ For example, the following code raises a `RuntimeError`:
 
 Hook on Hijack
 ^^^^^^^^^^^^^^
-When mixing syscall hooking and hijacking can become messy. Because of this, libdebug provides users with the choice of whether to execute the callback function for a syscall that was triggered *by* a hijack.
+Mixing syscall hooking and hijacking can become messy. Because of this, libdebug provides users with the choice of whether to execute the callback function for a syscall that was triggered *by* a hijack.
+
 This behavior is enabled by the parameter `hook_hijack`, available when instantiating a hijack. By default, the parameter is set to True, making the "hook on hijack" a predefined behavior.
