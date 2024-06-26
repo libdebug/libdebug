@@ -13,7 +13,6 @@ from libdebug.architectures.stack_unwinding_manager import StackUnwindingManager
 if TYPE_CHECKING:
     from libdebug.state.thread_context import ThreadContext
 
-
 class Amd64StackUnwinder(StackUnwindingManager):
     """Class that provides stack unwinding for the x86_64 architecture."""
 
@@ -26,13 +25,13 @@ class Amd64StackUnwinder(StackUnwindingManager):
         Returns:
             list: A list of return addresses.
         """
-        assert hasattr(target, "rip")
-        assert hasattr(target, "rbp")
+        assert hasattr(target.regs, "rip")
+        assert hasattr(target.regs, "rbp")
 
-        current_rbp = target.rbp
-        stack_trace = [target.rip]
+        current_rbp = target.regs.rbp
+        stack_trace = [target.regs.rip]
 
-        vmaps = target.context.debugging_interface.maps()
+        vmaps = target._internal_debugger.debugging_interface.maps()
 
         while current_rbp:
             try:
@@ -60,17 +59,17 @@ class Amd64StackUnwinder(StackUnwindingManager):
         Returns:
             int: The return address.
         """
-        instruction_window = target.memory[target.rip, 4]
+        instruction_window = target.memory[target.regs.rip, 4]
 
         # Check if the instruction window is a function preamble and handle each case
         return_address = None
 
         if self._preamble_state(instruction_window) == 0:
-            return_address = target.memory[target.rbp + 8, 8]
+            return_address = target.memory[target.regs.rbp + 8, 8]
         elif self._preamble_state(instruction_window) == 1:
-            return_address = target.memory[target.rsp, 8]
+            return_address = target.memory[target.regs.rsp, 8]
         else:
-            return_address = target.memory[target.rsp + 8, 8]
+            return_address = target.memory[target.regs.rsp + 8, 8]
 
         return int.from_bytes(return_address, byteorder="little")
 

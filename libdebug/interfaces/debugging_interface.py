@@ -9,8 +9,6 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
-from libdebug.state.debugging_context import provide_context
-
 if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
     from libdebug.data.memory_map import MemoryMap
@@ -22,18 +20,8 @@ if TYPE_CHECKING:
 class DebuggingInterface(ABC):
     """The interface used by `_InternalDebugger` to communicate with the available debugging backends, such as `ptrace` or `gdb`."""
 
-    breakpoints: dict[int, Breakpoint]
-    """A dictionary of all the breakpoints set on the process.
-    Key: the address of the breakpoint."""
-
-    threads: dict[int, ThreadContext]
-    """A dictionary of all the threads of the process.
-    Key: the thread ID."""
-
     def __init__(self: DebuggingInterface) -> None:
         """Initializes the DebuggingInterface classs."""
-        self.breakpoints = provide_context(self)._breakpoints
-        self.threads = provide_context(self).threads
 
     @abstractmethod
     def reset(self: DebuggingInterface) -> None:

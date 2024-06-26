@@ -63,7 +63,7 @@ class SignalHookTest(unittest.TestCase):
 
         d = debugger("binaries/signal_handling_test")
 
-        d.signal_to_block = ["SIGUSR1", 15, "SIGINT", 3, 13]
+        d.signals_to_block = ["SIGUSR1", 15, "SIGINT", 3, 13]
 
         d.run()
 
@@ -291,7 +291,7 @@ class SignalHookTest(unittest.TestCase):
 
         r = d.run()
 
-        d.signal_to_block = [10, 15, 2, 3, 13]
+        d.signals_to_block = [10, 15, 2, 3, 13]
 
         hook1 = d.hook_signal("SIGUSR1", callback=hook_SIGUSR1)
         hook2 = d.hook_signal("SIGTERM", callback=hook_SIGTERM)
@@ -305,7 +305,7 @@ class SignalHookTest(unittest.TestCase):
 
         # No block the signals anymore
         if bp.hit_on(d):
-            d.signal_to_block = []
+            d.signals_to_block = []
 
         d.cont()
 
@@ -372,7 +372,7 @@ class SignalHookTest(unittest.TestCase):
 
         r = d.run()
 
-        d.signal_to_block = [10, 15, 2, 3, 13]
+        d.signals_to_block = [10, 15, 2, 3, 13]
 
         hook1 = d.hook_signal("SIGUSR1", callback=hook_SIGUSR1)
         hook2 = d.hook_signal("SIGTERM", callback=hook_SIGTERM)
@@ -386,7 +386,7 @@ class SignalHookTest(unittest.TestCase):
 
         # No block the signals anymore
         if bp.hit_on(d):
-            d.signal_to_block = []
+            d.signals_to_block = []
             d.unhook_signal(hook4)
             d.unhook_signal(hook5)
 
@@ -1060,7 +1060,7 @@ class SignalHookTest(unittest.TestCase):
 
         d = debugger("binaries/signal_handling_test")
 
-        d.signal_to_block = ["SIGUSR1", 15, "SIGINT", 3, 13]
+        d.signals_to_block = ["SIGUSR1", 15, "SIGINT", 3, 13]
 
         d.run()
 

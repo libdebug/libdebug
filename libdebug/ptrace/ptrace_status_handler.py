@@ -14,9 +14,9 @@ from typing import TYPE_CHECKING
 from libdebug.architectures.ptrace_software_breakpoint_patcher import (
     software_breakpoint_byte_size,
 )
+from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_constants import SYSCALL_SIGTRAP, StopEvents
-from libdebug.state.debugging_context import provide_context
 from libdebug.utils.signal_utils import resolve_signal_name
 
 if TYPE_CHECKING:
@@ -24,7 +24,6 @@ if TYPE_CHECKING:
     from libdebug.data.signal_hook import SignalHook
     from libdebug.data.syscall_hook import SyscallHook
     from libdebug.interfaces.debugging_interface import DebuggingInterface
-    from libdebug.state.debugging_context import DebuggingContext
     from libdebug.state.thread_context import ThreadContext
 
 
@@ -33,8 +32,8 @@ class PtraceStatusHandler:
 
     def __init__(self: PtraceStatusHandler) -> None:
         """Initializes the PtraceStatusHandler class."""
-        self.context: DebuggingContext = provide_context(self)
-        self.ptrace_interface: DebuggingInterface = self.context.debugging_interface
+        self.internal_debugger = provide_internal_debugger(self)
+        self.ptrace_interface: DebuggingInterface = self.internal_debugger.debugging_interface
         self.forward_signal: bool = True
         self._assume_race_sigstop: bool = (
             True  # Assume the stop is due to a race condition with SIGSTOP sent by the debugger
@@ -55,17 +54,22 @@ class PtraceStatusHandler:
             os.waitpid(thread_id, 0)
         self.ptrace_interface.register_new_thread(thread_id)
 
-    def _handle_exit(self: PtraceStatusHandler, thread_id: int, exit_code: int | None, exit_signal: int | None) -> None:
-        if self.context.get_thread_by_id(thread_id):
+    def _handle_exit(
+        self: PtraceStatusHandler,
+        thread_id: int,
+        exit_code: int | None,
+        exit_signal: int | None,
+    ) -> None:
+        if self.internal_debugger.get_thread_by_id(thread_id):
             self.ptrace_interface.unregister_thread(thread_id, exit_code=exit_code, exit_signal=exit_signal)
 
     def _handle_breakpoints(self: PtraceStatusHandler, thread_id: int) -> bool:
-        thread = self.context.get_thread_by_id(thread_id)
+        thread = self.internal_debugger.get_thread_by_id(thread_id)
 
         if not hasattr(thread, "instruction_pointer"):
             # This is a signal trap hit on process startup
             # Do not resume the process until the user decides to do so
-            self.context._resume_context.resume = False
+            self.internal_debugger.resume_context.resume = False
             self.forward_signal = False
             return
 
@@ -74,7 +78,7 @@ class PtraceStatusHandler:
         bp: None | Breakpoint
 
         enabled_breakpoints = {}
-        for bp in self.context.breakpoints.values():
+        for bp in self.internal_debugger.breakpoints.values():
             if bp.enabled and not bp._disabled_for_step:
                 enabled_breakpoints[bp.address] = bp
 
@@ -83,7 +87,7 @@ class PtraceStatusHandler:
         if ip in enabled_breakpoints:
             # Hardware breakpoint hit
             liblog.debugger("Hardware breakpoint hit at 0x%x", ip)
-            bp = self.context.breakpoints[ip]
+            bp = self.internal_debugger.breakpoints[ip]
         else:
             # If the trap was caused by a software breakpoint, we need to restore the original instruction
             # and set the instruction pointer to the previous instruction.
@@ -92,7 +96,7 @@ class PtraceStatusHandler:
             if ip in enabled_breakpoints:
                 # Software breakpoint hit
                 liblog.debugger("Software breakpoint hit at 0x%x", ip)
-                bp = self.context.breakpoints[ip]
+                bp = self.internal_debugger.breakpoints[ip]
 
                 # Set the instruction pointer to the previous instruction
                 thread.instruction_pointer = ip
@@ -114,7 +118,7 @@ class PtraceStatusHandler:
                 bp.callback(thread, bp)
             else:
                 # If the breakpoint has no callback, we need to stop the process despite the other signals
-                self.context._resume_context.resume = False
+                self.internal_debugger.resume_context.resume = False
 
     def _manage_syscall_on_enter(
         self: PtraceStatusHandler,
@@ -150,8 +154,8 @@ class PtraceStatusHandler:
                     )
 
                 # The syscall number has changed
-                if syscall_number_after_hook in self.context.syscall_hooks:
-                    hook_hijack = self.context.syscall_hooks[syscall_number_after_hook]
+                if syscall_number_after_hook in self.internal_debugger.syscall_hooks:
+                    hook_hijack = self.internal_debugger.syscall_hooks[syscall_number_after_hook]
 
                     # Check if the new syscall has to be hooked
                     if hook.hook_hijack:
@@ -195,7 +199,7 @@ class PtraceStatusHandler:
 
     def _handle_syscall(self: PtraceStatusHandler, thread_id: int) -> bool:
         """Handle a syscall trap."""
-        thread = self.context.get_thread_by_id(thread_id)
+        thread = self.internal_debugger.get_thread_by_id(thread_id)
 
         if not hasattr(thread, "syscall_number"):
             # This is another spurious trap, we don't know what to do with it
@@ -203,12 +207,12 @@ class PtraceStatusHandler:
 
         syscall_number = thread.syscall_number
 
-        if syscall_number not in self.context.syscall_hooks:
+        if syscall_number not in self.internal_debugger.syscall_hooks:
             # This is a syscall we don't care about
             # Resume the execution
             return
 
-        hook = self.context.syscall_hooks[syscall_number]
+        hook = self.internal_debugger.syscall_hooks[syscall_number]
 
         if not hook._has_entered:
             # The syscall is being entered
@@ -279,8 +283,8 @@ class PtraceStatusHandler:
                         new_signal_number,
                     )
 
-                    if hook.hook_hijack and new_signal_number in self.context.signal_hooks:
-                        hijack_hook = self.context.signal_hooks[new_signal_number]
+                    if hook.hook_hijack and new_signal_number in self.internal_debugger.signal_hooks:
+                        hijack_hook = self.internal_debugger.signal_hooks[new_signal_number]
                         if new_signal_number not in hijacked_set:
                             hijacked_set.add(new_signal_number)
                         else:
@@ -300,8 +304,8 @@ class PtraceStatusHandler:
         """Handle the signal trap."""
         signal_number = thread._signal_number
 
-        if signal_number in self.context.signal_hooks:
-            hook = self.context.signal_hooks[signal_number]
+        if signal_number in self.internal_debugger.signal_hooks:
+            hook = self.internal_debugger.signal_hooks[signal_number]
 
             self._manage_signal_callback(hook, thread, signal_number, {signal_number})
 
@@ -318,25 +322,25 @@ class PtraceStatusHandler:
             liblog.debugger("Child thread %d stopped on syscall hook", pid)
             self._handle_syscall(pid)
             self.forward_signal = False
-        elif signum == signal.SIGSTOP and self.context._resume_context.force_interrupt:
+        elif signum == signal.SIGSTOP and self.internal_debugger.resume_context.force_interrupt:
             # The user has requested an interrupt, we need to stop the process despite the ohter signals
             liblog.debugger(
                 "Child thread %d stopped with signal %s",
                 pid,
                 resolve_signal_name(signum),
             )
-            self.context._resume_context.resume = False
-            self.context._resume_context.force_interrupt = False
+            self.internal_debugger.resume_context.resume = False
+            self.internal_debugger.resume_context.force_interrupt = False
             self.forward_signal = False
         elif signum == signal.SIGTRAP:
             # The trap decides if we hit a breakpoint. If so, it decides whether we should stop or
             # continue the execution and wait for the next trap
             self._handle_breakpoints(pid)
 
-            if self.context._resume_context.is_a_step:
+            if self.internal_debugger.resume_context.is_a_step:
                 # The process is stepping, we need to stop the execution
-                self.context._resume_context.resume = False
-                self.context._resume_context.is_a_step = False
+                self.internal_debugger.resume_context.resume = False
+                self.internal_debugger.resume_context.is_a_step = False
                 self.forward_signal = False
 
             event = status >> 8
@@ -377,7 +381,7 @@ class PtraceStatusHandler:
         self.forward_signal = True
 
         if os.WIFSTOPPED(status):
-            if self.context._resume_context.is_startup:
+            if self.internal_debugger.resume_context.is_startup:
                 # The process has just started
                 return
             signum = os.WSTOPSIG(status)
@@ -388,7 +392,7 @@ class PtraceStatusHandler:
             # Check if the debugger needs to handle the signal
             self._internal_signal_handler(pid, signum, results, status)
 
-            thread = self.context.get_thread_by_id(pid)
+            thread = self.internal_debugger.get_thread_by_id(pid)
 
             if thread is not None:
                 thread._signal_number = signum
@@ -398,7 +402,7 @@ class PtraceStatusHandler:
 
                 if self.forward_signal and signum != signal.SIGSTOP:
                     # We have to forward the signal to the thread
-                    self.context._resume_context.threads_with_signals_to_forward.append(pid)
+                    self.internal_debugger.resume_context.threads_with_signals_to_forward.append(pid)
 
         if os.WIFEXITED(status):
             # The thread has exited normally
@@ -434,6 +438,6 @@ class PtraceStatusHandler:
 
         tids = [int(x) for x in os.listdir(f"/proc/{pid}/task")]
         for tid in tids:
-            if not self.context.get_thread_by_id(tid):
-                self.ptrace_interface.register_new_thread(tid)
+            if not self.internal_debugger.get_thread_by_id(tid):
+                self.ptrace_interface.register_new_thread(tid, self.internal_debugger)
                 liblog.debugger("Manually registered new thread %d" % tid)

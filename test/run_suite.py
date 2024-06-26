@@ -49,6 +49,7 @@ def fast_suite():
     suite.addTest(BreakpointTest("test_bp_disable_hw"))
     suite.addTest(BreakpointTest("test_bp_disable_reenable"))
     suite.addTest(BreakpointTest("test_bp_disable_reenable_hw"))
+    suite.addTest(BreakpointTest("test_bps_running"))
     suite.addTest(MemoryTest("test_memory"))
     suite.addTest(MemoryTest("test_mem_access_libs"))
     suite.addTest(MemoryTest("test_memory_exceptions"))
@@ -168,6 +169,7 @@ def fast_suite():
     suite.addTest(DeathTest("test_exit_signal_death"))
     suite.addTest(DeathTest("test_exit_code_death"))
     suite.addTest(DeathTest("test_exit_code_normal"))
+    suite.addTest(DeathTest("test_post_mortem_after_kill"))
     return suite
 
 

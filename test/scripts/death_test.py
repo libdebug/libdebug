@@ -59,6 +59,9 @@ class DeathTest(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             d.cont()
 
+        self.assertEqual(d.dead, True)
+        self.assertEqual(d.threads[0].dead, True)
+
         d.kill()
 
     def test_instr_death(self):
@@ -73,7 +76,7 @@ class DeathTest(unittest.TestCase):
 
         d.wait()
 
-        self.assertEqual(d.rip, 0x55555555517F)
+        self.assertEqual(d.regs.rip, 0x55555555517F)
 
         d.kill()
 
@@ -98,7 +101,7 @@ class DeathTest(unittest.TestCase):
         d = debugger("binaries/segfault_test")
 
         r = d.run()
-        
+
         d.cont()
 
         self.assertEqual(r.recvline(), b"Hello, World!")
@@ -114,23 +117,38 @@ class DeathTest(unittest.TestCase):
         )
 
         d.kill()
-    
+
     def test_exit_code_normal(self):
         d = debugger("binaries/basic_test")
 
-        r = d.run()
-        
+        d.run()
+
         d.cont()
 
         d.wait()
 
         self.assertEqual(d.exit_code, 0)
-        
+
         d.exit_signal
-        
+
         self.assertEqual(
             self.log_capture_string.getvalue().count("No exit signal available."),
             1,
         )
 
         d.kill()
+
+    def test_post_mortem_after_kill(self):
+        d = debugger("binaries/basic_test")
+
+        d.run()
+
+        d.cont()
+
+        d.interrupt()
+        d.kill()
+
+        # We should be able to access the registers also after the process has been killed
+        d.regs.rax
+        d.regs.rbx
+        d.regs.rcx

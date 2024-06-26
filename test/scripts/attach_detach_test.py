@@ -29,7 +29,7 @@ class AttachDetachTest(unittest.TestCase):
         r.recvuntil(b"name:")
         r.sendline(b"Io_no")
 
-        self.assertTrue(d.rip == bp.address)
+        self.assertTrue(d.regs.rip == bp.address)
 
         d.cont()
 

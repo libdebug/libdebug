@@ -21,25 +21,25 @@ class WatchpointTest(unittest.TestCase):
 
         d.cont()
 
-        self.assertEqual(d.rip, 0x401111)  # mov byte ptr [global_char], 0x1
+        self.assertEqual(d.regs.rip, 0x401111)  # mov byte ptr [global_char], 0x1
 
         d.cont()
 
-        self.assertEqual(d.rip, 0x401124)  # mov dword ptr [global_int], 0x4050607
+        self.assertEqual(d.regs.rip, 0x401124)  # mov dword ptr [global_int], 0x4050607
 
         d.cont()
 
         self.assertEqual(
-            d.rip, 0x401135
+            d.regs.rip, 0x401135
         )  # mov qword ptr [global_long], 0x8090a0b0c0d0e0f
 
         d.cont()
 
-        self.assertEqual(d.rip, 0x401155)  # movzx eax, byte ptr [global_char]
+        self.assertEqual(d.regs.rip, 0x401155)  # movzx eax, byte ptr [global_char]
 
         d.cont()
 
-        self.assertEqual(d.rip, 0x401173)  # mov rax, qword ptr [global_long]
+        self.assertEqual(d.regs.rip, 0x401173)  # mov rax, qword ptr [global_long]
 
         d.cont()
 
@@ -53,17 +53,17 @@ class WatchpointTest(unittest.TestCase):
         def watchpoint_global_char(t, b):
             nonlocal global_char_ip
 
-            global_char_ip.append(t.rip)
+            global_char_ip.append(t.regs.rip)
 
         def watchpoint_global_int(t, b):
             nonlocal global_int_ip
 
-            global_int_ip.append(t.rip)
+            global_int_ip.append(t.regs.rip)
 
         def watchpoint_global_long(t, b):
             nonlocal global_long_ip
 
-            global_long_ip.append(t.rip)
+            global_long_ip.append(t.regs.rip)
 
         d = debugger("binaries/watchpoint_test", auto_interrupt_on_command=False)
 

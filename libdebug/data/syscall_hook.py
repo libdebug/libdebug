@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -44,9 +46,8 @@ class SyscallHook:
 
     def enable(self: SyscallHook) -> None:
         """Enable the syscall hook."""
-        from libdebug.state.debugging_context import provide_context
 
-        if provide_context(self).running:
+        if provide_internal_debugger(self).running:
             raise RuntimeError(
                 "Cannot enable a syscall hook while the target process is running.",
             )
@@ -56,9 +57,8 @@ class SyscallHook:
 
     def disable(self: SyscallHook) -> None:
         """Disable the syscall hook."""
-        from libdebug.state.debugging_context import provide_context
 
-        if provide_context(self).running:
+        if provide_internal_debugger(self).running:
             raise RuntimeError(
                 "Cannot disable a syscall hook while the target process is running.",
             )
