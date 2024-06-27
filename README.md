@@ -346,7 +346,7 @@ d.memory["main_arena"] = b"12345678"
 The available heuristics are:
 
 - **backtrace**: This heuristic uses the saved return address found on the stack or on a dedicated register to find the return address of the current function. A breakpoint is applied to the resolved address and execution is continued. This is the fastest heuristic and is fairly reliable, but it may not work in the presence of self-modifying code.
-- **step-mode**: This heuristic steps one instruction at a time until the ret instruction is executed in the current frame (nested calls are handled). This is a reliable heuristic, but is slow and fails in the case of tailcalls or similar optimizations.
+- **step-mode**: This heuristic steps one instruction at a time until the ret instruction is executed in the current frame (nested calls are handled). This is a reliable heuristic, but is slow and fails in the case of internal tailcalls or similar optimizations.
 
 The default heuristic when none is specified is **backtrace**.
 `step_until(<address | symbol>, [max_steps=-1])` will step until the desired address is reached or for `max_steps` steps, whichever comes first.
