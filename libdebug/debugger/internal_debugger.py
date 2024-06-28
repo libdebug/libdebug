@@ -871,33 +871,35 @@ class InternalDebugger:
     def _background_finish(
         self: InternalDebugger,
         thread: ThreadContext,
-        exact: bool = True,
+        heuristic: str = "backtrace",
     ) -> None:
-        """Continues the process until the current function returns or the process stops.
+        """Continues execution until the current function returns or the process stops.
 
-        When used in step mode, it will step until a return instruction is executed. Otherwise, it uses a heuristic
-        based on the call stack to breakpoint (exact is slower).
+        The command requires a heuristic to determine the end of the function. The available heuristics are:
+        - `backtrace`: The debugger will place a breakpoint on the saved return address found on the stack and continue execution on all threads.
+        - `step-mode`: The debugger will step on the specified thread until the current function returns. This will be slower.
 
         Args:
-            thread (ThreadContext): The thread to affect. Defaults to None.
-            exact (bool, optional): Whether or not to execute in step mode. Defaults to True.
+            thread (ThreadContext): The thread to finish.
+            heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
         """
-        self.__threaded_finish(thread, exact)
+        self.__threaded_finish(thread, heuristic)
 
     @background_alias(_background_finish)
     @change_state_function_thread
-    def finish(self: InternalDebugger, thread: ThreadContext, exact: bool = True) -> None:
-        """Continues the process until the current function returns or the process stops.
+    def finish(self: InternalDebugger, thread: ThreadContext, heuristic: str = "backtrace") -> None:
+        """Continues execution until the current function returns or the process stops.
 
-        When used in step mode, it will step until a return instruction is executed. Otherwise, it uses a heuristic
-        based on the call stack to breakpoint (exact is slower).
+        The command requires a heuristic to determine the end of the function. The available heuristics are:
+        - `backtrace`: The debugger will place a breakpoint on the saved return address found on the stack and continue execution on all threads.
+        - `step-mode`: The debugger will step on the specified thread until the current function returns. This will be slower.
 
         Args:
-            thread (ThreadContext): The thread to affect. Defaults to None.
-            exact (bool, optional): Whether or not to execute in step mode. Defaults to True.
+            thread (ThreadContext): The thread to finish.
+            heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
         """
         self.__polling_thread_command_queue.put(
-            (self.__threaded_finish, (thread, exact)),
+            (self.__threaded_finish, (thread, heuristic)),
         )
 
         self._join_and_check_status()
@@ -1270,11 +1272,11 @@ class InternalDebugger:
         self.debugging_interface.step_until(thread, address, max_steps)
         self.set_stopped()
 
-    def __threaded_finish(self: InternalDebugger, thread: ThreadContext, exact: bool) -> None:
-        prefix = "Exact" if exact else "Heuristic"
+    def __threaded_finish(self: InternalDebugger, thread: ThreadContext, heuristic: str) -> None:
+        prefix = heuristic.capitalize()
 
         liblog.debugger(f"{prefix} finish on thread %s", thread.thread_id)
-        self.debugging_interface.finish(thread, exact)
+        self.debugging_interface.finish(thread, heuristic=heuristic)
 
         self.set_stopped()
 

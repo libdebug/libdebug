@@ -291,15 +291,15 @@ class PtraceInterface(DebuggingInterface):
         # As the wait is done internally, we must invalidate the cache
         invalidate_process_cache()
 
-    def finish(self: PtraceInterface, thread: ThreadContext, exact: bool) -> None:
-        """Executes instructions of the specified thread until the current function returns.
+    def finish(self: PtraceInterface, thread: ThreadContext, heuristic: str) -> None:
+        """Continues execution until the current function returns.
 
         Args:
             thread (ThreadContext): The thread to step.
-            exact (bool): If True, the command is implemented as a series of `step` commands.
+            heuristic (str): The heuristic to use.
         """
-        if exact:
-            result = self.lib_trace.exact_finish(
+        if heuristic == "step-mode":
+            result = self.lib_trace.stepping_finish(
                 self._global_state,
                 thread.thread_id,
             )
@@ -310,7 +310,7 @@ class PtraceInterface(DebuggingInterface):
 
             # As the wait is done internally, we must invalidate the cache
             invalidate_process_cache()
-        else:
+        elif heuristic == "backtrace":
             # Breakpoint to return address
             last_saved_instruction_pointer = thread.current_return_address()
 
@@ -340,6 +340,8 @@ class PtraceInterface(DebuggingInterface):
             # Remove the breakpoint if it was set by us
             if not found:
                 self.unset_breakpoint(ip_breakpoint)
+        else:
+            raise ValueError(f"Unimplemented heuristic {heuristic}")
 
     def _setup_pipe(self: PtraceInterface) -> None:
         """Sets up the pipe manager for the child process.

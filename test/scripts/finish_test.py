@@ -36,7 +36,7 @@ class FinishTest(unittest.TestCase):
         self.assertEqual(d.regs.rip, C_ADDRESS)
 
         # Finish function c
-        d.finish(exact=True)
+        d.finish(heuristic="step-mode")
 
         self.assertEqual(d.regs.rip, RETURN_POINT_FROM_C)
 
@@ -54,7 +54,7 @@ class FinishTest(unittest.TestCase):
         self.assertEqual(d.regs.rip, A_ADDRESS)
 
         # Finish function a
-        d.finish(exact=True)
+        d.finish(heuristic="step-mode")
 
         self.assertEqual(d.regs.rip, RETURN_POINT_FROM_A)
 
@@ -75,7 +75,7 @@ class FinishTest(unittest.TestCase):
         self.assertEqual(d.regs.rip, C_ADDRESS)
 
         # Finish function c
-        d.finish(exact=False)
+        d.finish(heuristic="backtrace")
 
         self.assertEqual(d.regs.rip, RETURN_POINT_FROM_C)
 
@@ -93,7 +93,7 @@ class FinishTest(unittest.TestCase):
         self.assertEqual(d.regs.rip, A_ADDRESS)
 
         # Finish function a
-        d.finish(exact=False)
+        d.finish(heuristic="backtrace")
 
         self.assertEqual(d.regs.rip, RETURN_POINT_FROM_A)
 
@@ -115,7 +115,7 @@ class FinishTest(unittest.TestCase):
         self.assertEqual(d.regs.rip, C_ADDRESS)
 
         # Finish function c
-        d.finish(exact=True)
+        d.finish(heuristic="step-mode")
 
         self.assertEqual(d.regs.rip, RETURN_POINT_FROM_C)
 
@@ -134,7 +134,7 @@ class FinishTest(unittest.TestCase):
         self.assertEqual(d.regs.rip, A_ADDRESS)
 
         # Finish function a
-        d.finish(exact=True)
+        d.finish(heuristic="step-mode")
 
         self.assertEqual(d.regs.rip, RETURN_POINT_FROM_A)
 
@@ -156,7 +156,7 @@ class FinishTest(unittest.TestCase):
         self.assertEqual(d.regs.rip, C_ADDRESS)
 
         # Finish function c
-        d.finish(exact=False)
+        d.finish(heuristic="backtrace")
 
         self.assertEqual(d.regs.rip, RETURN_POINT_FROM_C)
 
@@ -175,7 +175,7 @@ class FinishTest(unittest.TestCase):
         self.assertEqual(d.regs.rip, A_ADDRESS)
 
         # Finish function a
-        d.finish(exact=False)
+        d.finish(heuristic="backtrace")
 
         self.assertEqual(d.regs.rip, RETURN_POINT_FROM_A)
 
@@ -194,7 +194,7 @@ class FinishTest(unittest.TestCase):
         d.breakpoint(A_ADDRESS)
 
         # Finish function c
-        d.finish(exact=True)
+        d.finish(heuristic="step-mode")
 
         self.assertEqual(d.regs.rip, A_ADDRESS, f"Expected {hex(A_ADDRESS)} but got {hex(d.regs.rip)}")
 
@@ -213,7 +213,7 @@ class FinishTest(unittest.TestCase):
         d.breakpoint(A_ADDRESS)
 
         # Finish function c
-        d.finish(exact=False)
+        d.finish(heuristic="backtrace")
 
         self.assertEqual(d.regs.rip, A_ADDRESS)
 
@@ -268,7 +268,7 @@ class FinishTest(unittest.TestCase):
         d.breakpoint(BREAKPOINT_LOCATION)
 
         # Finish function c
-        d.finish(exact=True)
+        d.finish(heuristic="step-mode")
 
         self.assertEqual(d.regs.rip, BREAKPOINT_LOCATION)
 
@@ -291,7 +291,7 @@ class FinishTest(unittest.TestCase):
         d.breakpoint(BREAKPOINT_LOCATION)
 
         # Finish function c
-        d.finish(exact=False)
+        d.finish(heuristic="backtrace")
 
         self.assertEqual(d.regs.rip, BREAKPOINT_LOCATION)
 
@@ -311,7 +311,7 @@ class FinishTest(unittest.TestCase):
         d.breakpoint(RETURN_POINT_FROM_C)
 
         # Finish function c
-        d.finish(exact=False)
+        d.finish(heuristic="backtrace")
 
         self.assertEqual(d.regs.rip, RETURN_POINT_FROM_C)
         self.assertFalse(d.running)
