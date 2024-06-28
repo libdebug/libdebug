@@ -87,6 +87,10 @@ class Debugger:
         """Returns the memory maps of the process."""
         return self._internal_debugger.maps()
 
+    def print_maps(self: Debugger) -> None:
+        """Prints the memory maps of the process."""
+        self._internal_debugger.print_maps()
+
     def breakpoint(
         self: Debugger,
         position: int | str,

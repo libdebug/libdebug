@@ -43,6 +43,7 @@ from libdebug.utils.debugging_utils import (
     resolve_symbol_in_maps,
 )
 from libdebug.utils.libcontext import libcontext
+from libdebug.utils.print_style import PrintStyle
 from libdebug.utils.signal_utils import (
     resolve_signal_name,
     resolve_signal_number,
@@ -359,6 +360,20 @@ class InternalDebugger:
         """Returns the memory maps of the process."""
         self._ensure_process_stopped()
         return self.debugging_interface.maps()
+
+    def print_maps(self: InternalDebugger) -> None:
+        """Prints the memory maps of the process."""
+        self._ensure_process_stopped()
+        maps = self.maps()
+        for memory_map in maps:
+            if "x" in memory_map.permissions:
+                print(f"{PrintStyle.RED}{memory_map}{PrintStyle.RESET}")
+            elif "w" in memory_map.permissions:
+                print(f"{PrintStyle.YELLOW}{memory_map}{PrintStyle.RESET}")
+            elif "r" in memory_map.permissions:
+                print(f"{PrintStyle.GREEN}{memory_map}{PrintStyle.RESET}")
+            else:
+                print(memory_map)
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
