@@ -56,6 +56,7 @@ from libdebug.utils.syscall_utils import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from libdebug.data.memory_map import MemoryMap
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.state.thread_context import ThreadContext
     from libdebug.utils.pipe_manager import PipeManager
@@ -354,6 +355,11 @@ class InternalDebugger:
 
         self._join_and_check_status()
 
+    def maps(self: InternalDebugger) -> list[MemoryMap]:
+        """Returns the memory maps of the process."""
+        self._ensure_process_stopped()
+        return self.debugging_interface.maps()
+
     @background_alias(_background_invalid_call)
     @change_state_function_process
     def breakpoint(
@@ -363,6 +369,7 @@ class InternalDebugger:
         condition: str | None = None,
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
+        file: str | None = None,
     ) -> Breakpoint:
         """Sets a breakpoint at the specified location.
 
@@ -372,12 +379,13 @@ class InternalDebugger:
             condition (str, optional): The trigger condition for the breakpoint. Defaults to None.
             length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
             callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the breakpoint is hit. Defaults to None.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to None.
         """
 
         if isinstance(position, str):
-            address = self.resolve_symbol(position)
+            address = self.resolve_symbol(position, file)
         else:
-            address = self.resolve_address(position)
+            address = self.resolve_address(position, file)
             position = hex(address)
 
         if condition:
@@ -811,6 +819,7 @@ class InternalDebugger:
         thread: ThreadContext,
         position: int | str,
         max_steps: int = -1,
+        file: str | None = None,
     ) -> None:
         """Executes instructions of the process until the specified location is reached.
 
@@ -818,11 +827,12 @@ class InternalDebugger:
             thread (ThreadContext): The thread to step. Defaults to None.
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to None.
         """
         if isinstance(position, str):
-            address = self.resolve_symbol(position)
+            address = self.resolve_symbol(position, file)
         else:
-            address = self.resolve_address(position)
+            address = self.resolve_address(position, file)
 
         self.__threaded_step_until(thread, address, max_steps)
 
@@ -833,6 +843,7 @@ class InternalDebugger:
         thread: ThreadContext,
         position: int | str,
         max_steps: int = -1,
+        file: str | None = None,
     ) -> None:
         """Executes instructions of the process until the specified location is reached.
 
@@ -840,11 +851,12 @@ class InternalDebugger:
             thread (ThreadContext): The thread to step. Defaults to None.
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to None.
         """
         if isinstance(position, str):
-            address = self.resolve_symbol(position)
+            address = self.resolve_symbol(position, file)
         else:
-            address = self.resolve_address(position)
+            address = self.resolve_address(position, file)
 
         arguments = (
             thread,
@@ -993,12 +1005,12 @@ class InternalDebugger:
 
         return None
 
-    def resolve_address(self: InternalDebugger, address: int, backing_file: str | None = None) -> int:
+    def resolve_address(self: InternalDebugger, address: int, backing_file: str | None) -> int:
         """Normalizes and validates the specified address.
 
         Args:
             address (int): The address to normalize and validate.
-            backing_file (str, optional): The backing file to resolve the address in. Defaults to None.
+            backing_file (str): The backing file to resolve the address in.
 
         Returns:
             int: The normalized and validated address.
@@ -1007,7 +1019,6 @@ class InternalDebugger:
             ValueError: If the substring `backing_file` is present in multiple backing files.
         """
         maps = self.debugging_interface.maps()
-
         if not backing_file:
             if check_absolute_address(address, maps):
                 # If no backing file is specified and the address is absolute, we can return it directly
@@ -1038,14 +1049,17 @@ class InternalDebugger:
             raise ValueError(
                 f"The substring {backing_file} is present in multiple, different backing files. The address resolution cannot be accurate."
             )
+
+        if not filtered_maps:
+            raise ValueError(f"The specified string {backing_file} does not correspond to any backing file.")
         return normalize_and_validate_address(address, filtered_maps)
 
-    def resolve_symbol(self: InternalDebugger, symbol: str, backing_file: str | None = None) -> int:
+    def resolve_symbol(self: InternalDebugger, symbol: str, backing_file: str | None) -> int:
         """Resolves the address of the specified symbol.
 
         Args:
             symbol (str): The symbol to resolve.
-            backing_file (str, optional): The backing file to resolve the symbol in. Defaults to None.
+            backing_file (str): The backing file to resolve the symbol in.
 
         Returns:
             int: The address of the symbol.

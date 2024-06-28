@@ -188,14 +188,16 @@ class ThreadContext:
         self: ThreadContext,
         position: int | str,
         max_steps: int = -1,
+        file: str | None = None,
     ) -> None:
         """Executes instructions of the process until the specified location is reached.
 
         Args:
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to None.
         """
-        self._internal_debugger.step_until(self, position, max_steps)
+        self._internal_debugger.step_until(self, position, max_steps, file)
 
     def finish(self: ThreadContext, exact: bool = True) -> None:
         """Continues the process until the current function returns or the process stops.

@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from libdebug.data.breakpoint import Breakpoint
+    from libdebug.data.memory_map import MemoryMap
     from libdebug.data.memory_view import MemoryView
     from libdebug.data.signal_hook import SignalHook
     from libdebug.data.syscall_hook import SyscallHook
@@ -82,6 +83,10 @@ class Debugger:
         """Waits for the process to stop."""
         self._internal_debugger.wait()
 
+    def maps(self: Debugger) -> list[MemoryMap]:
+        """Returns the memory maps of the process."""
+        return self._internal_debugger.maps()
+
     def breakpoint(
         self: Debugger,
         position: int | str,
@@ -89,6 +94,7 @@ class Debugger:
         condition: str | None = None,
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
+        file: str | None = None,
     ) -> Breakpoint:
         """Sets a breakpoint at the specified location.
 
@@ -98,8 +104,9 @@ class Debugger:
             condition (str, optional): The trigger condition for the breakpoint. Defaults to None.
             length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
             callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the breakpoint is hit. Defaults to None.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to None.
         """
-        return self._internal_debugger.breakpoint(position, hardware, condition, length, callback)
+        return self._internal_debugger.breakpoint(position, hardware, condition, length, callback, file)
 
     def watchpoint(
         self: Debugger,
@@ -107,6 +114,7 @@ class Debugger:
         condition: str = "w",
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
+        file: str | None = None,
     ) -> Breakpoint:
         """Sets a watchpoint at the specified location. Internally, watchpoints are implemented as breakpoints.
 
@@ -115,6 +123,7 @@ class Debugger:
             condition (str, optional): The trigger condition for the watchpoint (either "r", "rw" or "x"). Defaults to "w".
             length (int, optional): The size of the word in being watched (1, 2, 4 or 8). Defaults to 1.
             callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the watchpoint is hit. Defaults to None.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to None.
         """
         return self._internal_debugger.breakpoint(
             position,
@@ -122,6 +131,7 @@ class Debugger:
             condition=condition,
             length=length,
             callback=callback,
+            file=file,
         )
 
     def hook_signal(
@@ -249,6 +259,7 @@ class Debugger:
         condition: str | None = None,
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
+        file: str | None = None,
     ) -> Breakpoint:
         """Alias for the `breakpoint` method.
 
@@ -260,8 +271,9 @@ class Debugger:
             condition (str, optional): The trigger condition for the breakpoint. Defaults to None.
             length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
             callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the breakpoint is hit. Defaults to None.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to None.
         """
-        return self._internal_debugger.breakpoint(position, hardware, condition, length, callback)
+        return self._internal_debugger.breakpoint(position, hardware, condition, length, callback, file)
 
     def wp(
         self: Debugger,
@@ -269,6 +281,7 @@ class Debugger:
         condition: str = "w",
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
+        file: str | None = None,
     ) -> Breakpoint:
         """Alias for the `watchpoint` method.
 
@@ -279,6 +292,7 @@ class Debugger:
             condition (str, optional): The trigger condition for the watchpoint (either "r", "rw" or "x"). Defaults to "w".
             length (int, optional): The size of the word in being watched (1, 2, 4 or 8). Defaults to 1.
             callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the watchpoint is hit. Defaults to None.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to None.
         """
         return self._internal_debugger.breakpoint(
             position,
@@ -286,6 +300,7 @@ class Debugger:
             condition=condition,
             length=length,
             callback=callback,
+            file=file,
         )
 
     @property
