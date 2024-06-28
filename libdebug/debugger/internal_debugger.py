@@ -1142,7 +1142,7 @@ class InternalDebugger:
         Returns:
             str: the full path of the process.
         """
-        return Path.readlink(f"/proc/{self.process_id}/exe")
+        return str(Path(f"/proc/{self.process_id}/exe").readlink())
 
     @functools.cache
     def _get_process_name(self: InternalDebugger) -> str:
@@ -1151,7 +1151,7 @@ class InternalDebugger:
         Returns:
             str: the name of the process.
         """
-        with Path.open(f"/proc/{self.process_id}/comm") as f:
+        with Path(f"/proc/{self.process_id}/comm").open() as f:
             return f.read().strip()
 
     def __threaded_run(self: InternalDebugger) -> None:
