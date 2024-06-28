@@ -9,6 +9,15 @@ from libdebug.liblog import liblog
 from libdebug.utils.elf_utils import is_pie, resolve_address, resolve_symbol
 
 
+def check_absolute_address(address: int, maps: list[MemoryMap]) -> bool:
+    """Checks if the specified address is an absolute address.
+
+    Returns:
+        bool: True if the specified address is an absolute address, False otherwise.
+    """
+    return any(vmap.start <= address < vmap.end for vmap in maps)
+
+
 def normalize_and_validate_address(address: int, maps: list[MemoryMap]) -> int:
     """Normalizes and validates the specified address.
 
@@ -19,7 +28,7 @@ def normalize_and_validate_address(address: int, maps: list[MemoryMap]) -> int:
         ValueError: If the specified address does not belong to any memory map.
     """
     if address < maps[0].start:
-        # The address is lower than the base address of the process. Suppose it is a relative address for a PIE binary.
+        # The address is lower than the base address of the lowest map. Suppose it is a relative address for a PIE binary.
         address += maps[0].start
 
     for vmap in maps:
@@ -33,8 +42,8 @@ def resolve_symbol_in_maps(symbol: str, maps: list[MemoryMap]) -> int:
     """Returns the address of the specified symbol in the specified memory maps.
 
     Args:
-        maps (list[MemoryMap]): The memory maps.
         symbol (str): The symbol whose address should be returned.
+        maps (list[MemoryMap]): The memory maps.
 
     Returns:
         int: The address of the specified symbol in the specified memory maps.
@@ -67,7 +76,7 @@ def resolve_symbol_in_maps(symbol: str, maps: list[MemoryMap]) -> int:
         except ValueError:
             pass
 
-    raise ValueError(f"Symbol {symbol} not found in any mapped file. Please specify a valid symbol.")
+    raise ValueError(f"Symbol {symbol} not found in the specified mapped file. Please specify a valid symbol.")
 
 
 def resolve_address_in_maps(address: int, maps: list[MemoryMap]) -> str:

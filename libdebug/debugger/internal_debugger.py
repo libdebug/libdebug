@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import functools
 import os
 import signal
 from pathlib import Path
@@ -37,6 +38,7 @@ from libdebug.utils.debugger_wrappers import (
     change_state_function_thread,
 )
 from libdebug.utils.debugging_utils import (
+    check_absolute_address,
     normalize_and_validate_address,
     resolve_symbol_in_maps,
 )
@@ -991,30 +993,91 @@ class InternalDebugger:
 
         return None
 
-    def resolve_address(self: InternalDebugger, address: int) -> int:
+    def resolve_address(self: InternalDebugger, address: int, backing_file: str | None = None) -> int:
         """Normalizes and validates the specified address.
 
         Args:
             address (int): The address to normalize and validate.
+            backing_file (str, optional): The backing file to resolve the address in. Defaults to None.
 
         Returns:
             int: The normalized and validated address.
+
+        Raises:
+            ValueError: If the substring `backing_file` is present in multiple backing files.
         """
         maps = self.debugging_interface.maps()
-        return normalize_and_validate_address(address, maps)
 
-    def resolve_symbol(self: InternalDebugger, symbol: str) -> int:
+        if not backing_file:
+            if check_absolute_address(address, maps):
+                # If no backing file is specified and the address is absolute, we can return it directly
+                return address
+            else:
+                # If no backing file is specified and the address is not absolute, we have to assume it is in the main map
+                backing_file = self._get_process_full_path()
+                liblog.debugger(
+                    f"No backing file specified and no correspondant absolute address for {hex(address)}. Assuming {backing_file}."
+                )
+
+        if (
+            backing_file == (full_backing_path := self._get_process_full_path())
+            or backing_file == "binary"
+            or backing_file == self._get_process_name()
+        ):
+            backing_file = full_backing_path
+
+        filtered_maps = []
+        unique_files = set()
+
+        for vmap in maps:
+            if backing_file in vmap.backing_file:
+                filtered_maps.append(vmap)
+                unique_files.add(vmap.backing_file)
+
+        if len(unique_files) > 1:
+            raise ValueError(
+                f"The substring {backing_file} is present in multiple, different backing files. The address resolution cannot be accurate."
+            )
+        return normalize_and_validate_address(address, filtered_maps)
+
+    def resolve_symbol(self: InternalDebugger, symbol: str, backing_file: str | None = None) -> int:
         """Resolves the address of the specified symbol.
 
         Args:
             symbol (str): The symbol to resolve.
+            backing_file (str, optional): The backing file to resolve the symbol in. Defaults to None.
 
         Returns:
             int: The address of the symbol.
         """
         maps = self.debugging_interface.maps()
-        address = resolve_symbol_in_maps(symbol, maps)
-        return normalize_and_validate_address(address, maps)
+
+        if not backing_file:
+            # If no backing file is specified, we have to assume it is in the main map
+            backing_file = self._get_process_full_path()
+            liblog.debugger(f"No backing file specified for the symbol {symbol}. Assuming {backing_file}.")
+
+        if (
+            backing_file == (full_backing_path := self._get_process_full_path())
+            or backing_file == "binary"
+            or backing_file == self._get_process_name()
+        ):
+            backing_file = full_backing_path
+
+        filtered_maps = []
+        unique_files = set()
+
+        for vmap in maps:
+            if backing_file in vmap.backing_file:
+                filtered_maps.append(vmap)
+                unique_files.add(vmap.backing_file)
+
+        if len(unique_files) > 1:
+            raise ValueError(
+                f"The substring {backing_file} is present in multiple, different backing files. The address resolution cannot be accurate."
+            )
+
+        return resolve_symbol_in_maps(symbol, filtered_maps)
 
     def _background_ensure_process_stopped(self: InternalDebugger) -> None:
         """Validates the state of the process."""
@@ -1071,6 +1134,25 @@ class InternalDebugger:
             self.__polling_thread_response_queue.task_done()
             if response is not None:
                 raise response
+
+    @functools.cache
+    def _get_process_full_path(self: InternalDebugger) -> str:
+        """Get the full path of the process.
+
+        Returns:
+            str: the full path of the process.
+        """
+        return Path.readlink(f"/proc/{self.process_id}/exe")
+
+    @functools.cache
+    def _get_process_name(self: InternalDebugger) -> str:
+        """Get the name of the process.
+
+        Returns:
+            str: the name of the process.
+        """
+        with Path.open(f"/proc/{self.process_id}/comm") as f:
+            return f.read().strip()
 
     def __threaded_run(self: InternalDebugger) -> None:
         liblog.debugger("Starting process %s.", self.argv[0])
