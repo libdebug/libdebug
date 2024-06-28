@@ -281,6 +281,64 @@ class BreakpointTest(unittest.TestCase):
         self.assertEqual(bp2.hit_count, 10)
 
         self.d.kill()
+    
+    def test_bp_backing_file(self):
+        d = debugger("binaries/executable_section_test")
+
+        d.run()
+
+        bp1 = d.breakpoint(0x1266, file="binary")
+
+        d.cont()
+
+        d.wait()
+
+        if bp1.hit_on(d):
+            for vmap in d.maps():
+                if "x" in vmap.permissions and "anon" in vmap.backing_file:
+                    section = vmap.backing_file
+            bp2 = d.breakpoint(0xd, file=section)
+            d.cont()
+        
+        d.wait()
+
+        if bp2.hit_on(d):
+            self.assertEqual(d.memory[d.regs.rip], b']')
+            self.assertEqual(d.regs.rax, 9)
+        
+        d.kill()
+
+        self.assertEqual(bp1.hit_count, 1)
+        self.assertEqual(bp2.hit_count, 1)
+
+
+        d.run()
+
+        bp1 = d.breakpoint(0x1266, file="executable_section_test")
+
+        d.cont()
+
+        d.wait()
+
+        if bp1.hit_on(d):
+            for vmap in d.maps():
+                if "x" in vmap.permissions and "anon" in vmap.backing_file:
+                    section = vmap.backing_file
+            bp2 = d.breakpoint(0xd, file=section)
+            d.cont()
+        
+        d.wait()
+
+        if bp2.hit_on(d):
+            self.assertEqual(d.memory[d.regs.rip], b']')
+            self.assertEqual(d.regs.rax, 9)
+        
+        d.kill()
+
+        self.assertEqual(bp1.hit_count, 1)
+        self.assertEqual(bp2.hit_count, 1)
+
+
 
 
 if __name__ == "__main__":
