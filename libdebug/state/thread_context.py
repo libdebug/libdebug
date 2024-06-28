@@ -197,13 +197,49 @@ class ThreadContext:
         """
         self._internal_debugger.step_until(self, position, max_steps)
 
-    def finish(self: ThreadContext, exact: bool = True) -> None:
-        """Continues the process until the current function returns or the process stops.
+    def finish(self: ThreadContext, heuristic: str = "backtrace") -> None:
+        """Continues execution until the current function returns or the process stops.
 
-        When used in step mode, it will step until a return instruction is executed. Otherwise, it uses a heuristic
-        based on the call stack to breakpoint (exact is slower).
+        The command requires a heuristic to determine the end of the function. The available heuristics are:
+        - `backtrace`: The debugger will place a breakpoint on the saved return address found on the stack and continue execution on all threads.
+        - `step-mode`: The debugger will step on the specified thread until the current function returns. This will be slower.
 
         Args:
-            exact (bool, optional): Whether or not to execute in step mode. Defaults to True.
+            heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
         """
-        self._internal_debugger.finish(self, exact)
+        self._internal_debugger.finish(self, heuristic=heuristic)
+
+    def si(self: ThreadContext) -> None:
+        """Alias for the `step` method.
+
+        Executes a single instruction of the process.
+        """
+        self._internal_debugger.step(self)
+
+    def su(
+        self: ThreadContext,
+        position: int | str,
+        max_steps: int = -1,
+    ) -> None:
+        """Alias for the `step_until` method.
+
+        Executes instructions of the process until the specified location is reached.
+
+        Args:
+            position (int | bytes): The location to reach.
+            max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
+        """
+        self._internal_debugger.step_until(self, position, max_steps)
+
+    def fin(self: ThreadContext, heuristic: str = "backtrace") -> None:
+        """Alias for the `finish` method. Continues execution until the current function returns or the process stops.
+
+        The command requires a heuristic to determine the end of the function. The available heuristics are:
+        - `backtrace`: The debugger will place a breakpoint on the saved return address found on the stack and continue execution on all threads.
+        - `step-mode`: The debugger will step on the specified thread until the current function returns. This will be slower.
+
+        Args:
+            heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
+"""
+
+        self._internal_debugger.finish(self, heuristic)

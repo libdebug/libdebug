@@ -214,6 +214,80 @@ class Debugger:
         """Migrates the current debugging session to GDB."""
         self._internal_debugger.migrate_to_gdb(open_in_new_process)
 
+    def r(self: Debugger) -> None:
+        """Alias for the `run` method.
+
+        Starts the process and waits for it to stop.
+        """
+        self._internal_debugger.run()
+
+    def c(self: Debugger) -> None:
+        """Alias for the `cont` method.
+
+        Continues the process.
+        """
+        self._internal_debugger.cont()
+
+    def int(self: Debugger) -> None:
+        """Alias for the `interrupt` method.
+
+        Interrupts the process.
+        """
+        self._internal_debugger.interrupt()
+
+    def w(self: Debugger) -> None:
+        """Alias for the `wait` method.
+
+        Waits for the process to stop.
+        """
+        self._internal_debugger.wait()
+
+    def bp(
+        self: Debugger,
+        position: int | str,
+        hardware: bool = False,
+        condition: str | None = None,
+        length: int = 1,
+        callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
+    ) -> Breakpoint:
+        """Alias for the `breakpoint` method.
+
+        Sets a breakpoint at the specified location.
+
+        Args:
+            position (int | bytes): The location of the breakpoint.
+            hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software. Defaults to False.
+            condition (str, optional): The trigger condition for the breakpoint. Defaults to None.
+            length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
+            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the breakpoint is hit. Defaults to None.
+        """
+        return self._internal_debugger.breakpoint(position, hardware, condition, length, callback)
+
+    def wp(
+        self: Debugger,
+        position: int | str,
+        condition: str = "w",
+        length: int = 1,
+        callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
+    ) -> Breakpoint:
+        """Alias for the `watchpoint` method.
+
+        Sets a watchpoint at the specified location. Internally, watchpoints are implemented as breakpoints.
+
+        Args:
+            position (int | bytes): The location of the breakpoint.
+            condition (str, optional): The trigger condition for the watchpoint (either "r", "rw" or "x"). Defaults to "w".
+            length (int, optional): The size of the word in being watched (1, 2, 4 or 8). Defaults to 1.
+            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the watchpoint is hit. Defaults to None.
+        """
+        return self._internal_debugger.breakpoint(
+            position,
+            hardware=True,
+            condition=condition,
+            length=length,
+            callback=callback,
+        )
+
     @property
     def threads(self: Debugger) -> list[ThreadContext]:
         """Get the list of threads in the process."""
@@ -222,6 +296,14 @@ class Debugger:
     @property
     def memory(self: Debugger) -> MemoryView:
         """Get the memory view of the process."""
+        return self._internal_debugger.memory
+
+    @property
+    def mem(self: Debugger) -> MemoryView:
+        """Alias for the `memory` property.
+
+        Get the memory view of the process.
+        """
         return self._internal_debugger.memory
 
     @property
