@@ -1093,6 +1093,9 @@ class InternalDebugger:
                 f"The substring {backing_file} is present in multiple, different backing files. The address resolution cannot be accurate."
             )
 
+        if not filtered_maps:
+            raise ValueError(f"The specified string {backing_file} does not correspond to any backing file.")
+
         return resolve_symbol_in_maps(symbol, filtered_maps)
 
     def _background_ensure_process_stopped(self: InternalDebugger) -> None:
