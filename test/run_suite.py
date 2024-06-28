@@ -53,6 +53,7 @@ def fast_suite():
     suite.addTest(BreakpointTest("test_bps_running"))
     suite.addTest(MemoryTest("test_memory"))
     suite.addTest(MemoryTest("test_mem_access_libs"))
+    suite.addTest(MemoryTest("test_memory_access_methods_backing_file"))
     suite.addTest(MemoryTest("test_memory_exceptions"))
     suite.addTest(MemoryTest("test_memory_multiple_runs"))
     suite.addTest(MemoryTest("test_memory_access_while_running"))
