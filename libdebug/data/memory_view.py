@@ -205,7 +205,7 @@ class MemoryView(MutableSequence):
         elif isinstance(address, int):
             address = self._internal_debugger.resolve_address(address, file)
         else:
-            raise TypeError("Invalid type for the size. Expected int or string.")
+            raise TypeError("Invalid type for the address. Expected int or string.")
 
         return self.read(address, size)
 
@@ -288,7 +288,7 @@ class MemoryView(MutableSequence):
         elif isinstance(address, int):
             address = self._internal_debugger.resolve_address(address, file)
         else:
-            raise TypeError("Invalid type for the size. Expected int or string.")
+            raise TypeError("Invalid type for the address. Expected int or string.")
 
         if len(value) != size:
             liblog.warning(f"Mismatch between specified size and actual value size, writing {len(value)} bytes.")
