@@ -49,7 +49,7 @@ By default, all signals not related to the libdebug's internals are forwarded. F
     d.signals_to_block = [10, 15, 'SIGINT', 3, 13]
 
 
-The same syntax will work in multithreaded applications, by setting `signals_to_block`` on the desired thread context object. See :doc:`multithreading` for more information.
+The same syntax will work in multithreaded applications, by setting `signals_to_block` on the desired thread context object. See :doc:`multithreading` for more information.
 
 Arbitrary Signals
 -----------------
@@ -73,7 +73,7 @@ When registering a signal hijack, you can either specify the signal number or th
     hook1 = d.hijack_signal("SIGQUIT", "SIGTERM")
     hook2 = d.hijack_signal("SIGINT", 10)
 
-Note: You cannot hook **SIGSTOP**, **SIGTRAP**, and **SIGKILL**.
+Note: Just like with hooks, you cannot hijack **SIGSTOP**, **SIGTRAP**, and **SIGKILL**.
 
 These signals are internally used by the ptrace and the debugger, or are enforced by the kernel to be passed directly to the child process without the possibility of being caught.
 

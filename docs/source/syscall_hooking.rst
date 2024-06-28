@@ -15,7 +15,7 @@ Please note that it is not necessary to specify both `on_enter` and `on_exit` ca
 
 .. code-block:: python
 
-    def callback(d: ThreadContext, bp: Breakpoint) -> None:
+    def callback(d: ThreadContext, syscall_number: int) -> None:
 
 The first parameter can either be a debugger object or a thread context object. This kind of object is described in :doc:`multithreading`.
 The second parameter is the number of the syscall as defined by the kernel.
@@ -34,7 +34,7 @@ When choosing which syscall to hook, you can either specify its number or its na
 
     sys_hook = d.hook_syscall(syscall="open", on_enter=on_enter_open, on_exit=on_exit_open)
 
-If the user chooses to pass the common name of the syscall, a definition list for Linux syscalls will be fetched from `mebeim's syscall list list <https://syscalls.mebeim.net>`__. The list is then cached internally. 
+If the user chooses to pass the common name of the syscall, a definition list for Linux syscalls will be fetched from `mebeim's syscall list <https://syscalls.mebeim.net>`__. The list is then cached internally. 
 
 You can enable and disable a syscall hook `sys_hook` with the `sys_hook.enable()` and `sys_hook.disable()` functions, respectively.
 

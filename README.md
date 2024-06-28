@@ -27,24 +27,17 @@ Arch Linux: \
 Fedora: \
 `sudo dnf install -y python3 python3-devel kernel-devel binutils-devel libdwarf-devel`
 
-## Install from PyPI
+## Installation
 ```bash
-pip install libdebug
+python3 -m pip install libdebug
 ```
 
-## Install from source
-```bash
-python3 -m pip install git+https://github.com/libdebug/libdebug.git
-```
 PyPy3 is supported but not recommended, as it performs worse on most of our tests.
 
 If you want to stay up to date with the most cutting-edge features (and you don't mind being on an unstable branch) you can install from a different branch (e.g., dev).
 
 ```bash
-git clone https://github.com/libdebug/libdebug.git
-cd libdebug
-git checkout dev
-pip install .
+python3 -m pip install git+https://github.com/libdebug/libdebug.git@dev
 ```
 
 ## Your first script

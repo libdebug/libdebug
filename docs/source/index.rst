@@ -11,11 +11,9 @@
 
 Quick Start
 ====================================
-Welcome to libdebug! This powerful Python library automates the debugging of binary executables, providing a robust, user-friendly interface that simplifies and accelerates your workflow.
+Welcome to libdebug! This powerful Python library can be used to debug your binary executables programmatically, providing a robust, user-friendly interface.
 
-Debugging multithreaded applications used to be a nighmare, but libdebug has a simple handling of Hook, hijack, and manage signals and syscalls with a simple API. You have full control over the debugging process, down to the signal level.
-
-Join the community of developers who trust libdebug for their debugging needs. Simplify your debugging process and take control with libdebug today!
+Debugging multithreaded applications can be a nightmare, but libdebug has you covered. Hook, hijack, and manage signals and syscalls with a simple API.
 
 Supported Architectures
 -----------------------
@@ -57,16 +55,13 @@ Installing libdebug once you have dependencies is as simple as running the follo
 
 .. code-block:: bash
 
-    pip install libdebug
+    python3 -m pip install libdebug
 
 This will install the stable build of the library. If you don't mind a few hicups, you can install the latest dev build from the Github repository:
 
 .. code-block:: bash
 
-    git clone https://github.com/libdebug/libdebug.git
-    cd libdebug
-    git checkout dev
-    pip install .
+    python3 -m pip install git+https://github.com/libdebug/libdebug.git@dev
 
 
 Your first script

@@ -20,7 +20,7 @@ libdebug provides a simple API to set breakpoints in your debugged program. The 
 
     d.run()
 
-    d.breakpoint(0x10ab)
+    bp = d.breakpoint(0x10ab)
 
     d.cont()
 
@@ -55,9 +55,9 @@ As for the hit_count property, the following is an example of how to it:
 
 .. code-block:: python
 
-    while br.hit_count < 100:
+    while bp.hit_count < 100:
         d.cont()
-        print(f"Hit count: {d.hit_count}")
+        print(f"Hit count: {bp.hit_count}")
 
 
 Symbolic addressing
@@ -69,11 +69,11 @@ Just like with memory access, you can use symbolic addressing to set breakpoints
 
     d.breakpoint("vuln")
 
-Relative addressing with respect to a symbol is also supported. Just like in GDB, the offset is specified in decimal format:
+Relative addressing with respect to a symbol is also supported. The offset is specified as an hexadecimal number following the symbol name:
 
 .. code-block:: python
 
-    d.breakpoint("vuln+10")
+    d.breakpoint("vuln+1f")
 
 Hardware breakpoints
 ^^^^^^^^^^^^^^^^^^^^
@@ -104,7 +104,6 @@ Features of watchpoints are shared with breakpoints, so you can set callbacks, c
 Again, the position can be specified both as a relative address or as a symbol.
 The condition parameter specifies the type of access that triggers the watchpoint. The following values are supported:
 
-- ``"r"``: read access
 - ``"w"``: write access
 - ``"rw"``: read/write access
 - ``"x"``: execute access
@@ -114,9 +113,9 @@ By default, the watchpoint is triggered only on write access.
 The length parameter specifies the size of the word being watched. The following values are supported:
 
 - ``1``: byte
-- ``2``: half-word
-- ``4``: word
-- ``8``: double-word
+- ``2``: word
+- ``4``: dword
+- ``8``: qword
 
 By default, the watchpoint is set to watch a byte.
 

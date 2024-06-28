@@ -17,7 +17,9 @@ By default, debugged programs are run with ASLR disabled. If you want to enable 
 
 You can also choose to debug the program starting from the just after the *execve* call, following the flow of the loader. By default, the debugger will continue to the entry point of the binary before giving you control. You can change this behavior by setting the `continue_to_binary_entrypoint` parameter to False. 
 
-Please keep in mind that creating a debugger object will not start the execution automatically. In fact, you can reuse the same debugger to iteratively run multiple instances of the program. This is particularly useful for smart bruteforcing or fuzzing scripts. 
+Please note that this feature assumes the binary is well-formed. If the ELF header is corrupt, the binary entrypoint will not be resolved correctly. As such, setting this parameter to False is a good practice when you don't want libdebug to rely on that information.
+
+Creating a debugger object will not start the execution automatically. In fact, you can reuse the same debugger to iteratively run multiple instances of the program. This is particularly useful for smart bruteforcing or fuzzing scripts. 
 
 As for the other parameters of the debugger, we will mention them later in the documentation.
 
@@ -32,9 +34,7 @@ After creating the debugger object, you can start the execution of the program u
     pipes = d.run()
 
 
-The `run()` command returns a `PipeManager` object, which you can use to interact with the program's standard input, output, and error. To read more about the PipeManager interface, please refer to the PipeManager documentation :class:`libdebug.utils.pipe_manager.PipeManager`. 
-
-The run command also resets breakpoints so that you can keep them between different executions of a program with the same debugger.
+The `run()` command returns a `PipeManager` object, which you can use to interact with the program's standard input, output, and error. To read more about the PipeManager interface, please refer to the PipeManager documentation :class:`libdebug.utils.pipe_manager.PipeManager`. Please note that breakpoints are not kept between different runs of the program. If you want to set a breakpoint again, you should do so after the program has restarted.
 
 The command queue
 -----------------
@@ -70,9 +70,8 @@ This can be done by setting the `auto_interrupt_on_command` parameter to True wh
 
     print(f"RAX: {hex(d.regs.rax)}")
 
-The `wait()` method waits for the running process to stop before going forward with the script. Adding the `d.wait()` command will make sure the register access doesn't happen before hitting the breakpoint or any other stopping event. If the `wait()` method is omitted, the register access will happen as soon as possible after the continue command is issued.
+The `wait()` method waits for the running process to stop before going forward with the script. Adding the `d.wait()` command will make sure the register access doesn't happen before hitting the breakpoint or any other stopping event. If the `wait()` method is omitted, the register access will happen as soon as possible after the continue command is issued. Please remember that accessing a property like registers will stop the process. Sending a continue command afterwards will make the process run again.
 
-Please note that while this "asyncronous" behavior is possible with registers, memory access will not be allowed when the program is running.
 
 You can manually send a stopping signal to the program using the `interrupt()` method. This will stop the execution of the program and allow you to access the registers and memory. The syntax is as follows:
 
@@ -84,39 +83,8 @@ Register Access
 ===============
 .. _register-access-paragraph:
 
-libdebug offers a simple register access interface for supported architectures. The registers are accessed through the regs attribute of the debugger object. The field includes both general purpose and special registers, as well as the flags register. For example, for the AMD64 architecture, the following registers are available:
+libdebug offers a simple register access interface for supported architectures. The registers are accessed through the regs attribute of the debugger object. The field includes both general purpose and special registers, as well as the flags register. Effectively, any register that can be accessed by an assembly instruction, can also be accessed through the regs attribute.
 
-**8-bit Registers (byte)**
-- al, ah, bl, bh, cl, ch, dl, dh
-- r8b, r9b, r10b, r11b, r12b, r13b, r14b, r15b
-
-**16-bit Registers (word)**
-- ax, bx, cx, dx
-- bp, sp, si, di
-- r8w, r9w, r10w, r11w, r12w, r13w, r14w, r15w
-
-**32-bit Registers (dword)**
-- eax, ebx, ecx, edx
-- ebp, esp, esi, edi
-- r8d, r9d, r10d, r11d, r12d, r13d, r14d, r15d
-
-**64-bit Registers (qword)**
-- rax, rbx, rcx, rdx
-- rbp, rsp, rsi, rdi
-- r8, r9, r10, r11, r12, r13, r14, r15
-
-**Other**
-- orig_rax
-- rip
-- cs
-- eflags
-- ss
-- fs_base
-- gs_base
-- ds
-- es
-- fs
-- gs
 
 Memory Access
 ====================================
@@ -156,7 +124,7 @@ or
 
 .. code-block:: python
 
-    d.memory["main_arena:main_arena+8"]
+    d.memory["main_arena":"main_arena+8"]
 
 
 Writing to memory works in a similar way. You can write a *bytes-like* object to memory using the addressing methods you already know:
@@ -244,7 +212,7 @@ If at any time during your script you want to take a more interactive approach t
 
     d.gdb()
 
-Optionally, you can specify `open_in_new_process=False` to execute GDB on the same process as the script. Of course, in this case you will not be able to return to libdebug afterwards. The syntax is as follows:
+Optionally, you can specify `open_in_new_process=False` to execute GDB on the same process as the script. The syntax is as follows:
 
 **Verify this is correct**
 
@@ -263,17 +231,17 @@ An alternative to running the program from the beginning and to resume libdebug 
 Graceful Termination
 ====================================
 
-When you are done with the debugger object, you can terminate the background thread using the `terminate()` method. This will free up resources and should be used only when the debugger object is no longer needed. The syntax is as follows:
-
-.. code-block:: python
-
-    d.terminate()
-
 If you want to kill the process being debugged, you can use the `kill()` method. When repeatedly running new instances of debugged program, remember to call the `kill()` command on old instances to avoid large memory usage. The syntax is as follows:
 
 .. code-block:: python
 
     d.kill()
+
+When you are done with the debugger object, you can terminate the background thread using the `terminate()` method. This will free up resources and should be used only when the debugger object is no longer needed. The syntax is as follows:
+
+.. code-block:: python
+
+    d.terminate()
 
 Supported Architectures
 ====================================
