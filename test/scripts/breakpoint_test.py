@@ -333,10 +333,38 @@ class BreakpointTest(unittest.TestCase):
             self.assertEqual(d.memory[d.regs.rip], b']')
             self.assertEqual(d.regs.rax, 9)
         
+        d.run()
+
+        bp1 = d.breakpoint(0x1266, file="default")
+
+        d.cont()
+
+        d.wait()
+
+        if bp1.hit_on(d):
+            for vmap in d.maps():
+                if "x" in vmap.permissions and "anon" in vmap.backing_file:
+                    section = vmap.backing_file
+            bp2 = d.breakpoint(0xd, file=section)
+            d.cont()
+        
+        d.wait()
+
+        if bp2.hit_on(d):
+            self.assertEqual(d.memory[d.regs.rip], b']')
+            self.assertEqual(d.regs.rax, 9)
+
         d.kill()
 
         self.assertEqual(bp1.hit_count, 1)
         self.assertEqual(bp2.hit_count, 1)
+
+        d.run()
+
+        with self.assertRaises(ValueError):
+            d.breakpoint(0x1266, file="absolute")
+
+        d.kill()
 
 
 

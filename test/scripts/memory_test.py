@@ -261,6 +261,16 @@ class MemoryTest(unittest.TestCase):
         d.memory["main":"main+8", "memory_test_2"] = b"abcd1234"
         self.assertEqual(d.memory["main":"main+8", "memory_test_2"], b"abcd1234")
 
+        d.memory[0x0, 8, "binary"] = b"\x00\x00\x00\x00\x00\x00\x00\x00"
+
+        d.memory["main":"main+8", "default"] = b"abcd1234"
+        self.assertEqual(d.memory["main":"main+8", "default"], b"abcd1234")
+
+        d.memory[0x0, 8, "binary"] = b"\x00\x00\x00\x00\x00\x00\x00\x00"
+
+        with self.assertRaises(ValueError):
+            d.memory["main":"main+8", "absolute"] = b"abcd1234"
+
         d.kill()
 
 
