@@ -1055,7 +1055,7 @@ class InternalDebugger:
                 # we have to assume it is in the main map
                 backing_file = self._get_process_full_path()
                 liblog.debugger(
-                    f"No backing file specified and no correspondant absolute address for {hex(address)}. Assuming {backing_file}."
+                    f"No backing file specified and no corresponding absolute address found for {hex(address)}. Assuming {backing_file}.",
                 )
         elif (
             backing_file == (full_backing_path := self._get_process_full_path())
@@ -1074,11 +1074,11 @@ class InternalDebugger:
 
         if len(unique_files) > 1:
             raise ValueError(
-                f"The substring {backing_file} is present in multiple, different backing files. The address resolution cannot be accurate."
+                f"The substring {backing_file} is present in multiple, different backing files. The address resolution cannot be accurate. The matching backing files are: {', '.join(unique_files)}.",
             )
 
         if not filtered_maps:
-            raise ValueError(f"The specified string {backing_file} does not correspond to any backing file.")
+            raise ValueError(f"The specified string {backing_file} does not correspond to any backing file. The available backing files are: {', '.join(set(vmap.backing_file for vmap in maps))}.")
         return normalize_and_validate_address(address, filtered_maps)
 
     def resolve_symbol(self: InternalDebugger, symbol: str, backing_file: str) -> int:
@@ -1117,11 +1117,12 @@ class InternalDebugger:
 
         if len(unique_files) > 1:
             raise ValueError(
-                f"The substring {backing_file} is present in multiple, different backing files. The address resolution cannot be accurate."
+                f"The substring {backing_file} is present in multiple, different backing files. The address resolution cannot be accurate. The matching backing files are: {', '.join(unique_files)}.",
             )
 
         if not filtered_maps:
-            raise ValueError(f"The specified string {backing_file} does not correspond to any backing file.")
+            raise ValueError(f"The specified string {backing_file} does not correspond to any backing file. The available backing files are: {', '.join(set(vmap.backing_file for vmap in maps))}.")
+
 
         return resolve_symbol_in_maps(symbol, filtered_maps)
 
