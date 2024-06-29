@@ -23,7 +23,6 @@ if TYPE_CHECKING:
 
     from libdebug.data.breakpoint import Breakpoint
     from libdebug.data.memory_map import MemoryMap
-    from libdebug.data.memory_view import MemoryView
     from libdebug.data.signal_hook import SignalHook
     from libdebug.data.syscall_hook import SyscallHook
     from libdebug.debugger.internal_debugger import InternalDebugger
