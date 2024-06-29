@@ -188,14 +188,16 @@ class ThreadContext:
         self: ThreadContext,
         position: int | str,
         max_steps: int = -1,
-        file: str | None = None,
+        file: str = "default",
     ) -> None:
         """Executes instructions of the process until the specified location is reached.
 
         Args:
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to None.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
+            the "binary" map file).
         """
         self._internal_debugger.step_until(self, position, max_steps, file)
 
@@ -242,6 +244,5 @@ class ThreadContext:
 
         Args:
             heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
-"""
-
+        """
         self._internal_debugger.finish(self, heuristic)

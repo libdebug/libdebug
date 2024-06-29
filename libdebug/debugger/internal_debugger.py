@@ -384,19 +384,22 @@ class InternalDebugger:
         condition: str | None = None,
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
-        file: str | None = None,
+        file: str = "default",
     ) -> Breakpoint:
         """Sets a breakpoint at the specified location.
 
         Args:
             position (int | bytes): The location of the breakpoint.
-            hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software. Defaults to False.
+            hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software.
+            Defaults to False.
             condition (str, optional): The trigger condition for the breakpoint. Defaults to None.
             length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
-            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the breakpoint is hit. Defaults to None.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to None.
+            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the
+            breakpoint is hit. Defaults to None.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
+            the "binary" map file).
         """
-
         if isinstance(position, str):
             address = self.resolve_symbol(position, file)
         else:
@@ -448,10 +451,11 @@ class InternalDebugger:
 
         Args:
             signal_to_hook (int | str): The signal to hook.
-            callback (Callable[[ThreadContext, int], None], optional): A callback to be called when the signal is received. Defaults to None.
-            hook_hijack (bool, optional): Whether to execute the hook/hijack of the new signal after an hijack or not. Defaults to False.
+            callback (Callable[[ThreadContext, int], None], optional): A callback to be called when the signal is
+            received. Defaults to None.
+            hook_hijack (bool, optional): Whether to execute the hook/hijack of the new signal after an hijack or not.
+            Defaults to False.
         """
-
         if callback is None:
             raise ValueError("A callback must be specified.")
 
@@ -503,7 +507,6 @@ class InternalDebugger:
         Args:
             hook (SignalHook): The signal hook to unhook.
         """
-
         if hook.signal_number not in self.signal_hooks:
             raise ValueError(f"Signal {hook.signal_number} is not hooked.")
 
@@ -526,9 +529,9 @@ class InternalDebugger:
         Args:
             original_signal (int | str): The signal to hijack.
             new_signal (int | str): The signal to replace the original signal with.
-            hook_hijack (bool, optional): Whether to execute the hook/hijack of the new signal after the hijack or not. Defaults to True.
+            hook_hijack (bool, optional): Whether to execute the hook/hijack of the new signal after the hijack or not.
+            Defaults to True.
         """
-
         if isinstance(original_signal, str):
             original_signal_number = resolve_signal_number(original_signal)
         else:
@@ -567,7 +570,6 @@ class InternalDebugger:
         Returns:
             SyscallHook: The syscall hook object.
         """
-
         if on_enter is None and on_exit is None:
             raise ValueError(
                 "At least one callback between on_enter and on_exit should be specified.",
@@ -617,7 +619,6 @@ class InternalDebugger:
         Args:
             hook (SyscallHook): The syscall hook to unhook.
         """
-
         if hook.syscall_number not in self.syscall_hooks:
             raise ValueError(f"Syscall {hook.syscall_number} is not hooked.")
 
@@ -653,7 +654,6 @@ class InternalDebugger:
         Returns:
             SyscallHook: The syscall hook object.
         """
-
         if set(kwargs) - syscall_hijacking_provider().allowed_args:
             raise ValueError("Invalid keyword arguments in syscall hijack")
 
@@ -834,7 +834,7 @@ class InternalDebugger:
         thread: ThreadContext,
         position: int | str,
         max_steps: int = -1,
-        file: str | None = None,
+        file: str = "default",
     ) -> None:
         """Executes instructions of the process until the specified location is reached.
 
@@ -842,7 +842,9 @@ class InternalDebugger:
             thread (ThreadContext): The thread to step. Defaults to None.
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to None.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
+            the "binary" map file).
         """
         if isinstance(position, str):
             address = self.resolve_symbol(position, file)
@@ -858,7 +860,7 @@ class InternalDebugger:
         thread: ThreadContext,
         position: int | str,
         max_steps: int = -1,
-        file: str | None = None,
+        file: str = "default",
     ) -> None:
         """Executes instructions of the process until the specified location is reached.
 
@@ -866,7 +868,9 @@ class InternalDebugger:
             thread (ThreadContext): The thread to step. Defaults to None.
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to None.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
+            the "binary" map file).
         """
         if isinstance(position, str):
             address = self.resolve_symbol(position, file)
@@ -1022,7 +1026,7 @@ class InternalDebugger:
 
         return None
 
-    def resolve_address(self: InternalDebugger, address: int, backing_file: str | None) -> int:
+    def resolve_address(self: InternalDebugger, address: int, backing_file: str) -> int:
         """Normalizes and validates the specified address.
 
         Args:
@@ -1036,18 +1040,24 @@ class InternalDebugger:
             ValueError: If the substring `backing_file` is present in multiple backing files.
         """
         maps = self.debugging_interface.maps()
-        if not backing_file:
+
+        if backing_file in ["default", "absolute"]:
             if check_absolute_address(address, maps):
-                # If no backing file is specified and the address is absolute, we can return it directly
+                # If the address is absolute, we can return it directly
                 return address
+            elif backing_file == "absolute":
+                # The address is explicitly an absolute address but we did not find it
+                raise ValueError(
+                    "The specified absolute address does not exist. Check the address or specify a backing file.",
+                )
             else:
-                # If no backing file is specified and the address is not absolute, we have to assume it is in the main map
+                # If the address was not found and the backing file is not "absolute",
+                # we have to assume it is in the main map
                 backing_file = self._get_process_full_path()
                 liblog.debugger(
                     f"No backing file specified and no correspondant absolute address for {hex(address)}. Assuming {backing_file}."
                 )
-
-        if (
+        elif (
             backing_file == (full_backing_path := self._get_process_full_path())
             or backing_file == "binary"
             or backing_file == self._get_process_name()
@@ -1071,7 +1081,7 @@ class InternalDebugger:
             raise ValueError(f"The specified string {backing_file} does not correspond to any backing file.")
         return normalize_and_validate_address(address, filtered_maps)
 
-    def resolve_symbol(self: InternalDebugger, symbol: str, backing_file: str | None) -> int:
+    def resolve_symbol(self: InternalDebugger, symbol: str, backing_file: str) -> int:
         """Resolves the address of the specified symbol.
 
         Args:
@@ -1083,12 +1093,14 @@ class InternalDebugger:
         """
         maps = self.debugging_interface.maps()
 
-        if not backing_file:
-            # If no backing file is specified, we have to assume it is in the main map
+        if backing_file == "absolute":
+            raise ValueError("Cannot use `absolute` backing file with symbols.")
+
+        if backing_file == "default":
+            # If no explicit backing file is specified, we have to assume it is in the main map
             backing_file = self._get_process_full_path()
             liblog.debugger(f"No backing file specified for the symbol {symbol}. Assuming {backing_file}.")
-
-        if (
+        elif (
             backing_file == (full_backing_path := self._get_process_full_path())
             or backing_file == "binary"
             or backing_file == self._get_process_name()

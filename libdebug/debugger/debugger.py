@@ -98,17 +98,21 @@ class Debugger:
         condition: str | None = None,
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
-        file: str | None = None,
+        file: str = "default",
     ) -> Breakpoint:
         """Sets a breakpoint at the specified location.
 
         Args:
             position (int | bytes): The location of the breakpoint.
-            hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software. Defaults to False.
+            hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software.
+            Defaults to False.
             condition (str, optional): The trigger condition for the breakpoint. Defaults to None.
             length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
-            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the breakpoint is hit. Defaults to None.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to None.
+            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the
+            breakpoint is hit. Defaults to None.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
+            the "binary" map file).
         """
         return self._internal_debugger.breakpoint(position, hardware, condition, length, callback, file)
 
@@ -118,16 +122,20 @@ class Debugger:
         condition: str = "w",
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
-        file: str | None = None,
+        file: str = "default",
     ) -> Breakpoint:
         """Sets a watchpoint at the specified location. Internally, watchpoints are implemented as breakpoints.
 
         Args:
             position (int | bytes): The location of the breakpoint.
-            condition (str, optional): The trigger condition for the watchpoint (either "r", "rw" or "x"). Defaults to "w".
+            condition (str, optional): The trigger condition for the watchpoint (either "r", "rw" or "x").
+            Defaults to "w".
             length (int, optional): The size of the word in being watched (1, 2, 4 or 8). Defaults to 1.
-            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the watchpoint is hit. Defaults to None.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to None.
+            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the
+            watchpoint is hit. Defaults to None.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
+            the "binary" map file).
         """
         return self._internal_debugger.breakpoint(
             position,
@@ -263,19 +271,21 @@ class Debugger:
         condition: str | None = None,
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
-        file: str | None = None,
+        file: str = "default",
     ) -> Breakpoint:
         """Alias for the `breakpoint` method.
 
-        Sets a breakpoint at the specified location.
-
         Args:
             position (int | bytes): The location of the breakpoint.
-            hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software. Defaults to False.
+            hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software.
+            Defaults to False.
             condition (str, optional): The trigger condition for the breakpoint. Defaults to None.
             length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
-            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the breakpoint is hit. Defaults to None.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to None.
+            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the
+            breakpoint is hit. Defaults to None.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
+            the "binary" map file).
         """
         return self._internal_debugger.breakpoint(position, hardware, condition, length, callback, file)
 
@@ -285,7 +295,7 @@ class Debugger:
         condition: str = "w",
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
-        file: str | None = None,
+        file: str = "default",
     ) -> Breakpoint:
         """Alias for the `watchpoint` method.
 
@@ -293,10 +303,14 @@ class Debugger:
 
         Args:
             position (int | bytes): The location of the breakpoint.
-            condition (str, optional): The trigger condition for the watchpoint (either "r", "rw" or "x"). Defaults to "w".
+            condition (str, optional): The trigger condition for the watchpoint (either "r", "rw" or "x").
+            Defaults to "w".
             length (int, optional): The size of the word in being watched (1, 2, 4 or 8). Defaults to 1.
-            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the watchpoint is hit. Defaults to None.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to None.
+            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the
+            watchpoint is hit. Defaults to None.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
+            the "binary" map file).
         """
         return self._internal_debugger.breakpoint(
             position,
