@@ -97,6 +97,14 @@ class ThreadContext:
         return self._internal_debugger.memory
 
     @property
+    def mem(self: ThreadContext) -> MemoryView:
+        """Alias for the `memory` property.
+
+        Get the memory view of the process.
+        """
+        return self._internal_debugger.memory
+
+    @property
     def process_id(self: ThreadContext) -> int:
         """The process ID of the thread."""
         return self._internal_debugger.process_id

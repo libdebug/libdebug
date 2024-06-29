@@ -327,19 +327,6 @@ class Debugger:
         return self._internal_debugger.threads
 
     @property
-    def memory(self: Debugger) -> MemoryView:
-        """Get the memory view of the process."""
-        return self._internal_debugger.memory
-
-    @property
-    def mem(self: Debugger) -> MemoryView:
-        """Alias for the `memory` property.
-
-        Get the memory view of the process.
-        """
-        return self._internal_debugger.memory
-
-    @property
     def breakpoints(self: Debugger) -> dict[int, Breakpoint]:
         """Get the breakpoints set on the process."""
         return self._internal_debugger.breakpoints
