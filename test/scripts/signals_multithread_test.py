@@ -10,34 +10,34 @@ from libdebug import debugger
 
 
 class SignalMultithreadTest(unittest.TestCase):
-    def test_signal_multithread_undet_hook_block(self):
+    def test_signal_multithread_undet_catch_signal_block(self):
         SIGUSR1_count = 0
         SIGINT_count = 0
         SIGQUIT_count = 0
         SIGTERM_count = 0
         SIGPIPE_count = 0
 
-        def hook_SIGUSR1(t, signal_number):
+        def cs_SIGUSR1(t, signal_number):
             nonlocal SIGUSR1_count
 
             SIGUSR1_count += 1
 
-        def hook_SIGTERM(t, signal_number):
+        def cs_SIGTERM(t, signal_number):
             nonlocal SIGTERM_count
 
             SIGTERM_count += 1
 
-        def hook_SIGINT(t, signal_number):
+        def cs_SIGINT(t, signal_number):
             nonlocal SIGINT_count
 
             SIGINT_count += 1
 
-        def hook_SIGQUIT(t, signal_number):
+        def cs_SIGQUIT(t, signal_number):
             nonlocal SIGQUIT_count
 
             SIGQUIT_count += 1
 
-        def hook_SIGPIPE(t, signal_number):
+        def cs_SIGPIPE(t, signal_number):
             nonlocal SIGPIPE_count
 
             SIGPIPE_count += 1
@@ -46,11 +46,11 @@ class SignalMultithreadTest(unittest.TestCase):
 
         r = d.run()
 
-        hook1 = d.hook_signal(10, callback=hook_SIGUSR1)
-        hook2 = d.hook_signal("SIGTERM", callback=hook_SIGTERM)
-        hook3 = d.hook_signal(2, callback=hook_SIGINT)
-        hook4 = d.hook_signal("SIGQUIT", callback=hook_SIGQUIT)
-        hook5 = d.hook_signal("SIGPIPE", callback=hook_SIGPIPE)
+        cs1 = d.catch_signal(10, callback=cs_SIGUSR1)
+        cs2 = d.catch_signal("SIGTERM", callback=cs_SIGTERM)
+        cs3 = d.catch_signal(2, callback=cs_SIGINT)
+        cs4 = d.catch_signal("SIGQUIT", callback=cs_SIGQUIT)
+        cs5 = d.catch_signal("SIGPIPE", callback=cs_SIGPIPE)
 
         d.signals_to_block = ["SIGUSR1", 15, "SIGINT", 3, 13]
 
@@ -70,11 +70,11 @@ class SignalMultithreadTest(unittest.TestCase):
         self.assertEqual(SIGQUIT_count, 6)
         self.assertEqual(SIGPIPE_count, 6)
 
-        self.assertEqual(SIGUSR1_count, hook1.hit_count)
-        self.assertEqual(SIGTERM_count, hook2.hit_count)
-        self.assertEqual(SIGINT_count, hook3.hit_count)
-        self.assertEqual(SIGQUIT_count, hook4.hit_count)
-        self.assertEqual(SIGPIPE_count, hook5.hit_count)
+        self.assertEqual(SIGUSR1_count, cs1.hit_count)
+        self.assertEqual(SIGTERM_count, cs2.hit_count)
+        self.assertEqual(SIGINT_count, cs3.hit_count)
+        self.assertEqual(SIGQUIT_count, cs4.hit_count)
+        self.assertEqual(SIGPIPE_count, cs5.hit_count)
 
     def test_signal_multithread_undet_pass(self):
         SIGUSR1_count = 0
@@ -83,27 +83,27 @@ class SignalMultithreadTest(unittest.TestCase):
         SIGTERM_count = 0
         SIGPIPE_count = 0
 
-        def hook_SIGUSR1(t, signal_number):
+        def cs_SIGUSR1(t, signal_number):
             nonlocal SIGUSR1_count
 
             SIGUSR1_count += 1
 
-        def hook_SIGTERM(t, signal_number):
+        def cs_SIGTERM(t, signal_number):
             nonlocal SIGTERM_count
 
             SIGTERM_count += 1
 
-        def hook_SIGINT(t, signal_number):
+        def cs_SIGINT(t, signal_number):
             nonlocal SIGINT_count
 
             SIGINT_count += 1
 
-        def hook_SIGQUIT(t, signal_number):
+        def cs_SIGQUIT(t, signal_number):
             nonlocal SIGQUIT_count
 
             SIGQUIT_count += 1
 
-        def hook_SIGPIPE(t, signal_number):
+        def cs_SIGPIPE(t, signal_number):
             nonlocal SIGPIPE_count
 
             SIGPIPE_count += 1
@@ -112,11 +112,11 @@ class SignalMultithreadTest(unittest.TestCase):
 
         r = d.run()
 
-        hook1 = d.hook_signal("SIGUSR1", callback=hook_SIGUSR1)
-        hook2 = d.hook_signal("SIGTERM", callback=hook_SIGTERM)
-        hook3 = d.hook_signal("SIGINT", callback=hook_SIGINT)
-        hook4 = d.hook_signal("SIGQUIT", callback=hook_SIGQUIT)
-        hook5 = d.hook_signal("SIGPIPE", callback=hook_SIGPIPE)
+        cs1 = d.catch_signal("SIGUSR1", callback=cs_SIGUSR1)
+        cs2 = d.catch_signal("SIGTERM", callback=cs_SIGTERM)
+        cs3 = d.catch_signal("SIGINT", callback=cs_SIGINT)
+        cs4 = d.catch_signal("SIGQUIT", callback=cs_SIGQUIT)
+        cs5 = d.catch_signal("SIGPIPE", callback=cs_SIGPIPE)
 
         d.cont()
 
@@ -138,11 +138,11 @@ class SignalMultithreadTest(unittest.TestCase):
         self.assertEqual(SIGQUIT_count, 6)
         self.assertEqual(SIGPIPE_count, 6)
 
-        self.assertEqual(SIGUSR1_count, hook1.hit_count)
-        self.assertEqual(SIGTERM_count, hook2.hit_count)
-        self.assertEqual(SIGINT_count, hook3.hit_count)
-        self.assertEqual(SIGQUIT_count, hook4.hit_count)
-        self.assertEqual(SIGPIPE_count, hook5.hit_count)
+        self.assertEqual(SIGUSR1_count, cs1.hit_count)
+        self.assertEqual(SIGTERM_count, cs2.hit_count)
+        self.assertEqual(SIGINT_count, cs3.hit_count)
+        self.assertEqual(SIGQUIT_count, cs4.hit_count)
+        self.assertEqual(SIGPIPE_count, cs5.hit_count)
 
         # Count the number of times each signal was received
         self.assertEqual(received.count(b"Received signal 10"), 4)
@@ -156,7 +156,7 @@ class SignalMultithreadTest(unittest.TestCase):
         # program seems to mitigate the problem for whatever reason
         # I will investigate this further in the future, but for now this is fine
 
-    def test_signal_multithread_det_hook_block(self):
+    def test_signal_multithread_det_catch_signal_block(self):
         SIGUSR1_count = 0
         SIGINT_count = 0
         SIGQUIT_count = 0
@@ -164,35 +164,35 @@ class SignalMultithreadTest(unittest.TestCase):
         SIGPIPE_count = 0
         tids = []
 
-        def hook_SIGUSR1(t, signal_number):
+        def cs_SIGUSR1(t, signal_number):
             nonlocal SIGUSR1_count
             nonlocal tids
 
             SIGUSR1_count += 1
             tids.append(t.thread_id)
 
-        def hook_SIGTERM(t, signal_number):
+        def cs_SIGTERM(t, signal_number):
             nonlocal SIGTERM_count
             nonlocal tids
 
             SIGTERM_count += 1
             tids.append(t.thread_id)
 
-        def hook_SIGINT(t, signal_number):
+        def cs_SIGINT(t, signal_number):
             nonlocal SIGINT_count
             nonlocal tids
 
             SIGINT_count += 1
             tids.append(t.thread_id)
 
-        def hook_SIGQUIT(t, signal_number):
+        def cs_SIGQUIT(t, signal_number):
             nonlocal SIGQUIT_count
             nonlocal tids
 
             SIGQUIT_count += 1
             tids.append(t.thread_id)
 
-        def hook_SIGPIPE(t, signal_number):
+        def cs_SIGPIPE(t, signal_number):
             nonlocal SIGPIPE_count
             nonlocal tids
 
@@ -203,11 +203,11 @@ class SignalMultithreadTest(unittest.TestCase):
 
         r = d.run()
 
-        hook1 = d.hook_signal(10, callback=hook_SIGUSR1)
-        hook2 = d.hook_signal("SIGTERM", callback=hook_SIGTERM)
-        hook3 = d.hook_signal(2, callback=hook_SIGINT)
-        hook4 = d.hook_signal("SIGQUIT", callback=hook_SIGQUIT)
-        hook5 = d.hook_signal("SIGPIPE", callback=hook_SIGPIPE)
+        cs1 = d.catch_signal(10, callback=cs_SIGUSR1)
+        cs2 = d.catch_signal("SIGTERM", callback=cs_SIGTERM)
+        cs3 = d.catch_signal(2, callback=cs_SIGINT)
+        cs4 = d.catch_signal("SIGQUIT", callback=cs_SIGQUIT)
+        cs5 = d.catch_signal("SIGPIPE", callback=cs_SIGPIPE)
 
         d.signals_to_block = ["SIGUSR1", 15, "SIGINT", 3, 13]
 
@@ -227,11 +227,11 @@ class SignalMultithreadTest(unittest.TestCase):
         self.assertEqual(SIGQUIT_count, 3)
         self.assertEqual(SIGPIPE_count, 3)
 
-        self.assertEqual(SIGUSR1_count, hook1.hit_count)
-        self.assertEqual(SIGTERM_count, hook2.hit_count)
-        self.assertEqual(SIGINT_count, hook3.hit_count)
-        self.assertEqual(SIGQUIT_count, hook4.hit_count)
-        self.assertEqual(SIGPIPE_count, hook5.hit_count)
+        self.assertEqual(SIGUSR1_count, cs1.hit_count)
+        self.assertEqual(SIGTERM_count, cs2.hit_count)
+        self.assertEqual(SIGINT_count, cs3.hit_count)
+        self.assertEqual(SIGQUIT_count, cs4.hit_count)
+        self.assertEqual(SIGPIPE_count, cs5.hit_count)
 
         set_tids = set(tids)
         self.assertEqual(len(set_tids), 1)
@@ -245,35 +245,35 @@ class SignalMultithreadTest(unittest.TestCase):
         SIGPIPE_count = 0
         tids = []
 
-        def hook_SIGUSR1(t, signal_number):
+        def cs_SIGUSR1(t, signal_number):
             nonlocal SIGUSR1_count
             nonlocal tids
 
             SIGUSR1_count += 1
             tids.append(t.thread_id)
 
-        def hook_SIGTERM(t, signal_number):
+        def cs_SIGTERM(t, signal_number):
             nonlocal SIGTERM_count
             nonlocal tids
 
             SIGTERM_count += 1
             tids.append(t.thread_id)
 
-        def hook_SIGINT(t, signal_number):
+        def cs_SIGINT(t, signal_number):
             nonlocal SIGINT_count
             nonlocal tids
 
             SIGINT_count += 1
             tids.append(t.thread_id)
 
-        def hook_SIGQUIT(t, signal_number):
+        def cs_SIGQUIT(t, signal_number):
             nonlocal SIGQUIT_count
             nonlocal tids
 
             SIGQUIT_count += 1
             tids.append(t.thread_id)
 
-        def hook_SIGPIPE(t, signal_number):
+        def cs_SIGPIPE(t, signal_number):
             nonlocal SIGPIPE_count
             nonlocal tids
 
@@ -284,11 +284,11 @@ class SignalMultithreadTest(unittest.TestCase):
 
         r = d.run()
 
-        hook1 = d.hook_signal("SIGUSR1", callback=hook_SIGUSR1)
-        hook2 = d.hook_signal("SIGTERM", callback=hook_SIGTERM)
-        hook3 = d.hook_signal("SIGINT", callback=hook_SIGINT)
-        hook4 = d.hook_signal("SIGQUIT", callback=hook_SIGQUIT)
-        hook5 = d.hook_signal("SIGPIPE", callback=hook_SIGPIPE)
+        cs1 = d.catch_signal("SIGUSR1", callback=cs_SIGUSR1)
+        cs2 = d.catch_signal("SIGTERM", callback=cs_SIGTERM)
+        cs3 = d.catch_signal("SIGINT", callback=cs_SIGINT)
+        cs4 = d.catch_signal("SIGQUIT", callback=cs_SIGQUIT)
+        cs5 = d.catch_signal("SIGPIPE", callback=cs_SIGPIPE)
 
         d.cont()
 
@@ -308,11 +308,11 @@ class SignalMultithreadTest(unittest.TestCase):
         self.assertEqual(SIGQUIT_count, 3)
         self.assertEqual(SIGPIPE_count, 3)
 
-        self.assertEqual(SIGUSR1_count, hook1.hit_count)
-        self.assertEqual(SIGTERM_count, hook2.hit_count)
-        self.assertEqual(SIGINT_count, hook3.hit_count)
-        self.assertEqual(SIGQUIT_count, hook4.hit_count)
-        self.assertEqual(SIGPIPE_count, hook5.hit_count)
+        self.assertEqual(SIGUSR1_count, cs1.hit_count)
+        self.assertEqual(SIGTERM_count, cs2.hit_count)
+        self.assertEqual(SIGINT_count, cs3.hit_count)
+        self.assertEqual(SIGQUIT_count, cs4.hit_count)
+        self.assertEqual(SIGPIPE_count, cs5.hit_count)
 
         # Count the number of times each signal was received
         self.assertEqual(received.count(b"Received signal on receiver 10"), 2)
@@ -333,35 +333,35 @@ class SignalMultithreadTest(unittest.TestCase):
         SIGPIPE_count = 0
         tids = []
 
-        def hook_SIGUSR1(t, signal_number):
+        def cs_SIGUSR1(t, signal_number):
             nonlocal SIGUSR1_count
             nonlocal tids
 
             SIGUSR1_count += 1
             tids.append(t.thread_id)
 
-        def hook_SIGTERM(t, signal_number):
+        def cs_SIGTERM(t, signal_number):
             nonlocal SIGTERM_count
             nonlocal tids
 
             SIGTERM_count += 1
             tids.append(t.thread_id)
 
-        def hook_SIGINT(t, signal_number):
+        def cs_SIGINT(t, signal_number):
             nonlocal SIGINT_count
             nonlocal tids
 
             SIGINT_count += 1
             tids.append(t.thread_id)
 
-        def hook_SIGQUIT(t, signal_number):
+        def cs_SIGQUIT(t, signal_number):
             nonlocal SIGQUIT_count
             nonlocal tids
 
             SIGQUIT_count += 1
             tids.append(t.thread_id)
 
-        def hook_SIGPIPE(t, signal_number):
+        def cs_SIGPIPE(t, signal_number):
             nonlocal SIGPIPE_count
             nonlocal tids
 
@@ -375,11 +375,11 @@ class SignalMultithreadTest(unittest.TestCase):
 
         bp = d.breakpoint(0x15A8, hardware=True)
 
-        hook1 = d.hook_signal("SIGUSR1", callback=hook_SIGUSR1)
-        hook2 = d.hook_signal("SIGTERM", callback=hook_SIGTERM)
-        hook3 = d.hook_signal("SIGINT", callback=hook_SIGINT)
-        hook4 = d.hook_signal("SIGQUIT", callback=hook_SIGQUIT)
-        hook5 = d.hook_signal("SIGPIPE", callback=hook_SIGPIPE)
+        cs1 = d.catch_signal("SIGUSR1", callback=cs_SIGUSR1)
+        cs2 = d.catch_signal("SIGTERM", callback=cs_SIGTERM)
+        cs3 = d.catch_signal("SIGINT", callback=cs_SIGINT)
+        cs4 = d.catch_signal("SIGQUIT", callback=cs_SIGQUIT)
+        cs5 = d.catch_signal("SIGPIPE", callback=cs_SIGPIPE)
 
         d.cont()
 
@@ -405,11 +405,11 @@ class SignalMultithreadTest(unittest.TestCase):
         self.assertEqual(SIGQUIT_count, 3)
         self.assertEqual(SIGPIPE_count, 3)
 
-        self.assertEqual(SIGUSR1_count, hook1.hit_count)
-        self.assertEqual(SIGTERM_count, hook2.hit_count)
-        self.assertEqual(SIGINT_count, hook3.hit_count)
-        self.assertEqual(SIGQUIT_count, hook4.hit_count)
-        self.assertEqual(SIGPIPE_count, hook5.hit_count)
+        self.assertEqual(SIGUSR1_count, cs1.hit_count)
+        self.assertEqual(SIGTERM_count, cs2.hit_count)
+        self.assertEqual(SIGINT_count, cs3.hit_count)
+        self.assertEqual(SIGQUIT_count, cs4.hit_count)
+        self.assertEqual(SIGPIPE_count, cs5.hit_count)
 
         # Count the number of times each signal was received
         self.assertEqual(received.count(b"Received signal on receiver 10"), 3)
