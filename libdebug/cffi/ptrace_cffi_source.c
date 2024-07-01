@@ -45,7 +45,7 @@ struct thread_status {
 struct global_state {
     struct thread *t_HEAD;
     struct software_breakpoint *b_HEAD;
-    _Bool syscall_hooks_enabled;
+    _Bool handle_syscall_enabled;
 };
 
 struct user_regs_struct *register_thread(struct global_state *state, int tid)
@@ -373,7 +373,8 @@ int cont_all_and_set_bps(struct global_state *state, int pid)
     // continue the execution of all the threads
     struct thread *t = state->t_HEAD;
     while (t != NULL) {
-        if (ptrace(state->syscall_hooks_enabled ? PTRACE_SYSCALL : PTRACE_CONT, t->tid, NULL, t->signal_to_forward))
+        if (ptrace(state->handle_syscall_enabled
+ ? PTRACE_SYSCALL : PTRACE_CONT, t->tid, NULL, t->signal_to_forward))
             fprintf(stderr, "ptrace_cont failed for thread %d with signal %d: %s\\n", t->tid, t->signal_to_forward,
                     strerror(errno));
         t->signal_to_forward = 0;

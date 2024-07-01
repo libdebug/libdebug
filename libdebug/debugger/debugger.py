@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
     from libdebug.data.caught_signal import CaughtSignal
     from libdebug.data.memory_map import MemoryMap
-    from libdebug.data.syscall_hook import SyscallHook
+    from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.state.thread_context import ThreadContext
 
@@ -159,6 +159,9 @@ class Debugger:
             is caught. Defaults to None.
             recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catching
             associated with the new signal should be considered as well. Defaults to False.
+
+        Returns:
+            CaughtSignal: The CaughtSignal object.
         """
         return self._internal_debugger.catch_signal(signal, callback, recursive)
 
@@ -167,7 +170,7 @@ class Debugger:
         original_signal: int | str,
         new_signal: int | str,
         recursive: bool = False,
-    ) -> None:
+    ) -> SyscallHandler:
         """Hijack a signal in the target process.
 
         Args:
@@ -175,60 +178,59 @@ class Debugger:
             new_signal (int | str): The signal to hijack the original signal with.
             recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catching
             associated with the new signal should be considered as well. Defaults to False.
+
+        Returns:
+            CaughtSignal: The CaughtSignal object.
         """
         return self._internal_debugger.hijack_signal(original_signal, new_signal, recursive)
 
-    def hook_syscall(
+    def handle_syscall(
         self: Debugger,
         syscall: int | str,
-        on_enter: Callable[[ThreadContext, int], None] | None = None,
-        on_exit: Callable[[ThreadContext, int], None] | None = None,
-        hook_hijack: bool = True,
-    ) -> SyscallHook:
-        """Hooks a syscall in the target process.
+        on_enter: Callable[[ThreadContext, SyscallHandler], None] | None = None,
+        on_exit: Callable[[ThreadContext, SyscallHandler], None] | None = None,
+        recursive: bool = False,
+    ) -> SyscallHandler:
+        """Handle a syscall in the target process.
 
         Args:
-            syscall (int | str): The syscall name or number to hook.
-            on_enter (Callable[[ThreadContext, int], None], optional): The callback to execute when the syscall is entered. Defaults to None.
-            on_exit (Callable[[ThreadContext, int], None], optional): The callback to execute when the syscall is exited. Defaults to None.
-            hook_hijack (bool, optional): Whether the syscall after the hijack should be hooked. Defaults to True.
+            syscall (int | str): The syscall name or number to handle.
+            on_enter (Callable[[ThreadContext, HandledSyscall], None], optional): The callback to execute when the
+            syscall is entered. Defaults to None.
+            on_exit (Callable[[ThreadContext, HandledSyscall], None], optional): The callback to execute when the
+            syscall is exited. Defaults to None.
+            recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handling
+            associated with the new syscall should be considered as well. Defaults to False.
 
         Returns:
-            SyscallHook: The syscall hook object.
+            HandledSyscall: The HandledSyscall object.
         """
-        return self._internal_debugger.hook_syscall(syscall, on_enter, on_exit, hook_hijack)
-
-    def unhook_syscall(self: Debugger, hook: SyscallHook) -> None:
-        """Unhooks a syscall in the target process.
-
-        Args:
-            hook (SyscallHook): The syscall hook to unhook.
-        """
-        self._internal_debugger.unhook_syscall(hook)
+        return self._internal_debugger.handle_syscall(syscall, on_enter, on_exit, recursive)
 
     def hijack_syscall(
         self: Debugger,
         original_syscall: int | str,
         new_syscall: int | str,
-        hook_hijack: bool = True,
+        recursive: bool = False,
         **kwargs: int,
-    ) -> SyscallHook:
+    ) -> SyscallHandler:
         """Hijacks a syscall in the target process.
 
         Args:
             original_syscall (int | str): The syscall name or number to hijack.
-            new_syscall (int | str): The syscall name or number to replace the original syscall with.
-            hook_hijack (bool, optional): Whether the syscall after the hijack should be hooked. Defaults to True.
+            new_syscall (int | str): The syscall name or number to hijack the original syscall with.
+            recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handling
+            associated with the new syscall should be considered as well. Defaults to False.
             **kwargs: (int, optional): The arguments to pass to the new syscall.
 
         Returns:
-            SyscallHook: The syscall hook object.
+            HandledSyscall: The HandledSyscall object.
         """
-        return self._internal_debugger.hijack_syscall(original_syscall, new_syscall, hook_hijack, **kwargs)
+        return self._internal_debugger.hijack_syscall(original_syscall, new_syscall, recursive, **kwargs)
 
-    def migrate_to_gdb(self: Debugger, open_in_new_process: bool = True) -> None:
+    def gdb(self: Debugger, open_in_new_process: bool = True) -> None:
         """Migrates the current debugging session to GDB."""
-        self._internal_debugger.migrate_to_gdb(open_in_new_process)
+        self._internal_debugger.gdb(open_in_new_process)
 
     def r(self: Debugger) -> None:
         """Alias for the `run` method.
@@ -326,13 +328,13 @@ class Debugger:
         return self._internal_debugger.breakpoints
 
     @property
-    def syscall_hooks(self: InternalDebugger) -> dict[int, SyscallHook]:
-        """Get the syscall hooks dictionary.
+    def handled_syscalls(self: InternalDebugger) -> dict[int, SyscallHandler]:
+        """Get the handled syscalls dictionary.
 
         Returns:
-            dict[int, SyscallHook]: the syscall hooks dictionary.
+            dict[int, HandledSyscall]: the handled syscalls dictionary.
         """
-        return self._internal_debugger.syscall_hooks
+        return self._internal_debugger.handled_syscalls
 
     @property
     def caught_signals(self: InternalDebugger) -> dict[int, CaughtSignal]:

@@ -55,14 +55,14 @@ def pprint_on_enter(d: ThreadContext, syscall_number: int, **kwargs: int) -> Non
         ]
 
     hijacked = kwargs.get("hijacked", False)
-    user_hooked = kwargs.get("user_hooked", False)
+    user_handled = kwargs.get("callback", False)
     if hijacked:
         print(
             f"{PrintStyle.RED}(user hijacked) {PrintStyle.STRIKE}{PrintStyle.BLUE}{syscall_name}{PrintStyle.DEFAULT_COLOR}({', '.join(entries)}){PrintStyle.RESET}",
         )
-    elif user_hooked:
+    elif user_handled:
         print(
-            f"{PrintStyle.RED}(user hooked) {PrintStyle.BLUE}{syscall_name}{PrintStyle.DEFAULT_COLOR}({', '.join(entries)}) = ",
+            f"{PrintStyle.RED}(callback) {PrintStyle.BLUE}{syscall_name}{PrintStyle.DEFAULT_COLOR}({', '.join(entries)}) = ",
             end="",
         )
     else:

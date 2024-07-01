@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
     from libdebug.data.caught_signal import CaughtSignal
     from libdebug.data.memory_map import MemoryMap
-    from libdebug.data.syscall_hook import SyscallHook
+    from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.state.thread_context import ThreadContext
 
 
@@ -115,32 +115,32 @@ class DebuggingInterface(ABC):
         """
 
     @abstractmethod
-    def set_syscall_hook(self: DebuggingInterface, hook: SyscallHook) -> None:
-        """Sets a syscall hook.
+    def set_syscall_handler(self: DebuggingInterface, handler: SyscallHandler) -> None:
+        """Sets a handler for a syscall.
 
         Args:
-            hook (SyscallHook): The syscall hook to set.
+            handler (HandledSyscall): The syscall to set.
         """
 
     @abstractmethod
-    def unset_syscall_hook(self: DebuggingInterface, hook: SyscallHook) -> None:
-        """Unsets a syscall hook.
+    def unset_syscall_handler(self: DebuggingInterface, handler: SyscallHandler) -> None:
+        """Unsets a handler for a syscall.
 
         Args:
-            hook (SyscallHook): The syscall hook to unset.
+            handler (HandledSyscall): The syscall to unset.
         """
 
     @abstractmethod
-    def set_signal_catch(self: DebuggingInterface, cs: CaughtSignal) -> None:
-        """Sets a signal catching.
+    def set_signal_catcher(self: DebuggingInterface, cs: CaughtSignal) -> None:
+        """Sets a catcher for a signal.
 
         Args:
-            cs (CaughtSignal): The signal to catch.
+            cs (CaughtSignal): The signal to set.
         """
 
     @abstractmethod
-    def unset_signal_catch(self: DebuggingInterface, cs: CaughtSignal) -> None:
-        """Unset a signal catching.
+    def unset_signal_catcher(self: DebuggingInterface, cs: CaughtSignal) -> None:
+        """Unset a catcher for a signal.
 
         Args:
             cs (CaughtSignal): The signal to unset.
