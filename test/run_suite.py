@@ -157,6 +157,8 @@ def fast_suite():
     suite.addTest(SignalCatchTest("test_override_hybrid"))
     suite.addTest(SignalCatchTest("test_signal_get_signal"))
     suite.addTest(SignalCatchTest("test_signal_send_signal"))
+    suite.addTest(SignalCatchTest("test_signal_catch_sync_block"))
+    suite.addTest(SignalCatchTest("test_signal_catch_sync_pass"))
     suite.addTest(SignalMultithreadTest("test_signal_multithread_undet_catch_signal_block"))
     suite.addTest(SignalMultithreadTest("test_signal_multithread_undet_pass"))
     suite.addTest(SignalMultithreadTest("test_signal_multithread_det_catch_signal_block"))

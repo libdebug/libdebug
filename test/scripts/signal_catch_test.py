@@ -1158,3 +1158,108 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGINT, b"Received signal 2" * 2)
         self.assertEqual(SIGQUIT, b"Received signal 15" * 2 + b"Received signal 3")
         self.assertEqual(SIGPIPE, b"Received signal 15" * 2 + b"Received signal 13")
+
+    def test_signal_catch_sync_block(self):
+        SIGUSR1_count = 0
+        SIGINT_count = 0
+        SIGQUIT_count = 0
+        SIGTERM_count = 0
+        SIGPIPE_count = 0
+
+        d = debugger("binaries/signal_handling_test")
+
+        d.signals_to_block = ["SIGUSR1", 15, "SIGINT", 3, 13]
+
+        d.run()
+
+        cs1 = d.catch_signal(10)
+        cs2 = d.catch_signal("SIGTERM")
+        cs3 = d.catch_signal(2)
+        cs4 = d.catch_signal("SIGQUIT")
+        cs5 = d.catch_signal("SIGPIPE")
+
+        while not d.dead:
+            d.cont()
+            d.wait()
+            if cs1.hit_on(d):
+                SIGUSR1_count += 1
+            elif cs2.hit_on(d):
+                SIGTERM_count += 1
+            elif cs3.hit_on(d):
+                SIGINT_count += 1
+            elif cs4.hit_on(d):
+                SIGQUIT_count += 1
+            elif cs5.hit_on(d):
+                SIGPIPE_count += 1
+
+        d.kill()
+
+        self.assertEqual(SIGUSR1_count, 2)
+        self.assertEqual(SIGTERM_count, 2)
+        self.assertEqual(SIGINT_count, 2)
+        self.assertEqual(SIGQUIT_count, 3)
+        self.assertEqual(SIGPIPE_count, 3)
+
+        self.assertEqual(SIGUSR1_count, cs1.hit_count)
+        self.assertEqual(SIGTERM_count, cs2.hit_count)
+        self.assertEqual(SIGINT_count, cs3.hit_count)
+        self.assertEqual(SIGQUIT_count, cs4.hit_count)
+        self.assertEqual(SIGPIPE_count, cs5.hit_count)
+
+    def test_signal_catch_sync_pass(self):
+        SIGUSR1_count = 0
+        SIGINT_count = 0
+        SIGQUIT_count = 0
+        SIGTERM_count = 0
+        SIGPIPE_count = 0
+
+        signals = b""
+
+        d = debugger("binaries/signal_handling_test")
+
+        r = d.run()
+
+        cs1 = d.catch_signal(10)
+        cs2 = d.catch_signal("SIGTERM")
+        cs3 = d.catch_signal(2)
+        cs4 = d.catch_signal("SIGQUIT")
+        cs5 = d.catch_signal("SIGPIPE")
+
+        signals = b""
+        while not d.dead:
+            d.cont()
+            try:
+                signals += r.recvline()
+            except:
+                pass
+            d.wait()
+            if cs1.hit_on(d):
+                SIGUSR1_count += 1
+            elif cs2.hit_on(d):
+                SIGTERM_count += 1
+            elif cs3.hit_on(d):
+                SIGINT_count += 1
+            elif cs4.hit_on(d):
+                SIGQUIT_count += 1
+            elif cs5.hit_on(d):
+                SIGPIPE_count += 1
+
+        d.kill()
+
+        self.assertEqual(SIGUSR1_count, 2)
+        self.assertEqual(SIGTERM_count, 2)
+        self.assertEqual(SIGINT_count, 2)
+        self.assertEqual(SIGQUIT_count, 3)
+        self.assertEqual(SIGPIPE_count, 3)
+
+        self.assertEqual(SIGUSR1_count, cs1.hit_count)
+        self.assertEqual(SIGTERM_count, cs2.hit_count)
+        self.assertEqual(SIGINT_count, cs3.hit_count)
+        self.assertEqual(SIGQUIT_count, cs4.hit_count)
+        self.assertEqual(SIGPIPE_count, cs5.hit_count)
+
+        self.assertEqual(signals.count(b"Received signal 10"), 2)
+        self.assertEqual(signals.count(b"Received signal 15"), 2)
+        self.assertEqual(signals.count(b"Received signal 2"), 2)
+        self.assertEqual(signals.count(b"Received signal 3"), 3)
+        self.assertEqual(signals.count(b"Received signal 13"), 3)
