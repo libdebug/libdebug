@@ -88,7 +88,7 @@ def catcher_SIGPIPE(t: ThreadContext, catcher: SignalCatcher) -> None:
     print(f"SIGPIPE: Signal number {catcher}")
 
 # Initialize the debugger
-d = debugger('/path/to/executable', continue_to_binary_entrypoint=False, enable_aslr=False)
+d = debugger('/path/to/executable', continue_to_binary_entrypoint=False, aslr=False)
 
 # Register signal hooks
 catcher1 = d.catch_signal("SIGUSR1", callback=hook_SIGUSR1)
