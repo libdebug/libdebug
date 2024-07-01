@@ -1054,7 +1054,7 @@ class InternalDebugger:
                 # If the address was not found and the backing file is not "absolute",
                 # we have to assume it is in the main map
                 backing_file = self._get_process_full_path()
-                liblog.debugger(
+                liblog.warning(
                     f"No backing file specified and no corresponding absolute address found for {hex(address)}. Assuming {backing_file}.",
                 )
         elif (
