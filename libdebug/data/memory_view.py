@@ -137,6 +137,8 @@ class MemoryView(MutableSequence):
             key (int | slice | str | tuple): The key to write to memory.
             value (bytes): The value to write.
         """
+        if not isinstance(value, bytes):
+            raise TypeError("Invalid type for the value to write to memory. Expected bytes.")
         self._manage_memory_write_type(key, value)
 
     def _manage_memory_read_type(self: MemoryView, key: int | slice | str | tuple, file: str = "default") -> bytes:
