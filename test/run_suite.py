@@ -14,6 +14,7 @@ from scripts.backtrace_test import BacktraceTest
 from scripts.basic_test import BasicPieTest, BasicTest, ControlFlowTest, HwBasicTest
 from scripts.breakpoint_test import BreakpointTest
 from scripts.brute_test import BruteTest
+from scripts.builtin_handler_test import AntidebugEscapingTest
 from scripts.callback_test import CallbackTest
 from scripts.death_test import DeathTest
 from scripts.deep_dive_division_test import DeepDiveDivision
@@ -35,8 +36,6 @@ from scripts.vmwhere1_test import Vmwhere1
 from scripts.waiting_test import WaitingNcuts, WaitingTest
 from scripts.watchpoint_alias_test import WatchpointAliasTest
 from scripts.watchpoint_test import WatchpointTest
-
-from test.scripts.builtin_handler_test import AntidebugEscapingTest
 
 
 def fast_suite():
@@ -120,6 +119,8 @@ def fast_suite():
     suite.addTest(HandleSyscallTest("test_handle_disabling_with_pprint"))
     suite.addTest(HandleSyscallTest("test_handle_overwrite"))
     suite.addTest(HandleSyscallTest("test_handle_overwrite_with_pprint"))
+    suite.addTest(HandleSyscallTest("test_handles_sync"))
+    suite.addTest(HandleSyscallTest("test_handles_sync_with_pprint"))
     suite.addTest(AntidebugEscapingTest("test_antidebug_escaping"))
     suite.addTest(SyscallHijackTest("test_hijack_syscall"))
     suite.addTest(SyscallHijackTest("test_hijack_syscall_with_pprint"))

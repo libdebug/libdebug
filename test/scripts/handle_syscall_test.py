@@ -414,3 +414,130 @@ class HandleSyscallTest(unittest.TestCase):
             "Syscall write is already handled by a user-defined handler. Overriding it.",
             self.log_capture_string.getvalue(),
         )
+
+
+    def test_handles_sync(self):
+        d = debugger("binaries/handle_syscall_test")
+
+        r = d.run()
+
+        ptr = 0
+        write_count = 0
+
+        def on_enter_write(d, hs):
+            nonlocal write_count
+
+            if write_count == 0:
+                self.assertTrue(hs.syscall_number == 1)
+                self.assertEqual(d.memory[d.syscall_arg1, 13], b"Hello, World!")
+                self.assertEqual(d.syscall_arg0, 1)
+                write_count += 1
+            else:
+                self.assertTrue(hs.syscall_number == 1)
+                self.assertEqual(d.memory[d.syscall_arg1, 7], b"provola")
+                self.assertEqual(d.syscall_arg0, 1)
+                write_count += 1
+
+        def on_exit_mmap(d, hs):
+            self.assertTrue(hs.syscall_number == 9)
+
+            nonlocal ptr
+
+            ptr = d.regs.rax
+
+        def on_enter_getcwd(d, hs):
+            self.assertTrue(hs.syscall_number == 0x4F)
+            self.assertEqual(d.syscall_arg0, ptr)
+
+        def on_exit_getcwd(d, hs):
+            self.assertTrue(hs.syscall_number == 0x4F)
+            self.assertEqual(d.memory[d.syscall_arg0, 8], os.getcwd()[:8].encode())
+
+        handler1 = d.handle_syscall("write")
+        handler2 = d.handle_syscall("mmap")
+        handler3 = d.handle_syscall("getcwd")
+
+        r.sendline(b"provola")
+
+        while not d.dead:
+            d.cont()
+            d.wait()
+            if handler1.hit_on_enter(d):
+                on_enter_write(d, handler1)
+            elif handler2.hit_on_exit(d):
+                on_exit_mmap(d, handler2)
+            elif handler3.hit_on_enter(d):
+                on_enter_getcwd(d, handler3)
+            elif handler3.hit_on_exit(d):
+                on_exit_getcwd(d, handler3)
+
+        d.kill()
+
+        self.assertEqual(write_count, 2)
+        self.assertEqual(handler1.hit_count, 2)
+        self.assertEqual(handler2.hit_count, 1)
+        self.assertEqual(handler3.hit_count, 1)
+    
+    def test_handles_sync_with_pprint(self):
+        d = debugger("binaries/handle_syscall_test")
+
+        r = d.run()
+
+        ptr = 0
+        write_count = 0
+
+        def on_enter_write(d, hs):
+            nonlocal write_count
+
+            if write_count == 0:
+                self.assertTrue(hs.syscall_number == 1)
+                self.assertEqual(d.memory[d.syscall_arg1, 13], b"Hello, World!")
+                self.assertEqual(d.syscall_arg0, 1)
+                write_count += 1
+            else:
+                self.assertTrue(hs.syscall_number == 1)
+                self.assertEqual(d.memory[d.syscall_arg1, 7], b"provola")
+                self.assertEqual(d.syscall_arg0, 1)
+                write_count += 1
+
+        def on_exit_mmap(d, hs):
+            self.assertTrue(hs.syscall_number == 9)
+
+            nonlocal ptr
+
+            ptr = d.regs.rax
+
+        def on_enter_getcwd(d, hs):
+            self.assertTrue(hs.syscall_number == 0x4F)
+            self.assertEqual(d.syscall_arg0, ptr)
+
+        def on_exit_getcwd(d, hs):
+            self.assertTrue(hs.syscall_number == 0x4F)
+            self.assertEqual(d.memory[d.syscall_arg0, 8], os.getcwd()[:8].encode())
+
+        handler1 = d.handle_syscall("write")
+        handler2 = d.handle_syscall("mmap")
+        handler3 = d.handle_syscall("getcwd")
+
+        d.pprint_syscalls = True
+
+        r.sendline(b"provola")
+
+        while not d.dead:
+            d.cont()
+            d.wait()
+            if handler1.hit_on_enter(d):
+                on_enter_write(d, handler1)
+            elif handler2.hit_on_exit(d):
+                on_exit_mmap(d, handler2)
+            elif handler3.hit_on_enter(d):
+                on_enter_getcwd(d, handler3)
+            elif handler3.hit_on_exit(d):
+                on_exit_getcwd(d, handler3)
+
+        d.kill()
+
+        self.assertEqual(write_count, 2)
+        self.assertEqual(handler1.hit_count, 2)
+        self.assertEqual(handler2.hit_count, 1)
+        self.assertEqual(handler3.hit_count, 1)
