@@ -5,8 +5,8 @@ libdebug is an open source Python library to automate the debugging of a binary 
 With libdebug you have full control of the flow of your debugged executable. With it you can:
 - Access process memory and registers 
 - Control the execution flow of the process
-- Hook and hijack syscalls
-- Hook and hijack signals
+- Handle and hijack syscalls
+- Catch and hijack signals
 - Debug multithreaded applications with ease
 - Seamlessly switch to GDB for interactive analysis
 - Soon to be multiarch (currently only supports Linux AMD64)
@@ -76,28 +76,28 @@ libdebug offers many advanced features. Take a look at this script doing magic w
 ```python
 from libdebug import debugger, ThreadContext
 
-# Define signal hooks
-def hook_SIGUSR1(t: ThreadContext, signal_number: int) -> None:
+# Define signal catchers
+def catcher_SIGUSR1(t: ThreadContext, catcher: SignalCatcher) -> None:
     t.signal = 0x0
-    print(f"Hooked SIGUSR1: Signal number {signal_number}")
+    print(f"SIGUSR1: Signal number {catcher}")
 
-def hook_SIGINT(t: ThreadContext, signal_number: int) -> None:
-    print(f"Hooked SIGINT: Signal number {signal_number}")
+def catcher_SIGINT(t: ThreadContext, catcher: int) -> None:
+    print(f"SIGINT: Signal number {catcher}")
 
-def hook_SIGPIPE(t: ThreadContext, signal_number: int) -> None:
-    print(f"Hooked SIGPIPE: Signal number {signal_number}")
+def catcher_SIGPIPE(t: ThreadContext, catcher: int) -> None:
+    print(f"SIGPIPE: Signal number {catcher}")
 
 # Initialize the debugger
 d = debugger('/path/to/executable', continue_to_binary_entrypoint=False, enable_aslr=False)
 
 # Register signal hooks
-hook1 = d.hook_signal("SIGUSR1", callback=hook_SIGUSR1)
-hook2 = d.hook_signal("SIGINT", callback=hook_SIGINT)
-hook3 = d.hook_signal("SIGPIPE", callback=hook_SIGPIPE)
+catcher1 = d.catch_signal("SIGUSR1", callback=hook_SIGUSR1)
+catcher2 = d.catch_signal("SIGINT", callback=hook_SIGINT)
+catcher3 = d.catch_signal("SIGPIPE", callback=hook_SIGPIPE)
 
 # Register signal hijack
 d.hijack_signal("SIGQUIT", "SIGTERM")
-d.hijack_signal("SIGINT", "SIGPIPE", hook_hijack=False)
+d.hijack_signal("SIGINT", "SIGPIPE", recursive=True)
 
 # Define which signals to block
 d.signals_to_block = ["SIGPOLL", "SIGIO", "SIGALRM"]
@@ -105,10 +105,10 @@ d.signals_to_block = ["SIGPOLL", "SIGIO", "SIGALRM"]
 # Continue execution
 d.cont()
 
-# Unhook signals after execution
-d.unhook_signal(hook1)
-d.unhook_signal(hook2)
-d.unhook_signal(hook3)
+# Disable the catchers after execution
+catcher1.disable()
+catcher2.disable()
+catcher3.disable()
 
 bp = d.breakpoint(0xdeadc0de, hardware=True)
 
