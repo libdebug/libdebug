@@ -14,11 +14,11 @@ from scripts.backtrace_test import BacktraceTest
 from scripts.basic_test import BasicPieTest, BasicTest, ControlFlowTest, HwBasicTest
 from scripts.breakpoint_test import BreakpointTest
 from scripts.brute_test import BruteTest
-from scripts.builtin_hooks_test import AntidebugEscapingTest
 from scripts.callback_test import CallbackTest
 from scripts.death_test import DeathTest
 from scripts.deep_dive_division_test import DeepDiveDivision
 from scripts.finish_test import FinishTest
+from scripts.handle_syscall_test import HandleSyscallTest
 from scripts.hijack_syscall_test import SyscallHijackTest
 from scripts.jumpout_test import Jumpout
 from scripts.jumpstart_test import JumpstartTest
@@ -30,12 +30,13 @@ from scripts.pprint_syscalls_test import PPrintSyscallsTest
 from scripts.signal_catch_test import SignalCatchTest
 from scripts.signals_multithread_test import SignalMultithreadTest
 from scripts.speed_test import SpeedTest
-from scripts.syscall_hook_test import SyscallHookTest
 from scripts.thread_test import ComplexThreadTest, ThreadTest
 from scripts.vmwhere1_test import Vmwhere1
 from scripts.waiting_test import WaitingNcuts, WaitingTest
 from scripts.watchpoint_alias_test import WatchpointAliasTest
 from scripts.watchpoint_test import WatchpointTest
+
+from test.scripts.builtin_handler_test import AntidebugEscapingTest
 
 
 def fast_suite():
@@ -113,24 +114,24 @@ def fast_suite():
     suite.addTest(WatchpointTest("test_watchpoint_callback"))
     suite.addTest(WatchpointAliasTest("test_watchpoint_alias"))
     suite.addTest(WatchpointAliasTest("test_watchpoint_callback"))
-    suite.addTest(SyscallHookTest("test_hooks"))
-    suite.addTest(SyscallHookTest("test_hooks_with_pprint"))
-    suite.addTest(SyscallHookTest("test_hook_disabling"))
-    suite.addTest(SyscallHookTest("test_hook_disabling_with_pprint"))
-    suite.addTest(SyscallHookTest("test_hook_overwrite"))
-    suite.addTest(SyscallHookTest("test_hook_overwrite_with_pprint"))
+    suite.addTest(HandleSyscallTest("test_handles"))
+    suite.addTest(HandleSyscallTest("test_handles_with_pprint"))
+    suite.addTest(HandleSyscallTest("test_handle_disabling"))
+    suite.addTest(HandleSyscallTest("test_handle_disabling_with_pprint"))
+    suite.addTest(HandleSyscallTest("test_handle_overwrite"))
+    suite.addTest(HandleSyscallTest("test_handle_overwrite_with_pprint"))
     suite.addTest(AntidebugEscapingTest("test_antidebug_escaping"))
     suite.addTest(SyscallHijackTest("test_hijack_syscall"))
     suite.addTest(SyscallHijackTest("test_hijack_syscall_with_pprint"))
-    suite.addTest(SyscallHijackTest("test_hijack_syscall_hook"))
-    suite.addTest(SyscallHijackTest("test_hijack_syscall_hook_with_pprint"))
+    suite.addTest(SyscallHijackTest("test_hijack_handle_syscall"))
+    suite.addTest(SyscallHijackTest("test_hijack_handle_syscall_with_pprint"))
     suite.addTest(SyscallHijackTest("test_hijack_syscall_args"))
     suite.addTest(SyscallHijackTest("test_hijack_syscall_args_with_pprint"))
     suite.addTest(SyscallHijackTest("test_hijack_syscall_wrong_args"))
     suite.addTest(SyscallHijackTest("loop_detection_test"))
     suite.addTest(PPrintSyscallsTest("test_pprint_syscalls_generic"))
     suite.addTest(PPrintSyscallsTest("test_pprint_syscalls_with_statement"))
-    suite.addTest(PPrintSyscallsTest("test_pprint_syscalls_hooking"))
+    suite.addTest(PPrintSyscallsTest("test_pprint_handle_syscalls"))
     suite.addTest(PPrintSyscallsTest("test_pprint_hijack_syscall"))
     suite.addTest(PPrintSyscallsTest("test_pprint_which_syscalls_pprint_after"))
     suite.addTest(PPrintSyscallsTest("test_pprint_which_syscalls_pprint_before"))

@@ -21,20 +21,20 @@ class SyscallHijackTest(unittest.TestCase):
         sys.stdout = sys.__stdout__
 
     def test_hijack_syscall(self):
-        def on_enter_write(d, syscall_number):
+        def on_enter_write(d, hs):
             nonlocal write_count
 
             write_count += 1
 
-        d = debugger("binaries/syscall_hook_test")
+        d = debugger("binaries/handle_syscall_test")
 
         write_count = 0
         r = d.run()
 
-        d.hijack_syscall("getcwd", "write")
+        d.hijack_syscall("getcwd", "write", recursive=True)
 
-        # Hook hijack is on, we expect the write hook to be called three times
-        hook2 = d.hook_syscall("write", on_enter=on_enter_write)
+        # recursive is on, we expect the write handler to be called three times
+        handler = d.handle_syscall("write", on_enter=on_enter_write, recursive=True)
 
         r.sendline(b"provola")
 
@@ -42,16 +42,16 @@ class SyscallHijackTest(unittest.TestCase):
 
         d.kill()
 
-        self.assertEqual(write_count, hook2.hit_count)
-        self.assertEqual(hook2.hit_count, 3)
+        self.assertEqual(write_count, handler.hit_count)
+        self.assertEqual(handler.hit_count, 3)
 
         write_count = 0
         r = d.run()
 
-        d.hijack_syscall("getcwd", "write", hook_hijack=False)
+        d.hijack_syscall("getcwd", "write", recursive=False)
 
-        # Hook hijack is off, we expect the write hook to be called only twice
-        hook2 = d.hook_syscall("write", on_enter=on_enter_write)
+        # recursive is off, we expect the write handler to be called only twice
+        handler = d.handle_syscall("write", on_enter=on_enter_write)
 
         r.sendline(b"provola")
 
@@ -59,25 +59,25 @@ class SyscallHijackTest(unittest.TestCase):
 
         d.kill()
 
-        self.assertEqual(write_count, hook2.hit_count)
-        self.assertEqual(hook2.hit_count, 2)
+        self.assertEqual(write_count, handler.hit_count)
+        self.assertEqual(handler.hit_count, 2)
 
     def test_hijack_syscall_with_pprint(self):
-        def on_enter_write(d, syscall_number):
+        def on_enter_write(d, hs):
             nonlocal write_count
 
             write_count += 1
 
-        d = debugger("binaries/syscall_hook_test")
+        d = debugger("binaries/handle_syscall_test")
 
         write_count = 0
         r = d.run()
 
         d.pprint_syscalls = True
-        d.hijack_syscall("getcwd", "write")
+        d.hijack_syscall("getcwd", "write", recursive=True)
 
-        # Hook hijack is on, we expect the write hook to be called three times
-        hook2 = d.hook_syscall("write", on_enter=on_enter_write)
+        # recursive is on, we expect the write handler to be called three times
+        handler = d.handle_syscall("write", on_enter=on_enter_write, recursive=True)
 
         r.sendline(b"provola")
 
@@ -85,17 +85,17 @@ class SyscallHijackTest(unittest.TestCase):
 
         d.kill()
 
-        self.assertEqual(write_count, hook2.hit_count)
-        self.assertEqual(hook2.hit_count, 3)
+        self.assertEqual(write_count, handler.hit_count)
+        self.assertEqual(handler.hit_count, 3)
 
         write_count = 0
         r = d.run()
 
         d.pprint_syscalls = True
-        d.hijack_syscall("getcwd", "write", hook_hijack=False)
+        d.hijack_syscall("getcwd", "write", recursive=False)
 
-        # Hook hijack is off, we expect the write hook to be called only twice
-        hook2 = d.hook_syscall("write", on_enter=on_enter_write)
+        # recursive is off, we expect the write handler to be called only twice
+        handler = d.handle_syscall("write", on_enter=on_enter_write, recursive=False)
 
         r.sendline(b"provola")
 
@@ -103,27 +103,27 @@ class SyscallHijackTest(unittest.TestCase):
 
         d.kill()
 
-        self.assertEqual(write_count, hook2.hit_count)
-        self.assertEqual(hook2.hit_count, 2)
+        self.assertEqual(write_count, handler.hit_count)
+        self.assertEqual(handler.hit_count, 2)
 
-    def test_hijack_syscall_hook(self):
-        def on_enter_write(d, syscall_number):
+    def test_hijack_handle_syscall(self):
+        def on_enter_write(d, hs):
             nonlocal write_count
 
             write_count += 1
 
-        def on_enter_getcwd(d, syscall_number):
+        def on_enter_getcwd(d, hs):
             d.syscall_number = 0x1
 
-        d = debugger("binaries/syscall_hook_test")
+        d = debugger("binaries/handle_syscall_test")
 
         write_count = 0
         r = d.run()
 
-        d.hook_syscall("getcwd", on_enter=on_enter_getcwd)
+        d.handle_syscall("getcwd", on_enter=on_enter_getcwd, recursive=True)
 
-        # Hook hijack is on, we expect the write hook to be called three times
-        hook2 = d.hook_syscall("write", on_enter=on_enter_write)
+        # recursive is on, we expect the write handler to be called three times
+        handler = d.handle_syscall("write", on_enter=on_enter_write)
 
         r.sendline(b"provola")
 
@@ -131,16 +131,16 @@ class SyscallHijackTest(unittest.TestCase):
 
         d.kill()
 
-        self.assertEqual(write_count, hook2.hit_count)
-        self.assertEqual(hook2.hit_count, 3)
+        self.assertEqual(write_count, handler.hit_count)
+        self.assertEqual(handler.hit_count, 3)
 
         write_count = 0
         r = d.run()
 
-        d.hook_syscall("getcwd", on_enter=on_enter_getcwd, hook_hijack=False)
+        d.handle_syscall("getcwd", on_enter=on_enter_getcwd, recursive=False)
 
-        # Hook hijack is off, we expect the write hook to be called only twice
-        hook2 = d.hook_syscall("write", on_enter=on_enter_write)
+        # recursive is off, we expect the write handler to be called only twice
+        handler = d.handle_syscall("write", on_enter=on_enter_write)
 
         r.sendline(b"provola")
 
@@ -148,28 +148,28 @@ class SyscallHijackTest(unittest.TestCase):
 
         d.kill()
 
-        self.assertEqual(write_count, hook2.hit_count)
-        self.assertEqual(hook2.hit_count, 2)
+        self.assertEqual(write_count, handler.hit_count)
+        self.assertEqual(handler.hit_count, 2)
 
-    def test_hijack_syscall_hook_with_pprint(self):
-        def on_enter_write(d, syscall_number):
+    def test_hijack_handle_syscall_with_pprint(self):
+        def on_enter_write(d, hs):
             nonlocal write_count
 
             write_count += 1
 
-        def on_enter_getcwd(d, syscall_number):
+        def on_enter_getcwd(d, hs):
             d.syscall_number = 0x1
 
-        d = debugger("binaries/syscall_hook_test")
+        d = debugger("binaries/handle_syscall_test")
 
         write_count = 0
         r = d.run()
 
         d.pprint_syscalls = True
-        d.hook_syscall("getcwd", on_enter=on_enter_getcwd)
+        d.handle_syscall("getcwd", on_enter=on_enter_getcwd, recursive=True)
 
-        # Hook hijack is on, we expect the write hook to be called three times
-        hook2 = d.hook_syscall("write", on_enter=on_enter_write)
+        # recursive hijack is on, we expect the write handler to be called three times
+        handler = d.handle_syscall("write", on_enter=on_enter_write, recursive=True)
 
         r.sendline(b"provola")
 
@@ -177,17 +177,17 @@ class SyscallHijackTest(unittest.TestCase):
 
         d.kill()
 
-        self.assertEqual(write_count, hook2.hit_count)
-        self.assertEqual(hook2.hit_count, 3)
+        self.assertEqual(write_count, handler.hit_count)
+        self.assertEqual(handler.hit_count, 3)
 
         write_count = 0
         r = d.run()
 
         d.pprint_syscalls = True
-        d.hook_syscall("getcwd", on_enter=on_enter_getcwd, hook_hijack=False)
+        d.handle_syscall("getcwd", on_enter=on_enter_getcwd, recursive=False)
 
-        # Hook hijack is off, we expect the write hook to be called only twice
-        hook2 = d.hook_syscall("write", on_enter=on_enter_write)
+        # recursive is off, we expect the write handler to be called only twice
+        handler = d.handle_syscall("write", on_enter=on_enter_write)
 
         r.sendline(b"provola")
 
@@ -195,13 +195,13 @@ class SyscallHijackTest(unittest.TestCase):
 
         d.kill()
 
-        self.assertEqual(write_count, hook2.hit_count)
-        self.assertEqual(hook2.hit_count, 2)
+        self.assertEqual(write_count, handler.hit_count)
+        self.assertEqual(handler.hit_count, 2)
 
     def test_hijack_syscall_args(self):
         write_buffer = None
 
-        def on_enter_write(d, syscall_number):
+        def on_enter_write(d, hs):
             nonlocal write_buffer
             nonlocal write_count
 
@@ -209,13 +209,13 @@ class SyscallHijackTest(unittest.TestCase):
 
             write_count += 1
 
-        d = debugger("binaries/syscall_hook_test")
+        d = debugger("binaries/handle_syscall_test")
 
         write_count = 0
         r = d.run()
 
-        # Hook hijack is on, we expect the write hook to be called three times
-        hook2 = d.hook_syscall("write", on_enter=on_enter_write)
+        # recursive hijack is on, we expect the write handler to be called three times
+        handler = d.handle_syscall("write", on_enter=on_enter_write, recursive=True)
         d.breakpoint(0x4011B0)
 
         d.cont()
@@ -230,6 +230,7 @@ class SyscallHijackTest(unittest.TestCase):
             syscall_arg0=0x1,
             syscall_arg1=write_buffer,
             syscall_arg2=14,
+            recursive=True,
         )
 
         d.cont()
@@ -239,13 +240,13 @@ class SyscallHijackTest(unittest.TestCase):
         d.kill()
 
         self.assertEqual(self.capturedOutput.getvalue().count("Hello, World!"), 2)
-        self.assertEqual(write_count, hook2.hit_count)
-        self.assertEqual(hook2.hit_count, 3)
+        self.assertEqual(write_count, handler.hit_count)
+        self.assertEqual(handler.hit_count, 3)
 
     def test_hijack_syscall_args_with_pprint(self):
         write_buffer = None
 
-        def on_enter_write(d, syscall_number):
+        def on_enter_write(d, hs):
             nonlocal write_buffer
             nonlocal write_count
 
@@ -253,15 +254,15 @@ class SyscallHijackTest(unittest.TestCase):
 
             write_count += 1
 
-        d = debugger("binaries/syscall_hook_test")
+        d = debugger("binaries/handle_syscall_test")
 
         write_count = 0
         r = d.run()
 
         d.pprint_syscalls = True
 
-        # Hook hijack is on, we expect the write hook to be called three times
-        hook2 = d.hook_syscall("write", on_enter=on_enter_write)
+        # recursive hijack is on, we expect the write handler to be called three times
+        handler = d.handle_syscall("write", on_enter=on_enter_write, recursive=True)
         d.breakpoint(0x4011B0)
 
         d.cont()
@@ -276,6 +277,7 @@ class SyscallHijackTest(unittest.TestCase):
             syscall_arg0=0x1,
             syscall_arg1=write_buffer,
             syscall_arg2=14,
+            recursive=True,
         )
 
         d.cont()
@@ -287,11 +289,11 @@ class SyscallHijackTest(unittest.TestCase):
         self.assertEqual(self.capturedOutput.getvalue().count("Hello, World!"), 2)
         self.assertEqual(self.capturedOutput.getvalue().count("write"), 3)
         self.assertEqual(self.capturedOutput.getvalue().count("0x402010"), 3)
-        self.assertEqual(write_count, hook2.hit_count)
-        self.assertEqual(hook2.hit_count, 3)
+        self.assertEqual(write_count, handler.hit_count)
+        self.assertEqual(handler.hit_count, 3)
 
     def test_hijack_syscall_wrong_args(self):
-        d = debugger("binaries/syscall_hook_test")
+        d = debugger("binaries/handle_syscall_test")
 
         d.run()
 
@@ -301,11 +303,11 @@ class SyscallHijackTest(unittest.TestCase):
         d.kill()
 
     def loop_detection_test(self):
-        d = debugger("binaries/syscall_hook_test")
+        d = debugger("binaries/handle_syscall_test")
 
         r = d.run()
-        d.hijack_syscall("getcwd", "write")
-        d.hijack_syscall("write", "getcwd")
+        d.hijack_syscall("getcwd", "write", recursive=True)
+        d.hijack_syscall("write", "getcwd", recursive=True)
         r.sendline(b"provola")
 
         # We expect an exception to be raised
@@ -315,16 +317,16 @@ class SyscallHijackTest(unittest.TestCase):
             d.kill()
 
         r = d.run()
-        d.hijack_syscall("getcwd", "write", hook_hijack=False)
-        d.hijack_syscall("write", "getcwd")
+        d.hijack_syscall("getcwd", "write", recursive=False)
+        d.hijack_syscall("write", "getcwd", recursive=True)
         r.sendline(b"provola")
 
         # We expect no exception to be raised
         d.cont()
 
         r = d.run()
-        d.hijack_syscall("getcwd", "write")
-        d.hijack_syscall("write", "getcwd", hook_hijack=False)
+        d.hijack_syscall("getcwd", "write", recursive=True)
+        d.hijack_syscall("write", "getcwd", recursive=False)
         r.sendline(b"provola")
 
         # We expect no exception to be raised

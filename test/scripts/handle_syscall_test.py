@@ -13,7 +13,7 @@ import unittest
 from libdebug import debugger
 
 
-class SyscallHookTest(unittest.TestCase):
+class HandleSyscallTest(unittest.TestCase):
     def setUp(self):
         # Redirect stdout
         self.capturedOutput = io.StringIO()
@@ -38,46 +38,46 @@ class SyscallHookTest(unittest.TestCase):
         self.logger.handlers = self.original_handlers
         self.log_handler.close()
 
-    def test_hooks(self):
-        d = debugger("binaries/syscall_hook_test")
+    def test_handles(self):
+        d = debugger("binaries/handle_syscall_test")
 
         r = d.run()
 
         ptr = 0
         write_count = 0
 
-        def on_enter_write(d, syscall_number):
+        def on_enter_write(d, hs):
             nonlocal write_count
 
             if write_count == 0:
-                self.assertTrue(syscall_number == 1)
+                self.assertTrue(hs.syscall_number == 1)
                 self.assertEqual(d.memory[d.syscall_arg1, 13], b"Hello, World!")
                 self.assertEqual(d.syscall_arg0, 1)
                 write_count += 1
             else:
-                self.assertTrue(syscall_number == 1)
+                self.assertTrue(hs.syscall_number == 1)
                 self.assertEqual(d.memory[d.syscall_arg1, 7], b"provola")
                 self.assertEqual(d.syscall_arg0, 1)
                 write_count += 1
 
-        def on_exit_mmap(d, syscall_number):
-            self.assertTrue(syscall_number == 9)
+        def on_exit_mmap(d, hs):
+            self.assertTrue(hs.syscall_number == 9)
 
             nonlocal ptr
 
             ptr = d.regs.rax
 
-        def on_enter_getcwd(d, syscall_number):
-            self.assertTrue(syscall_number == 0x4F)
+        def on_enter_getcwd(d, hs):
+            self.assertTrue(hs.syscall_number == 0x4F)
             self.assertEqual(d.syscall_arg0, ptr)
 
-        def on_exit_getcwd(d, syscall_number):
-            self.assertTrue(syscall_number == 0x4F)
+        def on_exit_getcwd(d, hs):
+            self.assertTrue(hs.syscall_number == 0x4F)
             self.assertEqual(d.memory[d.syscall_arg0, 8], os.getcwd()[:8].encode())
 
-        hook1 = d.hook_syscall("write", on_enter_write, None)
-        hook2 = d.hook_syscall("mmap", None, on_exit_mmap)
-        hook3 = d.hook_syscall("getcwd", on_enter_getcwd, on_exit_getcwd)
+        handler1 = d.handle_syscall("write", on_enter_write, None)
+        handler2 = d.handle_syscall("mmap", None, on_exit_mmap)
+        handler3 = d.handle_syscall("getcwd", on_enter_getcwd, on_exit_getcwd)
 
         r.sendline(b"provola")
 
@@ -86,12 +86,12 @@ class SyscallHookTest(unittest.TestCase):
         d.kill()
 
         self.assertEqual(write_count, 2)
-        self.assertEqual(hook1.hit_count, 2)
-        self.assertEqual(hook2.hit_count, 1)
-        self.assertEqual(hook3.hit_count, 1)
+        self.assertEqual(handler1.hit_count, 2)
+        self.assertEqual(handler2.hit_count, 1)
+        self.assertEqual(handler3.hit_count, 1)
 
-    def test_hooks_with_pprint(self):
-        d = debugger("binaries/syscall_hook_test")
+    def test_handles_with_pprint(self):
+        d = debugger("binaries/handle_syscall_test")
 
         r = d.run()
 
@@ -100,90 +100,91 @@ class SyscallHookTest(unittest.TestCase):
         ptr = 0
         write_count = 0
 
-        def on_enter_write(d, syscall_number):
+        def on_enter_write(d, hs):
             nonlocal write_count
 
             if write_count == 0:
-                self.assertTrue(syscall_number == 1)
+                self.assertTrue(hs.syscall_number == 1)
                 self.assertEqual(d.memory[d.syscall_arg1, 13], b"Hello, World!")
                 self.assertEqual(d.syscall_arg0, 1)
                 write_count += 1
             else:
-                self.assertTrue(syscall_number == 1)
+                self.assertTrue(hs.syscall_number == 1)
                 self.assertEqual(d.memory[d.syscall_arg1, 7], b"provola")
                 self.assertEqual(d.syscall_arg0, 1)
                 write_count += 1
 
-        def on_exit_mmap(d, syscall_number):
-            self.assertTrue(syscall_number == 9)
+        def on_exit_mmap(d, hs):
+            self.assertTrue(hs.syscall_number == 9)
 
             nonlocal ptr
 
             ptr = d.regs.rax
 
-        def on_enter_getcwd(d, syscall_number):
-            self.assertTrue(syscall_number == 0x4F)
+        def on_enter_getcwd(d, hs):
+            self.assertTrue(hs.syscall_number == 0x4F)
             self.assertEqual(d.syscall_arg0, ptr)
 
-        def on_exit_getcwd(d, syscall_number):
-            self.assertTrue(syscall_number == 0x4F)
+        def on_exit_getcwd(d, hs):
+            self.assertTrue(hs.syscall_number == 0x4F)
             self.assertEqual(d.memory[d.syscall_arg0, 8], os.getcwd()[:8].encode())
 
-        hook1 = d.hook_syscall("write", on_enter_write, None)
-        hook2 = d.hook_syscall("mmap", None, on_exit_mmap)
-        hook3 = d.hook_syscall("getcwd", on_enter_getcwd, on_exit_getcwd)
+        handler1 = d.handle_syscall("write", on_enter_write, None)
+        handler2 = d.handle_syscall("mmap", None, on_exit_mmap)
+        handler3 = d.handle_syscall("getcwd", on_enter_getcwd, on_exit_getcwd)
 
         r.sendline(b"provola")
 
         d.cont()
+        d.wait()
 
         d.kill()
 
         self.assertEqual(write_count, 2)
-        self.assertEqual(hook1.hit_count, 2)
-        self.assertEqual(hook2.hit_count, 1)
-        self.assertEqual(hook3.hit_count, 1)
+        self.assertEqual(handler1.hit_count, 2)
+        self.assertEqual(handler2.hit_count, 1)
+        self.assertEqual(handler3.hit_count, 1)
 
-    def test_hook_disabling(self):
-        d = debugger("binaries/syscall_hook_test")
+    def test_handle_disabling(self):
+        d = debugger("binaries/handle_syscall_test")
 
         r = d.run()
 
         ptr = 0
         write_count = 0
 
-        def on_enter_write(d, syscall_number):
+        def on_enter_write(d, hs):
             nonlocal write_count
 
             if write_count == 0:
-                self.assertTrue(syscall_number == 1)
+                self.assertTrue(hs.syscall_number == 1)
                 self.assertEqual(d.memory[d.syscall_arg1, 13], b"Hello, World!")
                 self.assertEqual(d.syscall_arg0, 1)
                 write_count += 1
             else:
-                self.assertTrue(syscall_number == 1)
+                self.assertTrue(hs.syscall_number == 1)
                 self.assertEqual(d.memory[d.syscall_arg1, 7], b"provola")
                 self.assertEqual(d.syscall_arg0, 1)
                 write_count += 1
 
-        def on_exit_mmap(d, syscall_number):
-            self.assertTrue(syscall_number == 9)
+        def on_exit_mmap(d, hs):
+            self.assertTrue(hs.syscall_number == 9)
 
             nonlocal ptr
 
             ptr = d.regs.rax
 
-        def on_enter_getcwd(d, syscall_number):
-            self.assertTrue(syscall_number == 0x4F)
+        def on_enter_getcwd(d, hs):
+            self.assertTrue(hs.syscall_number == 0x4F)
             self.assertEqual(d.syscall_arg0, ptr)
 
-        def on_exit_getcwd(d, syscall_number):
-            self.assertTrue(syscall_number == 0x4F)
+        def on_exit_getcwd(d, hs):
+            self.assertTrue(hs.syscall_number == 0x4F)
             self.assertEqual(d.memory[d.syscall_arg0, 8], os.getcwd()[:8].encode())
 
-        hook1 = d.hook_syscall(1, on_enter_write, None)
-        hook2 = d.hook_syscall(9, None, on_exit_mmap)
-        hook3 = d.hook_syscall(0x4F, on_enter_getcwd, on_exit_getcwd)
+        handler1 = d.handle_syscall(1, on_enter_write, None)
+        handler2 = d.handle_syscall(9, None, on_exit_mmap)
+        handler3 = d.handle_syscall(0x4F, on_enter_getcwd, on_exit_getcwd)
 
         r.sendline(b"provola")
 
@@ -194,19 +195,19 @@ class SyscallHookTest(unittest.TestCase):
         d.wait()
 
         self.assertEqual(d.regs.rip, 0x401196)
-        hook1.disable()
+        handler1.disable()
 
         d.cont()
 
         d.kill()
 
         self.assertEqual(write_count, 1)
-        self.assertEqual(hook1.hit_count, 1)
-        self.assertEqual(hook2.hit_count, 1)
-        self.assertEqual(hook3.hit_count, 1)
+        self.assertEqual(handler1.hit_count, 1)
+        self.assertEqual(handler2.hit_count, 1)
+        self.assertEqual(handler3.hit_count, 1)
 
-    def test_hook_disabling_with_pprint(self):
-        d = debugger("binaries/syscall_hook_test")
+    def test_handle_disabling_with_pprint(self):
+        d = debugger("binaries/handle_syscall_test")
 
         r = d.run()
 
@@ -215,38 +216,38 @@ class SyscallHookTest(unittest.TestCase):
         ptr = 0
         write_count = 0
 
-        def on_enter_write(d, syscall_number):
+        def on_enter_write(d, hs):
             nonlocal write_count
 
             if write_count == 0:
-                self.assertTrue(syscall_number == 1)
+                self.assertTrue(hs.syscall_number == 1)
                 self.assertEqual(d.memory[d.syscall_arg1, 13], b"Hello, World!")
                 self.assertEqual(d.syscall_arg0, 1)
                 write_count += 1
             else:
-                self.assertTrue(syscall_number == 1)
+                self.assertTrue(hs.syscall_number == 1)
                 self.assertEqual(d.memory[d.syscall_arg1, 7], b"provola")
                 self.assertEqual(d.syscall_arg0, 1)
                 write_count += 1
 
-        def on_exit_mmap(d, syscall_number):
-            self.assertTrue(syscall_number == 9)
+        def on_exit_mmap(d, hs):
+            self.assertTrue(hs.syscall_number == 9)
 
             nonlocal ptr
 
             ptr = d.regs.rax
 
-        def on_enter_getcwd(d, syscall_number):
-            self.assertTrue(syscall_number == 0x4F)
+        def on_enter_getcwd(d, hs):
+            self.assertTrue(hs.syscall_number == 0x4F)
             self.assertEqual(d.syscall_arg0, ptr)
 
-        def on_exit_getcwd(d, syscall_number):
-            self.assertTrue(syscall_number == 0x4F)
+        def on_exit_getcwd(d, hs):
+            self.assertTrue(hs.syscall_number == 0x4F)
             self.assertEqual(d.memory[d.syscall_arg0, 8], os.getcwd()[:8].encode())
 
-        hook1 = d.hook_syscall(1, on_enter_write, None)
-        hook2 = d.hook_syscall(9, None, on_exit_mmap)
-        hook3 = d.hook_syscall(0x4F, on_enter_getcwd, on_exit_getcwd)
+        handler1 = d.handle_syscall(1, on_enter_write, None)
+        handler2 = d.handle_syscall(9, None, on_exit_mmap)
+        handler3 = d.handle_syscall(0x4F, on_enter_getcwd, on_exit_getcwd)
 
         r.sendline(b"provola")
 
@@ -257,19 +258,19 @@ class SyscallHookTest(unittest.TestCase):
         d.wait()
 
         self.assertEqual(d.regs.rip, 0x401196)
-        hook1.disable()
+        handler1.disable()
 
         d.cont()
 
         d.kill()
 
         self.assertEqual(write_count, 1)
-        self.assertEqual(hook1.hit_count, 1)
-        self.assertEqual(hook2.hit_count, 1)
-        self.assertEqual(hook3.hit_count, 1)
+        self.assertEqual(handler1.hit_count, 1)
+        self.assertEqual(handler2.hit_count, 1)
+        self.assertEqual(handler3.hit_count, 1)
 
-    def test_hook_overwrite(self):
-        d = debugger("binaries/syscall_hook_test")
+    def test_handle_overwrite(self):
+        d = debugger("binaries/handle_syscall_test")
 
         r = d.run()
 
@@ -277,40 +278,40 @@ class SyscallHookTest(unittest.TestCase):
         write_count_first = 0
         write_count_second = 0
 
-        def on_enter_write_first(d, syscall_number):
+        def on_enter_write_first(d, hs):
             nonlocal write_count_first
 
-            self.assertTrue(syscall_number == 1)
+            self.assertTrue(hs.syscall_number == 1)
             self.assertEqual(d.memory[d.syscall_arg1, 13], b"Hello, World!")
             self.assertEqual(d.syscall_arg0, 1)
             write_count_first += 1
 
-        def on_enter_write_second(d, syscall_number):
+        def on_enter_write_second(d, hs):
             nonlocal write_count_second
 
-            self.assertTrue(syscall_number == 1)
+            self.assertTrue(hs.syscall_number == 1)
             self.assertEqual(d.memory[d.syscall_arg1, 7], b"provola")
             self.assertEqual(d.syscall_arg0, 1)
             write_count_second += 1
 
-        def on_exit_mmap(d, syscall_number):
-            self.assertTrue(syscall_number == 9)
+        def on_exit_mmap(d, hs):
+            self.assertTrue(hs.syscall_number == 9)
 
             nonlocal ptr
 
             ptr = d.regs.rax
 
-        def on_enter_getcwd(d, syscall_number):
-            self.assertTrue(syscall_number == 0x4F)
+        def on_enter_getcwd(d, hs):
+            self.assertTrue(hs.syscall_number == 0x4F)
             self.assertEqual(d.syscall_arg0, ptr)
 
-        def on_exit_getcwd(d, syscall_number):
-            self.assertTrue(syscall_number == 0x4F)
+        def on_exit_getcwd(d, hs):
+            self.assertTrue(hs.syscall_number == 0x4F)
             self.assertEqual(d.memory[d.syscall_arg0, 8], os.getcwd()[:8].encode())
 
-        hook1_1 = d.hook_syscall(1, on_enter_write_first, None)
-        hook2 = d.hook_syscall(9, None, on_exit_mmap)
-        hook3 = d.hook_syscall(0x4F, on_enter_getcwd, on_exit_getcwd)
+        handler1_1 = d.handle_syscall(1, on_enter_write_first, None)
+        handler2 = d.handle_syscall(9, None, on_exit_mmap)
+        handler3 = d.handle_syscall(0x4F, on_enter_getcwd, on_exit_getcwd)
 
         r.sendline(b"provola")
 
@@ -321,7 +322,7 @@ class SyscallHookTest(unittest.TestCase):
         d.wait()
 
         self.assertEqual(d.regs.rip, 0x401196)
-        hook1_2 = d.hook_syscall(1, on_enter_write_second, None)
+        handler1_2 = d.handle_syscall(1, on_enter_write_second, None)
 
         d.cont()
 
@@ -329,19 +330,19 @@ class SyscallHookTest(unittest.TestCase):
 
         self.assertEqual(write_count_first, 1)
         self.assertEqual(write_count_second, 1)
-        self.assertEqual(hook1_1.hit_count, 2)
-        self.assertEqual(hook1_2.hit_count, 2)
-        self.assertEqual(hook2.hit_count, 1)
-        self.assertEqual(hook3.hit_count, 1)
+        self.assertEqual(handler1_1.hit_count, 2)
+        self.assertEqual(handler1_2.hit_count, 2)
+        self.assertEqual(handler2.hit_count, 1)
+        self.assertEqual(handler3.hit_count, 1)
 
         self.assertIn("WARNING", self.log_capture_string.getvalue())
         self.assertIn(
-            "Syscall write is already hooked by a user-defined hook. Overriding it.",
+            "Syscall write is already handled by a user-defined handler. Overriding it.",
             self.log_capture_string.getvalue(),
         )
 
-    def test_hook_overwrite_with_pprint(self):
-        d = debugger("binaries/syscall_hook_test")
+    def test_handle_overwrite_with_pprint(self):
+        d = debugger("binaries/handle_syscall_test")
 
         r = d.run()
 
@@ -351,40 +352,40 @@ class SyscallHookTest(unittest.TestCase):
         write_count_first = 0
         write_count_second = 0
 
-        def on_enter_write_first(d, syscall_number):
+        def on_enter_write_first(d, hs):
             nonlocal write_count_first
 
-            self.assertTrue(syscall_number == 1)
+            self.assertTrue(hs.syscall_number == 1)
             self.assertEqual(d.memory[d.syscall_arg1, 13], b"Hello, World!")
             self.assertEqual(d.syscall_arg0, 1)
             write_count_first += 1
 
-        def on_enter_write_second(d, syscall_number):
+        def on_enter_write_second(d, hs):
             nonlocal write_count_second
 
-            self.assertTrue(syscall_number == 1)
+            self.assertTrue(hs.syscall_number == 1)
             self.assertEqual(d.memory[d.syscall_arg1, 7], b"provola")
             self.assertEqual(d.syscall_arg0, 1)
             write_count_second += 1
 
-        def on_exit_mmap(d, syscall_number):
-            self.assertTrue(syscall_number == 9)
+        def on_exit_mmap(d, hs):
+            self.assertTrue(hs.syscall_number == 9)
 
             nonlocal ptr
 
             ptr = d.regs.rax
 
-        def on_enter_getcwd(d, syscall_number):
-            self.assertTrue(syscall_number == 0x4F)
+        def on_enter_getcwd(d, hs):
+            self.assertTrue(hs.syscall_number == 0x4F)
             self.assertEqual(d.syscall_arg0, ptr)
 
-        def on_exit_getcwd(d, syscall_number):
-            self.assertTrue(syscall_number == 0x4F)
+        def on_exit_getcwd(d, hs):
+            self.assertTrue(hs.syscall_number == 0x4F)
             self.assertEqual(d.memory[d.syscall_arg0, 8], os.getcwd()[:8].encode())
 
-        hook1_1 = d.hook_syscall(1, on_enter_write_first, None)
-        hook2 = d.hook_syscall(9, None, on_exit_mmap)
-        hook3 = d.hook_syscall(0x4F, on_enter_getcwd, on_exit_getcwd)
+        handler1_1 = d.handle_syscall(1, on_enter_write_first, None)
+        handler2 = d.handle_syscall(9, None, on_exit_mmap)
+        handler3 = d.handle_syscall(0x4F, on_enter_getcwd, on_exit_getcwd)
 
         r.sendline(b"provola")
 
@@ -395,7 +396,7 @@ class SyscallHookTest(unittest.TestCase):
         d.wait()
 
         self.assertEqual(d.regs.rip, 0x401196)
-        hook1_2 = d.hook_syscall(1, on_enter_write_second, None)
+        handler1_2 = d.handle_syscall(1, on_enter_write_second, None)
 
         d.cont()
 
@@ -403,13 +404,13 @@ class SyscallHookTest(unittest.TestCase):
 
         self.assertEqual(write_count_first, 1)
         self.assertEqual(write_count_second, 1)
-        self.assertEqual(hook1_1.hit_count, 2)
-        self.assertEqual(hook1_2.hit_count, 2)
-        self.assertEqual(hook2.hit_count, 1)
-        self.assertEqual(hook3.hit_count, 1)
+        self.assertEqual(handler1_1.hit_count, 2)
+        self.assertEqual(handler1_2.hit_count, 2)
+        self.assertEqual(handler2.hit_count, 1)
+        self.assertEqual(handler3.hit_count, 1)
 
         self.assertIn("WARNING", self.log_capture_string.getvalue())
         self.assertIn(
-            "Syscall write is already hooked by a user-defined hook. Overriding it.",
+            "Syscall write is already handled by a user-defined handler. Overriding it.",
             self.log_capture_string.getvalue(),
         )
