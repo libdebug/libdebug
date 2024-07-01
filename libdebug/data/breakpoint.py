@@ -26,6 +26,7 @@ class Breakpoint:
         symbol (str): The symbol, if available, of the breakpoint in the target process.
         hit_count (int): The number of times this specific breakpoint has been hit.
         hardware (bool): Whether the breakpoint is a hardware breakpoint or not.
+        callback (Callable[[ThreadContext, Breakpoint], None]): The callback defined by the user to execute when the breakpoint is hit.
         condition (str): The breakpoint condition. Available values are "X", "W", "RW". Supported only for hardware breakpoints.
         length (int): The length of the breakpoint area. Supported only for hardware breakpoints.
         enabled (bool): Whether the breakpoint is enabled or not.
