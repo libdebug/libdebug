@@ -74,7 +74,7 @@ There is so much more that can be done with libdebug. Please read the [documenta
 libdebug offers many advanced features. Take a look at this script doing magic with signals:
 
 ```python
-from libdebug import debugger, ThreadContext
+from libdebug import debugger
 
 # Define signal catchers
 def catcher_SIGUSR1(t: ThreadContext, catcher: SignalCatcher) -> None:
