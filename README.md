@@ -81,10 +81,10 @@ def catcher_SIGUSR1(t: ThreadContext, catcher: SignalCatcher) -> None:
     t.signal = 0x0
     print(f"SIGUSR1: Signal number {catcher}")
 
-def catcher_SIGINT(t: ThreadContext, catcher: int) -> None:
+def catcher_SIGINT(t: ThreadContext, catcher: SignalCatcher) -> None:
     print(f"SIGINT: Signal number {catcher}")
 
-def catcher_SIGPIPE(t: ThreadContext, catcher: int) -> None:
+def catcher_SIGPIPE(t: ThreadContext, catcher: SignalCatcher) -> None:
     print(f"SIGPIPE: Signal number {catcher}")
 
 # Initialize the debugger
