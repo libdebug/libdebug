@@ -17,27 +17,27 @@ class SignalMultithreadTest(unittest.TestCase):
         SIGTERM_count = 0
         SIGPIPE_count = 0
 
-        def catcher_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, sc):
             nonlocal SIGUSR1_count
 
             SIGUSR1_count += 1
 
-        def catcher_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, sc):
             nonlocal SIGTERM_count
 
             SIGTERM_count += 1
 
-        def catcher_SIGINT(t, signal_number):
+        def catcher_SIGINT(t, sc):
             nonlocal SIGINT_count
 
             SIGINT_count += 1
 
-        def catcher_SIGQUIT(t, signal_number):
+        def catcher_SIGQUIT(t, sc):
             nonlocal SIGQUIT_count
 
             SIGQUIT_count += 1
 
-        def catcher_SIGPIPE(t, signal_number):
+        def catcher_SIGPIPE(t, sc):
             nonlocal SIGPIPE_count
 
             SIGPIPE_count += 1
@@ -83,27 +83,27 @@ class SignalMultithreadTest(unittest.TestCase):
         SIGTERM_count = 0
         SIGPIPE_count = 0
 
-        def catcher_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, sc):
             nonlocal SIGUSR1_count
 
             SIGUSR1_count += 1
 
-        def catcher_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, sc):
             nonlocal SIGTERM_count
 
             SIGTERM_count += 1
 
-        def catcher_SIGINT(t, signal_number):
+        def catcher_SIGINT(t, sc):
             nonlocal SIGINT_count
 
             SIGINT_count += 1
 
-        def catcher_SIGQUIT(t, signal_number):
+        def catcher_SIGQUIT(t, sc):
             nonlocal SIGQUIT_count
 
             SIGQUIT_count += 1
 
-        def catcher_SIGPIPE(t, signal_number):
+        def catcher_SIGPIPE(t, sc):
             nonlocal SIGPIPE_count
 
             SIGPIPE_count += 1
@@ -164,35 +164,35 @@ class SignalMultithreadTest(unittest.TestCase):
         SIGPIPE_count = 0
         tids = []
 
-        def catcher_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, sc):
             nonlocal SIGUSR1_count
             nonlocal tids
 
             SIGUSR1_count += 1
             tids.append(t.thread_id)
 
-        def catcher_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, sc):
             nonlocal SIGTERM_count
             nonlocal tids
 
             SIGTERM_count += 1
             tids.append(t.thread_id)
 
-        def catcher_SIGINT(t, signal_number):
+        def catcher_SIGINT(t, sc):
             nonlocal SIGINT_count
             nonlocal tids
 
             SIGINT_count += 1
             tids.append(t.thread_id)
 
-        def catcher_SIGQUIT(t, signal_number):
+        def catcher_SIGQUIT(t, sc):
             nonlocal SIGQUIT_count
             nonlocal tids
 
             SIGQUIT_count += 1
             tids.append(t.thread_id)
 
-        def catcher_SIGPIPE(t, signal_number):
+        def catcher_SIGPIPE(t, sc):
             nonlocal SIGPIPE_count
             nonlocal tids
 
@@ -245,35 +245,35 @@ class SignalMultithreadTest(unittest.TestCase):
         SIGPIPE_count = 0
         tids = []
 
-        def catcher_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, sc):
             nonlocal SIGUSR1_count
             nonlocal tids
 
             SIGUSR1_count += 1
             tids.append(t.thread_id)
 
-        def catcher_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, sc):
             nonlocal SIGTERM_count
             nonlocal tids
 
             SIGTERM_count += 1
             tids.append(t.thread_id)
 
-        def catcher_SIGINT(t, signal_number):
+        def catcher_SIGINT(t, sc):
             nonlocal SIGINT_count
             nonlocal tids
 
             SIGINT_count += 1
             tids.append(t.thread_id)
 
-        def catcher_SIGQUIT(t, signal_number):
+        def catcher_SIGQUIT(t, sc):
             nonlocal SIGQUIT_count
             nonlocal tids
 
             SIGQUIT_count += 1
             tids.append(t.thread_id)
 
-        def catcher_SIGPIPE(t, signal_number):
+        def catcher_SIGPIPE(t, sc):
             nonlocal SIGPIPE_count
             nonlocal tids
 
@@ -333,35 +333,35 @@ class SignalMultithreadTest(unittest.TestCase):
         SIGPIPE_count = 0
         tids = []
 
-        def catcher_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, sc):
             nonlocal SIGUSR1_count
             nonlocal tids
 
             SIGUSR1_count += 1
             tids.append(t.thread_id)
 
-        def catcher_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, sc):
             nonlocal SIGTERM_count
             nonlocal tids
 
             SIGTERM_count += 1
             tids.append(t.thread_id)
 
-        def catcher_SIGINT(t, signal_number):
+        def catcher_SIGINT(t, sc):
             nonlocal SIGINT_count
             nonlocal tids
 
             SIGINT_count += 1
             tids.append(t.thread_id)
 
-        def catcher_SIGQUIT(t, signal_number):
+        def catcher_SIGQUIT(t, sc):
             nonlocal SIGQUIT_count
             nonlocal tids
 
             SIGQUIT_count += 1
             tids.append(t.thread_id)
 
-        def catcher_SIGPIPE(t, signal_number):
+        def catcher_SIGPIPE(t, sc):
             nonlocal SIGPIPE_count
             nonlocal tids
 

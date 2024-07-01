@@ -21,7 +21,7 @@ class SyscallHijackTest(unittest.TestCase):
         sys.stdout = sys.__stdout__
 
     def test_hijack_syscall(self):
-        def on_enter_write(d, hs):
+        def on_enter_write(d, sh):
             nonlocal write_count
 
             write_count += 1
@@ -63,7 +63,7 @@ class SyscallHijackTest(unittest.TestCase):
         self.assertEqual(handler.hit_count, 2)
 
     def test_hijack_syscall_with_pprint(self):
-        def on_enter_write(d, hs):
+        def on_enter_write(d, sh):
             nonlocal write_count
 
             write_count += 1
@@ -107,12 +107,12 @@ class SyscallHijackTest(unittest.TestCase):
         self.assertEqual(handler.hit_count, 2)
 
     def test_hijack_handle_syscall(self):
-        def on_enter_write(d, hs):
+        def on_enter_write(d, sh):
             nonlocal write_count
 
             write_count += 1
 
-        def on_enter_getcwd(d, hs):
+        def on_enter_getcwd(d, sh):
             d.syscall_number = 0x1
 
         d = debugger("binaries/handle_syscall_test")
@@ -152,12 +152,12 @@ class SyscallHijackTest(unittest.TestCase):
         self.assertEqual(handler.hit_count, 2)
 
     def test_hijack_handle_syscall_with_pprint(self):
-        def on_enter_write(d, hs):
+        def on_enter_write(d, sh):
             nonlocal write_count
 
             write_count += 1
 
-        def on_enter_getcwd(d, hs):
+        def on_enter_getcwd(d, sh):
             d.syscall_number = 0x1
 
         d = debugger("binaries/handle_syscall_test")
@@ -201,7 +201,7 @@ class SyscallHijackTest(unittest.TestCase):
     def test_hijack_syscall_args(self):
         write_buffer = None
 
-        def on_enter_write(d, hs):
+        def on_enter_write(d, sh):
             nonlocal write_buffer
             nonlocal write_count
 
@@ -246,7 +246,7 @@ class SyscallHijackTest(unittest.TestCase):
     def test_hijack_syscall_args_with_pprint(self):
         write_buffer = None
 
-        def on_enter_write(d, hs):
+        def on_enter_write(d, sh):
             nonlocal write_buffer
             nonlocal write_count
 

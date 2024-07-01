@@ -16,6 +16,7 @@ from scripts.breakpoint_test import BreakpointTest
 from scripts.brute_test import BruteTest
 from scripts.builtin_handler_test import AntidebugEscapingTest
 from scripts.callback_test import CallbackTest
+from scripts.catch_signal_test import SignalCatchTest
 from scripts.death_test import DeathTest
 from scripts.deep_dive_division_test import DeepDiveDivision
 from scripts.finish_test import FinishTest
@@ -28,7 +29,6 @@ from scripts.memory_test import MemoryTest
 from scripts.multiple_debuggers_test import MultipleDebuggersTest
 from scripts.ncuts_test import Ncuts
 from scripts.pprint_syscalls_test import PPrintSyscallsTest
-from scripts.signal_catch_test import SignalCatchTest
 from scripts.signals_multithread_test import SignalMultithreadTest
 from scripts.speed_test import SpeedTest
 from scripts.thread_test import ComplexThreadTest, ThreadTest

@@ -36,32 +36,32 @@ class SignalCatchTest(unittest.TestCase):
         SIGTERM_count = 0
         SIGPIPE_count = 0
 
-        def catcher_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, sc):
             nonlocal SIGUSR1_count
 
             SIGUSR1_count += 1
 
-        def catcher_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, sc):
             nonlocal SIGTERM_count
 
             SIGTERM_count += 1
 
-        def catcher_SIGINT(t, signal_number):
+        def catcher_SIGINT(t, sc):
             nonlocal SIGINT_count
 
             SIGINT_count += 1
 
-        def catcher_SIGQUIT(t, signal_number):
+        def catcher_SIGQUIT(t, sc):
             nonlocal SIGQUIT_count
 
             SIGQUIT_count += 1
 
-        def catcher_SIGPIPE(t, signal_number):
+        def catcher_SIGPIPE(t, sc):
             nonlocal SIGPIPE_count
 
             SIGPIPE_count += 1
 
-        d = debugger("binaries/signal_handling_test")
+        d = debugger("binaries/catch_signal_test")
 
         d.signals_to_block = ["SIGUSR1", 15, "SIGINT", 3, 13]
 
@@ -96,32 +96,32 @@ class SignalCatchTest(unittest.TestCase):
         SIGTERM_count = 0
         SIGPIPE_count = 0
 
-        def catcher_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, sc):
             nonlocal SIGUSR1_count
 
             SIGUSR1_count += 1
 
-        def catcher_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, sc):
             nonlocal SIGTERM_count
 
             SIGTERM_count += 1
 
-        def catcher_SIGINT(t, signal_number):
+        def catcher_SIGINT(t, sc):
             nonlocal SIGINT_count
 
             SIGINT_count += 1
 
-        def catcher_SIGQUIT(t, signal_number):
+        def catcher_SIGQUIT(t, sc):
             nonlocal SIGQUIT_count
 
             SIGQUIT_count += 1
 
-        def catcher_SIGPIPE(t, signal_number):
+        def catcher_SIGPIPE(t, sc):
             nonlocal SIGPIPE_count
 
             SIGPIPE_count += 1
 
-        d = debugger("binaries/signal_handling_test")
+        d = debugger("binaries/catch_signal_test")
 
         r = d.run()
 
@@ -175,32 +175,32 @@ class SignalCatchTest(unittest.TestCase):
         SIGTERM_count = 0
         SIGPIPE_count = 0
 
-        def catcher_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, sc):
             nonlocal SIGUSR1_count
 
             SIGUSR1_count += 1
 
-        def catcher_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, sc):
             nonlocal SIGTERM_count
 
             SIGTERM_count += 1
 
-        def catcher_SIGINT(t, signal_number):
+        def catcher_SIGINT(t, sc):
             nonlocal SIGINT_count
 
             SIGINT_count += 1
 
-        def catcher_SIGQUIT(t, signal_number):
+        def catcher_SIGQUIT(t, sc):
             nonlocal SIGQUIT_count
 
             SIGQUIT_count += 1
 
-        def catcher_SIGPIPE(t, signal_number):
+        def catcher_SIGPIPE(t, sc):
             nonlocal SIGPIPE_count
 
             SIGPIPE_count += 1
 
-        d = debugger("binaries/signal_handling_test")
+        d = debugger("binaries/catch_signal_test")
 
         r = d.run()
 
@@ -262,32 +262,32 @@ class SignalCatchTest(unittest.TestCase):
         SIGTERM_count = 0
         SIGPIPE_count = 0
 
-        def catcher_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, sc):
             nonlocal SIGUSR1_count
 
             SIGUSR1_count += 1
 
-        def catcher_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, sc):
             nonlocal SIGTERM_count
 
             SIGTERM_count += 1
 
-        def catcher_SIGINT(t, signal_number):
+        def catcher_SIGINT(t, sc):
             nonlocal SIGINT_count
 
             SIGINT_count += 1
 
-        def catcher_SIGQUIT(t, signal_number):
+        def catcher_SIGQUIT(t, sc):
             nonlocal SIGQUIT_count
 
             SIGQUIT_count += 1
 
-        def catcher_SIGPIPE(t, signal_number):
+        def catcher_SIGPIPE(t, sc):
             nonlocal SIGPIPE_count
 
             SIGPIPE_count += 1
 
-        d = debugger("binaries/signal_handling_test")
+        d = debugger("binaries/catch_signal_test")
 
         r = d.run()
 
@@ -343,32 +343,32 @@ class SignalCatchTest(unittest.TestCase):
         SIGTERM_count = 0
         SIGPIPE_count = 0
 
-        def catcher_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, sc):
             nonlocal SIGUSR1_count
 
             SIGUSR1_count += 1
 
-        def catcher_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, sc):
             nonlocal SIGTERM_count
 
             SIGTERM_count += 1
 
-        def catcher_SIGINT(t, signal_number):
+        def catcher_SIGINT(t, sc):
             nonlocal SIGINT_count
 
             SIGINT_count += 1
 
-        def catcher_SIGQUIT(t, signal_number):
+        def catcher_SIGQUIT(t, sc):
             nonlocal SIGQUIT_count
 
             SIGQUIT_count += 1
 
-        def catcher_SIGPIPE(t, signal_number):
+        def catcher_SIGPIPE(t, sc):
             nonlocal SIGPIPE_count
 
             SIGPIPE_count += 1
 
-        d = debugger("binaries/signal_handling_test")
+        d = debugger("binaries/catch_signal_test")
 
         r = d.run()
 
@@ -420,11 +420,11 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(len(signal_received), 3)
 
     def test_hijack_signal_with_catch_signal(self):
-        def catcher_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, sc):
             # Hijack to SIGTERM
             t.signal = 15
 
-        d = debugger("binaries/signal_handling_test")
+        d = debugger("binaries/catch_signal_test")
 
         r = d.run()
 
@@ -458,7 +458,7 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGPIPE, b"Received signal 13" * 3)
 
     def test_hijack_signal_with_api(self):
-        d = debugger("binaries/signal_handling_test")
+        d = debugger("binaries/catch_signal_test")
 
         r = d.run()
 
@@ -496,19 +496,19 @@ class SignalCatchTest(unittest.TestCase):
         SIGUSR1_count = 0
         SIGTERM_count = 0
 
-        def catcher_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, sc):
             nonlocal SIGUSR1_count
             # Hijack to SIGTERM
             t.signal = 15
 
             SIGUSR1_count += 1
 
-        def catcher_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, sc):
             nonlocal SIGTERM_count
 
             SIGTERM_count += 1
 
-        d = debugger("binaries/signal_handling_test")
+        d = debugger("binaries/catch_signal_test")
 
         r = d.run()
 
@@ -549,12 +549,12 @@ class SignalCatchTest(unittest.TestCase):
     def test_recursive_true_with_api(self):
         SIGTERM_count = 0
 
-        def catcher_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, sc):
             nonlocal SIGTERM_count
 
             SIGTERM_count += 1
 
-        d = debugger("binaries/signal_handling_test")
+        d = debugger("binaries/catch_signal_test")
 
         r = d.run()
 
@@ -594,19 +594,19 @@ class SignalCatchTest(unittest.TestCase):
         SIGUSR1_count = 0
         SIGTERM_count = 0
 
-        def catcher_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, sc):
             nonlocal SIGUSR1_count
             # Hijack to SIGTERM
             t.signal = 15
 
             SIGUSR1_count += 1
 
-        def catcher_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, sc):
             nonlocal SIGTERM_count
 
             SIGTERM_count += 1
 
-        d = debugger("binaries/signal_handling_test")
+        d = debugger("binaries/catch_signal_test")
 
         r = d.run()
 
@@ -647,12 +647,12 @@ class SignalCatchTest(unittest.TestCase):
     def test_recursive_false_with_api(self):
         SIGTERM_count = 0
 
-        def catcher_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, sc):
             nonlocal SIGTERM_count
 
             SIGTERM_count += 1
 
-        d = debugger("binaries/signal_handling_test")
+        d = debugger("binaries/catch_signal_test")
 
         r = d.run()
 
@@ -691,15 +691,15 @@ class SignalCatchTest(unittest.TestCase):
     def test_hijack_signal_with_catch_signal_loop(self):
         # Let create a loop of hijacking signals
 
-        def catcher_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, sc):
             # Hijack to SIGTERM
             t.signal = 15
 
-        def catcher_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, sc):
             # Hijack to SIGINT
             t.signal = 10
 
-        d = debugger("binaries/signal_handling_test")
+        d = debugger("binaries/catch_signal_test")
 
         d.run()
 
@@ -738,7 +738,7 @@ class SignalCatchTest(unittest.TestCase):
     def test_hijack_signal_with_api_loop(self):
         # Let create a loop of hijacking signals
 
-        d = debugger("binaries/signal_handling_test")
+        d = debugger("binaries/catch_signal_test")
 
         d.run()
 
@@ -779,22 +779,22 @@ class SignalCatchTest(unittest.TestCase):
         SIGINT_count = 0
         SIGTERM_count = 0
 
-        def catcher_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, sc):
             nonlocal SIGUSR1_count
 
             SIGUSR1_count += 1
 
-        def catcher_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, sc):
             nonlocal SIGTERM_count
 
             SIGTERM_count += 1
 
-        def catcher_SIGINT(t, signal_number):
+        def catcher_SIGINT(t, sc):
             nonlocal SIGINT_count
 
             SIGINT_count += 1
 
-        d = debugger("binaries/signal_handling_test")
+        d = debugger("binaries/catch_signal_test")
 
         r = d.run()
 
@@ -849,17 +849,17 @@ class SignalCatchTest(unittest.TestCase):
         SIGPIPE_count_first = 0
         SIGPIPE_count_second = 0
 
-        def catcher_SIGPIPE_first(t, signal_number):
+        def catcher_SIGPIPE_first(t, sc):
             nonlocal SIGPIPE_count_first
 
             SIGPIPE_count_first += 1
 
-        def catcher_SIGPIPE_second(t, signal_number):
+        def catcher_SIGPIPE_second(t, sc):
             nonlocal SIGPIPE_count_second
 
             SIGPIPE_count_second += 1
 
-        d = debugger("binaries/signal_handling_test")
+        d = debugger("binaries/catch_signal_test")
 
         r = d.run()
 
@@ -911,7 +911,7 @@ class SignalCatchTest(unittest.TestCase):
         )
 
     def test_override_hijack(self):
-        d = debugger("binaries/signal_handling_test")
+        d = debugger("binaries/catch_signal_test")
 
         r = d.run()
 
@@ -962,12 +962,12 @@ class SignalCatchTest(unittest.TestCase):
     def test_override_hybrid(self):
         SIGPIPE_count = 0
 
-        def catcher_SIGPIPE(t, signal_number):
+        def catcher_SIGPIPE(t, sc):
             nonlocal SIGPIPE_count
 
             SIGPIPE_count += 1
 
-        d = debugger("binaries/signal_handling_test")
+        d = debugger("binaries/catch_signal_test")
 
         r = d.run()
 
@@ -1023,42 +1023,42 @@ class SignalCatchTest(unittest.TestCase):
         SIGTERM_count = 0
         SIGPIPE_count = 0
 
-        def catcher_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, sc):
             nonlocal SIGUSR1_count
 
             self.assertEqual(t.signal, "SIGUSR1")
 
             SIGUSR1_count += 1
 
-        def catcher_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, sc):
             nonlocal SIGTERM_count
 
             self.assertEqual(t.signal, "SIGTERM")
 
             SIGTERM_count += 1
 
-        def catcher_SIGINT(t, signal_number):
+        def catcher_SIGINT(t, sc):
             nonlocal SIGINT_count
 
             self.assertEqual(t.signal, "SIGINT")
 
             SIGINT_count += 1
 
-        def catcher_SIGQUIT(t, signal_number):
+        def catcher_SIGQUIT(t, sc):
             nonlocal SIGQUIT_count
 
             self.assertEqual(t.signal, "SIGQUIT")
 
             SIGQUIT_count += 1
 
-        def catcher_SIGPIPE(t, signal_number):
+        def catcher_SIGPIPE(t, sc):
             nonlocal SIGPIPE_count
 
             self.assertEqual(t.signal, "SIGPIPE")
 
             SIGPIPE_count += 1
 
-        d = debugger("binaries/signal_handling_test")
+        d = debugger("binaries/catch_signal_test")
 
         d.signals_to_block = ["SIGUSR1", 15, "SIGINT", 3, 13]
 
@@ -1091,22 +1091,22 @@ class SignalCatchTest(unittest.TestCase):
         SIGINT_count = 0
         SIGTERM_count = 0
 
-        def catcher_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, sc):
             nonlocal SIGUSR1_count
 
             SIGUSR1_count += 1
 
-        def catcher_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, sc):
             nonlocal SIGTERM_count
 
             SIGTERM_count += 1
 
-        def catcher_SIGINT(t, signal_number):
+        def catcher_SIGINT(t, sc):
             nonlocal SIGINT_count
 
             SIGINT_count += 1
 
-        d = debugger("binaries/signal_handling_test")
+        d = debugger("binaries/catch_signal_test")
 
         r = d.run()
 
@@ -1166,7 +1166,7 @@ class SignalCatchTest(unittest.TestCase):
         SIGTERM_count = 0
         SIGPIPE_count = 0
 
-        d = debugger("binaries/signal_handling_test")
+        d = debugger("binaries/catch_signal_test")
 
         d.signals_to_block = ["SIGUSR1", 15, "SIGINT", 3, 13]
 
@@ -1215,7 +1215,7 @@ class SignalCatchTest(unittest.TestCase):
 
         signals = b""
 
-        d = debugger("binaries/signal_handling_test")
+        d = debugger("binaries/catch_signal_test")
 
         r = d.run()
 

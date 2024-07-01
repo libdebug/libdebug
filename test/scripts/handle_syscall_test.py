@@ -46,33 +46,33 @@ class HandleSyscallTest(unittest.TestCase):
         ptr = 0
         write_count = 0
 
-        def on_enter_write(d, hs):
+        def on_enter_write(d, sh):
             nonlocal write_count
 
             if write_count == 0:
-                self.assertTrue(hs.syscall_number == 1)
+                self.assertTrue(sh.syscall_number == 1)
                 self.assertEqual(d.memory[d.syscall_arg1, 13], b"Hello, World!")
                 self.assertEqual(d.syscall_arg0, 1)
                 write_count += 1
             else:
-                self.assertTrue(hs.syscall_number == 1)
+                self.assertTrue(sh.syscall_number == 1)
                 self.assertEqual(d.memory[d.syscall_arg1, 7], b"provola")
                 self.assertEqual(d.syscall_arg0, 1)
                 write_count += 1
 
-        def on_exit_mmap(d, hs):
-            self.assertTrue(hs.syscall_number == 9)
+        def on_exit_mmap(d, sh):
+            self.assertTrue(sh.syscall_number == 9)
 
             nonlocal ptr
 
             ptr = d.regs.rax
 
-        def on_enter_getcwd(d, hs):
-            self.assertTrue(hs.syscall_number == 0x4F)
+        def on_enter_getcwd(d, sh):
+            self.assertTrue(sh.syscall_number == 0x4F)
             self.assertEqual(d.syscall_arg0, ptr)
 
-        def on_exit_getcwd(d, hs):
-            self.assertTrue(hs.syscall_number == 0x4F)
+        def on_exit_getcwd(d, sh):
+            self.assertTrue(sh.syscall_number == 0x4F)
             self.assertEqual(d.memory[d.syscall_arg0, 8], os.getcwd()[:8].encode())
 
         handler1 = d.handle_syscall("write", on_enter_write, None)
@@ -100,33 +100,33 @@ class HandleSyscallTest(unittest.TestCase):
         ptr = 0
         write_count = 0
 
-        def on_enter_write(d, hs):
+        def on_enter_write(d, sh):
             nonlocal write_count
 
             if write_count == 0:
-                self.assertTrue(hs.syscall_number == 1)
+                self.assertTrue(sh.syscall_number == 1)
                 self.assertEqual(d.memory[d.syscall_arg1, 13], b"Hello, World!")
                 self.assertEqual(d.syscall_arg0, 1)
                 write_count += 1
             else:
-                self.assertTrue(hs.syscall_number == 1)
+                self.assertTrue(sh.syscall_number == 1)
                 self.assertEqual(d.memory[d.syscall_arg1, 7], b"provola")
                 self.assertEqual(d.syscall_arg0, 1)
                 write_count += 1
 
-        def on_exit_mmap(d, hs):
-            self.assertTrue(hs.syscall_number == 9)
+        def on_exit_mmap(d, sh):
+            self.assertTrue(sh.syscall_number == 9)
 
             nonlocal ptr
 
             ptr = d.regs.rax
 
-        def on_enter_getcwd(d, hs):
-            self.assertTrue(hs.syscall_number == 0x4F)
+        def on_enter_getcwd(d, sh):
+            self.assertTrue(sh.syscall_number == 0x4F)
             self.assertEqual(d.syscall_arg0, ptr)
 
-        def on_exit_getcwd(d, hs):
-            self.assertTrue(hs.syscall_number == 0x4F)
+        def on_exit_getcwd(d, sh):
+            self.assertTrue(sh.syscall_number == 0x4F)
             self.assertEqual(d.memory[d.syscall_arg0, 8], os.getcwd()[:8].encode())
 
         handler1 = d.handle_syscall("write", on_enter_write, None)
@@ -153,33 +153,33 @@ class HandleSyscallTest(unittest.TestCase):
         ptr = 0
         write_count = 0
 
-        def on_enter_write(d, hs):
+        def on_enter_write(d, sh):
             nonlocal write_count
 
             if write_count == 0:
-                self.assertTrue(hs.syscall_number == 1)
+                self.assertTrue(sh.syscall_number == 1)
                 self.assertEqual(d.memory[d.syscall_arg1, 13], b"Hello, World!")
                 self.assertEqual(d.syscall_arg0, 1)
                 write_count += 1
             else:
-                self.assertTrue(hs.syscall_number == 1)
+                self.assertTrue(sh.syscall_number == 1)
                 self.assertEqual(d.memory[d.syscall_arg1, 7], b"provola")
                 self.assertEqual(d.syscall_arg0, 1)
                 write_count += 1
 
-        def on_exit_mmap(d, hs):
-            self.assertTrue(hs.syscall_number == 9)
+        def on_exit_mmap(d, sh):
+            self.assertTrue(sh.syscall_number == 9)
 
             nonlocal ptr
 
             ptr = d.regs.rax
 
-        def on_enter_getcwd(d, hs):
-            self.assertTrue(hs.syscall_number == 0x4F)
+        def on_enter_getcwd(d, sh):
+            self.assertTrue(sh.syscall_number == 0x4F)
             self.assertEqual(d.syscall_arg0, ptr)
 
-        def on_exit_getcwd(d, hs):
-            self.assertTrue(hs.syscall_number == 0x4F)
+        def on_exit_getcwd(d, sh):
+            self.assertTrue(sh.syscall_number == 0x4F)
             self.assertEqual(d.memory[d.syscall_arg0, 8], os.getcwd()[:8].encode())
 
         handler1 = d.handle_syscall(1, on_enter_write, None)
@@ -216,33 +216,33 @@ class HandleSyscallTest(unittest.TestCase):
         ptr = 0
         write_count = 0
 
-        def on_enter_write(d, hs):
+        def on_enter_write(d, sh):
             nonlocal write_count
 
             if write_count == 0:
-                self.assertTrue(hs.syscall_number == 1)
+                self.assertTrue(sh.syscall_number == 1)
                 self.assertEqual(d.memory[d.syscall_arg1, 13], b"Hello, World!")
                 self.assertEqual(d.syscall_arg0, 1)
                 write_count += 1
             else:
-                self.assertTrue(hs.syscall_number == 1)
+                self.assertTrue(sh.syscall_number == 1)
                 self.assertEqual(d.memory[d.syscall_arg1, 7], b"provola")
                 self.assertEqual(d.syscall_arg0, 1)
                 write_count += 1
 
-        def on_exit_mmap(d, hs):
-            self.assertTrue(hs.syscall_number == 9)
+        def on_exit_mmap(d, sh):
+            self.assertTrue(sh.syscall_number == 9)
 
             nonlocal ptr
 
             ptr = d.regs.rax
 
-        def on_enter_getcwd(d, hs):
-            self.assertTrue(hs.syscall_number == 0x4F)
+        def on_enter_getcwd(d, sh):
+            self.assertTrue(sh.syscall_number == 0x4F)
             self.assertEqual(d.syscall_arg0, ptr)
 
-        def on_exit_getcwd(d, hs):
-            self.assertTrue(hs.syscall_number == 0x4F)
+        def on_exit_getcwd(d, sh):
+            self.assertTrue(sh.syscall_number == 0x4F)
             self.assertEqual(d.memory[d.syscall_arg0, 8], os.getcwd()[:8].encode())
 
         handler1 = d.handle_syscall(1, on_enter_write, None)
@@ -278,35 +278,35 @@ class HandleSyscallTest(unittest.TestCase):
         write_count_first = 0
         write_count_second = 0
 
-        def on_enter_write_first(d, hs):
+        def on_enter_write_first(d, sh):
             nonlocal write_count_first
 
-            self.assertTrue(hs.syscall_number == 1)
+            self.assertTrue(sh.syscall_number == 1)
             self.assertEqual(d.memory[d.syscall_arg1, 13], b"Hello, World!")
             self.assertEqual(d.syscall_arg0, 1)
             write_count_first += 1
 
-        def on_enter_write_second(d, hs):
+        def on_enter_write_second(d, sh):
             nonlocal write_count_second
 
-            self.assertTrue(hs.syscall_number == 1)
+            self.assertTrue(sh.syscall_number == 1)
             self.assertEqual(d.memory[d.syscall_arg1, 7], b"provola")
             self.assertEqual(d.syscall_arg0, 1)
             write_count_second += 1
 
-        def on_exit_mmap(d, hs):
-            self.assertTrue(hs.syscall_number == 9)
+        def on_exit_mmap(d, sh):
+            self.assertTrue(sh.syscall_number == 9)
 
             nonlocal ptr
 
             ptr = d.regs.rax
 
-        def on_enter_getcwd(d, hs):
-            self.assertTrue(hs.syscall_number == 0x4F)
+        def on_enter_getcwd(d, sh):
+            self.assertTrue(sh.syscall_number == 0x4F)
             self.assertEqual(d.syscall_arg0, ptr)
 
-        def on_exit_getcwd(d, hs):
-            self.assertTrue(hs.syscall_number == 0x4F)
+        def on_exit_getcwd(d, sh):
+            self.assertTrue(sh.syscall_number == 0x4F)
             self.assertEqual(d.memory[d.syscall_arg0, 8], os.getcwd()[:8].encode())
 
         handler1_1 = d.handle_syscall(1, on_enter_write_first, None)
@@ -352,35 +352,35 @@ class HandleSyscallTest(unittest.TestCase):
         write_count_first = 0
         write_count_second = 0
 
-        def on_enter_write_first(d, hs):
+        def on_enter_write_first(d, sh):
             nonlocal write_count_first
 
-            self.assertTrue(hs.syscall_number == 1)
+            self.assertTrue(sh.syscall_number == 1)
             self.assertEqual(d.memory[d.syscall_arg1, 13], b"Hello, World!")
             self.assertEqual(d.syscall_arg0, 1)
             write_count_first += 1
 
-        def on_enter_write_second(d, hs):
+        def on_enter_write_second(d, sh):
             nonlocal write_count_second
 
-            self.assertTrue(hs.syscall_number == 1)
+            self.assertTrue(sh.syscall_number == 1)
             self.assertEqual(d.memory[d.syscall_arg1, 7], b"provola")
             self.assertEqual(d.syscall_arg0, 1)
             write_count_second += 1
 
-        def on_exit_mmap(d, hs):
-            self.assertTrue(hs.syscall_number == 9)
+        def on_exit_mmap(d, sh):
+            self.assertTrue(sh.syscall_number == 9)
 
             nonlocal ptr
 
             ptr = d.regs.rax
 
-        def on_enter_getcwd(d, hs):
-            self.assertTrue(hs.syscall_number == 0x4F)
+        def on_enter_getcwd(d, sh):
+            self.assertTrue(sh.syscall_number == 0x4F)
             self.assertEqual(d.syscall_arg0, ptr)
 
-        def on_exit_getcwd(d, hs):
-            self.assertTrue(hs.syscall_number == 0x4F)
+        def on_exit_getcwd(d, sh):
+            self.assertTrue(sh.syscall_number == 0x4F)
             self.assertEqual(d.memory[d.syscall_arg0, 8], os.getcwd()[:8].encode())
 
         handler1_1 = d.handle_syscall(1, on_enter_write_first, None)
@@ -424,33 +424,33 @@ class HandleSyscallTest(unittest.TestCase):
         ptr = 0
         write_count = 0
 
-        def on_enter_write(d, hs):
+        def on_enter_write(d, sh):
             nonlocal write_count
 
             if write_count == 0:
-                self.assertTrue(hs.syscall_number == 1)
+                self.assertTrue(sh.syscall_number == 1)
                 self.assertEqual(d.memory[d.syscall_arg1, 13], b"Hello, World!")
                 self.assertEqual(d.syscall_arg0, 1)
                 write_count += 1
             else:
-                self.assertTrue(hs.syscall_number == 1)
+                self.assertTrue(sh.syscall_number == 1)
                 self.assertEqual(d.memory[d.syscall_arg1, 7], b"provola")
                 self.assertEqual(d.syscall_arg0, 1)
                 write_count += 1
 
-        def on_exit_mmap(d, hs):
-            self.assertTrue(hs.syscall_number == 9)
+        def on_exit_mmap(d, sh):
+            self.assertTrue(sh.syscall_number == 9)
 
             nonlocal ptr
 
             ptr = d.regs.rax
 
-        def on_enter_getcwd(d, hs):
-            self.assertTrue(hs.syscall_number == 0x4F)
+        def on_enter_getcwd(d, sh):
+            self.assertTrue(sh.syscall_number == 0x4F)
             self.assertEqual(d.syscall_arg0, ptr)
 
-        def on_exit_getcwd(d, hs):
-            self.assertTrue(hs.syscall_number == 0x4F)
+        def on_exit_getcwd(d, sh):
+            self.assertTrue(sh.syscall_number == 0x4F)
             self.assertEqual(d.memory[d.syscall_arg0, 8], os.getcwd()[:8].encode())
 
         handler1 = d.handle_syscall("write")
@@ -486,33 +486,33 @@ class HandleSyscallTest(unittest.TestCase):
         ptr = 0
         write_count = 0
 
-        def on_enter_write(d, hs):
+        def on_enter_write(d, sh):
             nonlocal write_count
 
             if write_count == 0:
-                self.assertTrue(hs.syscall_number == 1)
+                self.assertTrue(sh.syscall_number == 1)
                 self.assertEqual(d.memory[d.syscall_arg1, 13], b"Hello, World!")
                 self.assertEqual(d.syscall_arg0, 1)
                 write_count += 1
             else:
-                self.assertTrue(hs.syscall_number == 1)
+                self.assertTrue(sh.syscall_number == 1)
                 self.assertEqual(d.memory[d.syscall_arg1, 7], b"provola")
                 self.assertEqual(d.syscall_arg0, 1)
                 write_count += 1
 
-        def on_exit_mmap(d, hs):
-            self.assertTrue(hs.syscall_number == 9)
+        def on_exit_mmap(d, sh):
+            self.assertTrue(sh.syscall_number == 9)
 
             nonlocal ptr
 
             ptr = d.regs.rax
 
-        def on_enter_getcwd(d, hs):
-            self.assertTrue(hs.syscall_number == 0x4F)
+        def on_enter_getcwd(d, sh):
+            self.assertTrue(sh.syscall_number == 0x4F)
             self.assertEqual(d.syscall_arg0, ptr)
 
-        def on_exit_getcwd(d, hs):
-            self.assertTrue(hs.syscall_number == 0x4F)
+        def on_exit_getcwd(d, sh):
+            self.assertTrue(sh.syscall_number == 0x4F)
             self.assertEqual(d.memory[d.syscall_arg0, 8], os.getcwd()[:8].encode())
 
         handler1 = d.handle_syscall("write")

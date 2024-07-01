@@ -76,10 +76,10 @@ class PPrintSyscallsTest(unittest.TestCase):
         self.assertEqual(self.capturedOutput.getvalue().count("exit_group"), 1)
 
     def test_pprint_handle_syscalls(self):
-        def on_enter_read(d, hs):
+        def on_enter_read(d, sh):
             pass
 
-        def on_exit_read(d, hs):
+        def on_exit_read(d, sh):
             d.syscall_return = 0xDEADBEEF
 
         d = debugger("binaries/handle_syscall_test")
