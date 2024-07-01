@@ -4,19 +4,22 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from libdebug.state.thread_context import ThreadContext
 
 
-class StackUnwindingManager:
-    """
-    An architecture-independent interface for stack unwinding.
-    """
+class StackUnwindingManager(ABC):
+    """An architecture-independent interface for stack unwinding."""
 
-    def unwind(self, target: "ThreadContext"):
-        """
-        Unwind the stack of the target process.
-        """
-        pass
+    @abstractmethod
+    def unwind(self: StackUnwindingManager, target: ThreadContext) -> list:
+        """Unwind the stack of the target process."""
+
+    @abstractmethod
+    def get_return_address(self: StackUnwindingManager, target: ThreadContext) -> int:
+        """Get the return address of the current function."""

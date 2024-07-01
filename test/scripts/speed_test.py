@@ -26,7 +26,7 @@ class SpeedTest(unittest.TestCase):
         d.cont()
 
         for _ in range(65536):
-            self.assertTrue(bp.address == d.rip)
+            self.assertTrue(bp.address == d.regs.rip)
             d.cont()
 
         d.kill()
@@ -47,7 +47,7 @@ class SpeedTest(unittest.TestCase):
         d.cont()
 
         for _ in range(65536):
-            self.assertTrue(bp.address == d.rip)
+            self.assertTrue(bp.address == d.regs.rip)
             d.cont()
 
         d.kill()

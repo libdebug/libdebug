@@ -14,7 +14,24 @@
 
 int main(int argc, char **argv)
 {
+    // argv[1] is the length of the custom environment variables
+    // argv[2:2 + env_len] is the custom environment variables
+    // argv[2 + env_len] should be NULL
+    // argv[2 + env_len + 1:] is the new argv
+    int env_len = atoi(argv[1]);
+
+    int argv_offset = env_len > 0 ? env_len : 0;
+
+    argv[2 + argv_offset] = NULL;
+
+    char **new_environ = argv + 2;
+    char **new_argv = argv + 2 + argv_offset + 1;
+
     ptrace(PTRACE_TRACEME, 0, 0, 0);
 
-    execve(argv[1], argv + 1, environ);
+    if (env_len == -1) {
+        execve(new_argv[0], new_argv, environ);
+    } else {
+        execve(new_argv[0], new_argv, new_environ);
+    }
 }

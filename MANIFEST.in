@@ -1,0 +1,3 @@
+prune media
+prune test
+prune */__pycache__

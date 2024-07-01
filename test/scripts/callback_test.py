@@ -93,14 +93,14 @@ class CallbackTest(unittest.TestCase):
 
             prev = bytes(range(256))
             try:
-                self.assertEqual(bp.address, thread.rip)
+                self.assertEqual(bp.address, thread.regs.rip)
                 self.assertEqual(bp.hit_count, 1)
-                self.assertEqual(thread.memory[thread.rdi, 256], prev)
+                self.assertEqual(thread.memory[thread.regs.rdi, 256], prev)
 
-                thread.memory[thread.rdi + 128 :] = b"abcd123456"
+                thread.memory[thread.regs.rdi + 128 :] = b"abcd123456"
                 prev = prev[:128] + b"abcd123456" + prev[138:]
 
-                self.assertEqual(thread.memory[thread.rdi, 256], prev)
+                self.assertEqual(thread.memory[thread.regs.rdi, 256], prev)
             except Exception as e:
                 self.exceptions.append(e)
 
@@ -175,14 +175,14 @@ class CallbackTest(unittest.TestCase):
         def second(d, b):
             global second
             try:
-                second = d.r9
+                second = d.regs.r9
             except Exception as e:
                 self.exceptions.append(e)
 
         def third(d, b):
             global flag
             try:
-                address = d.r13 + d.rbx
+                address = d.regs.r13 + d.regs.rbx
                 third = int.from_bytes(d.memory[address : address + 1], "little")
                 flag += chr((first ^ second ^ third ^ (b.hit_count - 1)))
             except Exception as e:
@@ -217,7 +217,7 @@ class CallbackTest(unittest.TestCase):
         def second(d, b):
             global secval
             try:
-                secval = d.r9
+                secval = d.regs.r9
             except Exception as e:
                 self.exceptions.append(e)
 
@@ -229,9 +229,8 @@ class CallbackTest(unittest.TestCase):
         r.sendline(b"A" * 0x1D)
 
         while True:
-
-            if d.rip == bp.address:
-                address = d.r13 + d.rbx
+            if d.regs.rip == bp.address:
+                address = d.regs.r13 + d.regs.rbx
                 third = int.from_bytes(d.memory[address : address + 1], "little")
                 flag += chr((first ^ secval ^ third ^ (bp.hit_count - 1)))
 
@@ -248,3 +247,102 @@ class CallbackTest(unittest.TestCase):
 
         if self.exceptions:
             raise self.exceptions[0]
+
+    def test_callback_exception(self):
+        self.exceptions.clear()
+
+        d = debugger("binaries/basic_test")
+
+        d.run()
+
+        def callback(thread, bp):
+            # This operation should not raise any exception
+            _ = d.regs.rax
+
+        d.breakpoint("register_test", callback=callback, hardware=True)
+
+        d.cont()
+
+        d.kill()
+
+    def test_callback_step(self):
+        self.exceptions.clear()
+
+        d = debugger("binaries/basic_test")
+
+        d.run()
+
+        def callback(t, bp):
+            self.assertEqual(t.regs.rip, bp.address)
+            d.step()
+            self.assertEqual(t.regs.rip, bp.address + 1)
+
+        d.breakpoint("register_test", callback=callback)
+
+        d.cont()
+
+        d.kill()
+
+    def test_callback_pid_accessible(self):
+        self.exceptions.clear()
+
+        d = debugger("binaries/basic_test")
+
+        d.run()
+
+        hit = False
+
+        def callback(t, bp):
+            nonlocal hit
+            self.assertEqual(t.process_id, d.process_id)
+            hit = True
+
+        d.breakpoint("register_test", callback=callback)
+
+        d.cont()
+        d.kill()
+
+        self.assertTrue(hit)
+    
+    def test_callback_pid_accessible_alias(self):
+        self.exceptions.clear()
+
+        d = debugger("binaries/basic_test")
+
+        d.run()
+
+        hit = False
+
+        def callback(t, bp):
+            nonlocal hit
+            self.assertEqual(t.pid, d.pid)
+            self.assertEqual(t.pid, t.process_id)
+            hit = True
+
+        d.breakpoint("register_test", callback=callback)
+
+        d.cont()
+        d.kill()
+
+        self.assertTrue(hit)
+        
+    def test_callback_tid_accessible_alias(self):
+        self.exceptions.clear()
+
+        d = debugger("binaries/basic_test")
+
+        d.run()
+
+        hit = False
+
+        def callback(t, bp):
+            nonlocal hit
+            self.assertEqual(t.tid, t.thread_id)
+            hit = True
+
+        d.breakpoint("register_test", callback=callback)
+
+        d.cont()
+        d.kill()
+
+        self.assertTrue(hit)

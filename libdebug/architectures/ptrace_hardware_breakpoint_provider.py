@@ -4,7 +4,7 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-from typing import Callable
+from collections.abc import Callable
 
 from libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper import (
     Amd64PtraceHardwareBreakpointManager,

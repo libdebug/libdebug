@@ -4,39 +4,31 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+from __future__ import annotations
+
 import logging
 
-
-class LogColors:
-    RED = "\033[91m"
-    BLUE = "\033[94m"
-    GREEN = "\033[92m"
-    ORANGE = "\033[93m"
-    RESET = "\033[0m"
+from libdebug.utils.print_style import PrintStyle
 
 
 class LibLog:
-    """Custom logger class that can be used to log messages to the console.
-    It is a singleton class, so that it is instantiated only once.
-    """
+    """Custom logger singleton class that can be used to log messages to the console."""
 
     _instance = None
 
-    def __new__(cls) -> "LibLog":
+    def __new__(cls: type):
         """Create a new instance of the class if it does not exist yet.
 
         Returns:
             LibLog: the instance of the class.
         """
-
         if cls._instance is None:
-            cls._instance = super(LibLog, cls).__new__(cls)
+            cls._instance = super().__new__(cls)
             cls._instance._initialized = False
         return cls._instance
 
-    def __init__(self):
-        """Initialize the logger"""
-
+    def __init__(self: LibLog) -> None:
+        """Initializes the logger."""
         if self._initialized:
             return
 
@@ -49,7 +41,7 @@ class LibLog:
 
         self._initialized = True
 
-    def _setup_logger(self, name: str, level: int) -> logging.Logger:
+    def _setup_logger(self: LibLog, name: str, level: int) -> logging.Logger:
         """Setup a logger with the given name and level.
 
         Args:
@@ -59,7 +51,6 @@ class LibLog:
         Returns:
             logging.Logger: the logger object.
         """
-
         logger = logging.getLogger(name)
         logger.setLevel(level)
         handler = logging.StreamHandler()
@@ -69,7 +60,7 @@ class LibLog:
 
         return logger
 
-    def debugger(self, message: str, *args, **kwargs):
+    def debugger(self: LibLog, message: str, *args: str, **kwargs: str) -> None:
         """Log a message to the debugger logger.
 
         Args:
@@ -77,11 +68,10 @@ class LibLog:
             *args: positional arguments to pass to the logger.
             **kwargs: keyword arguments to pass to the logger.
         """
-
-        header = f"[{LogColors.RED}DEBUGGER{LogColors.RESET}]"
+        header = f"[{PrintStyle.RED}DEBUGGER{PrintStyle.DEFAULT_COLOR}]"
         self.debugger_logger.debug(f"{header} {message}", *args, **kwargs)
 
-    def pipe(self, message: str, *args, **kwargs):
+    def pipe(self: LibLog, message: str, *args: str, **kwargs: str) -> None:
         """Log a message to the pipe logger.
 
         Args:
@@ -89,11 +79,10 @@ class LibLog:
             *args: positional arguments to pass to the logger.
             **kwargs: keyword arguments to pass to the logger.
         """
-
-        header = f"[{LogColors.BLUE}PIPE{LogColors.RESET}]"
+        header = f"[{PrintStyle.BLUE}PIPE{PrintStyle.DEFAULT_COLOR}]"
         self.pipe_logger.debug(f"{header} {message}", *args, **kwargs)
 
-    def info(self, message: str, *args, **kwargs):
+    def info(self: LibLog, message: str, *args: str, **kwargs: str) -> None:
         """Log a info message to the general logger.
 
         Args:
@@ -101,11 +90,10 @@ class LibLog:
             *args: positional arguments to pass to the logger.
             **kwargs: keyword arguments to pass to the logger.
         """
-
-        header = f"[{LogColors.GREEN}INFO{LogColors.RESET}]"
+        header = f"[{PrintStyle.GREEN}INFO{PrintStyle.DEFAULT_COLOR}]"
         self.general_logger.info(f"{header} {message}", *args, **kwargs)
 
-    def warning(self, message: str, *args, **kwargs):
+    def warning(self: LibLog, message: str, *args: str, **kwargs: str) -> None:
         """Log a warning message to the general logger.
 
         Args:
@@ -113,11 +101,10 @@ class LibLog:
             *args: positional arguments to pass to the logger.
             **kwargs: keyword arguments to pass to the logger.
         """
-
-        header = f"[{LogColors.ORANGE}WARNING{LogColors.RESET}]"
+        header = f"[{PrintStyle.BRIGHT_YELLOW}WARNING{PrintStyle.DEFAULT_COLOR}]"
         self.general_logger.warning(f"{header} {message}", *args, **kwargs)
 
-    def error(self, message: str, *args, **kwargs):
+    def error(self: LibLog, message: str, *args: str, **kwargs: str) -> None:
         """Log an error message to the general logger.
 
         Args:
@@ -125,8 +112,7 @@ class LibLog:
             *args: positional arguments to pass to the logger.
             **kwargs: keyword arguments to pass to the logger.
         """
-
-        header = f"[{LogColors.RED}ERROR{LogColors.RESET}]"
+        header = f"[{PrintStyle.RED}ERROR{PrintStyle.DEFAULT_COLOR}]"
         self.general_logger.error(f"{header} {message}", *args, **kwargs)
 
 

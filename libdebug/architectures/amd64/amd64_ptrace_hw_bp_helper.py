@@ -4,14 +4,21 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-from typing import Callable
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from libdebug.architectures.ptrace_hardware_breakpoint_manager import (
     PtraceHardwareBreakpointManager,
 )
-from libdebug.data.breakpoint import Breakpoint
 from libdebug.liblog import liblog
-from libdebug.state.thread_context import ThreadContext
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from libdebug.data.breakpoint import Breakpoint
+    from libdebug.state.thread_context import ThreadContext
+
 
 AMD64_DBGREGS_OFF = {
     "DR0": 0x350,
@@ -43,11 +50,12 @@ class Amd64PtraceHardwareBreakpointManager(PtraceHardwareBreakpointManager):
     """
 
     def __init__(
-        self,
+        self: Amd64PtraceHardwareBreakpointManager,
         thread: ThreadContext,
         peek_user: Callable[[int, int], int],
         poke_user: Callable[[int, int, int], None],
-    ):
+    ) -> None:
+        """Initializes the hardware breakpoint manager."""
         super().__init__(thread, peek_user, poke_user)
         self.breakpoint_registers: dict[str, Breakpoint | None] = {
             "DR0": None,
@@ -56,15 +64,13 @@ class Amd64PtraceHardwareBreakpointManager(PtraceHardwareBreakpointManager):
             "DR3": None,
         }
 
-    def install_breakpoint(self, bp: Breakpoint):
+    def install_breakpoint(self: Amd64PtraceHardwareBreakpointManager, bp: Breakpoint) -> None:
         """Installs a hardware breakpoint at the provided location."""
         if self.breakpoint_count >= AMD64_DBREGS_COUNT:
             raise RuntimeError("No more hardware breakpoints available.")
 
         # Find the first available breakpoint register
-        register = next(
-            reg for reg, bp in self.breakpoint_registers.items() if bp is None
-        )
+        register = next(reg for reg, bp in self.breakpoint_registers.items() if bp is None)
         liblog.debugger(f"Installing hardware breakpoint on register {register}.")
 
         # Write the breakpoint address in the register
@@ -73,14 +79,8 @@ class Amd64PtraceHardwareBreakpointManager(PtraceHardwareBreakpointManager):
         # Set the breakpoint control register
         ctrl = (
             AMD64_DBGREGS_CTRL_LOCAL[register]
-            | (
-                AMD64_DBGREGS_CTRL_COND_VAL[bp.condition]
-                << AMD64_DBGREGS_CTRL_COND[register]
-            )
-            | (
-                AMD64_DBGREGS_CTRL_LEN_VAL[bp.length]
-                << AMD64_DBGREGS_CTRL_LEN[register]
-            )
+            | (AMD64_DBGREGS_CTRL_COND_VAL[bp.condition] << AMD64_DBGREGS_CTRL_COND[register])
+            | (AMD64_DBGREGS_CTRL_LEN_VAL[bp.length] << AMD64_DBGREGS_CTRL_LEN[register])
         )
 
         # Read the current value of the register
@@ -103,15 +103,13 @@ class Amd64PtraceHardwareBreakpointManager(PtraceHardwareBreakpointManager):
 
         self.breakpoint_count += 1
 
-    def remove_breakpoint(self, bp: Breakpoint):
+    def remove_breakpoint(self: Amd64PtraceHardwareBreakpointManager, bp: Breakpoint) -> None:
         """Removes a hardware breakpoint at the provided location."""
         if self.breakpoint_count <= 0:
             raise RuntimeError("No more hardware breakpoints to remove.")
 
         # Find the breakpoint register
-        register = next(
-            reg for reg, bp_ in self.breakpoint_registers.items() if bp_ == bp
-        )
+        register = next(reg for reg, bp_ in self.breakpoint_registers.items() if bp_ == bp)
 
         if register is None:
             raise RuntimeError("Hardware breakpoint not found.")
@@ -137,6 +135,32 @@ class Amd64PtraceHardwareBreakpointManager(PtraceHardwareBreakpointManager):
 
         self.breakpoint_count -= 1
 
-    def available_breakpoints(self) -> int:
+    def available_breakpoints(self: Amd64PtraceHardwareBreakpointManager) -> int:
         """Returns the number of available hardware breakpoint registers."""
         return AMD64_DBREGS_COUNT - self.breakpoint_count
+
+    def is_watchpoint_hit(self: Amd64PtraceHardwareBreakpointManager) -> Breakpoint | None:
+        """Checks if a watchpoint has been hit.
+
+        Returns:
+            Breakpoint | None: The watchpoint that has been hit, or None if no watchpoint has been hit.
+        """
+        dr6 = self.peek_user(self.thread.thread_id, AMD64_DBGREGS_OFF["DR6"])
+
+        watchpoint: Breakpoint | None = None
+
+        # Check the DR6 register to see which watchpoint has been hit
+        if dr6 & 0x1:
+            watchpoint = self.breakpoint_registers["DR0"]
+        elif dr6 & 0x2:
+            watchpoint = self.breakpoint_registers["DR1"]
+        elif dr6 & 0x4:
+            watchpoint = self.breakpoint_registers["DR2"]
+        elif dr6 & 0x8:
+            watchpoint = self.breakpoint_registers["DR3"]
+
+        if watchpoint is not None and watchpoint.condition == "x":
+            # It is a breakpoint, we do not care here
+            watchpoint = None
+
+        return watchpoint

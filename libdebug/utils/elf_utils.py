@@ -5,41 +5,39 @@
 #
 
 import functools
-import os
 from pathlib import Path
-from typing import Tuple
 
 import requests
 from elftools.elf.elffile import ELFFile
 
 from libdebug.cffi.debug_sym_cffi import ffi
 from libdebug.cffi.debug_sym_cffi import lib as lib_sym
+from libdebug.liblog import liblog
 from libdebug.utils.libcontext import libcontext
 
 DEBUGINFOD_PATH: Path = Path.home() / ".cache" / "debuginfod_client"
-LOCAL_DEBUG_PATH: str = "/usr/lib/debug/.build-id/"
+LOCAL_DEBUG_PATH: Path = Path("/usr/lib/debug/.build-id/")
 URL_BASE: str = "https://debuginfod.elfutils.org/buildid/{}/debuginfo"
 
 
-def _download_debuginfod(buildid: str, debuginfod_path: Path):
+def _download_debuginfod(buildid: str, debuginfod_path: Path) -> None:
     """Downloads the debuginfo file corresponding to the specified buildid.
 
     Args:
         buildid (str): The buildid of the debuginfo file.
         debuginfod_path (Path): The output directory.
     """
-
     try:
         url = URL_BASE.format(buildid)
-        r = requests.get(url, allow_redirects=True)
+        r = requests.get(url, allow_redirects=True, timeout=1)
 
-        if r.status_code == 200:
+        if r.ok:
             debuginfod_path.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(debuginfod_path, "wb") as f:
+            with debuginfod_path.open("wb") as f:
                 f.write(r.content)
     except Exception as e:
-        print("Exception in _download_debuginfod", e)
+        liblog.debugger(f"Exception {e} occurred while downloading debuginfod symbols")
 
 
 @functools.cache
@@ -52,10 +50,7 @@ def _debuginfod(buildid: str) -> Path:
     Returns:
         debuginfod_path (Path): The path to the debuginfo file corresponding to the specified buildid.
     """
-
-    debuginfod_path = (
-        Path.home() / ".cache" / "debuginfod_client" / buildid / "debuginfo"
-    )
+    debuginfod_path = Path.home() / ".cache" / "debuginfod_client" / buildid / "debuginfo"
 
     if not debuginfod_path.exists():
         _download_debuginfod(buildid, debuginfod_path)
@@ -65,7 +60,7 @@ def _debuginfod(buildid: str) -> Path:
 
 @functools.cache
 def _collect_external_info(path: str) -> dict[str, tuple[int, int]]:
-    """Returns a dictionary containing the symbols taken from the external debuginfo file
+    """Returns a dictionary containing the symbols taken from the external debuginfo file.
 
     Args:
         path (str): The path to the ELF file.
@@ -73,7 +68,6 @@ def _collect_external_info(path: str) -> dict[str, tuple[int, int]]:
     Returns:
         symbols (dict): A dictionary containing the symbols of the specified external debuginfo file.
     """
-
     symbols = {}
 
     c_file_path = ffi.new("char[]", path.encode("utf-8"))
@@ -93,11 +87,8 @@ def _collect_external_info(path: str) -> dict[str, tuple[int, int]]:
 
 
 @functools.cache
-def _parse_elf_file(
-    path: str, debug_info_level: int
-) -> Tuple[dict[str, Tuple[int, int]], str | None, str | None]:
-    """Returns a dictionary containing the symbols of the specified ELF file and
-    the buildid.
+def _parse_elf_file(path: str, debug_info_level: int) -> tuple[dict[str, tuple[int, int]], str | None, str | None]:
+    """Returns a dictionary containing the symbols of the specified ELF file and the buildid.
 
     Args:
         path (str): The path to the ELF file.
@@ -108,7 +99,6 @@ def _parse_elf_file(
         buildid (str): The buildid of the specified ELF file.
         debug_file_path (str): The path to the external debuginfo file corresponding.
     """
-
     symbols = {}
     buildid = None
     debug_file_path = None
@@ -128,16 +118,10 @@ def _parse_elf_file(
 
     if debug_info_level > 2:
         buildid = lib_sym.get_build_id()
-        if buildid != ffi.NULL:
-            buildid = ffi.string(buildid).decode("utf-8")
-        else:
-            buildid = None
+        buildid = ffi.string(buildid).decode("utf-8") if buildid != ffi.NULL else None
 
         debug_file_path = lib_sym.get_debug_file()
-        if debug_file_path != ffi.NULL:
-            debug_file_path = ffi.string(debug_file_path).decode("utf-8")
-        else:
-            debug_file_path = None
+        debug_file_path = ffi.string(debug_file_path).decode("utf-8") if debug_file_path != ffi.NULL else None
 
     return symbols, buildid, debug_file_path
 
@@ -155,8 +139,7 @@ def resolve_symbol(path: str, symbol: str) -> int:
     """
     if libcontext.sym_lvl == 0:
         raise Exception(
-            """Symbol resolution is disabled. Please enable it by setting the sym_lvl libcontext parameter to a 
-            value greater than 0."""
+            "Symbol resolution is disabled. Please enable it by setting the sym_lvl libcontext parameter to a value greater than 0.",
         )
 
     # Retrieve the symbols from the SymbolTableSection
@@ -167,7 +150,7 @@ def resolve_symbol(path: str, symbol: str) -> int:
     # Retrieve the symbols from the external debuginfo file
     if buildid and debug_file and libcontext.sym_lvl > 2:
         folder = buildid[:2]
-        absolute_debug_path_str = os.path.join(LOCAL_DEBUG_PATH, folder, debug_file)
+        absolute_debug_path_str = str((LOCAL_DEBUG_PATH / folder / debug_file).resolve())
         symbols = _collect_external_info(absolute_debug_path_str)
         if symbol in symbols:
             return symbols[symbol][0]
@@ -181,9 +164,7 @@ def resolve_symbol(path: str, symbol: str) -> int:
                 return symbols[symbol][0]
 
     # Symbol not found
-    raise ValueError(
-        f"Symbol {symbol} not found in {path}. Please specify a valid symbol."
-    )
+    raise ValueError(f"Symbol {symbol} not found in {path}. Please specify a valid symbol.")
 
 
 @functools.cache
@@ -197,7 +178,6 @@ def resolve_address(path: str, address: int) -> str:
     Returns:
         str: The symbol corresponding to the specified address in the specified ELF file.
     """
-
     if libcontext.sym_lvl == 0:
         return hex(address)
 
@@ -205,16 +185,16 @@ def resolve_address(path: str, address: int) -> str:
     symbols, buildid, debug_file = _parse_elf_file(path, libcontext.sym_lvl)
     for symbol, (symbol_start, symbol_end) in symbols.items():
         if symbol_start <= address < symbol_end:
-            return f"{symbol}+{str(address-symbol_start)}"
+            return f"{symbol}+{address-symbol_start:x}"
 
     # Retrieve the symbols from the external debuginfo file
     if buildid and debug_file and libcontext.sym_lvl > 2:
         folder = buildid[:2]
-        absolute_debug_path_str = os.path.join(LOCAL_DEBUG_PATH, folder, debug_file)
+        absolute_debug_path_str = str((LOCAL_DEBUG_PATH / folder / debug_file).resolve())
         symbols = _collect_external_info(absolute_debug_path_str)
         for symbol, (symbol_start, symbol_end) in symbols.items():
             if symbol_start <= address < symbol_end:
-                return f"{symbol}+{str(address-symbol_start)}"
+                return f"{symbol}+{address-symbol_start:x}"
 
     # Retrieve the symbols from debuginfod
     if buildid and libcontext.sym_lvl > 4:
@@ -223,12 +203,10 @@ def resolve_address(path: str, address: int) -> str:
             symbols = _collect_external_info(str(absolute_debug_path))
             for symbol, (symbol_start, symbol_end) in symbols.items():
                 if symbol_start <= address < symbol_end:
-                    return f"{symbol}+{str(address-symbol_start)}"
+                    return f"{symbol}+{address-symbol_start:x}"
 
     # Address not found
-    raise ValueError(
-        f"Address {hex(address)} not found in {path}. Please specify a valid address."
-    )
+    raise ValueError(f"Address {hex(address)} not found in {path}. Please specify a valid address.")
 
 
 @functools.cache
@@ -241,7 +219,7 @@ def is_pie(path: str) -> bool:
     Returns:
         bool: True if the specified ELF file is position independent, False otherwise.
     """
-    with open(path, "rb") as elf_file:
+    with Path(path).open("rb") as elf_file:
         elf = ELFFile(elf_file)
 
     return elf.header.e_type == "ET_DYN"
@@ -257,7 +235,7 @@ def get_entry_point(path: str) -> int:
     Returns:
         int: The entry point of the specified ELF file.
     """
-    with open(path, "rb") as elf_file:
+    with Path(path).open("rb") as elf_file:
         elf = ELFFile(elf_file)
 
     return elf.header.e_entry
