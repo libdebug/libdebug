@@ -280,7 +280,7 @@ class PtraceStatusHandler:
             )
             if catcher.callback:
                 # Execute the user-defined callback
-                catcher.callback(thread, signal_number)
+                catcher.callback(thread, catcher)
 
                 new_signal_number = thread._signal_number
 
