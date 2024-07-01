@@ -558,11 +558,6 @@ class InternalDebugger:
         Returns:
             HandledSyscall: The HandledSyscall object.
         """
-        if on_enter is None and on_exit is None:
-            raise ValueError(
-                "At least one callback between on_enter and on_exit should be specified.",
-            )
-
         syscall_number = resolve_syscall_number(syscall) if isinstance(syscall, str) else syscall
 
         if not isinstance(recursive, bool):
