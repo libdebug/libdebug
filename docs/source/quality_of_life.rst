@@ -14,7 +14,7 @@ Syscall Trace Pretty Print
 
 When debugging a binary, it is often much faster to guess what the intended functionality is by looking at the syscalls that are being invoked. libdebug offers a function that will intercept any syscall and print its arguments and return value. This can be done by setting the property `pprint_syscalls = True` in the debugger object.
 
-The output will be printed to the console in color. Additionally, syscalls hijacked through the libdebug API will be highlighted as striken through, allowing you to monitor both the original behavior and your own changes to the flow.
+The output will be printed to the console in color. Hooked syscalls will be listed as such. Additionally, syscalls hijacked through the libdebug API will be highlighted as striken through, allowing you to monitor both the original behavior and your own changes to the flow.
 
 .. image:: https://github.com/libdebug/libdebug/blob/dev/media/pprint_syscalls.png?raw=true
 

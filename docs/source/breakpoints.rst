@@ -37,8 +37,8 @@ The callback and hit_count properties of a Breakpoint object are useful for exac
 
 .. code-block:: python
 
-    def on_breakpoint_hit(d, bp):
-        print(f"RAX: {d.regs.rax}")
+    def on_breakpoint_hit(t, bp):
+        print(f"RAX: {t.regs.rax}")
 
     d.breakpoint(0x11f0, callback=on_breakpoint_hit)
 
@@ -46,9 +46,9 @@ The signature of a callback function is as follows:
 
 .. code-block:: python
 
-    def callback(d: ThreadContext, bp: Breakpoint) -> None:
+    def callback(t: ThreadContext, bp: Breakpoint) -> None:
 
-The first parameter can either be a debugger object or a thread context object. This kind of object is described in :doc:`multithreading`.
+The first parameter is a thread context object. This kind of object is described in :doc:`multithreading`.
 The second parameter is the breakpoint object that triggered the callback.
 
 As for the hit_count property, the following is an example of how to it:

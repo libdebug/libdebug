@@ -14,7 +14,7 @@ With libdebug you have full control of the flow of your debugged executable. Wit
 When running the same executable multiple times, choosing efficient implementations can make the difference. For this reason, libdebug prioritizes performance.
 
 ## Project Links
-Homepage: https://libdebug.org
+Homepage: https://libdebug.org  \
 Documentation: https://docs.libdebug.org
 
 ### Installation Requirements:
@@ -71,8 +71,50 @@ There is so much more that can be done with libdebug. Please read the [documenta
 
 ## The cool stuff
 
+libdebug offers many advanced features. Take a look at this script doing magic with signals:
+
 ```python
-# TODO: Insert here a cool libdebug script that does something with signals / sycalls or multithreading. Also include comments and a quick explaination afterwards
+from libdebug import debugger, ThreadContext
+
+# Define signal hooks
+def hook_SIGUSR1(t: ThreadContext, signal_number: int) -> None:
+    t.signal = 0x0
+    print(f"Hooked SIGUSR1: Signal number {signal_number}")
+
+def hook_SIGINT(t: ThreadContext, signal_number: int) -> None:
+    print(f"Hooked SIGINT: Signal number {signal_number}")
+
+def hook_SIGPIPE(t: ThreadContext, signal_number: int) -> None:
+    print(f"Hooked SIGPIPE: Signal number {signal_number}")
+
+# Initialize the debugger
+d = debugger('/path/to/executable', continue_to_binary_entrypoint=False, enable_aslr=False)
+
+# Register signal hooks
+hook1 = d.hook_signal("SIGUSR1", callback=hook_SIGUSR1)
+hook2 = d.hook_signal("SIGINT", callback=hook_SIGINT)
+hook3 = d.hook_signal("SIGPIPE", callback=hook_SIGPIPE)
+
+# Register signal hijack
+d.hijack_signal("SIGQUIT", "SIGTERM")
+d.hijack_signal("SIGINT", "SIGPIPE", hook_hijack=False)
+
+# Define which signals to block
+d.signals_to_block = ["SIGPOLL", "SIGIO", "SIGALRM"]
+
+# Continue execution
+d.cont()
+
+# Unhook signals after execution
+d.unhook_signal(hook1)
+d.unhook_signal(hook2)
+d.unhook_signal(hook3)
+
+bp = d.breakpoint(0xdeadc0de, hardware=True)
+
+d.cont()
+
+d.kill()
 ```
 
 ## Attribution

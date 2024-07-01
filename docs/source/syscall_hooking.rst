@@ -5,7 +5,7 @@ libdebug allows the user to handle syscalls of the debugged program. Specificall
 
 In the case of *hooking*, the user can provide a callback function that will be called whenever the hooked syscall is executed.
 
-In the case of *hijacking*, the user can modify the syscall that was supposed to be executed, either by cancelling it, changing its parameters or .replacing it with another syscall.
+In the case of *hijacking*, the user can modify the syscall that was supposed to be executed, either by changing its parameters or replacing it with another syscall.
 
 Hooking
 -------
@@ -15,22 +15,22 @@ Please note that it is not necessary to specify both `on_enter` and `on_exit` ca
 
 .. code-block:: python
 
-    def callback(d: ThreadContext, syscall_number: int) -> None:
+    def callback(t: ThreadContext, syscall_number: int) -> None:
 
-The first parameter can either be a debugger object or a thread context object. This kind of object is described in :doc:`multithreading`.
+The first parameter is a thread context object. This kind of object is described in :doc:`multithreading`.
 The second parameter is the number of the syscall as defined by the kernel.
 
 When choosing which syscall to hook, you can either specify its number or its name. The following example shows how to hook the `open` syscall:
 
 .. code-block:: python
 
-    def on_enter_open(d: ThreadContext, syscall_number: int):
+    def on_enter_open(t: ThreadContext, syscall_number: int):
         print("entering open")
-        d.syscall_arg0 = 0x1
+        t.syscall_arg0 = 0x1
 
-    def on_exit_open(d: ThreadContext, syscall_number: int):
+    def on_exit_open(t: ThreadContext, syscall_number: int):
         print("exiting open")
-        d.syscall_return = 0x0
+        t.syscall_return = 0x0
 
     sys_hook = d.hook_syscall(syscall="open", on_enter=on_enter_open, on_exit=on_exit_open)
 

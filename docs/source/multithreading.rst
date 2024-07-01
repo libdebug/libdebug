@@ -2,7 +2,7 @@ Multithreading
 ==============
 .. _multithreading:
 
-libdebug provides a simple way to debug multithreaded programs. Each time the process forks, the new thread is automatically traced and registered in the `threads` property of the debugger object.
+libdebug provides a simple way to debug multithreaded programs. Each time the process is cloned, the new thread is automatically traced and registered in the `threads` property of the debugger object.
 
 .. code-block:: python
 
@@ -22,7 +22,7 @@ libdebug provides a simple way to debug multithreaded programs. Each time the pr
     # Kill all threads
     d.kill()
 
-Objects in the `threads` list are `ThreadContext` objects, which behave similarly to the debugger. Each thread object has a `regs` property that exposes the registers of the thread and a `memory` property for memory access. These properties work exactly as the :ref:`corresponding properties<basic_features:register-access-paragraph>` of the debugger object.
+Objects in the `threads` list are `ThreadContext` objects, which behave similarly to the debugger. Each thread object has a `regs` property that exposes the registers of the thread and a `memory` property for memory access. You can access these properties exactly as you did with the debugger object. See :doc:`basic_features` for more information.
 
 Control Flow Operations
 -----------------------
@@ -36,8 +36,7 @@ The following is a list of behaviors to keep in mind when using control flow fun
 - `finish` will have different behavior depending on the selected heuristic.
     - `backtrace` will continue on all threads but will stop at any breakpoint that any of the threads hit.
     - `step-mode` will step exclusively on the thread that has been specified.
-
-When performing thread-specific control flow operations, such as step and finish, the thread context object must be passed as an argument. 
+ 
 
 Breakpoints
 -----------

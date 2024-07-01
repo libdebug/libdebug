@@ -49,7 +49,6 @@ By default, all signals not related to the libdebug's internals are forwarded. F
     d.signals_to_block = [10, 15, 'SIGINT', 3, 13]
 
 
-The same syntax will work in multithreaded applications, by setting `signals_to_block` on the desired thread context object. See :doc:`multithreading` for more information.
 
 Arbitrary Signals
 -----------------
@@ -79,7 +78,7 @@ These signals are internally used by the ptrace and the debugger, or are enforce
 
 Hijacking Loop Detection
 ^^^^^^^^^^^^^^^^^^^^^^^^
-When carelessly hijacking syscalls, it could happen that loops are created. libdebug automatically performs checks to avoid these situations with syscall hijacking and raises an exception if an infinite loop is detected.
+When carelessly hijacking syscalls, it could happen that loops are created. libdebug automatically performs checks to avoid these situations with signal hijacking and raises an exception if an infinite loop is detected.
 
 For example, the following code raises a `RuntimeError`:
 

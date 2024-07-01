@@ -83,13 +83,13 @@ Register Access
 ===============
 .. _register-access-paragraph:
 
-libdebug offers a simple register access interface for supported architectures. The registers are accessed through the regs attribute of the debugger object. The field includes both general purpose and special registers, as well as the flags register. Effectively, any register that can be accessed by an assembly instruction, can also be accessed through the regs attribute.
+libdebug offers a simple register access interface for supported architectures. The registers are accessed through the regs attribute of the debugger object. The field includes both general purpose and special registers, as well as the flags register. Effectively, any register that can be accessed by an assembly instruction, can also be accessed through the regs attribute. The debugger specifically exposes properties of the main thread, including the registers. See :doc:`multithreading` to learn how to access registers and other properties from different threads.
 
 
 Memory Access
 ====================================
 
-Memory access is done through the memory attribute of the debugger object. Addressing for memory accessing is absolute, so you need to provide the full address of the memory you want to access.
+Memory access is done through the memory attribute of the debugger object or the ThreadContext. Since virtual memory is shared between threads, accessing one or the other makes no difference. Addressing for memory access is absolute, so you need to provide the full address of the memory you want to access.
 When reading from memory, a *bytes-like* object is returned. The memory API is flexible, allowing you to access memory in different ways. The following methods are available:
 
 - **Single byte access**
@@ -212,9 +212,11 @@ If at any time during your script you want to take a more interactive approach t
 
     d.gdb()
 
-Optionally, you can specify `open_in_new_process=False` to execute GDB on the same process as the script. The syntax is as follows:
+Optionally, you can specify `open_in_new_process=False` to execute GDB on the same process as the script. This way you can have gdb inlined in the same terminal session. You will be able to return to your script by using the command `goback`. The syntax is as follows:
 
-**Verify this is correct**
+.. code-block:: python
+
+    d.gdb(open_in_new_process=False)
 
 Depending on your use case, you may want to detach from the program and continue execution without either libdebug or GDB. The `detach()` method will detach libdebug from the program and continue execution. The syntax is as follows:
 
