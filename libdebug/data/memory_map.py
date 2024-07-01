@@ -50,6 +50,8 @@ class MemoryMap:
             size = end - start
             int_offset = int(offset, 16)
             backing_file = backing_file.strip()
+            if not backing_file:
+                backing_file = f"anon_{start:x}"
         except ValueError as e:
             raise ValueError(
                 f"Invalid memory map: {vmap}. Please specify a valid memory map.",

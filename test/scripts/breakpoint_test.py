@@ -4,6 +4,8 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+import io
+import logging
 import unittest
 
 from libdebug import debugger
@@ -12,6 +14,17 @@ from libdebug import debugger
 class BreakpointTest(unittest.TestCase):
     def setUp(self):
         self.d = debugger("binaries/breakpoint_test")
+
+        # Redirect logging to a string buffer
+        self.log_capture_string = io.StringIO()
+        self.log_handler = logging.StreamHandler(self.log_capture_string)
+        self.log_handler.setLevel(logging.WARNING)
+
+        self.logger = logging.getLogger("libdebug")
+        self.original_handlers = self.logger.handlers
+        self.logger.handlers = []
+        self.logger.addHandler(self.log_handler)
+        self.logger.setLevel(logging.WARNING)
 
     def test_bps(self):
         d = self.d
@@ -234,7 +247,7 @@ class BreakpointTest(unittest.TestCase):
         self.assertEqual(bp4.hit_count, bp2.hit_count // 2 + 1)
 
         self.d.kill()
-        
+
     def test_bps_running(self):
         d = self.d
 
@@ -281,6 +294,89 @@ class BreakpointTest(unittest.TestCase):
         self.assertEqual(bp2.hit_count, 10)
 
         self.d.kill()
+
+    def test_bp_backing_file(self):
+        d = debugger("binaries/executable_section_test")
+
+        d.run()
+
+        bp1 = d.breakpoint(0x1266, file="binary")
+
+        d.cont()
+
+        d.wait()
+
+        if bp1.hit_on(d):
+            for vmap in d.maps():
+                if "x" in vmap.permissions and "anon" in vmap.backing_file:
+                    section = vmap.backing_file
+            bp2 = d.breakpoint(0xD, file=section)
+            d.cont()
+
+        d.wait()
+
+        if bp2.hit_on(d):
+            self.assertEqual(d.memory[d.regs.rip], b"]")
+            self.assertEqual(d.regs.rax, 9)
+
+        d.kill()
+
+        self.assertEqual(bp1.hit_count, 1)
+        self.assertEqual(bp2.hit_count, 1)
+
+        d.run()
+
+        bp1 = d.breakpoint(0x1266, file="executable_section_test")
+
+        d.cont()
+
+        d.wait()
+
+        if bp1.hit_on(d):
+            for vmap in d.maps():
+                if "x" in vmap.permissions and "anon" in vmap.backing_file:
+                    section = vmap.backing_file
+            bp2 = d.breakpoint(0xD, file=section)
+            d.cont()
+
+        d.wait()
+
+        if bp2.hit_on(d):
+            self.assertEqual(d.memory[d.regs.rip], b"]")
+            self.assertEqual(d.regs.rax, 9)
+
+        d.run()
+
+        bp1 = d.breakpoint(0x1266, file="default")
+
+        d.cont()
+
+        d.wait()
+
+        if bp1.hit_on(d):
+            for vmap in d.maps():
+                if "x" in vmap.permissions and "anon" in vmap.backing_file:
+                    section = vmap.backing_file
+            bp2 = d.breakpoint(0xD, file=section)
+            d.cont()
+
+        d.wait()
+
+        if bp2.hit_on(d):
+            self.assertEqual(d.memory[d.regs.rip], b"]")
+            self.assertEqual(d.regs.rax, 9)
+
+        d.kill()
+
+        self.assertEqual(bp1.hit_count, 1)
+        self.assertEqual(bp2.hit_count, 1)
+
+        d.run()
+
+        with self.assertRaises(ValueError):
+            d.breakpoint(0x1266, file="absolute")
+
+        d.kill()
 
 
 if __name__ == "__main__":

@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from libdebug.data.breakpoint import Breakpoint
-    from libdebug.data.memory_view import MemoryView
+    from libdebug.data.memory_map import MemoryMap
     from libdebug.data.signal_hook import SignalHook
     from libdebug.data.syscall_hook import SyscallHook
     from libdebug.debugger.internal_debugger import InternalDebugger
@@ -82,6 +82,14 @@ class Debugger:
         """Waits for the process to stop."""
         self._internal_debugger.wait()
 
+    def maps(self: Debugger) -> list[MemoryMap]:
+        """Returns the memory maps of the process."""
+        return self._internal_debugger.maps()
+
+    def print_maps(self: Debugger) -> None:
+        """Prints the memory maps of the process."""
+        self._internal_debugger.print_maps()
+
     def breakpoint(
         self: Debugger,
         position: int | str,
@@ -89,17 +97,23 @@ class Debugger:
         condition: str | None = None,
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
+        file: str = "default",
     ) -> Breakpoint:
         """Sets a breakpoint at the specified location.
 
         Args:
             position (int | bytes): The location of the breakpoint.
-            hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software. Defaults to False.
+            hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software.
+            Defaults to False.
             condition (str, optional): The trigger condition for the breakpoint. Defaults to None.
             length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
-            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the breakpoint is hit. Defaults to None.
+            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the
+            breakpoint is hit. Defaults to None.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
+            the "binary" map file).
         """
-        return self._internal_debugger.breakpoint(position, hardware, condition, length, callback)
+        return self._internal_debugger.breakpoint(position, hardware, condition, length, callback, file)
 
     def watchpoint(
         self: Debugger,
@@ -107,14 +121,20 @@ class Debugger:
         condition: str = "w",
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
+        file: str = "default",
     ) -> Breakpoint:
         """Sets a watchpoint at the specified location. Internally, watchpoints are implemented as breakpoints.
 
         Args:
             position (int | bytes): The location of the breakpoint.
-            condition (str, optional): The trigger condition for the watchpoint (either "r", "rw" or "x"). Defaults to "w".
+            condition (str, optional): The trigger condition for the watchpoint (either "r", "rw" or "x").
+            Defaults to "w".
             length (int, optional): The size of the word in being watched (1, 2, 4 or 8). Defaults to 1.
-            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the watchpoint is hit. Defaults to None.
+            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the
+            watchpoint is hit. Defaults to None.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
+            the "binary" map file).
         """
         return self._internal_debugger.breakpoint(
             position,
@@ -122,6 +142,7 @@ class Debugger:
             condition=condition,
             length=length,
             callback=callback,
+            file=file,
         )
 
     def hook_signal(
@@ -249,19 +270,23 @@ class Debugger:
         condition: str | None = None,
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
+        file: str = "default",
     ) -> Breakpoint:
         """Alias for the `breakpoint` method.
 
-        Sets a breakpoint at the specified location.
-
         Args:
             position (int | bytes): The location of the breakpoint.
-            hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software. Defaults to False.
+            hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software.
+            Defaults to False.
             condition (str, optional): The trigger condition for the breakpoint. Defaults to None.
             length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
-            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the breakpoint is hit. Defaults to None.
+            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the
+            breakpoint is hit. Defaults to None.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
+            the "binary" map file).
         """
-        return self._internal_debugger.breakpoint(position, hardware, condition, length, callback)
+        return self._internal_debugger.breakpoint(position, hardware, condition, length, callback, file)
 
     def wp(
         self: Debugger,
@@ -269,6 +294,7 @@ class Debugger:
         condition: str = "w",
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
+        file: str = "default",
     ) -> Breakpoint:
         """Alias for the `watchpoint` method.
 
@@ -276,9 +302,14 @@ class Debugger:
 
         Args:
             position (int | bytes): The location of the breakpoint.
-            condition (str, optional): The trigger condition for the watchpoint (either "r", "rw" or "x"). Defaults to "w".
+            condition (str, optional): The trigger condition for the watchpoint (either "r", "rw" or "x").
+            Defaults to "w".
             length (int, optional): The size of the word in being watched (1, 2, 4 or 8). Defaults to 1.
-            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the watchpoint is hit. Defaults to None.
+            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the
+            watchpoint is hit. Defaults to None.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
+            the "binary" map file).
         """
         return self._internal_debugger.breakpoint(
             position,
@@ -286,25 +317,13 @@ class Debugger:
             condition=condition,
             length=length,
             callback=callback,
+            file=file,
         )
 
     @property
     def threads(self: Debugger) -> list[ThreadContext]:
         """Get the list of threads in the process."""
         return self._internal_debugger.threads
-
-    @property
-    def memory(self: Debugger) -> MemoryView:
-        """Get the memory view of the process."""
-        return self._internal_debugger.memory
-
-    @property
-    def mem(self: Debugger) -> MemoryView:
-        """Alias for the `memory` property.
-
-        Get the memory view of the process.
-        """
-        return self._internal_debugger.memory
 
     @property
     def breakpoints(self: Debugger) -> dict[int, Breakpoint]:

@@ -123,62 +123,125 @@ class MemoryView(MutableSequence):
             )
 
     def __getitem__(self: MemoryView, key: int | slice | str | tuple) -> bytes:
-        """Read from memory, either a single byte or a byte string."""
-        if isinstance(key, int):
-            address = self._internal_debugger.resolve_address(key)
+        """Read from memory, either a single byte or a byte string.
 
+        Args:
+            key (int | slice | str | tuple): The key to read from memory.
+        """
+        return self._manage_memory_read_type(key)
+
+    def __setitem__(self: MemoryView, key: int | slice | str | tuple, value: bytes) -> None:
+        """Write to memory, either a single byte or a byte string.
+
+        Args:
+            key (int | slice | str | tuple): The key to write to memory.
+            value (bytes): The value to write.
+        """
+        if not isinstance(value, bytes):
+            raise TypeError("Invalid type for the value to write to memory. Expected bytes.")
+        self._manage_memory_write_type(key, value)
+
+    def _manage_memory_read_type(self: MemoryView, key: int | slice | str | tuple, file: str = "default") -> bytes:
+        """Manage the read from memory, according to the typing.
+
+        Args:
+            key (int | slice | str | tuple): The key to read from memory.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
+            the "binary" map file).
+        """
+        if isinstance(key, int):
+            address = self._internal_debugger.resolve_address(key, file)
             return self.read(address, 1)
         elif isinstance(key, slice):
             if isinstance(key.start, str):
-                start = self._internal_debugger.resolve_symbol(key.start)
+                start = self._internal_debugger.resolve_symbol(key.start, file)
             else:
-                start = self._internal_debugger.resolve_address(key.start)
+                start = self._internal_debugger.resolve_address(key.start, file)
 
             if isinstance(key.stop, str):
-                stop = self._internal_debugger.resolve_symbol(key.stop)
+                stop = self._internal_debugger.resolve_symbol(key.stop, file)
             else:
-                stop = self._internal_debugger.resolve_address(key.stop)
+                stop = self._internal_debugger.resolve_address(key.stop, file)
 
             if stop < start:
-                raise ValueError("Invalid slice range")
+                raise ValueError("Invalid slice range.")
 
             return self.read(start, stop - start)
         elif isinstance(key, str):
-            address = self._internal_debugger.resolve_symbol(key)
+            address = self._internal_debugger.resolve_symbol(key, file)
 
             return self.read(address, 1)
         elif isinstance(key, tuple):
-            address, size = key
-
-            if not isinstance(size, int):
-                raise TypeError("Invalid size type")
-
-            if isinstance(address, str):
-                address = self._internal_debugger.resolve_symbol(address)
-            else:
-                address = self._internal_debugger.resolve_address(address)
-
-            return self.read(address, size)
+            return self._manage_memory_read_tuple(key)
         else:
-            raise TypeError("Invalid key type")
+            raise TypeError("Invalid key type.")
 
-    def __setitem__(self: MemoryView, key: int | slice | str | tuple, value: bytes) -> None:
-        """Write to memory, either a single byte or a byte string."""
+    def _manage_memory_read_tuple(self: MemoryView, key: tuple) -> bytes:
+        """Manage the read from memory, when the access is through a tuple.
+
+        Args:
+            key (tuple): The key to read from memory.
+        """
+        if len(key) == 3:
+            # It can only be a tuple of the type (address, size, file)
+            address, size, file = key
+            if not isinstance(file, str):
+                raise TypeError("Invalid type for the backing file. Expected string.")
+        elif len(key) == 2:
+            left, right = key
+            if isinstance(right, str):
+                # The right element can only be the backing file
+                return self._manage_memory_read_type(left, right)
+            elif isinstance(right, int):
+                # The right element must be the size
+                address = left
+                size = right
+                file = "default"
+        else:
+            raise TypeError("Tuple must have 2 or 3 elements.")
+
+        if not isinstance(size, int):
+            raise TypeError("Invalid type for the size. Expected int.")
+
+        if isinstance(address, str):
+            address = self._internal_debugger.resolve_symbol(address, file)
+        elif isinstance(address, int):
+            address = self._internal_debugger.resolve_address(address, file)
+        else:
+            raise TypeError("Invalid type for the address. Expected int or string.")
+
+        return self.read(address, size)
+
+    def _manage_memory_write_type(
+        self: MemoryView,
+        key: int | slice | str | tuple,
+        value: bytes,
+        file: str = "default",
+    ) -> None:
+        """Manage the write to memory, according to the typing.
+
+        Args:
+            key (int | slice | str | tuple): The key to read from memory.
+            value (bytes): The value to write.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
+            the "binary" map file).
+        """
         if isinstance(key, int):
-            address = self._internal_debugger.resolve_address(key)
-
+            address = self._internal_debugger.resolve_address(key, file)
             self.write(address, value)
         elif isinstance(key, slice):
             if isinstance(key.start, str):
-                start = self._internal_debugger.resolve_symbol(key.start)
+                start = self._internal_debugger.resolve_symbol(key.start, file)
             else:
-                start = self._internal_debugger.resolve_address(key.start)
+                start = self._internal_debugger.resolve_address(key.start, file)
 
             if key.stop is not None:
                 if isinstance(key.stop, str):
-                    stop = self._internal_debugger.resolve_symbol(key.stop)
+                    stop = self._internal_debugger.resolve_symbol(key.stop, file)
                 else:
-                    stop = self._internal_debugger.resolve_address(key.stop)
+                    stop = self._internal_debugger.resolve_address(key.stop, file)
 
                 if stop < start:
                     raise ValueError("Invalid slice range")
@@ -187,27 +250,56 @@ class MemoryView(MutableSequence):
                     liblog.warning(f"Mismatch between slice width and value size, writing {len(value)} bytes.")
 
             self.write(start, value)
+
         elif isinstance(key, str):
-            address = self._internal_debugger.resolve_symbol(key)
+            address = self._internal_debugger.resolve_symbol(key, file)
 
             self.write(address, value)
         elif isinstance(key, tuple):
-            address, size = key
-
-            if not isinstance(size, int):
-                raise TypeError("Invalid size type")
-
-            if isinstance(address, str):
-                address = self._internal_debugger.resolve_symbol(address)
-            else:
-                address = self._internal_debugger.resolve_address(address)
-
-            if len(value) != size:
-                liblog.warning(f"Mismatch between specified size and actual value size, writing {len(value)} bytes.")
-
-            self.write(address, value)
+            self._manage_memory_write_tuple(key, value)
         else:
-            raise TypeError("Invalid key type")
+            raise TypeError("Invalid key type.")
+
+    def _manage_memory_write_tuple(self: MemoryView, key: tuple, value: bytes) -> None:
+        """Manage the write to memory, when the access is through a tuple.
+
+        Args:
+            key (tuple): The key to read from memory.
+            value (bytes): The value to write.
+        """
+        if len(key) == 3:
+            # It can only be a tuple of the type (address, size, file)
+            address, size, file = key
+            if not isinstance(file, str):
+                raise TypeError("Invalid type for the backing file. Expected string.")
+        elif len(key) == 2:
+            left, right = key
+            if isinstance(right, str):
+                # The right element can only be the backing file
+                self._manage_memory_write_type(left, value, right)
+                return
+            elif isinstance(right, int):
+                # The right element must be the size
+                address = left
+                size = right
+                file = "default"
+        else:
+            raise TypeError("Tuple must have 2 or 3 elements.")
+
+        if not isinstance(size, int):
+            raise TypeError("Invalid type for the size. Expected int.")
+
+        if isinstance(address, str):
+            address = self._internal_debugger.resolve_symbol(address, file)
+        elif isinstance(address, int):
+            address = self._internal_debugger.resolve_address(address, file)
+        else:
+            raise TypeError("Invalid type for the address. Expected int or string.")
+
+        if len(value) != size:
+            liblog.warning(f"Mismatch between specified size and actual value size, writing {len(value)} bytes.")
+
+        self.write(address, value)
 
     def __delitem__(self: MemoryView, key: int | slice | str | tuple) -> None:
         """MemoryView doesn't support deletion."""

@@ -27,6 +27,7 @@ all:
 	$(CC) $(CFLAGS) $(SRC_DIR)/signals_multithread_undet_test.c -o $(BIN_DIR)/signals_multithread_undet_test $(LDFLAGS)
 	$(CC) $(CFLAGS) $(SRC_DIR)/signals_multithread_det_test.c -o $(BIN_DIR)/signals_multithread_det_test $(LDFLAGS)
 	$(CC) $(CFLAGS) $(SRC_DIR)/segfault_test.c -o $(BIN_DIR)/segfault_test $(LDFLAGS)
+	$(CC) $(CFLAGS) $(SRC_DIR)/executable_section_test.c -o $(BIN_DIR)/executable_section_test $(LDFLAGS)
 	
 
 # Clean rule to remove compiled files
