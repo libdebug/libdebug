@@ -36,27 +36,27 @@ class SignalCatchTest(unittest.TestCase):
         SIGTERM_count = 0
         SIGPIPE_count = 0
 
-        def cs_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, signal_number):
             nonlocal SIGUSR1_count
 
             SIGUSR1_count += 1
 
-        def cs_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, signal_number):
             nonlocal SIGTERM_count
 
             SIGTERM_count += 1
 
-        def cs_SIGINT(t, signal_number):
+        def catcher_SIGINT(t, signal_number):
             nonlocal SIGINT_count
 
             SIGINT_count += 1
 
-        def cs_SIGQUIT(t, signal_number):
+        def catcher_SIGQUIT(t, signal_number):
             nonlocal SIGQUIT_count
 
             SIGQUIT_count += 1
 
-        def cs_SIGPIPE(t, signal_number):
+        def catcher_SIGPIPE(t, signal_number):
             nonlocal SIGPIPE_count
 
             SIGPIPE_count += 1
@@ -67,11 +67,11 @@ class SignalCatchTest(unittest.TestCase):
 
         d.run()
 
-        cs1 = d.catch_signal(10, callback=cs_SIGUSR1)
-        cs2 = d.catch_signal("SIGTERM", callback=cs_SIGTERM)
-        cs3 = d.catch_signal(2, callback=cs_SIGINT)
-        cs4 = d.catch_signal("SIGQUIT", callback=cs_SIGQUIT)
-        cs5 = d.catch_signal("SIGPIPE", callback=cs_SIGPIPE)
+        catcher1 = d.catch_signal(10, callback=catcher_SIGUSR1)
+        catcher2 = d.catch_signal("SIGTERM", callback=catcher_SIGTERM)
+        catcher3 = d.catch_signal(2, callback=catcher_SIGINT)
+        catcher4 = d.catch_signal("SIGQUIT", callback=catcher_SIGQUIT)
+        catcher5 = d.catch_signal("SIGPIPE", callback=catcher_SIGPIPE)
 
         d.cont()
 
@@ -83,11 +83,11 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGQUIT_count, 3)
         self.assertEqual(SIGPIPE_count, 3)
 
-        self.assertEqual(SIGUSR1_count, cs1.hit_count)
-        self.assertEqual(SIGTERM_count, cs2.hit_count)
-        self.assertEqual(SIGINT_count, cs3.hit_count)
-        self.assertEqual(SIGQUIT_count, cs4.hit_count)
-        self.assertEqual(SIGPIPE_count, cs5.hit_count)
+        self.assertEqual(SIGUSR1_count, catcher1.hit_count)
+        self.assertEqual(SIGTERM_count, catcher2.hit_count)
+        self.assertEqual(SIGINT_count, catcher3.hit_count)
+        self.assertEqual(SIGQUIT_count, catcher4.hit_count)
+        self.assertEqual(SIGPIPE_count, catcher5.hit_count)
 
     def test_signal_pass_to_process(self):
         SIGUSR1_count = 0
@@ -96,27 +96,27 @@ class SignalCatchTest(unittest.TestCase):
         SIGTERM_count = 0
         SIGPIPE_count = 0
 
-        def cs_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, signal_number):
             nonlocal SIGUSR1_count
 
             SIGUSR1_count += 1
 
-        def cs_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, signal_number):
             nonlocal SIGTERM_count
 
             SIGTERM_count += 1
 
-        def cs_SIGINT(t, signal_number):
+        def catcher_SIGINT(t, signal_number):
             nonlocal SIGINT_count
 
             SIGINT_count += 1
 
-        def cs_SIGQUIT(t, signal_number):
+        def catcher_SIGQUIT(t, signal_number):
             nonlocal SIGQUIT_count
 
             SIGQUIT_count += 1
 
-        def cs_SIGPIPE(t, signal_number):
+        def catcher_SIGPIPE(t, signal_number):
             nonlocal SIGPIPE_count
 
             SIGPIPE_count += 1
@@ -125,11 +125,11 @@ class SignalCatchTest(unittest.TestCase):
 
         r = d.run()
 
-        cs1 = d.catch_signal("SIGUSR1", callback=cs_SIGUSR1)
-        cs2 = d.catch_signal("SIGTERM", callback=cs_SIGTERM)
-        cs3 = d.catch_signal("SIGINT", callback=cs_SIGINT)
-        cs4 = d.catch_signal("SIGQUIT", callback=cs_SIGQUIT)
-        cs5 = d.catch_signal("SIGPIPE", callback=cs_SIGPIPE)
+        catcher1 = d.catch_signal("SIGUSR1", callback=catcher_SIGUSR1)
+        catcher2 = d.catch_signal("SIGTERM", callback=catcher_SIGTERM)
+        catcher3 = d.catch_signal("SIGINT", callback=catcher_SIGINT)
+        catcher4 = d.catch_signal("SIGQUIT", callback=catcher_SIGQUIT)
+        catcher5 = d.catch_signal("SIGPIPE", callback=catcher_SIGPIPE)
 
         d.cont()
 
@@ -156,11 +156,11 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGQUIT_count, 3)
         self.assertEqual(SIGPIPE_count, 3)
 
-        self.assertEqual(SIGUSR1_count, cs1.hit_count)
-        self.assertEqual(SIGTERM_count, cs2.hit_count)
-        self.assertEqual(SIGINT_count, cs3.hit_count)
-        self.assertEqual(SIGQUIT_count, cs4.hit_count)
-        self.assertEqual(SIGPIPE_count, cs5.hit_count)
+        self.assertEqual(SIGUSR1_count, catcher1.hit_count)
+        self.assertEqual(SIGTERM_count, catcher2.hit_count)
+        self.assertEqual(SIGINT_count, catcher3.hit_count)
+        self.assertEqual(SIGQUIT_count, catcher4.hit_count)
+        self.assertEqual(SIGPIPE_count, catcher5.hit_count)
 
         self.assertEqual(SIGUSR1, b"Received signal 10" * 2)
         self.assertEqual(SIGTERM, b"Received signal 15" * 2)
@@ -175,27 +175,27 @@ class SignalCatchTest(unittest.TestCase):
         SIGTERM_count = 0
         SIGPIPE_count = 0
 
-        def cs_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, signal_number):
             nonlocal SIGUSR1_count
 
             SIGUSR1_count += 1
 
-        def cs_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, signal_number):
             nonlocal SIGTERM_count
 
             SIGTERM_count += 1
 
-        def cs_SIGINT(t, signal_number):
+        def catcher_SIGINT(t, signal_number):
             nonlocal SIGINT_count
 
             SIGINT_count += 1
 
-        def cs_SIGQUIT(t, signal_number):
+        def catcher_SIGQUIT(t, signal_number):
             nonlocal SIGQUIT_count
 
             SIGQUIT_count += 1
 
-        def cs_SIGPIPE(t, signal_number):
+        def catcher_SIGPIPE(t, signal_number):
             nonlocal SIGPIPE_count
 
             SIGPIPE_count += 1
@@ -204,11 +204,11 @@ class SignalCatchTest(unittest.TestCase):
 
         r = d.run()
 
-        cs1 = d.catch_signal("SIGUSR1", callback=cs_SIGUSR1)
-        cs2 = d.catch_signal("SIGTERM", callback=cs_SIGTERM)
-        cs3 = d.catch_signal("SIGINT", callback=cs_SIGINT)
-        cs4 = d.catch_signal("SIGQUIT", callback=cs_SIGQUIT)
-        cs5 = d.catch_signal("SIGPIPE", callback=cs_SIGPIPE)
+        catcher1 = d.catch_signal("SIGUSR1", callback=catcher_SIGUSR1)
+        catcher2 = d.catch_signal("SIGTERM", callback=catcher_SIGTERM)
+        catcher3 = d.catch_signal("SIGINT", callback=catcher_SIGINT)
+        catcher4 = d.catch_signal("SIGQUIT", callback=catcher_SIGQUIT)
+        catcher5 = d.catch_signal("SIGPIPE", callback=catcher_SIGPIPE)
 
         bp = d.breakpoint(0x12C4)
 
@@ -226,10 +226,10 @@ class SignalCatchTest(unittest.TestCase):
         SIGQUIT += r.recvline()
         SIGPIPE += r.recvline()
 
-        # Uncsing signals
+        # Uncatchering signals
         if bp.hit_on(d):
-            cs4.disable()
-            cs5.disable()
+            catcher4.disable()
+            catcher5.disable()
         d.cont()
 
         SIGQUIT += r.recvline()
@@ -243,11 +243,11 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGQUIT_count, 2)  # 1 times less because of the disable catch
         self.assertEqual(SIGPIPE_count, 2)  # 1 times less because of the disable catch
 
-        self.assertEqual(SIGUSR1_count, cs1.hit_count)
-        self.assertEqual(SIGTERM_count, cs2.hit_count)
-        self.assertEqual(SIGINT_count, cs3.hit_count)
-        self.assertEqual(SIGQUIT_count, cs4.hit_count)
-        self.assertEqual(SIGPIPE_count, cs5.hit_count)
+        self.assertEqual(SIGUSR1_count, catcher1.hit_count)
+        self.assertEqual(SIGTERM_count, catcher2.hit_count)
+        self.assertEqual(SIGINT_count, catcher3.hit_count)
+        self.assertEqual(SIGQUIT_count, catcher4.hit_count)
+        self.assertEqual(SIGPIPE_count, catcher5.hit_count)
 
         self.assertEqual(SIGUSR1, b"Received signal 10" * 2)
         self.assertEqual(SIGTERM, b"Received signal 15" * 2)
@@ -262,27 +262,27 @@ class SignalCatchTest(unittest.TestCase):
         SIGTERM_count = 0
         SIGPIPE_count = 0
 
-        def cs_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, signal_number):
             nonlocal SIGUSR1_count
 
             SIGUSR1_count += 1
 
-        def cs_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, signal_number):
             nonlocal SIGTERM_count
 
             SIGTERM_count += 1
 
-        def cs_SIGINT(t, signal_number):
+        def catcher_SIGINT(t, signal_number):
             nonlocal SIGINT_count
 
             SIGINT_count += 1
 
-        def cs_SIGQUIT(t, signal_number):
+        def catcher_SIGQUIT(t, signal_number):
             nonlocal SIGQUIT_count
 
             SIGQUIT_count += 1
 
-        def cs_SIGPIPE(t, signal_number):
+        def catcher_SIGPIPE(t, signal_number):
             nonlocal SIGPIPE_count
 
             SIGPIPE_count += 1
@@ -293,11 +293,11 @@ class SignalCatchTest(unittest.TestCase):
 
         d.signals_to_block = [10, 15, 2, 3, 13]
 
-        cs1 = d.catch_signal("SIGUSR1", callback=cs_SIGUSR1)
-        cs2 = d.catch_signal("SIGTERM", callback=cs_SIGTERM)
-        cs3 = d.catch_signal("SIGINT", callback=cs_SIGINT)
-        cs4 = d.catch_signal("SIGQUIT", callback=cs_SIGQUIT)
-        cs5 = d.catch_signal("SIGPIPE", callback=cs_SIGPIPE)
+        catcher1 = d.catch_signal("SIGUSR1", callback=catcher_SIGUSR1)
+        catcher2 = d.catch_signal("SIGTERM", callback=catcher_SIGTERM)
+        catcher3 = d.catch_signal("SIGINT", callback=catcher_SIGINT)
+        catcher4 = d.catch_signal("SIGQUIT", callback=catcher_SIGQUIT)
+        catcher5 = d.catch_signal("SIGPIPE", callback=catcher_SIGPIPE)
 
         bp = d.breakpoint(0x12C4)
 
@@ -324,11 +324,11 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGQUIT_count, 3)
         self.assertEqual(SIGPIPE_count, 3)
 
-        self.assertEqual(SIGUSR1_count, cs1.hit_count)
-        self.assertEqual(SIGTERM_count, cs2.hit_count)
-        self.assertEqual(SIGINT_count, cs3.hit_count)
-        self.assertEqual(SIGQUIT_count, cs4.hit_count)
-        self.assertEqual(SIGPIPE_count, cs5.hit_count)
+        self.assertEqual(SIGUSR1_count, catcher1.hit_count)
+        self.assertEqual(SIGTERM_count, catcher2.hit_count)
+        self.assertEqual(SIGINT_count, catcher3.hit_count)
+        self.assertEqual(SIGQUIT_count, catcher4.hit_count)
+        self.assertEqual(SIGPIPE_count, catcher5.hit_count)
 
         self.assertEqual(signal_received[0], b"Received signal 3")
         self.assertEqual(signal_received[1], b"Received signal 13")
@@ -343,27 +343,27 @@ class SignalCatchTest(unittest.TestCase):
         SIGTERM_count = 0
         SIGPIPE_count = 0
 
-        def cs_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, signal_number):
             nonlocal SIGUSR1_count
 
             SIGUSR1_count += 1
 
-        def cs_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, signal_number):
             nonlocal SIGTERM_count
 
             SIGTERM_count += 1
 
-        def cs_SIGINT(t, signal_number):
+        def catcher_SIGINT(t, signal_number):
             nonlocal SIGINT_count
 
             SIGINT_count += 1
 
-        def cs_SIGQUIT(t, signal_number):
+        def catcher_SIGQUIT(t, signal_number):
             nonlocal SIGQUIT_count
 
             SIGQUIT_count += 1
 
-        def cs_SIGPIPE(t, signal_number):
+        def catcher_SIGPIPE(t, signal_number):
             nonlocal SIGPIPE_count
 
             SIGPIPE_count += 1
@@ -374,11 +374,11 @@ class SignalCatchTest(unittest.TestCase):
 
         d.signals_to_block = [10, 15, 2, 3, 13]
 
-        cs1 = d.catch_signal("SIGUSR1", callback=cs_SIGUSR1)
-        cs2 = d.catch_signal("SIGTERM", callback=cs_SIGTERM)
-        cs3 = d.catch_signal("SIGINT", callback=cs_SIGINT)
-        cs4 = d.catch_signal("SIGQUIT", callback=cs_SIGQUIT)
-        cs5 = d.catch_signal("SIGPIPE", callback=cs_SIGPIPE)
+        catcher1 = d.catch_signal("SIGUSR1", callback=catcher_SIGUSR1)
+        catcher2 = d.catch_signal("SIGTERM", callback=catcher_SIGTERM)
+        catcher3 = d.catch_signal("SIGINT", callback=catcher_SIGINT)
+        catcher4 = d.catch_signal("SIGQUIT", callback=catcher_SIGQUIT)
+        catcher5 = d.catch_signal("SIGPIPE", callback=catcher_SIGPIPE)
 
         bp = d.breakpoint(0x12C4)
 
@@ -387,8 +387,8 @@ class SignalCatchTest(unittest.TestCase):
         # No block the signals anymore
         if bp.hit_on(d):
             d.signals_to_block = []
-            cs4.disable()
-            cs5.disable()
+            catcher4.disable()
+            catcher5.disable()
 
         d.cont()
 
@@ -407,11 +407,11 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGQUIT_count, 2)  # 1 times less because of the disable catch
         self.assertEqual(SIGPIPE_count, 2)  # 1 times less because of the disable catch
 
-        self.assertEqual(SIGUSR1_count, cs1.hit_count)
-        self.assertEqual(SIGTERM_count, cs2.hit_count)
-        self.assertEqual(SIGINT_count, cs3.hit_count)
-        self.assertEqual(SIGQUIT_count, cs4.hit_count)
-        self.assertEqual(SIGPIPE_count, cs5.hit_count)
+        self.assertEqual(SIGUSR1_count, catcher1.hit_count)
+        self.assertEqual(SIGTERM_count, catcher2.hit_count)
+        self.assertEqual(SIGINT_count, catcher3.hit_count)
+        self.assertEqual(SIGQUIT_count, catcher4.hit_count)
+        self.assertEqual(SIGPIPE_count, catcher5.hit_count)
 
         self.assertEqual(signal_received[0], b"Received signal 3")
         self.assertEqual(signal_received[1], b"Received signal 13")
@@ -420,7 +420,7 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(len(signal_received), 3)
 
     def test_hijack_signal_with_catch_signal(self):
-        def cs_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, signal_number):
             # Hijack to SIGTERM
             t.signal = 15
 
@@ -428,7 +428,7 @@ class SignalCatchTest(unittest.TestCase):
 
         r = d.run()
 
-        cs1 = d.catch_signal("SIGUSR1", callback=cs_SIGUSR1)
+        catcher1 = d.catch_signal("SIGUSR1", callback=catcher_SIGUSR1)
 
         d.cont()
 
@@ -449,7 +449,7 @@ class SignalCatchTest(unittest.TestCase):
 
         d.kill()
 
-        self.assertEqual(cs1.hit_count, 2)
+        self.assertEqual(catcher1.hit_count, 2)
 
         self.assertEqual(SIGUSR1, b"Received signal 15" * 2)  # hijacked signal
         self.assertEqual(SIGTERM, b"Received signal 15" * 2)
@@ -463,7 +463,7 @@ class SignalCatchTest(unittest.TestCase):
         r = d.run()
 
         # Hijack to SIGTERM
-        cs1 = d.hijack_signal("SIGUSR1", 15)
+        catcher1 = d.hijack_signal("SIGUSR1", 15)
 
         d.cont()
 
@@ -484,7 +484,7 @@ class SignalCatchTest(unittest.TestCase):
 
         d.kill()
 
-        self.assertEqual(cs1.hit_count, 2)
+        self.assertEqual(catcher1.hit_count, 2)
 
         self.assertEqual(SIGUSR1, b"Received signal 15" * 2)  # hijacked signal
         self.assertEqual(SIGTERM, b"Received signal 15" * 2)
@@ -496,14 +496,14 @@ class SignalCatchTest(unittest.TestCase):
         SIGUSR1_count = 0
         SIGTERM_count = 0
 
-        def cs_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, signal_number):
             nonlocal SIGUSR1_count
             # Hijack to SIGTERM
             t.signal = 15
 
             SIGUSR1_count += 1
 
-        def cs_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, signal_number):
             nonlocal SIGTERM_count
 
             SIGTERM_count += 1
@@ -512,8 +512,8 @@ class SignalCatchTest(unittest.TestCase):
 
         r = d.run()
 
-        cs1 = d.catch_signal(10, callback=cs_SIGUSR1, recursive=True)
-        cs2 = d.catch_signal("SIGTERM", callback=cs_SIGTERM)
+        catcher1 = d.catch_signal(10, callback=catcher_SIGUSR1, recursive=True)
+        catcher2 = d.catch_signal("SIGTERM", callback=catcher_SIGTERM)
 
         d.cont()
 
@@ -537,8 +537,8 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGUSR1_count, 2)
         self.assertEqual(SIGTERM_count, 4)  # 2 times more because of the hijack
 
-        self.assertEqual(SIGUSR1_count, cs1.hit_count)
-        self.assertEqual(SIGTERM_count, cs2.hit_count)
+        self.assertEqual(SIGUSR1_count, catcher1.hit_count)
+        self.assertEqual(SIGTERM_count, catcher2.hit_count)
 
         self.assertEqual(SIGUSR1, b"Received signal 15" * 2)  # hijacked signal
         self.assertEqual(SIGTERM, b"Received signal 15" * 2)
@@ -549,7 +549,7 @@ class SignalCatchTest(unittest.TestCase):
     def test_recursive_true_with_api(self):
         SIGTERM_count = 0
 
-        def cs_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, signal_number):
             nonlocal SIGTERM_count
 
             SIGTERM_count += 1
@@ -558,8 +558,8 @@ class SignalCatchTest(unittest.TestCase):
 
         r = d.run()
 
-        cs1 = d.hijack_signal(10, 15, recursive=True)
-        cs2 = d.catch_signal("SIGTERM", callback=cs_SIGTERM)
+        catcher1 = d.hijack_signal(10, 15, recursive=True)
+        catcher2 = d.catch_signal("SIGTERM", callback=catcher_SIGTERM)
 
         d.cont()
 
@@ -581,8 +581,8 @@ class SignalCatchTest(unittest.TestCase):
         d.kill()
 
         self.assertEqual(SIGTERM_count, 4)  # 2 times more because of the hijack
-        self.assertEqual(cs1.hit_count, 2)
-        self.assertEqual(SIGTERM_count, cs2.hit_count)
+        self.assertEqual(catcher1.hit_count, 2)
+        self.assertEqual(SIGTERM_count, catcher2.hit_count)
 
         self.assertEqual(SIGUSR1, b"Received signal 15" * 2)  # hijacked signal
         self.assertEqual(SIGTERM, b"Received signal 15" * 2)
@@ -594,14 +594,14 @@ class SignalCatchTest(unittest.TestCase):
         SIGUSR1_count = 0
         SIGTERM_count = 0
 
-        def cs_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, signal_number):
             nonlocal SIGUSR1_count
             # Hijack to SIGTERM
             t.signal = 15
 
             SIGUSR1_count += 1
 
-        def cs_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, signal_number):
             nonlocal SIGTERM_count
 
             SIGTERM_count += 1
@@ -610,8 +610,8 @@ class SignalCatchTest(unittest.TestCase):
 
         r = d.run()
 
-        cs1 = d.catch_signal(10, callback=cs_SIGUSR1, recursive=False)
-        cs2 = d.catch_signal("SIGTERM", callback=cs_SIGTERM)
+        catcher1 = d.catch_signal(10, callback=catcher_SIGUSR1, recursive=False)
+        catcher2 = d.catch_signal("SIGTERM", callback=catcher_SIGTERM)
 
         d.cont()
 
@@ -635,8 +635,8 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGUSR1_count, 2)
         self.assertEqual(SIGTERM_count, 2)  # 2 times in total because of the recursive=False
 
-        self.assertEqual(SIGUSR1_count, cs1.hit_count)
-        self.assertEqual(SIGTERM_count, cs2.hit_count)
+        self.assertEqual(SIGUSR1_count, catcher1.hit_count)
+        self.assertEqual(SIGTERM_count, catcher2.hit_count)
 
         self.assertEqual(SIGUSR1, b"Received signal 15" * 2)  # hijacked signal
         self.assertEqual(SIGTERM, b"Received signal 15" * 2)
@@ -647,7 +647,7 @@ class SignalCatchTest(unittest.TestCase):
     def test_recursive_false_with_api(self):
         SIGTERM_count = 0
 
-        def cs_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, signal_number):
             nonlocal SIGTERM_count
 
             SIGTERM_count += 1
@@ -656,8 +656,8 @@ class SignalCatchTest(unittest.TestCase):
 
         r = d.run()
 
-        cs1 = d.hijack_signal(10, 15, recursive=False)
-        cs2 = d.catch_signal("SIGTERM", callback=cs_SIGTERM)
+        catcher1 = d.hijack_signal(10, 15, recursive=False)
+        catcher2 = d.catch_signal("SIGTERM", callback=catcher_SIGTERM)
 
         d.cont()
 
@@ -678,9 +678,9 @@ class SignalCatchTest(unittest.TestCase):
 
         d.kill()
 
-        self.assertEqual(cs1.hit_count, 2)
+        self.assertEqual(catcher1.hit_count, 2)
         self.assertEqual(SIGTERM_count, 2)  # 2 times in total because of the recursive=False
-        self.assertEqual(SIGTERM_count, cs2.hit_count)
+        self.assertEqual(SIGTERM_count, catcher2.hit_count)
 
         self.assertEqual(SIGUSR1, b"Received signal 15" * 2)  # hijacked signal
         self.assertEqual(SIGTERM, b"Received signal 15" * 2)
@@ -691,11 +691,11 @@ class SignalCatchTest(unittest.TestCase):
     def test_hijack_signal_with_catch_signal_loop(self):
         # Let create a loop of hijacking signals
 
-        def cs_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, signal_number):
             # Hijack to SIGTERM
             t.signal = 15
 
-        def cs_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, signal_number):
             # Hijack to SIGINT
             t.signal = 10
 
@@ -703,8 +703,8 @@ class SignalCatchTest(unittest.TestCase):
 
         d.run()
 
-        d.catch_signal("SIGUSR1", callback=cs_SIGUSR1, recursive=True)
-        d.catch_signal("SIGTERM", callback=cs_SIGTERM, recursive=True)
+        d.catch_signal("SIGUSR1", callback=catcher_SIGUSR1, recursive=True)
+        d.catch_signal("SIGTERM", callback=catcher_SIGTERM, recursive=True)
 
         with self.assertRaises(RuntimeError):
             d.cont()
@@ -713,24 +713,24 @@ class SignalCatchTest(unittest.TestCase):
         # Now we set recursive=False to avoid the loop
         d.run()
 
-        d.catch_signal("SIGUSR1", callback=cs_SIGUSR1, recursive=False)
-        d.catch_signal("SIGTERM", callback=cs_SIGTERM)
+        d.catch_signal("SIGUSR1", callback=catcher_SIGUSR1, recursive=False)
+        d.catch_signal("SIGTERM", callback=catcher_SIGTERM)
 
         d.cont()
         d.kill()
 
         d.run()
 
-        d.catch_signal("SIGUSR1", callback=cs_SIGUSR1)
-        d.catch_signal("SIGTERM", callback=cs_SIGTERM, recursive=False)
+        d.catch_signal("SIGUSR1", callback=catcher_SIGUSR1)
+        d.catch_signal("SIGTERM", callback=catcher_SIGTERM, recursive=False)
 
         d.cont()
         d.kill()
 
         d.run()
 
-        d.catch_signal("SIGUSR1", callback=cs_SIGUSR1, recursive=False)
-        d.catch_signal("SIGTERM", callback=cs_SIGTERM, recursive=False)
+        d.catch_signal("SIGUSR1", callback=catcher_SIGUSR1, recursive=False)
+        d.catch_signal("SIGTERM", callback=catcher_SIGTERM, recursive=False)
 
         d.cont()
         d.kill()
@@ -779,17 +779,17 @@ class SignalCatchTest(unittest.TestCase):
         SIGINT_count = 0
         SIGTERM_count = 0
 
-        def cs_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, signal_number):
             nonlocal SIGUSR1_count
 
             SIGUSR1_count += 1
 
-        def cs_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, signal_number):
             nonlocal SIGTERM_count
 
             SIGTERM_count += 1
 
-        def cs_SIGINT(t, signal_number):
+        def catcher_SIGINT(t, signal_number):
             nonlocal SIGINT_count
 
             SIGINT_count += 1
@@ -798,11 +798,11 @@ class SignalCatchTest(unittest.TestCase):
 
         r = d.run()
 
-        cs1 = d.catch_signal("SIGUSR1", callback=cs_SIGUSR1)
-        cs2 = d.catch_signal("SIGTERM", callback=cs_SIGTERM)
-        cs3 = d.catch_signal("SIGINT", callback=cs_SIGINT)
-        cs4 = d.hijack_signal("SIGQUIT", "SIGTERM", recursive=True)
-        cs5 = d.hijack_signal("SIGPIPE", "SIGTERM", recursive=True)
+        catcher1 = d.catch_signal("SIGUSR1", callback=catcher_SIGUSR1)
+        catcher2 = d.catch_signal("SIGTERM", callback=catcher_SIGTERM)
+        catcher3 = d.catch_signal("SIGINT", callback=catcher_SIGINT)
+        catcher4 = d.hijack_signal("SIGQUIT", "SIGTERM", recursive=True)
+        catcher5 = d.hijack_signal("SIGPIPE", "SIGTERM", recursive=True)
 
         bp = d.breakpoint(0x12C4)
 
@@ -822,8 +822,8 @@ class SignalCatchTest(unittest.TestCase):
 
         # Disable catching of signals
         if bp.hit_on(d):
-            cs4.disable()
-            cs5.disable()
+            catcher4.disable()
+            catcher5.disable()
         d.cont()
 
         SIGQUIT += r.recvline()
@@ -835,9 +835,9 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGTERM_count, 2 + 2 + 2)  # 2 times more because of the hijacking * 2 (SIGQUIT and SIGPIPE)
         self.assertEqual(SIGINT_count, 2)
 
-        self.assertEqual(SIGUSR1_count, cs1.hit_count)
-        self.assertEqual(SIGTERM_count, cs2.hit_count)
-        self.assertEqual(SIGINT_count, cs3.hit_count)
+        self.assertEqual(SIGUSR1_count, catcher1.hit_count)
+        self.assertEqual(SIGTERM_count, catcher2.hit_count)
+        self.assertEqual(SIGINT_count, catcher3.hit_count)
 
         self.assertEqual(SIGUSR1, b"Received signal 10" * 2)
         self.assertEqual(SIGTERM, b"Received signal 15" * 2)
@@ -849,12 +849,12 @@ class SignalCatchTest(unittest.TestCase):
         SIGPIPE_count_first = 0
         SIGPIPE_count_second = 0
 
-        def cs_SIGPIPE_first(t, signal_number):
+        def catcher_SIGPIPE_first(t, signal_number):
             nonlocal SIGPIPE_count_first
 
             SIGPIPE_count_first += 1
 
-        def cs_SIGPIPE_second(t, signal_number):
+        def catcher_SIGPIPE_second(t, signal_number):
             nonlocal SIGPIPE_count_second
 
             SIGPIPE_count_second += 1
@@ -863,7 +863,7 @@ class SignalCatchTest(unittest.TestCase):
 
         r = d.run()
 
-        cs1 = d.catch_signal("SIGPIPE", callback=cs_SIGPIPE_first)
+        catcher1 = d.catch_signal("SIGPIPE", callback=catcher_SIGPIPE_first)
 
         bp = d.breakpoint(0x12C4)
 
@@ -881,10 +881,10 @@ class SignalCatchTest(unittest.TestCase):
         SIGQUIT += r.recvline()
         SIGPIPE += r.recvline()
 
-        # Overriding the cs
+        # Overriding the catcher
         if bp.hit_on(d):
-            self.assertEqual(cs1.hit_count, 2)
-            cs2 = d.catch_signal("SIGPIPE", callback=cs_SIGPIPE_second)
+            self.assertEqual(catcher1.hit_count, 2)
+            catcher2 = d.catch_signal("SIGPIPE", callback=catcher_SIGPIPE_second)
         d.cont()
 
         SIGQUIT += r.recvline()
@@ -895,8 +895,8 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGPIPE_count_first, 2)
         self.assertEqual(SIGPIPE_count_second, 1)
 
-        self.assertEqual(SIGPIPE_count_first, cs1.hit_count)
-        self.assertEqual(SIGPIPE_count_second, cs2.hit_count)
+        self.assertEqual(SIGPIPE_count_first, catcher1.hit_count)
+        self.assertEqual(SIGPIPE_count_second, catcher2.hit_count)
 
         self.assertEqual(SIGUSR1, b"Received signal 10" * 2)
         self.assertEqual(SIGTERM, b"Received signal 15" * 2)
@@ -915,7 +915,7 @@ class SignalCatchTest(unittest.TestCase):
 
         r = d.run()
 
-        cs1 = d.hijack_signal("SIGPIPE", 15)
+        catcher1 = d.hijack_signal("SIGPIPE", 15)
 
         bp = d.breakpoint(0x12C4)
 
@@ -933,10 +933,10 @@ class SignalCatchTest(unittest.TestCase):
         SIGQUIT += r.recvline()
         SIGPIPE += r.recvline()
 
-        # Overriding the cs
+        # Overriding the catcher
         if bp.hit_on(d):
-            self.assertEqual(cs1.hit_count, 2)
-            cs2 = d.hijack_signal("SIGPIPE", "SIGINT")
+            self.assertEqual(catcher1.hit_count, 2)
+            catcher2 = d.hijack_signal("SIGPIPE", "SIGINT")
         d.cont()
 
         SIGQUIT += r.recvline()
@@ -944,8 +944,8 @@ class SignalCatchTest(unittest.TestCase):
 
         d.kill()
 
-        self.assertEqual(cs1.hit_count, 2)
-        self.assertEqual(cs2.hit_count, 1)
+        self.assertEqual(catcher1.hit_count, 2)
+        self.assertEqual(catcher2.hit_count, 1)
 
         self.assertEqual(SIGUSR1, b"Received signal 10" * 2)
         self.assertEqual(SIGTERM, b"Received signal 15" * 2)
@@ -962,7 +962,7 @@ class SignalCatchTest(unittest.TestCase):
     def test_override_hybrid(self):
         SIGPIPE_count = 0
 
-        def cs_SIGPIPE(t, signal_number):
+        def catcher_SIGPIPE(t, signal_number):
             nonlocal SIGPIPE_count
 
             SIGPIPE_count += 1
@@ -971,7 +971,7 @@ class SignalCatchTest(unittest.TestCase):
 
         r = d.run()
 
-        cs1 = d.hijack_signal("SIGPIPE", 15)
+        catcher1 = d.hijack_signal("SIGPIPE", 15)
 
         bp = d.breakpoint(0x12C4)
 
@@ -989,10 +989,10 @@ class SignalCatchTest(unittest.TestCase):
         SIGQUIT += r.recvline()
         SIGPIPE += r.recvline()
 
-        # Overriding the cs
+        # Overriding the catcher
         if bp.hit_on(d):
-            self.assertEqual(cs1.hit_count, 2)
-            cs2 = d.catch_signal("SIGPIPE", callback=cs_SIGPIPE)
+            self.assertEqual(catcher1.hit_count, 2)
+            catcher2 = d.catch_signal("SIGPIPE", callback=catcher_SIGPIPE)
         d.cont()
 
         SIGQUIT += r.recvline()
@@ -1000,8 +1000,8 @@ class SignalCatchTest(unittest.TestCase):
 
         d.kill()
 
-        self.assertEqual(cs1.hit_count, 2)
-        self.assertEqual(cs2.hit_count, 1)
+        self.assertEqual(catcher1.hit_count, 2)
+        self.assertEqual(catcher2.hit_count, 1)
         self.assertEqual(SIGPIPE_count, 1)
 
         self.assertEqual(SIGUSR1, b"Received signal 10" * 2)
@@ -1023,35 +1023,35 @@ class SignalCatchTest(unittest.TestCase):
         SIGTERM_count = 0
         SIGPIPE_count = 0
 
-        def cs_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, signal_number):
             nonlocal SIGUSR1_count
 
             self.assertEqual(t.signal, "SIGUSR1")
 
             SIGUSR1_count += 1
 
-        def cs_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, signal_number):
             nonlocal SIGTERM_count
 
             self.assertEqual(t.signal, "SIGTERM")
 
             SIGTERM_count += 1
 
-        def cs_SIGINT(t, signal_number):
+        def catcher_SIGINT(t, signal_number):
             nonlocal SIGINT_count
 
             self.assertEqual(t.signal, "SIGINT")
 
             SIGINT_count += 1
 
-        def cs_SIGQUIT(t, signal_number):
+        def catcher_SIGQUIT(t, signal_number):
             nonlocal SIGQUIT_count
 
             self.assertEqual(t.signal, "SIGQUIT")
 
             SIGQUIT_count += 1
 
-        def cs_SIGPIPE(t, signal_number):
+        def catcher_SIGPIPE(t, signal_number):
             nonlocal SIGPIPE_count
 
             self.assertEqual(t.signal, "SIGPIPE")
@@ -1064,11 +1064,11 @@ class SignalCatchTest(unittest.TestCase):
 
         d.run()
 
-        cs1 = d.catch_signal(10, callback=cs_SIGUSR1)
-        cs2 = d.catch_signal("SIGTERM", callback=cs_SIGTERM)
-        cs3 = d.catch_signal(2, callback=cs_SIGINT)
-        cs4 = d.catch_signal("SIGQUIT", callback=cs_SIGQUIT)
-        cs5 = d.catch_signal("SIGPIPE", callback=cs_SIGPIPE)
+        catcher1 = d.catch_signal(10, callback=catcher_SIGUSR1)
+        catcher2 = d.catch_signal("SIGTERM", callback=catcher_SIGTERM)
+        catcher3 = d.catch_signal(2, callback=catcher_SIGINT)
+        catcher4 = d.catch_signal("SIGQUIT", callback=catcher_SIGQUIT)
+        catcher5 = d.catch_signal("SIGPIPE", callback=catcher_SIGPIPE)
 
         d.cont()
 
@@ -1080,28 +1080,28 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGQUIT_count, 3)
         self.assertEqual(SIGPIPE_count, 3)
 
-        self.assertEqual(SIGUSR1_count, cs1.hit_count)
-        self.assertEqual(SIGTERM_count, cs2.hit_count)
-        self.assertEqual(SIGINT_count, cs3.hit_count)
-        self.assertEqual(SIGQUIT_count, cs4.hit_count)
-        self.assertEqual(SIGPIPE_count, cs5.hit_count)
+        self.assertEqual(SIGUSR1_count, catcher1.hit_count)
+        self.assertEqual(SIGTERM_count, catcher2.hit_count)
+        self.assertEqual(SIGINT_count, catcher3.hit_count)
+        self.assertEqual(SIGQUIT_count, catcher4.hit_count)
+        self.assertEqual(SIGPIPE_count, catcher5.hit_count)
 
     def test_signal_send_signal(self):
         SIGUSR1_count = 0
         SIGINT_count = 0
         SIGTERM_count = 0
 
-        def cs_SIGUSR1(t, signal_number):
+        def catcher_SIGUSR1(t, signal_number):
             nonlocal SIGUSR1_count
 
             SIGUSR1_count += 1
 
-        def cs_SIGTERM(t, signal_number):
+        def catcher_SIGTERM(t, signal_number):
             nonlocal SIGTERM_count
 
             SIGTERM_count += 1
 
-        def cs_SIGINT(t, signal_number):
+        def catcher_SIGINT(t, signal_number):
             nonlocal SIGINT_count
 
             SIGINT_count += 1
@@ -1110,11 +1110,11 @@ class SignalCatchTest(unittest.TestCase):
 
         r = d.run()
 
-        cs1 = d.catch_signal("SIGUSR1", callback=cs_SIGUSR1)
-        cs2 = d.catch_signal("SIGTERM", callback=cs_SIGTERM)
-        cs3 = d.catch_signal("SIGINT", callback=cs_SIGINT)
-        cs4 = d.hijack_signal("SIGQUIT", "SIGTERM", recursive=True)
-        cs5 = d.hijack_signal("SIGPIPE", "SIGTERM", recursive=True)
+        catcher1 = d.catch_signal("SIGUSR1", callback=catcher_SIGUSR1)
+        catcher2 = d.catch_signal("SIGTERM", callback=catcher_SIGTERM)
+        catcher3 = d.catch_signal("SIGINT", callback=catcher_SIGINT)
+        catcher4 = d.hijack_signal("SIGQUIT", "SIGTERM", recursive=True)
+        catcher5 = d.hijack_signal("SIGPIPE", "SIGTERM", recursive=True)
 
         bp = d.breakpoint(0x12C4)
 
@@ -1132,10 +1132,10 @@ class SignalCatchTest(unittest.TestCase):
         SIGQUIT += r.recvline()
         SIGPIPE += r.recvline()
 
-        # Uncsing and send signals
+        # Uncatchering and send signals
         if bp.hit_on(d):
-            cs4.disable()
-            cs5.disable()
+            catcher4.disable()
+            catcher5.disable()
             d.signal = 10
         d.cont()
 
@@ -1149,9 +1149,9 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGTERM_count, 2 + 2 + 2)  # 2 times more because of the hijacking * 2 (SIGQUIT and SIGPIPE)
         self.assertEqual(SIGINT_count, 2)
 
-        self.assertEqual(SIGUSR1_count, cs1.hit_count)
-        self.assertEqual(SIGTERM_count, cs2.hit_count)
-        self.assertEqual(SIGINT_count, cs3.hit_count)
+        self.assertEqual(SIGUSR1_count, catcher1.hit_count)
+        self.assertEqual(SIGTERM_count, catcher2.hit_count)
+        self.assertEqual(SIGINT_count, catcher3.hit_count)
 
         self.assertEqual(SIGUSR1, b"Received signal 10" * 3)
         self.assertEqual(SIGTERM, b"Received signal 15" * 2)
@@ -1172,24 +1172,24 @@ class SignalCatchTest(unittest.TestCase):
 
         d.run()
 
-        cs1 = d.catch_signal(10)
-        cs2 = d.catch_signal("SIGTERM")
-        cs3 = d.catch_signal(2)
-        cs4 = d.catch_signal("SIGQUIT")
-        cs5 = d.catch_signal("SIGPIPE")
+        catcher1 = d.catch_signal(10)
+        catcher2 = d.catch_signal("SIGTERM")
+        catcher3 = d.catch_signal(2)
+        catcher4 = d.catch_signal("SIGQUIT")
+        catcher5 = d.catch_signal("SIGPIPE")
 
         while not d.dead:
             d.cont()
             d.wait()
-            if cs1.hit_on(d):
+            if catcher1.hit_on(d):
                 SIGUSR1_count += 1
-            elif cs2.hit_on(d):
+            elif catcher2.hit_on(d):
                 SIGTERM_count += 1
-            elif cs3.hit_on(d):
+            elif catcher3.hit_on(d):
                 SIGINT_count += 1
-            elif cs4.hit_on(d):
+            elif catcher4.hit_on(d):
                 SIGQUIT_count += 1
-            elif cs5.hit_on(d):
+            elif catcher5.hit_on(d):
                 SIGPIPE_count += 1
 
         d.kill()
@@ -1200,11 +1200,11 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGQUIT_count, 3)
         self.assertEqual(SIGPIPE_count, 3)
 
-        self.assertEqual(SIGUSR1_count, cs1.hit_count)
-        self.assertEqual(SIGTERM_count, cs2.hit_count)
-        self.assertEqual(SIGINT_count, cs3.hit_count)
-        self.assertEqual(SIGQUIT_count, cs4.hit_count)
-        self.assertEqual(SIGPIPE_count, cs5.hit_count)
+        self.assertEqual(SIGUSR1_count, catcher1.hit_count)
+        self.assertEqual(SIGTERM_count, catcher2.hit_count)
+        self.assertEqual(SIGINT_count, catcher3.hit_count)
+        self.assertEqual(SIGQUIT_count, catcher4.hit_count)
+        self.assertEqual(SIGPIPE_count, catcher5.hit_count)
 
     def test_signal_catch_sync_pass(self):
         SIGUSR1_count = 0
@@ -1219,11 +1219,11 @@ class SignalCatchTest(unittest.TestCase):
 
         r = d.run()
 
-        cs1 = d.catch_signal(10)
-        cs2 = d.catch_signal("SIGTERM")
-        cs3 = d.catch_signal(2)
-        cs4 = d.catch_signal("SIGQUIT")
-        cs5 = d.catch_signal("SIGPIPE")
+        catcher1 = d.catch_signal(10)
+        catcher2 = d.catch_signal("SIGTERM")
+        catcher3 = d.catch_signal(2)
+        catcher4 = d.catch_signal("SIGQUIT")
+        catcher5 = d.catch_signal("SIGPIPE")
 
         signals = b""
         while not d.dead:
@@ -1233,15 +1233,15 @@ class SignalCatchTest(unittest.TestCase):
             except:
                 pass
             d.wait()
-            if cs1.hit_on(d):
+            if catcher1.hit_on(d):
                 SIGUSR1_count += 1
-            elif cs2.hit_on(d):
+            elif catcher2.hit_on(d):
                 SIGTERM_count += 1
-            elif cs3.hit_on(d):
+            elif catcher3.hit_on(d):
                 SIGINT_count += 1
-            elif cs4.hit_on(d):
+            elif catcher4.hit_on(d):
                 SIGQUIT_count += 1
-            elif cs5.hit_on(d):
+            elif catcher5.hit_on(d):
                 SIGPIPE_count += 1
 
         d.kill()
@@ -1252,11 +1252,11 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGQUIT_count, 3)
         self.assertEqual(SIGPIPE_count, 3)
 
-        self.assertEqual(SIGUSR1_count, cs1.hit_count)
-        self.assertEqual(SIGTERM_count, cs2.hit_count)
-        self.assertEqual(SIGINT_count, cs3.hit_count)
-        self.assertEqual(SIGQUIT_count, cs4.hit_count)
-        self.assertEqual(SIGPIPE_count, cs5.hit_count)
+        self.assertEqual(SIGUSR1_count, catcher1.hit_count)
+        self.assertEqual(SIGTERM_count, catcher2.hit_count)
+        self.assertEqual(SIGINT_count, catcher3.hit_count)
+        self.assertEqual(SIGQUIT_count, catcher4.hit_count)
+        self.assertEqual(SIGPIPE_count, catcher5.hit_count)
 
         self.assertEqual(signals.count(b"Received signal 10"), 2)
         self.assertEqual(signals.count(b"Received signal 15"), 2)

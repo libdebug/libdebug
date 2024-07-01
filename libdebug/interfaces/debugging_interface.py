@@ -11,8 +11,8 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
-    from libdebug.data.caught_signal import CaughtSignal
     from libdebug.data.memory_map import MemoryMap
+    from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.state.thread_context import ThreadContext
 
@@ -131,19 +131,19 @@ class DebuggingInterface(ABC):
         """
 
     @abstractmethod
-    def set_signal_catcher(self: DebuggingInterface, cs: CaughtSignal) -> None:
+    def set_signal_catcher(self: DebuggingInterface, catcher: SignalCatcher) -> None:
         """Sets a catcher for a signal.
 
         Args:
-            cs (CaughtSignal): The signal to set.
+            catcher (CaughtSignal): The signal to set.
         """
 
     @abstractmethod
-    def unset_signal_catcher(self: DebuggingInterface, cs: CaughtSignal) -> None:
+    def unset_signal_catcher(self: DebuggingInterface, catcher: SignalCatcher) -> None:
         """Unset a catcher for a signal.
 
         Args:
-            cs (CaughtSignal): The signal to unset.
+            catcher (CaughtSignal): The signal to unset.
         """
 
     @abstractmethod

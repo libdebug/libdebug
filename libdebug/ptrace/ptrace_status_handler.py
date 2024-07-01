@@ -21,7 +21,7 @@ from libdebug.utils.signal_utils import resolve_signal_name
 
 if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
-    from libdebug.data.caught_signal import CaughtSignal
+    from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.state.thread_context import ThreadContext
@@ -265,22 +265,22 @@ class PtraceStatusHandler:
 
     def _manage_caught_signal(
         self: PtraceStatusHandler,
-        cs: CaughtSignal,
+        catcher: SignalCatcher,
         thread: ThreadContext,
         signal_number: int,
         hijacked_set: set[int],
     ) -> None:
-        if cs.enabled:
-            cs.hit_count += 1
+        if catcher.enabled:
+            catcher.hit_count += 1
             liblog.debugger(
                 "Caught signal %s (%d) hit on thread %d",
                 resolve_signal_name(signal_number),
                 signal_number,
                 thread.thread_id,
             )
-            if cs.callback:
+            if catcher.callback:
                 # Execute the user-defined callback
-                cs.callback(thread, signal_number)
+                catcher.callback(thread, signal_number)
 
                 new_signal_number = thread._signal_number
 
@@ -294,7 +294,7 @@ class PtraceStatusHandler:
                         new_signal_number,
                     )
 
-                    if cs.recursive and new_signal_number in self.internal_debugger.caught_signals:
+                    if catcher.recursive and new_signal_number in self.internal_debugger.caught_signals:
                         hijack_cath_signal = self.internal_debugger.caught_signals[new_signal_number]
                         if new_signal_number not in hijacked_set:
                             hijacked_set.add(new_signal_number)
@@ -319,9 +319,9 @@ class PtraceStatusHandler:
         signal_number = thread._signal_number
 
         if signal_number in self.internal_debugger.caught_signals:
-            cs = self.internal_debugger.caught_signals[signal_number]
+            catcher = self.internal_debugger.caught_signals[signal_number]
 
-            self._manage_caught_signal(cs, thread, signal_number, {signal_number})
+            self._manage_caught_signal(catcher, thread, signal_number, {signal_number})
 
     def _internal_signal_handler(
         self: PtraceStatusHandler,

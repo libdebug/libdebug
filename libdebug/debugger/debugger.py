@@ -22,8 +22,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from libdebug.data.breakpoint import Breakpoint
-    from libdebug.data.caught_signal import CaughtSignal
     from libdebug.data.memory_map import MemoryMap
+    from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.state.thread_context import ThreadContext
@@ -148,16 +148,16 @@ class Debugger:
     def catch_signal(
         self: Debugger,
         signal: int | str,
-        callback: None | Callable[[ThreadContext, CaughtSignal], None] = None,
+        callback: None | Callable[[ThreadContext, SignalCatcher], None] = None,
         recursive: bool = False,
-    ) -> CaughtSignal:
+    ) -> SignalCatcher:
         """Catch a signal in the target process.
 
         Args:
             signal (int | str): The signal to catch.
             callback (Callable[[ThreadContext, CaughtSignal], None], optional): A callback to be called when the signal
             is caught. Defaults to None.
-            recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catching
+            recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher
             associated with the new signal should be considered as well. Defaults to False.
 
         Returns:
@@ -176,7 +176,7 @@ class Debugger:
         Args:
             original_signal (int | str): The signal to hijack.
             new_signal (int | str): The signal to hijack the original signal with.
-            recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catching
+            recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher
             associated with the new signal should be considered as well. Defaults to False.
 
         Returns:
@@ -199,7 +199,7 @@ class Debugger:
             syscall is entered. Defaults to None.
             on_exit (Callable[[ThreadContext, HandledSyscall], None], optional): The callback to execute when the
             syscall is exited. Defaults to None.
-            recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handling
+            recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler
             associated with the new syscall should be considered as well. Defaults to False.
 
         Returns:
@@ -219,7 +219,7 @@ class Debugger:
         Args:
             original_syscall (int | str): The syscall name or number to hijack.
             new_syscall (int | str): The syscall name or number to hijack the original syscall with.
-            recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handling
+            recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler
             associated with the new syscall should be considered as well. Defaults to False.
             **kwargs: (int, optional): The arguments to pass to the new syscall.
 
@@ -337,7 +337,7 @@ class Debugger:
         return self._internal_debugger.handled_syscalls
 
     @property
-    def caught_signals(self: InternalDebugger) -> dict[int, CaughtSignal]:
+    def caught_signals(self: InternalDebugger) -> dict[int, SignalCatcher]:
         """Get the caught signals dictionary.
 
         Returns:

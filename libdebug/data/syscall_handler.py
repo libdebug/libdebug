@@ -31,7 +31,7 @@ class SyscallHandler:
         the syscall is entered.
         on_exit_pprint (Callable[[ThreadContext, int], None]): The callback defined by the pretty print to execute when
         the syscall is exited.
-        recursive (bool): Whether, when the syscall is hijacked with another one, the syscall handling associated with
+        recursive (bool): Whether, when the syscall is hijacked with another one, the syscall handler associated with
         the new syscall should be considered as well. Defaults to False.
         enabled (bool): Whether the syscall will be handled or not.
         hit_count (int): The number of times the syscall has been handled.
@@ -53,7 +53,7 @@ class SyscallHandler:
         """Handle the syscall."""
         if provide_internal_debugger(self).running:
             raise RuntimeError(
-                "Cannot enable syscall handling while the target process is running.",
+                "Cannot enable syscall handler while the target process is running.",
             )
 
         self.enabled = True
@@ -63,20 +63,20 @@ class SyscallHandler:
         """Unhandle the syscall."""
         if provide_internal_debugger(self).running:
             raise RuntimeError(
-                "Cannot disable syscall handling while the target process is running.",
+                "Cannot disable syscall handler while the target process is running.",
             )
 
         self.enabled = False
         self._has_entered = False
 
     def hit_on_enter(self: SyscallHandler, thread_context: ThreadContext) -> bool:
-        """Returns whether the syscall handling has been hit during the syscall entry on the given thread context."""
+        """Returns whether the syscall handler has been hit during the syscall entry on the given thread context."""
         return self.enabled and thread_context.syscall_number == self.syscall_number and self._has_entered
 
     def hit_on_exit(self: SyscallHandler, thread_context: ThreadContext) -> bool:
-        """Returns whether the syscall handling has been hit during the syscall exit on the given thread context."""
+        """Returns whether the syscall handler has been hit during the syscall exit on the given thread context."""
         return self.enabled and thread_context.syscall_number == self.syscall_number and not self._has_entered
 
     def __hash__(self: SyscallHandler) -> int:
-        """Return the hash of the syscall handling, based just on the syscall number."""
+        """Return the hash of the syscall handler, based just on the syscall number."""
         return hash(self.syscall_number)
