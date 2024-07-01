@@ -21,7 +21,7 @@ from libdebug.utils.signal_utils import resolve_signal_name
 
 if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
-    from libdebug.data.signal_hook import SignalHook
+    from libdebug.data.caught_signal import CaughtSignal
     from libdebug.data.syscall_hook import SyscallHook
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.state.thread_context import ThreadContext
@@ -258,18 +258,24 @@ class PtraceStatusHandler:
             hook._has_entered = False
             hook._skip_exit = False
 
-    def _manage_signal_callback(
+    def _manage_caught_signal(
         self: PtraceStatusHandler,
-        hook: SignalHook,
+        cs: CaughtSignal,
         thread: ThreadContext,
         signal_number: int,
         hijacked_set: set[int],
     ) -> None:
-        if hook.enabled:
-            hook.hit_count += 1
-            if hook.callback:
+        if cs.enabled:
+            cs.hit_count += 1
+            liblog.debugger(
+                "Caught signal %s (%d) hit on thread %d",
+                resolve_signal_name(signal_number),
+                signal_number,
+                thread.thread_id,
+            )
+            if cs.callback:
                 # Execute the user-defined callback
-                hook.callback(thread, signal_number)
+                cs.callback(thread, signal_number)
 
                 new_signal_number = thread._signal_number
 
@@ -283,31 +289,34 @@ class PtraceStatusHandler:
                         new_signal_number,
                     )
 
-                    if hook.hook_hijack and new_signal_number in self.internal_debugger.signal_hooks:
-                        hijack_hook = self.internal_debugger.signal_hooks[new_signal_number]
+                    if cs.recursive and new_signal_number in self.internal_debugger.caught_signals:
+                        hijack_cath_signal = self.internal_debugger.caught_signals[new_signal_number]
                         if new_signal_number not in hijacked_set:
                             hijacked_set.add(new_signal_number)
                         else:
-                            # The signal has already been hijacked in the current chain
+                            # The signal has already been replaced in the current chain
                             raise RuntimeError(
-                                "Signal hijacking loop detected. Check your hooks to avoid infinite loops.",
+                                "Signal hijacking loop detected. Check your script to avoid infinite loops.",
                             )
                         # Call recursively the function to manage the new signal
-                        self._manage_signal_callback(
-                            hijack_hook,
+                        self._manage_caught_signal(
+                            hijack_cath_signal,
                             thread,
                             new_signal_number,
                             hijacked_set,
                         )
+            else:
+                # If the caught signal has no callback, we need to stop the process despite the other signals
+                self.internal_debugger.resume_context.resume = False
 
     def _handle_signal(self: PtraceStatusHandler, thread: ThreadContext) -> bool:
         """Handle the signal trap."""
         signal_number = thread._signal_number
 
-        if signal_number in self.internal_debugger.signal_hooks:
-            hook = self.internal_debugger.signal_hooks[signal_number]
+        if signal_number in self.internal_debugger.caught_signals:
+            cs = self.internal_debugger.caught_signals[signal_number]
 
-            self._manage_signal_callback(hook, thread, signal_number, {signal_number})
+            self._manage_caught_signal(cs, thread, signal_number, {signal_number})
 
     def _internal_signal_handler(
         self: PtraceStatusHandler,

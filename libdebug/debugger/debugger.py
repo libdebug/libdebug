@@ -22,8 +22,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from libdebug.data.breakpoint import Breakpoint
+    from libdebug.data.caught_signal import CaughtSignal
     from libdebug.data.memory_map import MemoryMap
-    from libdebug.data.signal_hook import SignalHook
     from libdebug.data.syscall_hook import SyscallHook
     from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.state.thread_context import ThreadContext
@@ -145,43 +145,38 @@ class Debugger:
             file=file,
         )
 
-    def hook_signal(
+    def catch_signal(
         self: Debugger,
-        signal_to_hook: int | str,
-        callback: None | Callable[[ThreadContext, int], None] = None,
-        hook_hijack: bool = True,
-    ) -> SignalHook:
-        """Hooks a signal in the target process.
+        signal: int | str,
+        callback: None | Callable[[ThreadContext, CaughtSignal], None] = None,
+        recursive: bool = False,
+    ) -> CaughtSignal:
+        """Catch a signal in the target process.
 
         Args:
-            signal_to_hook (int | str): The signal to hook.
-            callback (Callable[[ThreadContext, int], None], optional): A callback to be called when the signal is received. Defaults to None.
-            hook_hijack (bool, optional): Whether to execute the hook/hijack of the new signal after an hijack or not. Defaults to False.
+            signal (int | str): The signal to catch.
+            callback (Callable[[ThreadContext, CaughtSignal], None], optional): A callback to be called when the signal
+            is caught. Defaults to None.
+            recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catching
+            associated with the new signal should be considered as well. Defaults to False.
         """
-        return self._internal_debugger.hook_signal(signal_to_hook, callback, hook_hijack)
-
-    def unhook_signal(self: Debugger, hook: SignalHook) -> None:
-        """Unhooks a signal in the target process.
-
-        Args:
-            hook (SignalHook): The signal hook to unhook.
-        """
-        self._internal_debugger.unhook_signal(hook)
+        return self._internal_debugger.catch_signal(signal, callback, recursive)
 
     def hijack_signal(
         self: Debugger,
         original_signal: int | str,
         new_signal: int | str,
-        hook_hijack: bool = True,
+        recursive: bool = False,
     ) -> None:
-        """Hijacks a signal in the target process.
+        """Hijack a signal in the target process.
 
         Args:
             original_signal (int | str): The signal to hijack.
-            new_signal (int | str): The signal to replace the original signal with.
-            hook_hijack (bool, optional): Whether to execute the hook/hijack of the new signal after the hijack or not. Defaults to True.
+            new_signal (int | str): The signal to hijack the original signal with.
+            recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catching
+            associated with the new signal should be considered as well. Defaults to False.
         """
-        return self._internal_debugger.hijack_signal(original_signal, new_signal, hook_hijack)
+        return self._internal_debugger.hijack_signal(original_signal, new_signal, recursive)
 
     def hook_syscall(
         self: Debugger,
@@ -340,13 +335,13 @@ class Debugger:
         return self._internal_debugger.syscall_hooks
 
     @property
-    def signal_hooks(self: InternalDebugger) -> dict[int, SignalHook]:
-        """Get the signal hooks dictionary.
+    def caught_signals(self: InternalDebugger) -> dict[int, CaughtSignal]:
+        """Get the caught signals dictionary.
 
         Returns:
-            dict[int, SignalHook]: the signal hooks dictionary.
+            dict[int, CaughtSignal]: the caught signals dictionary.
         """
-        return self._internal_debugger.signal_hooks
+        return self._internal_debugger.caught_signals
 
     @property
     def pprint_syscalls(self: Debugger) -> bool:

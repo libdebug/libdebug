@@ -53,8 +53,8 @@ if TYPE_CHECKING:
     from libdebug.architectures.ptrace_hardware_breakpoint_manager import (
         PtraceHardwareBreakpointManager,
     )
+    from libdebug.data.caught_signal import CaughtSignal
     from libdebug.data.memory_map import MemoryMap
-    from libdebug.data.signal_hook import SignalHook
     from libdebug.data.syscall_hook import SyscallHook
     from libdebug.debugger.internal_debugger import InternalDebugger
 
@@ -587,21 +587,21 @@ class PtraceInterface(DebuggingInterface):
         """
         del self._internal_debugger.syscall_hooks[hook.syscall_number]
 
-    def set_signal_hook(self: PtraceInterface, hook: SignalHook) -> None:
-        """Sets a signal hook.
+    def set_signal_catch(self: PtraceInterface, cs: CaughtSignal) -> None:
+        """Sets a signal catching.
 
         Args:
-            hook (SignalHook): The signal hook to set.
+            cs (CaughtSignal): The signal to catch.
         """
-        self._internal_debugger.signal_hooks[hook.signal_number] = hook
+        self._internal_debugger.caught_signals[cs.signal_number] = cs
 
-    def unset_signal_hook(self: PtraceInterface, hook: SignalHook) -> None:
-        """Unsets a signal hook.
+    def unset_signal_catch(self: PtraceInterface, cs: CaughtSignal) -> None:
+        """Unset a signal catching.
 
         Args:
-            hook (SignalHook): The signal hook to unset.
+            cs (CaughtSignal): The signal to unset.
         """
-        del self._internal_debugger.signal_hooks[hook.signal_number]
+        del self._internal_debugger.caught_signals[cs.signal_number]
 
     def peek_memory(self: PtraceInterface, address: int) -> int:
         """Reads the memory at the specified address."""

@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import functools
 import os
-import signal
 from pathlib import Path
 from queue import Queue
+from signal import SIGKILL, SIGSTOP, SIGTRAP
 from subprocess import Popen
 from threading import Thread, current_thread
 from typing import TYPE_CHECKING
@@ -22,8 +22,8 @@ from libdebug.architectures.syscall_hijacking_provider import syscall_hijacking_
 from libdebug.builtin.antidebug_syscall_hook import on_enter_ptrace, on_exit_ptrace
 from libdebug.builtin.pretty_print_syscall_hook import pprint_on_enter, pprint_on_exit
 from libdebug.data.breakpoint import Breakpoint
+from libdebug.data.caught_signal import CaughtSignal
 from libdebug.data.memory_view import MemoryView
-from libdebug.data.signal_hook import SignalHook
 from libdebug.data.syscall_hook import SyscallHook
 from libdebug.debugger.internal_debugger_instance_manager import (
     extend_internal_debugger,
@@ -95,8 +95,8 @@ class InternalDebugger:
     """A dictionary of all the syscall hooks set on the process.
     Key: the syscall number."""
 
-    signal_hooks: dict[int, SignalHook]
-    """A dictionary of all the signal hooks set on the process.
+    caught_signals: dict[int, CaughtSignal]
+    """A dictionary of all the signals caught in the process.
     Key: the signal number."""
 
     signals_to_block: list[int]
@@ -154,7 +154,7 @@ class InternalDebugger:
         self.escape_antidebug = False
         self.breakpoints = {}
         self.syscall_hooks = {}
-        self.signal_hooks = {}
+        self.caught_signals = {}
         self.syscalls_to_pprint = None
         self.syscalls_to_not_pprint = None
         self.signals_to_block = []
@@ -173,7 +173,7 @@ class InternalDebugger:
         # These must be reinitialized on every call to "run"
         self.breakpoints.clear()
         self.syscall_hooks.clear()
-        self.signal_hooks.clear()
+        self.caught_signals.clear()
         self.syscalls_to_pprint = None
         self.syscalls_to_not_pprint = None
         self.signals_to_block.clear()
@@ -335,7 +335,7 @@ class InternalDebugger:
             return
 
         self.resume_context.force_interrupt = True
-        os.kill(self.process_id, signal.SIGSTOP)
+        os.kill(self.process_id, SIGSTOP)
 
         self.wait()
 
@@ -441,80 +441,59 @@ class InternalDebugger:
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
-    def hook_signal(
+    def catch_signal(
         self: InternalDebugger,
-        signal_to_hook: int | str,
-        callback: None | Callable[[ThreadContext, int], None] = None,
-        hook_hijack: bool = True,
-    ) -> SignalHook:
-        """Hooks a signal in the target process.
+        signal: int | str,
+        callback: None | Callable[[ThreadContext, CaughtSignal], None] = None,
+        recursive: bool = False,
+    ) -> CaughtSignal:
+        """Catch a signal in the target process.
 
         Args:
-            signal_to_hook (int | str): The signal to hook.
-            callback (Callable[[ThreadContext, int], None], optional): A callback to be called when the signal is
-            received. Defaults to None.
-            hook_hijack (bool, optional): Whether to execute the hook/hijack of the new signal after an hijack or not.
-            Defaults to False.
+            signal (int | str): The signal to catch.
+            callback (Callable[[ThreadContext, CaughtSignal], None], optional): A callback to be called when the signal is
+            caught. Defaults to None.
+            recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catching
+            associated with the new signal should be considered as well. Defaults to False.
         """
-        if callback is None:
-            raise ValueError("A callback must be specified.")
-
-        if isinstance(signal_to_hook, str):
-            signal_number = resolve_signal_number(signal_to_hook)
-        elif isinstance(signal_to_hook, int):
-            signal_number = signal_to_hook
+        if isinstance(signal, str):
+            signal_number = resolve_signal_number(signal)
+        elif isinstance(signal, int):
+            signal_number = signal
         else:
             raise TypeError("signal must be an int or a str")
 
         match signal_number:
-            case signal.SIGKILL:
+            case SIGKILL.value:
                 raise ValueError(
-                    f"Cannot hook SIGKILL ({signal_number}) as it cannot be caught or ignored. This is a kernel restriction."
+                    f"Cannot catch SIGKILL ({signal_number}) as it cannot be caught or ignored. This is a kernel restriction."
                 )
-            case signal.SIGSTOP:
+            case SIGSTOP.value:
                 raise ValueError(
-                    f"Cannot hook SIGSTOP ({signal_number}) as it is used by the debugger or ptrace for their internal operations."
+                    f"Cannot catch SIGSTOP ({signal_number}) as it is used by the debugger or ptrace for their internal operations."
                 )
-            case signal.SIGTRAP:
+            case SIGTRAP.value:
                 raise ValueError(
-                    f"Cannot hook SIGTRAP ({signal_number}) as it is used by the debugger or ptrace for their internal operations."
+                    f"Cannot catch SIGTRAP ({signal_number}) as it is used by the debugger or ptrace for their internal operations."
                 )
 
-        if signal_number in self.signal_hooks:
+        if signal_number in self.caught_signals:
             liblog.warning(
-                f"Signal {resolve_signal_name(signal_number)} ({signal_number}) is already hooked. Overriding it.",
+                f"Signal {resolve_signal_name(signal_number)} ({signal_number}) has already been caught. Overriding it.",
             )
-            self.unhook_signal(self.signal_hooks[signal_number])
 
-        if not isinstance(hook_hijack, bool):
-            raise TypeError("hook_hijack must be a boolean")
+        if not isinstance(recursive, bool):
+            raise TypeError("recursive must be a boolean")
 
-        hook = SignalHook(signal_number, callback, hook_hijack)
+        cs = CaughtSignal(signal_number, callback, recursive)
 
-        link_to_internal_debugger(hook, self)
+        link_to_internal_debugger(cs, self)
 
-        self.__polling_thread_command_queue.put((self.__threaded_signal_hook, (hook,)))
-
-        self._join_and_check_status()
-
-        return hook
-
-    @background_alias(_background_invalid_call)
-    @change_state_function_process
-    def unhook_signal(self: InternalDebugger, hook: SignalHook) -> None:
-        """Unhooks a signal in the target process.
-
-        Args:
-            hook (SignalHook): The signal hook to unhook.
-        """
-        if hook.signal_number not in self.signal_hooks:
-            raise ValueError(f"Signal {hook.signal_number} is not hooked.")
-
-        hook = self.signal_hooks[hook.signal_number]
-
-        self.__polling_thread_command_queue.put((self.__threaded_signal_unhook, (hook,)))
+        self.__polling_thread_command_queue.put((self.__threaded_catch_signal, (cs,)))
 
         self._join_and_check_status()
+
+        return cs
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
@@ -522,15 +501,15 @@ class InternalDebugger:
         self: InternalDebugger,
         original_signal: int | str,
         new_signal: int | str,
-        hook_hijack: bool = True,
+        recursive: bool = False,
     ) -> None:
-        """Hijacks a signal in the target process.
+        """Hijack a signal in the target process.
 
         Args:
             original_signal (int | str): The signal to hijack.
-            new_signal (int | str): The signal to replace the original signal with.
-            hook_hijack (bool, optional): Whether to execute the hook/hijack of the new signal after the hijack or not.
-            Defaults to True.
+            new_signal (int | str): The signal to hijack the original signal with.
+            recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catching
+            associated with the new signal should be considered as well. Defaults to False.
         """
         if isinstance(original_signal, str):
             original_signal_number = resolve_signal_number(original_signal)
@@ -544,11 +523,11 @@ class InternalDebugger:
                 "The original signal and the new signal must be different during hijacking.",
             )
 
-        def callback(thread: ThreadContext, _: int) -> None:
+        def callback(thread: ThreadContext, _: CaughtSignal) -> None:
             """The callback to execute when the signal is received."""
             thread.signal = new_signal_number
 
-        return self.hook_signal(original_signal_number, callback, hook_hijack)
+        return self.catch_signal(original_signal_number, callback, recursive)
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
@@ -1078,7 +1057,9 @@ class InternalDebugger:
             )
 
         if not filtered_maps:
-            raise ValueError(f"The specified string {backing_file} does not correspond to any backing file. The available backing files are: {', '.join(set(vmap.backing_file for vmap in maps))}.")
+            raise ValueError(
+                f"The specified string {backing_file} does not correspond to any backing file. The available backing files are: {', '.join(set(vmap.backing_file for vmap in maps))}."
+            )
         return normalize_and_validate_address(address, filtered_maps)
 
     def resolve_symbol(self: InternalDebugger, symbol: str, backing_file: str) -> int:
@@ -1121,8 +1102,9 @@ class InternalDebugger:
             )
 
         if not filtered_maps:
-            raise ValueError(f"The specified string {backing_file} does not correspond to any backing file. The available backing files are: {', '.join(set(vmap.backing_file for vmap in maps))}.")
-
+            raise ValueError(
+                f"The specified string {backing_file} does not correspond to any backing file. The available backing files are: {', '.join(set(vmap.backing_file for vmap in maps))}."
+            )
 
         return resolve_symbol_in_maps(symbol, filtered_maps)
 
@@ -1270,23 +1252,19 @@ class InternalDebugger:
         liblog.debugger("Setting breakpoint at 0x%x.", bp.address)
         self.debugging_interface.set_breakpoint(bp)
 
+    def __threaded_catch_signal(self: InternalDebugger, hook: CaughtSignal) -> None:
+        liblog.debugger(
+            f"Setting breaksignal on signal {resolve_signal_name(hook.signal_number)} ({hook.signal_number}).",
+        )
+        self.debugging_interface.set_signal_catch(hook)
+
     def __threaded_syscall_hook(self: InternalDebugger, hook: SyscallHook) -> None:
         liblog.debugger(f"Hooking syscall {hook.syscall_number}.")
         self.debugging_interface.set_syscall_hook(hook)
 
-    def __threaded_signal_hook(self: InternalDebugger, hook: SignalHook) -> None:
-        liblog.debugger(
-            f"Hooking signal {resolve_signal_name(hook.signal_number)} ({hook.signal_number}).",
-        )
-        self.debugging_interface.set_signal_hook(hook)
-
     def __threaded_syscall_unhook(self: InternalDebugger, hook: SyscallHook) -> None:
         liblog.debugger(f"Unhooking syscall {hook.syscall_number}.")
         self.debugging_interface.unset_syscall_hook(hook)
-
-    def __threaded_signal_unhook(self: InternalDebugger, hook: SignalHook) -> None:
-        liblog.debugger(f"Unhooking syscall {hook.signal_number}.")
-        self.debugging_interface.unset_signal_hook(hook)
 
     def __threaded_step(self: InternalDebugger, thread: ThreadContext) -> None:
         liblog.debugger("Stepping thread %s.", thread.thread_id)
