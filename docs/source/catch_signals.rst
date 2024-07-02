@@ -1,14 +1,15 @@
 Signals
 =======
 
-libdebug supports catching of signals. You can, in fact, execute a callback or pause the script when a specific signal directed at the debugged process is intercepted by the tracer. \
+libdebug supports catching of signals. You can, in fact, execute a callback or pause the script when a specific signal directed at the debugged process is intercepted by the tracer.
+
 The following is the signature of the callback function:
 
 .. code-block:: python
 
     def callback(d: ThreadContext, catcher: SignalCatcher) -> None:
 
-along with the thread where the signal was intercepted from, the callback is also passed the `SignalCatcher` object. \
+along with the thread where the signal was intercepted from, the callback is also passed the `SignalCatcher` object.
 
 When registering a signal catcher, you can either specify the signal number or the conventional signal name (e.g. 'SIGINT').
 
@@ -108,7 +109,7 @@ For example, the following code raises a `RuntimeError`:
     catcher2 = d.hijack_signal("SIGINT", "SIGPIPE")
 
 Recursion
-^^^^^^^^^^^^^^
+^^^^^^^^^
 Mixing signal catching and hijacking can become messy. Because of this, libdebug provides users with the choice of whether to execute the catcher for a signal that was triggered *by* a hijack.
 
 This behavior is enabled by the parameter `recursive`, available when instantiating a hijack or a catcher. By default, the parameter is set to False.

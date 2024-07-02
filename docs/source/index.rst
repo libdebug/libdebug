@@ -57,7 +57,7 @@ Installing libdebug once you have dependencies is as simple as running the follo
 
     python3 -m pip install libdebug
 
-This will install the stable build of the library. If you don't mind a few hicups, you can install the latest dev build from the Github repository:
+This will install the stable build of the library. If you don't mind a few hiccups, you can install the latest dev build from the Github repository:
 
 .. code-block:: bash
 

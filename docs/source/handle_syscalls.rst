@@ -8,7 +8,7 @@ In the case of *handling*, the user can provide a callback function that will be
 In the case of *hijacking*, the user can modify the syscall that was supposed to be executed, either by changing its parameters or replacing it with another syscall.
 
 Handlers
--------
+--------
 When handling a syscall, the user can provide up to two callback functions that will be called whenever the handled syscall is executed. One that is called before executing the syscall (`on_enter`), the other is called after executing the syscall (`on_exit`).
 
 Please note that it is not necessary to specify both `on_enter` and `on_exit` callbacks. It is sufficient to specify only one of them. The callback function must have the following signature:
@@ -106,7 +106,7 @@ For example, the following code raises a `RuntimeError`:
 
 
 Recursion
-^^^^^^^^^^^^^^
+^^^^^^^^^
 Mixing syscall handling and hijacking can become messy. Because of this, libdebug provides users with the choice of whether to execute the handler for a syscall that was triggered *by* a hijack.
 
 This behavior is enabled by the parameter `recursive`, available when instantiating a hijack or a handler. By default, the parameter is set to False.
