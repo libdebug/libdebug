@@ -15,7 +15,7 @@ When running the same executable multiple times, choosing efficient implementati
 
 ## Project Links
 Homepage: https://libdebug.org  \
-Documentation: https://libdebug.org/docs/0.5.0
+Documentation: https://docs.libdebug.org
 
 ### Installation Requirements:
 Ubuntu: \
@@ -67,7 +67,7 @@ d.kill()
 
 The above script will run the binary `test` in the working directory and stop at the function corresponding to the symbol "function". It will then print the value of the RAX register and kill the process.
 
-There is so much more that can be done with libdebug. Please read the [documentation](https://libdebug.org/docs/0.5.0) to find out more.
+There is so much more that can be done with libdebug. Please read the [documentation](https://docs.libdebug.org/) to find out more.
 
 ## The cool stuff
 
