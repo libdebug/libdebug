@@ -373,7 +373,7 @@ class SignalMultithreadTest(unittest.TestCase):
         # Set a breakpoint to stop the program before the end of the receiver thread
         r = d.run()
 
-        bp = d.breakpoint(0x15A8, hardware=True)
+        bp = d.breakpoint(0x14d8, hardware=True, file="binary")
 
         catcher1 = d.catch_signal("SIGUSR1", callback=catcher_SIGUSR1)
         catcher2 = d.catch_signal("SIGTERM", callback=catcher_SIGTERM)
