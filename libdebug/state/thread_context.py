@@ -97,6 +97,14 @@ class ThreadContext:
         return self._internal_debugger.memory
 
     @property
+    def mem(self: ThreadContext) -> MemoryView:
+        """Alias for the `memory` property.
+
+        Get the memory view of the process.
+        """
+        return self._internal_debugger.memory
+
+    @property
     def process_id(self: ThreadContext) -> int:
         """The process ID of the thread."""
         return self._internal_debugger.process_id
@@ -188,14 +196,18 @@ class ThreadContext:
         self: ThreadContext,
         position: int | str,
         max_steps: int = -1,
+        file: str = "default",
     ) -> None:
         """Executes instructions of the process until the specified location is reached.
 
         Args:
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
+            the "binary" map file).
         """
-        self._internal_debugger.step_until(self, position, max_steps)
+        self._internal_debugger.step_until(self, position, max_steps, file)
 
     def finish(self: ThreadContext, heuristic: str = "backtrace") -> None:
         """Continues execution until the current function returns or the process stops.
@@ -240,6 +252,5 @@ class ThreadContext:
 
         Args:
             heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
-"""
-
+        """
         self._internal_debugger.finish(self, heuristic)

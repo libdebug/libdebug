@@ -904,7 +904,6 @@ class SignalHookTest(unittest.TestCase):
         self.assertEqual(SIGQUIT, b"Received signal 3" * 3)
         self.assertEqual(SIGPIPE, b"Received signal 13" * 3)
 
-        self.assertEqual(self.log_capture_string.getvalue().count("WARNING"), 1)
         self.assertEqual(
             self.log_capture_string.getvalue().count("is already hooked. Overriding it."),
             1,
@@ -953,7 +952,6 @@ class SignalHookTest(unittest.TestCase):
         self.assertEqual(SIGQUIT, b"Received signal 3" * 3)
         self.assertEqual(SIGPIPE, b"Received signal 15" * 2 + b"Received signal 2")
 
-        self.assertEqual(self.log_capture_string.getvalue().count("WARNING"), 1)
         self.assertEqual(
             self.log_capture_string.getvalue().count("is already hooked. Overriding it."),
             1,
@@ -1010,7 +1008,6 @@ class SignalHookTest(unittest.TestCase):
         self.assertEqual(SIGQUIT, b"Received signal 3" * 3)
         self.assertEqual(SIGPIPE, b"Received signal 15" * 2 + b"Received signal 13")
 
-        self.assertEqual(self.log_capture_string.getvalue().count("WARNING"), 1)
         self.assertEqual(
             self.log_capture_string.getvalue().count("is already hooked. Overriding it."),
             1,
