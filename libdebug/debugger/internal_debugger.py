@@ -282,7 +282,7 @@ class InternalDebugger:
         """Kills the process."""
         try:
             self._ensure_process_stopped()
-        except OSError:
+        except (OSError, RuntimeError):
             # This exception might occur if the process has already died
             liblog.debugger("OSError raised during kill")
 
