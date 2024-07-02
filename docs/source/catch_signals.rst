@@ -53,7 +53,7 @@ As with breakpoints and syscall handlers, you can access the `hit_count` propert
 
 Note: You cannot catch **SIGSTOP**, **SIGTRAP**, and **SIGKILL**.
 
-These signals are internally used by the ptrace and the debugger, or are enforced by the kernel to be passed directly to the child process without the possibility of being caught.
+These signals are internally used by ptrace and the debugger, or are enforced by the kernel to be passed directly to the child process without the possibility of being caught.
 
 Just like with syscalls, there can be at most one user-defined catcher for each signal.
 
@@ -61,9 +61,9 @@ If a new catcher is defined for a signal that is already catched or hijacked, th
 
 Signal Filtering
 ----------------
-Instead of setting a catcher on signals, you could want to filter which signals are not to be forwarded to the debugged process during execution.
+Instead of setting a catcher on signals, you might want to filter which signals are not to be forwarded to the debugged process during execution.
 
-By default, all signals not related to the libdebug's internals are forwarded. For example, SIGSTOP is never passed to the process.
+By default, all signals not related to libdebug internals are forwarded. For example, SIGSTOP is never passed to the process.
 
 .. code-block:: python
     
@@ -95,7 +95,7 @@ When registering a signal hijack, you can either specify the signal number or th
 
 Note: Just like with catchers, you cannot hijack **SIGSTOP**, **SIGTRAP**, and **SIGKILL**.
 
-These signals are internally used by the ptrace and the debugger, or are enforced by the kernel to be passed directly to the child process without the possibility of being caught.
+These signals are internally used by ptrace and the debugger, or are enforced by the kernel to be passed directly to the child process without the possibility of being caught.
 
 Hijacking Loop Detection
 ^^^^^^^^^^^^^^^^^^^^^^^^

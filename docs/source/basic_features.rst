@@ -148,7 +148,7 @@ You can force the addressing mode by using the following syntax:
     d.memory[0x1000, 0x10, "absolute"]
     d.memory[0x1000, 0x10, "hybrid"]
 
-If you specify a full or a substring of a file name, libdebug will search for the memory map of the file and use the base address of the file as the base address for the relative addressing. If the file is not found or multiple matches are found, an exeption is raised.
+If you specify a full or a substring of a file name, libdebug will search for the memory map of the file and use the base address of the file as the base address for the relative addressing. If the file is not found or multiple matches are found, an exception is raised.
 
 .. code-block:: python
     d.memory[0x1000, 0x10, "file_name"]
