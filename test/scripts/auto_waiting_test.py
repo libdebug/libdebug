@@ -4,12 +4,25 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+import io
+import logging
 import unittest
 
 from libdebug import debugger
 
 
 class AutoWaitingTest(unittest.TestCase):
+    def setUp(self):
+        # Redirect logging to a string buffer
+        self.log_capture_string = io.StringIO()
+        self.log_handler = logging.StreamHandler(self.log_capture_string)
+        self.log_handler.setLevel(logging.WARNING)
+
+        self.logger = logging.getLogger("libdebug")
+        self.original_handlers = self.logger.handlers
+        self.logger.handlers = []
+        self.logger.addHandler(self.log_handler)
+        self.logger.setLevel(logging.WARNING)
 
     def test_bps_auto_waiting(self):
         d = debugger("binaries/breakpoint_test", auto_interrupt_on_command=False)
