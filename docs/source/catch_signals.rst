@@ -15,7 +15,7 @@ When registering a signal catcher, you can either specify the signal number or t
 .. code-block:: python
 
     # Define the callback function
-    def cather_SIGUSR1(t, catcher):
+    def catcher_SIGUSR1(t, catcher):
         t.signal = 0x0
         print("Look mum, I'm catching a signal")
 
@@ -72,7 +72,7 @@ By default, all signals not related to the libdebug's internals are forwarded. F
 
 Arbitrary Signals
 -----------------
-You can also send an arbitrary signal to the process. The signal will be forwarded upon calling `d.cont()`, just before continuing the exectution.
+You can also send an arbitrary signal to the process. The signal will be forwarded upon calling `d.cont()`, just before continuing the execution.
 
 .. code-block:: python
 

@@ -69,8 +69,8 @@ For example, in the following code, `handler_2` will override `handler_1`, showi
 
 .. code-block:: python
 
-    handler_1 = d.handler_syscall(syscall="open", on_enter=on_enter_open_1, on_exit=on_exit_open_1)
-    handler_2 = d.handler_syscall(syscall="open", on_enter=on_enter_open_2, on_exit=on_exit_open_2)
+    handler_1 = d.handle_syscall(syscall="open", on_enter=on_enter_open_1, on_exit=on_exit_open_1)
+    handler_2 = d.handle_syscall(syscall="open", on_enter=on_enter_open_2, on_exit=on_exit_open_2)
 
 Hijacking
 ---------
@@ -85,6 +85,12 @@ When hijacking a syscall, the user can provide an alternative syscall to be exec
 
 In this example, the `read` syscall will be replaced by the `write` syscall. The parameters of the `read` syscall will be passed to the `write` syscall.
 Again, it is possible to specify a syscall by its number in the syscall table or by its common name.
+
+For your comodity, you can also easily provide the syscall parameters to be used when the hijacked syscall is executed:
+
+.. code-block:: python
+
+    handler = d.hijack_syscall("read", "write", syscall_arg0=0x1, syscall_arg1=write_buffer, syscall_arg2=0x100)
 
 Hijacking Loop Detection
 ^^^^^^^^^^^^^^^^^^^^^^^^
