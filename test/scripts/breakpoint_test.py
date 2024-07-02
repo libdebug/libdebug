@@ -335,7 +335,7 @@ class BreakpointTest(unittest.TestCase):
         
         d.run()
 
-        bp1 = d.breakpoint(0x1266, file="default")
+        bp1 = d.breakpoint(0x1266, file="hybrid")
 
         d.cont()
 

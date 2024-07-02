@@ -384,7 +384,7 @@ class InternalDebugger:
         condition: str | None = None,
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
-        file: str = "default",
+        file: str = "hybrid",
     ) -> Breakpoint:
         """Sets a breakpoint at the specified location.
 
@@ -396,7 +396,7 @@ class InternalDebugger:
             length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
             callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the
             breakpoint is hit. Defaults to None.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
             (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
             the "binary" map file).
         """
@@ -795,7 +795,7 @@ class InternalDebugger:
         thread: ThreadContext,
         position: int | str,
         max_steps: int = -1,
-        file: str = "default",
+        file: str = "hybrid",
     ) -> None:
         """Executes instructions of the process until the specified location is reached.
 
@@ -803,7 +803,7 @@ class InternalDebugger:
             thread (ThreadContext): The thread to step. Defaults to None.
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
             (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
             the "binary" map file).
         """
@@ -821,7 +821,7 @@ class InternalDebugger:
         thread: ThreadContext,
         position: int | str,
         max_steps: int = -1,
-        file: str = "default",
+        file: str = "hybrid",
     ) -> None:
         """Executes instructions of the process until the specified location is reached.
 
@@ -829,7 +829,7 @@ class InternalDebugger:
             thread (ThreadContext): The thread to step. Defaults to None.
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
             (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
             the "binary" map file).
         """
@@ -1005,7 +1005,7 @@ class InternalDebugger:
         """
         maps = self.debugging_interface.maps()
 
-        if backing_file in ["default", "absolute"]:
+        if backing_file in ["hybrid", "absolute"]:
             if check_absolute_address(address, maps):
                 # If the address is absolute, we can return it directly
                 return address
@@ -1062,7 +1062,7 @@ class InternalDebugger:
         if backing_file == "absolute":
             raise ValueError("Cannot use `absolute` backing file with symbols.")
 
-        if backing_file == "default":
+        if backing_file == "hybrid":
             # If no explicit backing file is specified, we have to assume it is in the main map
             backing_file = self._get_process_full_path()
             liblog.debugger(f"No backing file specified for the symbol {symbol}. Assuming {backing_file}.")

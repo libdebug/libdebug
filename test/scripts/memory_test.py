@@ -263,8 +263,8 @@ class MemoryTest(unittest.TestCase):
 
         d.memory[0x0, 8, "binary"] = b"\x00\x00\x00\x00\x00\x00\x00\x00"
 
-        d.memory["main":"main+8", "default"] = b"abcd1234"
-        self.assertEqual(d.memory["main":"main+8", "default"], b"abcd1234")
+        d.memory["main":"main+8", "hybrid"] = b"abcd1234"
+        self.assertEqual(d.memory["main":"main+8", "hybrid"], b"abcd1234")
 
         d.memory[0x0, 8, "binary"] = b"\x00\x00\x00\x00\x00\x00\x00\x00"
 

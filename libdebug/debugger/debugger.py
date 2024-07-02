@@ -97,7 +97,7 @@ class Debugger:
         condition: str | None = None,
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
-        file: str = "default",
+        file: str = "hybrid",
     ) -> Breakpoint:
         """Sets a breakpoint at the specified location.
 
@@ -109,7 +109,7 @@ class Debugger:
             length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
             callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the
             breakpoint is hit. Defaults to None.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
             (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
             the "binary" map file).
         """
@@ -121,7 +121,7 @@ class Debugger:
         condition: str = "w",
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
-        file: str = "default",
+        file: str = "hybrid",
     ) -> Breakpoint:
         """Sets a watchpoint at the specified location. Internally, watchpoints are implemented as breakpoints.
 
@@ -132,7 +132,7 @@ class Debugger:
             length (int, optional): The size of the word in being watched (1, 2, 4 or 8). Defaults to 1.
             callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the
             watchpoint is hit. Defaults to None.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
             (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
             the "binary" map file).
         """
@@ -267,7 +267,7 @@ class Debugger:
         condition: str | None = None,
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
-        file: str = "default",
+        file: str = "hybrid",
     ) -> Breakpoint:
         """Alias for the `breakpoint` method.
 
@@ -279,7 +279,7 @@ class Debugger:
             length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
             callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the
             breakpoint is hit. Defaults to None.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
             (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
             the "binary" map file).
         """
@@ -291,7 +291,7 @@ class Debugger:
         condition: str = "w",
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
-        file: str = "default",
+        file: str = "hybrid",
     ) -> Breakpoint:
         """Alias for the `watchpoint` method.
 
@@ -304,7 +304,7 @@ class Debugger:
             length (int, optional): The size of the word in being watched (1, 2, 4 or 8). Defaults to 1.
             callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the
             watchpoint is hit. Defaults to None.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
             (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
             the "binary" map file).
         """
