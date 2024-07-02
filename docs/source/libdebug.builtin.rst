@@ -5,7 +5,7 @@ Submodules
 ----------
 
 libdebug.builtin.antidebug\_syscall\_handler module
-------------------------------------------------
+---------------------------------------------------
 
 .. automodule:: libdebug.builtin.antidebug_syscall_handler
    :members:
@@ -13,7 +13,7 @@ libdebug.builtin.antidebug\_syscall\_handler module
    :show-inheritance:
 
 libdebug.builtin.pretty\_print\_syscall\_handler module
-----------------------------------------------------
+-------------------------------------------------------
 
 .. automodule:: libdebug.builtin.pretty_print_syscall_handler
    :members:

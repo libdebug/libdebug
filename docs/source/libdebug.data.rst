@@ -45,7 +45,7 @@ libdebug.data.registers module
    :show-inheritance:
 
 libdebug.data.signal\_catcher module
----------------------------------
+------------------------------------
 
 .. automodule:: libdebug.data.signal_catcher
    :members:
@@ -53,7 +53,7 @@ libdebug.data.signal\_catcher module
    :show-inheritance:
 
 libdebug.data.syscall\_handler module
-----------------------------------
+-------------------------------------
 
 .. automodule:: libdebug.data.syscall_handler
    :members:
