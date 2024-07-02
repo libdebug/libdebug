@@ -245,7 +245,7 @@ An alternative to running the program from the beginning and to resume libdebug 
     d.attach(pid)
 
 Graceful Termination
-====================================
+====================
 
 If you want to kill the process being debugged, you can use the `kill()` method. When repeatedly running new instances of debugged program, remember to call the `kill()` command on old instances to avoid large memory usage. The syntax is as follows:
 
@@ -259,7 +259,34 @@ When you are done with the debugger object, you can terminate the background thr
 
     d.terminate()
 
+
+Post Mortem Analysis
+====================
+You can check at every moment if the whole process (or a specific thread) is dead by using the `dead` property. The syntax is as follows:
+
+.. code-block:: python
+
+    if not d.dead:
+        print("The process is not dead")
+    else:
+        print("The process is dead")
+
+Moreover, after the process has died, you can check the exit code and the exit signal by using the `exit_code` and `exit_signal` properties, respectively. The syntax is as follows:
+
+.. code-block:: python
+
+    if d.dead:
+        print(f"The process exited with code {d.exit_code}")
+
+.. code-block:: python
+
+    if d.dead:
+        print(f"The process exited with signal {d.exit_signal}")
+
+You can also access registers after the process has died. This is useful for *post-mortem* analysis.
+
+
 Supported Architectures
-====================================
+=======================
 
 libdebug currently only supports Linux under the x86_64 (AMD64) architecture. Support for other architectures is planned for future releases. Stay tuned.
