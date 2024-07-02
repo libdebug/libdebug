@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import functools
 import os
-import signal
 from pathlib import Path
 from queue import Queue
+from signal import SIGKILL, SIGSTOP, SIGTRAP
 from subprocess import Popen
 from threading import Thread, current_thread
 from typing import TYPE_CHECKING
@@ -19,12 +19,12 @@ from typing import TYPE_CHECKING
 import psutil
 
 from libdebug.architectures.syscall_hijacking_provider import syscall_hijacking_provider
-from libdebug.builtin.antidebug_syscall_hook import on_enter_ptrace, on_exit_ptrace
-from libdebug.builtin.pretty_print_syscall_hook import pprint_on_enter, pprint_on_exit
+from libdebug.builtin.antidebug_syscall_handler import on_enter_ptrace, on_exit_ptrace
+from libdebug.builtin.pretty_print_syscall_handler import pprint_on_enter, pprint_on_exit
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.memory_view import MemoryView
-from libdebug.data.signal_hook import SignalHook
-from libdebug.data.syscall_hook import SyscallHook
+from libdebug.data.signal_catcher import SignalCatcher
+from libdebug.data.syscall_handler import SyscallHandler
 from libdebug.debugger.internal_debugger_instance_manager import (
     extend_internal_debugger,
     link_to_internal_debugger,
@@ -91,12 +91,12 @@ class InternalDebugger:
     """A dictionary of all the breakpoints set on the process.
     Key: the address of the breakpoint."""
 
-    syscall_hooks: dict[int, SyscallHook]
-    """A dictionary of all the syscall hooks set on the process.
+    handled_syscalls: dict[int, SyscallHandler]
+    """A dictionary of all the syscall handled in the process.
     Key: the syscall number."""
 
-    signal_hooks: dict[int, SignalHook]
-    """A dictionary of all the signal hooks set on the process.
+    caught_signals: dict[int, SignalCatcher]
+    """A dictionary of all the signals caught in the process.
     Key: the signal number."""
 
     signals_to_block: list[int]
@@ -153,8 +153,8 @@ class InternalDebugger:
         self.env = {}
         self.escape_antidebug = False
         self.breakpoints = {}
-        self.syscall_hooks = {}
-        self.signal_hooks = {}
+        self.handled_syscalls = {}
+        self.caught_signals = {}
         self.syscalls_to_pprint = None
         self.syscalls_to_not_pprint = None
         self.signals_to_block = []
@@ -172,8 +172,8 @@ class InternalDebugger:
         """Reinitializes the context, so it is ready for a new run."""
         # These must be reinitialized on every call to "run"
         self.breakpoints.clear()
-        self.syscall_hooks.clear()
-        self.signal_hooks.clear()
+        self.handled_syscalls.clear()
+        self.caught_signals.clear()
         self.syscalls_to_pprint = None
         self.syscalls_to_not_pprint = None
         self.signals_to_block.clear()
@@ -335,7 +335,7 @@ class InternalDebugger:
             return
 
         self.resume_context.force_interrupt = True
-        os.kill(self.process_id, signal.SIGSTOP)
+        os.kill(self.process_id, SIGSTOP)
 
         self.wait()
 
@@ -384,7 +384,7 @@ class InternalDebugger:
         condition: str | None = None,
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
-        file: str = "default",
+        file: str = "hybrid",
     ) -> Breakpoint:
         """Sets a breakpoint at the specified location.
 
@@ -396,7 +396,7 @@ class InternalDebugger:
             length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
             callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the
             breakpoint is hit. Defaults to None.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
             (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
             the "binary" map file).
         """
@@ -414,7 +414,7 @@ class InternalDebugger:
 
             if condition.lower() not in ["w", "rw", "x"]:
                 raise ValueError(
-                    "Invalid condition for watchpoints. Supported conditions are 'r', 'rw', 'x'.",
+                    "Invalid condition for watchpoints. Supported conditions are 'w', 'rw', 'x'.",
                 )
 
             if length not in [1, 2, 4, 8]:
@@ -441,80 +441,62 @@ class InternalDebugger:
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
-    def hook_signal(
+    def catch_signal(
         self: InternalDebugger,
-        signal_to_hook: int | str,
-        callback: None | Callable[[ThreadContext, int], None] = None,
-        hook_hijack: bool = True,
-    ) -> SignalHook:
-        """Hooks a signal in the target process.
+        signal: int | str,
+        callback: None | Callable[[ThreadContext, SignalCatcher], None] = None,
+        recursive: bool = False,
+    ) -> SignalCatcher:
+        """Catch a signal in the target process.
 
         Args:
-            signal_to_hook (int | str): The signal to hook.
-            callback (Callable[[ThreadContext, int], None], optional): A callback to be called when the signal is
-            received. Defaults to None.
-            hook_hijack (bool, optional): Whether to execute the hook/hijack of the new signal after an hijack or not.
-            Defaults to False.
-        """
-        if callback is None:
-            raise ValueError("A callback must be specified.")
+            signal (int | str): The signal to catch.
+            callback (Callable[[ThreadContext, CaughtSignal], None], optional): A callback to be called when the signal is
+            caught. Defaults to None.
+            recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher
+            associated with the new signal should be considered as well. Defaults to False.
 
-        if isinstance(signal_to_hook, str):
-            signal_number = resolve_signal_number(signal_to_hook)
-        elif isinstance(signal_to_hook, int):
-            signal_number = signal_to_hook
+        Returns:
+            CaughtSignal: The CaughtSignal object.
+        """
+        if isinstance(signal, str):
+            signal_number = resolve_signal_number(signal)
+        elif isinstance(signal, int):
+            signal_number = signal
         else:
             raise TypeError("signal must be an int or a str")
 
         match signal_number:
-            case signal.SIGKILL:
+            case SIGKILL.value:
                 raise ValueError(
-                    f"Cannot hook SIGKILL ({signal_number}) as it cannot be caught or ignored. This is a kernel restriction."
+                    f"Cannot catch SIGKILL ({signal_number}) as it cannot be caught or ignored. This is a kernel restriction."
                 )
-            case signal.SIGSTOP:
+            case SIGSTOP.value:
                 raise ValueError(
-                    f"Cannot hook SIGSTOP ({signal_number}) as it is used by the debugger or ptrace for their internal operations."
+                    f"Cannot catch SIGSTOP ({signal_number}) as it is used by the debugger or ptrace for their internal operations."
                 )
-            case signal.SIGTRAP:
+            case SIGTRAP.value:
                 raise ValueError(
-                    f"Cannot hook SIGTRAP ({signal_number}) as it is used by the debugger or ptrace for their internal operations."
+                    f"Cannot catch SIGTRAP ({signal_number}) as it is used by the debugger or ptrace for their internal operations."
                 )
 
-        if signal_number in self.signal_hooks:
+        if signal_number in self.caught_signals:
             liblog.warning(
-                f"Signal {resolve_signal_name(signal_number)} ({signal_number}) is already hooked. Overriding it.",
+                f"Signal {resolve_signal_name(signal_number)} ({signal_number}) has already been caught. Overriding it.",
             )
-            self.unhook_signal(self.signal_hooks[signal_number])
 
-        if not isinstance(hook_hijack, bool):
-            raise TypeError("hook_hijack must be a boolean")
+        if not isinstance(recursive, bool):
+            raise TypeError("recursive must be a boolean")
 
-        hook = SignalHook(signal_number, callback, hook_hijack)
+        catcher = SignalCatcher(signal_number, callback, recursive)
 
-        link_to_internal_debugger(hook, self)
+        link_to_internal_debugger(catcher, self)
 
-        self.__polling_thread_command_queue.put((self.__threaded_signal_hook, (hook,)))
-
-        self._join_and_check_status()
-
-        return hook
-
-    @background_alias(_background_invalid_call)
-    @change_state_function_process
-    def unhook_signal(self: InternalDebugger, hook: SignalHook) -> None:
-        """Unhooks a signal in the target process.
-
-        Args:
-            hook (SignalHook): The signal hook to unhook.
-        """
-        if hook.signal_number not in self.signal_hooks:
-            raise ValueError(f"Signal {hook.signal_number} is not hooked.")
-
-        hook = self.signal_hooks[hook.signal_number]
-
-        self.__polling_thread_command_queue.put((self.__threaded_signal_unhook, (hook,)))
+        self.__polling_thread_command_queue.put((self.__threaded_catch_signal, (catcher,)))
 
         self._join_and_check_status()
+
+        return catcher
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
@@ -522,15 +504,18 @@ class InternalDebugger:
         self: InternalDebugger,
         original_signal: int | str,
         new_signal: int | str,
-        hook_hijack: bool = True,
-    ) -> None:
-        """Hijacks a signal in the target process.
+        recursive: bool = False,
+    ) -> SignalCatcher:
+        """Hijack a signal in the target process.
 
         Args:
             original_signal (int | str): The signal to hijack.
-            new_signal (int | str): The signal to replace the original signal with.
-            hook_hijack (bool, optional): Whether to execute the hook/hijack of the new signal after the hijack or not.
-            Defaults to True.
+            new_signal (int | str): The signal to hijack the original signal with.
+            recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher
+            associated with the new signal should be considered as well. Defaults to False.
+
+        Returns:
+            CaughtSignal: The CaughtSignal object.
         """
         if isinstance(original_signal, str):
             original_signal_number = resolve_signal_number(original_signal)
@@ -544,95 +529,70 @@ class InternalDebugger:
                 "The original signal and the new signal must be different during hijacking.",
             )
 
-        def callback(thread: ThreadContext, _: int) -> None:
+        def callback(thread: ThreadContext, _: SignalCatcher) -> None:
             """The callback to execute when the signal is received."""
             thread.signal = new_signal_number
 
-        return self.hook_signal(original_signal_number, callback, hook_hijack)
+        return self.catch_signal(original_signal_number, callback, recursive)
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
-    def hook_syscall(
+    def handle_syscall(
         self: InternalDebugger,
         syscall: int | str,
-        on_enter: Callable[[ThreadContext, int], None] | None = None,
-        on_exit: Callable[[ThreadContext, int], None] | None = None,
-        hook_hijack: bool = True,
-    ) -> SyscallHook:
-        """Hooks a syscall in the target process.
+        on_enter: Callable[[ThreadContext, SyscallHandler], None] | None = None,
+        on_exit: Callable[[ThreadContext, SyscallHandler], None] | None = None,
+        recursive: bool = False,
+    ) -> SyscallHandler:
+        """Handle a syscall in the target process.
 
         Args:
-            syscall (int | str): The syscall name or number to hook.
-            on_enter (Callable[[ThreadContext, int], None], optional): The callback to execute when the syscall is entered. Defaults to None.
-            on_exit (Callable[[ThreadContext, int], None], optional): The callback to execute when the syscall is exited. Defaults to None.
-            hook_hijack (bool, optional): Whether the syscall after the hijack should be hooked. Defaults to True.
+            syscall (int | str): The syscall name or number to handle.
+            on_enter (Callable[[ThreadContext, HandledSyscall], None], optional): The callback to execute when the
+            syscall is entered. Defaults to None.
+            on_exit (Callable[[ThreadContext, HandledSyscall], None], optional): The callback to execute when the
+            syscall is exited. Defaults to None.
+            recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler
+            associated with the new syscall should be considered as well. Defaults to False.
 
         Returns:
-            SyscallHook: The syscall hook object.
+            HandledSyscall: The HandledSyscall object.
         """
-        if on_enter is None and on_exit is None:
-            raise ValueError(
-                "At least one callback between on_enter and on_exit should be specified.",
-            )
-
         syscall_number = resolve_syscall_number(syscall) if isinstance(syscall, str) else syscall
 
-        if not isinstance(hook_hijack, bool):
-            raise TypeError("hook_hijack must be a boolean")
+        if not isinstance(recursive, bool):
+            raise TypeError("recursive must be a boolean")
 
-        # Check if the syscall is already hooked (by the user or by the pretty print hook)
-        if syscall_number in self.syscall_hooks:
-            hook = self.syscall_hooks[syscall_number]
-            if hook.on_enter_user or hook.on_exit_user:
+        # Check if the syscall is already handled (by the user or by the pretty print handler)
+        if syscall_number in self.handled_syscalls:
+            handler = self.handled_syscalls[syscall_number]
+            if handler.on_enter_user or handler.on_exit_user:
                 liblog.warning(
-                    f"Syscall {resolve_syscall_name(syscall_number)} is already hooked by a user-defined hook. Overriding it.",
+                    f"Syscall {resolve_syscall_name(syscall_number)} is already handled by a user-defined handler. Overriding it.",
                 )
-            hook.on_enter_user = on_enter
-            hook.on_exit_user = on_exit
-            hook.hook_hijack = hook_hijack
-            hook.enabled = True
+            handler.on_enter_user = on_enter
+            handler.on_exit_user = on_exit
+            handler.recursive = recursive
+            handler.enabled = True
         else:
-            hook = SyscallHook(
+            handler = SyscallHandler(
                 syscall_number,
                 on_enter,
                 on_exit,
                 None,
                 None,
-                hook_hijack,
+                recursive,
             )
 
-            link_to_internal_debugger(hook, self)
+            link_to_internal_debugger(handler, self)
 
             self.__polling_thread_command_queue.put(
-                (self.__threaded_syscall_hook, (hook,)),
+                (self.__threaded_handle_syscall, (handler,)),
             )
 
             self._join_and_check_status()
 
-        return hook
-
-    @background_alias(_background_invalid_call)
-    @change_state_function_process
-    def unhook_syscall(self: InternalDebugger, hook: SyscallHook) -> None:
-        """Unhooks a syscall in the target process.
-
-        Args:
-            hook (SyscallHook): The syscall hook to unhook.
-        """
-        if hook.syscall_number not in self.syscall_hooks:
-            raise ValueError(f"Syscall {hook.syscall_number} is not hooked.")
-
-        hook = self.syscall_hooks[hook.syscall_number]
-
-        if hook.on_enter_pprint or hook.on_exit_pprint:
-            hook.on_enter_user = None
-            hook.on_exit_user = None
-        else:
-            self.__polling_thread_command_queue.put(
-                (self.__threaded_syscall_unhook, (hook,)),
-            )
-
-            self._join_and_check_status()
+        return handler
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
@@ -640,19 +600,20 @@ class InternalDebugger:
         self: InternalDebugger,
         original_syscall: int | str,
         new_syscall: int | str,
-        hook_hijack: bool = True,
+        recursive: bool = True,
         **kwargs: int,
-    ) -> SyscallHook:
+    ) -> SyscallHandler:
         """Hijacks a syscall in the target process.
 
         Args:
             original_syscall (int | str): The syscall name or number to hijack.
-            new_syscall (int | str): The syscall name or number to replace the original syscall with.
-            hook_hijack (bool, optional): Whether the syscall after the hijack should be hooked. Defaults to True.
+            new_syscall (int | str): The syscall name or number to hijack the original syscall with.
+            recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler
+            associated with the new syscall should be considered as well. Defaults to False.
             **kwargs: (int, optional): The arguments to pass to the new syscall.
 
         Returns:
-            SyscallHook: The syscall hook object.
+            HandledSyscall: The HandledSyscall object.
         """
         if set(kwargs) - syscall_hijacking_provider().allowed_args:
             raise ValueError("Invalid keyword arguments in syscall hijack")
@@ -674,46 +635,46 @@ class InternalDebugger:
             **kwargs,
         )
 
-        # Check if the syscall is already hooked (by the user or by the pretty print hook)
-        if original_syscall_number in self.syscall_hooks:
-            hook = self.syscall_hooks[original_syscall_number]
-            if hook.on_enter_user or hook.on_exit_user:
+        # Check if the syscall is already handled (by the user or by the pretty print handler)
+        if original_syscall_number in self.handled_syscalls:
+            handler = self.handled_syscalls[original_syscall_number]
+            if handler.on_enter_user or handler.on_exit_user:
                 liblog.warning(
-                    f"Syscall {original_syscall_number} is already hooked by a user-defined hook. Overriding it.",
+                    f"Syscall {original_syscall_number} is already handled by a user-defined handler. Overriding it.",
                 )
-            hook.on_enter_user = on_enter
-            hook.on_exit_user = None
-            hook.hook_hijack = hook_hijack
-            hook.enabled = True
+            handler.on_enter_user = on_enter
+            handler.on_exit_user = None
+            handler.recursive = recursive
+            handler.enabled = True
         else:
-            hook = SyscallHook(
+            handler = SyscallHandler(
                 original_syscall_number,
                 on_enter,
                 None,
                 None,
                 None,
-                hook_hijack,
+                recursive,
             )
 
-            link_to_internal_debugger(hook, self)
+            link_to_internal_debugger(handler, self)
 
             self.__polling_thread_command_queue.put(
-                (self.__threaded_syscall_hook, (hook,)),
+                (self.__threaded_handle_syscall, (handler,)),
             )
 
             self._join_and_check_status()
 
-        return hook
+        return handler
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
-    def migrate_to_gdb(self: InternalDebugger, open_in_new_process: bool = True) -> None:
+    def gdb(self: InternalDebugger, open_in_new_process: bool = True) -> None:
         """Migrates the current debugging session to GDB."""
 
         # TODO: not needed?
         self.interrupt()
 
-        self.__polling_thread_command_queue.put((self.__threaded_migrate_to_gdb, ()))
+        self.__polling_thread_command_queue.put((self.__threaded_gdb, ()))
 
         self._join_and_check_status()
 
@@ -834,7 +795,7 @@ class InternalDebugger:
         thread: ThreadContext,
         position: int | str,
         max_steps: int = -1,
-        file: str = "default",
+        file: str = "hybrid",
     ) -> None:
         """Executes instructions of the process until the specified location is reached.
 
@@ -842,7 +803,7 @@ class InternalDebugger:
             thread (ThreadContext): The thread to step. Defaults to None.
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
             (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
             the "binary" map file).
         """
@@ -860,7 +821,7 @@ class InternalDebugger:
         thread: ThreadContext,
         position: int | str,
         max_steps: int = -1,
-        file: str = "default",
+        file: str = "hybrid",
     ) -> None:
         """Executes instructions of the process until the specified location is reached.
 
@@ -868,7 +829,7 @@ class InternalDebugger:
             thread (ThreadContext): The thread to step. Defaults to None.
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
             (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
             the "binary" map file).
         """
@@ -925,29 +886,29 @@ class InternalDebugger:
 
     def enable_pretty_print(
         self: InternalDebugger,
-    ) -> SyscallHook:
-        """Hooks a syscall in the target process to pretty prints its arguments and return value."""
+    ) -> SyscallHandler:
+        """Handles a syscall in the target process to pretty prints its arguments and return value."""
         self._ensure_process_stopped()
 
         syscall_numbers = get_all_syscall_numbers()
 
         for syscall_number in syscall_numbers:
-            # Check if the syscall is already hooked (by the user or by the pretty print hook)
-            if syscall_number in self.syscall_hooks:
-                hook = self.syscall_hooks[syscall_number]
+            # Check if the syscall is already handled (by the user or by the pretty print handler)
+            if syscall_number in self.handled_syscalls:
+                handler = self.handled_syscalls[syscall_number]
                 if syscall_number not in (self.syscalls_to_not_pprint or []) and syscall_number in (
                     self.syscalls_to_pprint or syscall_numbers
                 ):
-                    hook.on_enter_pprint = pprint_on_enter
-                    hook.on_exit_pprint = pprint_on_exit
+                    handler.on_enter_pprint = pprint_on_enter
+                    handler.on_exit_pprint = pprint_on_exit
                 else:
-                    # Remove the pretty print hook from previous pretty print calls
-                    hook.on_enter_pprint = None
-                    hook.on_exit_pprint = None
+                    # Remove the pretty print handler from previous pretty print calls
+                    handler.on_enter_pprint = None
+                    handler.on_exit_pprint = None
             elif syscall_number not in (self.syscalls_to_not_pprint or []) and syscall_number in (
                 self.syscalls_to_pprint or syscall_numbers
             ):
-                hook = SyscallHook(
+                handler = SyscallHandler(
                     syscall_number,
                     None,
                     None,
@@ -955,27 +916,30 @@ class InternalDebugger:
                     pprint_on_exit,
                 )
 
-                link_to_internal_debugger(hook, self)
+                link_to_internal_debugger(handler, self)
+
+                # We have to disable the handler since it is not user-defined
+                handler.disable()
 
                 self.__polling_thread_command_queue.put(
-                    (self.__threaded_syscall_hook, (hook,)),
+                    (self.__threaded_handle_syscall, (handler,)),
                 )
 
         self._join_and_check_status()
 
     def disable_pretty_print(self: InternalDebugger) -> None:
-        """Unhooks all syscalls that are pretty printed."""
+        """Disable the handler for all the syscalls that are pretty printed."""
         self._ensure_process_stopped()
 
-        installed_hooks = list(self.syscall_hooks.values())
-        for hook in installed_hooks:
-            if hook.on_enter_pprint or hook.on_exit_pprint:
-                if hook.on_enter_user or hook.on_exit_user:
-                    hook.on_enter_pprint = None
-                    hook.on_exit_pprint = None
+        installed_handlers = list(self.handled_syscalls.values())
+        for handler in installed_handlers:
+            if handler.on_enter_pprint or handler.on_exit_pprint:
+                if handler.on_enter_user or handler.on_exit_user:
+                    handler.on_enter_pprint = None
+                    handler.on_exit_pprint = None
                 else:
                     self.__polling_thread_command_queue.put(
-                        (self.__threaded_syscall_unhook, (hook,)),
+                        (self.__threaded_unhandle_syscall, (handler,)),
                     )
 
         self._join_and_check_status()
@@ -1041,7 +1005,7 @@ class InternalDebugger:
         """
         maps = self.debugging_interface.maps()
 
-        if backing_file in ["default", "absolute"]:
+        if backing_file in ["hybrid", "absolute"]:
             if check_absolute_address(address, maps):
                 # If the address is absolute, we can return it directly
                 return address
@@ -1078,7 +1042,9 @@ class InternalDebugger:
             )
 
         if not filtered_maps:
-            raise ValueError(f"The specified string {backing_file} does not correspond to any backing file. The available backing files are: {', '.join(set(vmap.backing_file for vmap in maps))}.")
+            raise ValueError(
+                f"The specified string {backing_file} does not correspond to any backing file. The available backing files are: {', '.join(set(vmap.backing_file for vmap in maps))}."
+            )
         return normalize_and_validate_address(address, filtered_maps)
 
     def resolve_symbol(self: InternalDebugger, symbol: str, backing_file: str) -> int:
@@ -1096,7 +1062,7 @@ class InternalDebugger:
         if backing_file == "absolute":
             raise ValueError("Cannot use `absolute` backing file with symbols.")
 
-        if backing_file == "default":
+        if backing_file == "hybrid":
             # If no explicit backing file is specified, we have to assume it is in the main map
             backing_file = self._get_process_full_path()
             liblog.debugger(f"No backing file specified for the symbol {symbol}. Assuming {backing_file}.")
@@ -1121,8 +1087,9 @@ class InternalDebugger:
             )
 
         if not filtered_maps:
-            raise ValueError(f"The specified string {backing_file} does not correspond to any backing file. The available backing files are: {', '.join(set(vmap.backing_file for vmap in maps))}.")
-
+            raise ValueError(
+                f"The specified string {backing_file} does not correspond to any backing file. The available backing files are: {', '.join(set(vmap.backing_file for vmap in maps))}."
+            )
 
         return resolve_symbol_in_maps(symbol, filtered_maps)
 
@@ -1270,23 +1237,19 @@ class InternalDebugger:
         liblog.debugger("Setting breakpoint at 0x%x.", bp.address)
         self.debugging_interface.set_breakpoint(bp)
 
-    def __threaded_syscall_hook(self: InternalDebugger, hook: SyscallHook) -> None:
-        liblog.debugger(f"Hooking syscall {hook.syscall_number}.")
-        self.debugging_interface.set_syscall_hook(hook)
-
-    def __threaded_signal_hook(self: InternalDebugger, hook: SignalHook) -> None:
+    def __threaded_catch_signal(self: InternalDebugger, catcher: SignalCatcher) -> None:
         liblog.debugger(
-            f"Hooking signal {resolve_signal_name(hook.signal_number)} ({hook.signal_number}).",
+            f"Setting the catcher for signal {resolve_signal_name(catcher.signal_number)} ({catcher.signal_number}).",
         )
-        self.debugging_interface.set_signal_hook(hook)
+        self.debugging_interface.set_signal_catcher(catcher)
 
-    def __threaded_syscall_unhook(self: InternalDebugger, hook: SyscallHook) -> None:
-        liblog.debugger(f"Unhooking syscall {hook.syscall_number}.")
-        self.debugging_interface.unset_syscall_hook(hook)
+    def __threaded_handle_syscall(self: InternalDebugger, handler: SyscallHandler) -> None:
+        liblog.debugger(f"Setting the handler for syscall {handler.syscall_number}.")
+        self.debugging_interface.set_syscall_handler(handler)
 
-    def __threaded_signal_unhook(self: InternalDebugger, hook: SignalHook) -> None:
-        liblog.debugger(f"Unhooking syscall {hook.signal_number}.")
-        self.debugging_interface.unset_signal_hook(hook)
+    def __threaded_unhandle_syscall(self: InternalDebugger, handler: SyscallHandler) -> None:
+        liblog.debugger(f"Unsetting the handler for syscall {handler.syscall_number}.")
+        self.debugging_interface.unset_syscall_handler(handler)
 
     def __threaded_step(self: InternalDebugger, thread: ThreadContext) -> None:
         liblog.debugger("Stepping thread %s.", thread.thread_id)
@@ -1311,7 +1274,7 @@ class InternalDebugger:
 
         self.set_stopped()
 
-    def __threaded_migrate_to_gdb(self: InternalDebugger) -> None:
+    def __threaded_gdb(self: InternalDebugger) -> None:
         self.debugging_interface.migrate_to_gdb()
 
     def __threaded_migrate_from_gdb(self: InternalDebugger) -> None:
@@ -1382,7 +1345,7 @@ class InternalDebugger:
 
     def _enable_antidebug_escaping(self: InternalDebugger) -> None:
         """Enables the anti-debugging escape mechanism."""
-        hook = SyscallHook(
+        handler = SyscallHandler(
             resolve_syscall_number("ptrace"),
             on_enter_ptrace,
             on_exit_ptrace,
@@ -1390,13 +1353,13 @@ class InternalDebugger:
             None,
         )
 
-        link_to_internal_debugger(hook, self)
+        link_to_internal_debugger(handler, self)
 
-        self.__polling_thread_command_queue.put((self.__threaded_syscall_hook, (hook,)))
+        self.__polling_thread_command_queue.put((self.__threaded_handle_syscall, (handler,)))
 
-        # setup hidden state for the hook
-        hook._traceme_called = False
-        hook._command = None
+        # Seutp hidden state for the handler
+        handler._traceme_called = False
+        handler._command = None
 
     @property
     def running(self: InternalDebugger) -> bool:

@@ -89,6 +89,10 @@ void *receiver() {
 int main() {
     pthread_t thread_1, thread_2;
 
+    setvbuf(stdout, NULL, _IONBF, 0);
+    setvbuf(stderr, NULL, _IONBF, 0);
+    setvbuf(stdin, NULL, _IONBF, 0);
+
     pthread_create(&thread_1, NULL, receiver, NULL);
     pthread_create(&thread_2, NULL, sender, &thread_1);
 

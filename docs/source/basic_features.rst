@@ -13,7 +13,7 @@ This will be your main interface to the debugger. You can either pass the name o
 
 Just as you would expect, you can also pass environment variables to the program using the env parameter. Here, the variables are passed as a string-string dictionary.
 
-By default, debugged programs are run with ASLR disabled. If you want to enable it, you can set the `enable_aslr` parameter to True.
+By default, debugged programs are run with ASLR disabled. If you want to enable it, you can set the `aslr` parameter to True.
 
 You can also choose to debug the program starting from the just after the *execve* call, following the flow of the loader. By default, the debugger will continue to the entry point of the binary before giving you control. You can change this behavior by setting the `continue_to_binary_entrypoint` parameter to False. 
 
@@ -89,7 +89,7 @@ libdebug offers a simple register access interface for supported architectures. 
 Memory Access
 ====================================
 
-Memory access is done through the memory attribute of the debugger object or the ThreadContext. Since virtual memory is shared between threads, accessing one or the other makes no difference. Addressing for memory access is absolute, so you need to provide the full address of the memory you want to access.
+Memory access is done through the memory attribute of the debugger object or the ThreadContext. Since virtual memory is shared between threads, accessing one or the other makes no difference.
 When reading from memory, a *bytes-like* object is returned. The memory API is flexible, allowing you to access memory in different ways. The following methods are available:
 
 - **Single byte access**
@@ -137,10 +137,24 @@ Writing to memory works in a similar way. You can write a *bytes-like* object to
 Please note that proving a shorter byte-like object than the length you are trying to write will result in zero padding.
 If the byte-like object is longer than the length you are trying to write, the FULL object will be written to memory ignoring the range you provided. A warning is printed in this case.
 
-Relative Addressing
+Absolute and Relative Addressing
 -------------------
 
-TBA: Wait for the new memory map api
+When accessing memory, you can use both absolute and relative addressing. Absolute addressing is the most common way to access memory, where you provide the exact address you want to access. Relative addressing is a more advanced way to access memory, where you provide an address relative to a base address.
+By default, the memory access in libdebug is done using an hybrid addressing mode. This means that libdebug will try to resolve the address as an absolute address first. If the address is not found, libdebug will try to resolve the address as a relative address, using as base the one of the binary. In this case, a warning will be printed.
+You can force the addressing mode by using the following syntax:
+
+.. code-block:: python
+    d.memory[0x1000, 0x10, "absolute"]
+    d.memory[0x1000, 0x10, "hybrid"]
+
+If you specify a full or a substring of a file name, libdebug will search for the memory map of the file and use the base address of the file as the base address for the relative addressing. If the file is not found or multiple matches are found, an exception is raised.
+
+.. code-block:: python
+    d.memory[0x1000, 0x10, "file_name"]
+    d.memory[0x1000, 0x10, "other_file_name"]
+
+You can also use the wildcard string "binary" to use the base address of the binary as the base address for the relative addressing. The same behavior is applied if you pass a string corresponding to the binary name.
 
 Control Flow Commands
 ====================================
@@ -231,7 +245,7 @@ An alternative to running the program from the beginning and to resume libdebug 
     d.attach(pid)
 
 Graceful Termination
-====================================
+====================
 
 If you want to kill the process being debugged, you can use the `kill()` method. When repeatedly running new instances of debugged program, remember to call the `kill()` command on old instances to avoid large memory usage. The syntax is as follows:
 
@@ -245,7 +259,34 @@ When you are done with the debugger object, you can terminate the background thr
 
     d.terminate()
 
+
+Post Mortem Analysis
+====================
+You can check at every moment if the whole process (or a specific thread) is dead by using the `dead` property. The syntax is as follows:
+
+.. code-block:: python
+
+    if not d.dead:
+        print("The process is not dead")
+    else:
+        print("The process is dead")
+
+Moreover, after the process has died, you can check the exit code and the exit signal by using the `exit_code` and `exit_signal` properties, respectively. The syntax is as follows:
+
+.. code-block:: python
+
+    if d.dead:
+        print(f"The process exited with code {d.exit_code}")
+
+.. code-block:: python
+
+    if d.dead:
+        print(f"The process exited with signal {d.exit_signal}")
+
+You can also access registers after the process has died. This is useful for *post-mortem* analysis.
+
+
 Supported Architectures
-====================================
+=======================
 
 libdebug currently only supports Linux under the x86_64 (AMD64) architecture. Support for other architectures is planned for future releases. Stay tuned.

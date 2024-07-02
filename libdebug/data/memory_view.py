@@ -141,12 +141,12 @@ class MemoryView(MutableSequence):
             raise TypeError("Invalid type for the value to write to memory. Expected bytes.")
         self._manage_memory_write_type(key, value)
 
-    def _manage_memory_read_type(self: MemoryView, key: int | slice | str | tuple, file: str = "default") -> bytes:
+    def _manage_memory_read_type(self: MemoryView, key: int | slice | str | tuple, file: str = "hybrid") -> bytes:
         """Manage the read from memory, according to the typing.
 
         Args:
             key (int | slice | str | tuple): The key to read from memory.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
             (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
             the "binary" map file).
         """
@@ -197,7 +197,7 @@ class MemoryView(MutableSequence):
                 # The right element must be the size
                 address = left
                 size = right
-                file = "default"
+                file = "hybrid"
         else:
             raise TypeError("Tuple must have 2 or 3 elements.")
 
@@ -217,14 +217,14 @@ class MemoryView(MutableSequence):
         self: MemoryView,
         key: int | slice | str | tuple,
         value: bytes,
-        file: str = "default",
+        file: str = "hybrid",
     ) -> None:
         """Manage the write to memory, according to the typing.
 
         Args:
             key (int | slice | str | tuple): The key to read from memory.
             value (bytes): The value to write.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
             (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
             the "binary" map file).
         """
@@ -282,7 +282,7 @@ class MemoryView(MutableSequence):
                 # The right element must be the size
                 address = left
                 size = right
-                file = "default"
+                file = "hybrid"
         else:
             raise TypeError("Tuple must have 2 or 3 elements.")
 

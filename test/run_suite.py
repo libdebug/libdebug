@@ -14,11 +14,13 @@ from scripts.backtrace_test import BacktraceTest
 from scripts.basic_test import BasicPieTest, BasicTest, ControlFlowTest, HwBasicTest
 from scripts.breakpoint_test import BreakpointTest
 from scripts.brute_test import BruteTest
-from scripts.builtin_hooks_test import AntidebugEscapingTest
+from scripts.builtin_handler_test import AntidebugEscapingTest
 from scripts.callback_test import CallbackTest
+from scripts.catch_signal_test import SignalCatchTest
 from scripts.death_test import DeathTest
 from scripts.deep_dive_division_test import DeepDiveDivision
 from scripts.finish_test import FinishTest
+from scripts.handle_syscall_test import HandleSyscallTest
 from scripts.hijack_syscall_test import SyscallHijackTest
 from scripts.jumpout_test import Jumpout
 from scripts.jumpstart_test import JumpstartTest
@@ -27,10 +29,8 @@ from scripts.memory_test import MemoryTest
 from scripts.multiple_debuggers_test import MultipleDebuggersTest
 from scripts.ncuts_test import Ncuts
 from scripts.pprint_syscalls_test import PPrintSyscallsTest
-from scripts.signal_hook_test import SignalHookTest
 from scripts.signals_multithread_test import SignalMultithreadTest
 from scripts.speed_test import SpeedTest
-from scripts.syscall_hook_test import SyscallHookTest
 from scripts.thread_test import ComplexThreadTest, ThreadTest
 from scripts.vmwhere1_test import Vmwhere1
 from scripts.waiting_test import WaitingNcuts, WaitingTest
@@ -113,24 +113,26 @@ def fast_suite():
     suite.addTest(WatchpointTest("test_watchpoint_callback"))
     suite.addTest(WatchpointAliasTest("test_watchpoint_alias"))
     suite.addTest(WatchpointAliasTest("test_watchpoint_callback"))
-    suite.addTest(SyscallHookTest("test_hooks"))
-    suite.addTest(SyscallHookTest("test_hooks_with_pprint"))
-    suite.addTest(SyscallHookTest("test_hook_disabling"))
-    suite.addTest(SyscallHookTest("test_hook_disabling_with_pprint"))
-    suite.addTest(SyscallHookTest("test_hook_overwrite"))
-    suite.addTest(SyscallHookTest("test_hook_overwrite_with_pprint"))
+    suite.addTest(HandleSyscallTest("test_handles"))
+    suite.addTest(HandleSyscallTest("test_handles_with_pprint"))
+    suite.addTest(HandleSyscallTest("test_handle_disabling"))
+    suite.addTest(HandleSyscallTest("test_handle_disabling_with_pprint"))
+    suite.addTest(HandleSyscallTest("test_handle_overwrite"))
+    suite.addTest(HandleSyscallTest("test_handle_overwrite_with_pprint"))
+    suite.addTest(HandleSyscallTest("test_handles_sync"))
+    suite.addTest(HandleSyscallTest("test_handles_sync_with_pprint"))
     suite.addTest(AntidebugEscapingTest("test_antidebug_escaping"))
     suite.addTest(SyscallHijackTest("test_hijack_syscall"))
     suite.addTest(SyscallHijackTest("test_hijack_syscall_with_pprint"))
-    suite.addTest(SyscallHijackTest("test_hijack_syscall_hook"))
-    suite.addTest(SyscallHijackTest("test_hijack_syscall_hook_with_pprint"))
+    suite.addTest(SyscallHijackTest("test_hijack_handle_syscall"))
+    suite.addTest(SyscallHijackTest("test_hijack_handle_syscall_with_pprint"))
     suite.addTest(SyscallHijackTest("test_hijack_syscall_args"))
     suite.addTest(SyscallHijackTest("test_hijack_syscall_args_with_pprint"))
     suite.addTest(SyscallHijackTest("test_hijack_syscall_wrong_args"))
     suite.addTest(SyscallHijackTest("loop_detection_test"))
     suite.addTest(PPrintSyscallsTest("test_pprint_syscalls_generic"))
     suite.addTest(PPrintSyscallsTest("test_pprint_syscalls_with_statement"))
-    suite.addTest(PPrintSyscallsTest("test_pprint_syscalls_hooking"))
+    suite.addTest(PPrintSyscallsTest("test_pprint_handle_syscalls"))
     suite.addTest(PPrintSyscallsTest("test_pprint_hijack_syscall"))
     suite.addTest(PPrintSyscallsTest("test_pprint_which_syscalls_pprint_after"))
     suite.addTest(PPrintSyscallsTest("test_pprint_which_syscalls_pprint_before"))
@@ -138,28 +140,30 @@ def fast_suite():
     suite.addTest(PPrintSyscallsTest("test_pprint_which_syscalls_not_pprint_after"))
     suite.addTest(PPrintSyscallsTest("test_pprint_which_syscalls_not_pprint_before"))
     suite.addTest(PPrintSyscallsTest("test_pprint_which_syscalls_not_pprint_after_and_before"))
-    suite.addTest(SignalHookTest("test_signal_hooking_block"))
-    suite.addTest(SignalHookTest("test_signal_pass_to_process"))
-    suite.addTest(SignalHookTest("test_signal_unhooking"))
-    suite.addTest(SignalHookTest("test_signal_unblock"))
-    suite.addTest(SignalHookTest("test_signal_unhook_unblock"))
-    suite.addTest(SignalHookTest("test_hijack_signal_with_hooking"))
-    suite.addTest(SignalHookTest("test_hijack_signal_with_api"))
-    suite.addTest(SignalHookTest("test_hook_hijack_true_with_hook"))
-    suite.addTest(SignalHookTest("test_hook_hijack_true_with_api"))
-    suite.addTest(SignalHookTest("test_hook_hijack_false_with_hook"))
-    suite.addTest(SignalHookTest("test_hook_hijack_false_with_api"))
-    suite.addTest(SignalHookTest("test_hijack_signal_with_hooking_loop"))
-    suite.addTest(SignalHookTest("test_hijack_signal_with_api_loop"))
-    suite.addTest(SignalHookTest("test_signal_unhijacking"))
-    suite.addTest(SignalHookTest("test_override_hook"))
-    suite.addTest(SignalHookTest("test_override_hijack"))
-    suite.addTest(SignalHookTest("test_override_hybrid"))
-    suite.addTest(SignalHookTest("test_signal_get_signal"))
-    suite.addTest(SignalHookTest("test_signal_send_signal"))
-    suite.addTest(SignalMultithreadTest("test_signal_multithread_undet_hook_block"))
+    suite.addTest(SignalCatchTest("test_signal_catch_signal_block"))
+    suite.addTest(SignalCatchTest("test_signal_pass_to_process"))
+    suite.addTest(SignalCatchTest("test_signal_disable_catch_signal"))
+    suite.addTest(SignalCatchTest("test_signal_unblock"))
+    suite.addTest(SignalCatchTest("test_signal_disable_catch_signal_unblock"))
+    suite.addTest(SignalCatchTest("test_hijack_signal_with_catch_signal"))
+    suite.addTest(SignalCatchTest("test_hijack_signal_with_api"))
+    suite.addTest(SignalCatchTest("test_recursive_true_with_catch_signal"))
+    suite.addTest(SignalCatchTest("test_recursive_true_with_api"))
+    suite.addTest(SignalCatchTest("test_recursive_false_with_catch_signal"))
+    suite.addTest(SignalCatchTest("test_recursive_false_with_api"))
+    suite.addTest(SignalCatchTest("test_hijack_signal_with_catch_signal_loop"))
+    suite.addTest(SignalCatchTest("test_hijack_signal_with_api_loop"))
+    suite.addTest(SignalCatchTest("test_signal_unhijacking"))
+    suite.addTest(SignalCatchTest("test_override_catch_signal"))
+    suite.addTest(SignalCatchTest("test_override_hijack"))
+    suite.addTest(SignalCatchTest("test_override_hybrid"))
+    suite.addTest(SignalCatchTest("test_signal_get_signal"))
+    suite.addTest(SignalCatchTest("test_signal_send_signal"))
+    suite.addTest(SignalCatchTest("test_signal_catch_sync_block"))
+    suite.addTest(SignalCatchTest("test_signal_catch_sync_pass"))
+    suite.addTest(SignalMultithreadTest("test_signal_multithread_undet_catch_signal_block"))
     suite.addTest(SignalMultithreadTest("test_signal_multithread_undet_pass"))
-    suite.addTest(SignalMultithreadTest("test_signal_multithread_det_hook_block"))
+    suite.addTest(SignalMultithreadTest("test_signal_multithread_det_catch_signal_block"))
     suite.addTest(SignalMultithreadTest("test_signal_multithread_det_pass"))
     suite.addTest(SignalMultithreadTest("test_signal_multithread_send_signal"))
     suite.addTest(DeathTest("test_io_death"))

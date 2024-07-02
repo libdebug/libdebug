@@ -23,8 +23,8 @@ if TYPE_CHECKING:
 
     from libdebug.data.breakpoint import Breakpoint
     from libdebug.data.memory_map import MemoryMap
-    from libdebug.data.signal_hook import SignalHook
-    from libdebug.data.syscall_hook import SyscallHook
+    from libdebug.data.signal_catcher import SignalCatcher
+    from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.state.thread_context import ThreadContext
 
@@ -97,7 +97,7 @@ class Debugger:
         condition: str | None = None,
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
-        file: str = "default",
+        file: str = "hybrid",
     ) -> Breakpoint:
         """Sets a breakpoint at the specified location.
 
@@ -109,7 +109,7 @@ class Debugger:
             length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
             callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the
             breakpoint is hit. Defaults to None.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
             (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
             the "binary" map file).
         """
@@ -121,18 +121,18 @@ class Debugger:
         condition: str = "w",
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
-        file: str = "default",
+        file: str = "hybrid",
     ) -> Breakpoint:
         """Sets a watchpoint at the specified location. Internally, watchpoints are implemented as breakpoints.
 
         Args:
             position (int | bytes): The location of the breakpoint.
-            condition (str, optional): The trigger condition for the watchpoint (either "r", "rw" or "x").
+            condition (str, optional): The trigger condition for the watchpoint (either "w", "rw" or "x").
             Defaults to "w".
             length (int, optional): The size of the word in being watched (1, 2, 4 or 8). Defaults to 1.
             callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the
             watchpoint is hit. Defaults to None.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
             (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
             the "binary" map file).
         """
@@ -145,95 +145,92 @@ class Debugger:
             file=file,
         )
 
-    def hook_signal(
+    def catch_signal(
         self: Debugger,
-        signal_to_hook: int | str,
-        callback: None | Callable[[ThreadContext, int], None] = None,
-        hook_hijack: bool = True,
-    ) -> SignalHook:
-        """Hooks a signal in the target process.
+        signal: int | str,
+        callback: None | Callable[[ThreadContext, SignalCatcher], None] = None,
+        recursive: bool = False,
+    ) -> SignalCatcher:
+        """Catch a signal in the target process.
 
         Args:
-            signal_to_hook (int | str): The signal to hook.
-            callback (Callable[[ThreadContext, int], None], optional): A callback to be called when the signal is received. Defaults to None.
-            hook_hijack (bool, optional): Whether to execute the hook/hijack of the new signal after an hijack or not. Defaults to False.
-        """
-        return self._internal_debugger.hook_signal(signal_to_hook, callback, hook_hijack)
+            signal (int | str): The signal to catch.
+            callback (Callable[[ThreadContext, CaughtSignal], None], optional): A callback to be called when the signal
+            is caught. Defaults to None.
+            recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher
+            associated with the new signal should be considered as well. Defaults to False.
 
-    def unhook_signal(self: Debugger, hook: SignalHook) -> None:
-        """Unhooks a signal in the target process.
-
-        Args:
-            hook (SignalHook): The signal hook to unhook.
+        Returns:
+            CaughtSignal: The CaughtSignal object.
         """
-        self._internal_debugger.unhook_signal(hook)
+        return self._internal_debugger.catch_signal(signal, callback, recursive)
 
     def hijack_signal(
         self: Debugger,
         original_signal: int | str,
         new_signal: int | str,
-        hook_hijack: bool = True,
-    ) -> None:
-        """Hijacks a signal in the target process.
+        recursive: bool = False,
+    ) -> SyscallHandler:
+        """Hijack a signal in the target process.
 
         Args:
             original_signal (int | str): The signal to hijack.
-            new_signal (int | str): The signal to replace the original signal with.
-            hook_hijack (bool, optional): Whether to execute the hook/hijack of the new signal after the hijack or not. Defaults to True.
-        """
-        return self._internal_debugger.hijack_signal(original_signal, new_signal, hook_hijack)
-
-    def hook_syscall(
-        self: Debugger,
-        syscall: int | str,
-        on_enter: Callable[[ThreadContext, int], None] | None = None,
-        on_exit: Callable[[ThreadContext, int], None] | None = None,
-        hook_hijack: bool = True,
-    ) -> SyscallHook:
-        """Hooks a syscall in the target process.
-
-        Args:
-            syscall (int | str): The syscall name or number to hook.
-            on_enter (Callable[[ThreadContext, int], None], optional): The callback to execute when the syscall is entered. Defaults to None.
-            on_exit (Callable[[ThreadContext, int], None], optional): The callback to execute when the syscall is exited. Defaults to None.
-            hook_hijack (bool, optional): Whether the syscall after the hijack should be hooked. Defaults to True.
+            new_signal (int | str): The signal to hijack the original signal with.
+            recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher
+            associated with the new signal should be considered as well. Defaults to False.
 
         Returns:
-            SyscallHook: The syscall hook object.
+            CaughtSignal: The CaughtSignal object.
         """
-        return self._internal_debugger.hook_syscall(syscall, on_enter, on_exit, hook_hijack)
+        return self._internal_debugger.hijack_signal(original_signal, new_signal, recursive)
 
-    def unhook_syscall(self: Debugger, hook: SyscallHook) -> None:
-        """Unhooks a syscall in the target process.
+    def handle_syscall(
+        self: Debugger,
+        syscall: int | str,
+        on_enter: Callable[[ThreadContext, SyscallHandler], None] | None = None,
+        on_exit: Callable[[ThreadContext, SyscallHandler], None] | None = None,
+        recursive: bool = False,
+    ) -> SyscallHandler:
+        """Handle a syscall in the target process.
 
         Args:
-            hook (SyscallHook): The syscall hook to unhook.
+            syscall (int | str): The syscall name or number to handle.
+            on_enter (Callable[[ThreadContext, HandledSyscall], None], optional): The callback to execute when the
+            syscall is entered. Defaults to None.
+            on_exit (Callable[[ThreadContext, HandledSyscall], None], optional): The callback to execute when the
+            syscall is exited. Defaults to None.
+            recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler
+            associated with the new syscall should be considered as well. Defaults to False.
+
+        Returns:
+            HandledSyscall: The HandledSyscall object.
         """
-        self._internal_debugger.unhook_syscall(hook)
+        return self._internal_debugger.handle_syscall(syscall, on_enter, on_exit, recursive)
 
     def hijack_syscall(
         self: Debugger,
         original_syscall: int | str,
         new_syscall: int | str,
-        hook_hijack: bool = True,
+        recursive: bool = False,
         **kwargs: int,
-    ) -> SyscallHook:
+    ) -> SyscallHandler:
         """Hijacks a syscall in the target process.
 
         Args:
             original_syscall (int | str): The syscall name or number to hijack.
-            new_syscall (int | str): The syscall name or number to replace the original syscall with.
-            hook_hijack (bool, optional): Whether the syscall after the hijack should be hooked. Defaults to True.
+            new_syscall (int | str): The syscall name or number to hijack the original syscall with.
+            recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler
+            associated with the new syscall should be considered as well. Defaults to False.
             **kwargs: (int, optional): The arguments to pass to the new syscall.
 
         Returns:
-            SyscallHook: The syscall hook object.
+            HandledSyscall: The HandledSyscall object.
         """
-        return self._internal_debugger.hijack_syscall(original_syscall, new_syscall, hook_hijack, **kwargs)
+        return self._internal_debugger.hijack_syscall(original_syscall, new_syscall, recursive, **kwargs)
 
-    def migrate_to_gdb(self: Debugger, open_in_new_process: bool = True) -> None:
+    def gdb(self: Debugger, open_in_new_process: bool = True) -> None:
         """Migrates the current debugging session to GDB."""
-        self._internal_debugger.migrate_to_gdb(open_in_new_process)
+        self._internal_debugger.gdb(open_in_new_process)
 
     def r(self: Debugger) -> None:
         """Alias for the `run` method.
@@ -270,7 +267,7 @@ class Debugger:
         condition: str | None = None,
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
-        file: str = "default",
+        file: str = "hybrid",
     ) -> Breakpoint:
         """Alias for the `breakpoint` method.
 
@@ -282,7 +279,7 @@ class Debugger:
             length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
             callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the
             breakpoint is hit. Defaults to None.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
             (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
             the "binary" map file).
         """
@@ -294,7 +291,7 @@ class Debugger:
         condition: str = "w",
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
-        file: str = "default",
+        file: str = "hybrid",
     ) -> Breakpoint:
         """Alias for the `watchpoint` method.
 
@@ -302,12 +299,12 @@ class Debugger:
 
         Args:
             position (int | bytes): The location of the breakpoint.
-            condition (str, optional): The trigger condition for the watchpoint (either "r", "rw" or "x").
+            condition (str, optional): The trigger condition for the watchpoint (either "w", "rw" or "x").
             Defaults to "w".
             length (int, optional): The size of the word in being watched (1, 2, 4 or 8). Defaults to 1.
             callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the
             watchpoint is hit. Defaults to None.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "default"
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
             (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
             the "binary" map file).
         """
@@ -331,22 +328,22 @@ class Debugger:
         return self._internal_debugger.breakpoints
 
     @property
-    def syscall_hooks(self: InternalDebugger) -> dict[int, SyscallHook]:
-        """Get the syscall hooks dictionary.
+    def handled_syscalls(self: InternalDebugger) -> dict[int, SyscallHandler]:
+        """Get the handled syscalls dictionary.
 
         Returns:
-            dict[int, SyscallHook]: the syscall hooks dictionary.
+            dict[int, HandledSyscall]: the handled syscalls dictionary.
         """
-        return self._internal_debugger.syscall_hooks
+        return self._internal_debugger.handled_syscalls
 
     @property
-    def signal_hooks(self: InternalDebugger) -> dict[int, SignalHook]:
-        """Get the signal hooks dictionary.
+    def caught_signals(self: InternalDebugger) -> dict[int, SignalCatcher]:
+        """Get the caught signals dictionary.
 
         Returns:
-            dict[int, SignalHook]: the signal hooks dictionary.
+            dict[int, CaughtSignal]: the caught signals dictionary.
         """
-        return self._internal_debugger.signal_hooks
+        return self._internal_debugger.caught_signals
 
     @property
     def pprint_syscalls(self: Debugger) -> bool:

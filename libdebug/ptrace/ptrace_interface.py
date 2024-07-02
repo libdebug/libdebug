@@ -54,8 +54,8 @@ if TYPE_CHECKING:
         PtraceHardwareBreakpointManager,
     )
     from libdebug.data.memory_map import MemoryMap
-    from libdebug.data.signal_hook import SignalHook
-    from libdebug.data.syscall_hook import SyscallHook
+    from libdebug.data.signal_catcher import SignalCatcher
+    from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.debugger.internal_debugger import InternalDebugger
 
 
@@ -234,12 +234,12 @@ class PtraceInterface(DebuggingInterface):
             else:
                 self.unset_breakpoint(bp, delete=False)
 
-        for hook in self._internal_debugger.syscall_hooks.values():
-            if hook.enabled:
-                self._global_state.syscall_hooks_enabled = True
+        for handler in self._internal_debugger.handled_syscalls.values():
+            if handler.enabled or handler.on_enter_pprint or handler.on_exit_pprint:
+                self._global_state.handle_syscall_enabled = True
                 break
         else:
-            self._global_state.syscall_hooks_enabled = False
+            self._global_state.handle_syscall_enabled = False
 
         result = self.lib_trace.cont_all_and_set_bps(
             self._global_state,
@@ -571,37 +571,37 @@ class PtraceInterface(DebuggingInterface):
         if delete:
             del self._internal_debugger.breakpoints[bp.address]
 
-    def set_syscall_hook(self: PtraceInterface, hook: SyscallHook) -> None:
-        """Sets a syscall hook.
+    def set_syscall_handler(self: PtraceInterface, handler: SyscallHandler) -> None:
+        """Sets a handler for a syscall.
 
         Args:
-            hook (SyscallHook): The syscall hook to set.
+            handler (HandledSyscall): The syscall to set.
         """
-        self._internal_debugger.syscall_hooks[hook.syscall_number] = hook
+        self._internal_debugger.handled_syscalls[handler.syscall_number] = handler
 
-    def unset_syscall_hook(self: PtraceInterface, hook: SyscallHook) -> None:
-        """Unsets a syscall hook.
+    def unset_syscall_handler(self: PtraceInterface, handler: SyscallHandler) -> None:
+        """Unsets a handler for a syscall.
 
         Args:
-            hook (SyscallHook): The syscall hook to unset.
+            handler (HandledSyscall): The syscall to unset.
         """
-        del self._internal_debugger.syscall_hooks[hook.syscall_number]
+        del self._internal_debugger.handled_syscalls[handler.syscall_number]
 
-    def set_signal_hook(self: PtraceInterface, hook: SignalHook) -> None:
-        """Sets a signal hook.
+    def set_signal_catcher(self: PtraceInterface, catcher: SignalCatcher) -> None:
+        """Sets a catcher for a signal.
 
         Args:
-            hook (SignalHook): The signal hook to set.
+            catcher (CaughtSignal): The signal to set.
         """
-        self._internal_debugger.signal_hooks[hook.signal_number] = hook
+        self._internal_debugger.caught_signals[catcher.signal_number] = catcher
 
-    def unset_signal_hook(self: PtraceInterface, hook: SignalHook) -> None:
-        """Unsets a signal hook.
+    def unset_signal_catcher(self: PtraceInterface, catcher: SignalCatcher) -> None:
+        """Unset a catcher for a signal.
 
         Args:
-            hook (SignalHook): The signal hook to unset.
+            catcher (CaughtSignal): The signal to unset.
         """
-        del self._internal_debugger.signal_hooks[hook.signal_number]
+        del self._internal_debugger.caught_signals[catcher.signal_number]
 
     def peek_memory(self: PtraceInterface, address: int) -> int:
         """Reads the memory at the specified address."""

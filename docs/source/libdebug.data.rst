@@ -44,18 +44,18 @@ libdebug.data.registers module
    :undoc-members:
    :show-inheritance:
 
-libdebug.data.signal\_hook module
----------------------------------
+libdebug.data.signal\_catcher module
+------------------------------------
 
-.. automodule:: libdebug.data.signal_hook
+.. automodule:: libdebug.data.signal_catcher
    :members:
    :undoc-members:
    :show-inheritance:
 
-libdebug.data.syscall\_hook module
-----------------------------------
+libdebug.data.syscall\_handler module
+-------------------------------------
 
-.. automodule:: libdebug.data.syscall_hook
+.. automodule:: libdebug.data.syscall_handler
    :members:
    :undoc-members:
    :show-inheritance:

@@ -12,8 +12,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
     from libdebug.data.memory_map import MemoryMap
-    from libdebug.data.signal_hook import SignalHook
-    from libdebug.data.syscall_hook import SyscallHook
+    from libdebug.data.signal_catcher import SignalCatcher
+    from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.state.thread_context import ThreadContext
 
 
@@ -115,35 +115,35 @@ class DebuggingInterface(ABC):
         """
 
     @abstractmethod
-    def set_syscall_hook(self: DebuggingInterface, hook: SyscallHook) -> None:
-        """Sets a syscall hook.
+    def set_syscall_handler(self: DebuggingInterface, handler: SyscallHandler) -> None:
+        """Sets a handler for a syscall.
 
         Args:
-            hook (SyscallHook): The syscall hook to set.
+            handler (HandledSyscall): The syscall to set.
         """
 
     @abstractmethod
-    def unset_syscall_hook(self: DebuggingInterface, hook: SyscallHook) -> None:
-        """Unsets a syscall hook.
+    def unset_syscall_handler(self: DebuggingInterface, handler: SyscallHandler) -> None:
+        """Unsets a handler for a syscall.
 
         Args:
-            hook (SyscallHook): The syscall hook to unset.
+            handler (HandledSyscall): The syscall to unset.
         """
 
     @abstractmethod
-    def set_signal_hook(self: DebuggingInterface, hook: SignalHook) -> None:
-        """Sets a signal hook.
+    def set_signal_catcher(self: DebuggingInterface, catcher: SignalCatcher) -> None:
+        """Sets a catcher for a signal.
 
         Args:
-            hook (SignalHook): The signal hook to set.
+            catcher (CaughtSignal): The signal to set.
         """
 
     @abstractmethod
-    def unset_signal_hook(self: DebuggingInterface, hook: SignalHook) -> None:
-        """Unsets a signal hook.
+    def unset_signal_catcher(self: DebuggingInterface, catcher: SignalCatcher) -> None:
+        """Unset a catcher for a signal.
 
         Args:
-            hook (SignalHook): The signal hook to unset.
+            catcher (CaughtSignal): The signal to unset.
         """
 
     @abstractmethod
