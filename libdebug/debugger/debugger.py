@@ -127,7 +127,7 @@ class Debugger:
 
         Args:
             position (int | bytes): The location of the breakpoint.
-            condition (str, optional): The trigger condition for the watchpoint (either "r", "rw" or "x").
+            condition (str, optional): The trigger condition for the watchpoint (either "w", "rw" or "x").
             Defaults to "w".
             length (int, optional): The size of the word in being watched (1, 2, 4 or 8). Defaults to 1.
             callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the
@@ -299,7 +299,7 @@ class Debugger:
 
         Args:
             position (int | bytes): The location of the breakpoint.
-            condition (str, optional): The trigger condition for the watchpoint (either "r", "rw" or "x").
+            condition (str, optional): The trigger condition for the watchpoint (either "w", "rw" or "x").
             Defaults to "w".
             length (int, optional): The size of the word in being watched (1, 2, 4 or 8). Defaults to 1.
             callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the

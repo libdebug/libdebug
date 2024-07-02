@@ -414,7 +414,7 @@ class InternalDebugger:
 
             if condition.lower() not in ["w", "rw", "x"]:
                 raise ValueError(
-                    "Invalid condition for watchpoints. Supported conditions are 'r', 'rw', 'x'.",
+                    "Invalid condition for watchpoints. Supported conditions are 'w', 'rw', 'x'.",
                 )
 
             if length not in [1, 2, 4, 8]:

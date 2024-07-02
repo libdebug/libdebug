@@ -90,12 +90,12 @@ def catcher_SIGPIPE(t: ThreadContext, catcher: SignalCatcher) -> None:
 # Initialize the debugger
 d = debugger('/path/to/executable', continue_to_binary_entrypoint=False, aslr=False)
 
-# Register signal hooks
-catcher1 = d.catch_signal("SIGUSR1", callback=hook_SIGUSR1)
-catcher2 = d.catch_signal("SIGINT", callback=hook_SIGINT)
-catcher3 = d.catch_signal("SIGPIPE", callback=hook_SIGPIPE)
+# Register signal cacthers
+catcher1 = d.catch_signal("SIGUSR1", callback=catcher_SIGUSR1)
+catcher2 = d.catch_signal("SIGINT", callback=catcher_SIGINT)
+catcher3 = d.catch_signal("SIGPIPE", callback=catcher_SIGPIPE)
 
-# Register signal hijack
+# Register signal hijackings
 d.hijack_signal("SIGQUIT", "SIGTERM")
 d.hijack_signal("SIGINT", "SIGPIPE", recursive=True)
 
