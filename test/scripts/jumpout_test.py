@@ -26,8 +26,8 @@ class Jumpout(unittest.TestCase):
 
         r = d.run()
 
-        bp1 = d.breakpoint(0x140B, hardware=True)
-        bp2 = d.breakpoint(0x157C, hardware=True)
+        bp1 = d.breakpoint(0x140B, hardware=True, file="binary")
+        bp2 = d.breakpoint(0x157C, hardware=True, file="binary")
 
         d.cont()
 

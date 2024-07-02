@@ -708,7 +708,9 @@ class SignalCatchTest(unittest.TestCase):
 
         with self.assertRaises(RuntimeError):
             d.cont()
-            d.kill()
+            d.wait()
+
+        d.kill()
 
         # Now we set recursive=False to avoid the loop
         d.run()
@@ -747,7 +749,9 @@ class SignalCatchTest(unittest.TestCase):
 
         with self.assertRaises(RuntimeError):
             d.cont()
-            d.kill()
+            d.wait()
+
+        d.kill()
 
         # Now we set recursive=False to avoid the loop
         d.run()
