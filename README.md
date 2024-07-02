@@ -122,7 +122,7 @@ If you intend to use libdebug in your work, please cite this repository using th
 
 ```biblatex
 @software{libdebug_2024,
-	title = {libdebug: An {Open} {Source} {Scriptable} {Python} {Debugger}},
+	title = {libdebug: {Build} {Your} {Own} {Debugger}},
 	copyright = {MIT Licence},
 	url = {https://libdebug.org},
 	publisher = {libdebug.org},
