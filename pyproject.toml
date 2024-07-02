@@ -14,7 +14,6 @@ authors = [
     {name = "Io-no"},
     {name = "MrIndeciso"},
     {name = "Frank01001"},
-    {name = "MarcoDige"},
 ]
 description = "A Python library for the debugging of binary executables."
 requires-python = ">= 3.10"
@@ -73,7 +72,7 @@ select = ["ALL"]
 ignore = ["D100", "EM", "FBT", "G", "TD", "TRY002", "TRY003", "RET505", "SLF001", "S603", "S606"]
 
 [tool.ruff.lint.per-file-ignores]
-"libdebug/builtin/pretty_print_syscall_hook.py" = ["T201"]
+"libdebug/builtin/pretty_print_syscall_handler.py" = ["T201"]
 "libdebug/architectures/amd64/amd64_stack_unwinder.py" = ["S101"]
 
 [tool.ruff.lint.pydocstyle]

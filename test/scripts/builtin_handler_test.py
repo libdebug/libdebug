@@ -14,14 +14,14 @@ class AntidebugEscapingTest(unittest.TestCase):
     def test_antidebug_escaping(self):
         d = debugger("binaries/antidebug_brute_test")
 
-        # validate that without the hook the binary cannot be debugged
+        # validate that without the handler the binary cannot be debugged
         r = d.run()
         d.cont()
         msg = r.recvline()
         self.assertEqual(msg, b"Debugger detected")
         d.kill()
 
-        # validate that with the hook the binary can be debugged
+        # validate that with the handler the binary can be debugged
         d = debugger("binaries/antidebug_brute_test", escape_antidebug=True)
         r = d.run()
         d.cont()

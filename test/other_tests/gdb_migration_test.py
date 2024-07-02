@@ -20,7 +20,7 @@ d.step()
 
 print(hex(d.regs.rip))
 
-d.migrate_to_gdb()
+d.gdb()
 
 print(hex(d.regs.rip))
 
