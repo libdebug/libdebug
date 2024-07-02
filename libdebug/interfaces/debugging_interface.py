@@ -1,89 +1,78 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-from abc import ABC, abstractmethod
+from __future__ import annotations
 
-from libdebug.data.breakpoint import Breakpoint
-from libdebug.data.memory_map import MemoryMap
-from libdebug.data.register_holder import RegisterHolder
-from libdebug.data.syscall_hook import SyscallHook
-from libdebug.state.debugging_context import provide_context
-from libdebug.state.thread_context import ThreadContext
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from libdebug.data.breakpoint import Breakpoint
+    from libdebug.data.memory_map import MemoryMap
+    from libdebug.data.signal_catcher import SignalCatcher
+    from libdebug.data.syscall_handler import SyscallHandler
+    from libdebug.state.thread_context import ThreadContext
 
 
 class DebuggingInterface(ABC):
     """The interface used by `_InternalDebugger` to communicate with the available debugging backends, such as `ptrace` or `gdb`."""
 
-    breakpoints: dict[int, Breakpoint]
-    """A dictionary of all the breakpoints set on the process.
-    Key: the address of the breakpoint."""
-
-    threads: dict[int, ThreadContext]
-    """A dictionary of all the threads of the process.
-    Key: the thread ID."""
-
-    def __init__(self):
-        self.breakpoints = provide_context(self)._breakpoints
-        self.threads = provide_context(self)._threads
+    def __init__(self: DebuggingInterface) -> None:
+        """Initializes the DebuggingInterface classs."""
 
     @abstractmethod
-    def reset(self):
+    def reset(self: DebuggingInterface) -> None:
         """Resets the state of the interface."""
-        pass
 
     @abstractmethod
-    def run(self):
+    def run(self: DebuggingInterface) -> None:
         """Runs the specified process."""
-        pass
 
     @abstractmethod
-    def attach(self, pid: int):
+    def attach(self: DebuggingInterface, pid: int) -> None:
         """Attaches to the specified process.
 
         Args:
             pid (int): the pid of the process to attach to.
         """
-        pass
 
     @abstractmethod
-    def kill(self):
+    def detach(self: DebuggingInterface) -> None:
+        """Detaches from the process."""
+
+    @abstractmethod
+    def kill(self: DebuggingInterface) -> None:
         """Instantly terminates the process."""
-        pass
 
     @abstractmethod
-    def cont(self):
+    def cont(self: DebuggingInterface) -> None:
         """Continues the execution of the process."""
-        pass
 
     @abstractmethod
-    def wait(self):
+    def wait(self: DebuggingInterface) -> None:
         """Waits for the process to stop."""
-        pass
 
     @abstractmethod
-    def migrate_to_gdb(self):
+    def migrate_to_gdb(self: DebuggingInterface) -> None:
         """Migrates the current process to GDB."""
-        pass
 
     @abstractmethod
-    def migrate_from_gdb(self):
+    def migrate_from_gdb(self: DebuggingInterface) -> None:
         """Migrates the current process from GDB."""
-        pass
 
     @abstractmethod
-    def step(self, thread: ThreadContext):
+    def step(self: DebuggingInterface, thread: ThreadContext) -> None:
         """Executes a single instruction of the specified thread.
 
         Args:
             thread (ThreadContext): The thread to step.
         """
-        pass
 
     @abstractmethod
-    def step_until(self, thread: ThreadContext, address: int, max_steps: int):
+    def step_until(self: DebuggingInterface, thread: ThreadContext, address: int, max_steps: int) -> None:
         """Executes instructions of the specified thread until the specified address is reached.
 
         Args:
@@ -91,58 +80,74 @@ class DebuggingInterface(ABC):
             address (int): The address to reach.
             max_steps (int): The maximum number of steps to execute.
         """
-        pass
 
     @abstractmethod
-    def maps(self) -> list[MemoryMap]:
-        """Returns the memory maps of the process."""
-        pass
+    def finish(self: DebuggingInterface, thread: ThreadContext, heuristic: str) -> None:
+        """Continues execution until the current function returns or the process stops.
 
-    @abstractmethod
-    def get_register_holder(self, thread_id: int) -> RegisterHolder:
-        """Returns the current value of all the available registers for the specified thread.
-        Note: the register holder should then be used to automatically setup getters and setters for each register.
+        The command requires a heuristic to determine the end of the function. The available heuristics are:
+        - `backtrace`: The debugger will place a breakpoint on the saved return address found on the stack and continue execution on all threads.
+        - `step-mode`: The debugger will step on the specified thread until the current function returns. This will be slower.
+
+        Args:
+            thread (ThreadContext): The thread to finish.
+            heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
         """
-        pass
 
     @abstractmethod
-    def set_breakpoint(self, breakpoint: Breakpoint):
+    def maps(self: DebuggingInterface) -> list[MemoryMap]:
+        """Returns the memory maps of the process."""
+
+    @abstractmethod
+    def set_breakpoint(self: DebuggingInterface, bp: Breakpoint) -> None:
         """Sets a breakpoint at the specified address.
 
         Args:
-            breakpoint (Breakpoint): The breakpoint to set.
+            bp (Breakpoint): The breakpoint to set.
         """
-        pass
 
     @abstractmethod
-    def unset_breakpoint(self, breakpoint: Breakpoint):
+    def unset_breakpoint(self: DebuggingInterface, bp: Breakpoint) -> None:
         """Restores the original instruction flow at the specified address.
 
         Args:
-            breakpoint (Breakpoint): The breakpoint to restore.
+            bp (Breakpoint): The breakpoint to restore.
         """
-        pass
 
     @abstractmethod
-    def set_syscall_hook(self, hook: SyscallHook):
-        """Sets a syscall hook.
+    def set_syscall_handler(self: DebuggingInterface, handler: SyscallHandler) -> None:
+        """Sets a handler for a syscall.
 
         Args:
-            hook (SyscallHook): The syscall hook to set.
+            handler (HandledSyscall): The syscall to set.
         """
-        pass
 
     @abstractmethod
-    def unset_syscall_hook(self, hook: SyscallHook):
-        """Unsets a syscall hook.
+    def unset_syscall_handler(self: DebuggingInterface, handler: SyscallHandler) -> None:
+        """Unsets a handler for a syscall.
 
         Args:
-            hook (SyscallHook): The syscall hook to unset.
+            handler (HandledSyscall): The syscall to unset.
         """
-        pass
 
     @abstractmethod
-    def peek_memory(self, address: int) -> int:
+    def set_signal_catcher(self: DebuggingInterface, catcher: SignalCatcher) -> None:
+        """Sets a catcher for a signal.
+
+        Args:
+            catcher (CaughtSignal): The signal to set.
+        """
+
+    @abstractmethod
+    def unset_signal_catcher(self: DebuggingInterface, catcher: SignalCatcher) -> None:
+        """Unset a catcher for a signal.
+
+        Args:
+            catcher (CaughtSignal): The signal to unset.
+        """
+
+    @abstractmethod
+    def peek_memory(self: DebuggingInterface, address: int) -> int:
         """Reads the memory at the specified address.
 
         Args:
@@ -151,14 +156,12 @@ class DebuggingInterface(ABC):
         Returns:
             int: The read memory value.
         """
-        pass
 
     @abstractmethod
-    def poke_memory(self, address: int, data: int):
+    def poke_memory(self: DebuggingInterface, address: int, data: int) -> None:
         """Writes the memory at the specified address.
 
         Args:
             address (int): The address to write.
             data (int): The value to write.
         """
-        pass

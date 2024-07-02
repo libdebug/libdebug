@@ -1,15 +1,28 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2024 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+import io
+import logging
 import unittest
 
 from libdebug import debugger
 
 
 class AutoWaitingTest(unittest.TestCase):
+    def setUp(self):
+        # Redirect logging to a string buffer
+        self.log_capture_string = io.StringIO()
+        self.log_handler = logging.StreamHandler(self.log_capture_string)
+        self.log_handler.setLevel(logging.WARNING)
+
+        self.logger = logging.getLogger("libdebug")
+        self.original_handlers = self.logger.handlers
+        self.logger.handlers = []
+        self.logger.addHandler(self.log_handler)
+        self.logger.setLevel(logging.WARNING)
 
     def test_bps_auto_waiting(self):
         d = debugger("binaries/breakpoint_test", auto_interrupt_on_command=False)
@@ -25,23 +38,23 @@ class AutoWaitingTest(unittest.TestCase):
         d.cont()
 
         while True:
-            if d.rip == bp1.address:
+            if d.regs.rip == bp1.address:
                 self.assertTrue(bp1.hit_count == 1)
                 self.assertTrue(bp1.hit_on(d))
                 self.assertFalse(bp2.hit_on(d))
                 self.assertFalse(bp3.hit_on(d))
-            elif d.rip == bp2.address:
+            elif d.regs.rip == bp2.address:
                 self.assertTrue(bp2.hit_count == counter)
                 self.assertTrue(bp2.hit_on(d))
                 self.assertFalse(bp1.hit_on(d))
                 self.assertFalse(bp3.hit_on(d))
                 counter += 1
-            elif d.rip == bp3.address:
+            elif d.regs.rip == bp3.address:
                 self.assertTrue(bp3.hit_count == 1)
-                self.assertTrue(d.rsi == 45)
-                self.assertTrue(d.esi == 45)
-                self.assertTrue(d.si == 45)
-                self.assertTrue(d.sil == 45)
+                self.assertTrue(d.regs.rsi == 45)
+                self.assertTrue(d.regs.esi == 45)
+                self.assertTrue(d.regs.si == 45)
+                self.assertTrue(d.regs.sil == 45)
                 self.assertTrue(bp3.hit_on(d))
                 self.assertFalse(bp1.hit_on(d))
                 self.assertFalse(bp2.hit_on(d))
@@ -68,10 +81,10 @@ class AutoWaitingTest(unittest.TestCase):
         r.sendline(b"A" * 0x1D)
 
         while True:
-            if d.rip == bp1.address:
-                second = d.r9
-            elif d.rip == bp2.address:
-                address = d.r13 + d.rbx
+            if d.regs.rip == bp1.address:
+                second = d.regs.r9
+            elif d.regs.rip == bp2.address:
+                address = d.regs.r13 + d.regs.rbx
                 third = int.from_bytes(d.memory[address, 1], "little")
                 flag += chr((first ^ second ^ third ^ (bp2.hit_count - 1)))
 
@@ -104,9 +117,9 @@ class AutoWaitingNcuts(unittest.TestCase):
         r.send(previous_flag + b"a" * 8)
 
         for _ in range(8):
-            offset = ord("a") ^ d.rbp
-            d.rbp = d.r13
-            flag += (offset ^ d.r13).to_bytes(1, "little")
+            offset = ord("a") ^ d.regs.rbp
+            d.regs.rbp = d.regs.r13
+            flag += (offset ^ d.regs.r13).to_bytes(1, "little")
 
             d.cont()
 
@@ -135,14 +148,14 @@ class AutoWaitingNcuts(unittest.TestCase):
         r.send(previous_flag + b"a" * 8)
 
         while True:
-            if d.rip == bp1.address:
-                lastpos = d.rbp
-                d.rbp = d.r13 + 1
-            elif d.rip == bp2.address:
-                bitmap[d.r12 & 0xFF] = lastpos & 0xFF
-            elif d.rip == bp3.address:
-                d.rbp = d.r13
-                wanted = d.rbp
+            if d.regs.rip == bp1.address:
+                lastpos = d.regs.rbp
+                d.regs.rbp = d.regs.r13 + 1
+            elif d.regs.rip == bp2.address:
+                bitmap[d.regs.r12 & 0xFF] = lastpos & 0xFF
+            elif d.regs.rip == bp3.address:
+                d.regs.rbp = d.regs.r13
+                wanted = d.regs.rbp
                 needed = 0
                 for i in range(8):
                     if wanted & (2**i):
@@ -172,10 +185,10 @@ class AutoWaitingNcuts(unittest.TestCase):
         r.send(b"a" * 8)
 
         for _ in range(8):
-            offset = ord("a") - d.rbp
-            d.rbp = d.r13
+            offset = ord("a") - d.regs.rbp
+            d.regs.rbp = d.regs.r13
 
-            flag += chr((d.r13 + offset) % 256).encode("latin-1")
+            flag += chr((d.regs.r13 + offset) % 256).encode("latin-1")
 
             d.cont()
 

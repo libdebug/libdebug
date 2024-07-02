@@ -18,19 +18,19 @@ bp = d.breakpoint("register_test")
 d.step()
 d.step()
 
-print(hex(d.rip))
+print(hex(d.regs.rip))
 
-d.migrate_to_gdb()
+d.gdb()
 
-print(hex(d.rip))
+print(hex(d.regs.rip))
 
 d.cont()
 d.wait()
 
-print(hex(d.rip))
+print(hex(d.regs.rip))
 
 d.step()
 
-print(hex(d.rip))
+print(hex(d.regs.rip))
 
 d.kill()

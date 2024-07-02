@@ -1,6 +1,6 @@
 //
 // This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-// Copyright (c) 2023-2024 Roberto Alessandro Bertolini. All rights reserved.
+// Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for details.
 //
 
@@ -32,6 +32,7 @@ struct software_breakpoint {
 struct thread {
     int tid;
     struct user_regs_struct regs;
+    int signal_to_forward;
     struct thread *next;
 };
 
@@ -44,7 +45,7 @@ struct thread_status {
 struct global_state {
     struct thread *t_HEAD;
     struct software_breakpoint *b_HEAD;
-    _Bool syscall_hooks_enabled;
+    _Bool handle_syscall_enabled;
 };
 
 struct user_regs_struct *register_thread(struct global_state *state, int tid)
@@ -58,6 +59,7 @@ struct user_regs_struct *register_thread(struct global_state *state, int tid)
 
     t = malloc(sizeof(struct thread));
     t->tid = tid;
+    t->signal_to_forward = 0;
 
     ptrace(PTRACE_GETREGS, tid, NULL, &t->regs);
 
@@ -111,7 +113,7 @@ int ptrace_attach(int pid)
     return ptrace(PTRACE_ATTACH, pid, NULL, NULL);
 }
 
-void ptrace_detach_all(struct global_state *state, int pid)
+void ptrace_detach_for_kill(struct global_state *state, int pid)
 {
     struct thread *t = state->t_HEAD;
     // note that the order is important: the main thread must be detached last
@@ -145,14 +147,18 @@ void ptrace_detach_for_migration(struct global_state *state, int pid)
     struct thread *t = state->t_HEAD;
     // note that the order is important: the main thread must be detached last
     while (t != NULL) {
-        // let's attempt to read the registers of the thread
-        if (ptrace(PTRACE_GETREGS, t->tid, NULL, &t->regs)) {
+        // the user might have modified the state of the registers
+        // so we use SETREGS to check if the process is running
+        if (ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs)) {
             // if we can't read the registers, the thread is probably still running
             // ensure that the thread is stopped
             tgkill(pid, t->tid, SIGSTOP);
 
             // wait for it to stop
             waitpid(t->tid, NULL, 0);
+
+            // set the registers again, as the first time it failed
+            ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs);
         }
 
         // detach from it
@@ -179,6 +185,14 @@ void ptrace_reattach_from_gdb(struct global_state *state, int pid)
 
         t = t->next;
     }
+}
+
+void ptrace_detach_and_cont(struct global_state *state, int pid)
+{
+    ptrace_detach_for_migration(state, pid);
+
+    // continue the execution of the process
+    kill(pid, SIGCONT);
 }
 
 void ptrace_set_options(int pid)
@@ -226,17 +240,22 @@ uint64_t ptrace_geteventmsg(int pid)
     return data;
 }
 
-int singlestep(struct global_state *state, int tid)
+long singlestep(struct global_state *state, int tid)
 {
     // flush any register changes
     struct thread *t = state->t_HEAD;
+    int signal_to_forward = 0;
     while (t != NULL) {
         if (ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs))
             perror("ptrace_setregs");
+        if (t->tid == tid) {
+            signal_to_forward = t->signal_to_forward;
+            t->signal_to_forward = 0;
+        }
         t = t->next;
     }
 
-    return ptrace(PTRACE_SINGLESTEP, tid, NULL, NULL);
+    return ptrace(PTRACE_SINGLESTEP, tid, NULL, signal_to_forward);
 }
 
 int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps)
@@ -284,7 +303,7 @@ int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps
     return 0;
 }
 
-int cont_all_and_set_bps(struct global_state *state, int pid)
+int prepare_for_run(struct global_state *state, int pid)
 {
     int status = 0;
 
@@ -344,12 +363,21 @@ int cont_all_and_set_bps(struct global_state *state, int pid)
         b = b->next;
     }
 
+    return status;
+}
+
+int cont_all_and_set_bps(struct global_state *state, int pid)
+{
+    int status = prepare_for_run(state, pid);
+
     // continue the execution of all the threads
-    t = state->t_HEAD;
+    struct thread *t = state->t_HEAD;
     while (t != NULL) {
-        if (ptrace(state->syscall_hooks_enabled ? PTRACE_SYSCALL : PTRACE_CONT, t->tid, NULL, NULL))
-            fprintf(stderr, "ptrace_cont failed for thread %d: %s\\n", t->tid,
+        if (ptrace(state->handle_syscall_enabled
+ ? PTRACE_SYSCALL : PTRACE_CONT, t->tid, NULL, t->signal_to_forward))
+            fprintf(stderr, "ptrace_cont failed for thread %d with signal %d: %s\\n", t->tid, t->signal_to_forward,
                     strerror(errno));
+        t->signal_to_forward = 0;
         t = t->next;
     }
 
@@ -383,7 +411,7 @@ struct thread_status *wait_all_and_update_regs(struct global_state *state, int p
                 // Stop the thread with a SIGSTOP
                 tgkill(pid, t->tid, SIGSTOP);
                 // Wait for the thread to stop
-                temp_tid = waitpid(t->tid, &temp_status, NULL);
+                temp_tid = waitpid(t->tid, &temp_status, 0);
 
                 // Register the status of the thread, as it might contain useful
                 // information
@@ -539,4 +567,81 @@ void free_breakpoints(struct global_state *state)
     }
 
     state->b_HEAD = NULL;
+}
+
+int stepping_finish(struct global_state *state, int tid)
+{
+    int status = prepare_for_run(state, tid);
+
+    struct thread *stepping_thread = state->t_HEAD;
+    while (stepping_thread != NULL) {
+        if (stepping_thread->tid == tid) {
+            break;
+        }
+
+        stepping_thread = stepping_thread->next;
+    }
+
+    if (!stepping_thread) {
+        perror("Thread not found");
+        return -1;
+    }
+
+    uint64_t previous_ip, current_ip;
+    uint64_t opcode_window, first_opcode_byte;
+
+    // We need to keep track of the nested calls
+    int nested_call_counter = 1;
+
+    do {
+        if (ptrace(PTRACE_SINGLESTEP, tid, NULL, NULL)) return -1;
+
+        // wait for the child
+        waitpid(tid, &status, 0);
+
+        previous_ip = INSTRUCTION_POINTER(stepping_thread->regs);
+
+        // update the registers
+        ptrace(PTRACE_GETREGS, tid, NULL, &stepping_thread->regs);
+
+        current_ip = INSTRUCTION_POINTER(stepping_thread->regs);
+
+        // Get value at current instruction pointer
+        opcode_window = ptrace(PTRACE_PEEKDATA, tid, (void *)current_ip, NULL);
+        first_opcode_byte = opcode_window & 0xFF;
+
+        // if the instruction pointer didn't change, we return
+        // because we hit a hardware breakpoint
+        // we do the same if we hit a software breakpoint
+        if (current_ip == previous_ip || IS_SW_BREAKPOINT(first_opcode_byte))
+            goto cleanup;
+
+        // If we hit a call instruction, we increment the counter
+        if (IS_CALL_INSTRUCTION((uint8_t*) &opcode_window))
+            nested_call_counter++;
+        else if (IS_RET_INSTRUCTION(first_opcode_byte))
+            nested_call_counter--;
+
+    } while (nested_call_counter > 0);
+
+    // We are in a return instruction, do the last step
+    if (ptrace(PTRACE_SINGLESTEP, tid, NULL, NULL)) return -1;
+
+    // wait for the child
+    waitpid(tid, &status, 0);
+
+    // update the registers
+    ptrace(PTRACE_GETREGS, tid, NULL, &stepping_thread->regs);
+
+cleanup:
+    // remove any installed breakpoint
+    struct software_breakpoint *b = state->b_HEAD;
+    while (b != NULL) {
+        if (b->enabled) {
+            ptrace(PTRACE_POKEDATA, tid, (void *)b->addr, b->instruction);
+        }
+        b = b->next;
+    }
+
+    return 0;
 }

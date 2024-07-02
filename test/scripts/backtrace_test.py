@@ -28,76 +28,76 @@ class BacktraceTest(unittest.TestCase):
 
         d.cont()
 
-        self.assertTrue(d.rip == bp0.address)
+        self.assertTrue(d.regs.rip == bp0.address)
         backtrace = d.backtrace()
         self.assertIn("_start", backtrace.pop())
         self.assertEqual(backtrace[:1], ["main+8"])
 
         d.cont()
 
-        self.assertTrue(d.rip == bp1.address)
+        self.assertTrue(d.regs.rip == bp1.address)
         backtrace = d.backtrace()
         self.assertIn("_start", backtrace.pop())
-        self.assertEqual(backtrace[:2], ["function1+8", "main+22"])
+        self.assertEqual(backtrace[:2], ["function1+8", "main+16"])
 
         d.cont()
 
-        self.assertTrue(d.rip == bp2.address)
+        self.assertTrue(d.regs.rip == bp2.address)
         backtrace = d.backtrace()
         self.assertIn("_start", backtrace.pop())
-        self.assertEqual(backtrace[:3], ["function2+8", "function1+18", "main+22"])
+        self.assertEqual(backtrace[:3], ["function2+8", "function1+12", "main+16"])
 
         d.cont()
 
-        self.assertTrue(d.rip == bp3.address)
+        self.assertTrue(d.regs.rip == bp3.address)
         backtrace = d.backtrace()
         self.assertIn("_start", backtrace.pop())
         self.assertEqual(
-            backtrace[:4], ["function3+8", "function2+28", "function1+18", "main+22"]
+            backtrace[:4], ["function3+8", "function2+1c", "function1+12", "main+16"]
         )
 
         d.cont()
 
-        self.assertTrue(d.rip == bp4.address)
+        self.assertTrue(d.regs.rip == bp4.address)
         backtrace = d.backtrace()
         self.assertIn("_start", backtrace.pop())
         self.assertEqual(
             backtrace[:5],
-            ["function4+8", "function3+28", "function2+28", "function1+18", "main+22"],
+            ["function4+8", "function3+1c", "function2+1c", "function1+12", "main+16"],
         )
 
         d.cont()
 
-        self.assertTrue(d.rip == bp5.address)
+        self.assertTrue(d.regs.rip == bp5.address)
         backtrace = d.backtrace()
         self.assertIn("_start", backtrace.pop())
         self.assertEqual(
             backtrace[:6],
             [
                 "function5+8",
-                "function4+28",
-                "function3+28",
-                "function2+28",
-                "function1+18",
-                "main+22",
+                "function4+1c",
+                "function3+1c",
+                "function2+1c",
+                "function1+12",
+                "main+16",
             ],
         )
 
         d.cont()
 
-        self.assertTrue(d.rip == bp6.address)
+        self.assertTrue(d.regs.rip == bp6.address)
         backtrace = d.backtrace()
         self.assertIn("_start", backtrace.pop())
         self.assertEqual(
             backtrace[:7],
             [
                 "function6+8",
-                "function5+28",
-                "function4+28",
-                "function3+28",
-                "function2+28",
-                "function1+18",
-                "main+22",
+                "function5+1c",
+                "function4+1c",
+                "function3+1c",
+                "function2+1c",
+                "function1+12",
+                "main+16",
             ],
         )
 

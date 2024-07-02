@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -46,6 +46,33 @@ if platform.machine() == "x86_64":
     #define INSTRUCTION_POINTER(regs) (regs.rip)
     #define INSTALL_BREAKPOINT(instruction) ((instruction & 0xFFFFFFFFFFFFFF00) | 0xCC)
     #define BREAKPOINT_SIZE 1
+    #define IS_SW_BREAKPOINT(instruction) (instruction == 0xCC)
+    """
+
+    finish_define = """
+    #define IS_RET_INSTRUCTION(instruction) (instruction == 0xC3 || instruction == 0xCB || instruction == 0xC2 || instruction == 0xCA)
+    
+    // X86_64 Architecture specific
+    int IS_CALL_INSTRUCTION(uint8_t* instr)
+    {
+        // Check for direct CALL (E8 xx xx xx xx)
+        if (instr[0] == (uint8_t)0xE8) {
+            return 1; // It's a CALL
+        }
+        
+        // Check for indirect CALL using ModR/M (FF /2)
+        if (instr[0] == (uint8_t)0xFF) {
+            // Extract ModR/M byte
+            uint8_t modRM = (uint8_t)instr[1];
+            uint8_t reg = (modRM >> 3) & 7; // Middle three bits
+
+            if (reg == 2) {
+                return 1; // It's a CALL
+            }
+        }
+
+        return 0; // Not a CALL
+    }
     """
 else:
     raise NotImplementedError(f"Architecture {platform.machine()} not available.")
@@ -73,6 +100,7 @@ ffibuilder.cdef(
     struct thread {
         int tid;
         struct user_regs_struct regs;
+        int signal_to_forward;
         struct thread *next;
     };
 
@@ -85,13 +113,14 @@ ffibuilder.cdef(
     struct global_state {
         struct thread *t_HEAD;
         struct software_breakpoint *b_HEAD;
-        _Bool syscall_hooks_enabled;
+        _Bool handle_syscall_enabled;
     };
 
 
     int ptrace_trace_me(void);
     int ptrace_attach(int pid);
-    void ptrace_detach_all(struct global_state *state, int pid);
+    void ptrace_detach_and_cont(struct global_state *state, int pid);
+    void ptrace_detach_for_kill(struct global_state *state, int pid);
     void ptrace_detach_for_migration(struct global_state *state, int pid);
     void ptrace_reattach_from_gdb(struct global_state *state, int pid);
     void ptrace_set_options(int pid);
@@ -104,10 +133,12 @@ ffibuilder.cdef(
 
     uint64_t ptrace_geteventmsg(int pid);
 
-    int singlestep(struct global_state *state, int tid);
+    long singlestep(struct global_state *state, int tid);
     int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps);
 
     int cont_all_and_set_bps(struct global_state *state, int pid);
+
+    int stepping_finish(struct global_state *state, int tid);
 
     struct thread_status *wait_all_and_update_regs(struct global_state *state, int pid);
     void free_thread_status_list(struct thread_status *head);
@@ -127,7 +158,7 @@ ffibuilder.cdef(
 with open("libdebug/cffi/ptrace_cffi_source.c") as f:
     ffibuilder.set_source(
         "libdebug.cffi._ptrace_cffi",
-        breakpoint_define + f.read(),
+        breakpoint_define + finish_define + f.read(),
         libraries=[],
     )
 

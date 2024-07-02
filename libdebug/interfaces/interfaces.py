@@ -8,4 +8,6 @@ from enum import Enum
 
 
 class AvailableInterfaces(Enum):
+    """An enumeration of the available backend interfaces."""
+
     PTRACE = 1

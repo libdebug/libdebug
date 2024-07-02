@@ -1,0 +1,5 @@
+prune media
+prune test
+prune docs
+prune .github
+prune */__pycache__

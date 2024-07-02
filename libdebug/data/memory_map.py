@@ -4,6 +4,8 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 
@@ -32,28 +34,31 @@ class MemoryMap:
     """The backing file of the memory map, such as 'libc.so.6', or the symbolic name of the memory map, such as '[stack]'."""
 
     @staticmethod
-    def parse(map: str) -> "MemoryMap":
+    def parse(vmap: str) -> MemoryMap:
         """Parses a memory map from a /proc/pid/maps string representation.
 
         Args:
-            map (str): The string containing the memory map.
+            vmap (str): The string containing the memory map.
 
         Returns:
             MemoryMap: The parsed memory map.
         """
         try:
-            address, permissions, offset, *_, backing_file = map.split(" ", 6)
+            address, permissions, offset, *_, backing_file = vmap.split(" ", 6)
             start = int(address.split("-")[0], 16)
             end = int(address.split("-")[1], 16)
             size = end - start
             int_offset = int(offset, 16)
             backing_file = backing_file.strip()
-        except ValueError:
+            if not backing_file:
+                backing_file = f"anon_{start:x}"
+        except ValueError as e:
             raise ValueError(
-                f"Invalid memory map: {map}. Please specify a valid memory map."
-            )
+                f"Invalid memory map: {vmap}. Please specify a valid memory map.",
+            ) from e
 
         return MemoryMap(start, end, permissions, size, int_offset, backing_file)
 
-    def __repr__(self) -> str:
+    def __repr__(self: MemoryMap) -> str:
+        """Return the string representation of the memory map."""
         return f"MemoryMap(start={hex(self.start)}, end={hex(self.end)}, permissions={self.permissions}, size={hex(self.size)}, offset={hex(self.offset)}, backing_file={self.backing_file})"

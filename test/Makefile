@@ -23,6 +23,11 @@ all:
 	$(CC) $(CFLAGS) $(SRC_DIR)/thread_test.c -o $(BIN_DIR)/thread_test $(LDFLAGS)
 	$(CC) $(CFLAGS) $(SRC_DIR)/complex_thread_test.c -o $(BIN_DIR)/complex_thread_test $(LDFLAGS)
 	$(CC) $(CFLAGS) $(SRC_DIR)/watchpoint_test.c -o $(BIN_DIR)/watchpoint_test $(LDFLAGS)
+	$(CC) $(CFLAGS) $(SRC_DIR)/catch_signal_test.c -o $(BIN_DIR)/catch_signal_test $(LDFLAGS)
+	$(CC) $(CFLAGS) $(SRC_DIR)/signals_multithread_undet_test.c -o $(BIN_DIR)/signals_multithread_undet_test $(LDFLAGS)
+	$(CC) $(CFLAGS) $(SRC_DIR)/signals_multithread_det_test.c -o $(BIN_DIR)/signals_multithread_det_test $(LDFLAGS)
+	$(CC) $(CFLAGS) $(SRC_DIR)/segfault_test.c -o $(BIN_DIR)/segfault_test $(LDFLAGS)
+	$(CC) $(CFLAGS) $(SRC_DIR)/executable_section_test.c -o $(BIN_DIR)/executable_section_test $(LDFLAGS)
 	
 
 # Clean rule to remove compiled files

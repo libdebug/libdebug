@@ -9,6 +9,15 @@ from libdebug.liblog import liblog
 from libdebug.utils.elf_utils import is_pie, resolve_address, resolve_symbol
 
 
+def check_absolute_address(address: int, maps: list[MemoryMap]) -> bool:
+    """Checks if the specified address is an absolute address.
+
+    Returns:
+        bool: True if the specified address is an absolute address, False otherwise.
+    """
+    return any(vmap.start <= address < vmap.end for vmap in maps)
+
+
 def normalize_and_validate_address(address: int, maps: list[MemoryMap]) -> int:
     """Normalizes and validates the specified address.
 
@@ -19,22 +28,22 @@ def normalize_and_validate_address(address: int, maps: list[MemoryMap]) -> int:
         ValueError: If the specified address does not belong to any memory map.
     """
     if address < maps[0].start:
-        # The address is lower than the base address of the process. Suppose it is a relative address for a PIE binary.
+        # The address is lower than the base address of the lowest map. Suppose it is a relative address for a PIE binary.
         address += maps[0].start
 
-    for map in maps:
-        if map.start <= address < map.end:
+    for vmap in maps:
+        if vmap.start <= address < vmap.end:
             return address
-    else:
-        raise ValueError(f"Address {hex(address)} does not belong to any memory map.")
+
+    raise ValueError(f"Address {hex(address)} does not belong to any memory map.")
 
 
 def resolve_symbol_in_maps(symbol: str, maps: list[MemoryMap]) -> int:
     """Returns the address of the specified symbol in the specified memory maps.
 
     Args:
-        maps (list[MemoryMap]): The memory maps.
         symbol (str): The symbol whose address should be returned.
+        maps (list[MemoryMap]): The memory maps.
 
     Returns:
         int: The address of the specified symbol in the specified memory maps.
@@ -50,13 +59,9 @@ def resolve_symbol_in_maps(symbol: str, maps: list[MemoryMap]) -> int:
     else:
         offset = 0
 
-    for map in maps:
-        if (
-            map.backing_file
-            and map.backing_file not in mapped_files
-            and map.backing_file[0] != "["
-        ):
-            mapped_files[map.backing_file] = map.start
+    for vmap in maps:
+        if vmap.backing_file and vmap.backing_file not in mapped_files and vmap.backing_file[0] != "[":
+            mapped_files[vmap.backing_file] = vmap.start
 
     for file, base_address in mapped_files.items():
         try:
@@ -70,10 +75,8 @@ def resolve_symbol_in_maps(symbol: str, maps: list[MemoryMap]) -> int:
             liblog.debugger(f"Error while resolving symbol {symbol} in {file}: {e}")
         except ValueError:
             pass
-    else:
-        raise ValueError(
-            f"Symbol {symbol} not found in any mapped file. Please specify a valid symbol."
-        )
+
+    raise ValueError(f"Symbol {symbol} not found in the specified mapped file. Please specify a valid symbol.")
 
 
 def resolve_address_in_maps(address: int, maps: list[MemoryMap]) -> str:
@@ -91,15 +94,15 @@ def resolve_address_in_maps(address: int, maps: list[MemoryMap]) -> str:
     """
     mapped_files = {}
 
-    for map in maps:
-        file = map.backing_file
+    for vmap in maps:
+        file = vmap.backing_file
         if not file or file[0] == "[":
             continue
 
         if file not in mapped_files:
-            mapped_files[file] = (map.start, map.end)
+            mapped_files[file] = (vmap.start, vmap.end)
         else:
-            mapped_files[file] = (mapped_files[file][0], map.end)
+            mapped_files[file] = (mapped_files[file][0], vmap.end)
 
     for file, (base_address, top_address) in mapped_files.items():
         # Check if the address is in the range of the current section
@@ -107,17 +110,10 @@ def resolve_address_in_maps(address: int, maps: list[MemoryMap]) -> str:
             continue
 
         try:
-            if is_pie(file):
-                symbol = resolve_address(file, address - base_address)
-            else:
-                symbol = resolve_address(file, address)
-
-            return symbol
+            return resolve_address(file, address - base_address) if is_pie(file) else resolve_address(file, address)
         except OSError as e:
-            liblog.debugger(
-                f"Error while resolving address {hex(address)} in {file}: {e}"
-            )
+            liblog.debugger(f"Error while resolving address {hex(address)} in {file}: {e}")
         except ValueError:
             pass
-    else:
-        return hex(address)
+
+    return hex(address)

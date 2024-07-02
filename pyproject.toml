@@ -1,0 +1,84 @@
+[build-system]
+requires = [
+    "cffi>=1.15.1",
+    "setuptools>=61.0",
+    "wheel",
+]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "libdebug"
+authors = [
+    {name = "JinBlack"},
+    {name = "Io-no"},
+    {name = "MrIndeciso"},
+    {name = "Frank01001"},
+]
+description = "A Python library for the debugging of binary executables."
+requires-python = ">= 3.10"
+license = {file = "LICENSE"}
+dynamic = ["version"]
+readme = {file = "README.md", content-type = "text/markdown"}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: C",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Topic :: Software Development :: Debuggers",
+    "Typing :: Typed",
+]
+keywords = ["libdebug", "debugger", "elf", "ptrace", "gdb", "debug", "ctf", "reverse-engineering", "reverse", "rev", "scriptable", "script"]
+dependencies = [
+    "capstone",
+    "cffi",
+    "psutil",
+    "pyelftools",
+    "requests",
+]
+
+[project.optional-dependencies]
+dev = [
+    "rich",
+]
+
+[project.urls]
+homepage = "https://libdebug.org"
+repository = "https://github.com/libdebug/libdebug/"
+issues = "https://github.com/libdebug/libdebug/issues"
+
+
+[tool.ruff]
+include = ["pyproject.toml", "libdebug/**/*.py"]
+exclude = ["libdebug/cffi/*.py"]
+line-length = 120
+indent-width = 4
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["D100", "EM", "FBT", "G", "TD", "TRY002", "TRY003", "RET505", "SLF001", "S603", "S606"]
+
+[tool.ruff.lint.per-file-ignores]
+"libdebug/builtin/pretty_print_syscall_handler.py" = ["T201"]
+"libdebug/architectures/amd64/amd64_stack_unwinder.py" = ["S101"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
