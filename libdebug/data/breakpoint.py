@@ -49,23 +49,13 @@ class Breakpoint:
 
     def enable(self: Breakpoint) -> None:
         """Enable the breakpoint."""
-
-        if provide_internal_debugger(self).running:
-            raise RuntimeError(
-                "Cannot enable a breakpoint while the target process is running.",
-            )
-
+        provide_internal_debugger(self)._ensure_process_stopped()
         self.enabled = True
         self._changed = True
 
     def disable(self: Breakpoint) -> None:
         """Disable the breakpoint."""
-
-        if provide_internal_debugger(self).running:
-            raise RuntimeError(
-                "Cannot disable a breakpoint while the target process is running.",
-            )
-
+        provide_internal_debugger(self)._ensure_process_stopped()
         self.enabled = False
         self._changed = True
 
