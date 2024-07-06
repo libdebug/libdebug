@@ -44,9 +44,9 @@ def get_syscall_definitions(arch: str) -> dict:
     """Get the syscall definitions for the specified architecture."""
     LOCAL_FOLDER_PATH.mkdir(parents=True, exist_ok=True)
 
-    if (LOCAL_FOLDER_PATH / "{arch}.json").exists():
+    if (LOCAL_FOLDER_PATH / f"{arch}.json").exists():
         try:
-            with (LOCAL_FOLDER_PATH / "{arch}.json").open() as f:
+            with (LOCAL_FOLDER_PATH / f"{arch}.json").open() as f:
                 return json.load(f)
         except json.decoder.JSONDecodeError:
             pass
