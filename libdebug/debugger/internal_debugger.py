@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import functools
 import os
+import signal
 from pathlib import Path
 from queue import Queue
 from signal import SIGKILL, SIGSTOP, SIGTRAP
@@ -762,7 +763,14 @@ class InternalDebugger:
             args = self._craft_gdb_migration_command()
             os.execv("/bin/gdb", args)
         else:  # This is the parent process.
-            os.waitpid(gdb_pid, 0)  # Wait for the child process to finish.
+            # Parent ignores SIGINT, so only GDB (child) receives it
+            signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+            # Wait for the child process to finish
+            os.waitpid(gdb_pid, 0)
+
+            # Reset the SIGINT behavior to default handling after child exits
+            signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     def _background_step(self: InternalDebugger, thread: ThreadContext) -> None:
         """Executes a single instruction of the process.
