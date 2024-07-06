@@ -692,8 +692,8 @@ class InternalDebugger:
         self._join_and_check_status()
 
         # We have to ignore a SIGSTOP signal that is sent by GDB
-        # TODO: once we have signal handling, we should remove this
-        self.step()
+        # # TODO: once we have signal handling, we should remove this
+        self.threads[0].step()
 
     def _craft_gdb_migration_command(self: InternalDebugger) -> list[str]:
         """Crafts the command to migrate to GDB."""
@@ -724,7 +724,7 @@ class InternalDebugger:
                 else:
                     bp_args.append("b *" + hex(bp.address))
 
-                if self.instruction_pointer == bp.address:
+                if self.threads[0].instruction_pointer == bp.address:
                     # We have to enqueue an additional continue
                     bp_args.append("-ex")
                     bp_args.append("ni")
