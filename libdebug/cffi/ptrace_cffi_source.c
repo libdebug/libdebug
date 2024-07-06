@@ -149,7 +149,6 @@ void ptrace_detach_for_migration(struct global_state *state, int pid)
     while (t != NULL) {
         // the user might have modified the state of the registers
         // so we use SETREGS to check if the process is running
-        tgkill(pid, t->tid, SIGSTOP);
         if (ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs)) {
             // if we can't read the registers, the thread is probably still running
             // ensure that the thread is stopped
@@ -161,6 +160,9 @@ void ptrace_detach_for_migration(struct global_state *state, int pid)
             // set the registers again, as the first time it failed
             ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs);
         }
+
+        // Be sure that the thread will not run during gdb reattachment
+        tgkill(pid, t->tid, SIGSTOP);
 
         // detach from it
         if (ptrace(PTRACE_DETACH, t->tid, NULL, NULL))
