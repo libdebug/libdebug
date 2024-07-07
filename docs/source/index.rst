@@ -16,7 +16,7 @@ Welcome to libdebug! This powerful Python library can be used to debug your bina
 Debugging multithreaded applications can be a nightmare, but libdebug has you covered. Hijack, and manage signals and syscalls with a simple API.
 
 Looking for previous versions?
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------------
 
 Go to https://docs.libdebug.org/archive/VERSION to find the documentation for a specific version of libdebug.
 
