@@ -161,6 +161,9 @@ void ptrace_detach_for_migration(struct global_state *state, int pid)
             ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs);
         }
 
+        // Be sure that the thread will not run during gdb reattachment
+        tgkill(pid, t->tid, SIGSTOP);
+
         // detach from it
         if (ptrace(PTRACE_DETACH, t->tid, NULL, NULL))
             fprintf(stderr, "ptrace_detach failed for thread %d: %s\\n", t->tid,
