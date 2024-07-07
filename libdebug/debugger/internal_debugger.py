@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import functools
 import os
+import signal
 from pathlib import Path
 from queue import Queue
 from signal import SIGKILL, SIGSTOP, SIGTRAP
@@ -691,10 +692,6 @@ class InternalDebugger:
 
         self._join_and_check_status()
 
-        # We have to ignore a SIGSTOP signal that is sent by GDB
-        # TODO: once we have signal handling, we should remove this
-        self.step()
-
     def _craft_gdb_migration_command(self: InternalDebugger) -> list[str]:
         """Crafts the command to migrate to GDB."""
         gdb_command = [
@@ -724,7 +721,7 @@ class InternalDebugger:
                 else:
                     bp_args.append("b *" + hex(bp.address))
 
-                if self.instruction_pointer == bp.address:
+                if self.threads[0].instruction_pointer == bp.address and not bp.hardware:
                     # We have to enqueue an additional continue
                     bp_args.append("-ex")
                     bp_args.append("ni")
@@ -766,7 +763,14 @@ class InternalDebugger:
             args = self._craft_gdb_migration_command()
             os.execv("/bin/gdb", args)
         else:  # This is the parent process.
-            os.waitpid(gdb_pid, 0)  # Wait for the child process to finish.
+            # Parent ignores SIGINT, so only GDB (child) receives it
+            signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+            # Wait for the child process to finish
+            os.waitpid(gdb_pid, 0)
+
+            # Reset the SIGINT behavior to default handling after child exits
+            signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     def _background_step(self: InternalDebugger, thread: ThreadContext) -> None:
         """Executes a single instruction of the process.
