@@ -9,18 +9,18 @@
 
 ----
 
+Quick Start
+====================================
+Welcome to libdebug! This powerful Python library can be used to debug your binary executables programmatically, providing a robust, user-friendly interface.
+
+Debugging multithreaded applications can be a nightmare, but libdebug has you covered. Hijack, and manage signals and syscalls with a simple API.
+
 Looking for previous versions?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Go to https://docs.libdebug.org/archive/VERSION to find the documentation for a specific version of libdebug.
 
 e.g, for version 0.5.0, go to https://docs.libdebug.org/archive/0.5.0
-
-Quick Start
-====================================
-Welcome to libdebug! This powerful Python library can be used to debug your binary executables programmatically, providing a robust, user-friendly interface.
-
-Debugging multithreaded applications can be a nightmare, but libdebug has you covered. Hijack, and manage signals and syscalls with a simple API.
 
 Supported Architectures
 -----------------------
