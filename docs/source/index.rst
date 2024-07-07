@@ -9,6 +9,13 @@
 
 ----
 
+Looking for previous versions?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Go to https://docs.libdebug.org/archive/VERSION to find the documentation for a specific version of libdebug.
+
+e.g, for version 0.5.0, go to https://docs.libdebug.org/archive/0.5.0
+
 Quick Start
 ====================================
 Welcome to libdebug! This powerful Python library can be used to debug your binary executables programmatically, providing a robust, user-friendly interface.
@@ -102,7 +109,7 @@ The above script will run the binary `test` in the working directory and stop at
     multithreading
     quality_of_life
     logging
-
+    examples
 
 .. autosummary::
    :toctree: _autosummary
