@@ -5,7 +5,7 @@
 #
 
 #
-# ncuts - challenge from DEF CON CTF Quals 2023
+# nlinks - challenge from DEF CON CTF Quals 2023
 # Thanks to the whole mhackeroni CTF team for the exploit
 #
 
@@ -14,7 +14,7 @@ import unittest
 from libdebug import debugger
 
 
-class Ncuts(unittest.TestCase):
+class Nlinks(unittest.TestCase):
     def setUp(self):
         pass
 
@@ -119,7 +119,7 @@ class Ncuts(unittest.TestCase):
         self.assertEqual(flag, b"BM8\xd3\x02\x00\x00\x00")
         return flag
 
-    def test_ncuts(self):
+    def test_nlinks(self):
         flag = self.get_passsphrase_from_class_3_binaries()
         flag = self.get_passsphrase_from_class_1_binaries(flag)
         self.get_passsphrase_from_class_2_binaries(flag)
