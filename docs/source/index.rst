@@ -70,6 +70,14 @@ This will install the stable build of the library. If you don't mind a few hiccu
 
     python3 -m pip install git+https://github.com/libdebug/libdebug.git@dev
 
+If you want to to test your installation when installing from source, we provide a suite of tests that you can run:
+
+.. code-block:: bash
+
+    cd test
+    python run_suite.py
+
+The test folder includes the Makefile that was used to build the required binaries for transparency. However, the compiled binaries may differ due to scheduling, hardware, and compiler versions. Some tests have hardcoded absolute addresses and will likely fail as a result. 
 
 Your first script
 -----------------
@@ -97,6 +105,20 @@ Now that you have libdebug installed, you can start using it in your scripts. He
     d.kill()
 
 The above script will run the binary `test` in the working directory and stop at the function corresponding to the symbol "function". It will then print the value of the RAX register and kill the process.
+
+Conflicts with other python packages
+------------------------------------
+
+The current version of libdebug is incompatible with https://github.com/Gallopsled/pwntools.
+
+While having both installed in your python environment is not a problem, starting a process with pwntools in a libdebug scripts will cause unexpected behaviors as a result of some race conditions.
+
+Examples of some known issues include:
+
+- ptrace not intercepting SIGTRAP signals when process is run with pwntools.
+    This behavior is described in https://github.com/libdebug/libdebug/issues/48.
+- Attaching libdebug to a process that was started with pwntools with ``shell=True`` will cause the process to attach to the shell process instead.
+    This behavior is described in https://github.com/libdebug/libdebug/issues/57.
 
 .. toctree::
     :maxdepth: 2
