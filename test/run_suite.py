@@ -20,6 +20,7 @@ from scripts.catch_signal_test import SignalCatchTest
 from scripts.death_test import DeathTest
 from scripts.deep_dive_division_test import DeepDiveDivision
 from scripts.finish_test import FinishTest
+from scripts.floating_point_test import FloatingPointTest
 from scripts.handle_syscall_test import HandleSyscallTest
 from scripts.hijack_syscall_test import SyscallHijackTest
 from scripts.jumpout_test import Jumpout
@@ -90,6 +91,7 @@ def fast_suite():
     suite.addTest(FinishTest("test_exact_breakpoint_return"))
     suite.addTest(FinishTest("test_heuristic_breakpoint_return"))
     suite.addTest(FinishTest("test_breakpoint_collision"))
+    suite.addTest(FloatingPointTest("test_floating_point_reg_access"))
     suite.addTest(Jumpout("test_jumpout"))
     suite.addTest(Nlinks("test_nlinks"))
     suite.addTest(JumpstartTest("test_cursed_ldpreload"))
