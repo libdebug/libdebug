@@ -28,9 +28,9 @@
 #if (FPREGS_AVX == 0)
     _Static_assert(sizeof(struct fp_regs_struct) == 520, "user_fpregs_struct size is not 512 bytes");
 #elif (FPREGS_AVX == 1)
-    _Static_assert(sizeof(struct fp_regs_struct) == 904, "user_fpregs_struct size is not 832 bytes");
+    _Static_assert(sizeof(struct fp_regs_struct) == 904, "user_fpregs_struct size is not 896 bytes");
 #elif (FPREGS_AVX == 2)
-    _Static_assert(sizeof(struct fp_regs_struct) == 2704, "user_fpregs_struct size is not 1024 bytes");
+    _Static_assert(sizeof(struct fp_regs_struct) == 2704, "user_fpregs_struct size is not 2696 bytes");
 #else
     #error "FPREGS_AVX must be 0, 1 or 2"
 #endif

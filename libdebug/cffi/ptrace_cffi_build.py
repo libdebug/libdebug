@@ -52,6 +52,7 @@ if platform.machine() == "x86_64":
             struct reg_256 zmm0[16];
             // zmm1 starts at offset 1664
             struct reg_512 zmm1[16];
+            unsigned char padding4[8];
         };
         """
 
