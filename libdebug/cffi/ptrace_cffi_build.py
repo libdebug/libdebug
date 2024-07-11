@@ -284,7 +284,6 @@ with open("libdebug/cffi/ptrace_cffi_source.c") as f:
         + finish_define
         + f.read(),
         libraries=[],
-        extra_compile_args=["-march=native"],
     )
 
 if __name__ == "__main__":
