@@ -32,7 +32,44 @@ class FloatingPointTest(unittest.TestCase):
                 self.test_floating_point_reg_access_generic()
 
     def test_floating_point_reg_access_avx512(self):
-        pass
+        d = debugger("binaries/floating_point_2696_test")
+
+        d.run()
+
+        bp1 = d.bp(0x40143e)
+        bp2 = d.bp(0x401467)
+
+        d.cont()
+
+        self.assertTrue(bp1.hit_on(d))
+
+        self.assertTrue(hasattr(d.regs, "xmm0"))
+        self.assertTrue(hasattr(d.regs, "xmm31"))
+        self.assertTrue(hasattr(d.regs, "ymm0"))
+        self.assertTrue(hasattr(d.regs, "ymm31"))
+        self.assertTrue(hasattr(d.regs, "zmm0"))
+        self.assertTrue(hasattr(d.regs, "zmm31"))
+
+        baseval = int.from_bytes(bytes(list(range(64))), "little")
+
+        for i in range(32):
+            self.assertEqual(getattr(d.regs, f"xmm{i}"), baseval & ((1 << 128) - 1))
+            self.assertEqual(getattr(d.regs, f"ymm{i}"), baseval & ((1 << 256) - 1))
+            self.assertEqual(getattr(d.regs, f"zmm{i}"), baseval)
+            baseval = (baseval >> 8) + ((baseval & 255) << 504)
+
+        d.regs.zmm0 = 0xDEADBEEFDEADBEEF
+
+        d.cont()
+
+        self.assertTrue(bp2.hit_on(d))
+
+        for i in range(32):
+            val = randint(0, 2 ** 512 - 1)
+            setattr(d.regs, f"zmm{i}", val)
+            self.assertEqual(getattr(d.regs, f"zmm{i}"), val)
+
+        d.kill()
 
     def test_floating_point_reg_access_avx(self):
         d = debugger("binaries/floating_point_896_test")
