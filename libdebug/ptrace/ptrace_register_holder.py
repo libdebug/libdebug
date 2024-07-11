@@ -25,6 +25,9 @@ class PtraceRegisterHolder(RegisterHolder):
     register_file: object
     """The register file of the target process, as returned by ptrace."""
 
+    fp_register_file: object
+    """The floating-point register file of the target process, as returned by ptrace."""
+
     def poll(self: PtraceRegisterHolder, target: ThreadContext) -> None:
         """Poll the register values from the specified target."""
         raise NotImplementedError("Do not call this method.")
