@@ -18,20 +18,21 @@ class FloatingPointTest(unittest.TestCase):
         # Let's check if we have AVX512
         with Path("/proc/cpuinfo").open() as f:
             cpuinfo = f.read()
-            if "avx512" in cpuinfo:
-                # Run an AVX512 test
-                self.test_floating_point_reg_access_avx512()
-                self.test_floating_point_reg_access_avx()
-                self.test_floating_point_reg_access_generic()
-            elif "avx" in cpuinfo:
-                # Run an AVX test
-                self.test_floating_point_reg_access_avx()
-                self.test_floating_point_reg_access_generic()
-            else:
-                # Run a generic test
-                self.test_floating_point_reg_access_generic()
 
-    def test_floating_point_reg_access_avx512(self):
+        if "avx512" in cpuinfo:
+            # Run an AVX512 test
+            self.avx512()
+            self.avx()
+            self.mmx()
+        elif "avx" in cpuinfo:
+            # Run an AVX test
+            self.avx()
+            self.mmx()
+        else:
+            # Run a generic test
+            self.mmx()
+
+    def avx512(self):
         d = debugger("binaries/floating_point_2696_test")
 
         d.run()
@@ -71,7 +72,7 @@ class FloatingPointTest(unittest.TestCase):
 
         d.kill()
 
-    def test_floating_point_reg_access_avx(self):
+    def avx(self):
         d = debugger("binaries/floating_point_896_test")
 
         d.run()
@@ -172,7 +173,7 @@ class FloatingPointTest(unittest.TestCase):
 
         d.kill()
 
-    def test_floating_point_reg_access_generic(self):
+    def mmx(self):
         d = debugger("binaries/floating_point_512_test")
 
         d.run()
