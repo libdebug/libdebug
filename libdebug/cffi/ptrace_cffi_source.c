@@ -395,7 +395,14 @@ struct thread_status *wait_all_and_update_regs(struct global_state *state, int p
     head->next = NULL;
 
     // The first element is the first status we get from polling with waitpid
-    head->tid = waitpid(-getpgid(pid), &head->status, 0);
+    pid_t pgid = getpgid(pid);
+    for (;;) {
+        // calling waitpid with WNOHANG multiple times instead of one blocking call
+        // reduces the race condition window between the waitpid of libdebug and
+        // the waitpid of other libraries or processes
+        head->tid = waitpid (-pgid, &head->status, WNOHANG);
+        if (head->tid != 0) break;
+    }
 
     if (head->tid == -1) {
         free(head);
@@ -456,6 +463,18 @@ struct thread_status *wait_all_and_update_regs(struct global_state *state, int p
 
     return head;
 }
+
+struct thread_status* cont_and_wait(struct global_state *state, int pid, int *cont_status)
+{
+    *cont_status = cont_all_and_set_bps(state, pid);
+
+    if (*cont_status < 0) {
+        return NULL;
+    }
+
+    return wait_all_and_update_regs(state, pid);
+}
+     
 
 void free_thread_status_list(struct thread_status *head)
 {

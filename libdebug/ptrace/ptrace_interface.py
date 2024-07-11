@@ -214,7 +214,17 @@ class PtraceInterface(DebuggingInterface):
 
     def cont(self: PtraceInterface) -> None:
         """Continues the execution of the process."""
+        self._pre_continue()
+        result = self.lib_trace.cont_all_and_set_bps(
+            self._global_state,
+            self.process_id,
+        )
+        if result < 0:
+            errno_val = self.ffi.errno
+            raise OSError(errno_val, errno.errorcode[errno_val])
 
+    def _pre_continue(self: PtraceInterface) -> None:
+        """Executes the pre-continue actions."""
         # Forward signals to the threads
         if self._internal_debugger.resume_context.threads_with_signals_to_forward:
             self.forward_signal()
@@ -240,14 +250,6 @@ class PtraceInterface(DebuggingInterface):
                 break
         else:
             self._global_state.handle_syscall_enabled = False
-
-        result = self.lib_trace.cont_all_and_set_bps(
-            self._global_state,
-            self.process_id,
-        )
-        if result < 0:
-            errno_val = self.ffi.errno
-            raise OSError(errno_val, errno.errorcode[errno_val])
 
     def step(self: PtraceInterface, thread: ThreadContext) -> None:
         """Executes a single instruction of the process.
@@ -387,11 +389,15 @@ class PtraceInterface(DebuggingInterface):
 
     def wait(self: PtraceInterface) -> None:
         """Waits for the process to stop. Returns True if the wait has to be repeated."""
-        result = self.lib_trace.wait_all_and_update_regs(
+        thread_status = self.lib_trace.wait_all_and_update_regs(
             self._global_state,
             self.process_id,
         )
-        cursor = result
+        self._post_wait(thread_status)
+
+    def _post_wait(self: PtraceInterface, thread_status: object) -> None:
+        """Executes the post-wait actions."""
+        cursor = thread_status
 
         invalidate_process_cache()
 
@@ -404,7 +410,24 @@ class PtraceInterface(DebuggingInterface):
         # Check the result of the waitpid and handle the changes.
         self.status_handler.manage_change(results)
 
-        self.lib_trace.free_thread_status_list(result)
+        self.lib_trace.free_thread_status_list(thread_status)
+
+    def cont_and_wait(self: PtraceInterface) -> None:
+        """Continues the execution of the process and waits for it to stop."""
+        self._pre_continue()
+
+        cont_result = self.ffi.new("int*")
+        thread_status = self.lib_trace.cont_and_wait(
+            self._global_state,
+            self.process_id,
+            cont_result,
+        )
+
+        if cont_result[0] < 0:
+            errno_val = self.ffi.errno
+            raise OSError(errno_val, errno.errorcode[errno_val])
+
+        self._post_wait(thread_status)
 
     def forward_signal(self: PtraceInterface) -> None:
         """Set the signals to forward to the threads."""

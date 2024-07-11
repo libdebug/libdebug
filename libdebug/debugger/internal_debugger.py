@@ -320,7 +320,16 @@ class InternalDebugger:
 
         self._join_and_check_status()
 
-        self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
+        self.__polling_thread_command_queue.put((self.__threaded_wait, (True,)))
+        # We need to wait before returning and allowing the main script to continue
+        # (this reduces the race condition window between the waitpid of libdebug and
+        # the waitpid of other libraries or processes)
+        msg = self.__polling_thread_response_queue.get()
+        self.__polling_thread_response_queue.task_done()
+
+        if msg is not None:
+            # This is not the expected message, but an error message
+            raise msg
 
     @background_alias(_background_invalid_call)
     def interrupt(self: InternalDebugger) -> None:
@@ -1214,7 +1223,12 @@ class InternalDebugger:
         self.set_running()
         self.debugging_interface.cont()
 
-    def __threaded_wait(self: InternalDebugger) -> None:
+    def __threaded_wait(self: InternalDebugger, send_confirmation: bool = False) -> None:
+        """Waits for the process to stop.
+
+        Args:
+            send_confirmation (bool, optional): Whether to send a confirmation to the main thread. Defaults to True.
+        """
         if self.argv:
             liblog.debugger(
                 "Waiting for process %s (%d) to stop.",
@@ -1224,17 +1238,25 @@ class InternalDebugger:
         else:
             liblog.debugger("Waiting for process %d to stop.", self.process_id)
 
-        while True:
+        self.resume_context.resume = True
+
+        # We allow the main script to continue its execution
+        # (this reduces the race condition window between the waitpid of libdebug and
+        # the waitpid of other libraries or processes)
+        if send_confirmation:
+            self.__polling_thread_response_queue.put(None)
+
+        self.debugging_interface.wait()
+
+        while self.resume_context.resume:
             if self.threads[0].dead:
                 # All threads are dead
                 liblog.debugger("All threads dead")
                 break
+
             self.resume_context.resume = True
-            self.debugging_interface.wait()
-            if self.resume_context.resume:
-                self.debugging_interface.cont()
-            else:
-                break
+            self.debugging_interface.cont_and_wait()
+
         self.set_stopped()
 
     def __threaded_breakpoint(self: InternalDebugger, bp: Breakpoint) -> None:

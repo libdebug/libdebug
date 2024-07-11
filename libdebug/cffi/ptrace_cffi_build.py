@@ -141,6 +141,9 @@ ffibuilder.cdef(
     int stepping_finish(struct global_state *state, int tid);
 
     struct thread_status *wait_all_and_update_regs(struct global_state *state, int pid);
+    
+    struct thread_status* cont_and_wait(struct global_state *state, int pid, int *cont_status);
+    
     void free_thread_status_list(struct thread_status *head);
 
     struct user_regs_struct* register_thread(struct global_state *state, int tid);
