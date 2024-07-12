@@ -81,15 +81,18 @@ class PtraceInterface(DebuggingInterface):
         self.ffi = _ptrace_cffi.ffi
 
         self._internal_debugger = provide_internal_debugger(self)
-        if not self._internal_debugger.aslr_enabled:
-            disable_self_aslr()
 
         self._global_state = self.ffi.new("struct global_state*")
+        self._global_state.t_HEAD = self.ffi.NULL
+        self._global_state.dead_t_HEAD = self.ffi.NULL
+        self._global_state.b_HEAD = self.ffi.NULL
 
         self.process_id = 0
         self.detached = False
 
         self.hardware_bp_helpers = {}
+
+        self._disabled_aslr = False
 
         self.reset()
 
@@ -105,6 +108,10 @@ class PtraceInterface(DebuggingInterface):
 
     def run(self: PtraceInterface) -> None:
         """Runs the specified process."""
+        if not self._disabled_aslr and not self._internal_debugger.aslr_enabled:
+            disable_self_aslr()
+            self._disabled_aslr = True
+
         argv = self._internal_debugger.argv
         env = self._internal_debugger.env
 

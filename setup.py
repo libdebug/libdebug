@@ -31,7 +31,7 @@ if not (
     exit(1)
 
 if not os.path.isfile("/usr/include/libelf.h"):
-    print("Required C libraries not found. Please install elfutils")
+    print("Required C libraries not found. Please install libelf-dev or elfutils")
     exit(1)
 
 if os.path.isfile("/usr/include/libdwarf/dwarf.h") and os.path.isfile(
@@ -68,7 +68,7 @@ class JumpstartBuildCommand(build):
 
 setup(
     name="libdebug",
-    version="0.5.2",
+    version="0.5.3",
     author="JinBlack",
     description="A library to debug binary programs",
     packages=find_packages(include=["libdebug", "libdebug.*"]),

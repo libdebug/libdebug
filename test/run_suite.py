@@ -9,7 +9,7 @@ import unittest
 
 from scripts.alias_test import AliasTest
 from scripts.attach_detach_test import AttachDetachTest
-from scripts.auto_waiting_test import AutoWaitingNcuts, AutoWaitingTest
+from scripts.auto_waiting_test import AutoWaitingNlinks, AutoWaitingTest
 from scripts.backtrace_test import BacktraceTest
 from scripts.basic_test import BasicPieTest, BasicTest, ControlFlowTest, HwBasicTest
 from scripts.breakpoint_test import BreakpointTest
@@ -27,13 +27,13 @@ from scripts.jumpstart_test import JumpstartTest
 from scripts.large_binary_sym_test import LargeBinarySymTest
 from scripts.memory_test import MemoryTest
 from scripts.multiple_debuggers_test import MultipleDebuggersTest
-from scripts.ncuts_test import Ncuts
+from scripts.nlinks_test import Nlinks
 from scripts.pprint_syscalls_test import PPrintSyscallsTest
 from scripts.signals_multithread_test import SignalMultithreadTest
 from scripts.speed_test import SpeedTest
 from scripts.thread_test import ComplexThreadTest, ThreadTest
 from scripts.vmwhere1_test import Vmwhere1
-from scripts.waiting_test import WaitingNcuts, WaitingTest
+from scripts.waiting_test import WaitingNlinks, WaitingTest
 from scripts.watchpoint_alias_test import WatchpointAliasTest
 from scripts.watchpoint_test import WatchpointTest
 
@@ -91,7 +91,7 @@ def fast_suite():
     suite.addTest(FinishTest("test_heuristic_breakpoint_return"))
     suite.addTest(FinishTest("test_breakpoint_collision"))
     suite.addTest(Jumpout("test_jumpout"))
-    suite.addTest(Ncuts("test_ncuts"))
+    suite.addTest(Nlinks("test_nlinks"))
     suite.addTest(JumpstartTest("test_cursed_ldpreload"))
     suite.addTest(ControlFlowTest("test_step_until_1"))
     suite.addTest(ControlFlowTest("test_step_until_2"))
@@ -105,10 +105,10 @@ def fast_suite():
     suite.addTest(LargeBinarySymTest("test_large_binary_demangle"))
     suite.addTest(WaitingTest("test_bps_waiting"))
     suite.addTest(WaitingTest("test_jumpout_waiting"))
-    suite.addTest(WaitingNcuts("test_ncuts"))
+    suite.addTest(WaitingNlinks("test_nlinks"))
     suite.addTest(AutoWaitingTest("test_bps_auto_waiting"))
     suite.addTest(AutoWaitingTest("test_jumpout_auto_waiting"))
-    suite.addTest(AutoWaitingNcuts("test_ncuts"))
+    suite.addTest(AutoWaitingNlinks("test_nlinks"))
     suite.addTest(WatchpointTest("test_watchpoint"))
     suite.addTest(WatchpointTest("test_watchpoint_callback"))
     suite.addTest(WatchpointAliasTest("test_watchpoint_alias"))
