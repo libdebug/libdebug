@@ -66,6 +66,7 @@ struct thread_status {
 
 struct global_state {
     struct thread *t_HEAD;
+    struct thread *dead_t_HEAD;
     struct software_breakpoint *b_HEAD;
     _Bool handle_syscall_enabled;
 };
@@ -173,7 +174,9 @@ void unregister_thread(struct global_state *state, int tid)
             } else {
                 prev->next = t->next;
             }
-            free(t);
+            // Add the thread to the dead list
+            t->next = state->dead_t_HEAD;
+            state->dead_t_HEAD = t;
             return;
         }
         prev = t;
@@ -193,6 +196,16 @@ void free_thread_list(struct global_state *state)
     }
 
     state->t_HEAD = NULL;
+
+    t = state->dead_t_HEAD;
+
+    while (t != NULL) {
+        next = t->next;
+        free(t);
+        t = next;
+    }
+
+    state->dead_t_HEAD = NULL;
 }
 
 int ptrace_trace_me(void)
