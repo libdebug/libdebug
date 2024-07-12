@@ -83,8 +83,11 @@ Register Access
 ===============
 .. _register-access-paragraph:
 
-libdebug offers a simple register access interface for supported architectures. The registers are accessed through the regs attribute of the debugger object. The field includes both general purpose and special registers, as well as the flags register. Effectively, any register that can be accessed by an assembly instruction, can also be accessed through the regs attribute. The debugger specifically exposes properties of the main thread, including the registers. See :doc:`multithreading` to learn how to access registers and other properties from different threads.
+libdebug offers a simple register access interface for supported architectures. The registers are accessed through the `regs`` attribute of the debugger object. The field includes both general purpose and special registers, as well as the flags register. Effectively, any register that can be accessed by an assembly instruction, can also be accessed through the regs attribute. The debugger specifically exposes properties of the main thread, including the registers. See :doc:`multithreading` to learn how to access registers and other properties from different threads.
 
+Floating point and vector registers are available as well. The syntax is identical to the one used for integer registers.
+The list of available AVX registers is determined during installation by checking the CPU capabilities, thus special registers, such as `zmm0` to `zmm31`, are available only on CPUs that support the specific ISA extension.
+If you believe that your target CPU supports AVX registers, but they are not available during debugging, please file an issue on the GitHub repository and include your precise hardware details, so that we can investigate and resolve the issue.
 
 Memory Access
 ====================================
