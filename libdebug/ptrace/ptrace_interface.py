@@ -83,6 +83,9 @@ class PtraceInterface(DebuggingInterface):
         self._internal_debugger = provide_internal_debugger(self)
 
         self._global_state = self.ffi.new("struct global_state*")
+        self._global_state.t_HEAD = self.ffi.NULL
+        self._global_state.dead_t_HEAD = self.ffi.NULL
+        self._global_state.b_HEAD = self.ffi.NULL
 
         self.process_id = 0
         self.detached = False
