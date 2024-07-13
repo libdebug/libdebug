@@ -60,3 +60,5 @@ class AntidebugEscapingTest(unittest.TestCase):
                     break
 
         self.assertEqual(flag, "BRUTE")
+
+        d.terminate()

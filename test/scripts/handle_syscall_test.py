@@ -90,6 +90,8 @@ class HandleSyscallTest(unittest.TestCase):
         self.assertEqual(handler2.hit_count, 1)
         self.assertEqual(handler3.hit_count, 1)
 
+        d.terminate()
+
     def test_handles_with_pprint(self):
         d = debugger("binaries/handle_syscall_test")
 
@@ -144,6 +146,8 @@ class HandleSyscallTest(unittest.TestCase):
         self.assertEqual(handler1.hit_count, 2)
         self.assertEqual(handler2.hit_count, 1)
         self.assertEqual(handler3.hit_count, 1)
+
+        d.terminate()
 
     def test_handle_disabling(self):
         d = debugger("binaries/handle_syscall_test")
@@ -205,6 +209,8 @@ class HandleSyscallTest(unittest.TestCase):
         self.assertEqual(handler1.hit_count, 1)
         self.assertEqual(handler2.hit_count, 1)
         self.assertEqual(handler3.hit_count, 1)
+
+        d.terminate()
 
     def test_handle_disabling_with_pprint(self):
         d = debugger("binaries/handle_syscall_test")
@@ -268,6 +274,8 @@ class HandleSyscallTest(unittest.TestCase):
         self.assertEqual(handler1.hit_count, 1)
         self.assertEqual(handler2.hit_count, 1)
         self.assertEqual(handler3.hit_count, 1)
+
+        d.terminate()
 
     def test_handle_overwrite(self):
         d = debugger("binaries/handle_syscall_test")
@@ -340,6 +348,9 @@ class HandleSyscallTest(unittest.TestCase):
             "Syscall write is already handled by a user-defined handler. Overriding it.",
             self.log_capture_string.getvalue(),
         )
+
+        d.terminate()
+
 
     def test_handle_overwrite_with_pprint(self):
         d = debugger("binaries/handle_syscall_test")
@@ -415,6 +426,8 @@ class HandleSyscallTest(unittest.TestCase):
             self.log_capture_string.getvalue(),
         )
 
+        d.terminate()
+
 
     def test_handles_sync(self):
         d = debugger("binaries/handle_syscall_test")
@@ -477,6 +490,8 @@ class HandleSyscallTest(unittest.TestCase):
         self.assertEqual(handler1.hit_count, 2)
         self.assertEqual(handler2.hit_count, 1)
         self.assertEqual(handler3.hit_count, 1)
+
+        d.terminate()
     
     def test_handles_sync_with_pprint(self):
         d = debugger("binaries/handle_syscall_test")
@@ -541,3 +556,5 @@ class HandleSyscallTest(unittest.TestCase):
         self.assertEqual(handler1.hit_count, 2)
         self.assertEqual(handler2.hit_count, 1)
         self.assertEqual(handler3.hit_count, 1)
+
+        d.terminate()

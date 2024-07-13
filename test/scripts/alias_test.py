@@ -18,6 +18,7 @@ class AliasTest(unittest.TestCase):
         self.assertTrue(bp.address == d.regs.rip)
         d.c()
         d.kill()
+        d.terminate()
 
     def test_step_alias(self):
         d = debugger("binaries/basic_test")
@@ -41,6 +42,7 @@ class AliasTest(unittest.TestCase):
 
         d.c()
         d.kill()
+        d.terminate()
 
     def test_step_until_alias(self):
         d = debugger("./binaries/breakpoint_test")
@@ -65,6 +67,7 @@ class AliasTest(unittest.TestCase):
         d.c()
 
         d.kill()
+        d.terminate()
 
     def test_memory_alias(self):
         d = debugger("binaries/memory_test")
@@ -88,6 +91,7 @@ class AliasTest(unittest.TestCase):
         self.assertTrue(d.mem[address : address + 256] == prev)
 
         d.kill()
+        d.terminate()
 
     def test_finish_alias(self):
         d = debugger("binaries/finish_test", auto_interrupt_on_command=False)
@@ -127,6 +131,7 @@ class AliasTest(unittest.TestCase):
         self.assertEqual(d.regs.rip, 0x4011E0)
 
         d.kill()
+        d.terminate()
 
     def test_waiting_alias(self):
         d = debugger("binaries/breakpoint_test", auto_interrupt_on_command=True)
@@ -168,6 +173,7 @@ class AliasTest(unittest.TestCase):
             d.c()
 
         d.kill()
+        d.terminate()
 
     def test_interrupt_alias(self):
         d = debugger("binaries/basic_test")
@@ -178,3 +184,4 @@ class AliasTest(unittest.TestCase):
 
         d.int()
         d.kill()
+        d.terminate()

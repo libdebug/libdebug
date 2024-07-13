@@ -62,6 +62,8 @@ class SyscallHijackTest(unittest.TestCase):
         self.assertEqual(write_count, handler.hit_count)
         self.assertEqual(handler.hit_count, 2)
 
+        d.terminate()
+
     def test_hijack_syscall_with_pprint(self):
         def on_enter_write(d, sh):
             nonlocal write_count
@@ -105,6 +107,8 @@ class SyscallHijackTest(unittest.TestCase):
 
         self.assertEqual(write_count, handler.hit_count)
         self.assertEqual(handler.hit_count, 2)
+
+        d.terminate()
 
     def test_hijack_handle_syscall(self):
         def on_enter_write(d, sh):
@@ -150,6 +154,8 @@ class SyscallHijackTest(unittest.TestCase):
 
         self.assertEqual(write_count, handler.hit_count)
         self.assertEqual(handler.hit_count, 2)
+
+        d.terminate()
 
     def test_hijack_handle_syscall_with_pprint(self):
         def on_enter_write(d, sh):
@@ -198,6 +204,8 @@ class SyscallHijackTest(unittest.TestCase):
         self.assertEqual(write_count, handler.hit_count)
         self.assertEqual(handler.hit_count, 2)
 
+        d.terminate()
+
     def test_hijack_syscall_args(self):
         write_buffer = None
 
@@ -242,6 +250,8 @@ class SyscallHijackTest(unittest.TestCase):
         self.assertEqual(self.capturedOutput.getvalue().count("Hello, World!"), 2)
         self.assertEqual(write_count, handler.hit_count)
         self.assertEqual(handler.hit_count, 3)
+
+        d.terminate()
 
     def test_hijack_syscall_args_with_pprint(self):
         write_buffer = None
@@ -292,6 +302,8 @@ class SyscallHijackTest(unittest.TestCase):
         self.assertEqual(write_count, handler.hit_count)
         self.assertEqual(handler.hit_count, 3)
 
+        d.terminate()
+
     def test_hijack_syscall_wrong_args(self):
         d = debugger("binaries/handle_syscall_test")
 
@@ -301,6 +313,7 @@ class SyscallHijackTest(unittest.TestCase):
             d.hijack_syscall("read", "write", syscall_arg26=0x1)
 
         d.kill()
+        d.terminate()
 
     def loop_detection_test(self):
         d = debugger("binaries/handle_syscall_test")
@@ -331,6 +344,7 @@ class SyscallHijackTest(unittest.TestCase):
 
         # We expect no exception to be raised
         d.cont()
+        d.terminate()
 
 
 if __name__ == "__main__":

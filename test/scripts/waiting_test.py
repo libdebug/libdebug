@@ -51,6 +51,7 @@ class WaitingTest(unittest.TestCase):
             d.cont()
 
         d.kill()
+        d.terminate()
 
     def test_jumpout_waiting(self):
         flag = ""
@@ -85,6 +86,7 @@ class WaitingTest(unittest.TestCase):
         r.recvuntil(b"Wrong...")
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(flag, "SECCON{jump_table_everywhere}")
 
@@ -116,6 +118,7 @@ class WaitingNlinks(unittest.TestCase):
         r.recvline()
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(flag, b"\x00\x006\x00\x00\x00(\x00")
         return flag
@@ -160,6 +163,7 @@ class WaitingNlinks(unittest.TestCase):
             d.cont()
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(flag, b"\x00\x00\x00\x01\x00\x00a\x00")
 
@@ -187,6 +191,7 @@ class WaitingNlinks(unittest.TestCase):
         r.recvline()
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(flag, b"BM8\xd3\x02\x00\x00\x00")
         return flag

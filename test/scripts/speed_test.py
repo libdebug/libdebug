@@ -35,6 +35,8 @@ class SpeedTest(unittest.TestCase):
 
         self.assertTrue((end_time - start_time) < 15 * 1e9)  # 15 seconds
 
+        d.terminate()
+
     def test_speed_hardware(self):
         d = self.d
 
@@ -55,6 +57,8 @@ class SpeedTest(unittest.TestCase):
         end_time = perf_counter_ns()
 
         self.assertTrue((end_time - start_time) < 15 * 1e9)  # 15 seconds
+
+        d.terminate()
 
 
 if __name__ == "__main__":

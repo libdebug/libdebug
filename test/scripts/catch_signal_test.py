@@ -89,6 +89,8 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGQUIT_count, catcher4.hit_count)
         self.assertEqual(SIGPIPE_count, catcher5.hit_count)
 
+        d.terminate()
+
     def test_signal_pass_to_process(self):
         SIGUSR1_count = 0
         SIGINT_count = 0
@@ -167,6 +169,8 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGINT, b"Received signal 2" * 2)
         self.assertEqual(SIGQUIT, b"Received signal 3" * 3)
         self.assertEqual(SIGPIPE, b"Received signal 13" * 3)
+
+        d.terminate()
 
     def test_signal_disable_catch_signal(self):
         SIGUSR1_count = 0
@@ -255,6 +259,8 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGQUIT, b"Received signal 3" * 3)
         self.assertEqual(SIGPIPE, b"Received signal 13" * 3)
 
+        d.terminate()
+
     def test_signal_unblock(self):
         SIGUSR1_count = 0
         SIGINT_count = 0
@@ -335,6 +341,8 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(signal_received[2], b"Exiting normally.")
 
         self.assertEqual(len(signal_received), 3)
+
+        d.terminate()
 
     def test_signal_disable_catch_signal_unblock(self):
         SIGUSR1_count = 0
@@ -419,6 +427,8 @@ class SignalCatchTest(unittest.TestCase):
 
         self.assertEqual(len(signal_received), 3)
 
+        d.terminate()
+
     def test_hijack_signal_with_catch_signal(self):
         def catcher_SIGUSR1(t, sc):
             # Hijack to SIGTERM
@@ -457,6 +467,8 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGQUIT, b"Received signal 3" * 3)
         self.assertEqual(SIGPIPE, b"Received signal 13" * 3)
 
+        d.terminate()
+
     def test_hijack_signal_with_api(self):
         d = debugger("binaries/catch_signal_test")
 
@@ -491,6 +503,8 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGINT, b"Received signal 2" * 2)
         self.assertEqual(SIGQUIT, b"Received signal 3" * 3)
         self.assertEqual(SIGPIPE, b"Received signal 13" * 3)
+
+        d.terminate()
 
     def test_recursive_true_with_catch_signal(self):
         SIGUSR1_count = 0
@@ -546,6 +560,8 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGQUIT, b"Received signal 3" * 3)
         self.assertEqual(SIGPIPE, b"Received signal 13" * 3)
 
+        d.terminate()
+
     def test_recursive_true_with_api(self):
         SIGTERM_count = 0
 
@@ -589,6 +605,8 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGINT, b"Received signal 2" * 2)
         self.assertEqual(SIGQUIT, b"Received signal 3" * 3)
         self.assertEqual(SIGPIPE, b"Received signal 13" * 3)
+
+        d.terminate()
 
     def test_recursive_false_with_catch_signal(self):
         SIGUSR1_count = 0
@@ -644,6 +662,8 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGQUIT, b"Received signal 3" * 3)
         self.assertEqual(SIGPIPE, b"Received signal 13" * 3)
 
+        d.terminate()
+
     def test_recursive_false_with_api(self):
         SIGTERM_count = 0
 
@@ -687,6 +707,8 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGINT, b"Received signal 2" * 2)
         self.assertEqual(SIGQUIT, b"Received signal 3" * 3)
         self.assertEqual(SIGPIPE, b"Received signal 13" * 3)
+
+        d.terminate()
 
     def test_hijack_signal_with_catch_signal_loop(self):
         # Let create a loop of hijacking signals
@@ -737,6 +759,8 @@ class SignalCatchTest(unittest.TestCase):
         d.cont()
         d.kill()
 
+        d.terminate()
+
     def test_hijack_signal_with_api_loop(self):
         # Let create a loop of hijacking signals
 
@@ -777,6 +801,8 @@ class SignalCatchTest(unittest.TestCase):
 
         d.cont()
         d.kill()
+
+        d.terminate()
 
     def test_signal_unhijacking(self):
         SIGUSR1_count = 0
@@ -849,6 +875,8 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGQUIT, b"Received signal 15" * 2 + b"Received signal 3")
         self.assertEqual(SIGPIPE, b"Received signal 15" * 2 + b"Received signal 13")
 
+        d.terminate()
+
     def test_override_catch_signal(self):
         SIGPIPE_count_first = 0
         SIGPIPE_count_second = 0
@@ -913,6 +941,8 @@ class SignalCatchTest(unittest.TestCase):
             1,
         )
 
+        d.terminate()
+
     def test_override_hijack(self):
         d = debugger("binaries/catch_signal_test")
 
@@ -960,6 +990,8 @@ class SignalCatchTest(unittest.TestCase):
             self.log_capture_string.getvalue().count("has already been caught. Overriding it."),
             1,
         )
+
+        d.terminate()
 
     def test_override_hybrid(self):
         SIGPIPE_count = 0
@@ -1016,6 +1048,8 @@ class SignalCatchTest(unittest.TestCase):
             self.log_capture_string.getvalue().count("has already been caught. Overriding it."),
             1,
         )
+
+        d.terminate()
 
     def test_signal_get_signal(self):
         SIGUSR1_count = 0
@@ -1086,6 +1120,8 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGINT_count, catcher3.hit_count)
         self.assertEqual(SIGQUIT_count, catcher4.hit_count)
         self.assertEqual(SIGPIPE_count, catcher5.hit_count)
+
+        d.terminate()
 
     def test_signal_send_signal(self):
         SIGUSR1_count = 0
@@ -1160,6 +1196,8 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGQUIT, b"Received signal 15" * 2 + b"Received signal 3")
         self.assertEqual(SIGPIPE, b"Received signal 15" * 2 + b"Received signal 13")
 
+        d.terminate()
+
     def test_signal_catch_sync_block(self):
         SIGUSR1_count = 0
         SIGINT_count = 0
@@ -1206,6 +1244,8 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGINT_count, catcher3.hit_count)
         self.assertEqual(SIGQUIT_count, catcher4.hit_count)
         self.assertEqual(SIGPIPE_count, catcher5.hit_count)
+
+        d.terminate()
 
     def test_signal_catch_sync_pass(self):
         SIGUSR1_count = 0
@@ -1264,3 +1304,5 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(signals.count(b"Received signal 2"), 2)
         self.assertEqual(signals.count(b"Received signal 3"), 3)
         self.assertEqual(signals.count(b"Received signal 13"), 3)
+
+        d.terminate()

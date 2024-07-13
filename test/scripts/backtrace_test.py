@@ -102,6 +102,7 @@ class BacktraceTest(unittest.TestCase):
         )
 
         d.kill()
+        d.terminate()
 
 
 if __name__ == "__main__":

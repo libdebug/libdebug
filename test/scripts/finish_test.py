@@ -59,6 +59,7 @@ class FinishTest(unittest.TestCase):
         self.assertEqual(d.regs.rip, RETURN_POINT_FROM_A)
 
         d.kill()
+        d.terminate()
 
     def test_finish_heuristic_no_auto_interrupt_no_breakpoint(self):
         d = debugger("binaries/finish_test", auto_interrupt_on_command=False)
@@ -98,6 +99,7 @@ class FinishTest(unittest.TestCase):
         self.assertEqual(d.regs.rip, RETURN_POINT_FROM_A)
 
         d.kill()
+        d.terminate()
 
     def test_finish_exact_auto_interrupt_no_breakpoint(self):
         d = debugger("binaries/finish_test", auto_interrupt_on_command=True)
@@ -139,6 +141,7 @@ class FinishTest(unittest.TestCase):
         self.assertEqual(d.regs.rip, RETURN_POINT_FROM_A)
 
         d.kill()
+        d.terminate()
 
     def test_finish_heuristic_auto_interrupt_no_breakpoint(self):
         d = debugger("binaries/finish_test", auto_interrupt_on_command=True)
@@ -180,6 +183,7 @@ class FinishTest(unittest.TestCase):
         self.assertEqual(d.regs.rip, RETURN_POINT_FROM_A)
 
         d.kill()
+        d.terminate()
 
     def test_finish_exact_no_auto_interrupt_breakpoint(self):
         d = debugger("binaries/finish_test", auto_interrupt_on_command=False)
@@ -199,6 +203,7 @@ class FinishTest(unittest.TestCase):
         self.assertEqual(d.regs.rip, A_ADDRESS, f"Expected {hex(A_ADDRESS)} but got {hex(d.regs.rip)}")
 
         d.kill()
+        d.terminate()
 
     def test_finish_heuristic_no_auto_interrupt_breakpoint(self):
         d = debugger("binaries/finish_test", auto_interrupt_on_command=False)
@@ -218,6 +223,7 @@ class FinishTest(unittest.TestCase):
         self.assertEqual(d.regs.rip, A_ADDRESS)
 
         d.kill()
+        d.terminate()
 
     def test_heuristic_return_address(self):
         d = debugger("binaries/finish_test", auto_interrupt_on_command=False)
@@ -250,6 +256,7 @@ class FinishTest(unittest.TestCase):
         self.assertEqual(curr_srip, RETURN_POINT_FROM_C)
 
         d.kill()
+        d.terminate()
 
     def test_exact_breakpoint_return(self):
         BREAKPOINT_LOCATION = 0x4011f1
@@ -273,6 +280,7 @@ class FinishTest(unittest.TestCase):
         self.assertEqual(d.regs.rip, BREAKPOINT_LOCATION)
 
         d.kill()
+        d.terminate()
 
     def test_heuristic_breakpoint_return(self):
         BREAKPOINT_LOCATION = 0x4011f1
@@ -296,6 +304,7 @@ class FinishTest(unittest.TestCase):
         self.assertEqual(d.regs.rip, BREAKPOINT_LOCATION)
 
         d.kill()
+        d.terminate()
 
     def test_breakpoint_collision(self):
         d = debugger("binaries/finish_test", auto_interrupt_on_command=False)
@@ -323,3 +332,4 @@ class FinishTest(unittest.TestCase):
         self.assertFalse(d.dead)
 
         d.kill()
+        d.terminate()

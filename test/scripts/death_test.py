@@ -43,6 +43,7 @@ class DeathTest(unittest.TestCase):
             r.recvline()
 
         d.kill()
+        d.terminate()
 
     def test_cont_death(self):
         d = debugger("binaries/segfault_test")
@@ -63,6 +64,7 @@ class DeathTest(unittest.TestCase):
         self.assertEqual(d.threads[0].dead, True)
 
         d.kill()
+        d.terminate()
 
     def test_instr_death(self):
         d = debugger("binaries/segfault_test")
@@ -79,6 +81,7 @@ class DeathTest(unittest.TestCase):
         self.assertEqual(d.regs.rip, 0x55555555517F)
 
         d.kill()
+        d.terminate()
 
     def test_exit_signal_death(self):
         d = debugger("binaries/segfault_test")
@@ -96,6 +99,7 @@ class DeathTest(unittest.TestCase):
         self.assertEqual(d.exit_signal, d.threads[0].exit_signal)
 
         d.kill()
+        d.terminate()
 
     def test_exit_code_death(self):
         d = debugger("binaries/segfault_test")
@@ -117,6 +121,7 @@ class DeathTest(unittest.TestCase):
         )
 
         d.kill()
+        d.terminate()
 
     def test_exit_code_normal(self):
         d = debugger("binaries/basic_test")
@@ -137,6 +142,7 @@ class DeathTest(unittest.TestCase):
         )
 
         d.kill()
+        d.terminate()
 
     def test_post_mortem_after_kill(self):
         d = debugger("binaries/basic_test")
@@ -152,3 +158,5 @@ class DeathTest(unittest.TestCase):
         d.regs.rax
         d.regs.rbx
         d.regs.rcx
+
+        d.terminate()

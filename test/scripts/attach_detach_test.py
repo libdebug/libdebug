@@ -34,6 +34,7 @@ class AttachDetachTest(unittest.TestCase):
         d.cont()
 
         d.kill()
+        d.terminate()
 
     def test_attach_and_detach_1(self):
         r = process("binaries/attach_test")
@@ -49,6 +50,7 @@ class AttachDetachTest(unittest.TestCase):
         r.sendline(b"Io_no")
 
         r.kill()
+        d.terminate()
 
     def test_attach_and_detach_2(self):
         d = debugger("binaries/attach_test")
@@ -62,6 +64,7 @@ class AttachDetachTest(unittest.TestCase):
         r.sendline(b"Io_no")
 
         d.kill()
+        d.terminate()
 
     def test_attach_and_detach_3(self):
         d = debugger("binaries/attach_test")
@@ -79,6 +82,7 @@ class AttachDetachTest(unittest.TestCase):
         r.sendline(b"Io_no")
 
         d.kill()
+        d.terminate()
 
     def test_attach_and_detach_4(self):
         r = process("binaries/attach_test")
@@ -90,6 +94,8 @@ class AttachDetachTest(unittest.TestCase):
 
         # Validate that, after detaching and killing, the process is effectively terminated
         self.assertRaises(EOFError, r.sendline, b"provola")
+
+        d.terminate()
 
 
 if __name__ == "__main__":

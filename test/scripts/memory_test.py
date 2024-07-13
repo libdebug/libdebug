@@ -48,6 +48,7 @@ class MemoryTest(unittest.TestCase):
         self.assertTrue(d.memory[address : address + 256] == prev)
 
         d.kill()
+        d.terminate()
 
     def test_mem_access_libs(self):
         d = self.d
@@ -70,6 +71,7 @@ class MemoryTest(unittest.TestCase):
         self.assertTrue(p64(address - 0x10) in arena)
 
         d.kill()
+        d.terminate()
 
     def test_memory_exceptions(self):
         d = self.d
@@ -99,6 +101,7 @@ class MemoryTest(unittest.TestCase):
         self.assertTrue(d.memory[address : address + 256] == prev)
 
         d.kill()
+        d.terminate()
 
     def test_memory_multiple_runs(self):
         d = self.d
@@ -124,6 +127,8 @@ class MemoryTest(unittest.TestCase):
 
             d.kill()
 
+        d.terminate()
+
     def test_memory_access_while_running(self):
         d = debugger("binaries/memory_test_2")
 
@@ -139,6 +144,7 @@ class MemoryTest(unittest.TestCase):
         self.assertEqual(d.regs.rip, bp.address)
 
         d.kill()
+        d.terminate()
 
     def test_memory_access_methods(self):
         d = debugger("binaries/memory_test_2")
@@ -207,6 +213,7 @@ class MemoryTest(unittest.TestCase):
         self.assertEqual(d.memory["main", 8], b"abcd1234")
 
         d.kill()
+        d.terminate()
 
     def test_memory_access_methods_backing_file(self):
         d = debugger("binaries/memory_test_2")
@@ -285,6 +292,7 @@ class MemoryTest(unittest.TestCase):
             d.memory["main":"main+8", "absolute"] = b"abcd1234"
 
         d.kill()
+        d.terminate()
 
 
 if __name__ == "__main__":

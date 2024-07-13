@@ -20,6 +20,7 @@ class BasicTest(unittest.TestCase):
         self.assertTrue(bp.address == self.d.regs.rip)
         self.d.cont()
         self.d.kill()
+        self.d.terminate()
 
     def test_registers(self):
         d = self.d
@@ -118,6 +119,7 @@ class BasicTest(unittest.TestCase):
 
         self.d.cont()
         self.d.kill()
+        self.d.terminate()
 
     def test_step(self):
         d = self.d
@@ -141,6 +143,7 @@ class BasicTest(unittest.TestCase):
 
         d.cont()
         d.kill()
+        d.terminate()
 
     def test_step_hardware(self):
         d = self.d
@@ -164,6 +167,7 @@ class BasicTest(unittest.TestCase):
 
         d.cont()
         d.kill()
+        d.terminate()
 
 
 class BasicPieTest(unittest.TestCase):
@@ -181,6 +185,7 @@ class BasicPieTest(unittest.TestCase):
         self.assertTrue(d.regs.rdi == 0xAABBCCDD11223344)
 
         self.d.kill()
+        d.terminate()
 
 
 class HwBasicTest(unittest.TestCase):
@@ -194,6 +199,7 @@ class HwBasicTest(unittest.TestCase):
         self.d.cont()
         self.assertTrue(bp.address == d.regs.rip)
         self.d.kill()
+        d.terminate()
 
     def test_registers(self):
         d = self.d
@@ -292,6 +298,7 @@ class HwBasicTest(unittest.TestCase):
 
         self.d.cont()
         self.d.kill()
+        d.terminate()
 
 
 class ControlFlowTest(unittest.TestCase):
@@ -314,6 +321,7 @@ class ControlFlowTest(unittest.TestCase):
         self.assertFalse(bp.hit_on(d))
 
         d.kill()
+        d.terminate()
 
     def test_step_until_2(self):
         d = debugger("./binaries/breakpoint_test")
@@ -331,6 +339,7 @@ class ControlFlowTest(unittest.TestCase):
         self.assertFalse(bp.hit_on(d))
 
         d.kill()
+        d.terminate()
 
     def test_step_until_3(self):
         d = debugger("./binaries/breakpoint_test")
@@ -355,6 +364,7 @@ class ControlFlowTest(unittest.TestCase):
         self.assertFalse(bp.hit_on(d))
 
         d.kill()
+        d.terminate()
 
     def test_step_and_cont(self):
         d = debugger("./binaries/breakpoint_test")
@@ -384,6 +394,7 @@ class ControlFlowTest(unittest.TestCase):
         d.cont()
 
         d.kill()
+        d.terminate()
 
     def test_step_and_cont_hardware(self):
         d = debugger("./binaries/breakpoint_test")
@@ -413,6 +424,7 @@ class ControlFlowTest(unittest.TestCase):
         d.cont()
 
         d.kill()
+        d.terminate()
 
     def test_step_until_and_cont(self):
         d = debugger("./binaries/breakpoint_test")
@@ -437,6 +449,7 @@ class ControlFlowTest(unittest.TestCase):
         d.cont()
 
         d.kill()
+        d.terminate()
 
     def test_step_until_and_cont_hardware(self):
         d = debugger("./binaries/breakpoint_test")
@@ -461,6 +474,7 @@ class ControlFlowTest(unittest.TestCase):
         d.cont()
 
         d.kill()
+        d.terminate()
 
 
 if __name__ == "__main__":

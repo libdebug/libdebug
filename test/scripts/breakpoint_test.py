@@ -67,6 +67,7 @@ class BreakpointTest(unittest.TestCase):
         self.assertEqual(bp2.hit_count, 10)
 
         self.d.kill()
+        d.terminate()
 
     def test_bp_disable(self):
         d = self.d
@@ -109,6 +110,7 @@ class BreakpointTest(unittest.TestCase):
         self.assertEqual(bp2.hit_count, 1)
 
         self.d.kill()
+        d.terminate()
 
     def test_bp_disable_hw(self):
         d = self.d
@@ -149,6 +151,9 @@ class BreakpointTest(unittest.TestCase):
             d.cont()
 
         self.assertEqual(bp2.hit_count, 1)
+
+        d.kill()
+        d.terminate()
 
     def test_bp_disable_reenable(self):
         d = self.d
@@ -198,6 +203,7 @@ class BreakpointTest(unittest.TestCase):
         self.assertEqual(bp4.hit_count, bp2.hit_count // 2 + 1)
 
         self.d.kill()
+        self.d.terminate()
 
     def test_bp_disable_reenable_hw(self):
         d = self.d
@@ -247,6 +253,7 @@ class BreakpointTest(unittest.TestCase):
         self.assertEqual(bp4.hit_count, bp2.hit_count // 2 + 1)
 
         self.d.kill()
+        self.d.terminate()
 
     def test_bps_running(self):
         d = self.d
@@ -293,7 +300,8 @@ class BreakpointTest(unittest.TestCase):
 
         self.assertEqual(bp2.hit_count, 10)
 
-        self.d.kill()
+        d.kill()
+        d.terminate()
 
     def test_bp_backing_file(self):
         d = debugger("binaries/executable_section_test")
@@ -377,6 +385,7 @@ class BreakpointTest(unittest.TestCase):
             d.breakpoint(0x1266, file="absolute")
 
         d.kill()
+        d.terminate()
 
     def test_bp_disable_on_creation(self):
         d = debugger("binaries/breakpoint_test")

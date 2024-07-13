@@ -44,6 +44,7 @@ class WatchpointTest(unittest.TestCase):
         d.cont()
 
         d.kill()
+        d.terminate()
 
     def test_watchpoint_callback(self):
         global_char_ip = []
@@ -120,3 +121,5 @@ class WatchpointTest(unittest.TestCase):
 
         # There is one extra hit performed by the exit routine of libc
         self.assertEqual(wp3.hit_count, 3)
+
+        d.terminate()

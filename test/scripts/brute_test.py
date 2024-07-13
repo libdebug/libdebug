@@ -49,6 +49,8 @@ class BruteTest(unittest.TestCase):
 
         self.assertEqual(flag, "BRUTINOBRUTONE")
 
+        d.terminate()
+
 
 if __name__ == "__main__":
     unittest.main()

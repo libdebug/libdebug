@@ -56,6 +56,8 @@ class Vmwhere1(unittest.TestCase):
 
                 d.kill()
 
+        d.terminate()
+
         self.assertEqual(
             flag, b"uiuctf{ar3_y0u_4_r3al_vm_wh3r3_(gpt_g3n3r4t3d_th1s_f14g)}"
         )
@@ -97,6 +99,8 @@ class Vmwhere1(unittest.TestCase):
                         break
 
                 d.kill()
+
+        d.terminate()
 
         self.assertEqual(
             flag, b"uiuctf{ar3_y0u_4_r3al_vm_wh3r3_(gpt_g3n3r4t3d_th1s_f14g)}"

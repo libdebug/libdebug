@@ -62,6 +62,8 @@ class DeepDiveDivision(unittest.TestCase):
 
         self.assertEqual(flag, b"kalmar{vm_in_3d_space!_cb3992b605aafe137}\n")
 
+        d.terminate()
+
 
 if __name__ == "__main__":
     unittest.main()

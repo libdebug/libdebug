@@ -40,6 +40,7 @@ class CallbackTest(unittest.TestCase):
         d.cont()
 
         d.kill()
+        d.terminate()
 
         self.assertTrue(hit)
 
@@ -72,6 +73,7 @@ class CallbackTest(unittest.TestCase):
         d.cont()
 
         d.kill()
+        d.terminate()
 
         self.assertTrue(hit)
 
@@ -111,6 +113,7 @@ class CallbackTest(unittest.TestCase):
         d.cont()
 
         d.kill()
+        d.terminate()
 
         self.assertTrue(hit)
 
@@ -161,6 +164,8 @@ class CallbackTest(unittest.TestCase):
 
         self.assertEqual(flag, "BRUTINOBRUTONE")
 
+        d.terminate()
+
         if self.exceptions:
             raise self.exceptions[0]
 
@@ -199,6 +204,7 @@ class CallbackTest(unittest.TestCase):
         r.recvuntil(b"Wrong...")
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(flag, "SECCON{jump_table_everywhere}")
 
@@ -242,6 +248,7 @@ class CallbackTest(unittest.TestCase):
         r.recvuntil(b"Wrong...")
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(flag, "SECCON{jump_table_everywhere}")
 
@@ -264,6 +271,7 @@ class CallbackTest(unittest.TestCase):
         d.cont()
 
         d.kill()
+        d.terminate()
 
     def test_callback_step(self):
         self.exceptions.clear()
@@ -282,6 +290,7 @@ class CallbackTest(unittest.TestCase):
         d.cont()
 
         d.kill()
+        d.terminate()
 
     def test_callback_pid_accessible(self):
         self.exceptions.clear()
@@ -301,6 +310,7 @@ class CallbackTest(unittest.TestCase):
 
         d.cont()
         d.kill()
+        d.terminate()
 
         self.assertTrue(hit)
     
@@ -323,6 +333,7 @@ class CallbackTest(unittest.TestCase):
 
         d.cont()
         d.kill()
+        d.terminate()
 
         self.assertTrue(hit)
         
@@ -344,5 +355,6 @@ class CallbackTest(unittest.TestCase):
 
         d.cont()
         d.kill()
+        d.terminate()
 
         self.assertTrue(hit)

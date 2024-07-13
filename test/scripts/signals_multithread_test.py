@@ -76,6 +76,8 @@ class SignalMultithreadTest(unittest.TestCase):
         self.assertEqual(SIGQUIT_count, catcher4.hit_count)
         self.assertEqual(SIGPIPE_count, catcher5.hit_count)
 
+        d.terminate()
+
     def test_signal_multithread_undet_pass(self):
         SIGUSR1_count = 0
         SIGINT_count = 0
@@ -155,6 +157,8 @@ class SignalMultithreadTest(unittest.TestCase):
         # Using raise(sig) instead of kill(pid, sig) to send signals in the original
         # program seems to mitigate the problem for whatever reason
         # I will investigate this further in the future, but for now this is fine
+
+        d.terminate()
 
     def test_signal_multithread_det_catch_signal_block(self):
         SIGUSR1_count = 0
@@ -236,6 +240,8 @@ class SignalMultithreadTest(unittest.TestCase):
         set_tids = set(tids)
         self.assertEqual(len(set_tids), 1)
         self.assertEqual(set_tids.pop(), receiver)
+
+        d.terminate()
 
     def test_signal_multithread_det_pass(self):
         SIGUSR1_count = 0
@@ -324,6 +330,8 @@ class SignalMultithreadTest(unittest.TestCase):
         set_tids = set(tids)
         self.assertEqual(len(set_tids), 1)
         self.assertEqual(set_tids.pop(), receiver)
+
+        d.terminate()
 
     def test_signal_multithread_send_signal(self):
         SIGUSR1_count = 0
@@ -421,3 +429,5 @@ class SignalMultithreadTest(unittest.TestCase):
         set_tids = set(tids)
         self.assertEqual(len(set_tids), 1)
         self.assertEqual(set_tids.pop(), receiver)
+
+        d.terminate()

@@ -48,6 +48,8 @@ class PPrintSyscallsTest(unittest.TestCase):
         self.assertEqual(self.capturedOutput.getvalue().count("getcwd"), 1)
         self.assertEqual(self.capturedOutput.getvalue().count("exit_group"), 1)
 
+        d.terminate()
+
     def test_pprint_syscalls_with_statement(self):
         d = debugger("binaries/handle_syscall_test")
 
@@ -74,6 +76,8 @@ class PPrintSyscallsTest(unittest.TestCase):
         self.assertEqual(self.capturedOutput.getvalue().count("mmap"), 1)
         self.assertEqual(self.capturedOutput.getvalue().count("getcwd"), 1)
         self.assertEqual(self.capturedOutput.getvalue().count("exit_group"), 1)
+
+        d.terminate()
 
     def test_pprint_handle_syscalls(self):
         def on_enter_read(d, sh):
@@ -116,6 +120,8 @@ class PPrintSyscallsTest(unittest.TestCase):
         self.assertEqual(self.capturedOutput.getvalue().count("exit_group"), 1)
         self.assertEqual(self.capturedOutput.getvalue().count("callback"), 1)
 
+        d.terminate()
+
     def test_pprint_hijack_syscall(self):
         d = debugger("binaries/handle_syscall_test")
 
@@ -150,6 +156,8 @@ class PPrintSyscallsTest(unittest.TestCase):
         self.assertEqual(self.capturedOutput.getvalue().count("exit_group"), 1)
         self.assertEqual(self.capturedOutput.getvalue().count("hijacked"), 1)
 
+        d.terminate()
+
     def test_pprint_which_syscalls_pprint_after(self):
         d = debugger("binaries/handle_syscall_test")
 
@@ -174,6 +182,8 @@ class PPrintSyscallsTest(unittest.TestCase):
         self.assertEqual(self.capturedOutput.getvalue().count("read"), 1)
         self.assertEqual(self.capturedOutput.getvalue().count("mmap"), 1)
 
+        d.terminate()
+
     def test_pprint_which_syscalls_pprint_before(self):
         d = debugger("binaries/handle_syscall_test")
         r = d.run()
@@ -196,6 +206,8 @@ class PPrintSyscallsTest(unittest.TestCase):
         self.assertEqual(self.capturedOutput.getvalue().count("write"), 2)
         self.assertEqual(self.capturedOutput.getvalue().count("read"), 1)
         self.assertEqual(self.capturedOutput.getvalue().count("mmap"), 1)
+
+        d.terminate()
 
     def test_pprint_which_syscalls_pprint_after_and_before(self):
         d = debugger("binaries/handle_syscall_test")
@@ -220,6 +232,8 @@ class PPrintSyscallsTest(unittest.TestCase):
         self.assertEqual(self.capturedOutput.getvalue().count("write"), 2)
         self.assertEqual(self.capturedOutput.getvalue().count("mmap"), 1)
 
+        d.terminate()
+
     def test_pprint_which_syscalls_not_pprint_after(self):
         d = debugger("binaries/handle_syscall_test")
         r = d.run()
@@ -242,6 +256,8 @@ class PPrintSyscallsTest(unittest.TestCase):
         self.assertEqual(self.capturedOutput.getvalue().count("getcwd"), 1)
         self.assertEqual(self.capturedOutput.getvalue().count("exit_group"), 1)
 
+        d.terminate()
+
     def test_pprint_which_syscalls_not_pprint_before(self):
         d = debugger("binaries/handle_syscall_test")
         r = d.run()
@@ -263,6 +279,8 @@ class PPrintSyscallsTest(unittest.TestCase):
 
         self.assertEqual(self.capturedOutput.getvalue().count("getcwd"), 1)
         self.assertEqual(self.capturedOutput.getvalue().count("exit_group"), 1)
+
+        d.terminate()
 
     def test_pprint_which_syscalls_not_pprint_after_and_before(self):
         d = debugger("binaries/handle_syscall_test")
@@ -287,6 +305,8 @@ class PPrintSyscallsTest(unittest.TestCase):
         self.assertEqual(self.capturedOutput.getvalue().count("read"), 1)
         self.assertEqual(self.capturedOutput.getvalue().count("getcwd"), 1)
         self.assertEqual(self.capturedOutput.getvalue().count("exit_group"), 1)
+
+        d.terminate()
 
 
 if __name__ == "__main__":
