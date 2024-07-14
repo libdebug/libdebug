@@ -8,6 +8,7 @@ ARCH_MAPPING = {
     "x86": "i386",
     "x86_64": "amd64",
     "x64": "amd64",
+    "arm64": "aarch64",
 }
 
 
@@ -20,6 +21,8 @@ def map_arch(arch: str) -> str:
     Returns:
         str: the mapped architecture.
     """
+    arch = arch.lower()
+
     if arch in ARCH_MAPPING.values():
         return arch
     elif arch in ARCH_MAPPING:

@@ -23,6 +23,6 @@ def register_holder_provider(
         case "amd64":
             return Amd64PtraceRegisterHolder(register_file, fp_register_file)
         case "aarch64":
-            return Aarch64PtraceRegisterHolder(register_file)
+            return Aarch64PtraceRegisterHolder(register_file, fp_register_file)
         case _:
             raise NotImplementedError(f"Architecture {architecture} not available.")
