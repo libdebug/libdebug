@@ -170,7 +170,7 @@ class InternalDebugger:
         self.instanced = False
         self._is_running = False
         self.resume_context = ResumeContext()
-        self._arch = "amd64"
+        self._arch = map_arch(libcontext.platform)
         self.__polling_thread_command_queue = Queue()
         self.__polling_thread_response_queue = Queue()
 

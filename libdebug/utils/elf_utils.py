@@ -239,3 +239,19 @@ def get_entry_point(path: str) -> int:
         elf = ELFFile(elf_file)
 
     return elf.header.e_entry
+
+
+@functools.cache
+def elf_architecture(path: str) -> str:
+    """Returns the architecture of the specified ELF file.
+
+    Args:
+        path (str): The path to the ELF file.
+
+    Returns:
+        str: The architecture of the specified ELF file.
+    """
+    with Path(path).open("rb") as elf_file:
+        elf = ELFFile(elf_file)
+
+    return elf.get_machine_arch()

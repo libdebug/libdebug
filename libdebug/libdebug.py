@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from libdebug.debugger.debugger import Debugger
 from libdebug.debugger.internal_debugger import InternalDebugger
+from libdebug.utils.elf_utils import elf_architecture
 
 
 def debugger(
@@ -40,6 +41,10 @@ def debugger(
     internal_debugger.autoreach_entrypoint = continue_to_binary_entrypoint
     internal_debugger.auto_interrupt_on_command = auto_interrupt_on_command
     internal_debugger.escape_antidebug = escape_antidebug
+
+    # If we are attaching, we assume the architecture is the same as the current platform
+    if argv:
+        internal_debugger.arch = elf_architecture(argv[0])
 
     debugger = Debugger()
     debugger.post_init_(internal_debugger)
