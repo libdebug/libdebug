@@ -6,6 +6,9 @@
 
 from collections.abc import Callable
 
+from libdebug.architectures.aarch64.aarch64_ptrace_hw_bp_helper import (
+    Aarch64HardwareBreakpointManager,
+)
 from libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper import (
     Amd64PtraceHardwareBreakpointManager,
 )
@@ -25,5 +28,7 @@ def ptrace_hardware_breakpoint_manager_provider(
     match architecture:
         case "amd64":
             return Amd64PtraceHardwareBreakpointManager(thread, peek_user, poke_user)
+        case "aarch64":
+            return Aarch64HardwareBreakpointManager(thread, peek_user, poke_user)
         case _:
             raise NotImplementedError(f"Architecture {architecture} not available.")

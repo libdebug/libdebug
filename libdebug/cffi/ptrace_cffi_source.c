@@ -401,6 +401,7 @@ uint64_t ptrace_pokedata(int pid, uint64_t addr, uint64_t data)
     return ptrace(PTRACE_POKEDATA, pid, (void *)addr, data);
 }
 
+#ifdef ARCH_AMD64
 uint64_t ptrace_peekuser(int pid, uint64_t addr)
 {
     // Since the value returned by a successful PTRACE_PEEK*
@@ -414,6 +415,56 @@ uint64_t ptrace_pokeuser(int pid, uint64_t addr, uint64_t data)
 {
     return ptrace(PTRACE_POKEUSER, pid, addr, data);
 }
+#endif
+
+#ifdef ARCH_AARCH64
+// peekuser doesn't exist on ARM64, we have to use getregset
+#define SIZEOF_STRUCT_HWDEBUG_STATE 8 + (16 * 16)
+
+uint64_t ptrace_peekuser(int pid, uint64_t addr)
+{
+    unsigned char *data = malloc(SIZEOF_STRUCT_HWDEBUG_STATE);
+    memset(data, 0, SIZEOF_STRUCT_HWDEBUG_STATE);
+
+    struct iovec iov;
+    iov.iov_base = data;
+    iov.iov_len = SIZEOF_STRUCT_HWDEBUG_STATE;
+
+    unsigned long command = (addr & 0x1000) ? NT_ARM_HW_WATCH : NT_ARM_HW_BREAK;
+    addr &= ~0x1000;
+
+    ptrace(PTRACE_GETREGSET, pid, command, &iov);
+
+    unsigned long result = *(unsigned long *) (data + addr);
+
+    free(data);
+
+    return result;
+}
+
+uint64_t ptrace_pokeuser(int pid, uint64_t addr, uint64_t data)
+{
+    unsigned char *data_buffer = malloc(SIZEOF_STRUCT_HWDEBUG_STATE);
+    memset(data_buffer, 0, SIZEOF_STRUCT_HWDEBUG_STATE);
+
+    struct iovec iov;
+    iov.iov_base = data_buffer;
+    iov.iov_len = SIZEOF_STRUCT_HWDEBUG_STATE;
+
+    unsigned long command = (addr & 0x1000) ? NT_ARM_HW_WATCH : NT_ARM_HW_BREAK;
+    addr &= ~0x1000;
+
+    ptrace(PTRACE_GETREGSET, pid, command, &iov);
+
+    *(unsigned long *) (data_buffer + addr) = data;
+
+    ptrace(PTRACE_SETREGSET, pid, command, &iov);
+
+    free(data_buffer);
+
+    return 0;
+}
+#endif
 
 uint64_t ptrace_geteventmsg(int pid)
 {
