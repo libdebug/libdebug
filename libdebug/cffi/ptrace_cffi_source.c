@@ -74,19 +74,19 @@ struct global_state {
 };
 
 #ifdef ARCH_AMD64
-unsigned long getregs(int tid, struct ptrace_regs_struct *regs)
+int getregs(int tid, struct ptrace_regs_struct *regs)
 {
     return ptrace(PTRACE_GETREGS, tid, NULL, regs);
 }
 
-unsigned long setregs(int tid, struct ptrace_regs_struct *regs)
+int setregs(int tid, struct ptrace_regs_struct *regs)
 {
     return ptrace(PTRACE_SETREGS, tid, NULL, regs);
 }
 #endif
 
 #ifdef ARCH_AARCH64
-unsigned long getregs(int tid, struct ptrace_regs_struct *regs)
+int getregs(int tid, struct ptrace_regs_struct *regs)
 {
     struct iovec iov;
     iov.iov_base = regs;
@@ -94,7 +94,7 @@ unsigned long getregs(int tid, struct ptrace_regs_struct *regs)
     return ptrace(PTRACE_GETREGSET, tid, NT_PRSTATUS, &iov);
 }
 
-unsigned long setregs(int tid, struct ptrace_regs_struct *regs)
+int setregs(int tid, struct ptrace_regs_struct *regs)
 {
     struct iovec iov;
     iov.iov_base = regs;
@@ -226,7 +226,9 @@ struct ptrace_regs_struct *register_thread(struct global_state *state, int tid)
     t->tid = tid;
     t->signal_to_forward = 0;
 
+#ifdef ARCH_AMD64
     t->fpregs.type = FPREGS_AVX;
+#endif
 
     getregs(tid, &t->regs);
 
@@ -337,7 +339,7 @@ void ptrace_detach_for_migration(struct global_state *state, int pid)
             waitpid(t->tid, NULL, 0);
 
             // set the registers again, as the first time it failed
-            ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs);
+            setregs(t->tid, &t->regs);
         }
 
         // Be sure that the thread will not run during gdb reattachment
