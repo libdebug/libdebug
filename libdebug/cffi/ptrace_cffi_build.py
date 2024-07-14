@@ -259,7 +259,7 @@ elif architecture == "aarch64":
 
     breakpoint_define = """
     #define INSTRUCTION_POINTER(regs) (regs.pc)
-    #define INSTALL_BREAKPOINT(instruction) ((instruction & 0xFFFFFFFFFFFFFF00) | 0xD4200000)
+    #define INSTALL_BREAKPOINT(instruction) ((instruction & 0xFFFFFFFF00000000) | 0xD4200000)
     #define BREAKPOINT_SIZE 4
     #define IS_SW_BREAKPOINT(instruction) (instruction == 0xD4200000)
     """
