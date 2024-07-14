@@ -158,6 +158,10 @@ if architecture == "x86_64":
     };
     """
 
+    arch_define = """
+    #define ARCH_AMD64
+    """
+
     breakpoint_define = """
     #define INSTRUCTION_POINTER(regs) (regs.rip)
     #define INSTALL_BREAKPOINT(instruction) ((instruction & 0xFFFFFFFFFFFFFF00) | 0xCC)
@@ -233,6 +237,10 @@ elif architecture == "aarch64":
         unsigned long pc;
         unsigned long pstate;
     };
+    """
+
+    arch_define = """
+    #define ARCH_AARCH64
     """
 
     breakpoint_define = """
@@ -353,6 +361,7 @@ with open("libdebug/cffi/ptrace_cffi_source.c") as f:
     ffibuilder.set_source(
         "libdebug.cffi._ptrace_cffi",
         ptrace_regs_struct 
+        + arch_define
         + fp_regs_struct
         + fpregs_define
         + breakpoint_define

@@ -17,22 +17,24 @@
 #include <sys/wait.h>
 
 // Run some static assertions to ensure that the fp types are correct
-#ifndef FPREGS_AVX
-    #error "FPREGS_AVX must be defined"
-#endif
+#ifdef ARCH_AMD64
+    #ifndef FPREGS_AVX
+        #error "FPREGS_AVX must be defined"
+    #endif
 
-#ifndef XSAVE
-    #error "XSAVE must be defined"
-#endif
+    #ifndef XSAVE
+        #error "XSAVE must be defined"
+    #endif
 
-#if (FPREGS_AVX == 0)
-    _Static_assert(sizeof(struct fp_regs_struct) == 520, "user_fpregs_struct size is not 512 bytes");
-#elif (FPREGS_AVX == 1)
-    _Static_assert(sizeof(struct fp_regs_struct) == 904, "user_fpregs_struct size is not 896 bytes");
-#elif (FPREGS_AVX == 2)
-    _Static_assert(sizeof(struct fp_regs_struct) == 2704, "user_fpregs_struct size is not 2696 bytes");
-#else
-    #error "FPREGS_AVX must be 0, 1 or 2"
+    #if (FPREGS_AVX == 0)
+        _Static_assert(sizeof(struct fp_regs_struct) == 520, "user_fpregs_struct size is not 512 bytes");
+    #elif (FPREGS_AVX == 1)
+        _Static_assert(sizeof(struct fp_regs_struct) == 904, "user_fpregs_struct size is not 896 bytes");
+    #elif (FPREGS_AVX == 2)
+        _Static_assert(sizeof(struct fp_regs_struct) == 2704, "user_fpregs_struct size is not 2696 bytes");
+    #else
+        #error "FPREGS_AVX must be 0, 1 or 2"
+    #endif
 #endif
 
 struct ptrace_hit_bp {
@@ -70,6 +72,36 @@ struct global_state {
     struct software_breakpoint *b_HEAD;
     _Bool handle_syscall_enabled;
 };
+
+#ifdef ARCH_AMD64
+unsigned long getregs(int tid, struct ptrace_regs_struct *regs)
+{
+    return ptrace(PTRACE_GETREGS, tid, NULL, regs);
+}
+
+unsigned long setregs(int tid, struct ptrace_regs_struct *regs)
+{
+    return ptrace(PTRACE_SETREGS, tid, NULL, regs);
+}
+#endif
+
+#ifdef ARCH_AARCH64
+unsigned long getregs(int tid, struct ptrace_regs_struct *regs)
+{
+    struct iovec iov;
+    iov.iov_base = regs;
+    iov.iov_len = sizeof(struct ptrace_regs_struct);
+    return ptrace(PTRACE_GETREGSET, tid, NT_PRSTATUS, &iov);
+}
+
+unsigned long setregs(int tid, struct ptrace_regs_struct *regs)
+{
+    struct iovec iov;
+    iov.iov_base = regs;
+    iov.iov_len = sizeof(struct ptrace_regs_struct);
+    return ptrace(PTRACE_SETREGSET, tid, NT_PRSTATUS, &iov);
+}
+#endif
 
 struct thread *get_thread(struct global_state *state, int tid)
 {
@@ -154,7 +186,7 @@ struct ptrace_regs_struct *register_thread(struct global_state *state, int tid)
 
     t->fpregs.type = FPREGS_AVX;
 
-    ptrace(PTRACE_GETREGS, tid, NULL, &t->regs);
+    getregs(tid, &t->regs);
 
     t->next = state->t_HEAD;
     state->t_HEAD = t;
@@ -224,7 +256,7 @@ void ptrace_detach_for_kill(struct global_state *state, int pid)
     // note that the order is important: the main thread must be detached last
     while (t != NULL) {
         // let's attempt to read the registers of the thread
-        if (ptrace(PTRACE_GETREGS, t->tid, NULL, &t->regs)) {
+        if (getregs(t->tid, &t->regs)) {
             // if we can't read the registers, the thread is probably still running
             // ensure that the thread is stopped
             tgkill(pid, t->tid, SIGSTOP);
@@ -254,7 +286,7 @@ void ptrace_detach_for_migration(struct global_state *state, int pid)
     while (t != NULL) {
         // the user might have modified the state of the registers
         // so we use SETREGS to check if the process is running
-        if (ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs)) {
+        if (setregs(t->tid, &t->regs)) {
             // if we can't read the registers, the thread is probably still running
             // ensure that the thread is stopped
             tgkill(pid, t->tid, SIGSTOP);
@@ -287,7 +319,7 @@ void ptrace_reattach_from_gdb(struct global_state *state, int pid)
             fprintf(stderr, "ptrace_attach failed for thread %d: %s\\n", t->tid,
                     strerror(errno));
 
-        if (ptrace(PTRACE_GETREGS, t->tid, NULL, &t->regs))
+        if (getregs(t->tid, &t->regs))
             fprintf(stderr, "ptrace_getregs failed for thread %d: %s\\n", t->tid,
                     strerror(errno));
 
@@ -354,7 +386,7 @@ long singlestep(struct global_state *state, int tid)
     struct thread *t = state->t_HEAD;
     int signal_to_forward = 0;
     while (t != NULL) {
-        if (ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs))
+        if (setregs(t->tid, &t->regs))
             perror("ptrace_setregs");
         if (t->tid == tid) {
             signal_to_forward = t->signal_to_forward;
@@ -371,7 +403,7 @@ int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps
     // flush any register changes
     struct thread *t = state->t_HEAD, *stepping_thread = NULL;
     while (t != NULL) {
-        if (ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs))
+        if (setregs(t->tid, &t->regs))
             perror("ptrace_setregs");
 
         if (t->tid == tid)
@@ -397,7 +429,7 @@ int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps
         previous_ip = INSTRUCTION_POINTER(stepping_thread->regs);
 
         // update the registers
-        ptrace(PTRACE_GETREGS, tid, NULL, &stepping_thread->regs);
+        getregs(tid, &stepping_thread->regs);
 
         if (INSTRUCTION_POINTER(stepping_thread->regs) == addr) break;
 
@@ -418,7 +450,7 @@ int prepare_for_run(struct global_state *state, int pid)
     // flush any register changes
     struct thread *t = state->t_HEAD;
     while (t != NULL) {
-        if (ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs))
+        if (setregs(t->tid, &t->regs))
             fprintf(stderr, "ptrace_setregs failed for thread %d: %s\\n",
                     t->tid, strerror(errno));
         t = t->next;
@@ -515,7 +547,7 @@ struct thread_status *wait_all_and_update_regs(struct global_state *state, int p
         if (t->tid != head->tid) {
             // If GETREGS succeeds, the thread is already stopped, so we must
             // not "stop" it again
-            if (ptrace(PTRACE_GETREGS, t->tid, NULL, &t->regs) == -1) {
+            if (getregs(t->tid, &t->regs) == -1) {
                 // Stop the thread with a SIGSTOP
                 tgkill(pid, t->tid, SIGSTOP);
                 // Wait for the thread to stop
@@ -545,7 +577,7 @@ struct thread_status *wait_all_and_update_regs(struct global_state *state, int p
     // Update the registers of all the threads
     t = state->t_HEAD;
     while (t) {
-        ptrace(PTRACE_GETREGS, t->tid, NULL, &t->regs);
+        getregs(t->tid, &t->regs);
         t = t->next;
     }
 
@@ -710,7 +742,7 @@ int stepping_finish(struct global_state *state, int tid)
         previous_ip = INSTRUCTION_POINTER(stepping_thread->regs);
 
         // update the registers
-        ptrace(PTRACE_GETREGS, tid, NULL, &stepping_thread->regs);
+        getregs(tid, &stepping_thread->regs);
 
         current_ip = INSTRUCTION_POINTER(stepping_thread->regs);
 
@@ -739,7 +771,7 @@ int stepping_finish(struct global_state *state, int tid)
     waitpid(tid, &status, 0);
 
     // update the registers
-    ptrace(PTRACE_GETREGS, tid, NULL, &stepping_thread->regs);
+    getregs(tid, &stepping_thread->regs);
 
 cleanup:
     // remove any installed breakpoint
