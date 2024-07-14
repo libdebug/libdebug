@@ -81,15 +81,18 @@ class PtraceInterface(DebuggingInterface):
         self.ffi = _ptrace_cffi.ffi
 
         self._internal_debugger = provide_internal_debugger(self)
-        if not self._internal_debugger.aslr_enabled:
-            disable_self_aslr()
 
         self._global_state = self.ffi.new("struct global_state*")
+        self._global_state.t_HEAD = self.ffi.NULL
+        self._global_state.dead_t_HEAD = self.ffi.NULL
+        self._global_state.b_HEAD = self.ffi.NULL
 
         self.process_id = 0
         self.detached = False
 
         self.hardware_bp_helpers = {}
+
+        self._disabled_aslr = False
 
         self.reset()
 
@@ -105,6 +108,10 @@ class PtraceInterface(DebuggingInterface):
 
     def run(self: PtraceInterface) -> None:
         """Runs the specified process."""
+        if not self._disabled_aslr and not self._internal_debugger.aslr_enabled:
+            disable_self_aslr()
+            self._disabled_aslr = True
+
         argv = self._internal_debugger.argv
         env = self._internal_debugger.env
 
@@ -461,7 +468,9 @@ class PtraceInterface(DebuggingInterface):
             new_thread_id,
         )
 
-        register_holder = register_holder_provider(self._internal_debugger.arch, register_file)
+        fp_register_file = self.lib_trace.get_thread_fp_regs(self._global_state, new_thread_id)
+
+        register_holder = register_holder_provider(self._internal_debugger.arch, register_file, fp_register_file)
 
         with extend_internal_debugger(self._internal_debugger):
             thread = ThreadContext(new_thread_id, register_holder)
@@ -631,6 +640,22 @@ class PtraceInterface(DebuggingInterface):
         if result == -1:
             error = self.ffi.errno
             raise OSError(error, errno.errorcode[error])
+
+    def fetch_fp_registers(self: PtraceInterface, thread_id: int) -> None:
+        """Fetches the floating-point registers of the specified thread.
+
+        Args:
+            thread_id (int): The thread to fetch.
+        """
+        self.lib_trace.get_fp_regs(self._global_state, thread_id)
+
+    def flush_fp_registers(self: PtraceInterface, thread_id: int) -> None:
+        """Flushes the floating-point registers of the specified thread.
+
+        Args:
+            thread_id (int): The thread to flush.
+        """
+        self.lib_trace.set_fp_regs(self._global_state, thread_id)
 
     def _peek_user(self: PtraceInterface, thread_id: int, address: int) -> int:
         """Reads the memory at the specified address."""

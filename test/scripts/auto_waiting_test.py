@@ -99,7 +99,7 @@ class AutoWaitingTest(unittest.TestCase):
 
         self.assertEqual(flag, "SECCON{jump_table_everywhere}")
 
-class AutoWaitingNcuts(unittest.TestCase):
+class AutoWaitingNlinks(unittest.TestCase):
     def setUp(self):
         pass
 
@@ -199,7 +199,7 @@ class AutoWaitingNcuts(unittest.TestCase):
         self.assertEqual(flag, b"BM8\xd3\x02\x00\x00\x00")
         return flag
 
-    def test_ncuts(self):
+    def test_nlinks(self):
         flag = self.get_passsphrase_from_class_3_binaries()
         flag = self.get_passsphrase_from_class_1_binaries(flag)
         self.get_passsphrase_from_class_2_binaries(flag)

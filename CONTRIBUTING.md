@@ -33,6 +33,16 @@ We'd also love PRs. If you're thinking of a large PR, we advise opening up an is
 
 - **Include test coverage.** Add unit tests or UI tests when possible. Follow existing patterns for implementing tests.
 
+we provide a suite of tests that you can run and add your own to:
+
+```bash
+cd test
+python run_suite.py
+```
+
+The test folder includes the Makefile that was used to build the required binaries for transparency. However, the compiled binaries may differ due to scheduling, hardware, and compiler versions. Some tests have hardcoded absolute addresses and will likely fail as a result. Please do not commit rebuilt versions of existing test binaries.
+
+
 ## Asking Questions
 
 GitHub issues are not the appropriate place to debug your specific project, but should be reserved for filing bugs and feature requests. If you cannot find what you are looking for anywhere, [contact us](https://libdebug.org/).

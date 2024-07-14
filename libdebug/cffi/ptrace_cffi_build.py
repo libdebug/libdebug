@@ -5,6 +5,7 @@
 #
 
 import platform
+from pathlib import Path
 
 from cffi import FFI
 
@@ -12,6 +13,118 @@ from cffi import FFI
 architecture = platform.machine()
 
 if architecture == "x86_64":
+    # We need to determine if we have AVX, AVX2, AVX512, etc.
+    path = Path("/proc/cpuinfo")
+
+    try:
+        with path.open() as f:
+            cpuinfo = f.read()
+    except OSError as e:
+        raise RuntimeError("Cannot read /proc/cpuinfo. Are you running on Linux?") from e
+
+    if "avx512" in cpuinfo:
+        fp_regs_struct = """
+        struct reg_128
+        {
+            unsigned char data[16];
+        };
+
+        struct reg_256
+        {
+            unsigned char data[32];
+        };
+
+        struct reg_512
+        {
+            unsigned char data[64];
+        };
+
+        struct fp_regs_struct
+        {
+            unsigned long type;
+            unsigned char padding0[32];
+            struct reg_128 st[8];
+            struct reg_128 xmm0[16];
+            unsigned char padding1[96];
+            // end of the 512 byte legacy region
+            unsigned char padding2[64];
+            // ymm0 starts at offset 576
+            struct reg_128 ymm0[16];
+            unsigned char padding3[320];
+            // zmm0 starts at offset 1152
+            struct reg_256 zmm0[16];
+            // zmm1 starts at offset 1664
+            struct reg_512 zmm1[16];
+            unsigned char padding4[8];
+        };
+        """
+
+        fpregs_define = """
+        #define FPREGS_AVX 2
+        """
+    elif "avx" in cpuinfo:
+        fp_regs_struct = """
+        struct reg_128
+        {
+            unsigned char data[16];
+        };
+
+        struct reg_256
+        {
+            unsigned char data[32];
+        };
+
+        struct fp_regs_struct
+        {
+            unsigned long type;
+            unsigned char padding0[32];
+            struct reg_128 st[8];
+            struct reg_128 xmm0[16];
+            unsigned char padding1[96];
+            // end of the 512 byte legacy region
+            unsigned char padding2[64];
+            // ymm0 starts at offset 576
+            struct reg_128 ymm0[16];
+            unsigned char padding3[64];
+        };
+        """
+
+        fpregs_define = """
+        #define FPREGS_AVX 1
+        """
+    else:
+        fp_regs_struct = """
+        struct reg_128
+        {
+            unsigned char data[16];
+        };
+
+        struct fp_regs_struct
+        {
+            unsigned long type;
+            unsigned char padding0[32];
+            struct reg_128 st[8];
+            struct reg_128 xmm0[16];
+            unsigned char padding1[96];
+        };
+        """
+
+        fpregs_define = """
+        #define FPREGS_AVX 0
+        """
+
+    if "xsave" not in cpuinfo:
+        fpregs_define += """
+        #define XSAVE 0
+        """
+
+        # We don't support non-XSAVE architectures
+        raise NotImplementedError("XSAVE not supported. Please open an issue on GitHub and include your hardware details.")
+    else:
+        fpregs_define += """
+        #define XSAVE 1
+        """
+
     ptrace_regs_struct = """
     struct ptrace_regs_struct
     {
@@ -78,6 +191,10 @@ if architecture == "x86_64":
     }
     """
 elif architecture == "aarch64":
+    fp_regs_struct = ""
+
+    fpregs_define = ""
+
     ptrace_regs_struct = """
     struct ptrace_regs_struct
     {
@@ -151,6 +268,7 @@ else:
 ffibuilder = FFI()
 ffibuilder.cdef(
     ptrace_regs_struct
+    + fp_regs_struct
     + """
     struct ptrace_hit_bp {
         int pid;
@@ -170,6 +288,7 @@ ffibuilder.cdef(
     struct thread {
         int tid;
         struct ptrace_regs_struct regs;
+        struct fp_regs_struct fpregs;
         int signal_to_forward;
         struct thread *next;
     };
@@ -182,6 +301,7 @@ ffibuilder.cdef(
 
     struct global_state {
         struct thread *t_HEAD;
+        struct thread *dead_t_HEAD;
         struct software_breakpoint *b_HEAD;
         _Bool handle_syscall_enabled;
     };
@@ -200,6 +320,10 @@ ffibuilder.cdef(
 
     uint64_t ptrace_peekuser(int pid, uint64_t addr);
     uint64_t ptrace_pokeuser(int pid, uint64_t addr, uint64_t data);
+
+    struct fp_regs_struct *get_thread_fp_regs(struct global_state *state, int tid);
+    void get_fp_regs(struct global_state *state, int tid);
+    void set_fp_regs(struct global_state *state, int tid);
 
     uint64_t ptrace_geteventmsg(int pid);
 
@@ -228,7 +352,12 @@ ffibuilder.cdef(
 with open("libdebug/cffi/ptrace_cffi_source.c") as f:
     ffibuilder.set_source(
         "libdebug.cffi._ptrace_cffi",
-        breakpoint_define + finish_define + f.read(),
+        ptrace_regs_struct 
+        + fp_regs_struct
+        + fpregs_define
+        + breakpoint_define
+        + finish_define
+        + f.read(),
         libraries=[],
     )
 

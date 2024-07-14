@@ -4,6 +4,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for details.
 //
 
+#include <elf.h>
 #include <errno.h>
 #include <signal.h>
 #include <stdint.h>
@@ -11,8 +12,28 @@
 #include <string.h>
 #include <sys/ptrace.h>
 #include <sys/types.h>
+#include <sys/uio.h>
 #include <sys/user.h>
 #include <sys/wait.h>
+
+// Run some static assertions to ensure that the fp types are correct
+#ifndef FPREGS_AVX
+    #error "FPREGS_AVX must be defined"
+#endif
+
+#ifndef XSAVE
+    #error "XSAVE must be defined"
+#endif
+
+#if (FPREGS_AVX == 0)
+    _Static_assert(sizeof(struct fp_regs_struct) == 520, "user_fpregs_struct size is not 512 bytes");
+#elif (FPREGS_AVX == 1)
+    _Static_assert(sizeof(struct fp_regs_struct) == 904, "user_fpregs_struct size is not 896 bytes");
+#elif (FPREGS_AVX == 2)
+    _Static_assert(sizeof(struct fp_regs_struct) == 2704, "user_fpregs_struct size is not 2696 bytes");
+#else
+    #error "FPREGS_AVX must be 0, 1 or 2"
+#endif
 
 struct ptrace_hit_bp {
     int pid;
@@ -32,6 +53,7 @@ struct software_breakpoint {
 struct thread {
     int tid;
     struct ptrace_regs_struct regs;
+    struct fp_regs_struct fpregs;
     int signal_to_forward;
     struct thread *next;
 };
@@ -44,9 +66,78 @@ struct thread_status {
 
 struct global_state {
     struct thread *t_HEAD;
+    struct thread *dead_t_HEAD;
     struct software_breakpoint *b_HEAD;
     _Bool handle_syscall_enabled;
 };
+
+struct thread *get_thread(struct global_state *state, int tid)
+{
+    struct thread *t = state->t_HEAD;
+    while (t != NULL) {
+        if (t->tid == tid) return t;
+        t = t->next;
+    }
+
+    return NULL;
+}
+
+struct fp_regs_struct *get_thread_fp_regs(struct global_state *state, int tid)
+{
+    struct thread *t = get_thread(state, tid);
+
+    if (t) {
+        return &t->fpregs;
+    }
+
+    return NULL;
+}
+
+void get_fp_regs(struct global_state *state, int tid)
+{
+    struct thread *t = get_thread(state, tid);
+
+    if (t == NULL) {
+        perror("Thread not found");
+        return;
+    }
+
+    #if (XSAVE == 0)
+
+    #else
+        struct iovec iov;
+
+        iov.iov_base = (unsigned char *)(&t->fpregs) + offsetof(struct fp_regs_struct, padding0);
+        iov.iov_len = sizeof(struct fp_regs_struct) - sizeof(unsigned long);
+
+        if (ptrace(PTRACE_GETREGSET, tid, NT_X86_XSTATE, &iov) == -1) {
+            perror("ptrace_getregset_xstate");
+        }
+    #endif
+}
+
+void set_fp_regs(struct global_state *state, int tid)
+{
+    struct thread *t = get_thread(state, tid);
+
+    if (t == NULL) {
+        perror("Thread not found");
+        return;
+    }
+
+    #if (XSAVE == 0)
+
+    #else
+        struct iovec iov;
+
+        iov.iov_base = (unsigned char *)(&t->fpregs) + offsetof(struct fp_regs_struct, padding0);
+        iov.iov_len = sizeof(struct fp_regs_struct) - sizeof(unsigned long);
+
+        if (ptrace(PTRACE_SETREGSET, tid, NT_X86_XSTATE, &iov) == -1) {
+            perror("ptrace_setregset_xstate");
+        }
+    #endif
+}
 
 struct ptrace_regs_struct *register_thread(struct global_state *state, int tid)
 {
@@ -60,6 +151,8 @@ struct ptrace_regs_struct *register_thread(struct global_state *state, int tid)
     t = malloc(sizeof(struct thread));
     t->tid = tid;
     t->signal_to_forward = 0;
+
+    t->fpregs.type = FPREGS_AVX;
 
     ptrace(PTRACE_GETREGS, tid, NULL, &t->regs);
 
@@ -81,7 +174,9 @@ void unregister_thread(struct global_state *state, int tid)
             } else {
                 prev->next = t->next;
             }
-            free(t);
+            // Add the thread to the dead list
+            t->next = state->dead_t_HEAD;
+            state->dead_t_HEAD = t;
             return;
         }
         prev = t;
@@ -101,6 +196,16 @@ void free_thread_list(struct global_state *state)
     }
 
     state->t_HEAD = NULL;
+
+    t = state->dead_t_HEAD;
+
+    while (t != NULL) {
+        next = t->next;
+        free(t);
+        t = next;
+    }
+
+    state->dead_t_HEAD = NULL;
 }
 
 int ptrace_trace_me(void)

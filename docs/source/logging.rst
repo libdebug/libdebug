@@ -3,11 +3,12 @@ Logging
 Debugging an application with the freedom of a rich API can lead to flows which are hard to unravel. To aid the user in the debugging process, libdebug provides logging, which can be enabled through `argv` parameters.
 
 The available logging levels are:
-- `debugger`
-- `pipe`
-- `dbg`
 
-As reported in this documentation, the `argv` parameters are *lowercase*. This choice is made to avoid conflicts with (https://github.com/Gallopsled/pwntools), which intercepts uppercase arguments.
+- ``debugger``
+- ``pipe``
+- ``dbg``
+
+As reported in this documentation, the `argv` parameters are *lowercase*. This choice is made to avoid conflicts with https://github.com/Gallopsled/pwntools, which intercepts uppercase arguments.
 
 Debugger Logging
 ----------------

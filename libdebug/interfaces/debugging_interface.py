@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 class DebuggingInterface(ABC):
     """The interface used by `_InternalDebugger` to communicate with the available debugging backends, such as `ptrace` or `gdb`."""
 
+    @abstractmethod
     def __init__(self: DebuggingInterface) -> None:
         """Initializes the DebuggingInterface classs."""
 
@@ -164,4 +165,20 @@ class DebuggingInterface(ABC):
         Args:
             address (int): The address to write.
             data (int): The value to write.
+        """
+
+    @abstractmethod
+    def fetch_fp_registers(self: DebuggingInterface, thread_id: int) -> None:
+        """Fetches the floating-point registers of the specified thread.
+
+        Args:
+            thread_id (int): The thread to fetch.
+        """
+
+    @abstractmethod
+    def flush_fp_registers(self: DebuggingInterface, thread_id: int) -> None:
+        """Flushes the floating-point registers of the specified thread.
+
+        Args:
+            thread_id (int): The thread to store.
         """

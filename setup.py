@@ -31,7 +31,7 @@ if not (
     exit(1)
 
 if not os.path.isfile("/usr/include/libelf.h"):
-    print("Required C libraries not found. Please install elfutils")
+    print("Required C libraries not found. Please install libelf-dev or elfutils")
     exit(1)
 
 if os.path.isfile("/usr/include/libdwarf/dwarf.h") and os.path.isfile(
