@@ -307,6 +307,15 @@ ffibuilder.cdef(
         struct software_breakpoint *next;
     };
 
+    struct hardware_breakpoint {
+        uint64_t addr;
+        int tid;
+        char enabled;
+        char type;
+        char len;
+        struct hardware_breakpoint *next;
+    };
+
     struct thread {
         int tid;
         struct ptrace_regs_struct regs;
@@ -324,7 +333,8 @@ ffibuilder.cdef(
     struct global_state {
         struct thread *t_HEAD;
         struct thread *dead_t_HEAD;
-        struct software_breakpoint *b_HEAD;
+        struct software_breakpoint *sw_b_HEAD;
+        struct hardware_breakpoint *hw_b_HEAD;
         _Bool handle_syscall_enabled;
     };
 
@@ -367,6 +377,15 @@ ffibuilder.cdef(
     void unregister_breakpoint(struct global_state *state, uint64_t address);
     void enable_breakpoint(struct global_state *state, uint64_t address);
     void disable_breakpoint(struct global_state *state, uint64_t address);
+
+    void register_hw_breakpoint(struct global_state *state, int tid, uint64_t address, char type, char len);
+    void unregister_hw_breakpoint(struct global_state *state, int tid, uint64_t address);
+    void enable_hw_breakpoint(struct global_state *state, int tid, uint64_t address);
+    void disable_hw_breakpoint(struct global_state *state, int tid, uint64_t address);
+    unsigned long get_hit_hw_breakpoint(struct global_state *state, int tid);
+    int get_remaining_hw_breakpoint_count(struct global_state *state, int tid);
+    int get_remaining_hw_watchpoint_count(struct global_state *state, int tid);
+
     void free_breakpoints(struct global_state *state);
 """
 )

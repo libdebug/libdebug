@@ -52,6 +52,15 @@ struct software_breakpoint {
     struct software_breakpoint *next;
 };
 
+struct hardware_breakpoint {
+    uint64_t addr;
+    int tid;
+    char enabled;
+    char type;
+    char len;
+    struct hardware_breakpoint *next;
+};
+
 struct thread {
     int tid;
     struct ptrace_regs_struct regs;
@@ -69,7 +78,8 @@ struct thread_status {
 struct global_state {
     struct thread *t_HEAD;
     struct thread *dead_t_HEAD;
-    struct software_breakpoint *b_HEAD;
+    struct software_breakpoint *sw_b_HEAD;
+    struct hardware_breakpoint *hw_b_HEAD;
     _Bool handle_syscall_enabled;
 };
 
@@ -100,6 +110,135 @@ int setregs(int tid, struct ptrace_regs_struct *regs)
     iov.iov_base = regs;
     iov.iov_len = sizeof(struct ptrace_regs_struct);
     return ptrace(PTRACE_SETREGSET, tid, NT_PRSTATUS, &iov);
+}
+#endif
+
+#ifdef ARCH_AMD64
+
+#define DR_BASE 0x350
+#define DR_SIZE 0x8
+#define CTRL_LOCAL(x) (1 << (2 * x))
+#define CTRL_COND(x) (16 + (4 * x))
+#define CTRL_COND_VAL(x) (x == 'x' ? 0 : (x == 'w' ? 1 : 3))
+#define CTRL_LEN(x) (18 + (4 * x))
+#define CTRL_LEN_VAL(x) (x == 1 ? 0 : (x == 2 ? 1 : (x == 8 ? 2 : 3)))
+
+void install_hardware_breakpoint(struct hardware_breakpoint *bp)
+{
+    // find a free debug register
+    int i;
+    for (i = 0; i < 4; i++) {
+        unsigned long address = ptrace(PTRACE_PEEKUSER, bp->tid, DR_BASE + i * DR_SIZE);
+
+        if (!address)
+            break;
+    }
+
+    if (i == 4) {
+        perror("No debug registers available");
+        return;
+    }
+
+    unsigned long ctrl = CTRL_LOCAL(i) | CTRL_COND_VAL(bp->type) << CTRL_COND(i) | CTRL_LEN_VAL(bp->len) << CTRL_LEN(i);
+
+    // read the state from DR7
+    unsigned long state = ptrace(PTRACE_PEEKUSER, bp->tid, DR_BASE + 7 * DR_SIZE);
+
+    // reset the state, for good measure
+    state &= ~(3 << CTRL_COND(i));
+    state &= ~(3 << CTRL_LEN(i));
+
+    // register the breakpoint
+    state |= ctrl;
+
+    // write the address and the state
+    ptrace(PTRACE_POKEUSER, bp->tid, DR_BASE + i * DR_SIZE, bp->addr);
+    ptrace(PTRACE_POKEUSER, bp->tid, DR_BASE + 7 * DR_SIZE, state);
+}
+
+
+void remove_hardware_breakpoint(struct hardware_breakpoint *bp)
+{
+    // find the register
+    int i;
+    for (i = 0; i < 4; i++) {
+        unsigned long address = ptrace(PTRACE_PEEKUSER, bp->tid, DR_BASE + i * DR_SIZE);
+
+        if (address == bp->addr)
+            break;
+    }
+
+    if (i == 4) {
+        perror("Breakpoint not found");
+        return;
+    }
+
+    // read the state from DR7
+    unsigned long state = ptrace(PTRACE_PEEKUSER, bp->tid, DR_BASE + 7 * DR_SIZE);
+
+    // reset the state
+    state &= ~(3 << CTRL_COND(i));
+    state &= ~(3 << CTRL_LEN(i));
+
+    // write the state
+    ptrace(PTRACE_POKEUSER, bp->tid, DR_BASE + 7 * DR_SIZE, state);
+
+    // clear the address
+    ptrace(PTRACE_POKEUSER, bp->tid, DR_BASE + i * DR_SIZE, 0);
+}
+
+int is_breakpoint_hit(struct hardware_breakpoint *bp)
+{
+    unsigned long status = ptrace(PTRACE_PEEKUSER, bp->tid, DR_BASE + 6 * DR_SIZE);
+
+    int index;
+    if (status & 0x1)
+        index = 0;
+    else if (status & 0x2)
+        index = 1;
+    else if (status & 0x4)
+        index = 2;
+    else if (status & 0x8)
+        index = 3;
+    else
+        return 0;
+
+    unsigned long address = ptrace(PTRACE_PEEKUSER, bp->tid, DR_BASE + index * DR_SIZE);
+
+    if (address == bp->addr)
+        return 1;
+
+    return 0;
+}
+
+int get_remaining_hw_breakpoint_count(struct global_state *state, int tid)
+{
+    int i;
+    for (i = 0; i < 4; i++) {
+        unsigned long address = ptrace(PTRACE_PEEKUSER, tid, DR_BASE + i * DR_SIZE);
+
+        if (!address)
+            break;
+    }
+
+    return 4 - i;
+}
+
+int get_remaining_hw_watchpoint_count(struct global_state *state, int tid)
+{
+    return get_remaining_hw_breakpoint_count(state, tid);
+}
+#endif
+
+#ifdef ARCH_AARCH64
+void install_hardware_breakpoint(struct hardware_breakpoint *bp)
+{
+
+}
+
+void remove_hardware_breakpoint(struct hardware_breakpoint *bp)
+{
+
 }
 #endif
 
@@ -561,7 +700,7 @@ int prepare_for_run(struct global_state *state, int pid)
         t_hit = 0;
         uint64_t ip = INSTRUCTION_POINTER(t->regs);
 
-        b = state->b_HEAD;
+        b = state->sw_b_HEAD;
         while (b != NULL && !t_hit) {
             if (b->addr == ip)
                 // we hit a software breakpoint on this thread
@@ -589,7 +728,7 @@ int prepare_for_run(struct global_state *state, int pid)
     }
 
     // Reset any software breakpoint
-    b = state->b_HEAD;
+    b = state->sw_b_HEAD;
     while (b != NULL) {
         if (b->enabled) {
             ptrace(PTRACE_POKEDATA, pid, (void *)b->addr,
@@ -677,7 +816,7 @@ struct thread_status *wait_all_and_update_regs(struct global_state *state, int p
     }
 
     // Restore any software breakpoint
-    struct software_breakpoint *b = state->b_HEAD;
+    struct software_breakpoint *b = state->sw_b_HEAD;
 
     while (b != NULL) {
         if (b->enabled) {
@@ -710,7 +849,7 @@ void register_breakpoint(struct global_state *state, int pid, uint64_t address)
 
     ptrace(PTRACE_POKEDATA, pid, (void *)address, patched_instruction);
 
-    struct software_breakpoint *b = state->b_HEAD;
+    struct software_breakpoint *b = state->sw_b_HEAD;
 
     while (b != NULL) {
         if (b->addr == address) {
@@ -728,13 +867,13 @@ void register_breakpoint(struct global_state *state, int pid, uint64_t address)
 
     // Breakpoints should be inserted ordered by address, increasing
     // This is important, because we don't want a breakpoint patching another
-    if (state->b_HEAD == NULL || state->b_HEAD->addr > address) {
-        b->next = state->b_HEAD;
-        state->b_HEAD = b;
+    if (state->sw_b_HEAD == NULL || state->sw_b_HEAD->addr > address) {
+        b->next = state->sw_b_HEAD;
+        state->sw_b_HEAD = b;
         return;
     } else {
-        struct software_breakpoint *prev = state->b_HEAD;
-        struct software_breakpoint *next = state->b_HEAD->next;
+        struct software_breakpoint *prev = state->sw_b_HEAD;
+        struct software_breakpoint *next = state->sw_b_HEAD->next;
 
         while (next != NULL && next->addr < address) {
             prev = next;
@@ -748,13 +887,13 @@ void register_breakpoint(struct global_state *state, int pid, uint64_t address)
 
 void unregister_breakpoint(struct global_state *state, uint64_t address)
 {
-    struct software_breakpoint *b = state->b_HEAD;
+    struct software_breakpoint *b = state->sw_b_HEAD;
     struct software_breakpoint *prev = NULL;
 
     while (b != NULL) {
         if (b->addr == address) {
             if (prev == NULL) {
-                state->b_HEAD = b->next;
+                state->sw_b_HEAD = b->next;
             } else {
                 prev->next = b->next;
             }
@@ -768,7 +907,7 @@ void unregister_breakpoint(struct global_state *state, uint64_t address)
 
 void enable_breakpoint(struct global_state *state, uint64_t address)
 {
-    struct software_breakpoint *b = state->b_HEAD;
+    struct software_breakpoint *b = state->sw_b_HEAD;
 
     while (b != NULL) {
         if (b->addr == address) {
@@ -780,7 +919,7 @@ void enable_breakpoint(struct global_state *state, uint64_t address)
 
 void disable_breakpoint(struct global_state *state, uint64_t address)
 {
-    struct software_breakpoint *b = state->b_HEAD;
+    struct software_breakpoint *b = state->sw_b_HEAD;
 
     while (b != NULL) {
         if (b->addr == address) {
@@ -792,7 +931,7 @@ void disable_breakpoint(struct global_state *state, uint64_t address)
 
 void free_breakpoints(struct global_state *state)
 {
-    struct software_breakpoint *b = state->b_HEAD;
+    struct software_breakpoint *b = state->sw_b_HEAD;
     struct software_breakpoint *next;
 
     while (b != NULL) {
@@ -801,7 +940,18 @@ void free_breakpoints(struct global_state *state)
         b = next;
     }
 
-    state->b_HEAD = NULL;
+    state->sw_b_HEAD = NULL;
+
+    struct hardware_breakpoint *h = state->hw_b_HEAD;
+    struct hardware_breakpoint *next_h;
+
+    while (h != NULL) {
+        next_h = h->next;
+        free(h);
+        h = next_h;
+    }
+
+    state->hw_b_HEAD = NULL;
 }
 
 int stepping_finish(struct global_state *state, int tid)
@@ -870,10 +1020,106 @@ int stepping_finish(struct global_state *state, int tid)
 
 cleanup:
     // remove any installed breakpoint
-    struct software_breakpoint *b = state->b_HEAD;
+    struct software_breakpoint *b = state->sw_b_HEAD;
     while (b != NULL) {
         if (b->enabled) {
             ptrace(PTRACE_POKEDATA, tid, (void *)b->addr, b->instruction);
+        }
+        b = b->next;
+    }
+
+    return 0;
+}
+
+void register_hw_breakpoint(struct global_state *state, int tid, uint64_t address, char type, char len)
+{
+    struct hardware_breakpoint *b = state->hw_b_HEAD;
+
+    while (b != NULL) {
+        if (b->addr == address && b->tid == tid) {
+            perror("Breakpoint already registered");
+            return;
+        }
+        b = b->next;
+    }
+
+    b = malloc(sizeof(struct hardware_breakpoint));
+    b->addr = address;
+    b->tid = tid;
+    b->enabled = 1;
+    b->type = type;
+    b->len = len;
+
+    b->next = state->hw_b_HEAD;
+    state->hw_b_HEAD = b;
+
+    install_hardware_breakpoint(b);
+}
+
+void unregister_hw_breakpoint(struct global_state *state, int tid, uint64_t address)
+{
+    struct hardware_breakpoint *b = state->hw_b_HEAD;
+    struct hardware_breakpoint *prev = NULL;
+
+    while (b != NULL) {
+        if (b->addr == address && b->tid == tid) {
+            if (prev == NULL) {
+                state->hw_b_HEAD = b->next;
+            } else {
+                prev->next = b->next;
+            }
+
+            if (b->enabled) {
+                remove_hardware_breakpoint(b);
+            }
+
+            free(b);
+            return;
+        }
+        prev = b;
+        b = b->next;
+    }
+}
+
+void enable_hw_breakpoint(struct global_state *state, int tid, uint64_t address)
+{
+    struct hardware_breakpoint *b = state->hw_b_HEAD;
+
+    while (b != NULL) {
+        if (b->addr == address && b->tid == tid) {
+            if (!b->enabled) {
+                install_hardware_breakpoint(b);
+            }
+
+            b->enabled = 1;
+        }
+        b = b->next;
+    }
+}
+
+void disable_hw_breakpoint(struct global_state *state, int tid, uint64_t address)
+{
+    struct hardware_breakpoint *b = state->hw_b_HEAD;
+
+    while (b != NULL) {
+        if (b->addr == address && b->tid == tid) {
+            if (b->enabled) {
+                remove_hardware_breakpoint(b);
+            }
+
+            b->enabled = 0;
+        }
+        b = b->next;
+    }
+}
+
+unsigned long get_hit_hw_breakpoint(struct global_state *state, int tid)
+{
+    struct hardware_breakpoint *b = state->hw_b_HEAD;
+
+    while (b != NULL) {
+        if (b->tid == tid && is_breakpoint_hit(b)) {
+            return b->addr;
         }
         b = b->next;
     }

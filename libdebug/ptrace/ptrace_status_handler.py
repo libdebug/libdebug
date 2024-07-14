@@ -106,7 +106,7 @@ class PtraceStatusHandler:
 
         # Manage watchpoints
         if bp is None:
-            bp = self.ptrace_interface.hardware_bp_helpers[thread_id].is_watchpoint_hit()
+            bp = self.ptrace_interface.get_hit_watchpoint(thread_id)
             if bp is not None:
                 liblog.debugger("Watchpoint hit at 0x%x", bp.address)
 
