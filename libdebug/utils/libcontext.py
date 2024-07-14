@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import platform
 import sys
 from contextlib import contextmanager
 from copy import deepcopy
@@ -55,7 +56,6 @@ class LibContext:
                 self._general_logger = "DEBUG"
         self._initialized = True
 
-        self._arch = "amd64"
         self._terminal = []
 
     def _set_debug_level_for_all(self: LibContext) -> None:
@@ -139,21 +139,9 @@ class LibContext:
             raise ValueError("general_logger must be a valid logging level")
 
     @property
-    def arch(self: LibContext) -> str:
-        """Property getter for architecture.
-
-        Returns:
-            _arch (str): the current architecture.
-        """
-        return self._arch
-
-    @arch.setter
-    def arch(self: LibContext, value: str) -> None:
-        """Property setter for arch, ensuring it's a valid architecture."""
-        if value in ["amd64"]:
-            self._arch = value
-        else:
-            raise RuntimeError("The specified architecture is not supported")
+    def platform(self: LibContext) -> str:
+        """Return the current platform."""
+        return platform.machine()
 
     @property
     def terminal(self: LibContext) -> list[str]:

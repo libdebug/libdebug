@@ -33,6 +33,7 @@ from libdebug.debugger.internal_debugger_instance_manager import (
 from libdebug.interfaces.interface_helper import provide_debugging_interface
 from libdebug.liblog import liblog
 from libdebug.state.resume_context import ResumeContext
+from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.debugger_wrappers import (
     background_alias,
     change_state_function_process,
@@ -72,6 +73,9 @@ class InternalDebugger:
 
     aslr_enabled: bool
     """A flag that indicates if ASLR is enabled or not."""
+
+    arch: str
+    """The architecture of the debugged process."""
 
     argv: list[str]
     """The command line arguments of the debugged process."""
@@ -162,10 +166,11 @@ class InternalDebugger:
         self.pprint_syscalls = False
         self.pipe_manager = None
         self.process_id = 0
-        self.threads = list()
+        self.threads = []
         self.instanced = False
         self._is_running = False
         self.resume_context = ResumeContext()
+        self._arch = "amd64"
         self.__polling_thread_command_queue = Queue()
         self.__polling_thread_response_queue = Queue()
 
@@ -277,6 +282,16 @@ class InternalDebugger:
         self.__polling_thread_command_queue.put((self.__threaded_detach, ()))
 
         self._join_and_check_status()
+
+    @property
+    def arch(self: InternalDebugger) -> str:
+        """The architecture of the debugged process."""
+        return self._arch
+
+    @arch.setter
+    def arch(self: InternalDebugger, value: str) -> None:
+        """The architecture of the debugged process."""
+        self._arch = map_arch(value)
 
     @background_alias(_background_invalid_call)
     def kill(self: InternalDebugger) -> None:
@@ -559,7 +574,7 @@ class InternalDebugger:
         Returns:
             HandledSyscall: The HandledSyscall object.
         """
-        syscall_number = resolve_syscall_number(syscall) if isinstance(syscall, str) else syscall
+        syscall_number = resolve_syscall_number(self.arch, syscall) if isinstance(syscall, str) else syscall
 
         if not isinstance(recursive, bool):
             raise TypeError("recursive must be a boolean")
@@ -569,7 +584,7 @@ class InternalDebugger:
             handler = self.handled_syscalls[syscall_number]
             if handler.on_enter_user or handler.on_exit_user:
                 liblog.warning(
-                    f"Syscall {resolve_syscall_name(syscall_number)} is already handled by a user-defined handler. Overriding it.",
+                    f"Syscall {resolve_syscall_name(self.arch, syscall_number)} is already handled by a user-defined handler. Overriding it.",
                 )
             handler.on_enter_user = on_enter
             handler.on_exit_user = on_exit
@@ -616,22 +631,24 @@ class InternalDebugger:
         Returns:
             HandledSyscall: The HandledSyscall object.
         """
-        if set(kwargs) - syscall_hijacking_provider().allowed_args:
+        if set(kwargs) - syscall_hijacking_provider(self.arch).allowed_args:
             raise ValueError("Invalid keyword arguments in syscall hijack")
 
         if isinstance(original_syscall, str):
-            original_syscall_number = resolve_syscall_number(original_syscall)
+            original_syscall_number = resolve_syscall_number(self.arch, original_syscall)
         else:
             original_syscall_number = original_syscall
 
-        new_syscall_number = resolve_syscall_number(new_syscall) if isinstance(new_syscall, str) else new_syscall
+        new_syscall_number = (
+            resolve_syscall_number(self.arch, new_syscall) if isinstance(new_syscall, str) else new_syscall
+        )
 
         if original_syscall_number == new_syscall_number:
             raise ValueError(
                 "The original syscall and the new syscall must be different during hijacking.",
             )
 
-        on_enter = syscall_hijacking_provider().create_hijacker(
+        on_enter = syscall_hijacking_provider(self.arch).create_hijacker(
             new_syscall_number,
             **kwargs,
         )
@@ -894,7 +911,7 @@ class InternalDebugger:
         """Handles a syscall in the target process to pretty prints its arguments and return value."""
         self._ensure_process_stopped()
 
-        syscall_numbers = get_all_syscall_numbers()
+        syscall_numbers = get_all_syscall_numbers(self.arch)
 
         for syscall_number in syscall_numbers:
             # Check if the syscall is already handled (by the user or by the pretty print handler)
@@ -1350,7 +1367,7 @@ class InternalDebugger:
     def _enable_antidebug_escaping(self: InternalDebugger) -> None:
         """Enables the anti-debugging escape mechanism."""
         handler = SyscallHandler(
-            resolve_syscall_number("ptrace"),
+            resolve_syscall_number(self.arch, "ptrace"),
             on_enter_ptrace,
             on_exit_ptrace,
             None,

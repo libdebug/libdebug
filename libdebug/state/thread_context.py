@@ -177,7 +177,7 @@ class ThreadContext:
         """Returns the current backtrace of the thread."""
         internal_debugger = self._internal_debugger
         internal_debugger._ensure_process_stopped()
-        stack_unwinder = stack_unwinding_provider()
+        stack_unwinder = stack_unwinding_provider(internal_debugger.arch)
         backtrace = stack_unwinder.unwind(self)
         maps = internal_debugger.debugging_interface.maps()
         return [resolve_address_in_maps(x, maps) for x in backtrace]
@@ -185,7 +185,7 @@ class ThreadContext:
     def current_return_address(self: ThreadContext) -> int:
         """Returns the return address of the current function."""
         self._internal_debugger._ensure_process_stopped()
-        stack_unwinder = stack_unwinding_provider()
+        stack_unwinder = stack_unwinding_provider(self._internal_debugger.arch)
         return stack_unwinder.get_return_address(self)
 
     def step(self: ThreadContext) -> None:

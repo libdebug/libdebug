@@ -8,15 +8,12 @@ from libdebug.architectures.amd64.amd64_syscall_hijacker import (
     Amd64SyscallHijacker,
 )
 from libdebug.architectures.syscall_hijacking_manager import SyscallHijackingManager
-from libdebug.utils.libcontext import libcontext
 
 _amd64_syscall_hijacker = Amd64SyscallHijacker()
 
 
-def syscall_hijacking_provider() -> SyscallHijackingManager:
+def syscall_hijacking_provider(architecture: str) -> SyscallHijackingManager:
     """Returns an instance of the syscall hijacking provider to be used by the `_InternalDebugger` class."""
-    architecture = libcontext.arch
-
     match architecture:
         case "amd64":
             return _amd64_syscall_hijacker

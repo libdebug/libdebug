@@ -13,17 +13,15 @@ from libdebug.architectures.ptrace_hardware_breakpoint_manager import (
     PtraceHardwareBreakpointManager,
 )
 from libdebug.state.thread_context import ThreadContext
-from libdebug.utils.libcontext import libcontext
 
 
 def ptrace_hardware_breakpoint_manager_provider(
+    architecture: str,
     thread: ThreadContext,
     peek_user: Callable[[int, int], int],
     poke_user: Callable[[int, int, int], None],
 ) -> PtraceHardwareBreakpointManager:
     """Returns an instance of the hardware breakpoint manager to be used by the `_InternalDebugger` class."""
-    architecture = libcontext.arch
-
     match architecture:
         case "amd64":
             return Amd64PtraceHardwareBreakpointManager(thread, peek_user, poke_user)

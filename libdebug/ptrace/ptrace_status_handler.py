@@ -91,7 +91,7 @@ class PtraceStatusHandler:
         else:
             # If the trap was caused by a software breakpoint, we need to restore the original instruction
             # and set the instruction pointer to the previous instruction.
-            ip -= software_breakpoint_byte_size()
+            ip -= software_breakpoint_byte_size(self.internal_debugger.arch)
 
             if ip in enabled_breakpoints:
                 # Software breakpoint hit

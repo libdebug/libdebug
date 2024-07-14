@@ -10,8 +10,6 @@ from pathlib import Path
 
 import requests
 
-from libdebug.utils.libcontext import libcontext
-
 SYSCALLS_REMOTE = "https://syscalls.mebeim.net/db"
 LOCAL_FOLDER_PATH = (Path.home() / ".cache" / "libdebug" / "syscalls").resolve()
 
@@ -55,9 +53,9 @@ def get_syscall_definitions(arch: str) -> dict:
 
 
 @functools.cache
-def resolve_syscall_number(name: str) -> int:
+def resolve_syscall_number(architecture: str, name: str) -> int:
     """Resolve a syscall name to its number."""
-    definitions = get_syscall_definitions(libcontext.arch)
+    definitions = get_syscall_definitions(architecture)
 
     for syscall in definitions["syscalls"]:
         if syscall["name"] == name:
@@ -67,9 +65,9 @@ def resolve_syscall_number(name: str) -> int:
 
 
 @functools.cache
-def resolve_syscall_name(number: int) -> str:
+def resolve_syscall_name(architecture: str, number: int) -> str:
     """Resolve a syscall number to its name."""
-    definitions = get_syscall_definitions(libcontext.arch)
+    definitions = get_syscall_definitions(architecture)
 
     for syscall in definitions["syscalls"]:
         if syscall["number"] == number:
@@ -79,9 +77,9 @@ def resolve_syscall_name(number: int) -> str:
 
 
 @functools.cache
-def resolve_syscall_arguments(number: int) -> list[str]:
+def resolve_syscall_arguments(architecture: str, number: int) -> list[str]:
     """Resolve a syscall number to its argument definition."""
-    definitions = get_syscall_definitions(libcontext.arch)
+    definitions = get_syscall_definitions(architecture)
 
     for syscall in definitions["syscalls"]:
         if syscall["number"] == number:
@@ -91,8 +89,8 @@ def resolve_syscall_arguments(number: int) -> list[str]:
 
 
 @functools.cache
-def get_all_syscall_numbers() -> list[int]:
+def get_all_syscall_numbers(architecture: str) -> list[int]:
     """Retrieves all the syscall numbers."""
-    definitions = get_syscall_definitions(libcontext.arch)
+    definitions = get_syscall_definitions(architecture)
 
     return [syscall["number"] for syscall in definitions["syscalls"]]

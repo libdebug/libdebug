@@ -229,7 +229,7 @@ class FinishTest(unittest.TestCase):
 
         self.assertEqual(d.regs.rip, C_ADDRESS)
 
-        stack_unwinder = stack_unwinding_provider()
+        stack_unwinder = stack_unwinding_provider(d._internal_debugger.arch)
 
         # We need to repeat the check for the three stages of the function preamble
 

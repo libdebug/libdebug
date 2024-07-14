@@ -39,9 +39,7 @@ def change_state_function_thread(method: callable) -> callable:
     """Decorator to perfom control flow checks before executing a method."""
 
     @wraps(method)
-    def wrapper(
-        self: InternalDebugger, thread: ThreadContext, *args: ..., **kwargs: ...
-    ) -> ...:
+    def wrapper(self: InternalDebugger, thread: ThreadContext, *args: ..., **kwargs: ...) -> ...:
         if not self.instanced:
             raise RuntimeError(
                 "Process not running. Did you call run()?",

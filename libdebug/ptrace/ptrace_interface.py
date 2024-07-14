@@ -461,13 +461,14 @@ class PtraceInterface(DebuggingInterface):
             new_thread_id,
         )
 
-        register_holder = register_holder_provider(register_file)
+        register_holder = register_holder_provider(self._internal_debugger.arch, register_file)
 
         with extend_internal_debugger(self._internal_debugger):
             thread = ThreadContext(new_thread_id, register_holder)
 
         self._internal_debugger.insert_new_thread(thread)
         thread_hw_bp_helper = ptrace_hardware_breakpoint_manager_provider(
+            self._internal_debugger.arch,
             thread,
             self._peek_user,
             self._poke_user,

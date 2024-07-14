@@ -395,7 +395,10 @@ class Debugger:
         if self._internal_debugger.syscalls_to_pprint is None:
             return None
         else:
-            return [resolve_syscall_name(v) for v in self._internal_debugger.syscalls_to_pprint]
+            return [
+                resolve_syscall_name(self._internal_debugger.arch, v)
+                for v in self._internal_debugger.syscalls_to_pprint
+            ]
 
     @syscalls_to_pprint.setter
     def syscalls_to_pprint(self: Debugger, value: list[int | str] | None) -> None:
@@ -408,7 +411,7 @@ class Debugger:
             self._internal_debugger.syscalls_to_pprint = None
         elif isinstance(value, list):
             self._internal_debugger.syscalls_to_pprint = [
-                v if isinstance(v, int) else resolve_syscall_number(v) for v in value
+                v if isinstance(v, int) else resolve_syscall_number(self._internal_debugger.arch, v) for v in value
             ]
         else:
             raise ValueError(
@@ -427,7 +430,10 @@ class Debugger:
         if self._internal_debugger.syscalls_to_not_pprint is None:
             return None
         else:
-            return [resolve_syscall_name(v) for v in self._internal_debugger.syscalls_to_not_pprint]
+            return [
+                resolve_syscall_name(self._internal_debugger.arch, v)
+                for v in self._internal_debugger.syscalls_to_not_pprint
+            ]
 
     @syscalls_to_not_pprint.setter
     def syscalls_to_not_pprint(self: Debugger, value: list[int | str] | None) -> None:
@@ -440,7 +446,7 @@ class Debugger:
             self._internal_debugger.syscalls_to_not_pprint = None
         elif isinstance(value, list):
             self._internal_debugger.syscalls_to_not_pprint = [
-                v if isinstance(v, int) else resolve_syscall_number(v) for v in value
+                v if isinstance(v, int) else resolve_syscall_number(self._internal_debugger.arch, v) for v in value
             ]
         else:
             raise ValueError(
