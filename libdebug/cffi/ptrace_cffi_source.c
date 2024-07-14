@@ -125,6 +125,7 @@ struct fp_regs_struct *get_thread_fp_regs(struct global_state *state, int tid)
     return NULL;
 }
 
+#ifdef ARCH_AMD64
 void get_fp_regs(struct global_state *state, int tid)
 {
     struct thread *t = get_thread(state, tid);
@@ -170,6 +171,47 @@ void set_fp_regs(struct global_state *state, int tid)
         }
     #endif
 }
+#endif
+
+#ifdef ARCH_AARCH64
+void get_fp_regs(struct global_state *state, int tid)
+{
+    struct thread *t = get_thread(state, tid);
+
+    if (t == NULL) {
+        perror("Thread not found");
+        return;
+    }
+
+    struct iovec iov;
+
+    iov.iov_base = (unsigned char *)(&t->fpregs);
+    iov.iov_len = sizeof(struct fp_regs_struct);
+
+    if (ptrace(PTRACE_GETREGSET, tid, NT_FPREGSET, &iov) == -1) {
+        perror("ptrace_getregset_xstate");
+    }
+}
+
+void set_fp_regs(struct global_state *state, int tid)
+{
+    struct thread *t = get_thread(state, tid);
+
+    if (t == NULL) {
+        perror("Thread not found");
+        return;
+    }
+
+    struct iovec iov;
+
+    iov.iov_base = (unsigned char *)(&t->fpregs);
+    iov.iov_len = sizeof(struct fp_regs_struct);
+
+    if (ptrace(PTRACE_SETREGSET, tid, NT_FPREGSET, &iov) == -1) {
+        perror("ptrace_setregset_xstate");
+    }
+}
+#endif
 
 struct ptrace_regs_struct *register_thread(struct global_state *state, int tid)
 {
