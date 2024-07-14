@@ -10,6 +10,7 @@ from __future__ import annotations
 import functools
 import os
 import signal
+import sys
 from pathlib import Path
 from queue import Queue
 from signal import SIGKILL, SIGSTOP, SIGTRAP
@@ -45,6 +46,7 @@ from libdebug.utils.debugging_utils import (
     resolve_symbol_in_maps,
 )
 from libdebug.utils.libcontext import libcontext
+from libdebug.utils.platform_utils import get_platform_register_size
 from libdebug.utils.print_style import PrintStyle
 from libdebug.utils.signal_utils import (
     resolve_signal_name,
@@ -200,7 +202,11 @@ class InternalDebugger:
         self.start_processing_thread()
         with extend_internal_debugger(self):
             self.debugging_interface = provide_debugging_interface()
-            self.memory = MemoryView(self._peek_memory, self._poke_memory)
+            self.memory = MemoryView(
+                self._peek_memory,
+                self._poke_memory,
+                unit_size=get_platform_register_size(self.arch),
+            )
 
     def start_processing_thread(self: InternalDebugger) -> None:
         """Starts the thread that will poll the traced process for state change."""
@@ -1304,13 +1310,12 @@ class InternalDebugger:
     def __threaded_peek_memory(self: InternalDebugger, address: int) -> bytes | BaseException:
         try:
             value = self.debugging_interface.peek_memory(address)
-            # TODO: this is only for amd64
-            return value.to_bytes(8, "little")
+            return value.to_bytes(get_platform_register_size(self.arch), sys.byteorder)
         except BaseException as e:
             return e
 
     def __threaded_poke_memory(self: InternalDebugger, address: int, data: bytes) -> None:
-        int_data = int.from_bytes(data, "little")
+        int_data = int.from_bytes(data, sys.byteorder)
         self.debugging_interface.poke_memory(address, int_data)
 
     @background_alias(__threaded_peek_memory)
