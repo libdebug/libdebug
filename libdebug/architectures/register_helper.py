@@ -6,6 +6,9 @@
 
 from collections.abc import Callable
 
+from libdebug.architectures.aarch64.aarch64_ptrace_register_holder import (
+    Aarch64PtraceRegisterHolder,
+)
 from libdebug.architectures.amd64.amd64_ptrace_register_holder import (
     Amd64PtraceRegisterHolder,
 )
@@ -22,5 +25,7 @@ def register_holder_provider(
     match architecture:
         case "amd64":
             return Amd64PtraceRegisterHolder(register_file)
+        case "aarch64":
+            return Aarch64PtraceRegisterHolder(register_file)
         case _:
             raise NotImplementedError(f"Architecture {architecture} not available.")

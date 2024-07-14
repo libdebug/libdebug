@@ -31,7 +31,7 @@ struct software_breakpoint {
 
 struct thread {
     int tid;
-    struct user_regs_struct regs;
+    struct ptrace_regs_struct regs;
     int signal_to_forward;
     struct thread *next;
 };
@@ -48,7 +48,7 @@ struct global_state {
     _Bool handle_syscall_enabled;
 };
 
-struct user_regs_struct *register_thread(struct global_state *state, int tid)
+struct ptrace_regs_struct *register_thread(struct global_state *state, int tid)
 {
     // Verify if the thread is already registered
     struct thread *t = state->t_HEAD;

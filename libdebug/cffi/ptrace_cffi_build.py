@@ -8,9 +8,12 @@ import platform
 
 from cffi import FFI
 
-if platform.machine() == "x86_64":
-    user_regs_struct = """
-    struct user_regs_struct
+
+architecture = platform.machine()
+
+if architecture == "x86_64":
+    ptrace_regs_struct = """
+    struct ptrace_regs_struct
     {
         unsigned long r15;
         unsigned long r14;
@@ -74,13 +77,80 @@ if platform.machine() == "x86_64":
         return 0; // Not a CALL
     }
     """
+elif architecture == "aarch64":
+    ptrace_regs_struct = """
+    struct ptrace_regs_struct
+    {
+        unsigned long x0;
+        unsigned long x1;
+        unsigned long x2;
+        unsigned long x3;
+        unsigned long x4;
+        unsigned long x5;
+        unsigned long x6;
+        unsigned long x7;
+        unsigned long x8;
+        unsigned long x9;
+        unsigned long x10;
+        unsigned long x11;
+        unsigned long x12;
+        unsigned long x13;
+        unsigned long x14;
+        unsigned long x15;
+        unsigned long x16;
+        unsigned long x17;
+        unsigned long x18;
+        unsigned long x19;
+        unsigned long x20;
+        unsigned long x21;
+        unsigned long x22;
+        unsigned long x23;
+        unsigned long x24;
+        unsigned long x25;
+        unsigned long x26;
+        unsigned long x27;
+        unsigned long x28;
+        unsigned long x29;
+        unsigned long x30;
+        unsigned long sp;
+        unsigned long pc;
+        unsigned long pstate;
+    };
+    """
+
+    breakpoint_define = """
+    #define INSTRUCTION_POINTER(regs) (regs.pc)
+    #define INSTALL_BREAKPOINT(instruction) ((instruction & 0xFFFFFFFFFFFFFF00) | 0xD4200000)
+    #define BREAKPOINT_SIZE 4
+    #define IS_SW_BREAKPOINT(instruction) (instruction == 0xD4200000)
+    """
+
+    finish_define = """
+    #define IS_RET_INSTRUCTION(instruction) (instruction == 0xD65F03C0)
+
+    // AARCH64 Architecture specific
+    int IS_CALL_INSTRUCTION(uint8_t* instr)
+    {
+        // Check for direct CALL (BL)
+        if ((instr[0] & 0xFC) == 0x94) {
+            return 1; // It's a CALL
+        }
+
+        // Check for indirect CALL (BLR)
+        if ((instr[0] & 0xFC) == 0x90) {
+            return 1; // It's a CALL
+        }
+
+        return 0; // Not a CALL
+    }
+    """
 else:
     raise NotImplementedError(f"Architecture {platform.machine()} not available.")
 
 
 ffibuilder = FFI()
 ffibuilder.cdef(
-    user_regs_struct
+    ptrace_regs_struct
     + """
     struct ptrace_hit_bp {
         int pid;
@@ -99,7 +169,7 @@ ffibuilder.cdef(
 
     struct thread {
         int tid;
-        struct user_regs_struct regs;
+        struct ptrace_regs_struct regs;
         int signal_to_forward;
         struct thread *next;
     };
@@ -143,7 +213,7 @@ ffibuilder.cdef(
     struct thread_status *wait_all_and_update_regs(struct global_state *state, int pid);
     void free_thread_status_list(struct thread_status *head);
 
-    struct user_regs_struct* register_thread(struct global_state *state, int tid);
+    struct ptrace_regs_struct* register_thread(struct global_state *state, int tid);
     void unregister_thread(struct global_state *state, int tid);
     void free_thread_list(struct global_state *state);
 
