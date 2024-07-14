@@ -208,7 +208,7 @@ elif architecture == "aarch64":
         unsigned int fpsr;
         unsigned int fpcr;
         unsigned long padding;
-    }
+    };
     """
 
     fpregs_define = ""
