@@ -58,8 +58,8 @@ class Aarch64PtraceRegisterHolder(PtraceRegisterHolder):
             return
 
         for i in range(31):
-            name_64 = f"w{i}"
-            name_32 = f"x{i}"
+            name_64 = f"x{i}"
+            name_32 = f"w{i}"
 
             setattr(target_class, name_64, _get_property_64(name_64))
             setattr(target_class, name_32, _get_property_32(name_32))
