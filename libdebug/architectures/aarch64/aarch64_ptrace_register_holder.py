@@ -62,7 +62,7 @@ class Aarch64PtraceRegisterHolder(PtraceRegisterHolder):
             name_32 = f"w{i}"
 
             setattr(target_class, name_64, _get_property_64(name_64))
-            setattr(target_class, name_32, _get_property_32(name_32))
+            setattr(target_class, name_32, _get_property_32(name_64))
 
         target_class.pc = _get_property_64("pc")
 
