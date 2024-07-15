@@ -14,6 +14,7 @@ from scripts.basic_test_pie import BasicTestPie
 from scripts.basic_test_hw import BasicTestHw
 from scripts.breakpoint_test import BreakpointTest
 from scripts.brute_test import BruteTest
+from scripts.builtin_handler_test import BuiltinHandlerTest
 
 def fast_suite():
     suite = TestSuite()
@@ -25,6 +26,7 @@ def fast_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(BasicTestHw))
     suite.addTest(TestLoader().loadTestsFromTestCase(BreakpointTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(BruteTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(BuiltinHandlerTest))
 
     return suite
 
