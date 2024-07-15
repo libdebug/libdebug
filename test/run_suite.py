@@ -9,7 +9,7 @@ import platform
 import sys
 
 architectures = os.listdir(".")
-architectures.remove("other")
+architectures.remove("common")
 
 if len(sys.argv) > 1 and sys.argv[1] not in architectures:
     print("Usage: python run_test_suite.py <architecture>")
