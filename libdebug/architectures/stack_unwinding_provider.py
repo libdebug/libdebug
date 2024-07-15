@@ -4,11 +4,15 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+from libdebug.architectures.aarch64.aarch64_stack_unwinder import (
+    Aarch64StackUnwinder,
+)
 from libdebug.architectures.amd64.amd64_stack_unwinder import (
     Amd64StackUnwinder,
 )
 from libdebug.architectures.stack_unwinding_manager import StackUnwindingManager
 
+_aarch64_stack_unwinder = Aarch64StackUnwinder()
 _amd64_stack_unwinder = Amd64StackUnwinder()
 
 
@@ -17,5 +21,7 @@ def stack_unwinding_provider(architecture: str) -> StackUnwindingManager:
     match architecture:
         case "amd64":
             return _amd64_stack_unwinder
+        case "aarch64":
+            return _aarch64_stack_unwinder
         case _:
             raise NotImplementedError(f"Architecture {architecture} not available.")
