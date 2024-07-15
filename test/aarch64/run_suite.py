@@ -16,6 +16,13 @@ from scripts.basic_test_hw import BasicTestHw
 from scripts.breakpoint_test import BreakpointTest
 from scripts.brute_test import BruteTest
 from scripts.builtin_handler_test import BuiltinHandlerTest
+from scripts.callback_test import CallbackTest
+from scripts.catch_signal_test import CatchSignalTest
+from scripts.death_test import DeathTest
+from scripts.jumpstart_test import JumpstartTest
+from scripts.memory_test import MemoryTest
+from scripts.thread_test import ThreadTest
+from scripts.thread_test_complex import ThreadTestComplex
 
 def fast_suite():
     suite = TestSuite()
@@ -29,6 +36,13 @@ def fast_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(BreakpointTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(BruteTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(BuiltinHandlerTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(CallbackTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(CatchSignalTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(DeathTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(JumpstartTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(MemoryTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(ThreadTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(ThreadTestComplex))
 
     return suite
 
