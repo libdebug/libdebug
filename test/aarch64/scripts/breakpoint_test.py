@@ -212,13 +212,11 @@ class BreakpointTest(unittest.TestCase):
 
         for _ in range(20):
             if d.regs.pc == bp1.address:
-                print('A')
                 self.assertTrue(bp1.hit_count == 1)
                 self.assertTrue(bp1.hit_on(d))
                 self.assertFalse(bp2.hit_on(d))
                 self.assertFalse(bp3.hit_on(d))
             elif d.regs.pc == bp2.address:
-                print('B')
                 self.assertTrue(bp2.hit_count == counter)
                 self.assertTrue(bp2.hit_on(d))
                 self.assertFalse(bp1.hit_on(d))
@@ -229,7 +227,6 @@ class BreakpointTest(unittest.TestCase):
                     bp4.enable()
                 counter += 1
             elif d.regs.pc == bp3.address:
-                print('C')
                 self.assertTrue(bp3.hit_count == 1)
                 self.assertTrue(d.regs.w1 == 45)
                 self.assertTrue(d.regs.x1 == 45)
@@ -238,7 +235,6 @@ class BreakpointTest(unittest.TestCase):
                 self.assertFalse(bp2.hit_on(d))
                 break
             elif bp4.hit_on(d):
-                print('D')
                 pass
 
             d.cont()
