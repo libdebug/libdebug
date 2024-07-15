@@ -874,6 +874,45 @@ int prepare_for_run(struct global_state *state, int pid)
         t = t->next;
     }
 
+#ifdef ARCH_AARCH64
+    // iterate over all the threads and check if any of them has hit a hardware
+    // breakpoint
+    t = state->t_HEAD;
+    struct hardware_breakpoint *bp;
+    int bp_hit;
+
+    while (t != NULL) {
+        bp_hit = 0;
+
+        bp = state->hw_b_HEAD;
+        while (bp != NULL && !bp_hit) {
+            if (bp->tid == t->tid && bp->enabled && is_breakpoint_hit(bp)) {
+                // we hit a hardware breakpoint on this thread
+                bp_hit = 1;
+                break;
+            }
+
+            bp = bp->next;
+        }
+
+        if (bp_hit) {
+            // remove the breakpoint
+            remove_hardware_breakpoint(bp);
+
+            // step over the breakpoint
+            if (ptrace(PTRACE_SINGLESTEP, t->tid, NULL, NULL)) return -1;
+
+            // wait for the child
+            waitpid(t->tid, &status, 0);
+
+            // re-add the breakpoint
+            install_hardware_breakpoint(bp);
+        }
+
+        t = t->next;
+    }
+#endif
+
     // Reset any software breakpoint
     b = state->sw_b_HEAD;
     while (b != NULL) {
