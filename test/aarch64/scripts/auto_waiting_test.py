@@ -51,8 +51,8 @@ class AutoWaitingTest(unittest.TestCase):
                 counter += 1
             elif d.regs.pc == bp3.address:
                 self.assertTrue(bp3.hit_count == 1)
-                self.assertTrue(d.regs.x0 == 45)
-                self.assertTrue(d.regs.w0 == 45)
+                self.assertTrue(d.regs.x1 == 45)
+                self.assertTrue(d.regs.w1 == 45)
                 self.assertTrue(bp3.hit_on(d))
                 self.assertFalse(bp1.hit_on(d))
                 self.assertFalse(bp2.hit_on(d))

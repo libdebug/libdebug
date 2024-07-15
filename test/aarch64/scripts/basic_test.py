@@ -25,7 +25,7 @@ class BasicTest(unittest.TestCase):
         d = debugger("binaries/basic_test")
         d.run()
 
-        bp = d.breakpoint(0x964, file="binary")
+        bp = d.breakpoint(0x4008a4)
 
         d.cont()
 

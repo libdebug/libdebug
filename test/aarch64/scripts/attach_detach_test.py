@@ -69,8 +69,8 @@ class AttachDetachTest(unittest.TestCase):
         r = d.run()
 
         # We must ensure that any breakpoint is unset before detaching
-        d.breakpoint(0xa04)
-        d.breakpoint(0xa08, hardware=True)
+        d.breakpoint(0xa04, file="binary")
+        d.breakpoint(0xa08, hardware=True, file="binary")
 
         d.detach()
 
