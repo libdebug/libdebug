@@ -7,13 +7,20 @@
 import sys
 from unittest import TestLoader, TestSuite, TextTestRunner
 
+from scripts.attach_detach_test import AttachDetachTest
+from scripts.auto_waiting_test import AutoWaitingTest
 from scripts.basic_test import BasicTest
-
+from scripts.basic_test_pie import BasicTestPie
+from scripts.basic_test_hw import BasicTestHw
 
 def fast_suite():
     suite = TestSuite()
 
+    suite.addTest(TestLoader().loadTestsFromTestCase(AttachDetachTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(AutoWaitingTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(BasicTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(BasicTestPie))
+    suite.addTest(TestLoader().loadTestsFromTestCase(BasicTestHw))
 
     return suite
 

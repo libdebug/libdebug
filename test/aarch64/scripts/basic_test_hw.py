@@ -9,12 +9,11 @@ import unittest
 from libdebug import debugger
 
 
-class BasicTest(unittest.TestCase):
-
+class BasicTestHw(unittest.TestCase):
     def test_basic(self):
         d = debugger("binaries/basic_test")
         d.run()
-        bp = d.breakpoint("register_test")
+        bp = d.breakpoint("register_test", hardware=True)
         d.cont()
         assert bp.address == d.regs.pc
         d.cont()
@@ -25,7 +24,7 @@ class BasicTest(unittest.TestCase):
         d = debugger("binaries/basic_test")
         d.run()
 
-        bp = d.breakpoint(0x964, file="binary")
+        bp = d.breakpoint(0x964, file="binary", hardware=True)
 
         d.cont()
 
@@ -104,7 +103,7 @@ class BasicTest(unittest.TestCase):
         d = debugger("binaries/basic_test")
 
         d.run()
-        bp = d.breakpoint("register_test")
+        bp = d.breakpoint("register_test", hardware=True)
         d.cont()
 
         assert bp.address == d.regs.pc
