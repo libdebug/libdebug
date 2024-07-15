@@ -231,14 +231,141 @@ int get_remaining_hw_watchpoint_count(struct global_state *state, int tid)
 #endif
 
 #ifdef ARCH_AARCH64
+struct user_hwdebug_state {
+    unsigned int dbg_info;
+	unsigned int pad;
+	struct {
+		unsigned long addr;
+		unsigned int ctrl;
+		unsigned int pad;
+	} dbg_regs[16];
+};
+
 void install_hardware_breakpoint(struct hardware_breakpoint *bp)
 {
+    // find a free debug register
+    struct user_hwdebug_state state = {0};
 
+    struct iovec iov;
+    iov.iov_base = &state;
+    iov.iov_len = sizeof state;
+
+    unsigned long command = bp->type == 'x' ? NT_ARM_HW_BREAK : NT_ARM_HW_WATCH;
+
+    ptrace(PTRACE_GETREGSET, bp->tid, command, &iov);
+
+    int i;
+    for (i = 0; i < 16; i++) {
+        if (!state.dbg_regs[i].addr)
+            break;
+    }
+
+    if (i == 16) {
+        perror("No debug registers available");
+        return;
+    }
+
+    unsigned int length = (1 << bp->len) - 1;
+    unsigned int condition = bp->type == 'r' ? 3 : (bp->type == 'w' ? 2 : 0);
+    unsigned int control = (length << 5) | (condition << 3) | 1;
+
+    state.dbg_regs[i].addr = bp->addr;
+    state.dbg_regs[i].ctrl = control;
+
+    ptrace(PTRACE_SETREGSET, bp->tid, command, &iov);
 }
 
 void remove_hardware_breakpoint(struct hardware_breakpoint *bp)
 {
+    struct user_hwdebug_state state = {0};
 
+    struct iovec iov;
+    iov.iov_base = &state;
+    iov.iov_len = sizeof state;
+
+    unsigned long command = bp->type == 'x' ? NT_ARM_HW_BREAK : NT_ARM_HW_WATCH;
+
+    ptrace(PTRACE_GETREGSET, bp->tid, command, &iov);
+
+    int i;
+    for (i = 0; i < 16; i++) {
+        if (state.dbg_regs[i].addr == bp->addr)
+            break;
+    }
+
+    if (i == 16) {
+        perror("Breakpoint not found");
+        return;
+    }
+
+    state.dbg_regs[i].addr = 0;
+    state.dbg_regs[i].ctrl = 0;
+
+    ptrace(PTRACE_SETREGSET, bp->tid, command, &iov);
+}
+
+int is_breakpoint_hit(struct hardware_breakpoint *bp)
+{
+    siginfo_t si;
+
+    if (ptrace(PTRACE_GETSIGINFO, bp->tid, NULL, &si) == -1) {
+        return 0;
+    }
+
+    // Check that the signal is a SIGTRAP and the code is 0x4
+    if (!(si.si_signo == SIGTRAP && si.si_code == 0x4)) {
+        return 0;
+    }
+    
+    unsigned long addr = si.si_addr;
+
+    if (addr == bp->addr) {
+        return 1;
+    }
+
+    return 0;
+}
+
+int get_remaining_hw_breakpoint_count(struct global_state *state, int tid)
+{
+    struct user_hwdebug_state dbg_state = {0};
+
+    struct iovec iov;
+    iov.iov_base = &dbg_state;
+    iov.iov_len = sizeof dbg_state;
+
+    unsigned long command = NT_ARM_HW_BREAK;
+
+    ptrace(PTRACE_GETREGSET, tid, command, &iov);
+
+    int i;
+    for (i = 0; i < 16; i++) {
+        if (!dbg_state.dbg_regs[i].addr)
+            break;
+    }
+
+    return 16 - i;
+}
+
+int get_remaining_hw_watchpoint_count(struct global_state *state, int tid)
+{
+    struct user_hwdebug_state dbg_state = {0};
+
+    struct iovec iov;
+    iov.iov_base = &dbg_state;
+    iov.iov_len = sizeof dbg_state;
+
+    unsigned long command = NT_ARM_HW_WATCH;
+
+    ptrace(PTRACE_GETREGSET, tid, command, &iov);
+
+    int i;
+    for (i = 0; i < 16; i++) {
+        if (!dbg_state.dbg_regs[i].addr)
+            break;
+    }
+
+    return 16 - i;
 }
 #endif
 
