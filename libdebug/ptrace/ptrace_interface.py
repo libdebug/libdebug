@@ -555,6 +555,14 @@ class PtraceInterface(DebuggingInterface):
         """
         if bp.hardware:
             for thread in self._internal_debugger.threads:
+                if bp.condition == "x":
+                    remaining = self.lib_trace.get_remaining_hw_breakpoint_count(self._global_state, thread.thread_id)
+                else:
+                    remaining = self.lib_trace.get_remaining_hw_watchpoint_count(self._global_state, thread.thread_id)
+
+                if not remaining:
+                    raise ValueError("No more hardware breakpoints of this type available")
+
                 self.lib_trace.register_hw_breakpoint(
                     self._global_state,
                     thread.thread_id,
