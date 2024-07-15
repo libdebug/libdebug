@@ -7,9 +7,14 @@
 import sys
 from unittest import TestLoader, TestSuite, TextTestRunner
 
+from scripts.basic_test import BasicTest
+
 
 def fast_suite():
     suite = TestSuite()
+
+    suite.addTest(TestLoader().loadTestsFromTestCase(BasicTest))
+
     return suite
 
 
