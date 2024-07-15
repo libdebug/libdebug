@@ -13,11 +13,11 @@ class BasicTestPie(unittest.TestCase):
         d = debugger("binaries/basic_test_pie")
 
         d.run()
-        bp = d.breakpoint(0x964, file="binary")
+        bp = d.breakpoint(0x780, file="binary")
         d.cont()
 
         assert bp.address == d.regs.pc
-        assert d.regs.x0 == 0x4444333322221111
+        assert d.regs.x0 == 0xaabbccdd11223344
 
         d.cont()
         d.kill()

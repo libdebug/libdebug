@@ -12,6 +12,7 @@ from scripts.auto_waiting_test import AutoWaitingTest
 from scripts.basic_test import BasicTest
 from scripts.basic_test_pie import BasicTestPie
 from scripts.basic_test_hw import BasicTestHw
+from scripts.breakpoint_test import BreakpointTest
 
 def fast_suite():
     suite = TestSuite()
@@ -21,6 +22,7 @@ def fast_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(BasicTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(BasicTestPie))
     suite.addTest(TestLoader().loadTestsFromTestCase(BasicTestHw))
+    suite.addTest(TestLoader().loadTestsFromTestCase(BreakpointTest))
 
     return suite
 
