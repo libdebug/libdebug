@@ -756,7 +756,27 @@ long singlestep(struct global_state *state, int tid)
         t = t->next;
     }
 
+#ifdef ARCH_AMD64
     return ptrace(PTRACE_SINGLESTEP, tid, NULL, signal_to_forward);
+#endif
+
+#ifdef ARCH_AARCH64
+    // Cannot singlestep if we are stopped on a hardware breakpoint
+    // So we have to check for this, remove it, singlestep and then re-add it
+    struct hardware_breakpoint *bp = state->hw_b_HEAD;
+
+    while (bp != NULL) {
+        if (bp->tid == tid && bp->enabled && is_breakpoint_hit(bp)) {
+            remove_hardware_breakpoint(bp);
+            long ret = ptrace(PTRACE_SINGLESTEP, tid, NULL, signal_to_forward);
+            install_hardware_breakpoint(bp);
+            return ret;
+        }
+        bp = bp->next;
+    }
+
+    return ptrace(PTRACE_SINGLESTEP, tid, NULL, signal_to_forward);
+#endif
 }
 
 int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps)
