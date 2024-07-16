@@ -98,6 +98,8 @@ int setregs(int tid, struct ptrace_regs_struct *regs)
 #ifdef ARCH_AARCH64
 int getregs(int tid, struct ptrace_regs_struct *regs)
 {
+    regs->override_syscall_number = 0;
+
     struct iovec iov;
     iov.iov_base = regs;
     iov.iov_len = sizeof(struct ptrace_regs_struct);
@@ -107,6 +109,14 @@ int getregs(int tid, struct ptrace_regs_struct *regs)
 int setregs(int tid, struct ptrace_regs_struct *regs)
 {
     struct iovec iov;
+
+    if (regs->override_syscall_number) {
+        iov.iov_base = &regs->x8;
+        iov.iov_len = sizeof(regs->x8);
+        ptrace(PTRACE_SETREGSET, tid, NT_ARM_SYSTEM_CALL, &iov);
+        regs->override_syscall_number = 0;
+    }
+
     iov.iov_base = regs;
     iov.iov_len = sizeof(struct ptrace_regs_struct);
     return ptrace(PTRACE_SETREGSET, tid, NT_PRSTATUS, &iov);

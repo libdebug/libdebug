@@ -115,6 +115,19 @@ def _get_property_fp_128(name: str, index: int) -> property:
     return property(getter, setter, None, name)
 
 
+def _get_property_syscall_num() -> property:
+    def getter(self: Aarch64Registers) -> int:
+        self._internal_debugger._ensure_process_stopped()
+        return self.register_file.x8
+
+    def setter(self: Aarch64Registers, value: int) -> None:
+        self._internal_debugger._ensure_process_stopped()
+        self.register_file.x8 = value
+        self.register_file.override_syscall_number = True
+
+    return property(getter, setter, None, "syscall_number")
+
+
 @dataclass
 class Aarch64PtraceRegisterHolder(PtraceRegisterHolder):
     """A class that provides views and setters for the register of an aarch64 process."""
@@ -167,7 +180,6 @@ class Aarch64PtraceRegisterHolder(PtraceRegisterHolder):
         target_class.instruction_pointer = _get_property_64("pc")
 
         # setup generic syscall properties
-        target_class.syscall_number = _get_property_64("x8")
         target_class.syscall_return = _get_property_64("x0")
         target_class.syscall_arg0 = _get_property_64("x0")
         target_class.syscall_arg1 = _get_property_64("x1")
@@ -175,3 +187,7 @@ class Aarch64PtraceRegisterHolder(PtraceRegisterHolder):
         target_class.syscall_arg3 = _get_property_64("x3")
         target_class.syscall_arg4 = _get_property_64("x4")
         target_class.syscall_arg5 = _get_property_64("x5")
+
+        # syscall number handling is special on aarch64, as the original number is stored in x8
+        # but writing to x8 isn't enough to change the actual called syscall
+        target_class.syscall_number = _get_property_syscall_num()

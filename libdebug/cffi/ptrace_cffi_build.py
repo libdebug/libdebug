@@ -250,6 +250,7 @@ elif architecture == "aarch64":
         unsigned long sp;
         unsigned long pc;
         unsigned long pstate;
+        _Bool override_syscall_number;
     };
     """
 

@@ -113,7 +113,7 @@ class HijackSyscallTest(unittest.TestCase):
             write_count += 1
 
         def on_enter_getcwd(d, sh):
-            d.syscall_number = 0x1
+            d.syscall_number = 0x40
 
         d = debugger("binaries/handle_syscall_test")
 
@@ -158,7 +158,7 @@ class HijackSyscallTest(unittest.TestCase):
             write_count += 1
 
         def on_enter_getcwd(d, sh):
-            d.syscall_number = 0x1
+            d.syscall_number = 0x40
 
         d = debugger("binaries/handle_syscall_test")
 
@@ -216,7 +216,7 @@ class HijackSyscallTest(unittest.TestCase):
 
         # recursive hijack is on, we expect the write handler to be called three times
         handler = d.handle_syscall("write", on_enter=on_enter_write, recursive=True)
-        d.breakpoint(0x4011B0)
+        d.breakpoint(0x9f0, file="binary")
 
         d.cont()
         print(r.recvline())
@@ -263,7 +263,7 @@ class HijackSyscallTest(unittest.TestCase):
 
         # recursive hijack is on, we expect the write handler to be called three times
         handler = d.handle_syscall("write", on_enter=on_enter_write, recursive=True)
-        d.breakpoint(0x4011B0)
+        d.breakpoint(0x9f0, file="binary")
 
         d.cont()
         print(r.recvline())
@@ -288,7 +288,7 @@ class HijackSyscallTest(unittest.TestCase):
 
         self.assertEqual(self.capturedOutput.getvalue().count("Hello, World!"), 2)
         self.assertEqual(self.capturedOutput.getvalue().count("write"), 3)
-        self.assertEqual(self.capturedOutput.getvalue().count("0x402010"), 3)
+        self.assertEqual(self.capturedOutput.getvalue().count("0xaaaaaaaa0ab0"), 3)
         self.assertEqual(write_count, handler.hit_count)
         self.assertEqual(handler.hit_count, 3)
 
