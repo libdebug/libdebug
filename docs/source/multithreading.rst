@@ -33,6 +33,7 @@ The following is a list of behaviors to keep in mind when using control flow fun
 
 - `cont` will continue all threads.
 - `step` and `step_until` will step the selected thread.
+- `next` will step on the selected thread or, if a call function is found, continue on all threads until the end of the function or another stopping event.
 - `finish` will have different behavior depending on the selected heuristic.
     - `backtrace` will continue on all threads but will stop at any breakpoint that any of the threads hit.
     - `step-mode` will step exclusively on the thread that has been specified.
