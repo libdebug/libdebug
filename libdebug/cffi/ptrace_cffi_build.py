@@ -49,10 +49,10 @@ if platform.machine() == "x86_64":
     #define IS_SW_BREAKPOINT(instruction) (instruction == 0xCC)
     """
 
-    finish_define = """
+    control_flow_define = """
+    // X86_64 Architecture specific
     #define IS_RET_INSTRUCTION(instruction) (instruction == 0xC3 || instruction == 0xCB || instruction == 0xC2 || instruction == 0xCA)
     
-    // X86_64 Architecture specific
     int IS_CALL_INSTRUCTION(uint8_t* instr)
     {
         // Check for direct CALL (E8 xx xx xx xx)
@@ -73,7 +73,46 @@ if platform.machine() == "x86_64":
 
         return 0; // Not a CALL
     }
+
+    int CALL_INSTRUCTION_SIZE(uint8_t* instr)
+    {
+        // Check for direct CALL (E8 xx xx xx xx)
+        if (instr[0] == 0xE8) {
+            return 5; // Direct CALL
+        }
+
+        // Check for indirect CALL using ModR/M (FF /2)
+        if (instr[0] == 0xFF) {
+            // Extract ModR/M byte
+            uint8_t modRM = instr[1];
+            uint8_t mod = modRM >> 6;  // First two bits
+            uint8_t reg = (modRM >> 3) & 0x07; // Next three bits
+
+            // Check if reg field is 010 (indirect CALL)
+            if (reg == 2) {
+                switch (mod) {
+                    case 0:
+                        if ((modRM & 0x07) == 4) {
+                            return 3 + ((instr[2] == 0x25) ? 4 : 0); // SIB byte + optional disp32
+                        } else if ((modRM & 0x07) == 5) {
+                            return 6; // disp32
+                        }
+                        return 2; // No displacement
+                    case 1:
+                        return 3; // disp8
+                    case 2:
+                        return 6; // disp32
+                    case 3:
+                        return 2; // Register direct
+                }
+            }
+        }
+
+        return 0; // Not a CALL
+    }
     """
+
+
 else:
     raise NotImplementedError(f"Architecture {platform.machine()} not available.")
 
@@ -140,6 +179,8 @@ ffibuilder.cdef(
     int cont_all_and_set_bps(struct global_state *state, int pid);
 
     int stepping_finish(struct global_state *state, int tid);
+    int is_call_instruction(struct global_state *state, int tid);
+    int compute_call_skip(struct global_state *state, int tid);
 
     struct thread_status *wait_all_and_update_regs(struct global_state *state, int pid);
     void free_thread_status_list(struct thread_status *head);
@@ -159,7 +200,7 @@ ffibuilder.cdef(
 with open("libdebug/cffi/ptrace_cffi_source.c") as f:
     ffibuilder.set_source(
         "libdebug.cffi._ptrace_cffi",
-        breakpoint_define + finish_define + f.read(),
+        breakpoint_define + control_flow_define + f.read(),
         libraries=[],
     )
 

@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -92,6 +92,10 @@ class DebuggingInterface(ABC):
         Args:
             thread (ThreadContext): The thread to finish.
             heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
+        """
+
+    def next(self: DebuggingInterface, thread: ThreadContext) -> None:
+        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the function returns.
         """
 
     @abstractmethod

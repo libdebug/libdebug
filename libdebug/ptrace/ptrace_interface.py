@@ -350,6 +350,58 @@ class PtraceInterface(DebuggingInterface):
         else:
             raise ValueError(f"Unimplemented heuristic {heuristic}")
 
+    def next(self: PtraceInterface, thread: ThreadContext) -> None:
+        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the function returns.
+        """
+
+        # Check if the current instruction is a call and its skip
+        is_call = self.lib_trace.is_call_instruction(
+            self._global_state,
+            thread.thread_id
+        )
+
+        print(f"Is call: {is_call}")
+
+        if is_call:
+            skip_address = self.lib_trace.compute_call_skip(
+                self._global_state,
+                thread.thread_id
+            )
+
+            print(f"Skip address: {hex(skip_address)}")
+        
+        # Step forward
+        self.step(thread)
+
+        if is_call:
+
+            # If a breakpoint already exists at the return address, we don't need to set a new one
+            found = False
+            ip_breakpoint = None
+
+            for bp in self._internal_debugger.breakpoints.values():
+                if bp.address == skip_address:
+                    found = True
+                    ip_breakpoint = bp
+                    break
+
+            if not found:
+                # Check if we have enough hardware breakpoints available
+                # Otherwise we use a software breakpoint
+                install_hw_bp = self.hardware_bp_helpers[thread.thread_id].available_breakpoints() > 0
+
+                ip_breakpoint = Breakpoint(skip_address, hardware=install_hw_bp)
+                self.set_breakpoint(ip_breakpoint)
+            elif not ip_breakpoint.enabled:
+                self._enable_breakpoint(ip_breakpoint)
+
+            self.cont()
+            self.wait()
+
+            # Remove the breakpoint if it was set by us
+            if not found:
+                self.unset_breakpoint(ip_breakpoint)
+
     def _setup_pipe(self: PtraceInterface) -> None:
         """Sets up the pipe manager for the child process.
 
