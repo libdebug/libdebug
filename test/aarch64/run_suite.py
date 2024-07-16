@@ -19,10 +19,16 @@ from scripts.builtin_handler_test import BuiltinHandlerTest
 from scripts.callback_test import CallbackTest
 from scripts.catch_signal_test import CatchSignalTest
 from scripts.death_test import DeathTest
+from scripts.floating_point_test import FloatingPointTest
+from scripts.handle_syscall_test import HandleSyscallTest
+from scripts.hijack_syscall_test import HijackSyscallTest
 from scripts.jumpstart_test import JumpstartTest
 from scripts.memory_test import MemoryTest
-from scripts.thread_test import ThreadTest
+from scripts.signals_multithread_test import SignalMultithreadTest
+from scripts.speed_test import SpeedTest
 from scripts.thread_test_complex import ThreadTestComplex
+from scripts.thread_test import ThreadTest
+from scripts.watchpoint_test import WatchpointTest
 
 def fast_suite():
     suite = TestSuite()
@@ -39,10 +45,16 @@ def fast_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(CallbackTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(CatchSignalTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(DeathTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(FloatingPointTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(HandleSyscallTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(HijackSyscallTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(JumpstartTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(MemoryTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(ThreadTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(SignalMultithreadTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(SpeedTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(ThreadTestComplex))
+    suite.addTest(TestLoader().loadTestsFromTestCase(ThreadTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(WatchpointTest))
 
     return suite
 
