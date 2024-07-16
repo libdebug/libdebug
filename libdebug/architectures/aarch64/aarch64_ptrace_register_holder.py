@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -35,9 +36,81 @@ def _get_property_32(name: str) -> property:
         self._internal_debugger._ensure_process_stopped()
         return getattr(self.register_file, name) & 0xFFFFFFFF
 
+    # https://developer.arm.com/documentation/102374/0101/Registers-in-AArch64---general-purpose-registers
+    # When a W register is written the top 32 bits of the 64-bit register are zeroed.
     def setter(self: Aarch64Registers, value: int) -> None:
         self._internal_debugger._ensure_process_stopped()
         return setattr(self.register_file, name, value & 0xFFFFFFFF)
+
+    return property(getter, setter, None, name)
+
+
+def _get_property_fp_8(name: str, index: int) -> property:
+    def getter(self: Aarch64Registers) -> int:
+        self._internal_debugger._fetch_fp_registers(self._thread_id)
+        return int.from_bytes(self._internal_debugger._fp_register_file.vregs[index], sys.byteorder) & 0xFF
+
+    def setter(self: Aarch64Registers, value: int) -> None:
+        self._internal_debugger._ensure_process_stopped()
+        data = value.to_bytes(1, sys.byteorder)
+        self._internal_debugger._fp_register_file.vregs[index] = data
+        self._internal_debugger._flush_fp_registers(self._thread_id)
+
+    return property(getter, setter, None, name)
+
+
+def _get_property_fp_16(name: str, index: int) -> property:
+    def getter(self: Aarch64Registers) -> int:
+        self._internal_debugger._fetch_fp_registers(self._thread_id)
+        return int.from_bytes(self._internal_debugger._fp_register_file.vregs[index], sys.byteorder) & 0xFFFF
+
+    def setter(self: Aarch64Registers, value: int) -> None:
+        self._internal_debugger._ensure_process_stopped()
+        data = value.to_bytes(2, sys.byteorder)
+        self._internal_debugger._fp_register_file.vregs[index] = data
+        self._internal_debugger._flush_fp_registers(self._thread_id)
+
+    return property(getter, setter, None, name)
+
+
+def _get_property_fp_32(name: str, index: int) -> property:
+    def getter(self: Aarch64Registers) -> int:
+        self._internal_debugger._fetch_fp_registers(self._thread_id)
+        return int.from_bytes(self._internal_debugger._fp_register_file.vregs[index], sys.byteorder) & 0xFFFFFFFF
+
+    def setter(self: Aarch64Registers, value: int) -> None:
+        self._internal_debugger._ensure_process_stopped()
+        data = value.to_bytes(4, sys.byteorder)
+        self._internal_debugger._fp_register_file.vregs[index] = data
+        self._internal_debugger._flush_fp_registers(self._thread_id)
+
+    return property(getter, setter, None, name)
+
+
+def _get_property_fp_64(name: str, index: int) -> property:
+    def getter(self: Aarch64Registers) -> int:
+        self._internal_debugger._fetch_fp_registers(self._thread_id)
+        return int.from_bytes(self._internal_debugger._fp_register_file.vregs[index], sys.byteorder)
+
+    def setter(self: Aarch64Registers, value: int) -> None:
+        self._internal_debugger._ensure_process_stopped()
+        data = value.to_bytes(8, sys.byteorder)
+        self._internal_debugger._fp_register_file.vregs[index] = data
+        self._internal_debugger._flush_fp_registers(self._thread_id)
+
+    return property(getter, setter, None, name)
+
+
+def _get_property_fp_128(name: str, index: int) -> property:
+    def getter(self: Aarch64Registers) -> int:
+        self._internal_debugger._fetch_fp_registers(self._thread_id)
+        return int.from_bytes(self._internal_debugger._fp_register_file.vregs[index], sys.byteorder)
+
+    def setter(self: Aarch64Registers, value: int) -> None:
+        self._internal_debugger._ensure_process_stopped()
+        data = value.to_bytes(16, sys.byteorder)
+        self._internal_debugger._fp_register_file.vregs[index] = data
+        self._internal_debugger._flush_fp_registers(self._thread_id)
 
     return property(getter, setter, None, name)
 
@@ -65,6 +138,21 @@ class Aarch64PtraceRegisterHolder(PtraceRegisterHolder):
             setattr(target_class, name_32, _get_property_32(name_64))
 
         target_class.pc = _get_property_64("pc")
+
+        # setup the floating point registers
+        for i in range(32):
+            name_v = f"v{i}"
+            name_128 = f"q{i}"
+            name_64 = f"d{i}"
+            name_32 = f"s{i}"
+            name_16 = f"h{i}"
+            name_8 = f"b{i}"
+            setattr(target_class, name_v, _get_property_fp_128(name_v, i))
+            setattr(target_class, name_128, _get_property_fp_128(name_128, i))
+            setattr(target_class, name_64, _get_property_fp_64(name_64, i))
+            setattr(target_class, name_32, _get_property_fp_32(name_32, i))
+            setattr(target_class, name_16, _get_property_fp_16(name_16, i))
+            setattr(target_class, name_8, _get_property_fp_8(name_8, i))
 
     def apply_on_thread(self: Aarch64PtraceRegisterHolder, target: ThreadContext, target_class: type) -> None:
         """Apply the register accessors to the thread class."""
