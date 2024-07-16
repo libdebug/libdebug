@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING
 
 import psutil
 
-from libdebug.architectures.syscall_hijacking_provider import syscall_hijacking_provider
+from libdebug.architectures.syscall_hijacker import SyscallHijacker
 from libdebug.builtin.antidebug_syscall_handler import on_enter_ptrace, on_exit_ptrace
 from libdebug.builtin.pretty_print_syscall_handler import pprint_on_enter, pprint_on_exit
 from libdebug.data.breakpoint import Breakpoint
@@ -637,7 +637,7 @@ class InternalDebugger:
         Returns:
             HandledSyscall: The HandledSyscall object.
         """
-        if set(kwargs) - syscall_hijacking_provider(self.arch).allowed_args:
+        if set(kwargs) - SyscallHijacker.allowed_args:
             raise ValueError("Invalid keyword arguments in syscall hijack")
 
         if isinstance(original_syscall, str):
@@ -654,7 +654,7 @@ class InternalDebugger:
                 "The original syscall and the new syscall must be different during hijacking.",
             )
 
-        on_enter = syscall_hijacking_provider(self.arch).create_hijacker(
+        on_enter = SyscallHijacker().create_hijacker(
             new_syscall_number,
             **kwargs,
         )
