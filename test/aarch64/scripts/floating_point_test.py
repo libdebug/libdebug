@@ -17,8 +17,8 @@ class FloatingPointTest(unittest.TestCase):
         
         d.run()
         
-        bp1 = d.bp(0x810, file="binary")
-        bp2 = d.bp(0x844, file="binary")
+        bp1 = d.bp(0xb10, file="binary")
+        bp2 = d.bp(0xb44, file="binary")
         
         d.cont()
 
@@ -26,14 +26,26 @@ class FloatingPointTest(unittest.TestCase):
 
         baseval = int.from_bytes(bytes(list(range(16))), sys.byteorder)
 
-        for i in range(32):
+        for i in range(16):
             assert hasattr(d.regs, f"q{i}")
             assert getattr(d.regs, f"q{i}") == baseval
             assert getattr(d.regs, f"v{i}") == baseval
-            assert getattr(d.regs, f"d{i}") == baseval & ((1 << 64) - 1)
-            assert getattr(d.regs, f"s{i}") == baseval & ((1 << 32) - 1)
-            assert getattr(d.regs, f"h{i}") == baseval & ((1 << 16) - 1)
-            assert getattr(d.regs, f"b{i}") == baseval & ((1 << 8) - 1)
+            assert getattr(d.regs, f"d{i}") == baseval & 0xFFFFFFFFFFFFFFFF
+            assert getattr(d.regs, f"s{i}") == baseval & 0xFFFFFFFF
+            assert getattr(d.regs, f"h{i}") == baseval & 0xFFFF
+            assert getattr(d.regs, f"b{i}") == baseval & 0xFF
+            baseval = (baseval >> 8) + ((baseval & 255) << 120)
+
+        baseval = int.from_bytes(bytes(list(range(128, 128 + 16, 1))), sys.byteorder)
+
+        for i in range(16, 32, 1):
+            assert hasattr(d.regs, f"q{i}")
+            assert getattr(d.regs, f"q{i}") == baseval
+            assert getattr(d.regs, f"v{i}") == baseval
+            assert getattr(d.regs, f"d{i}") == baseval & 0xFFFFFFFFFFFFFFFF
+            assert getattr(d.regs, f"s{i}") == baseval & 0xFFFFFFFF
+            assert getattr(d.regs, f"h{i}") == baseval & 0xFFFF
+            assert getattr(d.regs, f"b{i}") == baseval & 0xFF
             baseval = (baseval >> 8) + ((baseval & 255) << 120)
 
         for i in range(32):

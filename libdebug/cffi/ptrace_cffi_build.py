@@ -198,7 +198,7 @@ elif architecture == "aarch64":
     fp_regs_struct = """
     struct reg_128
     {
-        unsigned long s_0, s_1;
+        unsigned char data[16];
     };
 
     // /usr/include/aarch64-linux-gnu/asm/ptrace.h

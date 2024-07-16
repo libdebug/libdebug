@@ -48,12 +48,12 @@ def _get_property_32(name: str) -> property:
 def _get_property_fp_8(name: str, index: int) -> property:
     def getter(self: Aarch64Registers) -> int:
         self._internal_debugger._fetch_fp_registers(self._thread_id)
-        return int.from_bytes(self._internal_debugger._fp_register_file.vregs[index], sys.byteorder) & 0xFF
+        return int.from_bytes(self._fp_register_file.vregs[index].data, sys.byteorder) & 0xFF
 
     def setter(self: Aarch64Registers, value: int) -> None:
         self._internal_debugger._ensure_process_stopped()
         data = value.to_bytes(1, sys.byteorder)
-        self._internal_debugger._fp_register_file.vregs[index] = data
+        self._fp_register_file.vregs[index].data = data
         self._internal_debugger._flush_fp_registers(self._thread_id)
 
     return property(getter, setter, None, name)
@@ -62,12 +62,12 @@ def _get_property_fp_8(name: str, index: int) -> property:
 def _get_property_fp_16(name: str, index: int) -> property:
     def getter(self: Aarch64Registers) -> int:
         self._internal_debugger._fetch_fp_registers(self._thread_id)
-        return int.from_bytes(self._internal_debugger._fp_register_file.vregs[index], sys.byteorder) & 0xFFFF
+        return int.from_bytes(self._fp_register_file.vregs[index].data, sys.byteorder) & 0xFFFF
 
     def setter(self: Aarch64Registers, value: int) -> None:
         self._internal_debugger._ensure_process_stopped()
         data = value.to_bytes(2, sys.byteorder)
-        self._internal_debugger._fp_register_file.vregs[index] = data
+        self._fp_register_file.vregs[index].data = data
         self._internal_debugger._flush_fp_registers(self._thread_id)
 
     return property(getter, setter, None, name)
@@ -76,12 +76,12 @@ def _get_property_fp_16(name: str, index: int) -> property:
 def _get_property_fp_32(name: str, index: int) -> property:
     def getter(self: Aarch64Registers) -> int:
         self._internal_debugger._fetch_fp_registers(self._thread_id)
-        return int.from_bytes(self._internal_debugger._fp_register_file.vregs[index], sys.byteorder) & 0xFFFFFFFF
+        return int.from_bytes(self._fp_register_file.vregs[index].data, sys.byteorder) & 0xFFFFFFFF
 
     def setter(self: Aarch64Registers, value: int) -> None:
         self._internal_debugger._ensure_process_stopped()
         data = value.to_bytes(4, sys.byteorder)
-        self._internal_debugger._fp_register_file.vregs[index] = data
+        self._fp_register_file.vregs[index].data = data
         self._internal_debugger._flush_fp_registers(self._thread_id)
 
     return property(getter, setter, None, name)
@@ -90,12 +90,12 @@ def _get_property_fp_32(name: str, index: int) -> property:
 def _get_property_fp_64(name: str, index: int) -> property:
     def getter(self: Aarch64Registers) -> int:
         self._internal_debugger._fetch_fp_registers(self._thread_id)
-        return int.from_bytes(self._internal_debugger._fp_register_file.vregs[index], sys.byteorder)
+        return int.from_bytes(self._fp_register_file.vregs[index].data, sys.byteorder) & 0xFFFFFFFFFFFFFFFF
 
     def setter(self: Aarch64Registers, value: int) -> None:
         self._internal_debugger._ensure_process_stopped()
         data = value.to_bytes(8, sys.byteorder)
-        self._internal_debugger._fp_register_file.vregs[index] = data
+        self._fp_register_file.vregs[index].data = data
         self._internal_debugger._flush_fp_registers(self._thread_id)
 
     return property(getter, setter, None, name)
@@ -104,12 +104,12 @@ def _get_property_fp_64(name: str, index: int) -> property:
 def _get_property_fp_128(name: str, index: int) -> property:
     def getter(self: Aarch64Registers) -> int:
         self._internal_debugger._fetch_fp_registers(self._thread_id)
-        return int.from_bytes(self._internal_debugger._fp_register_file.vregs[index], sys.byteorder)
+        return int.from_bytes(self._fp_register_file.vregs[index].data, sys.byteorder)
 
     def setter(self: Aarch64Registers, value: int) -> None:
         self._internal_debugger._ensure_process_stopped()
         data = value.to_bytes(16, sys.byteorder)
-        self._internal_debugger._fp_register_file.vregs[index] = data
+        self._fp_register_file.vregs[index].data = data
         self._internal_debugger._flush_fp_registers(self._thread_id)
 
     return property(getter, setter, None, name)
@@ -126,6 +126,7 @@ class Aarch64PtraceRegisterHolder(PtraceRegisterHolder):
     def apply_on_regs(self: Aarch64PtraceRegisterHolder, target: Aarch64Registers, target_class: type) -> None:
         """Apply the register accessors to the Aarch64Registers class."""
         target.register_file = self.register_file
+        target._fp_register_file = self.fp_register_file
 
         if hasattr(target_class, "w0"):
             return
