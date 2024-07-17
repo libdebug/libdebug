@@ -279,8 +279,7 @@ void install_hardware_breakpoint(struct hardware_breakpoint *bp)
 
     unsigned long command = get_breakpoint_type(bp->type) == 0 ? NT_ARM_HW_BREAK : NT_ARM_HW_WATCH;
 
-    if (ptrace(PTRACE_GETREGSET, bp->tid, command, &iov))
-        perror("install_hardware_breakpoint_get");
+    ptrace(PTRACE_GETREGSET, bp->tid, command, &iov);
 
     int i;
     for (i = 0; i < 16; i++) {
@@ -305,8 +304,7 @@ void install_hardware_breakpoint(struct hardware_breakpoint *bp)
     state.dbg_regs[i].addr = bp->addr;
     state.dbg_regs[i].ctrl = control;
 
-    if (ptrace(PTRACE_SETREGSET, bp->tid, command, &iov))
-        perror("install_hardware_breakpoint_set");
+    ptrace(PTRACE_SETREGSET, bp->tid, command, &iov);
 }
 
 void remove_hardware_breakpoint(struct hardware_breakpoint *bp)
@@ -319,8 +317,7 @@ void remove_hardware_breakpoint(struct hardware_breakpoint *bp)
 
     unsigned long command = get_breakpoint_type(bp->type) == 0 ? NT_ARM_HW_BREAK : NT_ARM_HW_WATCH;
 
-    if (ptrace(PTRACE_GETREGSET, bp->tid, command, &iov))
-        perror("remove_hardware_breakpoint_get");
+    ptrace(PTRACE_GETREGSET, bp->tid, command, &iov);
 
     int i;
     for (i = 0; i < 16; i++) {
@@ -336,8 +333,7 @@ void remove_hardware_breakpoint(struct hardware_breakpoint *bp)
     state.dbg_regs[i].addr = 0;
     state.dbg_regs[i].ctrl = 0;
 
-    if (ptrace(PTRACE_SETREGSET, bp->tid, command, &iov))
-        perror("remove_hardware_breakpoint_set");
+    ptrace(PTRACE_SETREGSET, bp->tid, command, &iov);
 }
 
 int is_breakpoint_hit(struct hardware_breakpoint *bp)
@@ -372,8 +368,7 @@ int get_remaining_hw_breakpoint_count(struct global_state *state, int tid)
 
     unsigned long command = NT_ARM_HW_BREAK;
 
-    if (ptrace(PTRACE_GETREGSET, tid, command, &iov))
-        perror("get_remaining_hw_breakpoint_count");
+    ptrace(PTRACE_GETREGSET, tid, command, &iov);
 
     return dbg_state.dbg_info & 0xff;
 }
@@ -388,8 +383,7 @@ int get_remaining_hw_watchpoint_count(struct global_state *state, int tid)
 
     unsigned long command = NT_ARM_HW_WATCH;
 
-    if (ptrace(PTRACE_GETREGSET, tid, command, &iov))
-        perror("get_remaining_hw_watchpoint_count");
+    ptrace(PTRACE_GETREGSET, tid, command, &iov);
 
     return dbg_state.dbg_info & 0xff;
 }
