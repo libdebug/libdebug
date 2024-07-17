@@ -20,8 +20,5 @@ def validate_breakpoint_aarch64(bp: Breakpoint) -> None:
     if not (1 <= bp.length <= 8):
         raise ValueError("Invalid length for watchpoints. Supported lengths are between 1 and 8.")
 
-    if bp.condition == "x" and bp.length != 4:
-        raise ValueError("Invalid length for execution watchpoints. Supported length is 4.")
-
-    if bp.address & 0x8:
+    if bp.condition != "x" and bp.address & 0x7:
         raise ValueError("Watchpoint address must be aligned to 8 bytes on aarch64. This is a kernel limitation.")
