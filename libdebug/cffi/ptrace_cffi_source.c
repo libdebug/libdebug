@@ -56,7 +56,7 @@ struct hardware_breakpoint {
     uint64_t addr;
     int tid;
     char enabled;
-    char type;
+    char type[2];
     char len;
     struct hardware_breakpoint *next;
 };
@@ -149,7 +149,7 @@ void install_hardware_breakpoint(struct hardware_breakpoint *bp)
         return;
     }
 
-    unsigned long ctrl = CTRL_LOCAL(i) | CTRL_COND_VAL(bp->type) << CTRL_COND(i) | CTRL_LEN_VAL(bp->len) << CTRL_LEN(i);
+    unsigned long ctrl = CTRL_LOCAL(i) | CTRL_COND_VAL(bp->type[0]) << CTRL_COND(i) | CTRL_LEN_VAL(bp->len) << CTRL_LEN(i);
 
     // read the state from DR7
     unsigned long state = ptrace(PTRACE_PEEKUSER, bp->tid, DR_BASE + 7 * DR_SIZE);
@@ -251,6 +251,23 @@ struct user_hwdebug_state {
 	} dbg_regs[16];
 };
 
+int get_breakpoint_type(char type[2])
+{
+    if (type[0] == 'r') {
+        if (type[1] == 'w') {
+            return 3;
+        } else {
+            return 1;
+        }
+    } else if (type[0] == 'w') {
+        return 2;
+    } else if (type[0] == 'x') {
+        return 0;
+    } else {
+        return -1;
+    }
+}
+
 void install_hardware_breakpoint(struct hardware_breakpoint *bp)
 {
     // find a free debug register
@@ -260,9 +277,10 @@ void install_hardware_breakpoint(struct hardware_breakpoint *bp)
     iov.iov_base = &state;
     iov.iov_len = sizeof state;
 
-    unsigned long command = bp->type == 'x' ? NT_ARM_HW_BREAK : NT_ARM_HW_WATCH;
+    unsigned long command = get_breakpoint_type(bp->type) == 0 ? NT_ARM_HW_BREAK : NT_ARM_HW_WATCH;
 
-    ptrace(PTRACE_GETREGSET, bp->tid, command, &iov);
+    if (ptrace(PTRACE_GETREGSET, bp->tid, command, &iov))
+        perror("install_hardware_breakpoint_get");
 
     int i;
     for (i = 0; i < 16; i++) {
@@ -275,14 +293,20 @@ void install_hardware_breakpoint(struct hardware_breakpoint *bp)
         return;
     }
 
+    if (bp->type[0] == 'x') {
+        // Hardware breakpoint can only be of length 4
+        bp->len = 4;
+    }
+
     unsigned int length = (1 << bp->len) - 1;
-    unsigned int condition = bp->type == 'r' ? 3 : (bp->type == 'w' ? 2 : 0);
-    unsigned int control = (length << 5) | (condition << 3) | 1;
+    unsigned int condition = get_breakpoint_type(bp->type);
+    unsigned int control = (length << 5) | (condition << 3) | (2 << 1) | 1;
 
     state.dbg_regs[i].addr = bp->addr;
     state.dbg_regs[i].ctrl = control;
 
-    ptrace(PTRACE_SETREGSET, bp->tid, command, &iov);
+    if (ptrace(PTRACE_SETREGSET, bp->tid, command, &iov))
+        perror("install_hardware_breakpoint_set");
 }
 
 void remove_hardware_breakpoint(struct hardware_breakpoint *bp)
@@ -293,9 +317,10 @@ void remove_hardware_breakpoint(struct hardware_breakpoint *bp)
     iov.iov_base = &state;
     iov.iov_len = sizeof state;
 
-    unsigned long command = bp->type == 'x' ? NT_ARM_HW_BREAK : NT_ARM_HW_WATCH;
+    unsigned long command = get_breakpoint_type(bp->type) == 0 ? NT_ARM_HW_BREAK : NT_ARM_HW_WATCH;
 
-    ptrace(PTRACE_GETREGSET, bp->tid, command, &iov);
+    if (ptrace(PTRACE_GETREGSET, bp->tid, command, &iov))
+        perror("remove_hardware_breakpoint_get");
 
     int i;
     for (i = 0; i < 16; i++) {
@@ -311,7 +336,8 @@ void remove_hardware_breakpoint(struct hardware_breakpoint *bp)
     state.dbg_regs[i].addr = 0;
     state.dbg_regs[i].ctrl = 0;
 
-    ptrace(PTRACE_SETREGSET, bp->tid, command, &iov);
+    if (ptrace(PTRACE_SETREGSET, bp->tid, command, &iov))
+        perror("remove_hardware_breakpoint_set");
 }
 
 int is_breakpoint_hit(struct hardware_breakpoint *bp)
@@ -346,15 +372,10 @@ int get_remaining_hw_breakpoint_count(struct global_state *state, int tid)
 
     unsigned long command = NT_ARM_HW_BREAK;
 
-    ptrace(PTRACE_GETREGSET, tid, command, &iov);
+    if (ptrace(PTRACE_GETREGSET, tid, command, &iov))
+        perror("get_remaining_hw_breakpoint_count");
 
-    int i;
-    for (i = 0; i < 16; i++) {
-        if (!dbg_state.dbg_regs[i].addr)
-            break;
-    }
-
-    return 16 - i;
+    return dbg_state.dbg_info & 0xff;
 }
 
 int get_remaining_hw_watchpoint_count(struct global_state *state, int tid)
@@ -367,15 +388,10 @@ int get_remaining_hw_watchpoint_count(struct global_state *state, int tid)
 
     unsigned long command = NT_ARM_HW_WATCH;
 
-    ptrace(PTRACE_GETREGSET, tid, command, &iov);
+    if (ptrace(PTRACE_GETREGSET, tid, command, &iov))
+        perror("get_remaining_hw_watchpoint_count");
 
-    int i;
-    for (i = 0; i < 16; i++) {
-        if (!dbg_state.dbg_regs[i].addr)
-            break;
-    }
-
-    return 16 - i;
+    return dbg_state.dbg_info & 0xff;
 }
 #endif
 
@@ -1227,7 +1243,7 @@ cleanup:
     return 0;
 }
 
-void register_hw_breakpoint(struct global_state *state, int tid, uint64_t address, char type, char len)
+void register_hw_breakpoint(struct global_state *state, int tid, uint64_t address, char type[2], char len)
 {
     struct hardware_breakpoint *b = state->hw_b_HEAD;
 
@@ -1243,7 +1259,8 @@ void register_hw_breakpoint(struct global_state *state, int tid, uint64_t addres
     b->addr = address;
     b->tid = tid;
     b->enabled = 1;
-    b->type = type;
+    b->type[0] = type[0];
+    b->type[1] = type[1];
     b->len = len;
 
     b->next = state->hw_b_HEAD;

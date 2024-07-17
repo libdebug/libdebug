@@ -312,7 +312,7 @@ ffibuilder.cdef(
         uint64_t addr;
         int tid;
         char enabled;
-        char type;
+        char type[2];
         char len;
         struct hardware_breakpoint *next;
     };
@@ -379,7 +379,7 @@ ffibuilder.cdef(
     void enable_breakpoint(struct global_state *state, uint64_t address);
     void disable_breakpoint(struct global_state *state, uint64_t address);
 
-    void register_hw_breakpoint(struct global_state *state, int tid, uint64_t address, char type, char len);
+    void register_hw_breakpoint(struct global_state *state, int tid, uint64_t address, char type[2], char len);
     void unregister_hw_breakpoint(struct global_state *state, int tid, uint64_t address);
     void enable_hw_breakpoint(struct global_state *state, int tid, uint64_t address);
     void disable_hw_breakpoint(struct global_state *state, int tid, uint64_t address);

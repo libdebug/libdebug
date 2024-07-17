@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING
 
 import psutil
 
+from libdebug.architectures.breakpoint_validator import validate_hardware_breakpoint
 from libdebug.architectures.syscall_hijacker import SyscallHijacker
 from libdebug.builtin.antidebug_syscall_handler import on_enter_ptrace, on_exit_ptrace
 from libdebug.builtin.pretty_print_syscall_handler import pprint_on_enter, pprint_on_exit
@@ -403,7 +404,7 @@ class InternalDebugger:
         self: InternalDebugger,
         position: int | str,
         hardware: bool = False,
-        condition: str | None = None,
+        condition: str = "x",
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
         file: str = "hybrid",
@@ -428,26 +429,13 @@ class InternalDebugger:
             address = self.resolve_address(position, file)
             position = hex(address)
 
-        if condition:
-            if not hardware:
-                raise ValueError(
-                    "Breakpoint condition is supported only for hardware watchpoints.",
-                )
+        if condition != "x" and not hardware:
+            raise ValueError("Breakpoint condition is supported only for hardware watchpoints.")
 
-            if condition.lower() not in ["w", "rw", "x"]:
-                raise ValueError(
-                    "Invalid condition for watchpoints. Supported conditions are 'w', 'rw', 'x'.",
-                )
+        bp = Breakpoint(address, position, 0, hardware, callback, condition.lower(), length)
 
-            if length not in [1, 2, 4, 8]:
-                raise ValueError(
-                    "Invalid length for watchpoints. Supported lengths are 1, 2, 4, 8.",
-                )
-
-        if hardware and not condition:
-            condition = "x"
-
-        bp = Breakpoint(address, position, 0, hardware, callback, condition, length)
+        if hardware:
+            validate_hardware_breakpoint(self.arch, bp)
 
         link_to_internal_debugger(bp, self)
 

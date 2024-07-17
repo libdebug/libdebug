@@ -457,7 +457,7 @@ class PtraceInterface(DebuggingInterface):
                         self._global_state,
                         thread.thread_id,
                         bp.address,
-                        bp.condition[:1].encode(),
+                        bp.condition.encode().ljust(2, b"\x00"),
                         chr(bp.length).encode(),
                     )
 
@@ -489,7 +489,7 @@ class PtraceInterface(DebuggingInterface):
                     self._global_state,
                     new_thread_id,
                     bp.address,
-                    bp.condition[:1].encode(),
+                    bp.condition.encode().ljust(2, b"\x00"),
                     chr(bp.length).encode(),
                 )
 
@@ -567,7 +567,7 @@ class PtraceInterface(DebuggingInterface):
                     self._global_state,
                     thread.thread_id,
                     bp.address,
-                    bp.condition[:1].encode(),
+                    bp.condition.encode().ljust(2, b"\x00"),
                     chr(bp.length).encode(),
                 )
         elif insert:
