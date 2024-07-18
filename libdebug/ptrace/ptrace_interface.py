@@ -360,18 +360,15 @@ class PtraceInterface(DebuggingInterface):
             thread.thread_id
         )
 
-        print(f"Is call: {is_call}")
-
         if is_call:
             skip_address = self.lib_trace.compute_call_skip(
                 self._global_state,
                 thread.thread_id
             )
-
-            print(f"Skip address: {hex(skip_address)}")
         
         # Step forward
         self.step(thread)
+        self.wait()
 
         if is_call:
 

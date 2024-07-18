@@ -36,22 +36,14 @@ class NextTest(unittest.TestCase):
 
         # Reach call of function c
 
-        print(f"RIP IS AT {hex(d.regs.rip)}")
         d.next()
-        print('Simple step')
-        print(f"RIP IS AT {hex(d.regs.rip)}")
-        print(f'Should be {hex(CALL_C_ADDRESS)}')
         self.assertEqual(d.regs.rip, CALL_C_ADDRESS)
 
         # -------- Block 2 ------- #
         #        Skip a call       #
         # ------------------------ #
 
-        print(f"RIP IS AT {hex(d.regs.rip)}")
         d.next()
-        print('Skip a call')
-        print(f"RIP IS AT {hex(d.regs.rip)}")
-        print(f'Should be {hex(RETURN_POINT_FROM_C)}')
         self.assertEqual(d.regs.rip, RETURN_POINT_FROM_C)
 
         d.kill()
@@ -66,14 +58,9 @@ class NextTest(unittest.TestCase):
 
         self.assertEqual(d.regs.rip, TEST_ENTRYPOINT)
 
-        print(f"RIP IS AT {hex(d.regs.rip)}")
-
         # Reach call of function c
         d.next()
 
-        print('Simple step')
-        print(f"RIP IS AT {hex(d.regs.rip)}")
-        print(f'Should be {hex(CALL_C_ADDRESS)}')
         self.assertEqual(d.regs.rip, CALL_C_ADDRESS)
 
         # -------- Block 1 ------- #
@@ -83,13 +70,7 @@ class NextTest(unittest.TestCase):
         # Set breakpoint
         test_breakpoint = d.breakpoint(TEST_BREAKPOINT_ADDRESS)
         
-        
-        print(f"RIP IS AT {hex(d.regs.rip)}")
         d.next()
-
-        print('Breakpoint hit')
-        print(f"RIP IS AT {hex(d.regs.rip)}")
-        print(f'Should be {hex(TEST_BREAKPOINT_ADDRESS)}')
 
         # Check we hit the breakpoint
         self.assertEqual(d.regs.rip, TEST_BREAKPOINT_ADDRESS)
