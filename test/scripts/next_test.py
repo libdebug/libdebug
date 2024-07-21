@@ -47,6 +47,7 @@ class NextTest(unittest.TestCase):
         self.assertEqual(d.regs.rip, RETURN_POINT_FROM_C)
 
         d.kill()
+        d.terminate()
 
     def test_next_breakpoint(self):
         d = debugger("binaries/finish_test", auto_interrupt_on_command=False)
@@ -77,6 +78,7 @@ class NextTest(unittest.TestCase):
         self.assertEqual(test_breakpoint.hit_count, 1)
 
         d.kill()
+        d.terminate()
 
     def test_next_breakpoint_hw(self):
         d = debugger("binaries/finish_test", auto_interrupt_on_command=False)
@@ -107,3 +109,4 @@ class NextTest(unittest.TestCase):
         self.assertEqual(test_breakpoint.hit_count, 1)
 
         d.kill()
+        d.terminate()
