@@ -6,8 +6,6 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from libdebug.architectures.call_utilities_manager import CallUtilitiesManager
 
 class Amd64CallUtilities(CallUtilitiesManager):

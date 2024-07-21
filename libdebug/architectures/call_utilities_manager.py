@@ -7,11 +7,6 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from libdebug.state.thread_context import ThreadContext
-
 
 class CallUtilitiesManager(ABC):
     """An architecture-independent interface for call instruction utilities."""
