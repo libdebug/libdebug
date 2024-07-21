@@ -661,33 +661,3 @@ cleanup:
 
     return 0;
 }
-
-int is_call_instruction(struct global_state *state, int tid)
-{
-    struct thread *t = state->t_HEAD;
-    while (t != NULL) {
-        if (t->tid == tid) {
-            uint64_t opcode_window = ptrace(PTRACE_PEEKDATA, tid, (void *)INSTRUCTION_POINTER(t->regs), NULL);
-            return IS_CALL_INSTRUCTION((uint8_t*) &opcode_window);
-        }
-        t = t->next;
-    }
-}
-
-int compute_call_skip(struct global_state *state, int tid)
-{
-    struct thread *t = state->t_HEAD;
-    while (t != NULL) {
-        if (t->tid == tid) {
-            uint64_t opcode_window = ptrace(PTRACE_PEEKDATA, tid, (void *)INSTRUCTION_POINTER(t->regs), NULL);
-
-            // Get program counter
-            uint64_t pc = INSTRUCTION_POINTER(t->regs);
-
-            return pc + CALL_INSTRUCTION_SIZE((uint8_t*) &opcode_window);
-        }
-        t = t->next;
-    }
-
-    return 0;
-}
