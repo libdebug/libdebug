@@ -93,21 +93,14 @@ struct fp_regs_struct *get_thread_fp_regs(struct global_state *state, int tid)
     return NULL;
 }
 
-void get_fp_regs(struct global_state *state, int tid)
+void get_fp_regs(int tid, struct fp_regs_struct *fpregs)
 {
-    struct thread *t = get_thread(state, tid);
-
-    if (t == NULL) {
-        perror("Thread not found");
-        return;
-    }
-
     #if (XSAVE == 0)
 
     #else
         struct iovec iov;
 
-        iov.iov_base = (unsigned char *)(&t->fpregs) + offsetof(struct fp_regs_struct, padding0);
+        iov.iov_base = (unsigned char *)(fpregs) + offsetof(struct fp_regs_struct, padding0);
         iov.iov_len = sizeof(struct fp_regs_struct) - sizeof(unsigned long);
 
         if (ptrace(PTRACE_GETREGSET, tid, NT_X86_XSTATE, &iov) == -1) {
@@ -116,21 +109,14 @@ void get_fp_regs(struct global_state *state, int tid)
     #endif
 }
 
-void set_fp_regs(struct global_state *state, int tid)
+void set_fp_regs(int tid, struct fp_regs_struct *fpregs)
 {
-    struct thread *t = get_thread(state, tid);
-
-    if (t == NULL) {
-        perror("Thread not found");
-        return;
-    }
-
     #if (XSAVE == 0)
 
     #else
         struct iovec iov;
 
-        iov.iov_base = (unsigned char *)(&t->fpregs) + offsetof(struct fp_regs_struct, padding0);
+        iov.iov_base = (unsigned char *)(fpregs) + offsetof(struct fp_regs_struct, padding0);
         iov.iov_len = sizeof(struct fp_regs_struct) - sizeof(unsigned long);
 
         if (ptrace(PTRACE_SETREGSET, tid, NT_X86_XSTATE, &iov) == -1) {
