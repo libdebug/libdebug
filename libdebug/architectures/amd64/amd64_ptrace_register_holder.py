@@ -282,7 +282,7 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
                 self._handle_fp_2696(target_class)
             case _:
                 raise NotImplementedError(
-                    f"Floating-point register file type {self.fp_register_file.type} not available."
+                    f"Floating-point register file type {self.fp_register_file.type} not available.",
                 )
 
     def apply_on_thread(self: Amd64PtraceRegisterHolder, target: ThreadContext, target_class: type) -> None:
@@ -306,13 +306,13 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
         target_class.syscall_arg4 = _get_property_64("r8")
         target_class.syscall_arg5 = _get_property_64("r9")
 
-    def _handle_fp_512(self, target_class: type) -> None:
+    def _handle_fp_512(self: Amd64PtraceRegisterHolder, target_class: type) -> None:
         """Handle the case where the xsave area is 512 bytes long, which means we just have the xmm registers."""
         for index in range(16):
             name = f"xmm{index}"
             setattr(target_class, name, _get_property_fp_xmm0(name, index))
 
-    def _handle_fp_896(self, target_class: type) -> None:
+    def _handle_fp_896(self: Amd64PtraceRegisterHolder, target_class: type) -> None:
         """Handle the case where the xsave area is 896 bytes long, which means we have the xmm and ymm registers."""
         for index in range(16):
             name = f"xmm{index}"
@@ -322,8 +322,8 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
             name = f"ymm{index}"
             setattr(target_class, name, _get_property_fp_ymm0(name, index))
 
-    def _handle_fp_2696(self, target_class: type) -> None:
-        """Handle the case where the xsave area is 2696 bytes long, which means we have the xmm, ymm and zmm registers."""
+    def _handle_fp_2696(self: Amd64PtraceRegisterHolder, target_class: type) -> None:
+        """Handle the case where the xsave area is 2696 bytes long, which means we have 32 zmm registers."""
         for index in range(16):
             name = f"xmm{index}"
             setattr(target_class, name, _get_property_fp_xmm0(name, index))
