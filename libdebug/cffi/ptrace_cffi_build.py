@@ -36,6 +36,9 @@ if platform.machine() == "x86_64":
             unsigned char data[64];
         };
 
+        // For details about the layout of the xsave structure, see Intel's Architecture Instruction Set Extensions Programming Reference
+        // Chapter 3.2.4 "The Layout of XSAVE Save Area"
+        // https://www.intel.com/content/dam/develop/external/us/en/documents/319433-024-697869.pdf
         struct fp_regs_struct
         {
             unsigned long type;
@@ -71,6 +74,9 @@ if platform.machine() == "x86_64":
             unsigned char data[32];
         };
 
+        // For details about the layout of the xsave structure, see Intel's Architecture Instruction Set Extensions Programming Reference
+        // Chapter 3.2.4 "The Layout of XSAVE Save Area"
+        // https://www.intel.com/content/dam/develop/external/us/en/documents/319433-024-697869.pdf
         struct fp_regs_struct
         {
             unsigned long type;
@@ -96,6 +102,9 @@ if platform.machine() == "x86_64":
             unsigned char data[16];
         };
 
+        // For details about the layout of the xsave structure, see Intel's Architecture Instruction Set Extensions Programming Reference
+        // Chapter 3.2.4 "The Layout of XSAVE Save Area"
+        // https://www.intel.com/content/dam/develop/external/us/en/documents/319433-024-697869.pdf
         struct fp_regs_struct
         {
             unsigned long type;
