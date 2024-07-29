@@ -115,6 +115,8 @@ def fast_suite():
     suite.addTest(AutoWaitingNlinks("test_nlinks"))
     suite.addTest(WatchpointTest("test_watchpoint"))
     suite.addTest(WatchpointTest("test_watchpoint_callback"))
+    suite.addTest(WatchpointTest("test_watchpoint_disable"))
+    suite.addTest(WatchpointTest("test_watchpoint_disable_reenable"))
     suite.addTest(WatchpointAliasTest("test_watchpoint_alias"))
     suite.addTest(WatchpointAliasTest("test_watchpoint_callback"))
     suite.addTest(HandleSyscallTest("test_handles"))
