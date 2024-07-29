@@ -65,6 +65,7 @@ def fast_suite():
     suite.addTest(MemoryTest("test_memory_access_methods"))
     suite.addTest(HwBasicTest("test_basic"))
     suite.addTest(HwBasicTest("test_registers"))
+    suite.addTest(BacktraceTest("test_backtrace_as_symbols"))
     suite.addTest(BacktraceTest("test_backtrace"))
     suite.addTest(AttachDetachTest("test_attach"))
     suite.addTest(AttachDetachTest("test_attach_and_detach_1"))
