@@ -38,7 +38,7 @@ def test():
 
     end = perf_counter()
     
-    # Kill the process
+    # Kill for a clean exit
     d.kill()
 
     results.append(end-start)
