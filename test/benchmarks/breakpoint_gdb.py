@@ -10,6 +10,10 @@ import pickle
 
 class MyBreakpoint(gdb.Breakpoint):
     """ Class to handle the breakpoint action """
+    def __init__(self, spec):
+        """ Initialize a hardware breakpoint """
+        super(MyBreakpoint, self).__init__(spec, gdb.BP_HARDWARE_BREAKPOINT)
+        
     def stop(self):
         """ Callback function to be called at each breakpoint hit """
         pass
@@ -54,7 +58,7 @@ class Debugger(gdb.Command):
             self.test()
 
         # Save the result in a pickle file
-        with open("gdb_libdebug.pkl", "wb") as f:
+        with open("breakpoint_gdb.pkl", "wb") as f:
             pickle.dump(self.results, f)
             
         # print("Results:", self.results)
