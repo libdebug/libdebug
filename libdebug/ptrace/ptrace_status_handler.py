@@ -77,37 +77,33 @@ class PtraceStatusHandler:
 
         bp: None | Breakpoint
 
-        enabled_breakpoints = {}
-        for bp in self.internal_debugger.breakpoints.values():
-            if bp.enabled and not bp._disabled_for_step:
-                enabled_breakpoints[bp.address] = bp
-
-        bp = None
-
-        if ip in enabled_breakpoints:
+        bp = self.internal_debugger.breakpoints.get(ip)
+        if bp and bp.enabled and not bp._disabled_for_step:
             # Hardware breakpoint hit
             liblog.debugger("Hardware breakpoint hit at 0x%x", ip)
-            bp = self.internal_debugger.breakpoints[ip]
         else:
             # If the trap was caused by a software breakpoint, we need to restore the original instruction
             # and set the instruction pointer to the previous instruction.
             ip -= software_breakpoint_byte_size()
 
-            if ip in enabled_breakpoints:
+            bp = self.internal_debugger.breakpoints.get(ip)
+            if bp and bp.enabled and not bp._disabled_for_step:
                 # Software breakpoint hit
                 liblog.debugger("Software breakpoint hit at 0x%x", ip)
-                bp = self.internal_debugger.breakpoints[ip]
 
                 # Set the instruction pointer to the previous instruction
                 thread.instruction_pointer = ip
 
                 # Link the breakpoint to the thread, so that we can step over it
                 bp._linked_thread_ids.append(thread_id)
+            else:
+                # If the breakpoint has been hit but is not enabled, we need to reset the bp variable
+                bp = None
 
         # Manage watchpoints
-        if bp is None:
+        if not bp:
             bp = self.ptrace_interface.hardware_bp_helpers[thread_id].is_watchpoint_hit()
-            if bp is not None:
+            if bp:
                 liblog.debugger("Watchpoint hit at 0x%x", bp.address)
 
         if bp:

@@ -207,7 +207,7 @@ class InternalDebugger:
         )
         self.__polling_thread.start()
 
-    def _background_invalid_call(self: InternalDebugger) -> None:
+    def _background_invalid_call(self: InternalDebugger, *_: ..., **__: ...) -> None:
         """Raises an error when an invalid call is made in background mode."""
         raise RuntimeError("This method is not available in a callback.")
 
