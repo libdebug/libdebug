@@ -59,7 +59,7 @@ class EndBreakpoint(gdb.Breakpoint):
             gdb.execute("run")
         else:
             # Save the results and quit
-            with open("results.pickle", "wb") as f:
+            with open("syscall_gdb.pkl", "wb") as f:
                 pickle.dump(results, f)
             print("Results:", results)
             gdb.execute("quit")
@@ -96,7 +96,7 @@ class Debugger(gdb.Command):
         gdb.execute("start")
 
         # Set the breakpoints before and after the main loop
-        bp_start = StartBreakpoint("*0x40132c")
+        bp_start = StartBreakpoint("*0x401243")
         bp_end = EndBreakpoint("*0x401332")
         bp_start.silent = True
         bp_end.silent = True
