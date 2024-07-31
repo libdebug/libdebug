@@ -13,6 +13,7 @@ class MyBreakpoint(gdb.Breakpoint):
     def __init__(self, spec):
         """ Initialize a hardware breakpoint """
         super(MyBreakpoint, self).__init__(spec, gdb.BP_HARDWARE_BREAKPOINT)
+        self.silent = True
         
     def stop(self):
         """ Callback function to be called at each breakpoint hit """
@@ -30,19 +31,25 @@ class Debugger(gdb.Command):
         - each time the breakpoint is hit, execute an empty callback,
         - wait the process to end.
         """
+        gdb.execute("set pagination off")
+
         # Start the process (it will stop at the entrypoint)
         gdb.execute("start")
         
         # Set the hardware breakpoint
-        bp = MyBreakpoint("*0x401302")
-        bp.silent = True
+        MyBreakpoint("*0x401302")
         
+        # Start the timer
         start = perf_counter()
         
         # Continue the process from the entrypoint and wait for the process to end
         gdb.execute("continue")
         
+        # Stop the timer
         end = perf_counter()
+
+        # Delete the breakpoints
+        gdb.execute("del breakpoints")
         
         self.results.append(end-start)
 
@@ -60,7 +67,6 @@ class Debugger(gdb.Command):
         # Save the result in a pickle file
         with open("breakpoint_gdb.pkl", "wb") as f:
             pickle.dump(self.results, f)
-            
         # print("Results:", self.results)
         
 Debugger()

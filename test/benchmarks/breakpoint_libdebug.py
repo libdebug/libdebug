@@ -19,15 +19,14 @@ def test():
     - hit the breakpoint 1000 times,
     - each time the breakpoint is hit, execute an empty callback,
     - wait the process to end.
-    """
-    global results
-    
+    """    
     # Start the process (it will stop at the entrypoint)
     d.run()     
 
     # Set the hardware breakpoint     
-    d.breakpoint(0x401302, callback=callback, hardware=True)
+    d.breakpoint(0x401302, callback=callback, hardware=True, file="absolute")
 
+    # Start the timer
     start = perf_counter()
     
     # Continue the process from the entrypoint
@@ -36,6 +35,7 @@ def test():
     # Wait for the process to end
     d.wait()
 
+    # Stop the timer
     end = perf_counter()
     
     # Kill for a clean exit
