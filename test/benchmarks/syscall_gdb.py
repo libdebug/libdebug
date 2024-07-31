@@ -30,6 +30,7 @@ class StartBreakpoint(gdb.Breakpoint):
     def __init__(self, spec):
         """ Initialize a hardware breakpoint """
         super(StartBreakpoint, self).__init__(spec, gdb.BP_HARDWARE_BREAKPOINT)
+        self.silent = True
         
     def stop(self):
         """ Callback function to be called at each breakpoint hit """
@@ -42,6 +43,7 @@ class EndBreakpoint(gdb.Breakpoint):
     def __init__(self, spec):
         """ Initialize a hardware breakpoint """
         super(EndBreakpoint, self).__init__(spec, gdb.BP_HARDWARE_BREAKPOINT)
+        self.silent = True
         
     def stop(self):
         """ Callback function to be called at each breakpoint hit """
@@ -93,10 +95,8 @@ class Debugger(gdb.Command):
         gdb.execute("start")
 
         # Set the breakpoints before and after the main loop
-        bp_start = StartBreakpoint("*0x401243")
-        bp_end = EndBreakpoint("*0x401332")
-        bp_start.silent = True
-        bp_end.silent = True
+        StartBreakpoint("*0x401243")
+        EndBreakpoint("*0x401332")
 
         # Continue the process from the entrypoint
         gdb.execute("continue")
