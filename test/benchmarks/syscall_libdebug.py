@@ -65,7 +65,7 @@ results = []
 # Initialize the debugger
 d = debugger("../binaries/math_loop_test")
 
-for _ in range(10):
+for _ in range(1000):
     test()
 
 # Terminate the debugger
@@ -75,4 +75,4 @@ d.terminate()
 with open("syscall_libdebug.pkl", "wb") as f:
     pickle.dump(results, f)
 
-print("Results:", results)
+# print("Results:", results)
