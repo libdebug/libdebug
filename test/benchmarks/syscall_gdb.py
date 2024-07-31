@@ -4,13 +4,16 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+########################################################################################
+#  This script requires GDB 15.1 or later to run due to the use of the new Python API  #
+########################################################################################
+
 import gdb
 from time import perf_counter
 import pickle
 
 
 # Initialize the global variables
-start = 0
 results = []
 
 def stop_handler(event):
@@ -31,9 +34,8 @@ class StartBreakpoint(gdb.Breakpoint):
     def stop(self):
         """ Callback function to be called at each breakpoint hit """
         global start
-        if start == 0:
-            # Start the timer
-            start = perf_counter()
+        # Start the timer
+        start = perf_counter()
 
 class EndBreakpoint(gdb.Breakpoint):
     """ Class to handle the breakpoint set right after the main loop """
@@ -43,27 +45,22 @@ class EndBreakpoint(gdb.Breakpoint):
         
     def stop(self):
         """ Callback function to be called at each breakpoint hit """
-        global start
-
         # Stop the timer
         end = perf_counter()
 
         # Kill the process
         gdb.execute("kill")
 
-        if len(results) < 10:
+        if len(results) < 1000:
             results.append(end-start)
-            # Reset the timer
-            start = 0
             # Restart the process
             gdb.execute("run")
         else:
             # Save the results and quit
             with open("syscall_gdb.pkl", "wb") as f:
                 pickle.dump(results, f)
-            print("Results:", results)
+            # print("Results:", results)
             gdb.execute("quit")
-
 
 class Debugger(gdb.Command):
     """ Class to handle the debugging session """

@@ -22,6 +22,7 @@ def start_breakpoint(t,b):
     the main loop is hit 
     """
     global start
+    # Start the timer
     start = perf_counter()
 
 def end_breakpoint(t,b):
@@ -36,7 +37,7 @@ def end_breakpoint(t,b):
 def test():
     """ This test includes the time to:
         - run the debugged process from the breakpoint just before the main loop,
-        - manage 1000 calls to the syscall getpid (handled by the stop_handler),
+        - manage 1000 calls to the syscall getpid (each call is handled by the callback functions),
         - reach the breakpoint right after the main loop,
     """    
     # Start the process (it will stop at the entrypoint)
@@ -47,7 +48,7 @@ def test():
     d.breakpoint(0x401332, hardware=True, callback=end_breakpoint, file="absolute")
 
     # Handle the syscall getpid, install the callbacks
-    h = d.handle_syscall("getpid", on_enter=callback_on_enter, on_exit=callback_on_exit)
+    d.handle_syscall("getpid", on_enter=callback_on_enter, on_exit=callback_on_exit)
 
     # Continue the process from the entrypoint
     d.cont()
