@@ -29,13 +29,39 @@ The best of both worlds
 -----------------------
 The `dbg` option is the combination of the `pipe` and `debugger` options. It displays all logs related to the debugging operations performed on the process by libdebug, as well as interactions with the process pipe: bytes received and bytes sent.
 
-Temporary Logging
------------------
+Change logger levels at runtime
+-------------------------------
+Logger levels can be changed at runtime using the `libcontext` module. The following example shows how to change the logger levels at runtime.
+
+.. code-block:: python
+
+    from libdebug import libcontext
+    libcontext.pipe_logger = 'DEBUG'
+    libcontext.debugger_logger = 'DEBUG'
+    libcontext.general_logger = 'DEBUG'
+
+The `general_logger` refers to the logger used for the general logs, different from the `pipe` and `debugger` logs.
 
 Logger levels can be temporarily enabled at runtime using a `with` statement, as shown in the following example.
 
 .. code-block:: python
 
     from libdebug import libcontext
-    with libcontext.tmp(pipe_logger='INFO', debugger_logger='DEBUG'):
+    with libcontext.tmp(pipe_logger='SILENT', debugger_logger='DEBUG'):
         r.sendline(b'gimme the flag')
+
+In this example, the `pipe_logger` is set to `SILENT`, and the `debugger_logger` is set to `DEBUG`. The logger levels are restored to their previous values when the `with` block is exited.
+
+The supported logger levels are the following:
+
+- ``pipe_logger``: ``DEBUG``, ``SILENT``
+- ``debugger_logger``: ``DEBUG``, ``SILENT``
+- ``general_logger``: ``DEBUG``, ``INFO``, ``WARNING``, ``SILENT``
+
+The default logger levels are:
+
+- ``pipe_logger``: ``SILENT``
+- ``debugger_logger``: ``SILENT``
+- ``general_logger``: ``DEBUG``
+
+The `DEBUG` level is the most verbose, including all logs. The `INFO` level includes all logs except for the `DEBUG` logs. The `WARNING` level includes only the `WARNING` logs. The `SILENT` level disables all logs.

@@ -207,7 +207,7 @@ class InternalDebugger:
         )
         self.__polling_thread.start()
 
-    def _background_invalid_call(self: InternalDebugger) -> None:
+    def _background_invalid_call(self: InternalDebugger, *_: ..., **__: ...) -> None:
         """Raises an error when an invalid call is made in background mode."""
         raise RuntimeError("This method is not available in a callback.")
 
@@ -994,12 +994,18 @@ class InternalDebugger:
 
         return None
 
-    def resolve_address(self: InternalDebugger, address: int, backing_file: str) -> int:
+    def resolve_address(
+        self: InternalDebugger,
+        address: int,
+        backing_file: str,
+        skip_absolute_address_validation: bool = False,
+    ) -> int:
         """Normalizes and validates the specified address.
 
         Args:
             address (int): The address to normalize and validate.
             backing_file (str): The backing file to resolve the address in.
+            skip_absolute_address_validation (bool, optional): Whether to skip bounds checking for absolute addresses. Defaults to False.
 
         Returns:
             int: The normalized and validated address.
@@ -1007,6 +1013,9 @@ class InternalDebugger:
         Raises:
             ValueError: If the substring `backing_file` is present in multiple backing files.
         """
+        if skip_absolute_address_validation and backing_file == "absolute":
+            return address
+
         maps = self.debugging_interface.maps()
 
         if backing_file in ["hybrid", "absolute"]:
@@ -1285,12 +1294,9 @@ class InternalDebugger:
         self.debugging_interface.migrate_from_gdb()
 
     def __threaded_peek_memory(self: InternalDebugger, address: int) -> bytes | BaseException:
-        try:
-            value = self.debugging_interface.peek_memory(address)
-            # TODO: this is only for amd64
-            return value.to_bytes(8, "little")
-        except BaseException as e:
-            return e
+        value = self.debugging_interface.peek_memory(address)
+        # TODO: this is only for amd64
+        return value.to_bytes(8, "little")
 
     def __threaded_poke_memory(self: InternalDebugger, address: int, data: bytes) -> None:
         int_data = int.from_bytes(data, "little")
