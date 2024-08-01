@@ -51,9 +51,13 @@ class Amd64StackUnwinder(StackUnwindingManager):
 
         # If we are in the prolouge of a function, we need to get the return address from the stack
         # using a slightly more complex method
-        first_return_address = self.get_return_address(target)
-        if first_return_address != stack_trace[1]:
-            stack_trace.insert(1, first_return_address)
+        try:
+            first_return_address = self.get_return_address(target)
+        
+            if first_return_address != stack_trace[1]:
+                stack_trace.insert(1, first_return_address)
+        except (OSError, ValueError):
+            pass
 
         return stack_trace
 
