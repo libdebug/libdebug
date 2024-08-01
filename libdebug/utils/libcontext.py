@@ -17,6 +17,9 @@ class LibContext:
     """A class that holds the global context of the library."""
 
     _instance = None
+    _pipe_logger_levels: list[str]
+    _debugger_logger_levels: list[str]
+    _general_logger_levels: list[str]
 
     def __new__(cls: type):
         """Create a new instance of the class if it does not exist yet.
@@ -34,10 +37,13 @@ class LibContext:
         if self._initialized:
             return
 
+        self._pipe_logger_levels = ["DEBUG", "SILENT"]
+        self._debugger_logger_levels = ["DEBUG", "SILENT"]
+        self._general_logger_levels = ["DEBUG", "INFO", "WARNING", "SILENT"]
         self._sym_lvl = 3
 
-        self._debugger_logger = "INFO"
-        self._pipe_logger = "INFO"
+        self._debugger_logger = "SILENT"
+        self._pipe_logger = "SILENT"
         self._general_logger = "INFO"
 
         # Adjust log levels based on command-line arguments
@@ -95,12 +101,14 @@ class LibContext:
 
     @debugger_logger.setter
     def debugger_logger(self: LibContext, value: str) -> None:
-        """Property setter for debugger_logger, ensuring it's a valid logging level."""
-        if value in ["DEBUG", "INFO"]:
+        """Property setter for debugger_logger, ensuring it's a supported logging level."""
+        if value in self._debugger_logger_levels:
             self._debugger_logger = value
             liblog.debugger_logger.setLevel(value)
         else:
-            raise ValueError("debugger_logger must be a valid logging level")
+            raise ValueError(
+                f"debugger_logger must be a supported logging level. The supported levels are: {self._debugger_logger_levels}",
+            )
 
     @property
     def pipe_logger(self: LibContext) -> str:
@@ -113,12 +121,14 @@ class LibContext:
 
     @pipe_logger.setter
     def pipe_logger(self: LibContext, value: str) -> None:
-        """Property setter for pipe_logger, ensuring it's a valid logging level."""
-        if value in ["DEBUG", "INFO"]:
+        """Property setter for pipe_logger, ensuring it's a supported logging level."""
+        if value in self._pipe_logger_levels:
             self._pipe_logger = value
             liblog.pipe_logger.setLevel(value)
         else:
-            raise ValueError("pipe_logger must be a valid logging level")
+            raise ValueError(
+                f"pipe_logger must be a supported logging level. The supported levels are: {self._pipe_logger_levels}",
+            )
 
     @property
     def general_logger(self: LibContext) -> str:
@@ -131,12 +141,14 @@ class LibContext:
 
     @general_logger.setter
     def general_logger(self: LibContext, value: str) -> None:
-        """Property setter for general_logger, ensuring it's a valid logging level."""
-        if value in ["DEBUG", "INFO"]:
+        """Property setter for general_logger, ensuring it's a supported logging level."""
+        if value in self._general_logger_levels:
             self._general_logger = value
             liblog.general_logger.setLevel(value)
         else:
-            raise ValueError("general_logger must be a valid logging level")
+            raise ValueError(
+                f"general_logger must be a supported logging level. The supported levels are: {self._general_logger_levels}",
+            )
 
     @property
     def arch(self: LibContext) -> str:

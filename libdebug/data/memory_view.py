@@ -151,23 +151,29 @@ class MemoryView(MutableSequence):
             the "binary" map file).
         """
         if isinstance(key, int):
-            address = self._internal_debugger.resolve_address(key, file)
-            return self.read(address, 1)
+            address = self._internal_debugger.resolve_address(key, file, skip_absolute_address_validation=True)
+            try:
+                return self.read(address, 1)
+            except OSError as e:
+                raise ValueError("Invalid address.") from e
         elif isinstance(key, slice):
             if isinstance(key.start, str):
                 start = self._internal_debugger.resolve_symbol(key.start, file)
             else:
-                start = self._internal_debugger.resolve_address(key.start, file)
+                start = self._internal_debugger.resolve_address(key.start, file, skip_absolute_address_validation=True)
 
             if isinstance(key.stop, str):
                 stop = self._internal_debugger.resolve_symbol(key.stop, file)
             else:
-                stop = self._internal_debugger.resolve_address(key.stop, file)
+                stop = self._internal_debugger.resolve_address(key.stop, file, skip_absolute_address_validation=True)
 
             if stop < start:
                 raise ValueError("Invalid slice range.")
 
-            return self.read(start, stop - start)
+            try:
+                return self.read(start, stop - start)
+            except OSError as e:
+                raise ValueError("Invalid address.") from e
         elif isinstance(key, str):
             address = self._internal_debugger.resolve_symbol(key, file)
 
@@ -207,11 +213,14 @@ class MemoryView(MutableSequence):
         if isinstance(address, str):
             address = self._internal_debugger.resolve_symbol(address, file)
         elif isinstance(address, int):
-            address = self._internal_debugger.resolve_address(address, file)
+            address = self._internal_debugger.resolve_address(address, file, skip_absolute_address_validation=True)
         else:
             raise TypeError("Invalid type for the address. Expected int or string.")
 
-        return self.read(address, size)
+        try:
+            return self.read(address, size)
+        except OSError as e:
+            raise ValueError("Invalid address.") from e
 
     def _manage_memory_write_type(
         self: MemoryView,
@@ -229,19 +238,26 @@ class MemoryView(MutableSequence):
             the "binary" map file).
         """
         if isinstance(key, int):
-            address = self._internal_debugger.resolve_address(key, file)
-            self.write(address, value)
+            address = self._internal_debugger.resolve_address(key, file, skip_absolute_address_validation=True)
+            try:
+                self.write(address, value)
+            except OSError as e:
+                raise ValueError("Invalid address.") from e
         elif isinstance(key, slice):
             if isinstance(key.start, str):
                 start = self._internal_debugger.resolve_symbol(key.start, file)
             else:
-                start = self._internal_debugger.resolve_address(key.start, file)
+                start = self._internal_debugger.resolve_address(key.start, file, skip_absolute_address_validation=True)
 
             if key.stop is not None:
                 if isinstance(key.stop, str):
                     stop = self._internal_debugger.resolve_symbol(key.stop, file)
                 else:
-                    stop = self._internal_debugger.resolve_address(key.stop, file)
+                    stop = self._internal_debugger.resolve_address(
+                        key.stop,
+                        file,
+                        skip_absolute_address_validation=True,
+                    )
 
                 if stop < start:
                     raise ValueError("Invalid slice range")
@@ -249,7 +265,10 @@ class MemoryView(MutableSequence):
                 if len(value) != stop - start:
                     liblog.warning(f"Mismatch between slice width and value size, writing {len(value)} bytes.")
 
-            self.write(start, value)
+            try:
+                self.write(start, value)
+            except OSError as e:
+                raise ValueError("Invalid address.") from e
 
         elif isinstance(key, str):
             address = self._internal_debugger.resolve_symbol(key, file)
@@ -292,14 +311,17 @@ class MemoryView(MutableSequence):
         if isinstance(address, str):
             address = self._internal_debugger.resolve_symbol(address, file)
         elif isinstance(address, int):
-            address = self._internal_debugger.resolve_address(address, file)
+            address = self._internal_debugger.resolve_address(address, file, skip_absolute_address_validation=True)
         else:
             raise TypeError("Invalid type for the address. Expected int or string.")
 
         if len(value) != size:
             liblog.warning(f"Mismatch between specified size and actual value size, writing {len(value)} bytes.")
 
-        self.write(address, value)
+        try:
+            self.write(address, value)
+        except OSError as e:
+            raise ValueError("Invalid address.") from e
 
     def __delitem__(self: MemoryView, key: int | slice | str | tuple) -> None:
         """MemoryView doesn't support deletion."""
