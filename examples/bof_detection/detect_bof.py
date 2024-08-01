@@ -1,14 +1,11 @@
-import libdebug
 from libdebug import debugger, libcontext
 from libdebug.utils.debugging_utils import resolve_address_in_maps
-from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
 import iced_x86 as iced
-import subprocess
 import argparse
 import os
 import magic
 
-libdebug.libcontext.sym_lvl = 5
+libcontext.sym_lvl = 5
 
 ###########################################
 # -------- Linux Terminal Colors -------- #
@@ -203,26 +200,12 @@ for test_padding_len in range(0, MAX_TEST_LEN, 4):
         else:
             print(f"RBP is at {hex(curr_rbp)}")
 
-        # Stack trace
-        import logging
-        logging.getLogger('libdebug').setLevel('ERROR')
+        # Shut up the warnings
+        libcontext.general_logger = 'SILENT'
         
+        # Stack trace
         print_color('\nStack trace:', color=LT_COLOR_RED)
-
-        stack_unwinder = stack_unwinding_provider()
-
-        for ret_addr in stack_unwinder.unwind(d):
-            # If the current rip corresponds to a known symbol, print the symbol
-            try:
-                symbol = resolve_address_in_maps(d.regs.rip, d.maps())
-
-                if not symbol.startswith("0x"):
-                    print_color(f"<{symbol}> ", color=LT_COLOR_RED, end="")
-            except ValueError:
-                pass
-
-            print_color(f' {hex(ret_addr)}', color=LT_COLOR_RED)
-
+        d.print_backtrace()
 
     d.kill()
     d.terminate()
