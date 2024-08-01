@@ -92,8 +92,6 @@ if args.maxlen is not None:
 ELF_PATH = args.filename
 MAX_TEST_LEN = args.maxlen if args.maxlen is not None else MAX_TEST_LEN
 
-print(f'[DEBUG]: {magic.from_file(ELF_PATH)}')
-
 # Check if the ELF file exists and is valid
 if not os.path.exists(ELF_PATH):
     print(f"File {ELF_PATH} does not exist.")
