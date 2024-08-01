@@ -53,7 +53,7 @@ class Amd64StackUnwinder(StackUnwindingManager):
         # using a slightly more complex method
         try:
             first_return_address = self.get_return_address(target)
-        
+
             if first_return_address != stack_trace[1]:
                 stack_trace.insert(1, first_return_address)
         except (OSError, ValueError):
