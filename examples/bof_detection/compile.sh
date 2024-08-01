@@ -1,1 +1,0 @@
-gcc bof.c -o bof -fno-stack-protector -std=c99
