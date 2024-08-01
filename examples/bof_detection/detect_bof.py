@@ -153,7 +153,6 @@ for test_padding_len in range(0, MAX_TEST_LEN, 4):
         print_color(f"[+] Crash detected with payload length {test_padding_len}", color=LT_COLOR_YELLOW)
         print_color('[+] Post-mortem analysis initiated', color=LT_COLOR_YELLOW)
 
-        curr_rbp = d.regs.rbp
         curr_rip = d.regs.rip
 
         # Check for RIP overwrite
@@ -165,11 +164,11 @@ for test_padding_len in range(0, MAX_TEST_LEN, 4):
             print("Disassembling the instruction at RIP...")
 
             # Dump instruction at rip
-            window_from_rip = d.memory[d.regs.rip, MAX_AMD64_INSTRUCTION_LENGTH, 'absolute']
+            window_from_rip = d.memory[curr_rip, MAX_AMD64_INSTRUCTION_LENGTH, 'absolute']
 
             # Disassemble the instruction (ignoring bytes that are not part of the instruction)
             decoder = iced.Decoder(64, window_from_rip)
-            decoder.ip = d.regs.rip
+            decoder.ip = curr_rip
 
             instruction = decoder.decode()
 
@@ -179,7 +178,7 @@ for test_padding_len in range(0, MAX_TEST_LEN, 4):
 
             # If the current rip corresponds to a known symbol, print the symbol
             try:
-                symbol = resolve_address_in_maps(d.regs.rip, d.maps())
+                symbol = resolve_address_in_maps(curr_rip, d.maps())
 
                 if not symbol.startswith("0x"):
                     print_color(f"<{symbol}> ", color=LT_COLOR_CYAN, end="")
@@ -196,7 +195,7 @@ for test_padding_len in range(0, MAX_TEST_LEN, 4):
             print_color("Stack pivot detected", color=LT_COLOR_RED)
             rbp_overwritten = True
         else:
-            print(f"RBP is at {hex(curr_rbp)}")
+            print(f"RBP is at {hex(d.regs.rbp)}")
 
         # Shut up the warnings
         libcontext.general_logger = 'SILENT'
