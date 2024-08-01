@@ -9,9 +9,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from libdebug.architectures.stack_unwinding_manager import StackUnwindingManager
+from libdebug.liblog import logging
 
 if TYPE_CHECKING:
     from libdebug.state.thread_context import ThreadContext
+
 
 
 class Amd64StackUnwinder(StackUnwindingManager):
@@ -57,7 +59,9 @@ class Amd64StackUnwinder(StackUnwindingManager):
             if first_return_address != stack_trace[1]:
                 stack_trace.insert(1, first_return_address)
         except (OSError, ValueError):
-            pass
+            logging.WARNING(
+                "Failed to get the return address from the stack. Check stack frame registers (e.g., base pointer). The stack trace may be incomplete.",
+            )
 
         return stack_trace
 
