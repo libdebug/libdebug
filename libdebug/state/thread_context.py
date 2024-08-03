@@ -13,6 +13,7 @@ from libdebug.debugger.internal_debugger_instance_manager import (
 )
 from libdebug.liblog import liblog
 from libdebug.utils.debugging_utils import resolve_address_in_maps
+from libdebug.utils.print_style import PrintStyle
 from libdebug.utils.signal_utils import resolve_signal_name, resolve_signal_number
 
 if TYPE_CHECKING:
@@ -173,14 +174,32 @@ class ThreadContext:
         self._signal_number = signal
         self._internal_debugger.resume_context.threads_with_signals_to_forward.append(self.thread_id)
 
-    def backtrace(self: ThreadContext) -> list:
-        """Returns the current backtrace of the thread."""
-        internal_debugger = self._internal_debugger
-        internal_debugger._ensure_process_stopped()
+    def backtrace(self: ThreadContext, as_symbols: bool = False) -> list:
+        """Returns the current backtrace of the thread.
+
+        Args:
+            as_symbols (bool, optional): Whether to return the backtrace as symbols
+        """
+        self._internal_debugger._ensure_process_stopped()
         stack_unwinder = stack_unwinding_provider()
         backtrace = stack_unwinder.unwind(self)
-        maps = internal_debugger.debugging_interface.maps()
-        return [resolve_address_in_maps(x, maps) for x in backtrace]
+        if as_symbols:
+            maps = self._internal_debugger.debugging_interface.maps()
+            backtrace = [resolve_address_in_maps(x, maps) for x in backtrace]
+        return backtrace
+
+    def print_backtrace(self: ThreadContext) -> None:
+        """Prints the current backtrace of the thread."""
+        self._internal_debugger._ensure_process_stopped()
+        stack_unwinder = stack_unwinding_provider()
+        backtrace = stack_unwinder.unwind(self)
+        maps = self._internal_debugger.debugging_interface.maps()
+        for return_address in backtrace:
+            return_address_symbol = resolve_address_in_maps(return_address, maps)
+            if return_address_symbol[:2] == "0x":
+                print(f"{PrintStyle.RED}{return_address:#x} {PrintStyle.RESET}")
+            else:
+                print(f"{PrintStyle.RED}{return_address:#x} <{return_address_symbol}> {PrintStyle.RESET}")
 
     def current_return_address(self: ThreadContext) -> int:
         """Returns the return address of the current function."""
