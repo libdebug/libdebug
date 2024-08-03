@@ -647,15 +647,16 @@ class PtraceInterface(DebuggingInterface):
         Args:
             registers (Registers): The registers instance to update.
         """
+        liblog.debugger("Fetching floating-point registers for thread %d", registers._thread_id)
         self.lib_trace.get_fp_regs(registers._thread_id, registers._fp_register_file)
 
-    def flush_fp_registers(self: PtraceInterface, registers: Registers) -> None:
+    def flush_fp_registers(self: PtraceInterface, _: Registers) -> None:
         """Flushes the floating-point registers of the specified thread.
 
         Args:
             registers (Registers): The registers instance to update.
         """
-        self.lib_trace.set_fp_regs(registers._thread_id, registers._fp_register_file)
+        raise NotImplementedError("Flushing floating-point registers is automatically handled by the native code.")
 
     def _peek_user(self: PtraceInterface, thread_id: int, address: int) -> int:
         """Reads the memory at the specified address."""
