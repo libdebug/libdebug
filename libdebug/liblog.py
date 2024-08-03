@@ -32,12 +32,16 @@ class LibLog:
         if self._initialized:
             return
 
+        # Add custom log levels
+        logging.addLevelName(60, "SILENT")
+        logging.SILENT = 60
+
         # General logger
         self.general_logger = self._setup_logger("libdebug", logging.INFO)
 
         # Component-specific loggers
-        self.debugger_logger = self._setup_logger("debugger", logging.INFO)
-        self.pipe_logger = self._setup_logger("pipe", logging.INFO)
+        self.debugger_logger = self._setup_logger("debugger", logging.SILENT)
+        self.pipe_logger = self._setup_logger("pipe", logging.SILENT)
 
         self._initialized = True
 

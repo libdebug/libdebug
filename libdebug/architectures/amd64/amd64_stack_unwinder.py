@@ -49,6 +49,12 @@ class Amd64StackUnwinder(StackUnwindingManager):
             except (OSError, ValueError):
                 break
 
+        # If we are in the prolouge of a function, we need to get the return address from the stack
+        # using a slightly more complex method
+        first_return_address = self.get_return_address(target)
+        if first_return_address != stack_trace[1]:
+            stack_trace.insert(1, first_return_address)
+
         return stack_trace
 
     def get_return_address(self: Amd64StackUnwinder, target: ThreadContext) -> int:

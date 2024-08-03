@@ -14,7 +14,7 @@ import sphinx
 project = 'libdebug'
 copyright = '2024, Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco'
 author = 'JinBlack, Io_no, MrIndeciso, Frank01001'
-release = '0.5.2'
+release = '0.5.3'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

@@ -53,6 +53,7 @@ def _debuginfod(buildid: str) -> Path:
     debuginfod_path = Path.home() / ".cache" / "debuginfod_client" / buildid / "debuginfo"
 
     if not debuginfod_path.exists():
+        liblog.info(f"Downloading debuginfo file for buildid {buildid}")
         _download_debuginfod(buildid, debuginfod_path)
 
     return debuginfod_path
