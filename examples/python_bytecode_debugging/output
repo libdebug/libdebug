@@ -1,0 +1,21 @@
+Executed opcode: 0x97 - RESUME
+Executed opcode: 0x64 - LOAD_CONST
+Executed opcode: 0x5a - STORE_NAME
+Executed opcode: 0x64 - LOAD_CONST
+Executed opcode: 0x5a - STORE_NAME
+Executed opcode: 0x64 - LOAD_CONST
+Executed opcode: 0x5a - STORE_NAME
+Executed opcode: 0x65 - LOAD_NAME
+Executed opcode: 0x65 - LOAD_NAME
+Executed opcode: 0x7a - BINARY_OP
+Executed opcode: 0x65 - LOAD_NAME
+Executed opcode: 0x7a - BINARY_OP
+Executed opcode: 0x5a - STORE_NAME
+Executed opcode: 0x2 - PUSH_NULL
+Executed opcode: 0x65 - LOAD_NAME
+Executed opcode: 0x65 - LOAD_NAME
+Executed opcode: 0xab - CALL
+Executed opcode: 0x1 - POP_TOP
+Executed opcode: 0x79 - RETURN_CONST
+Executed opcode: 0x3 - INTERPRETER_EXIT
+The result printed by the python script is: -40
