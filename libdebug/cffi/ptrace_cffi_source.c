@@ -448,13 +448,6 @@ void set_fp_regs(int tid, struct fp_regs_struct *fpregs)
     fpregs->dirty = 0;
     fpregs->fresh = 0;
 }
-
-void check_and_set_fp_regs(struct thread *t)
-{
-    if (t->fpregs.dirty) {
-        set_fp_regs(t->tid, &t->fpregs);
-    }
-}
 #endif
 
 #ifdef ARCH_AARCH64
@@ -482,6 +475,13 @@ void set_fp_regs(int tid, struct fp_regs_struct *fpregs)
     }
 }
 #endif
+
+void check_and_set_fp_regs(struct thread *t)
+{
+    if (t->fpregs.dirty) {
+        set_fp_regs(t->tid, &t->fpregs);
+    }
+}
 
 struct ptrace_regs_struct *register_thread(struct global_state *state, int tid)
 {
