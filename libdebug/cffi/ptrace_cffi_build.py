@@ -221,15 +221,18 @@ elif architecture == "aarch64":
     };
 
     // /usr/include/aarch64-linux-gnu/asm/ptrace.h
+    #pragma pack(push, 1)
     struct fp_regs_struct
     {
         _Bool dirty; // true if the debugging script has modified the state of the registers
         _Bool fresh; // true if the registers have already been fetched for this state
+        unsigned char padding[2];
         struct reg_128 vregs[32];
         unsigned int fpsr;
         unsigned int fpcr;
         unsigned long padding;
     };
+    #pragma pack(pop)
     """
 
     fpregs_define = ""
