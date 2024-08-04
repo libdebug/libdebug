@@ -1211,7 +1211,7 @@ int stepping_finish(struct global_state *state, int tid)
     }
 
     uint64_t previous_ip, current_ip;
-    uint64_t opcode_window, first_opcode_byte;
+    uint64_t opcode_window, opcode;
 
     // We need to keep track of the nested calls
     int nested_call_counter = 1;
@@ -1231,18 +1231,26 @@ int stepping_finish(struct global_state *state, int tid)
 
         // Get value at current instruction pointer
         opcode_window = ptrace(PTRACE_PEEKDATA, tid, (void *)current_ip, NULL);
-        first_opcode_byte = opcode_window & 0xFF;
+
+#ifdef ARCH_AMD64
+        // on amd64 we care only about the first byte
+        opcode = opcode_window & 0xFF;
+#endif
+
+#ifdef ARCH_AARCH64
+        opcode = opcode_window & 0xFFFFFFFF;
+#endif
 
         // if the instruction pointer didn't change, we return
         // because we hit a hardware breakpoint
         // we do the same if we hit a software breakpoint
-        if (current_ip == previous_ip || IS_SW_BREAKPOINT(first_opcode_byte))
+        if (current_ip == previous_ip || IS_SW_BREAKPOINT(opcode))
             goto cleanup;
 
         // If we hit a call instruction, we increment the counter
         if (IS_CALL_INSTRUCTION((uint8_t*) &opcode_window))
             nested_call_counter++;
-        else if (IS_RET_INSTRUCTION(first_opcode_byte))
+        else if (IS_RET_INSTRUCTION(opcode))
             nested_call_counter--;
 
     } while (nested_call_counter > 0);

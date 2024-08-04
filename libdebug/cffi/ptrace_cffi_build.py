@@ -296,12 +296,12 @@ elif architecture == "aarch64":
     int IS_CALL_INSTRUCTION(uint8_t* instr)
     {
         // Check for direct CALL (BL)
-        if ((instr[0] & 0xFC) == 0x94) {
+        if ((instr[3] & 0xFC) == 0x94) {
             return 1; // It's a CALL
         }
 
         // Check for indirect CALL (BLR)
-        if ((instr[0] & 0xFC) == 0x90) {
+        if ((instr[3] == 0xD6 && (instr[2] & 0x3F) == 0x3F)) {
             return 1; // It's a CALL
         }
 
