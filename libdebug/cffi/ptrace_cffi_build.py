@@ -39,9 +39,16 @@ if architecture == "x86_64":
             unsigned char data[64];
         };
 
+        // For details about the layout of the xsave structure, see Intel's Architecture Instruction Set Extensions Programming Reference
+        // Chapter 3.2.4 "The Layout of XSAVE Save Area"
+        // https://www.intel.com/content/dam/develop/external/us/en/documents/319433-024-697869.pdf
+        #pragma pack(push, 1)
         struct fp_regs_struct
         {
             unsigned long type;
+            _Bool dirty; // true if the debugging script has modified the state of the registers
+            _Bool fresh; // true if the registers have already been fetched for this state
+            unsigned char bool_padding[6];
             unsigned char padding0[32];
             struct reg_128 st[8];
             struct reg_128 xmm0[16];
@@ -57,6 +64,7 @@ if architecture == "x86_64":
             struct reg_512 zmm1[16];
             unsigned char padding4[8];
         };
+        #pragma pack(pop)
         """
 
         fpregs_define = """
@@ -69,14 +77,16 @@ if architecture == "x86_64":
             unsigned char data[16];
         };
 
-        struct reg_256
-        {
-            unsigned char data[32];
-        };
-
+        // For details about the layout of the xsave structure, see Intel's Architecture Instruction Set Extensions Programming Reference
+        // Chapter 3.2.4 "The Layout of XSAVE Save Area"
+        // https://www.intel.com/content/dam/develop/external/us/en/documents/319433-024-697869.pdf
+        #pragma pack(push, 1)
         struct fp_regs_struct
         {
             unsigned long type;
+            _Bool dirty; // true if the debugging script has modified the state of the registers
+            _Bool fresh; // true if the registers have already been fetched for this state
+            unsigned char bool_padding[6];
             unsigned char padding0[32];
             struct reg_128 st[8];
             struct reg_128 xmm0[16];
@@ -87,6 +97,7 @@ if architecture == "x86_64":
             struct reg_128 ymm0[16];
             unsigned char padding3[64];
         };
+        #pragma pack(pop)
         """
 
         fpregs_define = """
@@ -99,14 +110,22 @@ if architecture == "x86_64":
             unsigned char data[16];
         };
 
+        // For details about the layout of the xsave structure, see Intel's Architecture Instruction Set Extensions Programming Reference
+        // Chapter 3.2.4 "The Layout of XSAVE Save Area"
+        // https://www.intel.com/content/dam/develop/external/us/en/documents/319433-024-697869.pdf
+        #pragma pack(push, 1)
         struct fp_regs_struct
         {
             unsigned long type;
+            _Bool dirty; // true if the debugging script has modified the state of the registers
+            _Bool fresh; // true if the registers have already been fetched for this state
+            unsigned char bool_padding[6];
             unsigned char padding0[32];
             struct reg_128 st[8];
             struct reg_128 xmm0[16];
             unsigned char padding1[96];
         };
+        #pragma pack(pop)
         """
 
         fpregs_define = """
@@ -289,10 +308,9 @@ else:
 
 
 ffibuilder = FFI()
-ffibuilder.cdef(
-    ptrace_regs_struct
-    + fp_regs_struct
-    + """
+ffibuilder.cdef(ptrace_regs_struct)
+ffibuilder.cdef(fp_regs_struct, packed=True)
+ffibuilder.cdef("""
     struct ptrace_hit_bp {
         int pid;
         uint64_t addr;
@@ -355,8 +373,8 @@ ffibuilder.cdef(
     uint64_t ptrace_pokeuser(int pid, uint64_t addr, uint64_t data);
 
     struct fp_regs_struct *get_thread_fp_regs(struct global_state *state, int tid);
-    void get_fp_regs(struct global_state *state, int tid);
-    void set_fp_regs(struct global_state *state, int tid);
+    void get_fp_regs(int tid, struct fp_regs_struct *fpregs);
+    void set_fp_regs(int tid, struct fp_regs_struct *fpregs);
 
     uint64_t ptrace_geteventmsg(int pid);
 

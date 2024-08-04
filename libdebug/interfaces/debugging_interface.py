@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
     from libdebug.data.memory_map import MemoryMap
+    from libdebug.data.registers import Registers
     from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.state.thread_context import ThreadContext
@@ -168,17 +169,17 @@ class DebuggingInterface(ABC):
         """
 
     @abstractmethod
-    def fetch_fp_registers(self: DebuggingInterface, thread_id: int) -> None:
+    def fetch_fp_registers(self: DebuggingInterface, registers: Registers) -> None:
         """Fetches the floating-point registers of the specified thread.
 
         Args:
-            thread_id (int): The thread to fetch.
+            registers (Registers): The registers instance to update.
         """
 
     @abstractmethod
-    def flush_fp_registers(self: DebuggingInterface, thread_id: int) -> None:
+    def flush_fp_registers(self: DebuggingInterface, registers: Registers) -> None:
         """Flushes the floating-point registers of the specified thread.
 
         Args:
-            thread_id (int): The thread to store.
+            registers (Registers): The registers instance to flush.
         """

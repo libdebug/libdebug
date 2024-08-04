@@ -37,7 +37,7 @@ class FloatingPointTest(unittest.TestCase):
 
         d.run()
 
-        bp1 = d.bp(0x40143e)
+        bp1 = d.bp(0x40143E)
         bp2 = d.bp(0x401467)
 
         d.cont()
@@ -66,7 +66,7 @@ class FloatingPointTest(unittest.TestCase):
         self.assertTrue(bp2.hit_on(d))
 
         for i in range(32):
-            val = randint(0, 2 ** 512 - 1)
+            val = randint(0, 2**512 - 1)
             setattr(d.regs, f"zmm{i}", val)
             self.assertEqual(getattr(d.regs, f"zmm{i}"), val)
 
@@ -146,10 +146,41 @@ class FloatingPointTest(unittest.TestCase):
         self.assertTrue(bp2.hit_on(d))
 
         for i in range(16):
-            val = randint(0, 2 ** 256 - 1)
+            val = randint(0, 2**256 - 1)
             setattr(d.regs, f"ymm{i}", val)
             self.assertEqual(getattr(d.regs, f"xmm{i}"), val & ((1 << 128) - 1))
             self.assertEqual(getattr(d.regs, f"ymm{i}"), val)
+
+        # validate that register states are correctly flushed and then restored
+        values = []
+
+        for i in range(16):
+            val = randint(0, 2**256 - 1)
+            setattr(d.regs, f"ymm{i}", val)
+            values.append(val)
+
+        d.step()
+
+        for i in range(16):
+            self.assertEqual(getattr(d.regs, f"ymm{i}"), values[i])
+
+        d.regs.ymm7 = 0xDEADBEEFDEADBEEF
+
+        for i in range(16):
+            if i == 7:
+                continue
+
+            self.assertEqual(getattr(d.regs, f"ymm{i}"), values[i])
+
+        d.step()
+
+        for i in range(16):
+            if i == 7:
+                continue
+
+            self.assertEqual(getattr(d.regs, f"ymm{i}"), values[i])
+
+        self.assertEqual(d.regs.ymm7, 0xDEADBEEFDEADBEEF)
 
         d.kill()
 
@@ -228,7 +259,7 @@ class FloatingPointTest(unittest.TestCase):
         self.assertTrue(bp2.hit_on(d))
 
         for i in range(16):
-            val = randint(0, 2 ** 128 - 1)
+            val = randint(0, 2**128 - 1)
             setattr(d.regs, f"xmm{i}", val)
             self.assertEqual(getattr(d.regs, f"xmm{i}"), val)
 
