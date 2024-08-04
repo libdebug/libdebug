@@ -29,28 +29,28 @@ class BacktraceTest(unittest.TestCase):
         d.cont()
 
         self.assertTrue(d.regs.pc == bp0.address)
-        backtrace = d.backtrace()
+        backtrace = d.backtrace(as_symbols=True)
         self.assertIn("_start", backtrace.pop())
         self.assertEqual(backtrace[:1], ["main+8"])
 
         d.cont()
 
         self.assertTrue(d.regs.pc == bp1.address)
-        backtrace = d.backtrace()
+        backtrace = d.backtrace(as_symbols=True)
         self.assertIn("_start", backtrace.pop())
         self.assertEqual(backtrace[:2], ["function1+8", "main+c"])
 
         d.cont()
 
         self.assertTrue(d.regs.pc == bp2.address)
-        backtrace = d.backtrace()
+        backtrace = d.backtrace(as_symbols=True)
         self.assertIn("_start", backtrace.pop())
         self.assertEqual(backtrace[:3], ["function2+8", "function1+10", "main+c"])
 
         d.cont()
 
         self.assertTrue(d.regs.pc == bp3.address)
-        backtrace = d.backtrace()
+        backtrace = d.backtrace(as_symbols=True)
         self.assertIn("_start", backtrace.pop())
         self.assertEqual(
             backtrace[:4], ["function3+8", "function2+18", "function1+10", "main+c"]
@@ -59,7 +59,7 @@ class BacktraceTest(unittest.TestCase):
         d.cont()
 
         self.assertTrue(d.regs.pc == bp4.address)
-        backtrace = d.backtrace()
+        backtrace = d.backtrace(as_symbols=True)
         self.assertIn("_start", backtrace.pop())
         self.assertEqual(
             backtrace[:5],
@@ -69,7 +69,7 @@ class BacktraceTest(unittest.TestCase):
         d.cont()
 
         self.assertTrue(d.regs.pc == bp5.address)
-        backtrace = d.backtrace()
+        backtrace = d.backtrace(as_symbols=True)
         self.assertIn("_start", backtrace.pop())
         self.assertEqual(
             backtrace[:6],
@@ -86,7 +86,7 @@ class BacktraceTest(unittest.TestCase):
         d.cont()
 
         self.assertTrue(d.regs.pc == bp6.address)
-        backtrace = d.backtrace()
+        backtrace = d.backtrace(as_symbols=True)
         self.assertIn("_start", backtrace.pop())
         self.assertEqual(
             backtrace[:7],
