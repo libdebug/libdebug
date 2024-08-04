@@ -226,7 +226,7 @@ elif architecture == "aarch64":
     {
         _Bool dirty; // true if the debugging script has modified the state of the registers
         _Bool fresh; // true if the registers have already been fetched for this state
-        unsigned char padding[2];
+        unsigned char bool_padding[2];
         struct reg_128 vregs[32];
         unsigned int fpsr;
         unsigned int fpcr;
