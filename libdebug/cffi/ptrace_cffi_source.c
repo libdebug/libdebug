@@ -461,6 +461,8 @@ void get_fp_regs(int tid, struct fp_regs_struct *fpregs)
     if (ptrace(PTRACE_GETREGSET, tid, NT_FPREGSET, &iov) == -1) {
         perror("ptrace_getregset_xstate");
     }
+
+    fpregs->fresh = 1;
 }
 
 void set_fp_regs(int tid, struct fp_regs_struct *fpregs)
@@ -473,6 +475,9 @@ void set_fp_regs(int tid, struct fp_regs_struct *fpregs)
     if (ptrace(PTRACE_SETREGSET, tid, NT_FPREGSET, &iov) == -1) {
         perror("ptrace_setregset_xstate");
     }
+
+    fpregs->dirty = 0;
+    fpregs->fresh = 0;
 }
 #endif
 
