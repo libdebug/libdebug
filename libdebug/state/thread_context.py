@@ -191,7 +191,7 @@ class ThreadContext:
     def print_backtrace(self: ThreadContext) -> None:
         """Prints the current backtrace of the thread."""
         self._internal_debugger._ensure_process_stopped()
-        stack_unwinder = stack_unwinding_provider()
+        stack_unwinder = stack_unwinding_provider(self._internal_debugger.arch)
         backtrace = stack_unwinder.unwind(self)
         maps = self._internal_debugger.debugging_interface.maps()
         for return_address in backtrace:
