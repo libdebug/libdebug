@@ -20,6 +20,7 @@ from scripts.callback_test import CallbackTest
 from scripts.catch_signal_test import CatchSignalTest
 from scripts.control_flow_test import ControlFlowTest
 from scripts.death_test import DeathTest
+from scripts.finish_test import FinishTest
 from scripts.floating_point_test import FloatingPointTest
 from scripts.handle_syscall_test import HandleSyscallTest
 from scripts.hijack_syscall_test import HijackSyscallTest
@@ -47,6 +48,7 @@ def fast_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(CatchSignalTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(ControlFlowTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(DeathTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(FinishTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(FloatingPointTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(HandleSyscallTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(HijackSyscallTest))
