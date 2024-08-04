@@ -818,6 +818,16 @@ int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps
         return -1;
     }
 
+    // remove any hardware breakpoint that might be set on the stepping thread
+    struct hardware_breakpoint *bp = state->hw_b_HEAD;
+
+    while (bp != NULL) {
+        if (bp->tid == tid && bp->enabled) {
+            remove_hardware_breakpoint(bp);
+        }
+        bp = bp->next;
+    }
+
     while (max_steps == -1 || count < max_steps) {
         if (ptrace(PTRACE_SINGLESTEP, tid, NULL, NULL)) return -1;
 
@@ -836,6 +846,16 @@ int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps
         if (INSTRUCTION_POINTER(stepping_thread->regs) == previous_ip) continue;
 
         count++;
+    }
+
+    // re-add the hardware breakpoints
+    bp = state->hw_b_HEAD;
+
+    while (bp != NULL) {
+        if (bp->tid == tid && bp->enabled) {
+            install_hardware_breakpoint(bp);
+        }
+        bp = bp->next;
     }
 
     return 0;
