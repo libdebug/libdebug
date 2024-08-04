@@ -462,20 +462,20 @@ void get_fp_regs(int tid, struct fp_regs_struct *fpregs)
 {
     struct iovec iov;
 
-    iov.iov_base = (unsigned char *)(fpregs);
-    iov.iov_len = sizeof(struct fp_regs_struct);
+    iov.iov_base = (unsigned char *)(fpregs) + offsetof(struct fp_regs_struct, vregs);
+    iov.iov_len = sizeof(struct fp_regs_struct) - offsetof(struct fp_regs_struct, vregs);
 
     if (ptrace(PTRACE_GETREGSET, tid, NT_FPREGSET, &iov) == -1) {
         perror("ptrace_getregset_xstate");
     }
 }
 
-void get_fp_regs(int tid, struct fp_regs_struct *fpregs)
+void set_fp_regs(int tid, struct fp_regs_struct *fpregs)
 {
     struct iovec iov;
 
-    iov.iov_base = (unsigned char *)(fpregs);
-    iov.iov_len = sizeof(struct fp_regs_struct);
+    iov.iov_base = (unsigned char *)(fpregs) + offsetof(struct fp_regs_struct, vregs);
+    iov.iov_len = sizeof(struct fp_regs_struct) - offsetof(struct fp_regs_struct, vregs);
 
     if (ptrace(PTRACE_SETREGSET, tid, NT_FPREGSET, &iov) == -1) {
         perror("ptrace_setregset_xstate");
