@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from libdebug.data.abstract_memory_view import AbstractMemoryView
+from libdebug.memory.abstract_memory_view import AbstractMemoryView
 
 if TYPE_CHECKING:
     from collections.abc import Callable

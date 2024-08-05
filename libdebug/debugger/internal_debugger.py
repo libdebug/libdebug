@@ -23,7 +23,6 @@ from libdebug.architectures.syscall_hijacking_provider import syscall_hijacking_
 from libdebug.builtin.antidebug_syscall_handler import on_enter_ptrace, on_exit_ptrace
 from libdebug.builtin.pretty_print_syscall_handler import pprint_on_enter, pprint_on_exit
 from libdebug.data.breakpoint import Breakpoint
-from libdebug.data.chunked_memory_view import ChunkedMemoryView
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
 from libdebug.debugger.internal_debugger_instance_manager import (
@@ -32,6 +31,9 @@ from libdebug.debugger.internal_debugger_instance_manager import (
 )
 from libdebug.interfaces.interface_helper import provide_debugging_interface
 from libdebug.liblog import liblog
+from libdebug.memory.chunked_memory_view import ChunkedMemoryView
+from libdebug.memory.direct_memory_view import DirectMemoryView
+from libdebug.memory.process_memory_manager import ProcessMemoryManager
 from libdebug.state.resume_context import ResumeContext
 from libdebug.utils.debugger_wrappers import (
     background_alias,
@@ -58,9 +60,9 @@ from libdebug.utils.syscall_utils import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from libdebug.data.abstract_memory_view import AbstractMemoryView
     from libdebug.data.memory_map import MemoryMap
     from libdebug.interfaces.debugging_interface import DebuggingInterface
+    from libdebug.memory.abstract_memory_view import AbstractMemoryView
     from libdebug.state.thread_context import ThreadContext
     from libdebug.utils.pipe_manager import PipeManager
 
@@ -82,6 +84,9 @@ class InternalDebugger:
 
     escape_antidebug: bool
     """A flag that indicates if the debugger should escape anti-debugging techniques."""
+
+    fast_memory: bool
+    """A flag that indicates if the debugger should use a faster memory reading method."""
 
     autoreach_entrypoint: bool
     """A flag that indicates if the debugger should automatically reach the entry point of the debugged process."""
@@ -167,6 +172,7 @@ class InternalDebugger:
         self.instanced = False
         self._is_running = False
         self.resume_context = ResumeContext()
+        self._process_memory_manager = ProcessMemoryManager()
         self.__polling_thread_command_queue = Queue()
         self.__polling_thread_response_queue = Queue()
 
@@ -195,7 +201,10 @@ class InternalDebugger:
         self.start_processing_thread()
         with extend_internal_debugger(self):
             self.debugging_interface = provide_debugging_interface()
-            self.memory = ChunkedMemoryView(self._peek_memory, self._poke_memory)
+            if self.fast_memory:
+                self.memory = DirectMemoryView(self._fast_read_memory, self._fast_write_memory)
+            else:
+                self.memory = ChunkedMemoryView(self._peek_memory, self._poke_memory)
 
     def start_processing_thread(self: InternalDebugger) -> None:
         """Starts the thread that will poll the traced process for state change."""
@@ -247,6 +256,9 @@ class InternalDebugger:
         if not self.pipe_manager:
             raise RuntimeError("Something went wrong during pipe initialization.")
 
+        if self.fast_memory:
+            self._process_memory_manager.open(self.process_id)
+
         return self.pipe_manager
 
     def attach(self: InternalDebugger, pid: int) -> None:
@@ -265,6 +277,9 @@ class InternalDebugger:
 
         self.__polling_thread_command_queue.put((self.__threaded_attach, (pid,)))
 
+        if self.fast_memory:
+            self._process_memory_manager.open(self.process_id)
+
         self._join_and_check_status()
 
     def detach(self: InternalDebugger) -> None:
@@ -278,6 +293,9 @@ class InternalDebugger:
 
         self._join_and_check_status()
 
+        if self.fast_memory:
+            self._process_memory_manager.close()
+
     @background_alias(_background_invalid_call)
     def kill(self: InternalDebugger) -> None:
         """Kills the process."""
@@ -286,6 +304,9 @@ class InternalDebugger:
         except (OSError, RuntimeError):
             # This exception might occur if the process has already died
             liblog.debugger("OSError raised during kill")
+
+        if self.fast_memory:
+            self._process_memory_manager.close()
 
         self.__polling_thread_command_queue.put((self.__threaded_kill, ()))
 
@@ -1331,6 +1352,22 @@ class InternalDebugger:
 
         return value
 
+    def _fast_read_memory(self: InternalDebugger, address: int, size: int) -> bytes:
+        """Reads memory from the process."""
+        if not self.instanced:
+            raise RuntimeError("Process not running, cannot step.")
+
+        if self.running:
+            # Reading memory while the process is running could lead to concurrency issues
+            # and corrupted values
+            liblog.debugger(
+                "Process is running. Waiting for it to stop before reading memory.",
+            )
+
+        self._ensure_process_stopped()
+
+        return self._process_memory_manager.read(address, size)
+
     @background_alias(__threaded_poke_memory)
     def _poke_memory(self: InternalDebugger, address: int, data: bytes) -> None:
         """Writes memory to the process."""
@@ -1351,6 +1388,22 @@ class InternalDebugger:
         )
 
         self._join_and_check_status()
+
+    def _fast_write_memory(self: InternalDebugger, address: int, data: bytes) -> None:
+        """Writes memory to the process."""
+        if not self.instanced:
+            raise RuntimeError("Process not running, cannot step.")
+
+        if self.running:
+            # Reading memory while the process is running could lead to concurrency issues
+            # and corrupted values
+            liblog.debugger(
+                "Process is running. Waiting for it to stop before writing to memory.",
+            )
+
+        self._ensure_process_stopped()
+
+        self._process_memory_manager.write(address, data)
 
     def _enable_antidebug_escaping(self: InternalDebugger) -> None:
         """Enables the anti-debugging escape mechanism."""
