@@ -25,7 +25,7 @@ class DirectMemoryView(AbstractMemoryView):
 
     def __init__(
         self: DirectMemoryView,
-        getter: Callable[[int], bytes],
+        getter: Callable[[int, int], bytes],
         setter: Callable[[int, bytes], None],
         align_to: int = 1,
     ) -> None:
