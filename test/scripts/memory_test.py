@@ -286,6 +286,26 @@ class MemoryTest(unittest.TestCase):
 
         d.kill()
 
+    def test_memory_large_read(self):
+        d = debugger("binaries/memory_test_3")
+
+        d.run()
+
+        bp = d.bp("do_nothing")
+
+        d.cont()
+
+        assert bp.hit_on(d)
+
+        leak = d.regs.rdi
+
+        # Read 64K of memory
+        data = d.memory[leak, 256 * 1024]
+
+        assert data == b"".join(x.to_bytes(4, "little") for x in range(64 * 1024))
+
+        d.kill()
+        d.terminate()
 
 if __name__ == "__main__":
     unittest.main()

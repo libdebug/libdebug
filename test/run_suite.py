@@ -63,6 +63,7 @@ def fast_suite():
     suite.addTest(MemoryTest("test_memory_multiple_runs"))
     suite.addTest(MemoryTest("test_memory_access_while_running"))
     suite.addTest(MemoryTest("test_memory_access_methods"))
+    suite.addTest(MemoryTest("test_memory_large_read"))
     suite.addTest(HwBasicTest("test_basic"))
     suite.addTest(HwBasicTest("test_registers"))
     suite.addTest(BacktraceTest("test_backtrace_as_symbols"))
