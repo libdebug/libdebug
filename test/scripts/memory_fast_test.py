@@ -1,33 +1,17 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2024 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-import io
-import logging
 import unittest
 
 from libdebug import debugger, libcontext
 
 
-class MemoryTest(unittest.TestCase):
-    def setUp(self) -> None:
-        self.d = debugger("binaries/memory_test")
-
-        # Redirect logging to a string buffer
-        self.log_capture_string = io.StringIO()
-        self.log_handler = logging.StreamHandler(self.log_capture_string)
-        self.log_handler.setLevel(logging.WARNING)
-
-        self.logger = logging.getLogger("libdebug")
-        self.original_handlers = self.logger.handlers
-        self.logger.handlers = []
-        self.logger.addHandler(self.log_handler)
-        self.logger.setLevel(logging.WARNING)
-
+class MemoryFastTest(unittest.TestCase):
     def test_memory(self):
-        d = self.d
+        d = debugger("binaries/memory_test", fast_memory=True)
 
         d.run()
 
@@ -48,9 +32,10 @@ class MemoryTest(unittest.TestCase):
         self.assertTrue(d.memory[address : address + 256] == prev)
 
         d.kill()
+        d.terminate()
 
     def test_mem_access_libs(self):
-        d = self.d
+        d = debugger("binaries/memory_test", fast_memory=True)
 
         d.run()
 
@@ -70,9 +55,10 @@ class MemoryTest(unittest.TestCase):
         self.assertTrue(p64(address - 0x10) in arena)
 
         d.kill()
+        d.terminate()
 
     def test_memory_exceptions(self):
-        d = self.d
+        d = debugger("binaries/memory_test", fast_memory=True)
 
         d.run()
 
@@ -99,9 +85,10 @@ class MemoryTest(unittest.TestCase):
         self.assertTrue(d.memory[address : address + 256] == prev)
 
         d.kill()
+        d.terminate()
 
     def test_memory_multiple_runs(self):
-        d = self.d
+        d = debugger("binaries/memory_test", fast_memory=True)
 
         for _ in range(10):
             d.run()
@@ -124,8 +111,10 @@ class MemoryTest(unittest.TestCase):
 
             d.kill()
 
+        d.terminate()
+
     def test_memory_access_while_running(self):
-        d = debugger("binaries/memory_test_2")
+        d = debugger("binaries/memory_test_2", fast_memory=True)
 
         d.run()
 
@@ -139,9 +128,10 @@ class MemoryTest(unittest.TestCase):
         self.assertEqual(d.regs.rip, bp.address)
 
         d.kill()
+        d.terminate()
 
     def test_memory_access_methods(self):
-        d = debugger("binaries/memory_test_2")
+        d = debugger("binaries/memory_test_2", fast_memory=True)
 
         d.run()
 
@@ -207,9 +197,10 @@ class MemoryTest(unittest.TestCase):
         self.assertEqual(d.memory["main", 8], b"abcd1234")
 
         d.kill()
+        d.terminate()
 
     def test_memory_access_methods_backing_file(self):
-        d = debugger("binaries/memory_test_2")
+        d = debugger("binaries/memory_test_2", fast_memory=True)
 
         d.run()
 
@@ -285,9 +276,10 @@ class MemoryTest(unittest.TestCase):
             d.memory["main":"main+8", "absolute"] = b"abcd1234"
 
         d.kill()
+        d.terminate()
 
     def test_memory_large_read(self):
-        d = debugger("binaries/memory_test_3")
+        d = debugger("binaries/memory_test_3", fast_memory=True)
 
         d.run()
 
@@ -299,13 +291,10 @@ class MemoryTest(unittest.TestCase):
 
         leak = d.regs.rdi
 
-        # Read 256K of memory
-        data = d.memory[leak, 256 * 1024]
+        # Read 4MB of memory
+        data = d.memory[leak, 4 * 1024 * 1024]
 
-        assert data == b"".join(x.to_bytes(4, "little") for x in range(64 * 1024))
+        assert data == b"".join(x.to_bytes(4, "little") for x in range(1024 * 1024))
 
         d.kill()
         d.terminate()
-
-if __name__ == "__main__":
-    unittest.main()
