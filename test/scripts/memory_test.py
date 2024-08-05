@@ -307,5 +307,25 @@ class MemoryTest(unittest.TestCase):
         d.kill()
         d.terminate()
 
+    def test_invalid_memory_location(self):
+        d = debugger("binaries/memory_test")
+
+        d.run()
+
+        bp = d.bp("change_memory")
+
+        d.cont()
+
+        assert d.regs.rip == bp.address
+
+        address = 0xDEADBEEFD00D
+
+        with self.assertRaises(ValueError):
+            d.memory[address, 256, "absolute"]
+
+        d.kill()
+        d.terminate()
+
+
 if __name__ == "__main__":
     unittest.main()
