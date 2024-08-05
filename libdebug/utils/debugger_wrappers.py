@@ -40,7 +40,10 @@ def change_state_function_thread(method: callable) -> callable:
 
     @wraps(method)
     def wrapper(
-        self: InternalDebugger, thread: ThreadContext, *args: ..., **kwargs: ...
+        self: InternalDebugger,
+        thread: ThreadContext,
+        *args: ...,
+        **kwargs: ...,
     ) -> ...:
         if not self.instanced:
             raise RuntimeError(

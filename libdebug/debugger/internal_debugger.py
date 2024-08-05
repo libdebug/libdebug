@@ -23,7 +23,7 @@ from libdebug.architectures.syscall_hijacking_provider import syscall_hijacking_
 from libdebug.builtin.antidebug_syscall_handler import on_enter_ptrace, on_exit_ptrace
 from libdebug.builtin.pretty_print_syscall_handler import pprint_on_enter, pprint_on_exit
 from libdebug.data.breakpoint import Breakpoint
-from libdebug.data.memory_view import MemoryView
+from libdebug.data.chunked_memory_view import ChunkedMemoryView
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
 from libdebug.debugger.internal_debugger_instance_manager import (
@@ -58,6 +58,7 @@ from libdebug.utils.syscall_utils import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from libdebug.data.abstract_memory_view import AbstractMemoryView
     from libdebug.data.memory_map import MemoryMap
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.state.thread_context import ThreadContext
@@ -118,7 +119,7 @@ class InternalDebugger:
     pipe_manager: PipeManager
     """The pipe manager used to communicate with the debugged process."""
 
-    memory: MemoryView
+    memory: AbstractMemoryView
     """The memory view of the debugged process."""
 
     debugging_interface: DebuggingInterface
@@ -188,14 +189,13 @@ class InternalDebugger:
 
     def start_up(self: InternalDebugger) -> None:
         """Starts up the context."""
-
         # The context is linked to itself
         link_to_internal_debugger(self, self)
 
         self.start_processing_thread()
         with extend_internal_debugger(self):
             self.debugging_interface = provide_debugging_interface()
-            self.memory = MemoryView(self._peek_memory, self._poke_memory)
+            self.memory = ChunkedMemoryView(self._peek_memory, self._poke_memory)
 
     def start_processing_thread(self: InternalDebugger) -> None:
         """Starts the thread that will poll the traced process for state change."""
@@ -470,15 +470,15 @@ class InternalDebugger:
         match signal_number:
             case SIGKILL.value:
                 raise ValueError(
-                    f"Cannot catch SIGKILL ({signal_number}) as it cannot be caught or ignored. This is a kernel restriction."
+                    f"Cannot catch SIGKILL ({signal_number}) as it cannot be caught or ignored. This is a kernel restriction.",
                 )
             case SIGSTOP.value:
                 raise ValueError(
-                    f"Cannot catch SIGSTOP ({signal_number}) as it is used by the debugger or ptrace for their internal operations."
+                    f"Cannot catch SIGSTOP ({signal_number}) as it is used by the debugger or ptrace for their internal operations.",
                 )
             case SIGTRAP.value:
                 raise ValueError(
-                    f"Cannot catch SIGTRAP ({signal_number}) as it is used by the debugger or ptrace for their internal operations."
+                    f"Cannot catch SIGTRAP ({signal_number}) as it is used by the debugger or ptrace for their internal operations.",
                 )
 
         if signal_number in self.caught_signals:
@@ -671,7 +671,6 @@ class InternalDebugger:
     @change_state_function_process
     def gdb(self: InternalDebugger, open_in_new_process: bool = True) -> None:
         """Migrates the current debugging session to GDB."""
-
         # TODO: not needed?
         self.interrupt()
 
@@ -1056,7 +1055,7 @@ class InternalDebugger:
 
         if not filtered_maps:
             raise ValueError(
-                f"The specified string {backing_file} does not correspond to any backing file. The available backing files are: {', '.join(set(vmap.backing_file for vmap in maps))}."
+                f"The specified string {backing_file} does not correspond to any backing file. The available backing files are: {', '.join(set(vmap.backing_file for vmap in maps))}.",
             )
         return normalize_and_validate_address(address, filtered_maps)
 
@@ -1101,7 +1100,7 @@ class InternalDebugger:
 
         if not filtered_maps:
             raise ValueError(
-                f"The specified string {backing_file} does not correspond to any backing file. The available backing files are: {', '.join(set(vmap.backing_file for vmap in maps))}."
+                f"The specified string {backing_file} does not correspond to any backing file. The available backing files are: {', '.join(set(vmap.backing_file for vmap in maps))}.",
             )
 
         return resolve_symbol_in_maps(symbol, filtered_maps)

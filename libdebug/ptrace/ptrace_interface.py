@@ -221,7 +221,6 @@ class PtraceInterface(DebuggingInterface):
 
     def cont(self: PtraceInterface) -> None:
         """Continues the execution of the process."""
-
         # Forward signals to the threads
         if self._internal_debugger.resume_context.threads_with_signals_to_forward:
             self.forward_signal()
