@@ -360,7 +360,7 @@ class PtraceInterface(DebuggingInterface):
             raise ValueError(f"Unimplemented heuristic {heuristic}")
 
     def next(self: PtraceInterface, thread: ThreadContext) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the function returns.
+        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
         """
 
         opcode_window = thread.memory.read(thread.regs.rip, 8)
@@ -373,14 +373,11 @@ class PtraceInterface(DebuggingInterface):
 
             # If a breakpoint already exists at the return address, we don't need to set a new one
             found = False
-            ip_breakpoint = None
+            ip_breakpoint = self._internal_debugger.breakpoints.get(skip_address)  
 
-            for bp in self._internal_debugger.breakpoints.values():
-                if bp.address == skip_address:
-                    found = True
-                    ip_breakpoint = bp
-                    break
-
+            if ip_breakpoint is not None:
+                found = True
+            
             # If we find an existing breakpoint that is disabled, we enable it
             # but we need to disable it back after the command
             should_disable = False
