@@ -554,8 +554,14 @@ void enable_breakpoint(struct global_state *state, uint64_t address)
     while (b != NULL) {
         if (b->addr == address) {
             b->enabled = 1;
+            break;
         }
         b = b->next;
+    }
+
+    // Patch the instruction with the breakpoint
+    if (b != NULL) {
+        ptrace(PTRACE_POKEDATA, state->t_HEAD->tid, (void *)address, b->patched_instruction);
     }
 }
 
@@ -566,8 +572,14 @@ void disable_breakpoint(struct global_state *state, uint64_t address)
     while (b != NULL) {
         if (b->addr == address) {
             b->enabled = 0;
+            break;
         }
         b = b->next;
+    }
+
+    // Restore the original instruction
+    if (b != NULL) {
+        ptrace(PTRACE_POKEDATA, state->t_HEAD->tid, (void *)address, b->instruction);
     }
 }
 

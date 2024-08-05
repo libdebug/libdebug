@@ -1,5 +1,6 @@
 prune media
 prune test
 prune docs
+prune examples
 prune .github
 prune */__pycache__

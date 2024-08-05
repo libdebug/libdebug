@@ -9,6 +9,9 @@
 
 ----
 
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.13151549.svg
+  :target: https://doi.org/10.5281/zenodo.13151549
+
 Quick Start
 ====================================
 Welcome to libdebug! This powerful Python library can be used to debug your binary executables programmatically, providing a robust, user-friendly interface.
@@ -119,6 +122,22 @@ Examples of some known issues include:
     This behavior is described in https://github.com/libdebug/libdebug/issues/48.
 - Attaching libdebug to a process that was started with pwntools with ``shell=True`` will cause the process to attach to the shell process instead.
     This behavior is described in https://github.com/libdebug/libdebug/issues/57.
+
+Cite Us
+-------
+Need to cite libdebug in your research? Use the following BibTeX entry:
+
+.. code-block:: bibtex
+
+    @software{libdebug_2024,
+        title = {libdebug: {Build} {Your} {Own} {Debugger}},
+        copyright = {MIT Licence},
+        url = {https://libdebug.org},
+        publisher = {libdebug.org},
+        author = {Digregorio, Gabriele and Bertolini, Roberto Alessandro and Panebianco, Francesco and Polino, Mario},
+        year = {2024},
+        doi = {10.5281/zenodo.13151549},
+    }
 
 .. toctree::
     :maxdepth: 2

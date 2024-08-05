@@ -378,6 +378,75 @@ class BreakpointTest(unittest.TestCase):
 
         d.kill()
 
+    def test_bp_disable_on_creation(self):
+        d = debugger("binaries/breakpoint_test")
+
+        d.run()
+
+        bp1 = d.bp("random_function")
+        bp2 = d.bp(0x40119c)
+        bp1.disable()
+
+        d.cont()
+
+        assert not bp1.hit_on(d)
+        assert bp2.hit_on(d)
+
+        d.kill()
+        d.terminate()
+
+    def test_bp_disable_on_creation_2(self):
+        d = debugger("binaries/breakpoint_test")
+
+        d.run()
+
+        bp = d.bp("random_function")
+
+        bp.disable()
+
+        d.cont()
+        d.wait()
+
+        # Validate we didn't segfault
+        assert d.dead and d.exit_signal is None
+
+        d.kill()
+        d.terminate()
+
+    def test_bp_disable_on_creation_hardware(self):
+        d = debugger("binaries/breakpoint_test")
+
+        d.run()
+
+        bp1 = d.bp("random_function", hardware=True)
+        bp2 = d.bp(0x40119c)
+        bp1.disable()
+
+        d.cont()
+
+        assert not bp1.hit_on(d)
+        assert bp2.hit_on(d)
+
+        d.kill()
+        d.terminate()
+
+    def test_bp_disable_on_creation_2_hardware(self):
+        d = debugger("binaries/breakpoint_test")
+
+        d.run()
+
+        bp = d.bp("random_function", hardware=True)
+
+        bp.disable()
+
+        d.cont()
+        d.wait()
+
+        # Validate we didn't segfault
+        assert d.dead and d.exit_signal is None
+
+        d.kill()
+        d.terminate()
 
 if __name__ == "__main__":
     unittest.main()

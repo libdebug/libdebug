@@ -15,31 +15,46 @@ class WatchpointTest(unittest.TestCase):
 
         d.run()
 
-        d.breakpoint("global_char", hardware=True, condition="rw", length=1)
-        d.breakpoint("global_int", hardware=True, condition="w", length=4)
-        d.breakpoint("global_long", hardware=True, condition="rw", length=8)
+        wp_char = d.breakpoint("global_char", hardware=True, condition="rw", length=1)
+        wp_int = d.breakpoint("global_int", hardware=True, condition="w", length=4)
+        wp_long = d.breakpoint("global_long", hardware=True, condition="rw", length=8)
 
         d.cont()
 
         self.assertEqual(d.regs.rip, 0x401111)  # mov byte ptr [global_char], 0x1
+        self.assertEqual(wp_char.hit_count, 1)
+        self.assertEqual(wp_int.hit_count, 0)
+        self.assertEqual(wp_long.hit_count, 0)
 
         d.cont()
 
         self.assertEqual(d.regs.rip, 0x401124)  # mov dword ptr [global_int], 0x4050607
+        self.assertEqual(wp_char.hit_count, 1)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_long.hit_count, 0)
 
         d.cont()
 
         self.assertEqual(
             d.regs.rip, 0x401135
         )  # mov qword ptr [global_long], 0x8090a0b0c0d0e0f
+        self.assertEqual(wp_char.hit_count, 1)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_long.hit_count, 1)
 
         d.cont()
 
         self.assertEqual(d.regs.rip, 0x401155)  # movzx eax, byte ptr [global_char]
+        self.assertEqual(wp_char.hit_count, 2)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_long.hit_count, 1)
 
         d.cont()
 
         self.assertEqual(d.regs.rip, 0x401173)  # mov rax, qword ptr [global_long]
+        self.assertEqual(wp_char.hit_count, 2)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_long.hit_count, 2)
 
         d.cont()
 
@@ -120,3 +135,97 @@ class WatchpointTest(unittest.TestCase):
 
         # There is one extra hit performed by the exit routine of libc
         self.assertEqual(wp3.hit_count, 3)
+
+    def test_watchpoint_disable(self):
+        d = debugger("binaries/watchpoint_test", auto_interrupt_on_command=False)
+
+        d.run()
+
+        wp_char = d.breakpoint("global_char", hardware=True, condition="rw", length=1)
+        wp_int = d.breakpoint("global_int", hardware=True, condition="w", length=4)
+        wp_long = d.breakpoint("global_long", hardware=True, condition="rw", length=8)
+
+        d.cont()
+
+        self.assertEqual(d.regs.rip, 0x401111)  # mov byte ptr [global_char], 0x1
+        self.assertEqual(wp_char.hit_count, 1)
+        self.assertEqual(wp_int.hit_count, 0)
+        self.assertEqual(wp_long.hit_count, 0)
+
+        d.cont()
+
+        self.assertEqual(d.regs.rip, 0x401124)  # mov dword ptr [global_int], 0x4050607
+        self.assertEqual(wp_char.hit_count, 1)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_long.hit_count, 0)
+
+        d.cont()
+
+        self.assertEqual(
+            d.regs.rip, 0x401135
+        )  # mov qword ptr [global_long], 0x8090a0b0c0d0e0f
+        self.assertEqual(wp_char.hit_count, 1)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_long.hit_count, 1)
+
+        # disable watchpoint
+        wp_char.disable()
+
+        d.cont()
+
+        self.assertEqual(d.regs.rip, 0x401173)  # mov rax, qword ptr [global_long]
+        self.assertEqual(wp_char.hit_count, 1)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_long.hit_count, 2)
+
+        d.cont()
+
+        d.kill()
+
+    def test_watchpoint_disable_reenable(self):
+        d = debugger("binaries/watchpoint_test", auto_interrupt_on_command=False)
+
+        d.run()
+
+        wp_char = d.breakpoint("global_char", hardware=True, condition="rw", length=1)
+        wp_int = d.breakpoint("global_int", hardware=True, condition="w", length=4)
+        wp_long = d.breakpoint("global_long", hardware=True, condition="rw", length=8)
+
+        d.cont()
+
+        self.assertEqual(d.regs.rip, 0x401111)  # mov byte ptr [global_char], 0x1
+        self.assertEqual(wp_char.hit_count, 1)
+        self.assertEqual(wp_int.hit_count, 0)
+        self.assertEqual(wp_long.hit_count, 0)
+
+        d.cont()
+
+        self.assertEqual(d.regs.rip, 0x401124)  # mov dword ptr [global_int], 0x4050607
+        self.assertEqual(wp_char.hit_count, 1)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_long.hit_count, 0)
+
+        # disable watchpoint
+        wp_long.disable()
+
+        d.cont()
+
+
+        self.assertEqual(d.regs.rip, 0x401155)  # movzx eax, byte ptr [global_char]
+        self.assertEqual(wp_char.hit_count, 2)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_long.hit_count, 0)
+
+        # re-enable watchpoint
+        wp_long.enable()
+
+        d.cont()
+
+        self.assertEqual(d.regs.rip, 0x401173)  # mov rax, qword ptr [global_long]
+        self.assertEqual(wp_char.hit_count, 2)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_long.hit_count, 1)
+
+        d.cont()
+
+        d.kill()
