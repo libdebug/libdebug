@@ -892,14 +892,14 @@ class InternalDebugger:
         self: InternalDebugger,
         thread: ThreadContext,
     ) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the function returns.
+        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
         """
         self.__threaded_next(thread)
 
     @background_alias(_background_next)
     @change_state_function_thread
     def next(self: InternalDebugger, thread: ThreadContext) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the function returns.
+        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
         """
         self._ensure_process_stopped()
         self.__polling_thread_command_queue.put((self.__threaded_next, (thread,)))

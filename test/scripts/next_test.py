@@ -35,7 +35,6 @@ class NextTest(unittest.TestCase):
         # ------------------------ #
 
         # Reach call of function c
-
         d.next()
         self.assertEqual(d.regs.rip, CALL_C_ADDRESS)
 

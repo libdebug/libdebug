@@ -247,7 +247,7 @@ class ThreadContext:
         self._internal_debugger.finish(self, heuristic=heuristic)
 
     def next(self: ThreadContext) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the function returns.
+        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
         """
         self._internal_debugger.next(self)
 
@@ -286,6 +286,6 @@ class ThreadContext:
         self._internal_debugger.finish(self, heuristic)
 
     def ni(self: ThreadContext) -> None:
-        """Alias for the `next` method. Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the function returns.
+        """Alias for the `next` method. Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
         """
         self._internal_debugger.next(self)

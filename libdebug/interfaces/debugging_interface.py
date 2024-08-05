@@ -95,7 +95,7 @@ class DebuggingInterface(ABC):
         """
 
     def next(self: DebuggingInterface, thread: ThreadContext) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the function returns.
+        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
         """
 
     @abstractmethod
