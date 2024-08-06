@@ -8,6 +8,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include <semaphore.h>
+
+sem_t semaphores[4];
+sem_t leaks_done;
 
 void leak(char *ptr)
 {
@@ -34,6 +38,10 @@ void* thread_fun(void *arg)
 
     leak(test);
     leak(test_ptr);
+
+    sem_post(&leaks_done);
+
+    sem_wait(&semaphores[thread_index]);
 }
 
 int main()
@@ -41,13 +49,23 @@ int main()
     // allocate four threads
     pthread_t threads[4];
 
-    for (int i = 0; i < 4; i++)
+    sem_init(&leaks_done, 0, 0);
+
+    for (int i = 0; i < 4; i++) {
+        sem_init(&semaphores[i], 0, 0);
         pthread_create(&threads[i], NULL, thread_fun, (void *) ((unsigned long) i));
+    }
+
+    for (int i = 0; i < 4; i++)
+        sem_wait(&leaks_done);
+
+    before_exit();
+
+    for (int i = 0; i < 4; i++)
+        sem_post(&semaphores[i]);
 
     for (int i = 0; i < 4; i++)
         pthread_join(threads[i], NULL);
-
-    before_exit();
 
     return 0;
 }
