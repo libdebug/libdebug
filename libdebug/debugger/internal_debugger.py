@@ -1351,7 +1351,7 @@ class InternalDebugger:
     def _peek_memory(self: InternalDebugger, address: int) -> bytes:
         """Reads memory from the process."""
         if not self.instanced:
-            raise RuntimeError("Process not running, cannot step.")
+            raise RuntimeError("Process not running, cannot access memory.")
 
         if self.running:
             # Reading memory while the process is running could lead to concurrency issues
@@ -1380,7 +1380,7 @@ class InternalDebugger:
     def _fast_read_memory(self: InternalDebugger, address: int, size: int) -> bytes:
         """Reads memory from the process."""
         if not self.instanced:
-            raise RuntimeError("Process not running, cannot step.")
+            raise RuntimeError("Process not running, cannot access memory.")
 
         if self.running:
             # Reading memory while the process is running could lead to concurrency issues
@@ -1397,7 +1397,7 @@ class InternalDebugger:
     def _poke_memory(self: InternalDebugger, address: int, data: bytes) -> None:
         """Writes memory to the process."""
         if not self.instanced:
-            raise RuntimeError("Process not running, cannot step.")
+            raise RuntimeError("Process not running, cannot access memory.")
 
         if self.running:
             # Reading memory while the process is running could lead to concurrency issues
@@ -1417,7 +1417,7 @@ class InternalDebugger:
     def _fast_write_memory(self: InternalDebugger, address: int, data: bytes) -> None:
         """Writes memory to the process."""
         if not self.instanced:
-            raise RuntimeError("Process not running, cannot step.")
+            raise RuntimeError("Process not running, cannot access memory.")
 
         if self.running:
             # Reading memory while the process is running could lead to concurrency issues
@@ -1434,7 +1434,7 @@ class InternalDebugger:
     def _fetch_fp_registers(self: InternalDebugger, registers: Registers) -> None:
         """Fetches the floating point registers of a thread."""
         if not self.instanced:
-            raise RuntimeError("Process not running, cannot step.")
+            raise RuntimeError("Process not running, cannot read floating-point registers.")
 
         self._ensure_process_stopped()
 
@@ -1448,7 +1448,7 @@ class InternalDebugger:
     def _flush_fp_registers(self: InternalDebugger, registers: Registers) -> None:
         """Flushes the floating point registers of a thread."""
         if not self.instanced:
-            raise RuntimeError("Process not running, cannot step.")
+            raise RuntimeError("Process not running, cannot write floating-point registers.")
 
         self._ensure_process_stopped()
 
