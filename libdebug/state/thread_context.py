@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2024 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 from __future__ import annotations
@@ -205,7 +205,13 @@ class ThreadContext:
         """Returns the return address of the current function."""
         self._internal_debugger._ensure_process_stopped()
         stack_unwinder = stack_unwinding_provider()
-        return stack_unwinder.get_return_address(self)
+        
+        try:
+            return_address = stack_unwinder.get_return_address(self)
+        except (OSError, ValueError) as e:
+            raise ValueError("Failed to get the return address. Check stack frame registers (e.g., base pointer).") from e
+        
+        return return_address
 
     def step(self: ThreadContext) -> None:
         """Executes a single instruction of the process."""
@@ -240,6 +246,11 @@ class ThreadContext:
         """
         self._internal_debugger.finish(self, heuristic=heuristic)
 
+    def next(self: ThreadContext) -> None:
+        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
+        """
+        self._internal_debugger.next(self)
+
     def si(self: ThreadContext) -> None:
         """Alias for the `step` method.
 
@@ -273,3 +284,8 @@ class ThreadContext:
             heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
         """
         self._internal_debugger.finish(self, heuristic)
+
+    def ni(self: ThreadContext) -> None:
+        """Alias for the `next` method. Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
+        """
+        self._internal_debugger.next(self)
