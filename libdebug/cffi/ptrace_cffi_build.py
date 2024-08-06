@@ -49,10 +49,10 @@ if platform.machine() == "x86_64":
     #define IS_SW_BREAKPOINT(instruction) (instruction == 0xCC)
     """
 
-    finish_define = """
+    control_flow_define = """
+    // X86_64 Architecture specific
     #define IS_RET_INSTRUCTION(instruction) (instruction == 0xC3 || instruction == 0xCB || instruction == 0xC2 || instruction == 0xCA)
     
-    // X86_64 Architecture specific
     int IS_CALL_INSTRUCTION(uint8_t* instr)
     {
         // Check for direct CALL (E8 xx xx xx xx)
@@ -74,6 +74,8 @@ if platform.machine() == "x86_64":
         return 0; // Not a CALL
     }
     """
+
+
 else:
     raise NotImplementedError(f"Architecture {platform.machine()} not available.")
 
@@ -159,7 +161,7 @@ ffibuilder.cdef(
 with open("libdebug/cffi/ptrace_cffi_source.c") as f:
     ffibuilder.set_source(
         "libdebug.cffi._ptrace_cffi",
-        breakpoint_define + finish_define + f.read(),
+        breakpoint_define + control_flow_define + f.read(),
         libraries=[],
     )
 

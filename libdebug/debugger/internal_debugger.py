@@ -888,6 +888,23 @@ class InternalDebugger:
 
         self._join_and_check_status()
 
+    def _background_next(
+        self: InternalDebugger,
+        thread: ThreadContext,
+    ) -> None:
+        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
+        """
+        self.__threaded_next(thread)
+
+    @background_alias(_background_next)
+    @change_state_function_thread
+    def next(self: InternalDebugger, thread: ThreadContext) -> None:
+        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
+        """
+        self._ensure_process_stopped()
+        self.__polling_thread_command_queue.put((self.__threaded_next, (thread,)))
+        self._join_and_check_status()
+
     def enable_pretty_print(
         self: InternalDebugger,
     ) -> SyscallHandler:
@@ -1285,6 +1302,11 @@ class InternalDebugger:
         liblog.debugger(f"{prefix} finish on thread %s", thread.thread_id)
         self.debugging_interface.finish(thread, heuristic=heuristic)
 
+        self.set_stopped()
+
+    def __threaded_next(self: InternalDebugger, thread: ThreadContext) -> None:
+        liblog.debugger("Next on thread %s.", thread.thread_id)
+        self.debugging_interface.next(thread)
         self.set_stopped()
 
     def __threaded_gdb(self: InternalDebugger) -> None:

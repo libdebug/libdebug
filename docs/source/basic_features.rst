@@ -219,6 +219,15 @@ The available heuristics are:
 
 The default heuristic when none is specified is "backtrace".
 
+Next
+^^^^
+
+The `next` command is similar to the `step` command, but when a ``call`` instruction is found, it will continue until the end of the function being called or until the process stops for other reasons. The syntax is as follows:
+
+.. code-block:: python
+
+    d.next()
+
 Detach and GDB Migration
 ====================================
 

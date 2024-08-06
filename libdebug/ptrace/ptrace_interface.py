@@ -17,6 +17,7 @@ from libdebug.architectures.ptrace_hardware_breakpoint_provider import (
     ptrace_hardware_breakpoint_manager_provider,
 )
 from libdebug.architectures.register_helper import register_holder_provider
+from libdebug.architectures.call_utilities_provider import call_utilities_provider
 from libdebug.cffi import _ptrace_cffi
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.debugger.internal_debugger_instance_manager import (
@@ -331,6 +332,10 @@ class PtraceInterface(DebuggingInterface):
                     ip_breakpoint = bp
                     break
 
+            # If we find an existing breakpoint that is disabled, we enable it
+            # but we need to disable it back after the command
+            should_disable = False
+
             if not found:
                 # Check if we have enough hardware breakpoints available
                 # Otherwise we use a software breakpoint
@@ -340,6 +345,7 @@ class PtraceInterface(DebuggingInterface):
                 self.set_breakpoint(ip_breakpoint)
             elif not ip_breakpoint.enabled:
                 self._enable_breakpoint(ip_breakpoint)
+                should_disable = True
 
             self.cont()
             self.wait()
@@ -347,8 +353,59 @@ class PtraceInterface(DebuggingInterface):
             # Remove the breakpoint if it was set by us
             if not found:
                 self.unset_breakpoint(ip_breakpoint)
+            # Disable the breakpoint if it was just enabled by us
+            elif should_disable:
+                self._disable_breakpoint(ip_breakpoint)
         else:
             raise ValueError(f"Unimplemented heuristic {heuristic}")
+
+    def next(self: PtraceInterface, thread: ThreadContext) -> None:
+        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
+        """
+
+        opcode_window = thread.memory.read(thread.regs.rip, 8)
+
+        # Check if the current instruction is a call and its skip amount
+        is_call, skip = call_utilities_provider().get_call_and_skip_amount(opcode_window)
+
+        if is_call:
+            skip_address = thread.regs.rip + skip
+
+            # If a breakpoint already exists at the return address, we don't need to set a new one
+            found = False
+            ip_breakpoint = self._internal_debugger.breakpoints.get(skip_address)  
+
+            if ip_breakpoint is not None:
+                found = True
+            
+            # If we find an existing breakpoint that is disabled, we enable it
+            # but we need to disable it back after the command
+            should_disable = False
+
+            if not found:
+                # Check if we have enough hardware breakpoints available
+                # Otherwise we use a software breakpoint
+                install_hw_bp = self.hardware_bp_helpers[thread.thread_id].available_breakpoints() > 0
+
+                ip_breakpoint = Breakpoint(skip_address, hardware=install_hw_bp)
+                self.set_breakpoint(ip_breakpoint)
+            elif not ip_breakpoint.enabled:
+                self._enable_breakpoint(ip_breakpoint)
+                should_disable = True
+
+            self.cont()
+            self.wait()
+
+            # Remove the breakpoint if it was set by us
+            if not found:
+                self.unset_breakpoint(ip_breakpoint)
+            # Disable the breakpoint if it was just enabled by us 
+            elif should_disable:
+                self._disable_breakpoint(ip_breakpoint)
+        else:
+            # Step forward
+            self.step(thread)
+            self.wait()
 
     def _setup_pipe(self: PtraceInterface) -> None:
         """Sets up the pipe manager for the child process.
