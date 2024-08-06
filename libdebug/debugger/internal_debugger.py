@@ -1047,15 +1047,14 @@ class InternalDebugger:
             else:
                 # If the address was not found and the backing file is not "absolute",
                 # we have to assume it is in the main map
-                backing_file = self._get_process_full_path()
+                backing_file = self._process_full_path
                 liblog.warning(
                     f"No backing file specified and no corresponding absolute address found for {hex(address)}. Assuming {backing_file}.",
                 )
-        elif (
-            backing_file == (full_backing_path := self._get_process_full_path())
-            or backing_file == "binary"
-            or backing_file == self._get_process_name()
-        ):
+        elif backing_file == (full_backing_path := self._process_full_path) or backing_file in [
+            "binary",
+            self._process_name,
+        ]:
             backing_file = full_backing_path
 
         filtered_maps = []
@@ -1094,13 +1093,12 @@ class InternalDebugger:
 
         if backing_file == "hybrid":
             # If no explicit backing file is specified, we have to assume it is in the main map
-            backing_file = self._get_process_full_path()
+            backing_file = self._process_full_path
             liblog.debugger(f"No backing file specified for the symbol {symbol}. Assuming {backing_file}.")
-        elif (
-            backing_file == (full_backing_path := self._get_process_full_path())
-            or backing_file == "binary"
-            or backing_file == self._get_process_name()
-        ):
+        elif backing_file == (full_backing_path := self._process_full_path) or backing_file in [
+            "binary",
+            self._process_name,
+        ]:
             backing_file = full_backing_path
 
         filtered_maps = []
@@ -1179,8 +1177,8 @@ class InternalDebugger:
             if response is not None:
                 raise response
 
-    @functools.cache
-    def _get_process_full_path(self: InternalDebugger) -> str:
+    @functools.cached_property
+    def _process_full_path(self: InternalDebugger) -> str:
         """Get the full path of the process.
 
         Returns:
@@ -1188,8 +1186,8 @@ class InternalDebugger:
         """
         return str(Path(f"/proc/{self.process_id}/exe").readlink())
 
-    @functools.cache
-    def _get_process_name(self: InternalDebugger) -> str:
+    @functools.cached_property
+    def _process_name(self: InternalDebugger) -> str:
         """Get the name of the process.
 
         Returns:
