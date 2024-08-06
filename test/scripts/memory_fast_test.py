@@ -317,3 +317,35 @@ class MemoryFastTest(unittest.TestCase):
 
         d.kill()
         d.terminate()
+
+    def test_memory_multiple_threads(self):
+        d = debugger("binaries/memory_test_4", fast_memory=True)
+
+        d.run()
+
+        leaks = []
+        leak_addresses = []
+
+        def leak(t, _):
+            leaks.append(t.memory[t.regs.rdi, 16])
+            leak_addresses.append(t.regs.rdi)
+
+        d.bp("leak", callback=leak, hardware=True)
+        exit = d.bp("before_exit", hardware=True)
+
+        d.cont()
+        d.wait()
+
+        assert exit.hit_on(d)
+
+        for i in range(8):
+            assert (chr(i).encode("latin-1") * 16) in leaks
+
+        leaks = [d.memory[x, 16] for x in leak_addresses]
+
+        # heap allocated leaks should still be valid
+        for i in range(4, 8, 1):
+            assert (chr(i).encode("latin-1") * 16) in leaks
+
+        d.kill()
+        d.terminate()
