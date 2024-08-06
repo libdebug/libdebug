@@ -20,6 +20,7 @@ from scripts.catch_signal_test import SignalCatchTest
 from scripts.death_test import DeathTest
 from scripts.deep_dive_division_test import DeepDiveDivision
 from scripts.finish_test import FinishTest
+from scripts.floating_point_test import FloatingPointTest
 from scripts.handle_syscall_test import HandleSyscallTest
 from scripts.hijack_syscall_test import SyscallHijackTest
 from scripts.jumpout_test import Jumpout
@@ -28,6 +29,7 @@ from scripts.large_binary_sym_test import LargeBinarySymTest
 from scripts.memory_fast_test import MemoryFastTest
 from scripts.memory_test import MemoryTest
 from scripts.multiple_debuggers_test import MultipleDebuggersTest
+from scripts.next_test import NextTest
 from scripts.nlinks_test import Nlinks
 from scripts.pprint_syscalls_test import PPrintSyscallsTest
 from scripts.signals_multithread_test import SignalMultithreadTest
@@ -110,6 +112,7 @@ def fast_suite():
     suite.addTest(FinishTest("test_exact_breakpoint_return"))
     suite.addTest(FinishTest("test_heuristic_breakpoint_return"))
     suite.addTest(FinishTest("test_breakpoint_collision"))
+    suite.addTest(FloatingPointTest("test_floating_point_reg_access"))
     suite.addTest(Jumpout("test_jumpout"))
     suite.addTest(Nlinks("test_nlinks"))
     suite.addTest(JumpstartTest("test_cursed_ldpreload"))
@@ -128,6 +131,9 @@ def fast_suite():
     suite.addTest(WaitingNlinks("test_nlinks"))
     suite.addTest(AutoWaitingTest("test_bps_auto_waiting"))
     suite.addTest(AutoWaitingTest("test_jumpout_auto_waiting"))
+    suite.addTest(NextTest("test_next"))
+    suite.addTest(NextTest("test_next_breakpoint"))
+    suite.addTest(NextTest("test_next_breakpoint_hw"))
     suite.addTest(AutoWaitingNlinks("test_nlinks"))
     suite.addTest(WatchpointTest("test_watchpoint"))
     suite.addTest(WatchpointTest("test_watchpoint_callback"))

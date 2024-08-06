@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
     from libdebug.data.memory_map import MemoryMap
+    from libdebug.data.registers import Registers
     from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.state.thread_context import ThreadContext
@@ -20,6 +21,7 @@ if TYPE_CHECKING:
 class DebuggingInterface(ABC):
     """The interface used by `_InternalDebugger` to communicate with the available debugging backends, such as `ptrace` or `gdb`."""
 
+    @abstractmethod
     def __init__(self: DebuggingInterface) -> None:
         """Initializes the DebuggingInterface classs."""
 
@@ -94,6 +96,10 @@ class DebuggingInterface(ABC):
             heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
         """
 
+    def next(self: DebuggingInterface, thread: ThreadContext) -> None:
+        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
+        """
+
     @abstractmethod
     def maps(self: DebuggingInterface) -> list[MemoryMap]:
         """Returns the memory maps of the process."""
@@ -164,4 +170,20 @@ class DebuggingInterface(ABC):
         Args:
             address (int): The address to write.
             data (int): The value to write.
+        """
+
+    @abstractmethod
+    def fetch_fp_registers(self: DebuggingInterface, registers: Registers) -> None:
+        """Fetches the floating-point registers of the specified thread.
+
+        Args:
+            registers (Registers): The registers instance to update.
+        """
+
+    @abstractmethod
+    def flush_fp_registers(self: DebuggingInterface, registers: Registers) -> None:
+        """Flushes the floating-point registers of the specified thread.
+
+        Args:
+            registers (Registers): The registers instance to flush.
         """

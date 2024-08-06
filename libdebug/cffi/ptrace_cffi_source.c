@@ -4,6 +4,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for details.
 //
 
+#include <elf.h>
 #include <errno.h>
 #include <signal.h>
 #include <stdint.h>
@@ -11,8 +12,28 @@
 #include <string.h>
 #include <sys/ptrace.h>
 #include <sys/types.h>
+#include <sys/uio.h>
 #include <sys/user.h>
 #include <sys/wait.h>
+
+// Run some static assertions to ensure that the fp types are correct
+#ifndef FPREGS_AVX
+    #error "FPREGS_AVX must be defined"
+#endif
+
+#ifndef XSAVE
+    #error "XSAVE must be defined"
+#endif
+
+#if (FPREGS_AVX == 0)
+    _Static_assert((sizeof(struct fp_regs_struct) - offsetof(struct fp_regs_struct, padding0)) == 512, "user_fpregs_struct size is not 512 bytes");
+#elif (FPREGS_AVX == 1)
+    _Static_assert((sizeof(struct fp_regs_struct) - offsetof(struct fp_regs_struct, padding0)) == 896, "user_fpregs_struct size is not 896 bytes");
+#elif (FPREGS_AVX == 2)
+    _Static_assert((sizeof(struct fp_regs_struct) - offsetof(struct fp_regs_struct, padding0)) == 2696, "user_fpregs_struct size is not 2696 bytes");
+#else
+    #error "FPREGS_AVX must be 0, 1 or 2"
+#endif
 
 struct ptrace_hit_bp {
     int pid;
@@ -32,6 +53,7 @@ struct software_breakpoint {
 struct thread {
     int tid;
     struct user_regs_struct regs;
+    struct fp_regs_struct fpregs;
     int signal_to_forward;
     struct thread *next;
 };
@@ -49,6 +71,72 @@ struct global_state {
     _Bool handle_syscall_enabled;
 };
 
+struct thread *get_thread(struct global_state *state, int tid)
+{
+    struct thread *t = state->t_HEAD;
+    while (t != NULL) {
+        if (t->tid == tid) return t;
+        t = t->next;
+    }
+
+    return NULL;
+}
+
+struct fp_regs_struct *get_thread_fp_regs(struct global_state *state, int tid)
+{
+    struct thread *t = get_thread(state, tid);
+
+    if (t) {
+        return &t->fpregs;
+    }
+
+    return NULL;
+}
+
+void get_fp_regs(int tid, struct fp_regs_struct *fpregs)
+{
+    #if (XSAVE == 0)
+
+    #else
+        struct iovec iov;
+
+        iov.iov_base = (unsigned char *)(fpregs) + offsetof(struct fp_regs_struct, padding0);
+        iov.iov_len = sizeof(struct fp_regs_struct) - offsetof(struct fp_regs_struct, padding0);
+
+        if (ptrace(PTRACE_GETREGSET, tid, NT_X86_XSTATE, &iov) == -1) {
+            perror("ptrace_getregset_xstate");
+        }
+    #endif
+
+    fpregs->fresh = 1;
+}
+
+void set_fp_regs(int tid, struct fp_regs_struct *fpregs)
+{
+    #if (XSAVE == 0)
+
+    #else
+        struct iovec iov;
+
+        iov.iov_base = (unsigned char *)(fpregs) + offsetof(struct fp_regs_struct, padding0);
+        iov.iov_len = sizeof(struct fp_regs_struct) - offsetof(struct fp_regs_struct, padding0);
+
+        if (ptrace(PTRACE_SETREGSET, tid, NT_X86_XSTATE, &iov) == -1) {
+            perror("ptrace_setregset_xstate");
+        }
+    #endif
+
+    fpregs->dirty = 0;
+    fpregs->fresh = 0;
+}
+
+void check_and_set_fp_regs(struct thread *t)
+{
+    if (t->fpregs.dirty) {
+        set_fp_regs(t->tid, &t->fpregs);
+    }
+}
+
 struct user_regs_struct *register_thread(struct global_state *state, int tid)
 {
     // Verify if the thread is already registered
@@ -61,6 +149,10 @@ struct user_regs_struct *register_thread(struct global_state *state, int tid)
     t = malloc(sizeof(struct thread));
     t->tid = tid;
     t->signal_to_forward = 0;
+
+    t->fpregs.type = FPREGS_AVX;
+    t->fpregs.dirty = 0;
+    t->fpregs.fresh = 0;
 
     ptrace(PTRACE_GETREGS, tid, NULL, &t->regs);
 
@@ -172,6 +264,7 @@ void ptrace_detach_for_migration(struct global_state *state, int pid)
 
             // set the registers again, as the first time it failed
             ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs);
+            check_and_set_fp_regs(t);
         }
 
         // Be sure that the thread will not run during gdb reattachment
@@ -264,6 +357,9 @@ long singlestep(struct global_state *state, int tid)
     while (t != NULL) {
         if (ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs))
             perror("ptrace_setregs");
+
+        check_and_set_fp_regs(t);
+
         if (t->tid == tid) {
             signal_to_forward = t->signal_to_forward;
             t->signal_to_forward = 0;
@@ -281,6 +377,8 @@ int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps
     while (t != NULL) {
         if (ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs))
             perror("ptrace_setregs");
+
+        check_and_set_fp_regs(t);
 
         if (t->tid == tid)
             stepping_thread = t;
@@ -329,6 +427,9 @@ int prepare_for_run(struct global_state *state, int pid)
         if (ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs))
             fprintf(stderr, "ptrace_setregs failed for thread %d: %s\\n",
                     t->tid, strerror(errno));
+
+        check_and_set_fp_regs(t);
+
         t = t->next;
     }
 

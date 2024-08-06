@@ -5,10 +5,142 @@
 #
 
 import platform
+from pathlib import Path
 
 from cffi import FFI
 
 if platform.machine() == "x86_64":
+    # We need to determine if we have AVX, AVX2, AVX512, etc.
+    path = Path("/proc/cpuinfo")
+
+    try:
+        with path.open() as f:
+            cpuinfo = f.read()
+    except OSError as e:
+        raise RuntimeError("Cannot read /proc/cpuinfo. Are you running on Linux?") from e
+
+    if "avx512" in cpuinfo:
+        fp_regs_struct = """
+        struct reg_128
+        {
+            unsigned char data[16];
+        };
+
+        struct reg_256
+        {
+            unsigned char data[32];
+        };
+
+        struct reg_512
+        {
+            unsigned char data[64];
+        };
+
+        // For details about the layout of the xsave structure, see Intel's Architecture Instruction Set Extensions Programming Reference
+        // Chapter 3.2.4 "The Layout of XSAVE Save Area"
+        // https://www.intel.com/content/dam/develop/external/us/en/documents/319433-024-697869.pdf
+        #pragma pack(push, 1)
+        struct fp_regs_struct
+        {
+            unsigned long type;
+            _Bool dirty; // true if the debugging script has modified the state of the registers
+            _Bool fresh; // true if the registers have already been fetched for this state
+            unsigned char bool_padding[6];
+            unsigned char padding0[32];
+            struct reg_128 st[8];
+            struct reg_128 xmm0[16];
+            unsigned char padding1[96];
+            // end of the 512 byte legacy region
+            unsigned char padding2[64];
+            // ymm0 starts at offset 576
+            struct reg_128 ymm0[16];
+            unsigned char padding3[320];
+            // zmm0 starts at offset 1152
+            struct reg_256 zmm0[16];
+            // zmm1 starts at offset 1664
+            struct reg_512 zmm1[16];
+            unsigned char padding4[8];
+        };
+        #pragma pack(pop)
+        """
+
+        fpregs_define = """
+        #define FPREGS_AVX 2
+        """
+    elif "avx" in cpuinfo:
+        fp_regs_struct = """
+        struct reg_128
+        {
+            unsigned char data[16];
+        };
+
+        // For details about the layout of the xsave structure, see Intel's Architecture Instruction Set Extensions Programming Reference
+        // Chapter 3.2.4 "The Layout of XSAVE Save Area"
+        // https://www.intel.com/content/dam/develop/external/us/en/documents/319433-024-697869.pdf
+        #pragma pack(push, 1)
+        struct fp_regs_struct
+        {
+            unsigned long type;
+            _Bool dirty; // true if the debugging script has modified the state of the registers
+            _Bool fresh; // true if the registers have already been fetched for this state
+            unsigned char bool_padding[6];
+            unsigned char padding0[32];
+            struct reg_128 st[8];
+            struct reg_128 xmm0[16];
+            unsigned char padding1[96];
+            // end of the 512 byte legacy region
+            unsigned char padding2[64];
+            // ymm0 starts at offset 576
+            struct reg_128 ymm0[16];
+            unsigned char padding3[64];
+        };
+        #pragma pack(pop)
+        """
+
+        fpregs_define = """
+        #define FPREGS_AVX 1
+        """
+    else:
+        fp_regs_struct = """
+        struct reg_128
+        {
+            unsigned char data[16];
+        };
+
+        // For details about the layout of the xsave structure, see Intel's Architecture Instruction Set Extensions Programming Reference
+        // Chapter 3.2.4 "The Layout of XSAVE Save Area"
+        // https://www.intel.com/content/dam/develop/external/us/en/documents/319433-024-697869.pdf
+        #pragma pack(push, 1)
+        struct fp_regs_struct
+        {
+            unsigned long type;
+            _Bool dirty; // true if the debugging script has modified the state of the registers
+            _Bool fresh; // true if the registers have already been fetched for this state
+            unsigned char bool_padding[6];
+            unsigned char padding0[32];
+            struct reg_128 st[8];
+            struct reg_128 xmm0[16];
+            unsigned char padding1[96];
+        };
+        #pragma pack(pop)
+        """
+
+        fpregs_define = """
+        #define FPREGS_AVX 0
+        """
+
+    if "xsave" not in cpuinfo:
+        xsave_define = """
+        #define XSAVE 0
+        """
+
+        # We don't support non-XSAVE architectures
+        raise NotImplementedError("XSAVE not supported. Please open an issue on GitHub and include your hardware details.")
+    else:
+        xsave_define = """
+        #define XSAVE 1
+        """
+
     user_regs_struct = """
     struct user_regs_struct
     {
@@ -49,10 +181,10 @@ if platform.machine() == "x86_64":
     #define IS_SW_BREAKPOINT(instruction) (instruction == 0xCC)
     """
 
-    finish_define = """
+    control_flow_define = """
+    // X86_64 Architecture specific
     #define IS_RET_INSTRUCTION(instruction) (instruction == 0xC3 || instruction == 0xCB || instruction == 0xC2 || instruction == 0xCA)
     
-    // X86_64 Architecture specific
     int IS_CALL_INSTRUCTION(uint8_t* instr)
     {
         // Check for direct CALL (E8 xx xx xx xx)
@@ -74,14 +206,16 @@ if platform.machine() == "x86_64":
         return 0; // Not a CALL
     }
     """
+
+
 else:
     raise NotImplementedError(f"Architecture {platform.machine()} not available.")
 
 
 ffibuilder = FFI()
-ffibuilder.cdef(
-    user_regs_struct
-    + """
+ffibuilder.cdef(user_regs_struct)
+ffibuilder.cdef(fp_regs_struct, packed=True)
+ffibuilder.cdef("""
     struct ptrace_hit_bp {
         int pid;
         uint64_t addr;
@@ -100,6 +234,7 @@ ffibuilder.cdef(
     struct thread {
         int tid;
         struct user_regs_struct regs;
+        struct fp_regs_struct fpregs;
         int signal_to_forward;
         struct thread *next;
     };
@@ -132,6 +267,10 @@ ffibuilder.cdef(
     uint64_t ptrace_peekuser(int pid, uint64_t addr);
     uint64_t ptrace_pokeuser(int pid, uint64_t addr, uint64_t data);
 
+    struct fp_regs_struct *get_thread_fp_regs(struct global_state *state, int tid);
+    void get_fp_regs(int tid, struct fp_regs_struct *fpregs);
+    void set_fp_regs(int tid, struct fp_regs_struct *fpregs);
+
     uint64_t ptrace_geteventmsg(int pid);
 
     long singlestep(struct global_state *state, int tid);
@@ -159,7 +298,12 @@ ffibuilder.cdef(
 with open("libdebug/cffi/ptrace_cffi_source.c") as f:
     ffibuilder.set_source(
         "libdebug.cffi._ptrace_cffi",
-        breakpoint_define + finish_define + f.read(),
+        fp_regs_struct
+        + fpregs_define
+        + xsave_define
+        + breakpoint_define
+        + control_flow_define
+        + f.read(),
         libraries=[],
     )
 
