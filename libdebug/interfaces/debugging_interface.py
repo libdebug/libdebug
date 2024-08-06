@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
     from libdebug.data.memory_map import MemoryMap
+    from libdebug.data.registers import Registers
     from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.state.thread_context import ThreadContext
@@ -20,6 +21,7 @@ if TYPE_CHECKING:
 class DebuggingInterface(ABC):
     """The interface used by `_InternalDebugger` to communicate with the available debugging backends, such as `ptrace` or `gdb`."""
 
+    @abstractmethod
     def __init__(self: DebuggingInterface) -> None:
         """Initializes the DebuggingInterface classs."""
 
@@ -168,4 +170,20 @@ class DebuggingInterface(ABC):
         Args:
             address (int): The address to write.
             data (int): The value to write.
+        """
+
+    @abstractmethod
+    def fetch_fp_registers(self: DebuggingInterface, registers: Registers) -> None:
+        """Fetches the floating-point registers of the specified thread.
+
+        Args:
+            registers (Registers): The registers instance to update.
+        """
+
+    @abstractmethod
+    def flush_fp_registers(self: DebuggingInterface, registers: Registers) -> None:
+        """Flushes the floating-point registers of the specified thread.
+
+        Args:
+            registers (Registers): The registers instance to flush.
         """

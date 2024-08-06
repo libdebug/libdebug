@@ -59,6 +59,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from libdebug.data.memory_map import MemoryMap
+    from libdebug.data.registers import Registers
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.state.thread_context import ThreadContext
     from libdebug.utils.pipe_manager import PipeManager
@@ -1322,6 +1323,12 @@ class InternalDebugger:
         int_data = int.from_bytes(data, "little")
         self.debugging_interface.poke_memory(address, int_data)
 
+    def __threaded_fetch_fp_registers(self: InternalDebugger, registers: Registers) -> None:
+        self.debugging_interface.fetch_fp_registers(registers)
+
+    def __threaded_flush_fp_registers(self: InternalDebugger, registers: Registers) -> None:
+        self.debugging_interface.flush_fp_registers(registers)
+
     @background_alias(__threaded_peek_memory)
     def _peek_memory(self: InternalDebugger, address: int) -> bytes:
         """Reads memory from the process."""
@@ -1369,6 +1376,34 @@ class InternalDebugger:
 
         self.__polling_thread_command_queue.put(
             (self.__threaded_poke_memory, (address, data)),
+        )
+
+        self._join_and_check_status()
+
+    @background_alias(__threaded_fetch_fp_registers)
+    def _fetch_fp_registers(self: InternalDebugger, registers: Registers) -> None:
+        """Fetches the floating point registers of a thread."""
+        if not self.instanced:
+            raise RuntimeError("Process not running, cannot step.")
+
+        self._ensure_process_stopped()
+
+        self.__polling_thread_command_queue.put(
+            (self.__threaded_fetch_fp_registers, (registers,)),
+        )
+
+        self._join_and_check_status()
+
+    @background_alias(__threaded_flush_fp_registers)
+    def _flush_fp_registers(self: InternalDebugger, registers: Registers) -> None:
+        """Flushes the floating point registers of a thread."""
+        if not self.instanced:
+            raise RuntimeError("Process not running, cannot step.")
+
+        self._ensure_process_stopped()
+
+        self.__polling_thread_command_queue.put(
+            (self.__threaded_flush_fp_registers, (registers,)),
         )
 
         self._join_and_check_status()

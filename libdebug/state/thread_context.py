@@ -79,7 +79,7 @@ class ThreadContext:
         self._internal_debugger = provide_internal_debugger(self)
         self._thread_id = thread_id
         regs_class = registers.provide_regs_class()
-        self.regs = regs_class()
+        self.regs = regs_class(thread_id)
         registers.apply_on_regs(self.regs, regs_class)
         registers.apply_on_thread(self, ThreadContext)
 

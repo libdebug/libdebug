@@ -55,6 +55,7 @@ if TYPE_CHECKING:
         PtraceHardwareBreakpointManager,
     )
     from libdebug.data.memory_map import MemoryMap
+    from libdebug.data.registers import Registers
     from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.debugger.internal_debugger import InternalDebugger
@@ -525,7 +526,9 @@ class PtraceInterface(DebuggingInterface):
             new_thread_id,
         )
 
-        register_holder = register_holder_provider(register_file)
+        fp_register_file = self.lib_trace.get_thread_fp_regs(self._global_state, new_thread_id)
+
+        register_holder = register_holder_provider(register_file, fp_register_file)
 
         with extend_internal_debugger(self._internal_debugger):
             thread = ThreadContext(new_thread_id, register_holder)
@@ -694,6 +697,23 @@ class PtraceInterface(DebuggingInterface):
         if result == -1:
             error = self.ffi.errno
             raise OSError(error, errno.errorcode[error])
+
+    def fetch_fp_registers(self: PtraceInterface, registers: Registers) -> None:
+        """Fetches the floating-point registers of the specified thread.
+
+        Args:
+            registers (Registers): The registers instance to update.
+        """
+        liblog.debugger("Fetching floating-point registers for thread %d", registers._thread_id)
+        self.lib_trace.get_fp_regs(registers._thread_id, registers._fp_register_file)
+
+    def flush_fp_registers(self: PtraceInterface, _: Registers) -> None:
+        """Flushes the floating-point registers of the specified thread.
+
+        Args:
+            registers (Registers): The registers instance to update.
+        """
+        raise NotImplementedError("Flushing floating-point registers is automatically handled by the native code.")
 
     def _peek_user(self: PtraceInterface, thread_id: int, address: int) -> int:
         """Reads the memory at the specified address."""
