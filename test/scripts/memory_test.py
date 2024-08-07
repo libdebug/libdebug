@@ -351,8 +351,8 @@ class MemoryTest(unittest.TestCase):
 
         leaks = [d.memory[x, 16] for x in leak_addresses]
 
-        # heap allocated leaks should still be valid
-        for i in range(4, 8, 1):
+        # threads are stopped, check we correctly read the memory
+        for i in range(8):
             assert (chr(i).encode("latin-1") * 16) in leaks
 
         d.kill()

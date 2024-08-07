@@ -343,9 +343,49 @@ class MemoryFastTest(unittest.TestCase):
 
         leaks = [d.memory[x, 16] for x in leak_addresses]
 
-        # heap allocated leaks should still be valid
-        for i in range(4, 8, 1):
+        # threads are stopped, check we correctly read the memory
+        for i in range(8):
             assert (chr(i).encode("latin-1") * 16) in leaks
+
+        d.kill()
+        d.terminate()
+
+    def test_memory_mixed_access(self):
+        d = debugger("binaries/memory_test_2", fast_memory=True)
+
+        d.run()
+
+        base = d.regs.rip & 0xFFFFFFFFFFFFF000 - 0x1000
+
+        # Test different ways to access memory at the start of the file
+        file_0 = d.memory[base, 256]
+        d.fast_memory = False
+        file_1 = d.memory[0x0, 256]
+        d.fast_memory = True
+        file_2 = d.memory[0x0:0x100]
+        d.fast_memory = False
+        file_3 = d.memory[0x0:0x100]
+
+        self.assertEqual(file_0, file_1)
+        self.assertEqual(file_0, file_2)
+        self.assertEqual(file_0, file_3)
+
+        for _ in range(3):
+            d.step()
+
+        d.fast_memory = False
+        d.memory[base] = b"abcd1234"
+        self.assertEqual(d.memory[base, 8], b"abcd1234")
+
+        d.fast_memory = True
+        self.assertEqual(d.memory[base, 8], b"abcd1234")
+        d.memory[base] = b"\x01\x02\x03\x04\x05\x06\x07\x08"
+        self.assertEqual(d.memory[base, 8], b"\x01\x02\x03\x04\x05\x06\x07\x08")
+
+        d.fast_memory = False
+        self.assertEqual(d.memory[base, 8], b"\x01\x02\x03\x04\x05\x06\x07\x08")
+        d.memory[base] = b"abcd1234"
+        self.assertEqual(d.memory[base, 8], b"abcd1234")
 
         d.kill()
         d.terminate()
