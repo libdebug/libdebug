@@ -277,6 +277,7 @@ ffibuilder.cdef("""
     int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps);
 
     int cont_all_and_set_bps(struct global_state *state, int pid);
+    int cont_thread_and_set_bps(struct global_state *state, int pid, int tid);
 
     int stepping_finish(struct global_state *state, int tid);
 
