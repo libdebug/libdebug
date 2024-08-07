@@ -17,10 +17,10 @@ from libdebug.utils.print_style import PrintStyle
 from libdebug.utils.signal_utils import resolve_signal_name, resolve_signal_number
 
 if TYPE_CHECKING:
-    from libdebug.data.abstract_memory_view import AbstractMemoryView
     from libdebug.data.register_holder import RegisterHolder
     from libdebug.data.registers import Registers
     from libdebug.debugger.internal_debugger import InternalDebugger
+    from libdebug.memory.abstract_memory_view import AbstractMemoryView
 
 
 class ThreadContext:

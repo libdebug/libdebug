@@ -174,6 +174,7 @@ class InternalDebugger:
         self._is_running = False
         self.resume_context = ResumeContext()
         self._process_memory_manager = ProcessMemoryManager()
+        self.fast_memory = False
         self.__polling_thread_command_queue = Queue()
         self.__polling_thread_response_queue = Queue()
 
@@ -202,10 +203,8 @@ class InternalDebugger:
         self.start_processing_thread()
         with extend_internal_debugger(self):
             self.debugging_interface = provide_debugging_interface()
-            if self.fast_memory:
-                self.memory = DirectMemoryView(self._fast_read_memory, self._fast_write_memory)
-            else:
-                self.memory = ChunkedMemoryView(self._peek_memory, self._poke_memory)
+            self._fast_memory = DirectMemoryView(self._fast_read_memory, self._fast_write_memory)
+            self._slow_memory = ChunkedMemoryView(self._peek_memory, self._poke_memory)
 
     def start_processing_thread(self: InternalDebugger) -> None:
         """Starts the thread that will poll the traced process for state change."""
@@ -257,8 +256,7 @@ class InternalDebugger:
         if not self.pipe_manager:
             raise RuntimeError("Something went wrong during pipe initialization.")
 
-        if self.fast_memory:
-            self._process_memory_manager.open(self.process_id)
+        self._process_memory_manager.open(self.process_id)
 
         return self.pipe_manager
 
@@ -278,8 +276,7 @@ class InternalDebugger:
 
         self.__polling_thread_command_queue.put((self.__threaded_attach, (pid,)))
 
-        if self.fast_memory:
-            self._process_memory_manager.open(self.process_id)
+        self._process_memory_manager.open(self.process_id)
 
         self._join_and_check_status()
 
@@ -306,8 +303,7 @@ class InternalDebugger:
             # This exception might occur if the process has already died
             liblog.debugger("OSError raised during kill")
 
-        if self.fast_memory:
-            self._process_memory_manager.close()
+        self._process_memory_manager.close()
 
         self.__polling_thread_command_queue.put((self.__threaded_kill, ()))
 
@@ -383,6 +379,11 @@ class InternalDebugger:
         """Returns the memory maps of the process."""
         self._ensure_process_stopped()
         return self.debugging_interface.maps()
+
+    @property
+    def memory(self: InternalDebugger) -> AbstractMemoryView:
+        """The memory view of the debugged process."""
+        return self._fast_memory if self.fast_memory else self._slow_memory
 
     def print_maps(self: InternalDebugger) -> None:
         """Prints the memory maps of the process."""

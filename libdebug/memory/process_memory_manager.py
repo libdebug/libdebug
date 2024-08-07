@@ -13,7 +13,10 @@ class ProcessMemoryManager:
     def open(self: ProcessMemoryManager, process_id: int) -> None:
         """Initializes the ProcessMemoryManager."""
         self.process_id = process_id
-        self._mem_file = open(f"/proc/{process_id}/mem", "r+b", buffering=0)
+        self._mem_file = None
+
+    def _open(self: ProcessMemoryManager) -> None:
+        self._mem_file = open(f"/proc/{self.process_id}/mem", "r+b", buffering=0)
 
     def read(self: ProcessMemoryManager, address: int, size: int) -> bytes:
         """Reads memory from the target process.
@@ -25,6 +28,9 @@ class ProcessMemoryManager:
         Returns:
             bytes: The read bytes.
         """
+        if not self._mem_file:
+            self._open()
+
         self._mem_file.seek(address)
         return self._mem_file.read(size)
 
@@ -35,9 +41,14 @@ class ProcessMemoryManager:
             address (int): The address to write to.
             data (bytes): The data to write.
         """
+        if not self._mem_file:
+            self._open()
+
         self._mem_file.seek(address)
         self._mem_file.write(data)
 
     def close(self: ProcessMemoryManager) -> None:
         """Closes the memory file."""
-        self._mem_file.close()
+        if self._mem_file:
+            self._mem_file.close()
+            self._mem_file = None
