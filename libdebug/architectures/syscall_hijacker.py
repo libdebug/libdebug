@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2024 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -8,15 +8,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from libdebug.architectures.syscall_hijacking_manager import SyscallHijackingManager
-
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from libdebug.state.thread_context import ThreadContext
 
 
-class Amd64SyscallHijacker(SyscallHijackingManager):
+class SyscallHijacker:
     """Class that provides syscall hijacking for the x86_64 architecture."""
 
     # Allowed arguments for the hijacker
@@ -33,7 +31,7 @@ class Amd64SyscallHijacker(SyscallHijackingManager):
     )
 
     def create_hijacker(
-        self: Amd64SyscallHijacker,
+        self: SyscallHijacker,
         new_syscall: int,
         **kwargs: int,
     ) -> Callable[[ThreadContext, int], None]:
@@ -51,7 +49,7 @@ class Amd64SyscallHijacker(SyscallHijackingManager):
         return hijack_on_enter_wrapper
 
     def _hijack_on_enter(
-        self: Amd64SyscallHijacker,
+        self: SyscallHijacker,
         d: ThreadContext,
         new_syscall: int,
         **kwargs: int,

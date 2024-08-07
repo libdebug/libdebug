@@ -84,7 +84,7 @@ class PtraceStatusHandler:
         else:
             # If the trap was caused by a software breakpoint, we need to restore the original instruction
             # and set the instruction pointer to the previous instruction.
-            ip -= software_breakpoint_byte_size()
+            ip -= software_breakpoint_byte_size(self.internal_debugger.arch)
 
             bp = self.internal_debugger.breakpoints.get(ip)
             if bp and bp.enabled and not bp._disabled_for_step:
@@ -102,7 +102,7 @@ class PtraceStatusHandler:
 
         # Manage watchpoints
         if not bp:
-            bp = self.ptrace_interface.hardware_bp_helpers[thread_id].is_watchpoint_hit()
+            bp = self.ptrace_interface.get_hit_watchpoint(thread_id)
             if bp:
                 liblog.debugger("Watchpoint hit at 0x%x", bp.address)
 

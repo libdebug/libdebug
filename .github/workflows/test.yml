@@ -47,4 +47,4 @@ jobs:
 
     - name: Test with pytest
       run: |
-        cd test && pytest --ignore=other_tests
+        cd test/amd64 && pytest --ignore=other_tests
