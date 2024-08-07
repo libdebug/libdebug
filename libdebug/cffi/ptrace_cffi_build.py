@@ -188,10 +188,10 @@ if architecture == "x86_64":
     #define IS_SW_BREAKPOINT(instruction) (instruction == 0xCC)
     """
 
-    finish_define = """
+    control_flow_define = """
+    // X86_64 Architecture specific
     #define IS_RET_INSTRUCTION(instruction) (instruction == 0xC3 || instruction == 0xCB || instruction == 0xC2 || instruction == 0xCA)
     
-    // X86_64 Architecture specific
     int IS_CALL_INSTRUCTION(uint8_t* instr)
     {
         // Check for direct CALL (E8 xx xx xx xx)
@@ -289,7 +289,7 @@ elif architecture == "aarch64":
     #define IS_SW_BREAKPOINT(instruction) (instruction == 0xD4200000)
     """
 
-    finish_define = """
+    control_flow_define = """
     #define IS_RET_INSTRUCTION(instruction) (instruction == 0xD65F03C0)
 
     // AARCH64 Architecture specific
@@ -422,7 +422,7 @@ with open("libdebug/cffi/ptrace_cffi_source.c") as f:
         + fp_regs_struct
         + fpregs_define
         + breakpoint_define
-        + finish_define
+        + control_flow_define
         + f.read(),
         libraries=[],
     )

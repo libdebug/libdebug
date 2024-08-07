@@ -28,6 +28,7 @@ from scripts.jumpstart_test import JumpstartTest
 from scripts.large_binary_sym_test import LargeBinarySymTest
 from scripts.memory_test import MemoryTest
 from scripts.multiple_debuggers_test import MultipleDebuggersTest
+from scripts.next_test import NextTest
 from scripts.nlinks_test import Nlinks
 from scripts.pprint_syscalls_test import PPrintSyscallsTest
 from scripts.signals_multithread_test import SignalMultithreadTest
@@ -53,6 +54,10 @@ def fast_suite():
     suite.addTest(BreakpointTest("test_bp_disable_reenable_hw"))
     suite.addTest(BreakpointTest("test_bps_running"))
     suite.addTest(BreakpointTest("test_bp_backing_file"))
+    suite.addTest(BreakpointTest("test_bp_disable_on_creation"))
+    suite.addTest(BreakpointTest("test_bp_disable_on_creation_2"))
+    suite.addTest(BreakpointTest("test_bp_disable_on_creation_hardware"))
+    suite.addTest(BreakpointTest("test_bp_disable_on_creation_2_hardware"))
     suite.addTest(MemoryTest("test_memory"))
     suite.addTest(MemoryTest("test_mem_access_libs"))
     suite.addTest(MemoryTest("test_memory_access_methods_backing_file"))
@@ -62,6 +67,7 @@ def fast_suite():
     suite.addTest(MemoryTest("test_memory_access_methods"))
     suite.addTest(HwBasicTest("test_basic"))
     suite.addTest(HwBasicTest("test_registers"))
+    suite.addTest(BacktraceTest("test_backtrace_as_symbols"))
     suite.addTest(BacktraceTest("test_backtrace"))
     suite.addTest(AttachDetachTest("test_attach"))
     suite.addTest(AttachDetachTest("test_attach_and_detach_1"))
@@ -110,9 +116,14 @@ def fast_suite():
     suite.addTest(WaitingNlinks("test_nlinks"))
     suite.addTest(AutoWaitingTest("test_bps_auto_waiting"))
     suite.addTest(AutoWaitingTest("test_jumpout_auto_waiting"))
+    suite.addTest(NextTest("test_next"))
+    suite.addTest(NextTest("test_next_breakpoint"))
+    suite.addTest(NextTest("test_next_breakpoint_hw"))
     suite.addTest(AutoWaitingNlinks("test_nlinks"))
     suite.addTest(WatchpointTest("test_watchpoint"))
     suite.addTest(WatchpointTest("test_watchpoint_callback"))
+    suite.addTest(WatchpointTest("test_watchpoint_disable"))
+    suite.addTest(WatchpointTest("test_watchpoint_disable_reenable"))
     suite.addTest(WatchpointAliasTest("test_watchpoint_alias"))
     suite.addTest(WatchpointAliasTest("test_watchpoint_callback"))
     suite.addTest(HandleSyscallTest("test_handles"))
