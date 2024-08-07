@@ -26,6 +26,7 @@ from scripts.hijack_syscall_test import SyscallHijackTest
 from scripts.jumpout_test import Jumpout
 from scripts.jumpstart_test import JumpstartTest
 from scripts.large_binary_sym_test import LargeBinarySymTest
+from scripts.memory_fast_test import MemoryFastTest
 from scripts.memory_test import MemoryTest
 from scripts.multiple_debuggers_test import MultipleDebuggersTest
 from scripts.next_test import NextTest
@@ -65,6 +66,20 @@ def fast_suite():
     suite.addTest(MemoryTest("test_memory_multiple_runs"))
     suite.addTest(MemoryTest("test_memory_access_while_running"))
     suite.addTest(MemoryTest("test_memory_access_methods"))
+    suite.addTest(MemoryTest("test_memory_large_read"))
+    suite.addTest(MemoryTest("test_invalid_memory_location"))
+    suite.addTest(MemoryTest("test_memory_multiple_threads"))
+    suite.addTest(MemoryFastTest("test_memory"))
+    suite.addTest(MemoryFastTest("test_mem_access_libs"))
+    suite.addTest(MemoryFastTest("test_memory_access_methods_backing_file"))
+    suite.addTest(MemoryFastTest("test_memory_exceptions"))
+    suite.addTest(MemoryFastTest("test_memory_multiple_runs"))
+    suite.addTest(MemoryFastTest("test_memory_access_while_running"))
+    suite.addTest(MemoryFastTest("test_memory_access_methods"))
+    suite.addTest(MemoryFastTest("test_memory_large_read"))
+    suite.addTest(MemoryFastTest("test_invalid_memory_location"))
+    suite.addTest(MemoryFastTest("test_memory_multiple_threads"))
+    suite.addTest(MemoryFastTest("test_memory_mixed_access"))
     suite.addTest(HwBasicTest("test_basic"))
     suite.addTest(HwBasicTest("test_registers"))
     suite.addTest(BacktraceTest("test_backtrace_as_symbols"))
@@ -80,6 +95,7 @@ def fast_suite():
     suite.addTest(CallbackTest("test_callback_simple"))
     suite.addTest(CallbackTest("test_callback_simple_hardware"))
     suite.addTest(CallbackTest("test_callback_memory"))
+    suite.addTest(CallbackTest("test_callback_fast_memory"))
     suite.addTest(CallbackTest("test_callback_jumpout"))
     suite.addTest(CallbackTest("test_callback_intermixing"))
     suite.addTest(CallbackTest("test_callback_exception"))

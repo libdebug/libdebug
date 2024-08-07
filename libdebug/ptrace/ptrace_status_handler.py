@@ -380,13 +380,12 @@ class PtraceStatusHandler:
                 case StopEvents.FORK_EVENT:
                     # The process has been forked
                     liblog.warning(
-                        f"Process {pid} forked. Continuing execution of the parent process. The child process will be stopped until the user decides to attach to it."
+                        f"Process {pid} forked. Continuing execution of the parent process. The child process will be stopped until the user decides to attach to it.",
                     )
                     self.forward_signal = False
 
     def _handle_change(self: PtraceStatusHandler, pid: int, status: int, results: list) -> None:
         """Handle a change in the status of a traced process."""
-
         # Initialize the forward_signal flag
         self.forward_signal = True
 

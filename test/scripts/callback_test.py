@@ -117,6 +117,45 @@ class CallbackTest(unittest.TestCase):
         if self.exceptions:
             raise self.exceptions[0]
 
+    def test_callback_fast_memory(self):
+        self.exceptions.clear()
+
+        global hit
+        hit = False
+
+        d = debugger("binaries/memory_test", fast_memory=True)
+
+        d.run()
+
+        def callback(thread, bp):
+            global hit
+
+            prev = bytes(range(256))
+            try:
+                self.assertEqual(bp.address, thread.regs.rip)
+                self.assertEqual(bp.hit_count, 1)
+                self.assertEqual(thread.memory[thread.regs.rdi, 256], prev)
+
+                thread.memory[thread.regs.rdi + 128 :] = b"abcd123456"
+                prev = prev[:128] + b"abcd123456" + prev[138:]
+
+                self.assertEqual(thread.memory[thread.regs.rdi, 256], prev)
+            except Exception as e:
+                self.exceptions.append(e)
+
+            hit = True
+
+        d.breakpoint("change_memory", callback=callback)
+
+        d.cont()
+
+        d.kill()
+
+        self.assertTrue(hit)
+
+        if self.exceptions:
+            raise self.exceptions[0]
+
     def test_callback_bruteforce(self):
         global flag
         global counter
@@ -303,7 +342,7 @@ class CallbackTest(unittest.TestCase):
         d.kill()
 
         self.assertTrue(hit)
-    
+
     def test_callback_pid_accessible_alias(self):
         self.exceptions.clear()
 
@@ -325,7 +364,7 @@ class CallbackTest(unittest.TestCase):
         d.kill()
 
         self.assertTrue(hit)
-        
+
     def test_callback_tid_accessible_alias(self):
         self.exceptions.clear()
 
