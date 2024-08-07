@@ -352,13 +352,13 @@ class PtraceInterface(DebuggingInterface):
     def next(self: PtraceInterface, thread: ThreadContext) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
 
-        opcode_window = thread.memory.read(thread.regs.rip, 8)
+        opcode_window = thread.memory.read(thread.instruction_pointer, 8)
 
         # Check if the current instruction is a call and its skip amount
         is_call, skip = call_utilities_provider(self._internal_debugger.arch).get_call_and_skip_amount(opcode_window)
 
         if is_call:
-            skip_address = thread.regs.rip + skip
+            skip_address = thread.instruction_pointer + skip
 
             # If a breakpoint already exists at the return address, we don't need to set a new one
             found = False
