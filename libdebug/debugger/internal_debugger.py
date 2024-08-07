@@ -377,6 +377,34 @@ class InternalDebugger:
             else:
                 print(memory_map)
 
+    def search_maps(self: InternalDebugger, backing_file: str) -> list[MemoryMap]:
+        """Returns the memory maps matching the given substring.
+
+        Args:
+            backing_file (str): The backing file substring to search in the memory maps of the process.
+        """
+        maps = self.debugging_interface.maps()
+
+        filtered_maps = []
+        unique_files = set()
+
+        for vmap in maps:
+            if backing_file in vmap.backing_file:
+                filtered_maps.append(vmap)
+                unique_files.add(vmap.backing_file)
+
+        if len(unique_files) > 1:
+            raise ValueError(
+                f"The substring {backing_file} is present in multiple, different backing files. The address resolution cannot be accurate. The matching backing files are: {', '.join(unique_files)}.",
+            )
+
+        if not filtered_maps:
+            raise ValueError(
+                f"The specified string {backing_file} does not correspond to any backing file. The available backing files are: {', '.join(set(vmap.backing_file for vmap in maps))}."
+            )
+
+        return filtered_maps
+
     @background_alias(_background_invalid_call)
     @change_state_function_process
     def breakpoint(
@@ -1071,8 +1099,6 @@ class InternalDebugger:
         Returns:
             int: The address of the symbol.
         """
-        maps = self.debugging_interface.maps()
-
         if backing_file == "absolute":
             raise ValueError("Cannot use `absolute` backing file with symbols.")
 
@@ -1087,23 +1113,7 @@ class InternalDebugger:
         ):
             backing_file = full_backing_path
 
-        filtered_maps = []
-        unique_files = set()
-
-        for vmap in maps:
-            if backing_file in vmap.backing_file:
-                filtered_maps.append(vmap)
-                unique_files.add(vmap.backing_file)
-
-        if len(unique_files) > 1:
-            raise ValueError(
-                f"The substring {backing_file} is present in multiple, different backing files. The address resolution cannot be accurate. The matching backing files are: {', '.join(unique_files)}.",
-            )
-
-        if not filtered_maps:
-            raise ValueError(
-                f"The specified string {backing_file} does not correspond to any backing file. The available backing files are: {', '.join(set(vmap.backing_file for vmap in maps))}."
-            )
+        filtered_maps = self.search_maps(backing_file)
 
         return resolve_symbol_in_maps(symbol, filtered_maps)
 
