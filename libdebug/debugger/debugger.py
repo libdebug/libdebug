@@ -90,6 +90,14 @@ class Debugger:
         """Prints the memory maps of the process."""
         self._internal_debugger.print_maps()
 
+    def search_maps(self: Debugger, file: str) -> list[MemoryMap]:
+        """Returns the memory maps matching the given substring.
+
+        Args:
+            file (str): The backing file substring to search in the memory maps of the process.
+        """
+        self._internal_debugger.search_maps(file)
+
     def breakpoint(
         self: Debugger,
         position: int | str,
