@@ -96,7 +96,19 @@ class Debugger:
         Args:
             file (str): The backing file substring to search in the memory maps of the process.
         """
-        self._internal_debugger.search_maps(file)
+        return self._internal_debugger.search_maps(file)
+
+    def resolve_symbol(self: Debugger, symbol: str, file: str = "binary") -> int:
+        """Resolves the address of the specified symbol.
+
+        Args:
+            symbol (str): The symbol to resolve.
+            file (str): The backing file to resolve the symbol in. Defaults to "binary"
+
+        Returns:
+            int: The address of the symbol.
+        """
+        return self._internal_debugger.resolve_symbol(symbol, file)
 
     def breakpoint(
         self: Debugger,
