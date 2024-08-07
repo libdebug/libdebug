@@ -285,6 +285,36 @@ class MemoryTest(unittest.TestCase):
             d.memory["main":"main+8", "absolute"] = b"abcd1234"
 
         d.kill()
+    
+    def test_search_maps(self):
+        d = self.d
+
+        d.run()
+
+        bp = d.breakpoint("leak_address")
+
+        d.cont()
+
+        assert d.regs.rip == bp.address
+        
+        maps = d.search_maps("memory_test")
+        
+        for vmap in maps:
+            self.assertIn("/binaries/memory_test", vmap)
+            
+        maps_bin = d.search_maps("binary")
+        
+        for vmap in maps_bin:
+            self.assertIn("/binaries/memory_test", vmap)
+            
+        self.assertEqual(maps, maps_bin)
+        
+        maps = d.search_maps("libc")
+        
+        for vmap in maps:
+            self.assertIn("libc", maps)
+            
+        d.kill()
 
 
 if __name__ == "__main__":
