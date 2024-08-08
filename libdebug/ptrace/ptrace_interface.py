@@ -13,11 +13,11 @@ import tty
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from libdebug.architectures.call_utilities_provider import call_utilities_provider
 from libdebug.architectures.ptrace_hardware_breakpoint_provider import (
     ptrace_hardware_breakpoint_manager_provider,
 )
 from libdebug.architectures.register_helper import register_holder_provider
-from libdebug.architectures.call_utilities_provider import call_utilities_provider
 from libdebug.cffi import _ptrace_cffi
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.debugger.internal_debugger_instance_manager import (
@@ -367,7 +367,7 @@ class PtraceInterface(DebuggingInterface):
                 self._enable_breakpoint(ip_breakpoint)
                 should_disable = True
 
-            self.cont()
+            self.cont_thread(thread)
             self.wait()
 
             # Remove the breakpoint if it was set by us
@@ -381,7 +381,6 @@ class PtraceInterface(DebuggingInterface):
 
     def next(self: PtraceInterface, thread: ThreadContext) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
-
         opcode_window = thread.memory.read(thread.regs.rip, 8)
 
         # Check if the current instruction is a call and its skip amount
