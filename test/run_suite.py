@@ -28,6 +28,7 @@ from scripts.jumpstart_test import JumpstartTest
 from scripts.large_binary_sym_test import LargeBinarySymTest
 from scripts.memory_test import MemoryTest
 from scripts.multiple_debuggers_test import MultipleDebuggersTest
+from scripts.next_test import NextTest
 from scripts.nlinks_test import Nlinks
 from scripts.pprint_syscalls_test import PPrintSyscallsTest
 from scripts.signals_multithread_test import SignalMultithreadTest
@@ -116,6 +117,9 @@ def fast_suite():
     suite.addTest(WaitingNlinks("test_nlinks"))
     suite.addTest(AutoWaitingTest("test_bps_auto_waiting"))
     suite.addTest(AutoWaitingTest("test_jumpout_auto_waiting"))
+    suite.addTest(NextTest("test_next"))
+    suite.addTest(NextTest("test_next_breakpoint"))
+    suite.addTest(NextTest("test_next_breakpoint_hw"))
     suite.addTest(AutoWaitingNlinks("test_nlinks"))
     suite.addTest(WatchpointTest("test_watchpoint"))
     suite.addTest(WatchpointTest("test_watchpoint_callback"))

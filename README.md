@@ -1,5 +1,6 @@
 ![logo](https://github.com/libdebug/libdebug/blob/dev/media/libdebug_header.png?raw=true)
-# libdebug
+# libdebug [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13151549.svg)](https://doi.org/10.5281/zenodo.13151549)
+
 libdebug is an open source Python library to automate the debugging of a binary executable.
 
 With libdebug you have full control of the flow of your debugged executable. With it you can:
@@ -128,5 +129,6 @@ If you intend to use libdebug in your work, please cite this repository using th
 	publisher = {libdebug.org},
 	author = {Digregorio, Gabriele and Bertolini, Roberto Alessandro and Panebianco, Francesco and Polino, Mario},
 	year = {2024},
+	doi = {10.5281/zenodo.13151549},
 }
 ```
