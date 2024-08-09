@@ -29,6 +29,8 @@ all:
 	$(CC) $(CFLAGS) $(SRC_DIR)/segfault_test.c -o $(BIN_DIR)/segfault_test $(LDFLAGS)
 	$(CC) $(CFLAGS) $(SRC_DIR)/executable_section_test.c -o $(BIN_DIR)/executable_section_test $(LDFLAGS)
 	$(CC) $(CFLAGS) $(SRC_DIR)/math_loop_test.c -lm -fno-pie -no-pie -o $(BIN_DIR)/math_loop_test $(LDFLAGS)
+	$(CC) $(CFLAGS) $(SRC_DIR)/multithread_input.c -o $(BIN_DIR)/multithread_input $(LDFLAGS)
+
 
 	
 
