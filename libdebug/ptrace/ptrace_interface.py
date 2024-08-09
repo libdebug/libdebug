@@ -206,7 +206,7 @@ class PtraceInterface(DebuggingInterface):
             if res == -1:
                 errno_val = self.ffi.errno
                 raise OSError(errno_val, errno.errorcode[errno_val])
-            self.register_new_thread(pid)
+            self.register_new_thread(tid)
 
     def detach(self: PtraceInterface) -> None:
         """Detaches from the process."""
