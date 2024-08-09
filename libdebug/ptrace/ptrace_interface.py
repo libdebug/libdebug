@@ -411,7 +411,7 @@ class PtraceInterface(DebuggingInterface):
                 self._enable_breakpoint(ip_breakpoint)
                 should_disable = True
 
-            self.cont()
+            self.cont_thread(thread)
             self.wait()
 
             # Remove the breakpoint if it was set by us
