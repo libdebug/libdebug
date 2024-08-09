@@ -21,6 +21,10 @@ void *threadFunction(void *arg) {
 }
 
 int main() {
+    setvbuf(stdout, NULL, _IONBF, 0);
+    setvbuf(stderr, NULL, _IONBF, 0);
+    setvbuf(stdin, NULL, _IONBF, 0);
+    
     pthread_t threads[NUM_THREADS];
     int thread_ids[NUM_THREADS];
     int rc;
