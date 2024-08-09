@@ -208,7 +208,13 @@ class ThreadContext:
         """Returns the return address of the current function."""
         self._internal_debugger._ensure_process_stopped()
         stack_unwinder = stack_unwinding_provider()
-        return stack_unwinder.get_return_address(self)
+        
+        try:
+            return_address = stack_unwinder.get_return_address(self)
+        except (OSError, ValueError) as e:
+            raise ValueError("Failed to get the return address. Check stack frame registers (e.g., base pointer).") from e
+        
+        return return_address
 
     def step(self: ThreadContext) -> None:
         """Executes a single instruction of the process."""
