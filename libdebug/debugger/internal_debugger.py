@@ -311,13 +311,13 @@ class InternalDebugger:
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
-    def cont(self: InternalDebugger) -> None:
+    def cont(self: InternalDebugger, thread: ThreadContext | None) -> None:
         """Continues the process.
 
         Args:
-            auto_wait (bool, optional): Whether to automatically wait for the process to stop after continuing. Defaults to True.
+            thread (ThreadContext): The thread to step. Defaults to None.
         """
-        self.__polling_thread_command_queue.put((self.__threaded_cont, ()))
+        self.__polling_thread_command_queue.put((self.__threaded_cont, (thread, )))
 
         self._join_and_check_status()
 
@@ -893,15 +893,13 @@ class InternalDebugger:
         self: InternalDebugger,
         thread: ThreadContext,
     ) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
-        """
+        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self.__threaded_next(thread)
 
     @background_alias(_background_next)
     @change_state_function_thread
     def next(self: InternalDebugger, thread: ThreadContext) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
-        """
+        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._ensure_process_stopped()
         self.__polling_thread_command_queue.put((self.__threaded_next, (thread,)))
         self._join_and_check_status()
@@ -1226,7 +1224,7 @@ class InternalDebugger:
             liblog.debugger("Killing process %d.", self.process_id)
         self.debugging_interface.kill()
 
-    def __threaded_cont(self: InternalDebugger) -> None:
+    def __threaded_cont(self: InternalDebugger, thread: ThreadContext) -> None:
         if self.argv:
             liblog.debugger(
                 "Continuing process %s (%d).",
@@ -1237,7 +1235,9 @@ class InternalDebugger:
             liblog.debugger("Continuing process %d.", self.process_id)
 
         self.set_running()
-        self.debugging_interface.cont()
+        self.resume_context.thread_to_cont = thread
+        self.debugging_interface.cont(thread)
+        self.resume_context.thread_to_cont = None
 
     def __threaded_wait(self: InternalDebugger) -> None:
         if self.argv:
@@ -1257,7 +1257,7 @@ class InternalDebugger:
             self.resume_context.resume = True
             self.debugging_interface.wait()
             if self.resume_context.resume:
-                self.debugging_interface.cont()
+                self.debugging_interface.cont(self.resume_context.thread_to_cont)
             else:
                 break
         self.set_stopped()

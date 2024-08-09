@@ -50,7 +50,7 @@ class DebuggingInterface(ABC):
         """Instantly terminates the process."""
 
     @abstractmethod
-    def cont(self: DebuggingInterface) -> None:
+    def cont(self: DebuggingInterface, thread: ThreadContext | None) -> None:
         """Continues the execution of the process."""
 
     @abstractmethod
@@ -96,9 +96,9 @@ class DebuggingInterface(ABC):
             heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
         """
 
+    @abstractmethod
     def next(self: DebuggingInterface, thread: ThreadContext) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
-        """
+        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
 
     @abstractmethod
     def maps(self: DebuggingInterface) -> list[MemoryMap]:

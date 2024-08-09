@@ -501,6 +501,96 @@ int cont_all_and_set_bps(struct global_state *state, int pid)
     return status;
 }
 
+int prepare_thread_for_run(struct global_state *state, int pid, int tid)
+{
+    int status = 0;
+
+    // flush any register changes
+    struct thread *t = state->t_HEAD;
+    while (t != NULL) {
+        if (ptrace(PTRACE_SETREGS, t->tid, NULL, &t->regs))
+            fprintf(stderr, "ptrace_setregs failed for thread %d: %s\\n",
+                    t->tid, strerror(errno));
+
+        check_and_set_fp_regs(t);
+
+        t = t->next;
+    }
+
+    // check if the thread has hit a software breakpoint
+    t = state->t_HEAD;
+    struct software_breakpoint *b;
+    int t_hit;
+
+    while (t != NULL) {
+        if (t->tid != tid) {
+            t = t->next;
+            continue;
+        }
+
+        t_hit = 0;
+        uint64_t ip = INSTRUCTION_POINTER(t->regs);
+
+        b = state->b_HEAD;
+        while (b != NULL && !t_hit) {
+            if (b->addr == ip)
+                // we hit a software breakpoint on this thread
+                t_hit = 1;
+
+            b = b->next;
+        }
+
+        if (t_hit) {
+            // step over the breakpoint
+            if (ptrace(PTRACE_SINGLESTEP, t->tid, NULL, NULL)) return -1;
+
+            // wait for the child
+            waitpid(t->tid, &status, 0);
+
+            // status == 4991 ==> (WIFSTOPPED(status) && WSTOPSIG(status) ==
+            // SIGSTOP) this should happen only if threads are involved
+            if (status == 4991) {
+                ptrace(PTRACE_SINGLESTEP, t->tid, NULL, NULL);
+                waitpid(t->tid, &status, 0);
+            }
+        }
+
+        break;
+    }
+
+    // Reset any software breakpoint
+    b = state->b_HEAD;
+    while (b != NULL) {
+        if (b->enabled) {
+            ptrace(PTRACE_POKEDATA, pid, (void *)b->addr,
+                   b->patched_instruction);
+        }
+        b = b->next;
+    }
+
+    return status;
+}
+
+int cont_thread_and_set_bps(struct global_state *state, int pid, int tid)
+{
+    int status = prepare_thread_for_run(state, pid, tid);
+
+    // continue the execution of the specific thread
+    struct thread *t = state->t_HEAD;
+    while (t != NULL) {
+        if (t->tid == tid) {
+            if (ptrace(state->handle_syscall_enabled ? PTRACE_SYSCALL : PTRACE_CONT, t->tid, NULL, t->signal_to_forward))
+                fprintf(stderr, "ptrace_cont failed for thread %d with signal %d: %s\\n", t->tid, t->signal_to_forward,
+                        strerror(errno));
+            t->signal_to_forward = 0;
+            break;
+        }
+        t = t->next;
+    }
+
+    return status;
+}
+
 struct thread_status *wait_all_and_update_regs(struct global_state *state, int pid)
 {
     // Allocate the head of the list

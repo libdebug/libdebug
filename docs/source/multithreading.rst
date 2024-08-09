@@ -31,11 +31,11 @@ Control flow is synchronous between threads: they are either either are all stop
 
 The following is a list of behaviors to keep in mind when using control flow funcions in multithreaded programs.
 
-- `cont` will continue all threads.
+- `cont` will continue on thw selected thread or, if none is specified, a continue is issued on all threads.
 - `step` and `step_until` will step the selected thread.
-- `next` will step on the selected thread or, if a call function is found, continue on all threads until the end of the called function or another stopping event.
+- `next` will step on the selected thread or, if a call function is found, continue on the thread until the end of the called function or another stopping event. Continue is issued on all threads if no thread is selected.
 - `finish` will have different behavior depending on the selected heuristic.
-    - `backtrace` will continue on all threads but will stop at any breakpoint that any of the threads hit.
+    - `backtrace` will breakpoint on the return address present on the stack and continue on selected thread or, if none is specified, on the main thread. Execution will stop if any thread hits a breakpoint or undergoes any other stopping event.
     - `step-mode` will step exclusively on the thread that has been specified.
  
 

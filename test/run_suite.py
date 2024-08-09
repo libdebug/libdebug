@@ -32,6 +32,7 @@ from scripts.next_test import NextTest
 from scripts.nlinks_test import Nlinks
 from scripts.pprint_syscalls_test import PPrintSyscallsTest
 from scripts.signals_multithread_test import SignalMultithreadTest
+from scripts.single_thread_cont_test import SingleThreadContTest
 from scripts.speed_test import SpeedTest
 from scripts.thread_test import ComplexThreadTest, ThreadTest
 from scripts.vmwhere1_test import Vmwhere1
@@ -119,6 +120,9 @@ def fast_suite():
     suite.addTest(NextTest("test_next"))
     suite.addTest(NextTest("test_next_breakpoint"))
     suite.addTest(NextTest("test_next_breakpoint_hw"))
+    suite.addTest(SingleThreadContTest("test_single_thread_finish_in_other_thread_1"))
+    suite.addTest(SingleThreadContTest("test_single_thread_finish_in_other_thread_2"))
+    suite.addTest(SingleThreadContTest("test_single_thread_finish_in_other_thread_3"))
     suite.addTest(AutoWaitingNlinks("test_nlinks"))
     suite.addTest(WatchpointTest("test_watchpoint"))
     suite.addTest(WatchpointTest("test_watchpoint_callback"))

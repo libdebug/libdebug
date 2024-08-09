@@ -13,11 +13,11 @@ import tty
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from libdebug.architectures.call_utilities_provider import call_utilities_provider
 from libdebug.architectures.ptrace_hardware_breakpoint_provider import (
     ptrace_hardware_breakpoint_manager_provider,
 )
 from libdebug.architectures.register_helper import register_holder_provider
-from libdebug.architectures.call_utilities_provider import call_utilities_provider
 from libdebug.cffi import _ptrace_cffi
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.debugger.internal_debugger_instance_manager import (
@@ -221,9 +221,7 @@ class PtraceInterface(DebuggingInterface):
             os.kill(self.process_id, 9)
             os.waitpid(self.process_id, 0)
 
-    def cont(self: PtraceInterface) -> None:
-        """Continues the execution of the process."""
-
+    def _prepare_for_cont(self: PtraceInterface) -> None:
         # Forward signals to the threads
         if self._internal_debugger.resume_context.threads_with_signals_to_forward:
             self.forward_signal()
@@ -250,10 +248,22 @@ class PtraceInterface(DebuggingInterface):
         else:
             self._global_state.handle_syscall_enabled = False
 
-        result = self.lib_trace.cont_all_and_set_bps(
-            self._global_state,
-            self.process_id,
-        )
+    def cont(self: PtraceInterface, thread: ThreadContext | None) -> None:
+        """Continues the execution of the process."""
+        self._prepare_for_cont()
+
+        if thread is not None:
+            result = self.lib_trace.cont_thread_and_set_bps(
+                self._global_state,
+                self.process_id,
+                thread.thread_id,
+            )
+        else:
+            result = self.lib_trace.cont_all_and_set_bps(
+                self._global_state,
+                self.process_id,
+            )
+
         if result < 0:
             errno_val = self.ffi.errno
             raise OSError(errno_val, errno.errorcode[errno_val])
@@ -348,7 +358,7 @@ class PtraceInterface(DebuggingInterface):
                 self._enable_breakpoint(ip_breakpoint)
                 should_disable = True
 
-            self.cont()
+            self.cont(thread)
             self.wait()
 
             # Remove the breakpoint if it was set by us
@@ -361,9 +371,7 @@ class PtraceInterface(DebuggingInterface):
             raise ValueError(f"Unimplemented heuristic {heuristic}")
 
     def next(self: PtraceInterface, thread: ThreadContext) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
-        """
-
+        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         opcode_window = thread.memory.read(thread.regs.rip, 8)
 
         # Check if the current instruction is a call and its skip amount
@@ -374,11 +382,11 @@ class PtraceInterface(DebuggingInterface):
 
             # If a breakpoint already exists at the return address, we don't need to set a new one
             found = False
-            ip_breakpoint = self._internal_debugger.breakpoints.get(skip_address)  
+            ip_breakpoint = self._internal_debugger.breakpoints.get(skip_address)
 
             if ip_breakpoint is not None:
                 found = True
-            
+
             # If we find an existing breakpoint that is disabled, we enable it
             # but we need to disable it back after the command
             should_disable = False
@@ -394,13 +402,13 @@ class PtraceInterface(DebuggingInterface):
                 self._enable_breakpoint(ip_breakpoint)
                 should_disable = True
 
-            self.cont()
+            self.cont(thread)
             self.wait()
 
             # Remove the breakpoint if it was set by us
             if not found:
                 self.unset_breakpoint(ip_breakpoint)
-            # Disable the breakpoint if it was just enabled by us 
+            # Disable the breakpoint if it was just enabled by us
             elif should_disable:
                 self._disable_breakpoint(ip_breakpoint)
         else:
@@ -443,7 +451,7 @@ class PtraceInterface(DebuggingInterface):
 
             bp = Breakpoint(entry_point, hardware=True)
             self.set_breakpoint(bp)
-            self.cont()
+            self.cont(None)
             self.wait()
 
             self.unset_breakpoint(bp)
