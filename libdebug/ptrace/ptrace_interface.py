@@ -13,11 +13,11 @@ import tty
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from libdebug.architectures.call_utilities_provider import call_utilities_provider
 from libdebug.architectures.ptrace_hardware_breakpoint_provider import (
     ptrace_hardware_breakpoint_manager_provider,
 )
 from libdebug.architectures.register_helper import register_holder_provider
-from libdebug.architectures.call_utilities_provider import call_utilities_provider
 from libdebug.cffi import _ptrace_cffi
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.debugger.internal_debugger_instance_manager import (
@@ -34,6 +34,7 @@ from libdebug.utils.pipe_manager import PipeManager
 from libdebug.utils.process_utils import (
     disable_self_aslr,
     get_process_maps,
+    get_process_tasks,
     invalidate_process_cache,
 )
 
@@ -187,18 +188,25 @@ class PtraceInterface(DebuggingInterface):
         with extend_internal_debugger(self):
             self.status_handler = PtraceStatusHandler()
 
-        res = self.lib_trace.ptrace_attach(pid)
-        if res == -1:
-            errno_val = self.ffi.errno
-            raise OSError(errno_val, errno.errorcode[errno_val])
+        # Attach to all the tasks of the process
+        self._attach_to_all_tasks(pid)
 
         self.process_id = pid
         self.detached = False
         self._internal_debugger.process_id = pid
-        self.register_new_thread(pid)
         # If we are attaching to a process, we don't want to continue to the entry point
         # which we have probably already passed
         self._setup_parent(False)
+
+    def _attach_to_all_tasks(self: PtraceStatusHandler, pid: int) -> None:
+        """Attach to all the tasks of the process."""
+        tids = get_process_tasks(pid)
+        for tid in tids:
+            res = self.lib_trace.ptrace_attach(tid)
+            if res == -1:
+                errno_val = self.ffi.errno
+                raise OSError(errno_val, errno.errorcode[errno_val])
+            self.register_new_thread(pid)
 
     def detach(self: PtraceInterface) -> None:
         """Detaches from the process."""
@@ -361,8 +369,7 @@ class PtraceInterface(DebuggingInterface):
             raise ValueError(f"Unimplemented heuristic {heuristic}")
 
     def next(self: PtraceInterface, thread: ThreadContext) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
-        """
+        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
 
         opcode_window = thread.memory.read(thread.regs.rip, 8)
 
@@ -374,11 +381,11 @@ class PtraceInterface(DebuggingInterface):
 
             # If a breakpoint already exists at the return address, we don't need to set a new one
             found = False
-            ip_breakpoint = self._internal_debugger.breakpoints.get(skip_address)  
+            ip_breakpoint = self._internal_debugger.breakpoints.get(skip_address)
 
             if ip_breakpoint is not None:
                 found = True
-            
+
             # If we find an existing breakpoint that is disabled, we enable it
             # but we need to disable it back after the command
             should_disable = False
@@ -400,7 +407,7 @@ class PtraceInterface(DebuggingInterface):
             # Remove the breakpoint if it was set by us
             if not found:
                 self.unset_breakpoint(ip_breakpoint)
-            # Disable the breakpoint if it was just enabled by us 
+            # Disable the breakpoint if it was just enabled by us
             elif should_disable:
                 self._disable_breakpoint(ip_breakpoint)
         else:

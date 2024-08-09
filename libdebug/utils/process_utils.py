@@ -41,6 +41,21 @@ def get_open_fds(process_id: int) -> list[int]:
     return [int(fd) for fd in os.listdir(f"/proc/{process_id}/fd")]
 
 
+def get_process_tasks(process_id: int) -> list[int]:
+    """Returns the tasks of the specified process.
+
+    Args:
+        process_id (int): The PID of the process whose tasks should be returned.
+
+    Returns:
+        list: A list of integers, each representing a task of the specified process.
+    """
+    tids = []
+    if Path(f"/proc/{process_id}/task").exists():
+        tids = [int(task) for task in os.listdir(f"/proc/{process_id}/task")]
+    return tids
+
+
 def invalidate_process_cache() -> None:
     """Invalidates the cache of the functions in this module. Must be executed any time the process executes code."""
     get_process_maps.cache_clear()
