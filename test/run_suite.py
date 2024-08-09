@@ -70,6 +70,7 @@ def fast_suite():
     suite.addTest(BacktraceTest("test_backtrace_as_symbols"))
     suite.addTest(BacktraceTest("test_backtrace"))
     suite.addTest(AttachDetachTest("test_attach"))
+    suite.addTest(AttachDetachTest("test_attach_multihtread"))
     suite.addTest(AttachDetachTest("test_attach_and_detach_1"))
     suite.addTest(AttachDetachTest("test_attach_and_detach_2"))
     suite.addTest(AttachDetachTest("test_attach_and_detach_3"))
