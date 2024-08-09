@@ -205,17 +205,23 @@ class ThreadContext:
         """Returns the return address of the current function."""
         self._internal_debugger._ensure_process_stopped()
         stack_unwinder = stack_unwinding_provider()
-        
+
         try:
             return_address = stack_unwinder.get_return_address(self)
         except (OSError, ValueError) as e:
-            raise ValueError("Failed to get the return address. Check stack frame registers (e.g., base pointer).") from e
-        
+            raise ValueError(
+                "Failed to get the return address. Check stack frame registers (e.g., base pointer)."
+            ) from e
+
         return return_address
 
     def step(self: ThreadContext) -> None:
-        """Executes a single instruction of the process."""
+        """Executes a single instruction of the thread."""
         self._internal_debugger.step(self)
+
+    def cont(self: ThreadContext) -> None:
+        """Continues the execution of the thread."""
+        self._internal_debugger.cont(self)
 
     def step_until(
         self: ThreadContext,
@@ -223,7 +229,7 @@ class ThreadContext:
         max_steps: int = -1,
         file: str = "hybrid",
     ) -> None:
-        """Executes instructions of the process until the specified location is reached.
+        """Executes instructions of the thread until the specified location is reached.
 
         Args:
             position (int | bytes): The location to reach.
@@ -247,8 +253,7 @@ class ThreadContext:
         self._internal_debugger.finish(self, heuristic=heuristic)
 
     def next(self: ThreadContext) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
-        """
+        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._internal_debugger.next(self)
 
     def si(self: ThreadContext) -> None:
@@ -286,6 +291,5 @@ class ThreadContext:
         self._internal_debugger.finish(self, heuristic)
 
     def ni(self: ThreadContext) -> None:
-        """Alias for the `next` method. Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
-        """
+        """Alias for the `next` method. Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._internal_debugger.next(self)

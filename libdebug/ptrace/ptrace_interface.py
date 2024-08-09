@@ -248,30 +248,21 @@ class PtraceInterface(DebuggingInterface):
         else:
             self._global_state.handle_syscall_enabled = False
 
-    def cont(self: PtraceInterface) -> None:
+    def cont(self: PtraceInterface, thread: ThreadContext | None) -> None:
         """Continues the execution of the process."""
         self._prepare_for_cont()
 
-        result = self.lib_trace.cont_all_and_set_bps(
-            self._global_state,
-            self.process_id,
-        )
-
-        if result < 0:
-            errno_val = self.ffi.errno
-            raise OSError(errno_val, errno.errorcode[errno_val])
-
-    def cont_thread(self: PtraceInterface, thread: ThreadContext) -> None:
-        """Issues a continue just on a specific thread."""
-        liblog.debugger("Continuing thread %d", thread.thread_id)
-
-        self._prepare_for_cont()
-
-        result = self.lib_trace.cont_thread_and_set_bps(
-            self._global_state,
-            self.process_id,
-            thread.thread_id,
-        )
+        if thread is not None:
+            result = self.lib_trace.cont_thread_and_set_bps(
+                self._global_state,
+                self.process_id,
+                thread.thread_id,
+            )
+        else:
+            result = self.lib_trace.cont_all_and_set_bps(
+                self._global_state,
+                self.process_id,
+            )
 
         if result < 0:
             errno_val = self.ffi.errno
@@ -367,7 +358,7 @@ class PtraceInterface(DebuggingInterface):
                 self._enable_breakpoint(ip_breakpoint)
                 should_disable = True
 
-            self.cont_thread(thread)
+            self.cont(thread)
             self.wait()
 
             # Remove the breakpoint if it was set by us
@@ -411,7 +402,7 @@ class PtraceInterface(DebuggingInterface):
                 self._enable_breakpoint(ip_breakpoint)
                 should_disable = True
 
-            self.cont_thread(thread)
+            self.cont(thread)
             self.wait()
 
             # Remove the breakpoint if it was set by us
@@ -460,7 +451,7 @@ class PtraceInterface(DebuggingInterface):
 
             bp = Breakpoint(entry_point, hardware=True)
             self.set_breakpoint(bp)
-            self.cont()
+            self.cont(None)
             self.wait()
 
             self.unset_breakpoint(bp)

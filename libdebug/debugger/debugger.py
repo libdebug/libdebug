@@ -72,7 +72,8 @@ class Debugger:
 
     def cont(self: Debugger) -> None:
         """Continues the process."""
-        self._internal_debugger.cont()
+        # None indicates to continue all threads
+        self._internal_debugger.cont(thread=None)
 
     def interrupt(self: Debugger) -> None:
         """Interrupts the process."""
@@ -244,7 +245,8 @@ class Debugger:
 
         Continues the process.
         """
-        self._internal_debugger.cont()
+        # None indicates to continue all threads
+        self._internal_debugger.cont(thread=None)
 
     def int(self: Debugger) -> None:
         """Alias for the `interrupt` method.

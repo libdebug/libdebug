@@ -171,10 +171,15 @@ class SingleThreadContTest(unittest.TestCase):
             other = d.threads[2] if d.threads[1] == target else d.threads[1]
 
         if not do_nothing_target.hit_on(target):
-            target.step_until(do_nothing_target.address)
+            # target.step_until(do_nothing_target.address)
+            target.cont()
 
         if not do_nothing_other.hit_on(other):
-            other.step_until(do_nothing_other.address)
+            # other.step_until(do_nothing_other.address)
+            other.cont()
+
+        assert do_nothing_target.hit_on(target)
+        assert do_nothing_other.hit_on(other)
 
         # at this point, both the target thread and the other thread are stuck on a breakpoint
         # save the states

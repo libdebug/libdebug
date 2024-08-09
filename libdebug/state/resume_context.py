@@ -6,6 +6,11 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from libdebug.state.thread_context import ThreadContext
+
 
 class ResumeContext:
     """A class representing the context of the resume decision."""
@@ -18,6 +23,7 @@ class ResumeContext:
         self.is_startup: bool = False
         self.block_on_signal: bool = False
         self.threads_with_signals_to_forward: list[int] = []
+        self.thread_to_cont: ThreadContext | None = None
 
     def clear(self: ResumeContext) -> None:
         """Clears the context."""
@@ -27,3 +33,4 @@ class ResumeContext:
         self.is_startup = False
         self.block_on_signal = False
         self.threads_with_signals_to_forward.clear()
+        self.thread_to_cont = None
