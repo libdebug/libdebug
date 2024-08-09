@@ -107,12 +107,15 @@ class ThreadContext:
 
     @property
     def process_id(self: ThreadContext) -> int:
-        """The process ID of the thread."""
+        """The process ID."""
         return self._internal_debugger.process_id
 
     @property
     def pid(self: ThreadContext) -> int:
-        """The process ID of the thread."""
+        """Alias for `process_id` property.
+
+        The process ID.
+        """
         return self._internal_debugger.process_id
 
     @property
