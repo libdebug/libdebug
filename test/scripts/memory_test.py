@@ -300,19 +300,19 @@ class MemoryTest(unittest.TestCase):
         maps = d.search_maps("memory_test")
         
         for vmap in maps:
-            self.assertIn("/binaries/memory_test", vmap)
+            self.assertIn("/binaries/memory_test", vmap.backing_file)
             
         maps_bin = d.search_maps("binary")
         
         for vmap in maps_bin:
-            self.assertIn("/binaries/memory_test", vmap)
+            self.assertIn("/binaries/memory_test", vmap.backing_file)
             
         self.assertEqual(maps, maps_bin)
         
         maps = d.search_maps("libc")
         
         for vmap in maps:
-            self.assertIn("libc", maps)
+            self.assertIn("libc", vmap.backing_file)
             
         d.kill()
 
