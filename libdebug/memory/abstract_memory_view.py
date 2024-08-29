@@ -23,9 +23,6 @@ class AbstractMemoryView(MutableSequence, ABC):
     An implementation of class must be used to read and write memory of the target process.
     """
 
-    context: InternalDebugger
-    """The debugging context of the target process."""
-
     def __init__(self: AbstractMemoryView) -> None:
         """Initializes the MemoryView."""
         self._internal_debugger = provide_internal_debugger(self)
