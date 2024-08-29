@@ -87,7 +87,7 @@ class InternalDebugger:
     """A flag that indicates if the debugger should escape anti-debugging techniques."""
 
     fast_memory: bool
-    """A flag that indicates if the debugger should use a faster memory reading method."""
+    """A flag that indicates if the debugger should use a faster memory access method."""
 
     autoreach_entrypoint: bool
     """A flag that indicates if the debugger should automatically reach the entry point of the debugged process."""

@@ -475,6 +475,30 @@ class Debugger:
 
         self._internal_debugger.signals_to_block = signals
 
+    @property
+    def fast_memory(self: Debugger) -> bool:
+        """Get the state of the fast_memory flag.
+
+        It is used to determine if the debugger should use a faster memory access method.
+
+        Returns:
+            bool: True if the debugger should use a faster memory access method, False otherwise.
+        """
+        return self._internal_debugger.fast_memory
+
+    @fast_memory.setter
+    def fast_memory(self: Debugger, value: bool) -> None:
+        """Set the state of the fast_memory flag.
+
+        It is used to determine if the debugger should use a faster memory access method.
+
+        Args:
+            value (bool): the value to set.
+        """
+        if not isinstance(value, bool):
+            raise TypeError("fast_memory must be a boolean")
+        self._internal_debugger.fast_memory = value
+
     def __getattr__(self: Debugger, name: str) -> object:
         """This function is called when an attribute is not found in the `Debugger` object.
 
