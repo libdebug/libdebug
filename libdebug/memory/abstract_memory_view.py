@@ -8,13 +8,9 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import MutableSequence
-from typing import TYPE_CHECKING
 
 from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 from libdebug.liblog import liblog
-
-if TYPE_CHECKING:
-    from libdebug.debugger.internal_debugger import InternalDebugger
 
 
 class AbstractMemoryView(MutableSequence, ABC):
