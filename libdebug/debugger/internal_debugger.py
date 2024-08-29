@@ -291,8 +291,7 @@ class InternalDebugger:
 
         self._join_and_check_status()
 
-        if self.fast_memory:
-            self._process_memory_manager.close()
+        self._process_memory_manager.close()
 
     @background_alias(_background_invalid_call)
     def kill(self: InternalDebugger) -> None:
