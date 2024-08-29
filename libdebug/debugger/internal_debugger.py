@@ -152,6 +152,12 @@ class InternalDebugger:
     _is_running: bool
     """The overall state of the debugged process. True if the process is running, False otherwise."""
 
+    _fast_memory: DirectMemoryView
+    """The memory view of the debugged process using the fast memory access method."""
+
+    _slow_memory: ChunkedMemoryView
+    """The memory view of the debugged process using the slow memory access method."""
+
     def __init__(self: InternalDebugger) -> None:
         """Initialize the context."""
         # These must be reinitialized on every call to "debugger"
