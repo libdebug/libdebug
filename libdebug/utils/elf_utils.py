@@ -211,6 +211,25 @@ def resolve_address(path: str, address: int) -> str:
 
 
 @functools.cache
+def parse_elf_characteristics(path: str) -> tuple[bool, int, str]:
+    """Returns a tuple containing the PIE flag, the entry point and the architecture of the specified ELF file.
+
+    Args:
+        path (str): The path to the ELF file.
+
+    Returns:
+        tuple: A tuple containing the PIE flag, the entry point and the architecture of the specified ELF file.
+    """
+    with Path(path).open("rb") as elf_file:
+        elf = ELFFile(elf_file)
+
+    pie = elf.header.e_type == "ET_DYN"
+    entry_point = elf.header.e_entry
+    arch = elf.get_machine_arch()
+
+    return pie, entry_point, arch
+
+
 def is_pie(path: str) -> bool:
     """Returns True if the specified ELF file is position independent, False otherwise.
 
@@ -220,13 +239,9 @@ def is_pie(path: str) -> bool:
     Returns:
         bool: True if the specified ELF file is position independent, False otherwise.
     """
-    with Path(path).open("rb") as elf_file:
-        elf = ELFFile(elf_file)
-
-    return elf.header.e_type == "ET_DYN"
+    return parse_elf_characteristics(path)[0]
 
 
-@functools.cache
 def get_entry_point(path: str) -> int:
     """Returns the entry point of the specified ELF file.
 
@@ -236,13 +251,9 @@ def get_entry_point(path: str) -> int:
     Returns:
         int: The entry point of the specified ELF file.
     """
-    with Path(path).open("rb") as elf_file:
-        elf = ELFFile(elf_file)
-
-    return elf.header.e_entry
+    return parse_elf_characteristics(path)[1]
 
 
-@functools.cache
 def elf_architecture(path: str) -> str:
     """Returns the architecture of the specified ELF file.
 
@@ -252,7 +263,4 @@ def elf_architecture(path: str) -> str:
     Returns:
         str: The architecture of the specified ELF file.
     """
-    with Path(path).open("rb") as elf_file:
-        elf = ELFFile(elf_file)
-
-    return elf.get_machine_arch()
+    return parse_elf_characteristics(path)[2]
