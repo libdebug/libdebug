@@ -374,9 +374,6 @@ ffibuilder.cdef("""
     uint64_t ptrace_peekdata(int pid, uint64_t addr);
     uint64_t ptrace_pokedata(int pid, uint64_t addr, uint64_t data);
 
-    uint64_t ptrace_peekuser(int pid, uint64_t addr);
-    uint64_t ptrace_pokeuser(int pid, uint64_t addr, uint64_t data);
-
     struct fp_regs_struct *get_thread_fp_regs(struct global_state *state, int tid);
     void get_fp_regs(int tid, struct fp_regs_struct *fpregs);
     void set_fp_regs(int tid, struct fp_regs_struct *fpregs);

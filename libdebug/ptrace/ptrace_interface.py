@@ -737,34 +737,6 @@ class PtraceInterface(DebuggingInterface):
         """
         raise NotImplementedError("Flushing floating-point registers is automatically handled by the native code.")
 
-    def _peek_user(self: PtraceInterface, thread_id: int, address: int) -> int:
-        """Reads the memory at the specified address."""
-        result = self.lib_trace.ptrace_peekuser(thread_id, address)
-        liblog.debugger(
-            "PEEKUSER at address %d returned with result %x",
-            address,
-            result,
-        )
-
-        error = self.ffi.errno
-        if error:
-            raise OSError(error, errno.errorcode[error])
-
-        return result
-
-    def _poke_user(self: PtraceInterface, thread_id: int, address: int, value: int) -> None:
-        """Writes the memory at the specified address."""
-        result = self.lib_trace.ptrace_pokeuser(thread_id, address, value)
-        liblog.debugger(
-            "POKEUSER at address %d returned with result %d",
-            address,
-            result,
-        )
-
-        if result == -1:
-            error = self.ffi.errno
-            raise OSError(error, errno.errorcode[error])
-
     def _get_event_msg(self: PtraceInterface, thread_id: int) -> int:
         """Returns the event message."""
         return self.lib_trace.ptrace_geteventmsg(thread_id)
