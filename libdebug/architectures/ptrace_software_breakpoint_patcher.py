@@ -8,7 +8,7 @@
 def software_breakpoint_byte_size(architecture: str) -> int:
     """Return the size of a software breakpoint instruction."""
     match architecture:
-        case "amd64":
+        case "amd64" | "i386":
             return 1
         case "aarch64":
             return 4

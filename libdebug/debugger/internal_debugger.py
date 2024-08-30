@@ -207,7 +207,7 @@ class InternalDebugger:
             self.memory = MemoryView(
                 self._peek_memory,
                 self._poke_memory,
-                unit_size=get_platform_register_size(self.arch),
+                unit_size=get_platform_register_size(libcontext.platform),
             )
 
     def start_processing_thread(self: InternalDebugger) -> None:
@@ -1327,7 +1327,7 @@ class InternalDebugger:
 
     def __threaded_peek_memory(self: InternalDebugger, address: int) -> bytes | BaseException:
         value = self.debugging_interface.peek_memory(address)
-        return value.to_bytes(get_platform_register_size(self.arch), sys.byteorder)
+        return value.to_bytes(get_platform_register_size(libcontext.platform), sys.byteorder)
 
     def __threaded_poke_memory(self: InternalDebugger, address: int, data: bytes) -> None:
         int_data = int.from_bytes(data, sys.byteorder)

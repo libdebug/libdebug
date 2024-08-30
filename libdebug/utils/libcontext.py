@@ -12,6 +12,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 
 from libdebug.liblog import liblog
+from libdebug.utils.arch_mappings import map_arch
 
 
 class LibContext:
@@ -153,7 +154,7 @@ class LibContext:
     @property
     def platform(self: LibContext) -> str:
         """Return the current platform."""
-        return platform.machine()
+        return map_arch(platform.machine())
 
     @property
     def terminal(self: LibContext) -> list[str]:

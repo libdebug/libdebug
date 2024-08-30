@@ -20,7 +20,7 @@ def register_holder_provider(
 ) -> RegisterHolder:
     """Returns an instance of the register holder to be used by the `_InternalDebugger` class."""
     match architecture:
-        case "amd64":
+        case "amd64" | "i386":
             return Amd64PtraceRegisterHolder(register_file, fp_register_file)
         case "aarch64":
             return Aarch64PtraceRegisterHolder(register_file, fp_register_file)
