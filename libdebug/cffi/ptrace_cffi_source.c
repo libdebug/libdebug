@@ -358,34 +358,27 @@ int is_breakpoint_hit(struct hardware_breakpoint *bp)
     return 0;
 }
 
-int get_remaining_hw_breakpoint_count(struct global_state *state, int tid)
+int _get_remaining_count(struct global_state *state, int tid, int command)
 {
     struct user_hwdebug_state dbg_state = {0};
 
     struct iovec iov;
     iov.iov_base = &dbg_state;
     iov.iov_len = sizeof dbg_state;
-
-    unsigned long command = NT_ARM_HW_BREAK;
 
     ptrace(PTRACE_GETREGSET, tid, command, &iov);
 
     return dbg_state.dbg_info & 0xff;
 }
 
+int get_remaining_hw_breakpoint_count(struct global_state *state, int tid)
+{
+    return _get_remaining_count(state, tid, NT_ARM_HW_BREAK);
+}
+
 int get_remaining_hw_watchpoint_count(struct global_state *state, int tid)
 {
-    struct user_hwdebug_state dbg_state = {0};
-
-    struct iovec iov;
-    iov.iov_base = &dbg_state;
-    iov.iov_len = sizeof dbg_state;
-
-    unsigned long command = NT_ARM_HW_WATCH;
-
-    ptrace(PTRACE_GETREGSET, tid, command, &iov);
-
-    return dbg_state.dbg_info & 0xff;
+    return _get_remaining_count(state, tid, NT_ARM_HW_WATCH);
 }
 #endif
 
