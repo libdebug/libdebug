@@ -141,13 +141,13 @@ class InternalDebugger:
     resume_context: ResumeContext
     """Context that indicates if the debugger should resume the debugged process."""
 
-    _polling_thread: Thread | None
+    __polling_thread: Thread | None
     """The background thread used to poll the process for state change."""
 
-    _polling_thread_command_queue: Queue | None
+    __polling_thread_command_queue: Queue | None
     """The queue used to send commands to the background thread."""
 
-    _polling_thread_response_queue: Queue | None
+    __polling_thread_response_queue: Queue | None
     """The queue used to receive responses from the background thread."""
 
     _is_running: bool
