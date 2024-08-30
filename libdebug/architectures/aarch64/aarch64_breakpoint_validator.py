@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 def validate_breakpoint_aarch64(bp: Breakpoint) -> None:
     """Validate a hardware breakpoint for the AARCH64 architecture."""
-    if bp.condition.lower() not in ["r", "w", "rw", "x"]:
+    if bp.condition not in ["r", "w", "rw", "x"]:
         raise ValueError("Invalid condition for watchpoints. Supported conditions are 'r', 'w', 'rw', 'x'.")
 
     if not (1 <= bp.length <= 8):
