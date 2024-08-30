@@ -8,6 +8,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
+from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.signal_utils import (
     get_all_signal_numbers,
     resolve_signal_name,
@@ -316,6 +317,16 @@ class Debugger:
             callback=callback,
             file=file,
         )
+
+    @property
+    def arch(self: Debugger) -> str:
+        """Get the architecture of the process."""
+        return self._internal_debugger.arch
+
+    @arch.setter
+    def arch(self: Debugger, value: str) -> None:
+        """Set the architecture of the process."""
+        self._internal_debugger.arch = map_arch(value)
 
     @property
     def threads(self: Debugger) -> list[ThreadContext]:

@@ -174,7 +174,7 @@ class InternalDebugger:
         self.instanced = False
         self._is_running = False
         self.resume_context = ResumeContext()
-        self._arch = map_arch(libcontext.platform)
+        self.arch = map_arch(libcontext.platform)
         self.__polling_thread_command_queue = Queue()
         self.__polling_thread_response_queue = Queue()
 
@@ -290,16 +290,6 @@ class InternalDebugger:
         self.__polling_thread_command_queue.put((self.__threaded_detach, ()))
 
         self._join_and_check_status()
-
-    @property
-    def arch(self: InternalDebugger) -> str:
-        """The architecture of the debugged process."""
-        return self._arch
-
-    @arch.setter
-    def arch(self: InternalDebugger, value: str) -> None:
-        """The architecture of the debugged process."""
-        self._arch = map_arch(value)
 
     @background_alias(_background_invalid_call)
     def kill(self: InternalDebugger) -> None:

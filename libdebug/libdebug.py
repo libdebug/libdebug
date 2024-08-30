@@ -42,11 +42,11 @@ def debugger(
     internal_debugger.auto_interrupt_on_command = auto_interrupt_on_command
     internal_debugger.escape_antidebug = escape_antidebug
 
-    # If we are attaching, we assume the architecture is the same as the current platform
-    if argv:
-        internal_debugger.arch = elf_architecture(argv[0])
-
     debugger = Debugger()
     debugger.post_init_(internal_debugger)
+
+    # If we are attaching, we assume the architecture is the same as the current platform
+    if argv:
+        debugger.arch = elf_architecture(argv[0])
 
     return debugger
