@@ -327,6 +327,8 @@ class PtraceInterface(DebuggingInterface):
             should_disable = False
 
             if not found:
+                # Check if we have enough hardware breakpoints available
+                # Otherwise we use a software breakpoint
                 install_hw_bp = (
                     self.lib_trace.get_remaining_hw_breakpoint_count(self._global_state, thread.thread_id) > 0
                 )
