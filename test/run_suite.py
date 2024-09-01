@@ -1,35 +1,46 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-import os
-import platform
 import sys
+from unittest import TestSuite, TestLoader, TextTestRunner
 
-architectures = os.listdir(".")
-architectures.remove("common")
+from scripts.alias_test import AliasTest
 
-if len(sys.argv) > 1 and sys.argv[1] not in architectures:
-    print("Usage: python run_test_suite.py <architecture>")
-    print("Available architectures:")
-    for arch in architectures:
-        print(f"  {arch}")
-    sys.exit(1)
-elif len(sys.argv) > 1:
-    arch = sys.argv[1]
-else:
-    arch = platform.machine()
-    match arch:
-        case "x86_64":
-            arch = "amd64"
-        case "i686":
-            arch = "i386"
-        case "aarch64":
-            arch = "aarch64"
-        case _:
-            raise ValueError(f"Unsupported architecture: {arch}")
+def fast_suite():
+    suite = TestSuite()
 
-os.chdir(arch)
-os.system(" ".join([sys.executable, "run_suite.py"]))
+    suite.addTest(TestLoader().loadTestsFromTestCase(AliasTest))
+
+    return suite
+
+def full_suite():
+    suite = fast_suite()
+
+    return suite
+
+def stress_suite():
+    suite = TestSuite()
+
+    return suite
+
+def main():
+    if sys.version_info >= (3, 12):
+        runner = TextTestRunner(verbosity=2, durations=3)
+    else:
+        runner = TextTestRunner(verbosity=2)
+
+    if len(sys.argv) > 1 and sys.argv[1].lower() == "slow":
+        suite = full_suite()
+    elif len(sys.argv) > 1 and sys.argv[1].lower() == "stress":
+        suite = stress_suite()
+        runner.verbosity = 1
+    else:
+        suite = fast_suite()
+
+    runner.run(suite)
+
+if __name__ == "__main__":
+    main()
