@@ -16,6 +16,8 @@ from libdebug.utils.libcontext import libcontext
 match libcontext.platform:
     case "amd64":
         DEATH_LOCATION = 0x55555555517F
+    case "aarch64":
+        DEATH_LOCATION = 0xaaaaaaaa0784
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 

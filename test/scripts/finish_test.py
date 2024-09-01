@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Francesco Panebianco, Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2024 Francesco Panebianco, Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -21,6 +21,15 @@ match libcontext.platform:
         # Addresses of noteworthy instructions
         RETURN_POINT_FROM_C = 0x401202
         RETURN_POINT_FROM_A = 0x4011e0
+    case "aarch64":
+        # Addresses of the dummy functions
+        C_ADDRESS = 0xaaaaaaaa0914
+        B_ADDRESS = 0xaaaaaaaa08fc
+        A_ADDRESS = 0xaaaaaaaa0814
+
+        # Addresses of noteworthy instructions
+        RETURN_POINT_FROM_C = 0xaaaaaaaa0938
+        RETURN_POINT_FROM_A = 0xaaaaaaaa0908
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 

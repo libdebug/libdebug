@@ -4,6 +4,7 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+import sys
 from pathlib import Path
 from random import randint
 from unittest import TestCase, skipUnless
@@ -286,6 +287,78 @@ class FloatingPointTest(TestCase):
         d.cont()
 
         self.assertTrue(bp.hit_on(d))
+
+        d.kill()
+        d.terminate()
+
+    @skipUnless(libcontext.platform == "aarch64", "Requires aarch64")
+    def test_floating_point_reg_access_aarch64(self):
+        d = debugger(RESOLVE_EXE("floating_point_test"))
+        
+        d.run()
+        
+        bp1 = d.bp(0xb10, file="binary")
+        bp2 = d.bp(0xb44, file="binary")
+        
+        d.cont()
+
+        assert bp1.hit_on(d)
+
+        baseval = int.from_bytes(bytes(list(range(16))), sys.byteorder)
+
+        for i in range(16):
+            assert hasattr(d.regs, f"q{i}")
+            assert getattr(d.regs, f"q{i}") == baseval
+            assert getattr(d.regs, f"v{i}") == baseval
+            assert getattr(d.regs, f"d{i}") == baseval & 0xFFFFFFFFFFFFFFFF
+            assert getattr(d.regs, f"s{i}") == baseval & 0xFFFFFFFF
+            assert getattr(d.regs, f"h{i}") == baseval & 0xFFFF
+            assert getattr(d.regs, f"b{i}") == baseval & 0xFF
+            baseval = (baseval >> 8) + ((baseval & 255) << 120)
+
+        baseval = int.from_bytes(bytes(list(range(128, 128 + 16, 1))), sys.byteorder)
+
+        for i in range(16, 32, 1):
+            assert hasattr(d.regs, f"q{i}")
+            assert getattr(d.regs, f"q{i}") == baseval
+            assert getattr(d.regs, f"v{i}") == baseval
+            assert getattr(d.regs, f"d{i}") == baseval & 0xFFFFFFFFFFFFFFFF
+            assert getattr(d.regs, f"s{i}") == baseval & 0xFFFFFFFF
+            assert getattr(d.regs, f"h{i}") == baseval & 0xFFFF
+            assert getattr(d.regs, f"b{i}") == baseval & 0xFF
+            baseval = (baseval >> 8) + ((baseval & 255) << 120)
+
+        for i in range(32):
+            val = randint(0, (1 << 128) - 1)
+            setattr(d.regs, f"q{i}", val)
+            assert getattr(d.regs, f"q{i}") == val
+            assert getattr(d.regs, f"v{i}") == val
+
+        for i in range(32):
+            val = randint(0, (1 << 64) - 1)
+            setattr(d.regs, f"d{i}", val)
+            assert getattr(d.regs, f"d{i}") == val
+
+        for i in range(32):
+            val = randint(0, (1 << 32) - 1)
+            setattr(d.regs, f"s{i}", val)
+            assert getattr(d.regs, f"s{i}") == val
+
+        for i in range(32):
+            val = randint(0, (1 << 16) - 1)
+            setattr(d.regs, f"h{i}", val)
+            assert getattr(d.regs, f"h{i}") == val
+
+        for i in range(32):
+            val = randint(0, (1 << 8) - 1)
+            setattr(d.regs, f"b{i}", val)
+            assert getattr(d.regs, f"b{i}") == val
+
+        d.regs.q0 = 0xdeadbeefdeadbeef
+
+        d.cont()
+
+        assert bp2.hit_on(d)
 
         d.kill()
         d.terminate()
