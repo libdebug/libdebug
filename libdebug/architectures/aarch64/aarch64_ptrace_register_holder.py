@@ -45,6 +45,16 @@ def _get_property_32(name: str) -> property:
     return property(getter, setter, None, name)
 
 
+def _get_property_zr(name: str) -> property:
+    def getter(_: Aarch64Registers) -> int:
+        return 0
+
+    def setter(_: Aarch64Registers, __: int) -> None:
+        pass
+
+    return property(getter, setter, None, name)
+
+
 def _get_property_fp_8(name: str, index: int) -> property:
     def getter(self: Aarch64Registers) -> int:
         if not self._fp_register_file.fresh:
@@ -161,8 +171,6 @@ class Aarch64PtraceRegisterHolder(PtraceRegisterHolder):
             setattr(target_class, name_64, _get_property_64(name_64))
             setattr(target_class, name_32, _get_property_32(name_64))
 
-        target_class.pc = _get_property_64("pc")
-
         # setup the floating point registers
         for i in range(32):
             name_v = f"v{i}"
@@ -177,6 +185,14 @@ class Aarch64PtraceRegisterHolder(PtraceRegisterHolder):
             setattr(target_class, name_32, _get_property_fp_32(name_32, i))
             setattr(target_class, name_16, _get_property_fp_16(name_16, i))
             setattr(target_class, name_8, _get_property_fp_8(name_8, i))
+
+        # setup special aarch64 registers
+        target_class.pc = _get_property_64("pc")
+        target_class.sp = _get_property_64("sp")
+        target_class.lr = _get_property_64("x30")
+        target_class.fp = _get_property_64("x29")
+        target_class.xzr = _get_property_zr("xzr")
+        target_class.wzr = _get_property_zr("wzr")
 
     def apply_on_thread(self: Aarch64PtraceRegisterHolder, target: ThreadContext, target_class: type) -> None:
         """Apply the register accessors to the thread class."""
