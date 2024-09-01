@@ -3,32 +3,38 @@
 # Copyright (c) 2024 Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
-import unittest
+
+from unittest import TestCase
+from utils.binary_utils import RESOLVE_EXE
 
 from libdebug import debugger
+from libdebug.utils.libcontext import libcontext
 
-TEST_ENTRYPOINT = 0x4011f8
 
-# Addresses of the dummy functions
-CALL_C_ADDRESS = 0x4011fd
-TEST_BREAKPOINT_ADDRESS = 0x4011f1
+match libcontext.platform:
+    case "amd64":
+        TEST_ENTRYPOINT = 0x4011f8
 
-# Addresses of noteworthy instructions
-RETURN_POINT_FROM_C = 0x401202
+        # Addresses of the dummy functions
+        CALL_C_ADDRESS = 0x4011fd
+        TEST_BREAKPOINT_ADDRESS = 0x4011f1
 
-class NextTest(unittest.TestCase):
-    def setUp(self):
-        pass
+        # Addresses of noteworthy instructions
+        RETURN_POINT_FROM_C = 0x401202
+    case _:
+        raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 
+
+class NextTest(TestCase):
     def test_next(self):
-        d = debugger("binaries/finish_test", auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False)
         d.run()
 
         # Get to test entrypoint
         entrypoint_bp = d.breakpoint(TEST_ENTRYPOINT)
         d.cont()
 
-        self.assertEqual(d.regs.rip, TEST_ENTRYPOINT)
+        self.assertEqual(d.instruction_pointer, TEST_ENTRYPOINT)
 
         # -------- Block 1 ------- #
         #        Simple Step       #
@@ -36,32 +42,32 @@ class NextTest(unittest.TestCase):
 
         # Reach call of function c
         d.next()
-        self.assertEqual(d.regs.rip, CALL_C_ADDRESS)
+        self.assertEqual(d.instruction_pointer, CALL_C_ADDRESS)
 
         # -------- Block 2 ------- #
         #        Skip a call       #
         # ------------------------ #
 
         d.next()
-        self.assertEqual(d.regs.rip, RETURN_POINT_FROM_C)
+        self.assertEqual(d.instruction_pointer, RETURN_POINT_FROM_C)
 
         d.kill()
         d.terminate()
 
     def test_next_breakpoint(self):
-        d = debugger("binaries/finish_test", auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False)
         d.run()
 
         # Get to test entrypoint
         entrypoint_bp = d.breakpoint(TEST_ENTRYPOINT)
         d.cont()
 
-        self.assertEqual(d.regs.rip, TEST_ENTRYPOINT)
+        self.assertEqual(d.instruction_pointer, TEST_ENTRYPOINT)
 
         # Reach call of function c
         d.next()
 
-        self.assertEqual(d.regs.rip, CALL_C_ADDRESS)
+        self.assertEqual(d.instruction_pointer, CALL_C_ADDRESS)
 
         # -------- Block 1 ------- #
         #    Call with breakpoint  #
@@ -73,26 +79,26 @@ class NextTest(unittest.TestCase):
         d.next()
 
         # Check we hit the breakpoint
-        self.assertEqual(d.regs.rip, TEST_BREAKPOINT_ADDRESS)
+        self.assertEqual(d.instruction_pointer, TEST_BREAKPOINT_ADDRESS)
         self.assertEqual(test_breakpoint.hit_count, 1)
 
         d.kill()
         d.terminate()
 
     def test_next_breakpoint_hw(self):
-        d = debugger("binaries/finish_test", auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False)
         d.run()
 
         # Get to test entrypoint
         entrypoint_bp = d.breakpoint(TEST_ENTRYPOINT)
         d.cont()
 
-        self.assertEqual(d.regs.rip, TEST_ENTRYPOINT)
+        self.assertEqual(d.instruction_pointer, TEST_ENTRYPOINT)
 
         # Reach call of function c
         d.next()
 
-        self.assertEqual(d.regs.rip, CALL_C_ADDRESS)
+        self.assertEqual(d.instruction_pointer, CALL_C_ADDRESS)
 
         # -------- Block 1 ------- #
         #    Call with breakpoint  #
@@ -104,7 +110,7 @@ class NextTest(unittest.TestCase):
         d.next()
 
         # Check we hit the breakpoint
-        self.assertEqual(d.regs.rip, TEST_BREAKPOINT_ADDRESS)
+        self.assertEqual(d.instruction_pointer, TEST_BREAKPOINT_ADDRESS)
         self.assertEqual(test_breakpoint.hit_count, 1)
 
         d.kill()

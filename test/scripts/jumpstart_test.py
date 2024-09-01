@@ -4,14 +4,15 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-import unittest
+from unittest import TestCase
+from utils.binary_utils import RESOLVE_EXE
 
 from libdebug import debugger
 
-class JumpstartTest(unittest.TestCase):
 
+class JumpstartTest(TestCase):
     def test_cursed_ldpreload(self):
-        d = debugger("binaries/jumpstart_test", env={"LD_PRELOAD": "binaries/jumpstart_test_preload.so"})
+        d = debugger(RESOLVE_EXE("jumpstart_test"), env={"LD_PRELOAD": RESOLVE_EXE("jumpstart_test_preload.so")})
 
         r = d.run()
 
@@ -22,3 +23,4 @@ class JumpstartTest(unittest.TestCase):
         self.assertEqual(r.recvline(), b"execve(/bin/ls, (nil), (nil))")
 
         d.kill()
+        d.terminate()

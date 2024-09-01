@@ -4,15 +4,18 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-import unittest
+from unittest import TestCase, skipUnless
+from utils.binary_utils import RESOLVE_EXE
 from time import perf_counter_ns
 
-from libdebug import debugger, libcontext
+from libdebug import debugger
+from libdebug.utils.libcontext import libcontext
 
 
-class LargeBinarySymTest(unittest.TestCase):
+class LargeBinarySymTest(TestCase):
+    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
     def test_large_binary_symbol_load_times(self):
-        d = debugger("binaries/node")
+        d = debugger(RESOLVE_EXE("node"))
 
         d.run()
 
@@ -33,9 +36,11 @@ class LargeBinarySymTest(unittest.TestCase):
         self.assertTrue((t1_stop - t1_start) < 2e9)
 
         d.kill()
+        d.terminate()
 
+    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
     def test_large_binary_demangle(self):
-        d = debugger("binaries/node")
+        d = debugger(RESOLVE_EXE("node"))
 
         d.run()
 
@@ -63,3 +68,4 @@ class LargeBinarySymTest(unittest.TestCase):
                 pass
 
         d.kill()
+        d.terminate()

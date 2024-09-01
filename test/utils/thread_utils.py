@@ -12,3 +12,10 @@ def FUN_ARG_0(t) -> int:
             return t.regs.rdi
         case "aarch64":
             return t.regs.x0
+        
+def FUN_RET_VAL(t) -> int:
+    match libcontext.platform:
+        case "amd64":
+            return t.regs.rax
+        case "aarch64":
+            return t.regs.x0

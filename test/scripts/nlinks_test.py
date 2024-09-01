@@ -1,7 +1,12 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2023-2024 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
+#
+
+#
+# nlinks - challenge from DEF CON CTF Quals 2023
+# Thanks to the whole mhackeroni CTF team for the exploit
 #
 
 from unittest import TestCase, skipUnless
@@ -11,14 +16,14 @@ from libdebug import debugger
 from libdebug.utils.libcontext import libcontext
 
 
-class AutoWaitingNlinksTest(TestCase):
+class NlinksTest(TestCase):
     def get_passsphrase_from_class_1_binaries(self, previous_flag):
         flag = b""
 
-        d = debugger(RESOLVE_EXE("CTF/1"), auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("CTF/1"))
         r = d.run()
 
-        d.breakpoint(0x7EF1, hardware=True, file="binary")
+        bp = d.breakpoint(0x7EF1, hardware=True)
 
         d.cont()
 
@@ -26,6 +31,8 @@ class AutoWaitingNlinksTest(TestCase):
         r.send(previous_flag + b"a" * 8)
 
         for _ in range(8):
+            self.assertTrue(d.regs.rip == bp.address)
+
             offset = ord("a") ^ d.regs.rbp
             d.regs.rbp = d.regs.r13
             flag += (offset ^ d.regs.r13).to_bytes(1, "little")
@@ -45,12 +52,12 @@ class AutoWaitingNlinksTest(TestCase):
         lastpos = 0
         flag = b""
 
-        d = debugger(RESOLVE_EXE("CTF/2"), auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("CTF/2"))
         r = d.run()
 
-        bp1 = d.breakpoint(0xD8C1, hardware=True, file="binary")
-        bp2 = d.breakpoint(0x1858, hardware=True, file="binary")
-        bp3 = d.breakpoint(0xDBA1, hardware=True, file="binary")
+        bp1 = d.breakpoint(0xD8C1, hardware=True)
+        bp2 = d.breakpoint(0x1858, hardware=True)
+        bp3 = d.breakpoint(0xDBA1, hardware=True)
 
         d.cont()
 
@@ -86,16 +93,19 @@ class AutoWaitingNlinksTest(TestCase):
     def get_passsphrase_from_class_3_binaries(self):
         flag = b""
 
-        d = debugger(RESOLVE_EXE("CTF/0"), auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("CTF/0"))
         r = d.run()
 
-        d.breakpoint(0x91A1, hardware=True, file="binary")
+        bp = d.breakpoint(0x91A1, hardware=True)
 
         d.cont()
 
         r.send(b"a" * 8)
 
         for _ in range(8):
+
+            self.assertTrue(d.regs.rip == bp.address)
+
             offset = ord("a") - d.regs.rbp
             d.regs.rbp = d.regs.r13
 

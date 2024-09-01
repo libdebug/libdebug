@@ -6,12 +6,23 @@
 
 import io
 import sys
-import unittest
+from unittest import TestCase
+from utils.binary_utils import RESOLVE_EXE
 
 from libdebug import debugger
+from libdebug.utils.libcontext import libcontext
 
 
-class SyscallHijackTest(unittest.TestCase):
+match libcontext.platform:
+    case "amd64":
+        WRITE_NUM = 1
+        BP_ADDRESS = 0x4011B0
+        OUTPUT_STR = "0x402010"
+    case _:
+        raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
+
+
+class SyscallHijackTest(TestCase):
     def setUp(self):
         # Redirect stdout
         self.capturedOutput = io.StringIO()
@@ -26,7 +37,7 @@ class SyscallHijackTest(unittest.TestCase):
 
             write_count += 1
 
-        d = debugger("binaries/handle_syscall_test")
+        d = debugger(RESOLVE_EXE("handle_syscall_test"))
 
         write_count = 0
         r = d.run()
@@ -58,6 +69,7 @@ class SyscallHijackTest(unittest.TestCase):
         d.cont()
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(write_count, handler.hit_count)
         self.assertEqual(handler.hit_count, 2)
@@ -68,7 +80,7 @@ class SyscallHijackTest(unittest.TestCase):
 
             write_count += 1
 
-        d = debugger("binaries/handle_syscall_test")
+        d = debugger(RESOLVE_EXE("handle_syscall_test"))
 
         write_count = 0
         r = d.run()
@@ -102,6 +114,7 @@ class SyscallHijackTest(unittest.TestCase):
         d.cont()
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(write_count, handler.hit_count)
         self.assertEqual(handler.hit_count, 2)
@@ -113,9 +126,9 @@ class SyscallHijackTest(unittest.TestCase):
             write_count += 1
 
         def on_enter_getcwd(d, sh):
-            d.syscall_number = 0x1
+            d.syscall_number = WRITE_NUM
 
-        d = debugger("binaries/handle_syscall_test")
+        d = debugger(RESOLVE_EXE("handle_syscall_test"))
 
         write_count = 0
         r = d.run()
@@ -147,6 +160,7 @@ class SyscallHijackTest(unittest.TestCase):
         d.cont()
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(write_count, handler.hit_count)
         self.assertEqual(handler.hit_count, 2)
@@ -158,9 +172,9 @@ class SyscallHijackTest(unittest.TestCase):
             write_count += 1
 
         def on_enter_getcwd(d, sh):
-            d.syscall_number = 0x1
+            d.syscall_number = WRITE_NUM
 
-        d = debugger("binaries/handle_syscall_test")
+        d = debugger(RESOLVE_EXE("handle_syscall_test"))
 
         write_count = 0
         r = d.run()
@@ -194,6 +208,7 @@ class SyscallHijackTest(unittest.TestCase):
         d.cont()
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(write_count, handler.hit_count)
         self.assertEqual(handler.hit_count, 2)
@@ -209,14 +224,14 @@ class SyscallHijackTest(unittest.TestCase):
 
             write_count += 1
 
-        d = debugger("binaries/handle_syscall_test")
+        d = debugger(RESOLVE_EXE("handle_syscall_test"))
 
         write_count = 0
         r = d.run()
 
         # recursive hijack is on, we expect the write handler to be called three times
         handler = d.handle_syscall("write", on_enter=on_enter_write, recursive=True)
-        d.breakpoint(0x4011B0)
+        d.breakpoint(BP_ADDRESS)
 
         d.cont()
         print(r.recvline())
@@ -238,6 +253,7 @@ class SyscallHijackTest(unittest.TestCase):
         print(r.recvline())
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(self.capturedOutput.getvalue().count("Hello, World!"), 2)
         self.assertEqual(write_count, handler.hit_count)
@@ -254,7 +270,7 @@ class SyscallHijackTest(unittest.TestCase):
 
             write_count += 1
 
-        d = debugger("binaries/handle_syscall_test")
+        d = debugger(RESOLVE_EXE("handle_syscall_test"))
 
         write_count = 0
         r = d.run()
@@ -263,7 +279,7 @@ class SyscallHijackTest(unittest.TestCase):
 
         # recursive hijack is on, we expect the write handler to be called three times
         handler = d.handle_syscall("write", on_enter=on_enter_write, recursive=True)
-        d.breakpoint(0x4011B0)
+        d.breakpoint(BP_ADDRESS)
 
         d.cont()
         print(r.recvline())
@@ -285,15 +301,16 @@ class SyscallHijackTest(unittest.TestCase):
         print(r.recvline())
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(self.capturedOutput.getvalue().count("Hello, World!"), 2)
         self.assertEqual(self.capturedOutput.getvalue().count("write"), 3)
-        self.assertEqual(self.capturedOutput.getvalue().count("0x402010"), 3)
+        self.assertEqual(self.capturedOutput.getvalue().count(OUTPUT_STR), 3)
         self.assertEqual(write_count, handler.hit_count)
         self.assertEqual(handler.hit_count, 3)
 
     def test_hijack_syscall_wrong_args(self):
-        d = debugger("binaries/handle_syscall_test")
+        d = debugger(RESOLVE_EXE("handle_syscall_test"))
 
         d.run()
 
@@ -301,9 +318,10 @@ class SyscallHijackTest(unittest.TestCase):
             d.hijack_syscall("read", "write", syscall_arg26=0x1)
 
         d.kill()
+        d.terminate()
 
     def loop_detection_test(self):
-        d = debugger("binaries/handle_syscall_test")
+        d = debugger(RESOLVE_EXE("handle_syscall_test"))
 
         r = d.run()
         d.hijack_syscall("getcwd", "write", recursive=True)
@@ -332,6 +350,5 @@ class SyscallHijackTest(unittest.TestCase):
         # We expect no exception to be raised
         d.cont()
 
-
-if __name__ == "__main__":
-    unittest.main()
+        d.kill()
+        d.terminate()

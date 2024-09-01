@@ -6,14 +6,17 @@
 
 import io
 import logging
-import unittest
+from unittest import TestCase
+from utils.binary_utils import RESOLVE_EXE
+from utils.thread_utils import FUN_ARG_0
 
-from libdebug import debugger, libcontext
+from libdebug import debugger
+from libdebug.utils.libcontext import libcontext
 
 
-class MemoryTest(unittest.TestCase):
+class MemoryTest(TestCase):
     def setUp(self) -> None:
-        self.d = debugger("binaries/memory_test")
+        self.d = debugger(RESOLVE_EXE("memory_test"))
 
         # Redirect logging to a string buffer
         self.log_capture_string = io.StringIO()
@@ -35,9 +38,9 @@ class MemoryTest(unittest.TestCase):
 
         d.cont()
 
-        assert d.regs.rip == bp.address
+        assert d.instruction_pointer == bp.address
 
-        address = d.regs.rdi
+        address = FUN_ARG_0(d)
         prev = bytes(range(256))
 
         self.assertTrue(d.memory[address, 256] == prev)
@@ -48,6 +51,7 @@ class MemoryTest(unittest.TestCase):
         self.assertTrue(d.memory[address : address + 256] == prev)
 
         d.kill()
+        d.terminate()
 
     def test_mem_access_libs(self):
         d = self.d
@@ -58,9 +62,9 @@ class MemoryTest(unittest.TestCase):
 
         d.cont()
 
-        assert d.regs.rip == bp.address
+        assert d.instruction_pointer == bp.address
 
-        address = d.regs.rdi
+        address = FUN_ARG_0(d)
         with libcontext.tmp(sym_lvl=5):
             arena = d.memory["main_arena", 256, "libc"]
 
@@ -70,6 +74,7 @@ class MemoryTest(unittest.TestCase):
         self.assertTrue(p64(address - 0x10) in arena)
 
         d.kill()
+        d.terminate()
 
     def test_memory_exceptions(self):
         d = self.d
@@ -86,9 +91,9 @@ class MemoryTest(unittest.TestCase):
         # File should start with ELF magic number
         self.assertTrue(file.startswith(b"\x7fELF"))
 
-        assert d.regs.rip == bp.address
+        assert d.instruction_pointer == bp.address
 
-        address = d.regs.rdi
+        address = FUN_ARG_0(d)
         prev = bytes(range(256))
 
         self.assertTrue(d.memory[address, 256] == prev)
@@ -99,6 +104,7 @@ class MemoryTest(unittest.TestCase):
         self.assertTrue(d.memory[address : address + 256] == prev)
 
         d.kill()
+        d.terminate()
 
     def test_memory_multiple_runs(self):
         d = self.d
@@ -110,9 +116,9 @@ class MemoryTest(unittest.TestCase):
 
             d.cont()
 
-            assert d.regs.rip == bp.address
+            assert d.instruction_pointer == bp.address
 
-            address = d.regs.rdi
+            address = FUN_ARG_0(d)
             prev = bytes(range(256))
 
             self.assertTrue(d.memory[address, 256] == prev)
@@ -124,8 +130,10 @@ class MemoryTest(unittest.TestCase):
 
             d.kill()
 
+        d.terminate()
+
     def test_memory_access_while_running(self):
-        d = debugger("binaries/memory_test_2")
+        d = debugger(RESOLVE_EXE("memory_test_2"))
 
         d.run()
 
@@ -136,16 +144,17 @@ class MemoryTest(unittest.TestCase):
         # Verify that memory access is only possible when the process is stopped
         value = int.from_bytes(d.memory["state", 8], "little")
         self.assertEqual(value, 0xDEADBEEF)
-        self.assertEqual(d.regs.rip, bp.address)
+        self.assertEqual(d.instruction_pointer, bp.address)
 
         d.kill()
+        d.terminate()
 
     def test_memory_access_methods(self):
-        d = debugger("binaries/memory_test_2")
+        d = debugger(RESOLVE_EXE("memory_test_2"))
 
         d.run()
 
-        base = d.regs.rip & 0xFFFFFFFFFFFFF000 - 0x1000
+        base = d.instruction_pointer & 0xFFFFFFFFFFFFF000 - 0x1000
 
         # Test different ways to access memory at the start of the file
         file_0 = d.memory[base, 256]
@@ -207,13 +216,14 @@ class MemoryTest(unittest.TestCase):
         self.assertEqual(d.memory["main", 8], b"abcd1234")
 
         d.kill()
+        d.terminate()
 
     def test_memory_access_methods_backing_file(self):
-        d = debugger("binaries/memory_test_2")
+        d = debugger(RESOLVE_EXE("memory_test_2"))
 
         d.run()
 
-        base = d.regs.rip & 0xFFFFFFFFFFFFF000 - 0x1000
+        base = d.instruction_pointer & 0xFFFFFFFFFFFFF000 - 0x1000
 
         # Validate that slices work correctly
         file_0 = d.memory[0x0:"do_nothing", "binary"]
@@ -285,7 +295,4 @@ class MemoryTest(unittest.TestCase):
             d.memory["main":"main+8", "absolute"] = b"abcd1234"
 
         d.kill()
-
-
-if __name__ == "__main__":
-    unittest.main()
+        d.terminate()

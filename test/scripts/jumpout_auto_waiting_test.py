@@ -11,7 +11,7 @@ from libdebug import debugger
 from libdebug.utils.libcontext import libcontext
 
 
-class AutoWaitingJumpoutTest(TestCase):
+class JumpoutAutoWaitingTest(TestCase):
     @skipUnless(libcontext.platform == "amd64", "Requires amd64")
     def test_jumpout_auto_waiting(self):
         flag = ""
