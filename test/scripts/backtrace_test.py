@@ -4,16 +4,19 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-import unittest
+from unittest import TestCase, skipUnless
+from utils.binary_utils import RESOLVE_EXE
 
 from libdebug import debugger
+from libdebug.utils.libcontext import libcontext
 
 
-class BacktraceTest(unittest.TestCase):
+class BacktraceTest(TestCase):
     def setUp(self):
-        self.d = debugger("binaries/backtrace_test")
+        self.d = debugger(RESOLVE_EXE("backtrace_test"))
 
-    def test_backtrace_as_symbols(self):
+    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    def test_backtrace_as_symbols_amd64(self):
         d = self.d
 
         d.run()
@@ -102,8 +105,10 @@ class BacktraceTest(unittest.TestCase):
         )
 
         d.kill()
+        d.terminate()
 
-    def test_backtrace(self):
+    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    def test_backtrace_amd64(self):
         d = self.d
 
         d.run()
@@ -192,7 +197,4 @@ class BacktraceTest(unittest.TestCase):
         )
 
         d.kill()
-
-
-if __name__ == "__main__":
-    unittest.main()
+        d.terminate()

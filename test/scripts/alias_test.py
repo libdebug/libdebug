@@ -4,8 +4,7 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-import unittest
-
+from unittest import TestCase
 from utils.thread_utils import FUN_ARG_0
 from utils.binary_utils import RESOLVE_EXE
 
@@ -31,7 +30,7 @@ match libcontext.platform:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 
 
-class AliasTest(unittest.TestCase):
+class AliasTest(TestCase):
     def test_basic_alias(self):
         d = debugger(RESOLVE_EXE("basic_test"))
         d.r()

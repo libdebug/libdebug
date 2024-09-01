@@ -8,18 +8,24 @@ import logging
 import unittest
 
 from pwn import process
+from utils.binary_utils import RESOLVE_EXE
 
 from libdebug import debugger
+from libdebug.utils.libcontext import libcontext
 
 logging.getLogger("pwnlib").setLevel(logging.ERROR)
 
 
-class AttachDetachTest(unittest.TestCase):
-    def setUp(self):
-        pass
+match libcontext.platform:
+    case "amd64":
+        TEST_ATTACH_AND_DETACH_3_BP1_ADDRESS = 0x125E
+        TEST_ATTACH_AND_DETACH_3_BP2_ADDRESS = 0x1261
+    case _:
+        raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 
+class AttachDetachTest(unittest.TestCase):
     def test_attach(self):
-        r = process("binaries/attach_test")
+        r = process(RESOLVE_EXE("attach_test"))
 
         d = debugger()
         d.attach(r.pid)
@@ -29,14 +35,15 @@ class AttachDetachTest(unittest.TestCase):
         r.recvuntil(b"name:")
         r.sendline(b"Io_no")
 
-        self.assertTrue(d.regs.rip == bp.address)
+        self.assertTrue(d.instruction_pointer == bp.address)
 
         d.cont()
 
         d.kill()
+        d.terminate()
 
     def test_attach_and_detach_1(self):
-        r = process("binaries/attach_test")
+        r = process(RESOLVE_EXE("attach_test"))
 
         d = debugger()
 
@@ -49,9 +56,10 @@ class AttachDetachTest(unittest.TestCase):
         r.sendline(b"Io_no")
 
         r.kill()
+        d.terminate()
 
     def test_attach_and_detach_2(self):
-        d = debugger("binaries/attach_test")
+        d = debugger(RESOLVE_EXE("attach_test"))
 
         # Run the process
         r = d.run()
@@ -62,15 +70,16 @@ class AttachDetachTest(unittest.TestCase):
         r.sendline(b"Io_no")
 
         d.kill()
+        d.terminate()
 
     def test_attach_and_detach_3(self):
-        d = debugger("binaries/attach_test")
+        d = debugger(RESOLVE_EXE("attach_test"))
 
         r = d.run()
 
         # We must ensure that any breakpoint is unset before detaching
-        d.breakpoint(0x125E)
-        d.breakpoint(0x1261, hardware=True)
+        d.breakpoint(TEST_ATTACH_AND_DETACH_3_BP1_ADDRESS, file="binary")
+        d.breakpoint(TEST_ATTACH_AND_DETACH_3_BP2_ADDRESS, hardware=True, file="binary")
 
         d.detach()
 
@@ -79,9 +88,10 @@ class AttachDetachTest(unittest.TestCase):
         r.sendline(b"Io_no")
 
         d.kill()
+        d.terminate()
 
     def test_attach_and_detach_4(self):
-        r = process("binaries/attach_test")
+        r = process(RESOLVE_EXE("attach_test"))
 
         d = debugger()
         d.attach(r.pid)
@@ -91,6 +101,4 @@ class AttachDetachTest(unittest.TestCase):
         # Validate that, after detaching and killing, the process is effectively terminated
         self.assertRaises(EOFError, r.sendline, b"provola")
 
-
-if __name__ == "__main__":
-    unittest.main()
+        d.terminate()
