@@ -4,15 +4,24 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-import unittest
 import string
+from unittest import TestCase
+from utils.binary_utils import RESOLVE_EXE
 
 from libdebug import debugger
+from libdebug.utils.libcontext import libcontext
 
 
-class AntidebugEscapingTest(unittest.TestCase):
+match libcontext.platform:
+    case "amd64":
+        ADDRESS = 0x401209
+    case _:
+        raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
+
+
+class AntidebugEscapingTest(TestCase):
     def test_antidebug_escaping(self):
-        d = debugger("binaries/antidebug_brute_test")
+        d = debugger(RESOLVE_EXE("antidebug_brute_test"))
 
         # validate that without the handler the binary cannot be debugged
         r = d.run()
@@ -22,7 +31,7 @@ class AntidebugEscapingTest(unittest.TestCase):
         d.kill()
 
         # validate that with the handler the binary can be debugged
-        d = debugger("binaries/antidebug_brute_test", escape_antidebug=True)
+        d = debugger(RESOLVE_EXE("antidebug_brute_test"), escape_antidebug=True)
         r = d.run()
         d.cont()
         msg = r.recvline()
@@ -37,12 +46,12 @@ class AntidebugEscapingTest(unittest.TestCase):
         while not flag or flag != "BRUTE":
             for c in string.printable:
                 r = d.run()
-                bp = d.breakpoint(0x401209, hardware=True)
+                bp = d.breakpoint(ADDRESS, hardware=True)
                 d.cont()
 
                 r.sendlineafter(b"chars\n", (flag + c).encode())
 
-                while bp.address == d.regs.rip:
+                while bp.address == d.instruction_pointer:
                     d.cont()
 
                 if bp.hit_count > counter:
@@ -60,3 +69,4 @@ class AntidebugEscapingTest(unittest.TestCase):
                     break
 
         self.assertEqual(flag, "BRUTE")
+        d.terminate()

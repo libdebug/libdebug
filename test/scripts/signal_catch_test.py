@@ -6,12 +6,20 @@
 
 import io
 import logging
-import unittest
+from unittest import TestCase
+from utils.binary_utils import RESOLVE_EXE
 
 from libdebug import debugger
+from libdebug.utils.libcontext import libcontext
 
 
-class SignalCatchTest(unittest.TestCase):
+match libcontext.platform:
+    case "amd64":
+        ADDRESS = 0x12c4
+    case _:
+        raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
+
+class SignalCatchTest(TestCase):
     def setUp(self):
         # Redirect logging to a string buffer
         self.log_capture_string = io.StringIO()
@@ -61,7 +69,7 @@ class SignalCatchTest(unittest.TestCase):
 
             SIGPIPE_count += 1
 
-        d = debugger("binaries/catch_signal_test")
+        d = debugger(RESOLVE_EXE("catch_signal_test"))
 
         d.signals_to_block = ["SIGUSR1", 15, "SIGINT", 3, 13]
 
@@ -76,6 +84,7 @@ class SignalCatchTest(unittest.TestCase):
         d.cont()
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(SIGUSR1_count, 2)
         self.assertEqual(SIGTERM_count, 2)
@@ -121,7 +130,7 @@ class SignalCatchTest(unittest.TestCase):
 
             SIGPIPE_count += 1
 
-        d = debugger("binaries/catch_signal_test")
+        d = debugger(RESOLVE_EXE("catch_signal_test"))
 
         r = d.run()
 
@@ -149,6 +158,7 @@ class SignalCatchTest(unittest.TestCase):
         SIGPIPE += r.recvline()
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(SIGUSR1_count, 2)
         self.assertEqual(SIGTERM_count, 2)
@@ -200,7 +210,7 @@ class SignalCatchTest(unittest.TestCase):
 
             SIGPIPE_count += 1
 
-        d = debugger("binaries/catch_signal_test")
+        d = debugger(RESOLVE_EXE("catch_signal_test"))
 
         r = d.run()
 
@@ -210,7 +220,7 @@ class SignalCatchTest(unittest.TestCase):
         catcher4 = d.catch_signal("SIGQUIT", callback=catcher_SIGQUIT)
         catcher5 = d.catch_signal("SIGPIPE", callback=catcher_SIGPIPE)
 
-        bp = d.breakpoint(0x12C4)
+        bp = d.breakpoint(ADDRESS)
 
         d.cont()
 
@@ -236,6 +246,7 @@ class SignalCatchTest(unittest.TestCase):
         SIGPIPE += r.recvline()
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(SIGUSR1_count, 2)
         self.assertEqual(SIGTERM_count, 2)
@@ -287,7 +298,7 @@ class SignalCatchTest(unittest.TestCase):
 
             SIGPIPE_count += 1
 
-        d = debugger("binaries/catch_signal_test")
+        d = debugger(RESOLVE_EXE("catch_signal_test"))
 
         r = d.run()
 
@@ -299,7 +310,7 @@ class SignalCatchTest(unittest.TestCase):
         catcher4 = d.catch_signal("SIGQUIT", callback=catcher_SIGQUIT)
         catcher5 = d.catch_signal("SIGPIPE", callback=catcher_SIGPIPE)
 
-        bp = d.breakpoint(0x12C4)
+        bp = d.breakpoint(ADDRESS)
 
         d.cont()
 
@@ -317,6 +328,7 @@ class SignalCatchTest(unittest.TestCase):
                 break
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(SIGUSR1_count, 2)
         self.assertEqual(SIGTERM_count, 2)
@@ -368,7 +380,7 @@ class SignalCatchTest(unittest.TestCase):
 
             SIGPIPE_count += 1
 
-        d = debugger("binaries/catch_signal_test")
+        d = debugger(RESOLVE_EXE("catch_signal_test"))
 
         r = d.run()
 
@@ -380,7 +392,7 @@ class SignalCatchTest(unittest.TestCase):
         catcher4 = d.catch_signal("SIGQUIT", callback=catcher_SIGQUIT)
         catcher5 = d.catch_signal("SIGPIPE", callback=catcher_SIGPIPE)
 
-        bp = d.breakpoint(0x12C4)
+        bp = d.breakpoint(ADDRESS)
 
         d.cont()
 
@@ -400,6 +412,7 @@ class SignalCatchTest(unittest.TestCase):
                 break
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(SIGUSR1_count, 2)
         self.assertEqual(SIGTERM_count, 2)
@@ -424,7 +437,7 @@ class SignalCatchTest(unittest.TestCase):
             # Hijack to SIGTERM
             t.signal = 15
 
-        d = debugger("binaries/catch_signal_test")
+        d = debugger(RESOLVE_EXE("catch_signal_test"))
 
         r = d.run()
 
@@ -448,6 +461,7 @@ class SignalCatchTest(unittest.TestCase):
         SIGPIPE += r.recvline()
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(catcher1.hit_count, 2)
 
@@ -458,7 +472,7 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(SIGPIPE, b"Received signal 13" * 3)
 
     def test_hijack_signal_with_api(self):
-        d = debugger("binaries/catch_signal_test")
+        d = debugger(RESOLVE_EXE("catch_signal_test"))
 
         r = d.run()
 
@@ -483,6 +497,7 @@ class SignalCatchTest(unittest.TestCase):
         SIGPIPE += r.recvline()
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(catcher1.hit_count, 2)
 
@@ -508,7 +523,7 @@ class SignalCatchTest(unittest.TestCase):
 
             SIGTERM_count += 1
 
-        d = debugger("binaries/catch_signal_test")
+        d = debugger(RESOLVE_EXE("catch_signal_test"))
 
         r = d.run()
 
@@ -533,6 +548,7 @@ class SignalCatchTest(unittest.TestCase):
         SIGPIPE += r.recvline()
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(SIGUSR1_count, 2)
         self.assertEqual(SIGTERM_count, 4)  # 2 times more because of the hijack
@@ -554,7 +570,7 @@ class SignalCatchTest(unittest.TestCase):
 
             SIGTERM_count += 1
 
-        d = debugger("binaries/catch_signal_test")
+        d = debugger(RESOLVE_EXE("catch_signal_test"))
 
         r = d.run()
 
@@ -579,6 +595,7 @@ class SignalCatchTest(unittest.TestCase):
         SIGPIPE += r.recvline()
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(SIGTERM_count, 4)  # 2 times more because of the hijack
         self.assertEqual(catcher1.hit_count, 2)
@@ -606,7 +623,7 @@ class SignalCatchTest(unittest.TestCase):
 
             SIGTERM_count += 1
 
-        d = debugger("binaries/catch_signal_test")
+        d = debugger(RESOLVE_EXE("catch_signal_test"))
 
         r = d.run()
 
@@ -631,6 +648,7 @@ class SignalCatchTest(unittest.TestCase):
         SIGPIPE += r.recvline()
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(SIGUSR1_count, 2)
         self.assertEqual(SIGTERM_count, 2)  # 2 times in total because of the recursive=False
@@ -652,7 +670,7 @@ class SignalCatchTest(unittest.TestCase):
 
             SIGTERM_count += 1
 
-        d = debugger("binaries/catch_signal_test")
+        d = debugger(RESOLVE_EXE("catch_signal_test"))
 
         r = d.run()
 
@@ -677,6 +695,7 @@ class SignalCatchTest(unittest.TestCase):
         SIGPIPE += r.recvline()
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(catcher1.hit_count, 2)
         self.assertEqual(SIGTERM_count, 2)  # 2 times in total because of the recursive=False
@@ -699,7 +718,7 @@ class SignalCatchTest(unittest.TestCase):
             # Hijack to SIGINT
             t.signal = 10
 
-        d = debugger("binaries/catch_signal_test")
+        d = debugger(RESOLVE_EXE("catch_signal_test"))
 
         d.run()
 
@@ -736,11 +755,12 @@ class SignalCatchTest(unittest.TestCase):
 
         d.cont()
         d.kill()
+        d.terminate()
 
     def test_hijack_signal_with_api_loop(self):
         # Let create a loop of hijacking signals
 
-        d = debugger("binaries/catch_signal_test")
+        d = debugger(RESOLVE_EXE("catch_signal_test"))
 
         d.run()
 
@@ -777,6 +797,7 @@ class SignalCatchTest(unittest.TestCase):
 
         d.cont()
         d.kill()
+        d.terminate()
 
     def test_signal_unhijacking(self):
         SIGUSR1_count = 0
@@ -798,7 +819,7 @@ class SignalCatchTest(unittest.TestCase):
 
             SIGINT_count += 1
 
-        d = debugger("binaries/catch_signal_test")
+        d = debugger(RESOLVE_EXE("catch_signal_test"))
 
         r = d.run()
 
@@ -808,7 +829,7 @@ class SignalCatchTest(unittest.TestCase):
         catcher4 = d.hijack_signal("SIGQUIT", "SIGTERM", recursive=True)
         catcher5 = d.hijack_signal("SIGPIPE", "SIGTERM", recursive=True)
 
-        bp = d.breakpoint(0x12C4)
+        bp = d.breakpoint(ADDRESS)
 
         d.cont()
 
@@ -834,6 +855,7 @@ class SignalCatchTest(unittest.TestCase):
         SIGPIPE += r.recvline()
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(SIGUSR1_count, 2)
         self.assertEqual(SIGTERM_count, 2 + 2 + 2)  # 2 times more because of the hijacking * 2 (SIGQUIT and SIGPIPE)
@@ -863,13 +885,13 @@ class SignalCatchTest(unittest.TestCase):
 
             SIGPIPE_count_second += 1
 
-        d = debugger("binaries/catch_signal_test")
+        d = debugger(RESOLVE_EXE("catch_signal_test"))
 
         r = d.run()
 
         catcher1 = d.catch_signal("SIGPIPE", callback=catcher_SIGPIPE_first)
 
-        bp = d.breakpoint(0x12C4)
+        bp = d.breakpoint(ADDRESS)
 
         d.cont()
 
@@ -895,6 +917,7 @@ class SignalCatchTest(unittest.TestCase):
         SIGPIPE += r.recvline()
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(SIGPIPE_count_first, 2)
         self.assertEqual(SIGPIPE_count_second, 1)
@@ -914,13 +937,13 @@ class SignalCatchTest(unittest.TestCase):
         )
 
     def test_override_hijack(self):
-        d = debugger("binaries/catch_signal_test")
+        d = debugger(RESOLVE_EXE("catch_signal_test"))
 
         r = d.run()
 
         catcher1 = d.hijack_signal("SIGPIPE", 15)
 
-        bp = d.breakpoint(0x12C4)
+        bp = d.breakpoint(ADDRESS)
 
         d.cont()
 
@@ -946,6 +969,7 @@ class SignalCatchTest(unittest.TestCase):
         SIGPIPE += r.recvline()
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(catcher1.hit_count, 2)
         self.assertEqual(catcher2.hit_count, 1)
@@ -969,13 +993,13 @@ class SignalCatchTest(unittest.TestCase):
 
             SIGPIPE_count += 1
 
-        d = debugger("binaries/catch_signal_test")
+        d = debugger(RESOLVE_EXE("catch_signal_test"))
 
         r = d.run()
 
         catcher1 = d.hijack_signal("SIGPIPE", 15)
 
-        bp = d.breakpoint(0x12C4)
+        bp = d.breakpoint(ADDRESS)
 
         d.cont()
 
@@ -1001,6 +1025,7 @@ class SignalCatchTest(unittest.TestCase):
         SIGPIPE += r.recvline()
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(catcher1.hit_count, 2)
         self.assertEqual(catcher2.hit_count, 1)
@@ -1059,7 +1084,7 @@ class SignalCatchTest(unittest.TestCase):
 
             SIGPIPE_count += 1
 
-        d = debugger("binaries/catch_signal_test")
+        d = debugger(RESOLVE_EXE("catch_signal_test"))
 
         d.signals_to_block = ["SIGUSR1", 15, "SIGINT", 3, 13]
 
@@ -1074,6 +1099,7 @@ class SignalCatchTest(unittest.TestCase):
         d.cont()
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(SIGUSR1_count, 2)
         self.assertEqual(SIGTERM_count, 2)
@@ -1107,7 +1133,7 @@ class SignalCatchTest(unittest.TestCase):
 
             SIGINT_count += 1
 
-        d = debugger("binaries/catch_signal_test")
+        d = debugger(RESOLVE_EXE("catch_signal_test"))
 
         r = d.run()
 
@@ -1117,7 +1143,7 @@ class SignalCatchTest(unittest.TestCase):
         catcher4 = d.hijack_signal("SIGQUIT", "SIGTERM", recursive=True)
         catcher5 = d.hijack_signal("SIGPIPE", "SIGTERM", recursive=True)
 
-        bp = d.breakpoint(0x12C4)
+        bp = d.breakpoint(ADDRESS)
 
         d.cont()
 
@@ -1145,6 +1171,7 @@ class SignalCatchTest(unittest.TestCase):
         SIGPIPE += r.recvline()
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(SIGUSR1_count, 2)
         self.assertEqual(SIGTERM_count, 2 + 2 + 2)  # 2 times more because of the hijacking * 2 (SIGQUIT and SIGPIPE)
@@ -1167,7 +1194,7 @@ class SignalCatchTest(unittest.TestCase):
         SIGTERM_count = 0
         SIGPIPE_count = 0
 
-        d = debugger("binaries/catch_signal_test")
+        d = debugger(RESOLVE_EXE("catch_signal_test"))
 
         d.signals_to_block = ["SIGUSR1", 15, "SIGINT", 3, 13]
 
@@ -1194,6 +1221,7 @@ class SignalCatchTest(unittest.TestCase):
                 SIGPIPE_count += 1
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(SIGUSR1_count, 2)
         self.assertEqual(SIGTERM_count, 2)
@@ -1216,7 +1244,7 @@ class SignalCatchTest(unittest.TestCase):
 
         signals = b""
 
-        d = debugger("binaries/catch_signal_test")
+        d = debugger(RESOLVE_EXE("catch_signal_test"))
 
         r = d.run()
 
@@ -1246,6 +1274,7 @@ class SignalCatchTest(unittest.TestCase):
                 SIGPIPE_count += 1
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(SIGUSR1_count, 2)
         self.assertEqual(SIGTERM_count, 2)

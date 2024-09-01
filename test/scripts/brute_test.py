@@ -19,6 +19,9 @@ match libcontext.platform:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 
 class BruteTest(TestCase):
+    def setUp(self):
+        self.exceptions = []
+
     def test_bruteforce(self):
         flag = ""
         counter = 1
@@ -54,3 +57,51 @@ class BruteTest(TestCase):
 
         self.assertEqual(flag, "BRUTINOBRUTONE")
         d.terminate()
+
+    def test_callback_bruteforce(self):
+        global flag
+        global counter
+        global new_counter
+
+        flag = ""
+        counter = 1
+        new_counter = 0
+
+        def brute_force(d, b):
+            global new_counter
+            try:
+                new_counter = b.hit_count
+            except Exception as e:
+                self.exceptions.append(e)
+
+        d = debugger(RESOLVE_EXE("/brute_test"))
+        while True:
+            end = False
+            for c in string.printable:
+                r = d.run()
+
+                d.breakpoint(ADDRESS, callback=brute_force, hardware=True)
+                d.cont()
+
+                r.sendlineafter(b"chars\n", (flag + c).encode())
+
+                message = r.recvline()
+
+                if new_counter > counter:
+                    flag += c
+                    counter = new_counter
+                    d.kill()
+                    break
+                d.kill()
+                if message == b"Giusto!":
+                    flag += c
+                    end = True
+                    break
+            if end:
+                break
+
+        self.assertEqual(flag, "BRUTINOBRUTONE")
+        d.terminate()
+
+        if self.exceptions:
+            raise self.exceptions[0]
