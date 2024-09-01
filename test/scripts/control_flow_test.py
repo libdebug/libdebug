@@ -33,6 +33,9 @@ match libcontext.platform:
         TEST_STEP_AND_CONT_ADDRESS_2 = 0x401183
 
         TEST_STEP_UNTIL_AND_CONT_ADDRESS = 0x401180
+    case "aarch64":
+        TEST_STEP_ALIAS_OFFSET_1 = 4
+        TEST_STEP_ALIAS_OFFSET_2 = 8
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 

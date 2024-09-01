@@ -26,6 +26,16 @@ match libcontext.platform:
             harness.assertEqual(d.regs.esi, 45)
             harness.assertEqual(d.regs.si, 45)
             harness.assertEqual(d.regs.sil, 45)
+    case "aarch64":
+        TEST_BPS_ADDRESS_1 = 0x7fc
+        TEST_BPS_ADDRESS_2 = 0x820
+        TEST_BPS_ADDRESS_3 = 0x814
+
+        TEST_BP_DISABLE_ON_CREATION_ADDRESS = 0x854
+
+        def CHECK_REGISTERS(harness, d):
+            harness.assertEqual(d.regs.x1, 45)
+            harness.assertEqual(d.regs.w1, 45)
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 
@@ -422,6 +432,91 @@ class BreakpointTest(TestCase):
 
         with self.assertRaises(ValueError):
             d.breakpoint(0x1266, file="absolute")
+
+        d.kill()
+        d.terminate()
+
+    @skipUnless(libcontext.platform == "aarch64", "Requires aarch64")
+    def test_bp_backing_file_aarch64(self):
+        d = debugger(RESOLVE_EXE("executable_section_test"))
+
+        d.run()
+
+        bp1 = d.breakpoint(0x968, file="binary")
+
+        d.cont()
+
+        d.wait()
+
+        if bp1.hit_on(d):
+            for vmap in d.maps():
+                if "x" in vmap.permissions and "anon" in vmap.backing_file:
+                    section = vmap.backing_file
+            bp2 = d.breakpoint(0x10, file=section)
+            d.cont()
+
+        d.wait()
+
+        if bp2.hit_on(d):
+            self.assertEqual(d.memory[d.regs.pc, 4], bytes.fromhex("ff430091"))
+            self.assertEqual(d.regs.w0, 9)
+
+        d.kill()
+
+        self.assertEqual(bp1.hit_count, 1)
+        self.assertEqual(bp2.hit_count, 1)
+
+        d.run()
+
+        bp1 = d.breakpoint(0x968, file="executable_section_test")
+
+        d.cont()
+
+        d.wait()
+
+        if bp1.hit_on(d):
+            for vmap in d.maps():
+                if "x" in vmap.permissions and "anon" in vmap.backing_file:
+                    section = vmap.backing_file
+            bp2 = d.breakpoint(0x10, file=section)
+            d.cont()
+
+        d.wait()
+
+        if bp2.hit_on(d):
+            self.assertEqual(d.memory[d.regs.pc, 4], bytes.fromhex("ff430091"))
+            self.assertEqual(d.regs.w0, 9)
+
+        d.run()
+
+        bp1 = d.breakpoint(0x968, file="hybrid")
+
+        d.cont()
+
+        d.wait()
+
+        if bp1.hit_on(d):
+            for vmap in d.maps():
+                if "x" in vmap.permissions and "anon" in vmap.backing_file:
+                    section = vmap.backing_file
+            bp2 = d.breakpoint(0x10, file=section)
+            d.cont()
+
+        d.wait()
+
+        if bp2.hit_on(d):
+            self.assertEqual(d.memory[d.regs.pc, 4], bytes.fromhex("ff430091"))
+            self.assertEqual(d.regs.w0, 9)
+
+        d.kill()
+
+        self.assertEqual(bp1.hit_count, 1)
+        self.assertEqual(bp2.hit_count, 1)
+
+        d.run()
+
+        with self.assertRaises(ValueError):
+            d.breakpoint(0x968, file="absolute")
 
         d.kill()
         d.terminate()

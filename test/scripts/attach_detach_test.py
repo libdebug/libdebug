@@ -20,6 +20,9 @@ match libcontext.platform:
     case "amd64":
         TEST_ATTACH_AND_DETACH_3_BP1_ADDRESS = 0x125E
         TEST_ATTACH_AND_DETACH_3_BP2_ADDRESS = 0x1261
+    case "aarch64":
+        TEST_ATTACH_AND_DETACH_3_BP1_ADDRESS = 0xa04
+        TEST_ATTACH_AND_DETACH_3_BP2_ADDRESS = 0xa08
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 

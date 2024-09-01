@@ -15,6 +15,8 @@ from libdebug.utils.libcontext import libcontext
 match libcontext.platform:
     case "amd64":
         ADDRESS = 0x1222
+    case "aarch64":
+        ADDRESS = 0x974
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 
@@ -74,7 +76,7 @@ class BruteTest(TestCase):
             except Exception as e:
                 self.exceptions.append(e)
 
-        d = debugger(RESOLVE_EXE("/brute_test"))
+        d = debugger(RESOLVE_EXE("brute_test"))
         while True:
             end = False
             for c in string.printable:

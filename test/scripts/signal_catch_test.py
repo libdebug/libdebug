@@ -16,6 +16,8 @@ from libdebug.utils.libcontext import libcontext
 match libcontext.platform:
     case "amd64":
         ADDRESS = 0x12c4
+    case "aarch64":
+        ADDRESS = 0x964
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 

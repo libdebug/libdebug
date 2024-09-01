@@ -12,6 +12,14 @@ from libdebug import debugger
 from libdebug.utils.libcontext import libcontext
 
 
+match libcontext.platform:
+    case "amd64":
+        TEST_CALLBACK_STEP_OFFSET = 1
+    case "aarch64":
+        TEST_CALLBACK_STEP_OFFSET = 4
+    case _:
+        raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
+
 class CallbackTest(TestCase):
     def setUp(self):
         self.exceptions = []
@@ -150,7 +158,7 @@ class CallbackTest(TestCase):
         def callback(t, bp):
             self.assertEqual(t.instruction_pointer, bp.address)
             d.step()
-            self.assertEqual(t.instruction_pointer, bp.address + 1)
+            self.assertEqual(t.instruction_pointer, bp.address + TEST_CALLBACK_STEP_OFFSET)
 
         d.breakpoint("register_test", callback=callback)
 
