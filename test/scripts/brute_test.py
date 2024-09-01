@@ -5,31 +5,36 @@
 #
 
 import string
-import unittest
+from unittest import TestCase
+from utils.binary_utils import RESOLVE_EXE
 
 from libdebug import debugger
+from libdebug.utils.libcontext import libcontext
 
 
-class BruteTest(unittest.TestCase):
-    def setUp(self):
-        pass
+match libcontext.platform:
+    case "amd64":
+        ADDRESS = 0x1222
+    case _:
+        raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 
+class BruteTest(TestCase):
     def test_bruteforce(self):
         flag = ""
         counter = 1
 
-        d = debugger("binaries/brute_test")
+        d = debugger(RESOLVE_EXE("brute_test"))
 
         while not flag or flag != "BRUTINOBRUTONE":
             for c in string.printable:
                 r = d.run()
-                bp = d.breakpoint(0x1222, hardware=True)
+                bp = d.breakpoint(ADDRESS, hardware=True)
                 d.cont()
 
                 r.sendlineafter(b"chars\n", (flag + c).encode())
 
 
-                while bp.address == d.regs.rip:
+                while bp.address == d.instruction_pointer:
                     d.cont()
 
 
@@ -48,7 +53,4 @@ class BruteTest(unittest.TestCase):
                     break
 
         self.assertEqual(flag, "BRUTINOBRUTONE")
-
-
-if __name__ == "__main__":
-    unittest.main()
+        d.terminate()

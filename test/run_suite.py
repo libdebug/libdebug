@@ -13,6 +13,8 @@ from scripts.auto_waiting_test import AutoWaitingTest
 from scripts.auto_waiting_jumput_test import AutoWaitingJumpoutTest
 from scripts.auto_waiting_nlinks_test import AutoWaitingNlinksTest
 from scripts.backtrace_test import BacktraceTest
+from scripts.breakpoint_test import BreakpointTest
+from scripts.brute_test import BruteTest
 from scripts.control_flow_test import ControlFlowTest
 from scripts.register_test import RegisterTest
 
@@ -25,6 +27,7 @@ def fast_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(AutoWaitingJumpoutTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(AutoWaitingNlinksTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(BacktraceTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(BreakpointTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(ControlFlowTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(RegisterTest))
 
@@ -32,6 +35,8 @@ def fast_suite():
 
 def full_suite():
     suite = fast_suite()
+
+    suite.addTest(TestLoader().loadTestsFromTestCase(BruteTest))
 
     return suite
 

@@ -6,15 +6,31 @@
 
 import io
 import logging
-import unittest
+from unittest import TestCase, skipUnless
+from utils.binary_utils import RESOLVE_EXE
 
 from libdebug import debugger
+from libdebug.utils.libcontext import libcontext
 
 
-class BreakpointTest(unittest.TestCase):
+match libcontext.platform:
+    case "amd64":
+        TEST_BPS_ADDRESS_1 = 0x40115B
+        TEST_BPS_ADDRESS_2 = 0x40116D
+        TEST_BPS_ADDRESS_3 = 0x401162
+
+        TEST_BP_DISABLE_ON_CREATION_ADDRESS = 0x40119c
+
+        def CHECK_REGISTERS(harness, d):
+            harness.assertEqual(d.regs.rsi, 45)
+            harness.assertEqual(d.regs.esi, 45)
+            harness.assertEqual(d.regs.si, 45)
+            harness.assertEqual(d.regs.sil, 45)
+    case _:
+        raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
+
+class BreakpointTest(TestCase):
     def setUp(self):
-        self.d = debugger("binaries/breakpoint_test")
-
         # Redirect logging to a string buffer
         self.log_capture_string = io.StringIO()
         self.log_handler = logging.StreamHandler(self.log_capture_string)
@@ -26,37 +42,35 @@ class BreakpointTest(unittest.TestCase):
         self.logger.addHandler(self.log_handler)
         self.logger.setLevel(logging.WARNING)
 
+
     def test_bps(self):
-        d = self.d
+        d = debugger(RESOLVE_EXE("breakpoint_test"))
 
         d.run()
 
         bp1 = d.breakpoint("random_function")
-        bp2 = d.breakpoint(0x40115B)
-        bp3 = d.breakpoint(0x40116D)
+        bp2 = d.breakpoint(TEST_BPS_ADDRESS_1)
+        bp3 = d.breakpoint(TEST_BPS_ADDRESS_2)
 
         counter = 1
 
         d.cont()
 
         while True:
-            if d.regs.rip == bp1.address:
+            if d.instruction_pointer == bp1.address:
                 self.assertTrue(bp1.hit_count == 1)
                 self.assertTrue(bp1.hit_on(d))
                 self.assertFalse(bp2.hit_on(d))
                 self.assertFalse(bp3.hit_on(d))
-            elif d.regs.rip == bp2.address:
+            elif d.instruction_pointer == bp2.address:
                 self.assertTrue(bp2.hit_count == counter)
                 self.assertTrue(bp2.hit_on(d))
                 self.assertFalse(bp1.hit_on(d))
                 self.assertFalse(bp3.hit_on(d))
                 counter += 1
-            elif d.regs.rip == bp3.address:
+            elif d.instruction_pointer == bp3.address:
                 self.assertTrue(bp3.hit_count == 1)
-                self.assertTrue(d.regs.rsi == 45)
-                self.assertTrue(d.regs.esi == 45)
-                self.assertTrue(d.regs.si == 45)
-                self.assertTrue(d.regs.sil == 45)
+                CHECK_REGISTERS(self, d)
                 self.assertTrue(bp3.hit_on(d))
                 self.assertFalse(bp1.hit_on(d))
                 self.assertFalse(bp2.hit_on(d))
@@ -66,39 +80,37 @@ class BreakpointTest(unittest.TestCase):
 
         self.assertEqual(bp2.hit_count, 10)
 
-        self.d.kill()
+        d.kill()
+        d.terminate()
 
     def test_bp_disable(self):
-        d = self.d
+        d = debugger(RESOLVE_EXE("breakpoint_test"))
 
         d.run()
 
         bp1 = d.breakpoint("random_function")
-        bp2 = d.breakpoint(0x40115B)
-        bp3 = d.breakpoint(0x40116D)
+        bp2 = d.breakpoint(TEST_BPS_ADDRESS_1)
+        bp3 = d.breakpoint(TEST_BPS_ADDRESS_2)
 
         counter = 1
 
         d.cont()
 
         while True:
-            if d.regs.rip == bp1.address:
+            if d.instruction_pointer == bp1.address:
                 self.assertTrue(bp1.hit_count == 1)
                 self.assertTrue(bp1.hit_on(d))
                 self.assertFalse(bp2.hit_on(d))
                 self.assertFalse(bp3.hit_on(d))
-            elif d.regs.rip == bp2.address:
+            elif d.instruction_pointer == bp2.address:
                 self.assertTrue(bp2.hit_count == counter)
                 self.assertTrue(bp2.hit_on(d))
                 self.assertFalse(bp1.hit_on(d))
                 self.assertFalse(bp3.hit_on(d))
                 bp2.disable()
-            elif d.regs.rip == bp3.address:
+            elif d.instruction_pointer == bp3.address:
                 self.assertTrue(bp3.hit_count == 1)
-                self.assertTrue(d.regs.rsi == 45)
-                self.assertTrue(d.regs.esi == 45)
-                self.assertTrue(d.regs.si == 45)
-                self.assertTrue(d.regs.sil == 45)
+                CHECK_REGISTERS(self, d)
                 self.assertTrue(bp3.hit_on(d))
                 self.assertFalse(bp1.hit_on(d))
                 self.assertFalse(bp2.hit_on(d))
@@ -108,39 +120,37 @@ class BreakpointTest(unittest.TestCase):
 
         self.assertEqual(bp2.hit_count, 1)
 
-        self.d.kill()
+        d.kill()
+        d.terminate()
 
     def test_bp_disable_hw(self):
-        d = self.d
+        d = debugger(RESOLVE_EXE("breakpoint_test"))
 
         d.run()
 
         bp1 = d.breakpoint("random_function")
-        bp2 = d.breakpoint(0x40115B, hardware=True)
-        bp3 = d.breakpoint(0x40116D)
+        bp2 = d.breakpoint(TEST_BPS_ADDRESS_1, hardware=True)
+        bp3 = d.breakpoint(TEST_BPS_ADDRESS_2)
 
         counter = 1
 
         d.cont()
 
         while True:
-            if d.regs.rip == bp1.address:
+            if d.instruction_pointer == bp1.address:
                 self.assertTrue(bp1.hit_count == 1)
                 self.assertTrue(bp1.hit_on(d))
                 self.assertFalse(bp2.hit_on(d))
                 self.assertFalse(bp3.hit_on(d))
-            elif d.regs.rip == bp2.address:
+            elif d.instruction_pointer == bp2.address:
                 self.assertTrue(bp2.hit_count == counter)
                 self.assertTrue(bp2.hit_on(d))
                 self.assertFalse(bp1.hit_on(d))
                 self.assertFalse(bp3.hit_on(d))
                 bp2.disable()
-            elif d.regs.rip == bp3.address:
+            elif d.instruction_pointer == bp3.address:
                 self.assertTrue(bp3.hit_count == 1)
-                self.assertTrue(d.regs.rsi == 45)
-                self.assertTrue(d.regs.esi == 45)
-                self.assertTrue(d.regs.si == 45)
-                self.assertTrue(d.regs.sil == 45)
+                CHECK_REGISTERS(self, d)
                 self.assertTrue(bp3.hit_on(d))
                 self.assertFalse(bp1.hit_on(d))
                 self.assertFalse(bp2.hit_on(d))
@@ -150,27 +160,30 @@ class BreakpointTest(unittest.TestCase):
 
         self.assertEqual(bp2.hit_count, 1)
 
+        d.kill()
+        d.terminate()
+
     def test_bp_disable_reenable(self):
-        d = self.d
+        d = debugger(RESOLVE_EXE("breakpoint_test"))
 
         d.run()
 
         bp1 = d.breakpoint("random_function")
-        bp2 = d.breakpoint(0x40115B)
-        bp4 = d.breakpoint(0x401162)
-        bp3 = d.breakpoint(0x40116D)
+        bp2 = d.breakpoint(TEST_BPS_ADDRESS_1)
+        bp4 = d.breakpoint(TEST_BPS_ADDRESS_3)
+        bp3 = d.breakpoint(TEST_BPS_ADDRESS_2)
 
         counter = 1
 
         d.cont()
 
         while True:
-            if d.regs.rip == bp1.address:
+            if d.instruction_pointer == bp1.address:
                 self.assertTrue(bp1.hit_count == 1)
                 self.assertTrue(bp1.hit_on(d))
                 self.assertFalse(bp2.hit_on(d))
                 self.assertFalse(bp3.hit_on(d))
-            elif d.regs.rip == bp2.address:
+            elif d.instruction_pointer == bp2.address:
                 self.assertTrue(bp2.hit_count == counter)
                 self.assertTrue(bp2.hit_on(d))
                 self.assertFalse(bp1.hit_on(d))
@@ -180,12 +193,9 @@ class BreakpointTest(unittest.TestCase):
                 else:
                     bp4.enable()
                 counter += 1
-            elif d.regs.rip == bp3.address:
+            elif d.instruction_pointer == bp3.address:
                 self.assertTrue(bp3.hit_count == 1)
-                self.assertTrue(d.regs.rsi == 45)
-                self.assertTrue(d.regs.esi == 45)
-                self.assertTrue(d.regs.si == 45)
-                self.assertTrue(d.regs.sil == 45)
+                CHECK_REGISTERS(self, d)
                 self.assertTrue(bp3.hit_on(d))
                 self.assertFalse(bp1.hit_on(d))
                 self.assertFalse(bp2.hit_on(d))
@@ -197,29 +207,30 @@ class BreakpointTest(unittest.TestCase):
 
         self.assertEqual(bp4.hit_count, bp2.hit_count // 2 + 1)
 
-        self.d.kill()
+        d.kill()
+        d.terminate()
 
     def test_bp_disable_reenable_hw(self):
-        d = self.d
+        d = debugger(RESOLVE_EXE("breakpoint_test"))
 
         d.run()
 
         bp1 = d.breakpoint("random_function")
-        bp2 = d.breakpoint(0x40115B)
-        bp4 = d.breakpoint(0x401162, hardware=True)
-        bp3 = d.breakpoint(0x40116D)
+        bp2 = d.breakpoint(TEST_BPS_ADDRESS_1)
+        bp4 = d.breakpoint(TEST_BPS_ADDRESS_3, hardware=True)
+        bp3 = d.breakpoint(TEST_BPS_ADDRESS_2)
 
         counter = 1
 
         d.cont()
 
         while True:
-            if d.regs.rip == bp1.address:
+            if d.instruction_pointer == bp1.address:
                 self.assertTrue(bp1.hit_count == 1)
                 self.assertTrue(bp1.hit_on(d))
                 self.assertFalse(bp2.hit_on(d))
                 self.assertFalse(bp3.hit_on(d))
-            elif d.regs.rip == bp2.address:
+            elif d.instruction_pointer == bp2.address:
                 self.assertTrue(bp2.hit_count == counter)
                 self.assertTrue(bp2.hit_on(d))
                 self.assertFalse(bp1.hit_on(d))
@@ -229,12 +240,9 @@ class BreakpointTest(unittest.TestCase):
                 else:
                     bp4.enable()
                 counter += 1
-            elif d.regs.rip == bp3.address:
+            elif d.instruction_pointer == bp3.address:
                 self.assertTrue(bp3.hit_count == 1)
-                self.assertTrue(d.regs.rsi == 45)
-                self.assertTrue(d.regs.esi == 45)
-                self.assertTrue(d.regs.si == 45)
-                self.assertTrue(d.regs.sil == 45)
+                CHECK_REGISTERS(self, d)
                 self.assertTrue(bp3.hit_on(d))
                 self.assertFalse(bp1.hit_on(d))
                 self.assertFalse(bp2.hit_on(d))
@@ -246,16 +254,17 @@ class BreakpointTest(unittest.TestCase):
 
         self.assertEqual(bp4.hit_count, bp2.hit_count // 2 + 1)
 
-        self.d.kill()
+        d.kill()
+        d.terminate()
 
     def test_bps_running(self):
-        d = self.d
+        d = debugger(RESOLVE_EXE("breakpoint_test"))
 
         d.run()
 
         bp1 = d.breakpoint("random_function")
-        bp2 = d.breakpoint(0x40115B)
-        bp3 = d.breakpoint(0x40116D)
+        bp2 = d.breakpoint(TEST_BPS_ADDRESS_1)
+        bp3 = d.breakpoint(TEST_BPS_ADDRESS_2)
 
         counter = 1
 
@@ -264,26 +273,23 @@ class BreakpointTest(unittest.TestCase):
         while True:
             if d.running:
                 pass
-            if d.regs.rip == bp1.address:
+            if d.instruction_pointer == bp1.address:
                 self.assertFalse(d.running)
                 self.assertTrue(bp1.hit_count == 1)
                 self.assertTrue(bp1.hit_on(d))
                 self.assertFalse(bp2.hit_on(d))
                 self.assertFalse(bp3.hit_on(d))
-            elif d.regs.rip == bp2.address:
+            elif d.instruction_pointer == bp2.address:
                 self.assertFalse(d.running)
                 self.assertTrue(bp2.hit_count == counter)
                 self.assertTrue(bp2.hit_on(d))
                 self.assertFalse(bp1.hit_on(d))
                 self.assertFalse(bp3.hit_on(d))
                 counter += 1
-            elif d.regs.rip == bp3.address:
+            elif d.instruction_pointer == bp3.address:
                 self.assertFalse(d.running)
                 self.assertTrue(bp3.hit_count == 1)
-                self.assertTrue(d.regs.rsi == 45)
-                self.assertTrue(d.regs.esi == 45)
-                self.assertTrue(d.regs.si == 45)
-                self.assertTrue(d.regs.sil == 45)
+                CHECK_REGISTERS(self, d)
                 self.assertTrue(bp3.hit_on(d))
                 self.assertFalse(bp1.hit_on(d))
                 self.assertFalse(bp2.hit_on(d))
@@ -293,10 +299,12 @@ class BreakpointTest(unittest.TestCase):
 
         self.assertEqual(bp2.hit_count, 10)
 
-        self.d.kill()
+        d.kill()
+        d.terminate()
 
-    def test_bp_backing_file(self):
-        d = debugger("binaries/executable_section_test")
+    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    def test_bp_backing_file_amd64(self):
+        d = debugger(RESOLVE_EXE("executable_section_test"))
 
         d.run()
 
@@ -316,7 +324,7 @@ class BreakpointTest(unittest.TestCase):
         d.wait()
 
         if bp2.hit_on(d):
-            self.assertEqual(d.memory[d.regs.rip], b"]")
+            self.assertEqual(d.memory[d.instruction_pointer], b"]")
             self.assertEqual(d.regs.rax, 9)
 
         d.kill()
@@ -342,7 +350,7 @@ class BreakpointTest(unittest.TestCase):
         d.wait()
 
         if bp2.hit_on(d):
-            self.assertEqual(d.memory[d.regs.rip], b"]")
+            self.assertEqual(d.memory[d.instruction_pointer], b"]")
             self.assertEqual(d.regs.rax, 9)
 
         d.run()
@@ -363,7 +371,7 @@ class BreakpointTest(unittest.TestCase):
         d.wait()
 
         if bp2.hit_on(d):
-            self.assertEqual(d.memory[d.regs.rip], b"]")
+            self.assertEqual(d.memory[d.instruction_pointer], b"]")
             self.assertEqual(d.regs.rax, 9)
 
         d.kill()
@@ -377,26 +385,27 @@ class BreakpointTest(unittest.TestCase):
             d.breakpoint(0x1266, file="absolute")
 
         d.kill()
+        d.terminate()
 
     def test_bp_disable_on_creation(self):
-        d = debugger("binaries/breakpoint_test")
+        d = debugger(RESOLVE_EXE("breakpoint_test"))
 
         d.run()
 
         bp1 = d.bp("random_function")
-        bp2 = d.bp(0x40119c)
+        bp2 = d.bp(TEST_BP_DISABLE_ON_CREATION_ADDRESS)
         bp1.disable()
 
         d.cont()
 
-        assert not bp1.hit_on(d)
-        assert bp2.hit_on(d)
+        self.assertFalse(bp1.hit_on(d))
+        self.assertTrue(bp2.hit_on(d))
 
         d.kill()
         d.terminate()
 
     def test_bp_disable_on_creation_2(self):
-        d = debugger("binaries/breakpoint_test")
+        d = debugger(RESOLVE_EXE("breakpoint_test"))
 
         d.run()
 
@@ -408,30 +417,31 @@ class BreakpointTest(unittest.TestCase):
         d.wait()
 
         # Validate we didn't segfault
-        assert d.dead and d.exit_signal is None
+        self.assertTrue(d.dead)
+        self.assertIsNone(d.exit_signal)
 
         d.kill()
         d.terminate()
 
     def test_bp_disable_on_creation_hardware(self):
-        d = debugger("binaries/breakpoint_test")
+        d = debugger(RESOLVE_EXE("breakpoint_test"))
 
         d.run()
 
         bp1 = d.bp("random_function", hardware=True)
-        bp2 = d.bp(0x40119c)
+        bp2 = d.bp(TEST_BP_DISABLE_ON_CREATION_ADDRESS)
         bp1.disable()
 
         d.cont()
 
-        assert not bp1.hit_on(d)
-        assert bp2.hit_on(d)
+        self.assertFalse(bp1.hit_on(d))
+        self.assertTrue(bp2.hit_on(d))
 
         d.kill()
         d.terminate()
 
     def test_bp_disable_on_creation_2_hardware(self):
-        d = debugger("binaries/breakpoint_test")
+        d = debugger(RESOLVE_EXE("breakpoint_test"))
 
         d.run()
 
@@ -443,10 +453,8 @@ class BreakpointTest(unittest.TestCase):
         d.wait()
 
         # Validate we didn't segfault
-        assert d.dead and d.exit_signal is None
+        self.assertTrue(d.dead)
+        self.assertIsNone(d.exit_signal)
 
         d.kill()
         d.terminate()
-
-if __name__ == "__main__":
-    unittest.main()
