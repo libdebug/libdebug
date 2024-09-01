@@ -4,15 +4,18 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-import unittest
 from pathlib import Path
 from random import randint
+from unittest import TestCase, skipUnless
+from utils.binary_utils import RESOLVE_EXE
 
 from libdebug import debugger
+from libdebug.utils.libcontext import libcontext
 
 
-class FloatingPointTest(unittest.TestCase):
-    def test_floating_point_reg_access(self):
+class FloatingPointTest(TestCase):
+    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    def test_floating_point_reg_access_amd64(self):
         # This test is divided into two parts, depending on the current hardware
 
         # Let's check if we have AVX512
@@ -33,7 +36,7 @@ class FloatingPointTest(unittest.TestCase):
             self.mmx()
 
     def avx512(self):
-        d = debugger("binaries/floating_point_2696_test")
+        d = debugger(RESOLVE_EXE("floating_point_2696_test"))
 
         d.run()
 
@@ -71,9 +74,10 @@ class FloatingPointTest(unittest.TestCase):
             self.assertEqual(getattr(d.regs, f"zmm{i}"), val)
 
         d.kill()
+        d.terminate()
 
     def avx(self):
-        d = debugger("binaries/floating_point_896_test")
+        d = debugger(RESOLVE_EXE("floating_point_896_test"))
 
         d.run()
 
@@ -203,9 +207,10 @@ class FloatingPointTest(unittest.TestCase):
         self.assertTrue(bp.hit_on(d))
 
         d.kill()
+        d.terminate()
 
     def mmx(self):
-        d = debugger("binaries/floating_point_512_test")
+        d = debugger(RESOLVE_EXE("floating_point_512_test"))
 
         d.run()
 
@@ -283,3 +288,4 @@ class FloatingPointTest(unittest.TestCase):
         self.assertTrue(bp.hit_on(d))
 
         d.kill()
+        d.terminate()

@@ -9,12 +9,15 @@
 #
 
 import string
-import unittest
+from unittest import TestCase, skipUnless
+from utils.binary_utils import RESOLVE_EXE
 
 from libdebug import debugger
+from libdebug.utils.libcontext import libcontext
 
 
-class DeepDiveDivision(unittest.TestCase):
+class DeepDiveDivisionTest(TestCase):
+    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
     def test_deep_dive_division(self):
         def brutone(flag, current):
             def checkino(d, b):
@@ -36,7 +39,7 @@ class DeepDiveDivision(unittest.TestCase):
                     candidate.append(c)
             return candidate
 
-        d = debugger("CTF/deep-dive-division")
+        d = debugger(RESOLVE_EXE("CTF/deep-dive-division"))
         candidate = {}
 
         flag = b""
@@ -61,7 +64,3 @@ class DeepDiveDivision(unittest.TestCase):
                         break
 
         self.assertEqual(flag, b"kalmar{vm_in_3d_space!_cb3992b605aafe137}\n")
-
-
-if __name__ == "__main__":
-    unittest.main()

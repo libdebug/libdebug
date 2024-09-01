@@ -6,12 +6,21 @@
 
 import io
 import logging
-import unittest
+from unittest import TestCase
+from utils.binary_utils import RESOLVE_EXE
 
 from libdebug import debugger
+from libdebug.utils.libcontext import libcontext
 
 
-class DeathTest(unittest.TestCase):
+match libcontext.platform:
+    case "amd64":
+        DEATH_LOCATION = 0x55555555517F
+    case _:
+        raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
+
+
+class DeathTest(TestCase):
     def setUp(self):
         # Redirect logging to a string buffer
         self.log_capture_string = io.StringIO()
@@ -30,7 +39,7 @@ class DeathTest(unittest.TestCase):
         self.log_handler.close()
 
     def test_io_death(self):
-        d = debugger("binaries/segfault_test")
+        d = debugger(RESOLVE_EXE("segfault_test"))
 
         r = d.run()
 
@@ -43,9 +52,10 @@ class DeathTest(unittest.TestCase):
             r.recvline()
 
         d.kill()
+        d.terminate()
 
     def test_cont_death(self):
-        d = debugger("binaries/segfault_test")
+        d = debugger(RESOLVE_EXE("segfault_test"))
 
         r = d.run()
 
@@ -65,7 +75,7 @@ class DeathTest(unittest.TestCase):
         d.kill()
 
     def test_instr_death(self):
-        d = debugger("binaries/segfault_test")
+        d = debugger(RESOLVE_EXE("segfault_test"))
 
         r = d.run()
 
@@ -76,12 +86,13 @@ class DeathTest(unittest.TestCase):
 
         d.wait()
 
-        self.assertEqual(d.regs.rip, 0x55555555517F)
+        self.assertEqual(d.regs.rip, DEATH_LOCATION)
 
         d.kill()
+        d.terminate()
 
     def test_exit_signal_death(self):
-        d = debugger("binaries/segfault_test")
+        d = debugger(RESOLVE_EXE("segfault_test"))
 
         r = d.run()
 
@@ -96,9 +107,10 @@ class DeathTest(unittest.TestCase):
         self.assertEqual(d.exit_signal, d.threads[0].exit_signal)
 
         d.kill()
+        d.terminate()
 
     def test_exit_code_death(self):
-        d = debugger("binaries/segfault_test")
+        d = debugger(RESOLVE_EXE("segfault_test"))
 
         r = d.run()
 
@@ -117,9 +129,10 @@ class DeathTest(unittest.TestCase):
         )
 
         d.kill()
+        d.terminate()
 
     def test_exit_code_normal(self):
-        d = debugger("binaries/basic_test")
+        d = debugger(RESOLVE_EXE("basic_test"))
 
         d.run()
 
@@ -137,9 +150,10 @@ class DeathTest(unittest.TestCase):
         )
 
         d.kill()
+        d.terminate()
 
     def test_post_mortem_after_kill(self):
-        d = debugger("binaries/basic_test")
+        d = debugger(RESOLVE_EXE("basic_test"))
 
         d.run()
 
@@ -149,6 +163,8 @@ class DeathTest(unittest.TestCase):
         d.kill()
 
         # We should be able to access the registers also after the process has been killed
-        d.regs.rax
-        d.regs.rbx
-        d.regs.rcx
+        d.instruction_pointer
+        d.syscall_arg0
+        d.syscall_arg1
+
+        d.terminate()

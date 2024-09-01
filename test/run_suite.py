@@ -18,6 +18,10 @@ from scripts.breakpoint_test import BreakpointTest
 from scripts.brute_test import BruteTest
 from scripts.callback_test import CallbackTest
 from scripts.control_flow_test import ControlFlowTest
+from scripts.death_test import DeathTest
+from scripts.deep_dive_division_test import DeepDiveDivisionTest
+from scripts.finish_test import FinishTest
+from scripts.floating_point_test import FloatingPointTest
 from scripts.jumpout_test import JumpoutTest
 from scripts.register_test import RegisterTest
 from scripts.signal_catch_test import SignalCatchTest
@@ -35,6 +39,9 @@ def fast_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(BreakpointTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(CallbackTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(ControlFlowTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(DeathTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(FinishTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(FloatingPointTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(RegisterTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(SignalCatchTest))
 
@@ -44,6 +51,7 @@ def full_suite():
     suite = fast_suite()
 
     suite.addTest(TestLoader().loadTestsFromTestCase(BruteTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(DeepDiveDivisionTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(JumpoutTest))
 
     return suite

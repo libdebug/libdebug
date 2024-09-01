@@ -3,26 +3,31 @@
 # Copyright (c) 2024 Francesco Panebianco, Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
-import unittest
+
+from unittest import TestCase
+from utils.binary_utils import RESOLVE_EXE
 
 from libdebug import debugger
 from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
+from libdebug.utils.libcontext import libcontext
 
-# Addresses of the dummy functions
-C_ADDRESS = 0x4011e3
-B_ADDRESS = 0x4011d2
-A_ADDRESS = 0x401146
+match libcontext.platform:
+    case "amd64":
+        # Addresses of the dummy functions
+        C_ADDRESS = 0x4011e3
+        B_ADDRESS = 0x4011d2
+        A_ADDRESS = 0x401146
 
-# Addresses of noteworthy instructions
-RETURN_POINT_FROM_C = 0x401202
-RETURN_POINT_FROM_A = 0x4011e0
+        # Addresses of noteworthy instructions
+        RETURN_POINT_FROM_C = 0x401202
+        RETURN_POINT_FROM_A = 0x4011e0
+    case _:
+        raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 
-class FinishTest(unittest.TestCase):
-    def setUp(self):
-        pass
 
+class FinishTest(TestCase):
     def test_finish_exact_no_auto_interrupt_no_breakpoint(self):
-        d = debugger("binaries/finish_test", auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False)
 
         # ------------------ Block 1 ------------------ #
         #       Return from the first function call     #
@@ -33,12 +38,12 @@ class FinishTest(unittest.TestCase):
         d.breakpoint(C_ADDRESS)
         d.cont()
 
-        self.assertEqual(d.regs.rip, C_ADDRESS)
+        self.assertEqual(d.instruction_pointer, C_ADDRESS)
 
         # Finish function c
         d.finish(heuristic="step-mode")
 
-        self.assertEqual(d.regs.rip, RETURN_POINT_FROM_C)
+        self.assertEqual(d.instruction_pointer, RETURN_POINT_FROM_C)
 
         d.kill()
 
@@ -51,17 +56,18 @@ class FinishTest(unittest.TestCase):
         d.breakpoint(A_ADDRESS)
         d.cont()
 
-        self.assertEqual(d.regs.rip, A_ADDRESS)
+        self.assertEqual(d.instruction_pointer, A_ADDRESS)
 
         # Finish function a
         d.finish(heuristic="step-mode")
 
-        self.assertEqual(d.regs.rip, RETURN_POINT_FROM_A)
+        self.assertEqual(d.instruction_pointer, RETURN_POINT_FROM_A)
 
         d.kill()
+        d.terminate()
 
     def test_finish_heuristic_no_auto_interrupt_no_breakpoint(self):
-        d = debugger("binaries/finish_test", auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False)
 
         # ------------------ Block 1 ------------------ #
         #       Return from the first function call     #
@@ -72,12 +78,12 @@ class FinishTest(unittest.TestCase):
         d.breakpoint(C_ADDRESS)
         d.cont()
 
-        self.assertEqual(d.regs.rip, C_ADDRESS)
+        self.assertEqual(d.instruction_pointer, C_ADDRESS)
 
         # Finish function c
         d.finish(heuristic="backtrace")
 
-        self.assertEqual(d.regs.rip, RETURN_POINT_FROM_C)
+        self.assertEqual(d.instruction_pointer, RETURN_POINT_FROM_C)
 
         d.kill()
 
@@ -90,17 +96,18 @@ class FinishTest(unittest.TestCase):
         d.breakpoint(A_ADDRESS)
         d.cont()
 
-        self.assertEqual(d.regs.rip, A_ADDRESS)
+        self.assertEqual(d.instruction_pointer, A_ADDRESS)
 
         # Finish function a
         d.finish(heuristic="backtrace")
 
-        self.assertEqual(d.regs.rip, RETURN_POINT_FROM_A)
+        self.assertEqual(d.instruction_pointer, RETURN_POINT_FROM_A)
 
         d.kill()
+        d.terminate()
 
     def test_finish_exact_auto_interrupt_no_breakpoint(self):
-        d = debugger("binaries/finish_test", auto_interrupt_on_command=True)
+        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=True)
 
         # ------------------ Block 1 ------------------ #
         #       Return from the first function call     #
@@ -112,12 +119,12 @@ class FinishTest(unittest.TestCase):
         d.cont()
         d.wait()
 
-        self.assertEqual(d.regs.rip, C_ADDRESS)
+        self.assertEqual(d.instruction_pointer, C_ADDRESS)
 
         # Finish function c
         d.finish(heuristic="step-mode")
 
-        self.assertEqual(d.regs.rip, RETURN_POINT_FROM_C)
+        self.assertEqual(d.instruction_pointer, RETURN_POINT_FROM_C)
 
         d.kill()
 
@@ -131,17 +138,18 @@ class FinishTest(unittest.TestCase):
         d.cont()
         d.wait()
 
-        self.assertEqual(d.regs.rip, A_ADDRESS)
+        self.assertEqual(d.instruction_pointer, A_ADDRESS)
 
         # Finish function a
         d.finish(heuristic="step-mode")
 
-        self.assertEqual(d.regs.rip, RETURN_POINT_FROM_A)
+        self.assertEqual(d.instruction_pointer, RETURN_POINT_FROM_A)
 
         d.kill()
+        d.terminate()
 
     def test_finish_heuristic_auto_interrupt_no_breakpoint(self):
-        d = debugger("binaries/finish_test", auto_interrupt_on_command=True)
+        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=True)
 
         # ------------------ Block 1 ------------------ #
         #       Return from the first function call     #
@@ -153,12 +161,12 @@ class FinishTest(unittest.TestCase):
         d.cont()
         d.wait()
 
-        self.assertEqual(d.regs.rip, C_ADDRESS)
+        self.assertEqual(d.instruction_pointer, C_ADDRESS)
 
         # Finish function c
         d.finish(heuristic="backtrace")
 
-        self.assertEqual(d.regs.rip, RETURN_POINT_FROM_C)
+        self.assertEqual(d.instruction_pointer, RETURN_POINT_FROM_C)
 
         d.kill()
 
@@ -172,62 +180,65 @@ class FinishTest(unittest.TestCase):
         d.cont()
         d.wait()
 
-        self.assertEqual(d.regs.rip, A_ADDRESS)
+        self.assertEqual(d.instruction_pointer, A_ADDRESS)
 
         # Finish function a
         d.finish(heuristic="backtrace")
 
-        self.assertEqual(d.regs.rip, RETURN_POINT_FROM_A)
+        self.assertEqual(d.instruction_pointer, RETURN_POINT_FROM_A)
 
         d.kill()
+        d.terminate()
 
     def test_finish_exact_no_auto_interrupt_breakpoint(self):
-        d = debugger("binaries/finish_test", auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False)
 
         # Reach function c
         d.run()
         d.breakpoint(C_ADDRESS)
         d.cont()
 
-        self.assertEqual(d.regs.rip, C_ADDRESS)
+        self.assertEqual(d.instruction_pointer, C_ADDRESS)
 
         d.breakpoint(A_ADDRESS)
 
         # Finish function c
         d.finish(heuristic="step-mode")
 
-        self.assertEqual(d.regs.rip, A_ADDRESS, f"Expected {hex(A_ADDRESS)} but got {hex(d.regs.rip)}")
+        self.assertEqual(d.instruction_pointer, A_ADDRESS, f"Expected {hex(A_ADDRESS)} but got {hex(d.instruction_pointer)}")
 
         d.kill()
+        d.terminate()
 
     def test_finish_heuristic_no_auto_interrupt_breakpoint(self):
-        d = debugger("binaries/finish_test", auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False)
 
         # Reach function c
         d.run()
         d.breakpoint(C_ADDRESS)
         d.cont()
 
-        self.assertEqual(d.regs.rip, C_ADDRESS)
+        self.assertEqual(d.instruction_pointer, C_ADDRESS)
 
         d.breakpoint(A_ADDRESS)
 
         # Finish function c
         d.finish(heuristic="backtrace")
 
-        self.assertEqual(d.regs.rip, A_ADDRESS)
+        self.assertEqual(d.instruction_pointer, A_ADDRESS)
 
         d.kill()
+        d.terminate()
 
     def test_heuristic_return_address(self):
-        d = debugger("binaries/finish_test", auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False)
 
         # Reach function c
         d.run()
         d.breakpoint(C_ADDRESS)
         d.cont()
 
-        self.assertEqual(d.regs.rip, C_ADDRESS)
+        self.assertEqual(d.instruction_pointer, C_ADDRESS)
 
         stack_unwinder = stack_unwinding_provider(d._internal_debugger.arch)
 
@@ -250,18 +261,19 @@ class FinishTest(unittest.TestCase):
         self.assertEqual(curr_srip, RETURN_POINT_FROM_C)
 
         d.kill()
+        d.terminate()
 
     def test_exact_breakpoint_return(self):
         BREAKPOINT_LOCATION = 0x4011f1
 
-        d = debugger("binaries/finish_test", auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False)
 
         # Reach function c
         d.run()
         d.breakpoint(C_ADDRESS)
         d.cont()
 
-        self.assertEqual(d.regs.rip, C_ADDRESS)
+        self.assertEqual(d.instruction_pointer, C_ADDRESS)
 
 
         # Place a breakpoint at a location inbetween
@@ -270,21 +282,22 @@ class FinishTest(unittest.TestCase):
         # Finish function c
         d.finish(heuristic="step-mode")
 
-        self.assertEqual(d.regs.rip, BREAKPOINT_LOCATION)
+        self.assertEqual(d.instruction_pointer, BREAKPOINT_LOCATION)
 
         d.kill()
+        d.terminate()
 
     def test_heuristic_breakpoint_return(self):
         BREAKPOINT_LOCATION = 0x4011f1
 
-        d = debugger("binaries/finish_test", auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False)
 
         # Reach function c
         d.run()
         d.breakpoint(C_ADDRESS)
         d.cont()
 
-        self.assertEqual(d.regs.rip, C_ADDRESS)
+        self.assertEqual(d.instruction_pointer, C_ADDRESS)
 
 
         # Place a breakpoint a location in between
@@ -293,19 +306,20 @@ class FinishTest(unittest.TestCase):
         # Finish function c
         d.finish(heuristic="backtrace")
 
-        self.assertEqual(d.regs.rip, BREAKPOINT_LOCATION)
+        self.assertEqual(d.instruction_pointer, BREAKPOINT_LOCATION)
 
         d.kill()
+        d.terminate()
 
     def test_breakpoint_collision(self):
-        d = debugger("binaries/finish_test", auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False)
 
         # Reach function c
         d.run()
         d.breakpoint(C_ADDRESS)
         d.cont()
 
-        self.assertEqual(d.regs.rip, C_ADDRESS)
+        self.assertEqual(d.instruction_pointer, C_ADDRESS)
 
         # Place a breakpoint at the same location as the return address
         d.breakpoint(RETURN_POINT_FROM_C)
@@ -313,7 +327,7 @@ class FinishTest(unittest.TestCase):
         # Finish function c
         d.finish(heuristic="backtrace")
 
-        self.assertEqual(d.regs.rip, RETURN_POINT_FROM_C)
+        self.assertEqual(d.instruction_pointer, RETURN_POINT_FROM_C)
         self.assertFalse(d.running)
 
         d.step()
@@ -323,3 +337,4 @@ class FinishTest(unittest.TestCase):
         self.assertFalse(d.dead)
 
         d.kill()
+        d.terminate()
