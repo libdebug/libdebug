@@ -4,12 +4,13 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-import unittest
+from unittest import TestCase
+from utils.binary_utils import RESOLVE_EXE
 
 from libdebug import debugger
 
 
-class SignalMultithreadTest(unittest.TestCase):
+class SignalMultithreadTest(TestCase):
     def test_signal_multithread_undet_catch_signal_block(self):
         SIGUSR1_count = 0
         SIGINT_count = 0
@@ -42,7 +43,7 @@ class SignalMultithreadTest(unittest.TestCase):
 
             SIGPIPE_count += 1
 
-        d = debugger("binaries/signals_multithread_undet_test")
+        d = debugger(RESOLVE_EXE("signals_multithread_undet_test"))
 
         r = d.run()
 
@@ -63,6 +64,7 @@ class SignalMultithreadTest(unittest.TestCase):
         r.recvline(2)
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(SIGUSR1_count, 4)
         self.assertEqual(SIGTERM_count, 4)
@@ -108,7 +110,7 @@ class SignalMultithreadTest(unittest.TestCase):
 
             SIGPIPE_count += 1
 
-        d = debugger("binaries/signals_multithread_undet_test")
+        d = debugger(RESOLVE_EXE("signals_multithread_undet_test"))
 
         r = d.run()
 
@@ -131,6 +133,7 @@ class SignalMultithreadTest(unittest.TestCase):
         received.append(r.recvline())
 
         d.kill()
+        d.terminate()
 
         self.assertEqual(SIGUSR1_count, 4)
         self.assertEqual(SIGTERM_count, 4)
@@ -199,7 +202,7 @@ class SignalMultithreadTest(unittest.TestCase):
             SIGPIPE_count += 1
             tids.append(t.thread_id)
 
-        d = debugger("binaries/signals_multithread_det_test")
+        d = debugger(RESOLVE_EXE("signals_multithread_det_test"))
 
         r = d.run()
 
@@ -220,6 +223,7 @@ class SignalMultithreadTest(unittest.TestCase):
 
         receiver = d.threads[1].thread_id
         d.kill()
+        d.terminate()
 
         self.assertEqual(SIGUSR1_count, 2)
         self.assertEqual(SIGTERM_count, 2)
@@ -280,7 +284,7 @@ class SignalMultithreadTest(unittest.TestCase):
             SIGPIPE_count += 1
             tids.append(t.thread_id)
 
-        d = debugger("binaries/signals_multithread_det_test")
+        d = debugger(RESOLVE_EXE("signals_multithread_det_test"))
 
         r = d.run()
 
@@ -301,6 +305,7 @@ class SignalMultithreadTest(unittest.TestCase):
 
         receiver = d.threads[1].thread_id
         d.kill()
+        d.terminate()
 
         self.assertEqual(SIGUSR1_count, 2)
         self.assertEqual(SIGTERM_count, 2)
@@ -368,7 +373,7 @@ class SignalMultithreadTest(unittest.TestCase):
             SIGPIPE_count += 1
             tids.append(t.thread_id)
 
-        d = debugger("binaries/signals_multithread_det_test")
+        d = debugger(RESOLVE_EXE("signals_multithread_det_test"))
 
         # Set a breakpoint to stop the program before the end of the receiver thread
         r = d.run()
@@ -398,6 +403,7 @@ class SignalMultithreadTest(unittest.TestCase):
 
         receiver = d.threads[1].thread_id
         d.kill()
+        d.terminate()
 
         self.assertEqual(SIGUSR1_count, 2)
         self.assertEqual(SIGTERM_count, 2)

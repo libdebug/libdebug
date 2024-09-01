@@ -4,17 +4,16 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-import unittest
+from unittest import TestCase
+from utils.binary_utils import RESOLVE_EXE
+from utils.thread_utils import FUN_RET_VAL
 
 from libdebug import debugger
 
 
-class ThreadTest(unittest.TestCase):
-    def setUp(self):
-        pass
-
+class ThreadTest(TestCase):
     def test_thread(self):
-        d = debugger("binaries/thread_test")
+        d = debugger(RESOLVE_EXE("thread_test"))
 
         d.run()
 
@@ -28,17 +27,17 @@ class ThreadTest(unittest.TestCase):
         d.cont()
 
         for _ in range(150):
-            if bp_t0.address == d.regs.rip:
+            if bp_t0.address == d.instruction_pointer:
                 self.assertTrue(t1_done)
                 self.assertTrue(t2_done)
                 self.assertTrue(t3_done)
                 break
 
-            if len(d.threads) > 1 and bp_t1.address == d.threads[1].regs.rip:
+            if len(d.threads) > 1 and bp_t1.address == d.threads[1].instruction_pointer:
                 t1_done = True
-            if len(d.threads) > 2 and bp_t2.address == d.threads[2].regs.rip:
+            if len(d.threads) > 2 and bp_t2.address == d.threads[2].instruction_pointer:
                 t2_done = True
-            if len(d.threads) > 3 and bp_t3.address == d.threads[3].regs.rip:
+            if len(d.threads) > 3 and bp_t3.address == d.threads[3].instruction_pointer:
                 t3_done = True
 
             d.cont()
@@ -47,7 +46,7 @@ class ThreadTest(unittest.TestCase):
         d.terminate()
 
     def test_thread_hardware(self):
-        d = debugger("binaries/thread_test")
+        d = debugger(RESOLVE_EXE("thread_test"))
 
         d.run()
 
@@ -61,17 +60,17 @@ class ThreadTest(unittest.TestCase):
         d.cont()
 
         for _ in range(15):
-            if bp_t0.address == d.regs.rip:
+            if bp_t0.address == d.instruction_pointer:
                 self.assertTrue(t1_done)
                 self.assertTrue(t2_done)
                 self.assertTrue(t3_done)
                 break
 
-            if len(d.threads) > 1 and bp_t1.address == d.threads[1].regs.rip:
+            if len(d.threads) > 1 and bp_t1.address == d.threads[1].instruction_pointer:
                 t1_done = True
-            if len(d.threads) > 2 and bp_t2.address == d.threads[2].regs.rip:
+            if len(d.threads) > 2 and bp_t2.address == d.threads[2].instruction_pointer:
                 t2_done = True
-            if len(d.threads) > 3 and bp_t3.address == d.threads[3].regs.rip:
+            if len(d.threads) > 3 and bp_t3.address == d.threads[3].instruction_pointer:
                 t3_done = True
 
             d.cont()
@@ -79,19 +78,14 @@ class ThreadTest(unittest.TestCase):
         d.kill()
         d.terminate()
 
-
-class ComplexThreadTest(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def test_thread(self):
+    def test_thread_complex(self):
         def factorial(n):
             if n == 0:
                 return 1
             else:
                 return (n * factorial(n - 1)) & (2**32 - 1)
 
-        d = debugger("binaries/complex_thread_test")
+        d = debugger(RESOLVE_EXE("thread_complex_test"))
 
         d.run()
 
@@ -111,20 +105,20 @@ class ComplexThreadTest(unittest.TestCase):
             if len(d.threads) == 3:
                 t2 = d.threads[2]
 
-            if t1 and bp2_t1.address == t1.regs.rip:
+            if t1 and bp2_t1.address == t1.instruction_pointer:
                 bp2_hit = True
-                self.assertTrue(bp2_t1.hit_count == (t1.regs.rax + 1))
+                self.assertTrue(bp2_t1.hit_count == (FUN_RET_VAL(t1) + 1))
 
-            if bp1_t0.address == d.regs.rip:
+            if bp1_t0.address == d.instruction_pointer:
                 bp1_hit = True
                 self.assertTrue(bp2_hit)
                 self.assertEqual(bp2_t1.hit_count, 50)
                 self.assertFalse(bp3_hit)
                 self.assertEqual(bp1_t0.hit_count, 1)
 
-            if t2 and bp3_t2.address == t2.regs.rip:
+            if t2 and bp3_t2.address == t2.instruction_pointer:
                 bp3_hit = True
-                self.assertTrue(factorial(bp3_t2.hit_count) == t2.regs.rax)
+                self.assertTrue(factorial(bp3_t2.hit_count) == FUN_RET_VAL(t2))
                 self.assertTrue(bp2_hit)
                 self.assertTrue(bp1_hit)
 
@@ -135,7 +129,3 @@ class ComplexThreadTest(unittest.TestCase):
 
         d.kill()
         d.terminate()
-
-
-if __name__ == "__main__":
-    unittest.main()

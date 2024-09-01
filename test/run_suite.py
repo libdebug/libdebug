@@ -21,19 +21,22 @@ from scripts.deep_dive_division_test import DeepDiveDivisionTest
 from scripts.finish_test import FinishTest
 from scripts.floating_point_test import FloatingPointTest
 from scripts.jumpout_test import JumpoutTest
-from scripts.jumpout_auto_waiting_test import JumpoutAutoWaitingTest
 from scripts.jumpstart_test import JumpstartTest
 from scripts.large_binary_sym_test import LargeBinarySymTest
 from scripts.memory_test import MemoryTest
 from scripts.multiple_debuggers_test import MultipleDebuggersTest
 from scripts.next_test import NextTest
 from scripts.nlinks_test import NlinksTest
-from scripts.nlinks_auto_waiting_test import NlinksAutoWaitingTest
 from scripts.pprint_syscalls_test import PPrintSyscallsTest
 from scripts.register_test import RegisterTest
 from scripts.signal_catch_test import SignalCatchTest
+from scripts.signal_multithread_test import SignalMultithreadTest
+from scripts.speed_test import SpeedTest
 from scripts.syscall_handle_test import SyscallHandleTest
 from scripts.syscall_hijack_test import SyscallHijackTest
+from scripts.thread_test import ThreadTest
+from scripts.vmwhere1_test import Vmwhere1Test
+from scripts.watchpoint_test import WatchpointTest
 
 def fast_suite():
     suite = TestSuite()
@@ -55,12 +58,14 @@ def fast_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(MultipleDebuggersTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(NextTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(NlinksTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(NlinksAutoWaitingTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(PPrintSyscallsTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(RegisterTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(SignalCatchTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(SignalMultithreadTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(SyscallHandleTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(SyscallHijackTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(ThreadTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(WatchpointTest))
 
     return suite
 
@@ -70,12 +75,16 @@ def full_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(BruteTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(DeepDiveDivisionTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(JumpoutTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(JumpoutAutoWaitingTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(SpeedTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(Vmwhere1Test))
 
     return suite
 
 def stress_suite():
     suite = TestSuite()
+
+    for _ in range(1024):
+        suite.addTest(TestLoader().loadTestsFromTestCase(ThreadTest))
 
     return suite
 

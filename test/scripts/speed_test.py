@@ -4,15 +4,16 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-import unittest
+from unittest import TestCase
+from utils.binary_utils import RESOLVE_EXE
 from time import perf_counter_ns
 
 from libdebug import debugger
 
 
-class SpeedTest(unittest.TestCase):
+class SpeedTest(TestCase):
     def setUp(self):
-        self.d = debugger("binaries/speed_test")
+        self.d = debugger(RESOLVE_EXE("speed_test"))
 
     def test_speed(self):
         d = self.d
@@ -26,10 +27,11 @@ class SpeedTest(unittest.TestCase):
         d.cont()
 
         for _ in range(65536):
-            self.assertTrue(bp.address == d.regs.rip)
+            self.assertTrue(bp.address == d.instruction_pointer)
             d.cont()
 
         d.kill()
+        d.terminate()
 
         end_time = perf_counter_ns()
 
@@ -47,15 +49,12 @@ class SpeedTest(unittest.TestCase):
         d.cont()
 
         for _ in range(65536):
-            self.assertTrue(bp.address == d.regs.rip)
+            self.assertTrue(bp.address == d.instruction_pointer)
             d.cont()
 
         d.kill()
+        d.terminate()
 
         end_time = perf_counter_ns()
 
         self.assertTrue((end_time - start_time) < 15 * 1e9)  # 15 seconds
-
-
-if __name__ == "__main__":
-    unittest.main()
