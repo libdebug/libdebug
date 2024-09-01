@@ -12,6 +12,7 @@ from weakref import WeakKeyDictionary
 @dataclass
 class InternalDebuggerHolder:
     """A holder for internal debuggers."""
+
     internal_debuggers: WeakKeyDictionary = field(default_factory=WeakKeyDictionary)
     global_internal_debugger = None
     internal_debugger_lock = Lock()

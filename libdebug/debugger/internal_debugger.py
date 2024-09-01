@@ -10,6 +10,7 @@ from __future__ import annotations
 import functools
 import os
 import signal
+import sys
 from pathlib import Path
 from queue import Queue
 from signal import SIGKILL, SIGSTOP, SIGTRAP
@@ -19,7 +20,8 @@ from typing import TYPE_CHECKING
 
 import psutil
 
-from libdebug.architectures.syscall_hijacking_provider import syscall_hijacking_provider
+from libdebug.architectures.breakpoint_validator import validate_hardware_breakpoint
+from libdebug.architectures.syscall_hijacker import SyscallHijacker
 from libdebug.builtin.antidebug_syscall_handler import on_enter_ptrace, on_exit_ptrace
 from libdebug.builtin.pretty_print_syscall_handler import pprint_on_enter, pprint_on_exit
 from libdebug.data.breakpoint import Breakpoint
@@ -33,6 +35,7 @@ from libdebug.debugger.internal_debugger_instance_manager import (
 from libdebug.interfaces.interface_helper import provide_debugging_interface
 from libdebug.liblog import liblog
 from libdebug.state.resume_context import ResumeContext
+from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.debugger_wrappers import (
     background_alias,
     change_state_function_process,
@@ -44,6 +47,7 @@ from libdebug.utils.debugging_utils import (
     resolve_symbol_in_maps,
 )
 from libdebug.utils.libcontext import libcontext
+from libdebug.utils.platform_utils import get_platform_register_size
 from libdebug.utils.print_style import PrintStyle
 from libdebug.utils.signal_utils import (
     resolve_signal_name,
@@ -73,6 +77,9 @@ class InternalDebugger:
 
     aslr_enabled: bool
     """A flag that indicates if ASLR is enabled or not."""
+
+    arch: str
+    """The architecture of the debugged process."""
 
     argv: list[str]
     """The command line arguments of the debugged process."""
@@ -134,13 +141,13 @@ class InternalDebugger:
     resume_context: ResumeContext
     """Context that indicates if the debugger should resume the debugged process."""
 
-    _polling_thread: Thread | None
+    __polling_thread: Thread | None
     """The background thread used to poll the process for state change."""
 
-    _polling_thread_command_queue: Queue | None
+    __polling_thread_command_queue: Queue | None
     """The queue used to send commands to the background thread."""
 
-    _polling_thread_response_queue: Queue | None
+    __polling_thread_response_queue: Queue | None
     """The queue used to receive responses from the background thread."""
 
     _is_running: bool
@@ -163,10 +170,11 @@ class InternalDebugger:
         self.pprint_syscalls = False
         self.pipe_manager = None
         self.process_id = 0
-        self.threads = list()
+        self.threads = []
         self.instanced = False
         self._is_running = False
         self.resume_context = ResumeContext()
+        self.arch = map_arch(libcontext.platform)
         self.__polling_thread_command_queue = Queue()
         self.__polling_thread_response_queue = Queue()
 
@@ -196,7 +204,11 @@ class InternalDebugger:
         self.start_processing_thread()
         with extend_internal_debugger(self):
             self.debugging_interface = provide_debugging_interface()
-            self.memory = MemoryView(self._peek_memory, self._poke_memory)
+            self.memory = MemoryView(
+                self._peek_memory,
+                self._poke_memory,
+                unit_size=get_platform_register_size(libcontext.platform),
+            )
 
     def start_processing_thread(self: InternalDebugger) -> None:
         """Starts the thread that will poll the traced process for state change."""
@@ -383,7 +395,7 @@ class InternalDebugger:
         self: InternalDebugger,
         position: int | str,
         hardware: bool = False,
-        condition: str | None = None,
+        condition: str = "x",
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
         file: str = "hybrid",
@@ -408,26 +420,13 @@ class InternalDebugger:
             address = self.resolve_address(position, file)
             position = hex(address)
 
-        if condition:
-            if not hardware:
-                raise ValueError(
-                    "Breakpoint condition is supported only for hardware watchpoints.",
-                )
+        if condition != "x" and not hardware:
+            raise ValueError("Breakpoint condition is supported only for hardware watchpoints.")
 
-            if condition.lower() not in ["w", "rw", "x"]:
-                raise ValueError(
-                    "Invalid condition for watchpoints. Supported conditions are 'w', 'rw', 'x'.",
-                )
+        bp = Breakpoint(address, position, 0, hardware, callback, condition.lower(), length)
 
-            if length not in [1, 2, 4, 8]:
-                raise ValueError(
-                    "Invalid length for watchpoints. Supported lengths are 1, 2, 4, 8.",
-                )
-
-        if hardware and not condition:
-            condition = "x"
-
-        bp = Breakpoint(address, position, 0, hardware, callback, condition, length)
+        if hardware:
+            validate_hardware_breakpoint(self.arch, bp)
 
         link_to_internal_debugger(bp, self)
 
@@ -560,7 +559,7 @@ class InternalDebugger:
         Returns:
             HandledSyscall: The HandledSyscall object.
         """
-        syscall_number = resolve_syscall_number(syscall) if isinstance(syscall, str) else syscall
+        syscall_number = resolve_syscall_number(self.arch, syscall) if isinstance(syscall, str) else syscall
 
         if not isinstance(recursive, bool):
             raise TypeError("recursive must be a boolean")
@@ -570,7 +569,7 @@ class InternalDebugger:
             handler = self.handled_syscalls[syscall_number]
             if handler.on_enter_user or handler.on_exit_user:
                 liblog.warning(
-                    f"Syscall {resolve_syscall_name(syscall_number)} is already handled by a user-defined handler. Overriding it.",
+                    f"Syscall {resolve_syscall_name(self.arch, syscall_number)} is already handled by a user-defined handler. Overriding it.",
                 )
             handler.on_enter_user = on_enter
             handler.on_exit_user = on_exit
@@ -617,22 +616,24 @@ class InternalDebugger:
         Returns:
             HandledSyscall: The HandledSyscall object.
         """
-        if set(kwargs) - syscall_hijacking_provider().allowed_args:
+        if set(kwargs) - SyscallHijacker.allowed_args:
             raise ValueError("Invalid keyword arguments in syscall hijack")
 
         if isinstance(original_syscall, str):
-            original_syscall_number = resolve_syscall_number(original_syscall)
+            original_syscall_number = resolve_syscall_number(self.arch, original_syscall)
         else:
             original_syscall_number = original_syscall
 
-        new_syscall_number = resolve_syscall_number(new_syscall) if isinstance(new_syscall, str) else new_syscall
+        new_syscall_number = (
+            resolve_syscall_number(self.arch, new_syscall) if isinstance(new_syscall, str) else new_syscall
+        )
 
         if original_syscall_number == new_syscall_number:
             raise ValueError(
                 "The original syscall and the new syscall must be different during hijacking.",
             )
 
-        on_enter = syscall_hijacking_provider().create_hijacker(
+        on_enter = SyscallHijacker().create_hijacker(
             new_syscall_number,
             **kwargs,
         )
@@ -912,7 +913,7 @@ class InternalDebugger:
         """Handles a syscall in the target process to pretty prints its arguments and return value."""
         self._ensure_process_stopped()
 
-        syscall_numbers = get_all_syscall_numbers()
+        syscall_numbers = get_all_syscall_numbers(self.arch)
 
         for syscall_number in syscall_numbers:
             # Check if the syscall is already handled (by the user or by the pretty print handler)
@@ -1316,11 +1317,10 @@ class InternalDebugger:
 
     def __threaded_peek_memory(self: InternalDebugger, address: int) -> bytes | BaseException:
         value = self.debugging_interface.peek_memory(address)
-        # TODO: this is only for amd64
-        return value.to_bytes(8, "little")
+        return value.to_bytes(get_platform_register_size(libcontext.platform), sys.byteorder)
 
     def __threaded_poke_memory(self: InternalDebugger, address: int, data: bytes) -> None:
-        int_data = int.from_bytes(data, "little")
+        int_data = int.from_bytes(data, sys.byteorder)
         self.debugging_interface.poke_memory(address, int_data)
 
     def __threaded_fetch_fp_registers(self: InternalDebugger, registers: Registers) -> None:
@@ -1411,7 +1411,7 @@ class InternalDebugger:
     def _enable_antidebug_escaping(self: InternalDebugger) -> None:
         """Enables the anti-debugging escape mechanism."""
         handler = SyscallHandler(
-            resolve_syscall_number("ptrace"),
+            resolve_syscall_number(self.arch, "ptrace"),
             on_enter_ptrace,
             on_exit_ptrace,
             None,
