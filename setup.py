@@ -17,6 +17,7 @@ except ImportError:
 if not (
     os.path.isfile("/usr/include/sys/ptrace.h")
     or os.path.isfile("/usr/include/x86_64-linux-gnu/sys/ptrace.h")
+    or os.path.isfile("/usr/include/aarch64-linux-gnu/sys/ptrace.h")
 ):
     print("Required C libraries not found. Please install ptrace or kernel headers")
     exit(1)
@@ -68,7 +69,7 @@ class JumpstartBuildCommand(build):
 
 setup(
     name="libdebug",
-    version="0.5.4",
+    version="0.6.0",
     author="JinBlack, Io_no, MrIndeciso, Frank01001",
     description="A library to debug binary programs",
     packages=find_packages(include=["libdebug", "libdebug.*"]),

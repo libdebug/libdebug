@@ -102,20 +102,27 @@ Features of watchpoints are shared with breakpoints, so you can set callbacks, c
         callback=...) -> Breakpoint:
 
 Again, the position can be specified both as a relative address or as a symbol.
-The condition parameter specifies the type of access that triggers the watchpoint. The following values are supported:
+The condition parameter specifies the type of access that triggers the watchpoint. The following values are supported in all architectures:
 
 - ``"w"``: write access
 - ``"rw"``: read/write access
 - ``"x"``: execute access
 
+AArch64 additionally supports:
+
+- ``"r"``: read access
+
 By default, the watchpoint is triggered only on write access.
 
-The length parameter specifies the size of the word being watched. The following values are supported:
+The length parameter specifies the size of the word being watched.
+In x86_64 (amd64) the following values are supported:
 
 - ``1``: byte
 - ``2``: word
 - ``4``: dword
 - ``8``: qword
+
+AArch64 supports any length from 1 to 8 bytes.
 
 By default, the watchpoint is set to watch a byte.
 

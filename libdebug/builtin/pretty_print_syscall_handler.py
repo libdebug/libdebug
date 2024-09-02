@@ -26,8 +26,8 @@ def pprint_on_enter(d: ThreadContext, syscall_number: int, **kwargs: int) -> Non
         syscall_number (int): the syscall number.
         **kwargs (bool): the keyword arguments.
     """
-    syscall_name = resolve_syscall_name(syscall_number)
-    syscall_args = resolve_syscall_arguments(syscall_number)
+    syscall_name = resolve_syscall_name(d._internal_debugger.arch, syscall_number)
+    syscall_args = resolve_syscall_arguments(d._internal_debugger.arch, syscall_number)
 
     values = [
         d.syscall_arg0,

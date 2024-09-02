@@ -28,7 +28,7 @@ e.g, for version 0.5.0, go to https://docs.libdebug.org/archive/0.5.0
 Supported Architectures
 -----------------------
 
-libdebug currently supports Linux under the x86_64 architecture.
+libdebug currently supports Linux under the x86_64 and AArch64 architectures.
 
 Other operating systems and architectures are not supported at this time.
 
@@ -109,7 +109,7 @@ Now that you have libdebug installed, you can start using it in your scripts. He
 
 The above script will run the binary `test` in the working directory and stop at the function corresponding to the symbol "function". It will then print the value of the RAX register and kill the process.
 
-Conflicts with other python packages
+Conflicts with other Python packages
 ------------------------------------
 
 The current version of libdebug is incompatible with https://github.com/Gallopsled/pwntools.

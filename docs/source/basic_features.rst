@@ -86,7 +86,7 @@ Register Access
 libdebug offers a simple register access interface for supported architectures. The registers are accessed through the `regs`` attribute of the debugger object. The field includes both general purpose and special registers, as well as the flags register. Effectively, any register that can be accessed by an assembly instruction, can also be accessed through the regs attribute. The debugger specifically exposes properties of the main thread, including the registers. See :doc:`multithreading` to learn how to access registers and other properties from different threads.
 
 Floating point and vector registers are available as well. The syntax is identical to the one used for integer registers.
-The list of available AVX registers is determined during installation by checking the CPU capabilities, thus special registers, such as `zmm0` to `zmm31`, are available only on CPUs that support the specific ISA extension.
+For amd64, the list of available AVX registers is determined during installation by checking the CPU capabilities, thus special registers, such as `zmm0` to `zmm31`, are available only on CPUs that support the specific ISA extension.
 If you believe that your target CPU supports AVX registers, but they are not available during debugging, please file an issue on the GitHub repository and include your precise hardware details, so that we can investigate and resolve the issue.
 
 Memory Access
@@ -160,6 +160,23 @@ If you specify a full or a substring of a file name, libdebug will search for th
     d.memory[0x1000, 0x10, "other_file_name"]
 
 You can also use the wildcard string "binary" to use the base address of the binary as the base address for the relative addressing. The same behavior is applied if you pass a string corresponding to the binary name.
+
+Faster Memory Access
+-------------------
+
+By default, libdebug uses the kernel's ptrace interface to access memory. This is guaranteed to work, but it might be slow during large memory transfers.
+To speed up memory access, we provide a secondary system that relies on /proc/$pid/mem for read and write operations. You can enable this feature by setting `fast_memory` to True when instancing the debugger.
+The final behavior is identical, but the speed is significantly improved.
+
+Additionally, you can mix the two memory access methods by changing the `fast_memory` attribute of the debugger at runtime:
+
+.. code-block:: python
+
+    d.fast_memory = True
+
+    # ...
+
+    d.fast_memory = False
 
 Control Flow Commands
 ====================================
@@ -303,4 +320,4 @@ You can also access registers after the process has died. This is useful for *po
 Supported Architectures
 =======================
 
-libdebug currently only supports Linux under the x86_64 (AMD64) architecture. Support for other architectures is planned for future releases. Stay tuned.
+libdebug currently only supports Linux under the x86_64 (AMD64) and AArch64 (ARM64) architectures. Support for other architectures is planned for future releases. Stay tuned.

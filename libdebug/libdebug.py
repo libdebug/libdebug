@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from libdebug.debugger.debugger import Debugger
 from libdebug.debugger.internal_debugger import InternalDebugger
+from libdebug.utils.elf_utils import elf_architecture
 
 
 def debugger(
@@ -16,6 +17,7 @@ def debugger(
     escape_antidebug: bool = False,
     continue_to_binary_entrypoint: bool = True,
     auto_interrupt_on_command: bool = False,
+    fast_memory: bool = False,
 ) -> Debugger:
     """This function is used to create a new `Debugger` object. It returns a `Debugger` object.
 
@@ -26,6 +28,7 @@ def debugger(
         escape_antidebug (bool): Whether to automatically attempt to patch antidebugger detectors based on the ptrace syscall.
         continue_to_binary_entrypoint (bool, optional): Whether to automatically continue to the binary entrypoint. Defaults to True.
         auto_interrupt_on_command (bool, optional): Whether to automatically interrupt the process when a command is issued. Defaults to False.
+        fast_memory (bool, optional): Whether to use a faster memory reading method. Defaults to False.
 
     Returns:
         Debugger: The `Debugger` object.
@@ -40,8 +43,13 @@ def debugger(
     internal_debugger.autoreach_entrypoint = continue_to_binary_entrypoint
     internal_debugger.auto_interrupt_on_command = auto_interrupt_on_command
     internal_debugger.escape_antidebug = escape_antidebug
+    internal_debugger.fast_memory = fast_memory
 
     debugger = Debugger()
     debugger.post_init_(internal_debugger)
+
+    # If we are attaching, we assume the architecture is the same as the current platform
+    if argv:
+        debugger.arch = elf_architecture(argv[0])
 
     return debugger
