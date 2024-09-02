@@ -4,7 +4,7 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-from unittest import TestCase
+from unittest import TestCase, skipUnless
 from utils.binary_utils import RESOLVE_EXE
 
 from libdebug import debugger
@@ -105,7 +105,8 @@ match libcontext.platform:
 
 
 class MultipleDebuggersTest(TestCase):
-    def test_multiple_debuggers(self):
+    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    def test_multiple_debuggers_amd64(self):
         bpd = debugger(RESOLVE_EXE("breakpoint_test"))
         red = debugger(RESOLVE_EXE("basic_test"))
 
