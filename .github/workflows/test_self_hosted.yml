@@ -21,14 +21,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Activate Virtual Environment
+    - name: Install library and run tests
       run: |
-        source ~/libdebug-test/bin/activate
-
-    - name: Install library
-      run: |
-        python -m pip install --upgrade .
-
-    - name: Test with pytest
-      run: |
-        cd test && python -m pytest --ignore=other_tests
+        source ~/libdebug-test/bin/activate && python -m pip install --upgrade . && cd test && python -m pytest --ignore=other_tests
+        
