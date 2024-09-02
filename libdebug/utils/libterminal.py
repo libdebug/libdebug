@@ -11,6 +11,7 @@ import sys
 
 class LibTerminal:
     def __init__(self: LibTerminal, prompt: bytes) -> None:
+        """Initializes the LibTerminal object."""
         self._stdout_buffer: bytes = b""
         self._stdin_buffer: bytes = b""
         self._stderr_buffer: bytes = b""

@@ -66,7 +66,7 @@ if TYPE_CHECKING:
     from libdebug.data.registers import Registers
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.state.thread_context import ThreadContext
-    from libdebug.utils.pipe_manager import PipeManager
+    from libdebug.utils.libpipe import LibPipe
 
 THREAD_TERMINATE = -1
 GDB_GOBACK_LOCATION = str((Path(__file__).parent / "utils" / "gdb.py").resolve())
@@ -123,7 +123,7 @@ class InternalDebugger:
     process_id: int
     """The PID of the debugged process."""
 
-    pipe_manager: PipeManager
+    pipe_manager: LibPipe
     """The pipe manager used to communicate with the debugged process."""
 
     memory: MemoryView
