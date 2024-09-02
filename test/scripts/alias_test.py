@@ -26,6 +26,29 @@ match libcontext.platform:
 
         TEST_WAITING_ALIAS_BP2_ADDRESS = 0x40115B
         TEST_WAITING_ALIAS_BP3_ADDRESS = 0x40116D
+
+        def CHECK_REGISTERS(harness, d):
+            harness.assertEqual(d.regs.rsi, 45)
+            harness.assertEqual(d.regs.esi, 45)
+            harness.assertEqual(d.regs.si, 45)
+            harness.assertEqual(d.regs.sil, 45)
+    case "aarch64":
+        TEST_STEP_ALIAS_OFFSET_1 = 4
+        TEST_STEP_ALIAS_OFFSET_2 = 8
+
+        TEST_STEP_UNTIL_ALIAS_ADDRESS = 0xaaaaaaaa083c
+
+        TEST_FINISH_ALIAS_ADDRESS_1 = 0xaaaaaaaa0908
+        TEST_FINISH_ALIAS_ADDRESS_2 = 0xaaaaaaaa0938
+        TEST_FINISH_ALIAS_ADDRESS_3 = 0xaaaaaaaa0914
+        TEST_FINISH_ALIAS_FUNCTION_A_ADDRESS = 0xaaaaaaaa0814
+
+        TEST_WAITING_ALIAS_BP2_ADDRESS = 0x7fc
+        TEST_WAITING_ALIAS_BP3_ADDRESS = 0x820
+
+        def CHECK_REGISTERS(harness, d):
+            harness.assertEqual(d.regs.x1, 45)
+            harness.assertEqual(d.regs.w1, 45)
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 
@@ -182,10 +205,7 @@ class AliasTest(TestCase):
                 counter += 1
             elif d.instruction_pointer == bp3.address:
                 self.assertTrue(bp3.hit_count == 1)
-                self.assertTrue(d.regs.rsi == 45)
-                self.assertTrue(d.regs.esi == 45)
-                self.assertTrue(d.regs.si == 45)
-                self.assertTrue(d.regs.sil == 45)
+                CHECK_REGISTERS(self, d)
                 self.assertTrue(bp3.hit_on(d))
                 self.assertFalse(bp1.hit_on(d))
                 self.assertFalse(bp2.hit_on(d))
