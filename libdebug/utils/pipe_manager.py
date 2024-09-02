@@ -13,8 +13,8 @@ import time
 from select import select
 
 from libdebug.liblog import liblog
+from libdebug.utils.libterminal import LibTerminal, StderrWrapper, StdoutWrapper
 from libdebug.utils.print_style import PrintStyle
-from libdebug.utils.libterminal import LibTerminal, StdoutWrapper, StderrWrapper
 
 
 class PipeManager:
@@ -102,7 +102,7 @@ class PipeManager:
                 data = os.read(pipe_read, 4096)
                 data_buffer += data
 
-        liblog.pipe(f"Received {len(data_buffer)} bytes from the child process: {data_buffer!r}")
+        # liblog.pipe(f"Received {len(data_buffer)} bytes from the child process: {data_buffer!r}")
         return data_buffer
 
     def close(self: PipeManager) -> None:
@@ -394,16 +394,13 @@ class PipeManager:
         sent = self.sendline(data)
         return (received, sent)
 
-
-
-
     def interactive(self: PipeManager, prompt: str = f"{PrintStyle.RED}$ {PrintStyle.RESET}") -> None:
         """Interacts with the child process."""
         liblog.info("Calling interactive mode")
 
         stdout_backup = sys.stdout
         stderr_backup = sys.stderr
-        
+
         libterminal = LibTerminal(prompt.encode())
 
         sys.stdout = StdoutWrapper(stdout_backup, libterminal)
@@ -412,6 +409,14 @@ class PipeManager:
         import logging as logger
 
         for handler in liblog.general_logger.handlers:
+            if isinstance(handler, logger.StreamHandler):
+                handler.stream = sys.stdout
+
+        for handler in liblog.pipe_logger.handlers:
+            if isinstance(handler, logger.StreamHandler):
+                handler.stream = sys.stdout
+
+        for handler in liblog.debugger_logger.handlers:
             if isinstance(handler, logger.StreamHandler):
                 handler.stream = sys.stdout
 
@@ -439,7 +444,7 @@ class PipeManager:
                 if stdout_is_open:
                     try:
                         while recv_stdout := self._recv(numb=1, timeout=0.05, stderr=False):
-                            sys.stdout.write(payload=recv_stdout, source = "stdout")
+                            sys.stdout.write(payload=recv_stdout, source="stdout")
                             if recv_stdout == b"\n":
                                 break
                     except RuntimeError:
@@ -450,7 +455,7 @@ class PipeManager:
                 if stderr_is_open:
                     try:
                         while recv_stderr := self._recv(numb=1, timeout=0.05, stderr=True):
-                            sys.stderr.write(payload=recv_stderr, source = "stderr")
+                            sys.stderr.write(payload=recv_stderr, source="stderr")
                             if recv_stderr == b"\n":
                                 break
                     except RuntimeError:
@@ -464,22 +469,32 @@ class PipeManager:
         thread = threading.Thread(target=_recv_thread)
         thread.start()
 
+        import termios
+        import tty
+
+        old_settings = termios.tcgetattr(sys.stdin.fileno())
+        tty.setraw(sys.stdin.fileno())
+
         try:
             recv_stdin = b""
             while True:
-                sys.stdout.write(payload=recv_stdin, source = "stdin")
-                recv_stdin = sys.stdin.read(1)
-                if recv_stdin == b"\n":
+                sys.stdout.write(payload=recv_stdin, source="stdin")
+                recv_stdin = sys.stdin.read(1).encode()
+                if recv_stdin == b"\r":
+                    # The terminal is set to raw mode, so the Enter key sends a carriage return character
+                    # instead of a newline character. We need to convert it to a newline character.
                     self.sendline(libterminal.stdin_buffer)
                     recv_stdin = b""
                     libterminal.clear_stdin_buffer()
-        except KeyboardInterrupt:
-            pass
+                elif recv_stdin == b"\x03":
+                    # Ctrl+C
+                    break
         except RuntimeError:
             liblog.warning("The stdin pipe of the child process is not available anymore")
         finally:
             liblog.info("Exiting interactive mode")
             go = False
+            termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, old_settings)
 
         # Wait for the thread to finish
         thread.join()
