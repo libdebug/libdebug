@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   test:
-    runs-on: [self-hosted, linux, ARM64]
+    runs-on: [self-hosted, Linux, ARM64]
     timeout-minutes: 15
 
     steps:
