@@ -8,10 +8,40 @@ from __future__ import annotations
 
 import sys
 import tty
+from functools import wraps
 from logging import StreamHandler
 from termios import TCSADRAIN, tcgetattr, tcsetattr
 
 from libdebug.liblog import liblog
+
+
+def known_manager_preliminary_operations(method: callable) -> callable:
+    """Decorator to perform preliminary operations before executing a known manager."""
+
+    @wraps(method)
+    def wrapper(self: LibTerminal, payload: bytes) -> ...:
+        # The manager can handle one byte at a time, so we check the length of the payload
+        if len(payload) > 1:
+            raise ValueError("The payload must be one byte long.")
+
+        # If the paylpad is not ascii, we need to escape it.
+        # This is not strictly necessary, but it is useful to improve the readability of the output
+        payload = payload.decode("ascii", errors="backslashreplace").encode()
+
+        # Escape the ANSI escape prefix
+        if payload == b"\x1b":
+            payload = b"\\x1b"
+
+        # Move the cursor to the beginning of the line
+        self._clear_row()
+
+        # Update the ANSI escape sequence buffer. This is necessary to move the cursor correctly
+        # according to the stdin buffer index
+        self._ansi_buffer = b"\x1b[1D" * (len(self._stdin_buffer) - self._stdin_index)
+
+        return method(self, payload)
+
+    return wrapper
 
 
 class LibTerminal:
@@ -23,6 +53,7 @@ class LibTerminal:
         self._stdout_buffer: bytes = b""
         self._stdin_buffer: bytes = b""
         self._stderr_buffer: bytes = b""
+        self._ansi_buffer: bytes = b""
 
         # Initialize the escape sequence flag
         self._escape_sequence: list[bytes] = []
@@ -71,6 +102,7 @@ class LibTerminal:
     def clear_stdin_buffer(self: LibTerminal) -> None:
         """Clears the stdin buffer."""
         self._stdin_buffer = b""
+        self._stdin_index = 0
 
     def _clear_row(self) -> None:
         """Clears the current row."""
@@ -80,11 +112,9 @@ class LibTerminal:
         number_of_chars_stderr = len(self._stderr_buffer) + len(self._stdin_buffer) + len(self._prompt)
         self._stderr.write(b"\r" + b" " * number_of_chars_stderr + b"\r")
 
+    @known_manager_preliminary_operations
     def _write_from_stdout_manager(self, payload: bytes) -> int:
         """Writes data coming from the stdout pipe of the child process."""
-        # Move the cursor to the beginning of the line
-        self._clear_row()
-
         # Write the stderr buffer to the console stderr
         self._stderr.write(self._stderr_buffer)
 
@@ -93,7 +123,7 @@ class LibTerminal:
         if payload == b"\n":
             # Add a carriage return character at the end of the line
             self._stdout_buffer += b"\r"
-        self._stdout.write(self._stdout_buffer + self._prompt + self._stdin_buffer)
+        self._stdout.write(self._stdout_buffer + self._prompt + self._stdin_buffer + self._ansi_buffer)
 
         # Flush the buffers
         self._stderr.flush()
@@ -105,11 +135,9 @@ class LibTerminal:
 
         return len(payload)
 
+    @known_manager_preliminary_operations
     def _write_from_stderr_manager(self, payload: bytes) -> int:
         """Writes data coming from the stderr pipe of the child process."""
-        # Move the cursor to the beginning of the line
-        self._clear_row()
-
         # Write the data to the console stderr
         self._stderr_buffer += payload
         if payload == b"\n":
@@ -118,7 +146,7 @@ class LibTerminal:
         self._stderr.write(self._stderr_buffer)
 
         # Write the stdout buffer, the prompt, and the stdin buffer on the console stdout
-        self._stdout.write(self._stdout_buffer + self._prompt + self._stdin_buffer)
+        self._stdout.write(self._stdout_buffer + self._prompt + self._stdin_buffer + self._ansi_buffer)
 
         # Flush the buffers
         self._stderr.flush()
@@ -130,31 +158,23 @@ class LibTerminal:
 
         return len(payload)
 
+    @known_manager_preliminary_operations
     def _write_from_stdin_manager(self, payload: bytes) -> int:
         """Writes data coming from the stdin pipe of the child process."""
-        # Move the cursor to the beginning of the line
-        self._clear_row()
-
         # Write the stderr buffer to the console stderr
         self._stderr.write(self._stderr_buffer)
 
-        # If the paylpad is not ascii, we need to escape it
-        payload = payload.decode().encode("unicode_escape")
-
         # Add the payload to the stdin buffer in the correct position
-        self._stdin_index += len(payload)
-        if self._stdin_index == len(self._stdin_buffer):
+        if self._stdin_index == len(self._stdin_buffer) - 1:
             self._stdin_buffer += payload
         else:
             self._stdin_buffer = (
                 self._stdin_buffer[: self._stdin_index] + payload + self._stdin_buffer[self._stdin_index :]
             )
-        
-        cursor_movements = b"\x1b[1D" * (len(self._stdin_buffer) - self._stdin_index)
-        liblog.error(f"Stdin buffer: {(len(self._stdin_buffer) - self._stdin_index)}")
+        self._stdin_index += len(payload)
 
         # Write the data to the console stdout
-        self._stdout.write(self._stdout_buffer + self._prompt + self._stdin_buffer + cursor_movements)
+        self._stdout.write(self._stdout_buffer + self._prompt + self._stdin_buffer + self._ansi_buffer)
 
         # Flush the buffers
         self._stderr.flush()
