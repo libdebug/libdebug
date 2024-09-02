@@ -401,7 +401,7 @@ class WatchpointTest(TestCase):
 
             global_long_ip.append(t.regs.pc)
 
-        d = debugger("binaries/watchpoint_test", auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("watchpoint_test"), auto_interrupt_on_command=False)
 
         d.run()
 

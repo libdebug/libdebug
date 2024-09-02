@@ -88,7 +88,7 @@ class DeathTest(TestCase):
 
         d.wait()
 
-        self.assertEqual(d.regs.rip, DEATH_LOCATION)
+        self.assertEqual(d.instruction_pointer, DEATH_LOCATION)
 
         d.kill()
         d.terminate()

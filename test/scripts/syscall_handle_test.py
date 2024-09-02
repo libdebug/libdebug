@@ -91,7 +91,7 @@ class SyscallHandleTest(TestCase):
 
         def on_exit_getcwd(d, sh):
             self.assertTrue(sh.syscall_number == GETCWD_NUM)
-            self.assertEqual(d.memory[d.syscall_arg0, 8], os.getcwd()[:8].encode())
+            self.assertEqual(d.memory[ptr, 8], os.getcwd()[:8].encode())
 
         handler1 = d.handle_syscall("write", on_enter_write, None)
         handler2 = d.handle_syscall("mmap", None, on_exit_mmap)
@@ -146,7 +146,7 @@ class SyscallHandleTest(TestCase):
 
         def on_exit_getcwd(d, sh):
             self.assertTrue(sh.syscall_number == GETCWD_NUM)
-            self.assertEqual(d.memory[d.syscall_arg0, 8], os.getcwd()[:8].encode())
+            self.assertEqual(d.memory[ptr, 8], os.getcwd()[:8].encode())
 
         handler1 = d.handle_syscall("write", on_enter_write, None)
         handler2 = d.handle_syscall("mmap", None, on_exit_mmap)
@@ -200,7 +200,7 @@ class SyscallHandleTest(TestCase):
 
         def on_exit_getcwd(d, sh):
             self.assertTrue(sh.syscall_number == GETCWD_NUM)
-            self.assertEqual(d.memory[d.syscall_arg0, 8], os.getcwd()[:8].encode())
+            self.assertEqual(d.memory[ptr, 8], os.getcwd()[:8].encode())
 
         handler1 = d.handle_syscall(WRITE_NUM, on_enter_write, None)
         handler2 = d.handle_syscall(MMAP_NUM, None, on_exit_mmap)
@@ -208,13 +208,13 @@ class SyscallHandleTest(TestCase):
 
         r.sendline(b"provola")
 
-        d.breakpoint(BP_ADDRESS)
+        bp = d.breakpoint(BP_ADDRESS)
 
         d.cont()
 
         d.wait()
 
-        self.assertEqual(d.instruction_pointer, BP_ADDRESS)
+        self.assertEqual(d.instruction_pointer, bp.address)
         handler1.disable()
 
         d.cont()
@@ -264,7 +264,7 @@ class SyscallHandleTest(TestCase):
 
         def on_exit_getcwd(d, sh):
             self.assertTrue(sh.syscall_number == GETCWD_NUM)
-            self.assertEqual(d.memory[d.syscall_arg0, 8], os.getcwd()[:8].encode())
+            self.assertEqual(d.memory[ptr, 8], os.getcwd()[:8].encode())
 
         handler1 = d.handle_syscall(WRITE_NUM, on_enter_write, None)
         handler2 = d.handle_syscall(MMAP_NUM, None, on_exit_mmap)
@@ -272,13 +272,13 @@ class SyscallHandleTest(TestCase):
 
         r.sendline(b"provola")
 
-        d.breakpoint(BP_ADDRESS)
+        bp = d.breakpoint(BP_ADDRESS)
 
         d.cont()
 
         d.wait()
 
-        self.assertEqual(d.instruction_pointer, BP_ADDRESS)
+        self.assertEqual(d.instruction_pointer, bp.address)
         handler1.disable()
 
         d.cont()
@@ -329,7 +329,7 @@ class SyscallHandleTest(TestCase):
 
         def on_exit_getcwd(d, sh):
             self.assertTrue(sh.syscall_number == GETCWD_NUM)
-            self.assertEqual(d.memory[d.syscall_arg0, 8], os.getcwd()[:8].encode())
+            self.assertEqual(d.memory[ptr, 8], os.getcwd()[:8].encode())
 
         handler1_1 = d.handle_syscall(WRITE_NUM, on_enter_write_first, None)
         handler2 = d.handle_syscall(MMAP_NUM, None, on_exit_mmap)
@@ -337,13 +337,13 @@ class SyscallHandleTest(TestCase):
 
         r.sendline(b"provola")
 
-        d.breakpoint(BP_ADDRESS)
+        bp = d.breakpoint(BP_ADDRESS)
 
         d.cont()
 
         d.wait()
 
-        self.assertEqual(d.instruction_pointer, BP_ADDRESS)
+        self.assertEqual(d.instruction_pointer, bp.address)
         handler1_2 = d.handle_syscall(WRITE_NUM, on_enter_write_second, None)
 
         d.cont()
@@ -404,7 +404,7 @@ class SyscallHandleTest(TestCase):
 
         def on_exit_getcwd(d, sh):
             self.assertTrue(sh.syscall_number == GETCWD_NUM)
-            self.assertEqual(d.memory[d.syscall_arg0, 8], os.getcwd()[:8].encode())
+            self.assertEqual(d.memory[ptr, 8], os.getcwd()[:8].encode())
 
         handler1_1 = d.handle_syscall(WRITE_NUM, on_enter_write_first, None)
         handler2 = d.handle_syscall(MMAP_NUM, None, on_exit_mmap)
@@ -412,13 +412,13 @@ class SyscallHandleTest(TestCase):
 
         r.sendline(b"provola")
 
-        d.breakpoint(BP_ADDRESS)
+        bp = d.breakpoint(BP_ADDRESS)
 
         d.cont()
 
         d.wait()
 
-        self.assertEqual(d.instruction_pointer, BP_ADDRESS)
+        self.assertEqual(d.instruction_pointer, bp.address)
         handler1_2 = d.handle_syscall(WRITE_NUM, on_enter_write_second, None)
 
         d.cont()
@@ -475,7 +475,7 @@ class SyscallHandleTest(TestCase):
 
         def on_exit_getcwd(d, sh):
             self.assertTrue(sh.syscall_number == GETCWD_NUM)
-            self.assertEqual(d.memory[d.syscall_arg0, 8], os.getcwd()[:8].encode())
+            self.assertEqual(d.memory[ptr, 8], os.getcwd()[:8].encode())
 
         handler1 = d.handle_syscall("write")
         handler2 = d.handle_syscall("mmap")
@@ -538,7 +538,7 @@ class SyscallHandleTest(TestCase):
 
         def on_exit_getcwd(d, sh):
             self.assertTrue(sh.syscall_number == GETCWD_NUM)
-            self.assertEqual(d.memory[d.syscall_arg0, 8], os.getcwd()[:8].encode())
+            self.assertEqual(d.memory[ptr, 8], os.getcwd()[:8].encode())
 
         handler1 = d.handle_syscall("write")
         handler2 = d.handle_syscall("mmap")

@@ -21,6 +21,8 @@ match libcontext.platform:
         # Addresses of noteworthy instructions
         RETURN_POINT_FROM_C = 0x401202
         RETURN_POINT_FROM_A = 0x4011e0
+
+        BREAKPOINT_LOCATION = 0x4011f1
     case "aarch64":
         # Addresses of the dummy functions
         C_ADDRESS = 0xaaaaaaaa0914
@@ -30,6 +32,8 @@ match libcontext.platform:
         # Addresses of noteworthy instructions
         RETURN_POINT_FROM_C = 0xaaaaaaaa0938
         RETURN_POINT_FROM_A = 0xaaaaaaaa0908
+
+        BREAKPOINT_LOCATION = 0xaaaaaaaa0920
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 
@@ -273,8 +277,6 @@ class FinishTest(TestCase):
         d.terminate()
 
     def test_exact_breakpoint_return(self):
-        BREAKPOINT_LOCATION = 0x4011f1
-
         d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False)
 
         # Reach function c
@@ -297,8 +299,6 @@ class FinishTest(TestCase):
         d.terminate()
 
     def test_heuristic_breakpoint_return(self):
-        BREAKPOINT_LOCATION = 0x4011f1
-
         d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False)
 
         # Reach function c
