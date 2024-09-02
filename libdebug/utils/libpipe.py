@@ -12,11 +12,10 @@ import sys
 import time
 import tty
 from select import select
-from termios import TCSADRAIN, tcgetattr, tcsetattr
 from threading import Event, Thread
 
 from libdebug.liblog import liblog
-from libdebug.utils.libterminal import LibTerminal, StderrWrapper, StdoutWrapper
+from libdebug.utils.libterminal import LibTerminal
 from libdebug.utils.print_style import PrintStyle
 
 
@@ -399,60 +398,6 @@ class LibPipe:
         sent = self.sendline(data)
         return (received, sent)
 
-    def _setupterminal(self: LibPipe, prompt: bytes) -> tuple[object, object, object, LibTerminal]:
-        """Sets up the libterminal to interact with the child process."""
-        # Backup the original stdout and stderr
-        stdout_backup = sys.stdout
-        stderr_backup = sys.stderr
-
-        # Initialize the terminal
-        libterminal = LibTerminal(prompt)
-
-        # Redirect stdout and stderr to the terminal
-        sys.stdout = StdoutWrapper(stdout_backup, libterminal)
-        sys.stderr = StderrWrapper(stderr_backup, libterminal)
-
-        # Redirect the loggers to the terminal
-        for handler in liblog.general_logger.handlers:
-            if isinstance(handler, logger.StreamHandler):
-                handler.stream = sys.stdout
-
-        for handler in liblog.pipe_logger.handlers:
-            if isinstance(handler, logger.StreamHandler):
-                handler.stream = sys.stdout
-
-        for handler in liblog.debugger_logger.handlers:
-            if isinstance(handler, logger.StreamHandler):
-                handler.stream = sys.stdout
-
-        # Set the stdin to raw mode
-        old_settings = tcgetattr(sys.stdin.fileno())
-        tty.setraw(sys.stdin.fileno())
-
-        return stdout_backup, stderr_backup, old_settings, libterminal
-
-    def destroyterminal(self: LibPipe, stdout_backup: object, stderr_backup: object, old_settings: object) -> None:
-        """Destroys the libterminal."""
-        # Restore the original stdout and stderr
-        sys.stdout = stdout_backup
-        sys.stderr = stderr_backup
-
-        # Restore the loggers
-        for handler in liblog.general_logger.handlers:
-            if isinstance(handler, logger.StreamHandler):
-                handler.stream = sys.stderr
-
-        for handler in liblog.pipe_logger.handlers:
-            if isinstance(handler, logger.StreamHandler):
-                handler.stream = sys.stderr
-
-        for handler in liblog.debugger_logger.handlers:
-            if isinstance(handler, logger.StreamHandler):
-                handler.stream = sys.stderr
-
-        # Restore the stdin settings
-        tcsetattr(sys.stdin.fileno(), TCSADRAIN, old_settings)
-
     def _recv_thread(self: LibPipe) -> None:
         """Receives data from the child process."""
         stdout_is_open = True
@@ -491,7 +436,7 @@ class LibPipe:
         liblog.info("Calling interactive mode")
 
         # Set up the terminal
-        stdout_backup, stderr_backup, old_settings, libterminal = self._setupterminal(prompt)
+        libterminal = LibTerminal(prompt=prompt)
 
         # We do not want interferences between the information printed in stdout and stderr by the child
         # process and the user input, so we need to handle them in distinct threads.
@@ -499,19 +444,11 @@ class LibPipe:
         thread.start()
 
         try:
-            recv_stdin = b""
             while True:
-                sys.stdout.write(payload=recv_stdin, source="stdin")
-                recv_stdin = sys.stdin.read(1).encode()
-                if recv_stdin == b"\r":
-                    # The terminal is set to raw mode, so the Enter key sends a carriage return character
-                    # instead of a newline character. We need to convert it to a newline character.
-                    self.sendline(libterminal.stdin_buffer)
-                    recv_stdin = b""
-                    libterminal.clear_stdin_buffer()
-                elif recv_stdin == b"\x03":
-                    # Ctrl+C
-                    break
+                self.send(sys.stdin.readline())
+        except KeyboardInterrupt:
+            # Ctrl+C
+            pass
         except RuntimeError:
             liblog.warning("The stdin pipe of the child process is not available anymore")
         finally:
@@ -519,7 +456,7 @@ class LibPipe:
             self.end_interactive.set()
             thread.join()
 
-            # Destroy the terminal
-            self.destroyterminal(stdout_backup, stderr_backup, old_settings)
+            # Reset the terminal
+            libterminal.reset()
 
             liblog.info("Exiting interactive mode")
