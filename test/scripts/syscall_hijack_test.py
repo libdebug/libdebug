@@ -18,6 +18,10 @@ match libcontext.platform:
         WRITE_NUM = 1
         BP_ADDRESS = 0x4011B0
         OUTPUT_STR = "0x402010"
+    case "aarch64":
+        WRITE_NUM = 64
+        BP_ADDRESS = 0x9f0
+        OUTPUT_STR = "0xaaaaaaaa0ab0"
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 

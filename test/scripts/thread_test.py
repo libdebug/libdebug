@@ -9,7 +9,18 @@ from utils.binary_utils import RESOLVE_EXE
 from utils.thread_utils import FUN_RET_VAL
 
 from libdebug import debugger
+from libdebug.utils.libcontext import libcontext
 
+
+match libcontext.platform:
+    case "amd64":
+        THREAD_TEST_COMPLEX_BP2_ADDRESS = "thread_1_function+17"
+        THREAD_TEST_COMPLEX_BP3_ADDRESS = "thread_2_function+1e"
+    case "aarch64":
+        THREAD_TEST_COMPLEX_BP2_ADDRESS = "thread_1_function+18"
+        THREAD_TEST_COMPLEX_BP3_ADDRESS = "thread_2_function+24"
+    case _:
+        raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 
 class ThreadTest(TestCase):
     def test_thread(self):
@@ -90,8 +101,8 @@ class ThreadTest(TestCase):
         d.run()
 
         bp1_t0 = d.breakpoint("do_nothing")
-        bp2_t1 = d.breakpoint("thread_1_function+17")
-        bp3_t2 = d.breakpoint("thread_2_function+1e")
+        bp2_t1 = d.breakpoint(THREAD_TEST_COMPLEX_BP2_ADDRESS)
+        bp3_t2 = d.breakpoint(THREAD_TEST_COMPLEX_BP3_ADDRESS)
 
         bp1_hit, bp2_hit, bp3_hit = False, False, False
         t1, t2 = None, None

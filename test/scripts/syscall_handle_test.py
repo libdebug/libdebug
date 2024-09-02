@@ -22,6 +22,11 @@ match libcontext.platform:
         MMAP_NUM = 9
         GETCWD_NUM = 0x4F
         BP_ADDRESS = 0x401196
+    case "aarch64":
+        WRITE_NUM = 64
+        MMAP_NUM = 222
+        GETCWD_NUM = 17
+        BP_ADDRESS = 0x9d4
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 
