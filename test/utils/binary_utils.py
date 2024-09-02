@@ -11,7 +11,7 @@ def RESOLVE_EXE(file: str) -> str:
     return f"binaries/{libcontext.platform}/{file}"
 
 def _base_address() -> int:
-    d = debugger(RESOLVE_EXE("basic_test"))
+    d = debugger(RESOLVE_EXE("basic_test_pie"))
 
     d.run()
 
