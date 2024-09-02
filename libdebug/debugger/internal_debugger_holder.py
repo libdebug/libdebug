@@ -4,12 +4,18 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+from __future__ import annotations
+
 import atexit
 from dataclasses import dataclass, field
 from threading import Lock
+from typing import TYPE_CHECKING
 from weakref import WeakKeyDictionary
 
 from libdebug.liblog import liblog
+
+if TYPE_CHECKING:
+    from libdebug.debugger.internal_debugger import InternalDebugger
 
 
 @dataclass
@@ -27,7 +33,9 @@ internal_debugger_holder = InternalDebuggerHolder()
 def _cleanup_internal_debugger() -> None:
     """Cleanup the internal debugger."""
     for debugger in set(internal_debugger_holder.internal_debuggers.values()):
-        if debugger.instanced:
+        debugger: InternalDebugger
+
+        if debugger.instanced and debugger.kill_on_exit:
             try:
                 debugger.interrupt()
             except Exception as e:
@@ -38,7 +46,7 @@ def _cleanup_internal_debugger() -> None:
             except Exception as e:
                 liblog.debugger(f"Error while killing debuggee: {e}")
 
-        debugger.terminate()
+            debugger.terminate()
 
 
 atexit.register(_cleanup_internal_debugger)

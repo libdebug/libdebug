@@ -18,6 +18,7 @@ def debugger(
     continue_to_binary_entrypoint: bool = True,
     auto_interrupt_on_command: bool = False,
     fast_memory: bool = False,
+    kill_on_exit: bool = True,
 ) -> Debugger:
     """This function is used to create a new `Debugger` object. It returns a `Debugger` object.
 
@@ -29,6 +30,7 @@ def debugger(
         continue_to_binary_entrypoint (bool, optional): Whether to automatically continue to the binary entrypoint. Defaults to True.
         auto_interrupt_on_command (bool, optional): Whether to automatically interrupt the process when a command is issued. Defaults to False.
         fast_memory (bool, optional): Whether to use a faster memory reading method. Defaults to False.
+        kill_on_exit (bool, optional): Whether to kill the debugged process when the debugger exits. Defaults to True.
 
     Returns:
         Debugger: The `Debugger` object.
@@ -44,6 +46,7 @@ def debugger(
     internal_debugger.auto_interrupt_on_command = auto_interrupt_on_command
     internal_debugger.escape_antidebug = escape_antidebug
     internal_debugger.fast_memory = fast_memory
+    internal_debugger.kill_on_exit = kill_on_exit
 
     debugger = Debugger()
     debugger.post_init_(internal_debugger)

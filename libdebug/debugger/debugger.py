@@ -329,6 +329,18 @@ class Debugger:
         self._internal_debugger.arch = map_arch(value)
 
     @property
+    def kill_on_exit(self: Debugger) -> bool:
+        """Get whether the process will be killed when the debugger exits."""
+        return self._internal_debugger.kill_on_exit
+
+    @kill_on_exit.setter
+    def kill_on_exit(self: Debugger, value: bool) -> None:
+        if not isinstance(value, bool):
+            raise TypeError("kill_on_exit must be a boolean")
+
+        self._internal_debugger.kill_on_exit = value
+
+    @property
     def threads(self: Debugger) -> list[ThreadContext]:
         """Get the list of threads in the process."""
         return self._internal_debugger.threads
