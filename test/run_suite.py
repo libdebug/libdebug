@@ -24,6 +24,7 @@ from scripts.jumpout_test import JumpoutTest
 from scripts.jumpstart_test import JumpstartTest
 from scripts.large_binary_sym_test import LargeBinarySymTest
 from scripts.memory_test import MemoryTest
+from scripts.memory_fast_test import MemoryFastTest
 from scripts.multiple_debuggers_test import MultipleDebuggersTest
 from scripts.next_test import NextTest
 from scripts.nlinks_test import NlinksTest
@@ -55,6 +56,7 @@ def fast_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(JumpstartTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(LargeBinarySymTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(MemoryTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(MemoryFastTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(MultipleDebuggersTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(NextTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(NlinksTest))

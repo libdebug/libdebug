@@ -349,7 +349,7 @@ int is_breakpoint_hit(struct hardware_breakpoint *bp)
         return 0;
     }
     
-    unsigned long addr = si.si_addr;
+    unsigned long addr = (unsigned long) si.si_addr;
 
     if (addr == bp->addr) {
         return 1;

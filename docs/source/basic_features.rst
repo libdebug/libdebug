@@ -161,6 +161,23 @@ If you specify a full or a substring of a file name, libdebug will search for th
 
 You can also use the wildcard string "binary" to use the base address of the binary as the base address for the relative addressing. The same behavior is applied if you pass a string corresponding to the binary name.
 
+Faster Memory Access
+-------------------
+
+By default, libdebug uses the kernel's ptrace interface to access memory. This is guaranteed to work, but it might be slow during large memory transfers.
+To speed up memory access, we provide a secondary system that relies on /proc/$pid/mem for read and write operations. You can enable this feature by setting `fast_memory` to True when instancing the debugger.
+The final behavior is identical, but the speed is significantly improved.
+
+Additionally, you can mix the two memory access methods by changing the `fast_memory` attribute of the debugger at runtime:
+
+.. code-block:: python
+
+    d.fast_memory = True
+
+    # ...
+
+    d.fast_memory = False
+
 Control Flow Commands
 ====================================
 
