@@ -30,17 +30,10 @@ class LibTerminal:
     def _clear_row(self) -> None:
         """Clears the current row."""
         number_of_chars_stdout = len(self._stdout_buffer) + len(self._stdin_buffer) + len(self._prompt)
-        self._stderr.write(b"\b" * number_of_chars_stdout)
-        self._stderr.write(b" " * number_of_chars_stdout)
-        self._stderr.write(b"\b" * number_of_chars_stdout)
+        self._stderr.write(b"\r" + b" " * number_of_chars_stdout + b"\r")
 
-        number_of_chars_stderr = len(self._stderr_buffer)
-        self._stderr.write(b"\b" * number_of_chars_stderr)
-        self._stderr.write(b" " * number_of_chars_stderr)
-        self._stderr.write(b"\b" * number_of_chars_stderr)
-        
-        self._stdout.write(f"{self._stdin_buffer}\n".encode())
-        
+        number_of_chars_stderr = len(self._stderr_buffer) + len(self._stdin_buffer) + len(self._prompt)
+        self._stderr.write(b"\r" + b" " * number_of_chars_stderr + b"\r")
 
     def _write_from_stdout_manager(self, payload: bytes) -> int:
         """Writes data coming from the stdout pipe of the child process."""
@@ -52,6 +45,9 @@ class LibTerminal:
 
         # Write the data to the console stdout
         self._stdout_buffer += payload
+        if payload == b"\n":
+            # Add a carriage return character at the end of the line
+            self._stdout_buffer += b"\r"
         self._stdout.write(self._stdout_buffer + self._prompt + self._stdin_buffer)
 
         # Flush the buffers
@@ -71,6 +67,9 @@ class LibTerminal:
 
         # Write the data to the console stderr
         self._stderr_buffer += payload
+        if payload == b"\n":
+            # Add a carriage return character at the end of the line
+            self._stderr_buffer += b"\r"
         self._stderr.write(self._stderr_buffer)
 
         # Write the stdout buffer, the prompt, and the stdin buffer on the console stdout
@@ -114,6 +113,9 @@ class LibTerminal:
         # Move the cursor to the beginning of the line
         self._clear_row()
 
+        # Replace newline characters with newline + carriage return
+        payload = payload.replace(b"\n", b"\n\r")
+
         # Write the data to the console stderr
         self._stdout.write(payload)
 
@@ -137,6 +139,9 @@ class LibTerminal:
 
         # Move the cursor to the beginning of the line
         self._clear_row()
+
+        # Replace newline characters with newline + carriage return
+        payload = payload.replace(b"\n", b"\n\r")
 
         # Write the data to the console stderr
         self._stderr.write(payload)
