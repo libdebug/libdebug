@@ -183,8 +183,8 @@ class AliasTest(TestCase):
         d.r()
 
         bp1 = d.breakpoint("random_function")
-        bp2 = d.breakpoint(TEST_WAITING_ALIAS_BP2_ADDRESS)
-        bp3 = d.breakpoint(TEST_WAITING_ALIAS_BP3_ADDRESS)
+        bp2 = d.breakpoint(TEST_WAITING_ALIAS_BP2_ADDRESS, file="binary")
+        bp3 = d.breakpoint(TEST_WAITING_ALIAS_BP3_ADDRESS, file="binary")
 
         counter = 1
 

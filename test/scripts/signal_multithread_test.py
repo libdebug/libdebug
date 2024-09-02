@@ -8,7 +8,16 @@ from unittest import TestCase
 from utils.binary_utils import RESOLVE_EXE
 
 from libdebug import debugger
+from libdebug.utils.libcontext import libcontext
 
+
+match libcontext.platform:
+    case "amd64":
+        TEST_SIGNAL_MULTITHREAD_SEND_SIGNAL_BP_ADDRESS = 0x14d8
+    case "aarch64":
+        TEST_SIGNAL_MULTITHREAD_SEND_SIGNAL_BP_ADDRESS = 0xf1c
+    case _:
+        raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 
 class SignalMultithreadTest(TestCase):
     def test_signal_multithread_undet_catch_signal_block(self):
@@ -378,7 +387,7 @@ class SignalMultithreadTest(TestCase):
         # Set a breakpoint to stop the program before the end of the receiver thread
         r = d.run()
 
-        bp = d.breakpoint(0x14d8, hardware=True, file="binary")
+        bp = d.breakpoint(TEST_SIGNAL_MULTITHREAD_SEND_SIGNAL_BP_ADDRESS, hardware=True, file="binary")
 
         catcher1 = d.catch_signal("SIGUSR1", callback=catcher_SIGUSR1)
         catcher2 = d.catch_signal("SIGTERM", callback=catcher_SIGTERM)

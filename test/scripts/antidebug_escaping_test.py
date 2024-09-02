@@ -48,7 +48,7 @@ class AntidebugEscapingTest(TestCase):
         while not flag or flag != "BRUTE":
             for c in string.printable:
                 r = d.run()
-                bp = d.breakpoint(ADDRESS, hardware=True)
+                bp = d.breakpoint(ADDRESS, hardware=True, file="binary")
                 d.cont()
 
                 r.sendlineafter(b"chars\n", (flag + c).encode())
