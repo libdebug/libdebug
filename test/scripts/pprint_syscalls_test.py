@@ -17,6 +17,9 @@ match libcontext.platform:
     case "amd64":
         READ_NUM = 0
         MMAP_NUM = 9
+    case "aarch64":
+        READ_NUM = 63
+        MMAP_NUM = 222
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 
