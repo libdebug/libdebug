@@ -5,7 +5,7 @@
 #
 
 from unittest import TestCase
-from utils.binary_utils import RESOLVE_EXE
+from utils.binary_utils import BASE, RESOLVE_EXE
 
 from libdebug import debugger
 from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
@@ -25,15 +25,15 @@ match libcontext.platform:
         BREAKPOINT_LOCATION = 0x4011f1
     case "aarch64":
         # Addresses of the dummy functions
-        C_ADDRESS = 0xaaaaaaaa0914
-        B_ADDRESS = 0xaaaaaaaa08fc
-        A_ADDRESS = 0xaaaaaaaa0814
+        C_ADDRESS = BASE + 0x914
+        B_ADDRESS = BASE + 0x8fc
+        A_ADDRESS = BASE + 0x814
 
         # Addresses of noteworthy instructions
-        RETURN_POINT_FROM_C = 0xaaaaaaaa0938
-        RETURN_POINT_FROM_A = 0xaaaaaaaa0908
+        RETURN_POINT_FROM_C = BASE + 0x938
+        RETURN_POINT_FROM_A = BASE + 0x908
 
-        BREAKPOINT_LOCATION = 0xaaaaaaaa0920
+        BREAKPOINT_LOCATION = BASE + 0x920
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 

@@ -7,7 +7,7 @@
 import io
 import sys
 from unittest import TestCase
-from utils.binary_utils import RESOLVE_EXE
+from utils.binary_utils import BASE, RESOLVE_EXE
 
 from libdebug import debugger
 from libdebug.utils.libcontext import libcontext
@@ -21,7 +21,7 @@ match libcontext.platform:
     case "aarch64":
         WRITE_NUM = 64
         BP_ADDRESS = 0x9f0
-        OUTPUT_STR = "0xaaaaaaaa0ab0"
+        OUTPUT_STR = hex(BASE + 0xab0)
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 

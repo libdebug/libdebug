@@ -5,7 +5,7 @@
 #
 
 from unittest import TestCase, skipUnless
-from utils.binary_utils import RESOLVE_EXE
+from utils.binary_utils import BASE, RESOLVE_EXE
 
 from libdebug import debugger
 from libdebug.utils.libcontext import libcontext
@@ -37,23 +37,23 @@ match libcontext.platform:
         TEST_STEP_ALIAS_OFFSET_1 = 4
         TEST_STEP_ALIAS_OFFSET_2 = 8
 
-        TEST_STEP_UNTIL_1_ADDRESS = 0xaaaaaaaa0854
+        TEST_STEP_UNTIL_1_ADDRESS = BASE + 0x854
 
         TEST_STEP_UNTIL_2_ADDRESS_1 = 0x7fc
-        TEST_STEP_UNTIL_2_ADDRESS_2 = 0xaaaaaaaa0854
-        TEST_STEP_UNTIL_2_ADDRESS_3 = 0xaaaaaaaa0818
+        TEST_STEP_UNTIL_2_ADDRESS_2 = BASE + 0x854
+        TEST_STEP_UNTIL_2_ADDRESS_3 = BASE + 0x818
 
         TEST_STEP_UNTIL_3_ADDRESS_1 = 0x7fc
         TEST_STEP_UNTIL_3_BP_1 = 0x804
         TEST_STEP_UNTIL_3_BP_2 = 0x80c
         TEST_STEP_UNTIL_3_BP_3 = 0x808
-        TEST_STEP_UNTIL_3_ADDRESS_2 = 0xaaaaaaaa0854
-        TEST_STEP_UNTIL_3_ADDRESS_3 = 0xaaaaaaaa0818
+        TEST_STEP_UNTIL_3_ADDRESS_2 = BASE + 0x854
+        TEST_STEP_UNTIL_3_ADDRESS_3 = BASE + 0x818
 
-        TEST_STEP_AND_CONT_ADDRESS_1 = 0x0000aaaaaaaa083c
-        TEST_STEP_AND_CONT_ADDRESS_2 = 0x0000aaaaaaaa0840
+        TEST_STEP_AND_CONT_ADDRESS_1 = BASE + 0x83c
+        TEST_STEP_AND_CONT_ADDRESS_2 = BASE + 0x840
 
-        TEST_STEP_UNTIL_AND_CONT_ADDRESS = 0x0000aaaaaaaa083c
+        TEST_STEP_UNTIL_AND_CONT_ADDRESS = BASE + 0x83c
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 

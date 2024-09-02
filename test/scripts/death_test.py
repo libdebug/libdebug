@@ -7,7 +7,7 @@
 import io
 import logging
 from unittest import TestCase
-from utils.binary_utils import RESOLVE_EXE
+from utils.binary_utils import BASE, RESOLVE_EXE
 
 from libdebug import debugger
 from libdebug.utils.libcontext import libcontext
@@ -17,7 +17,7 @@ match libcontext.platform:
     case "amd64":
         DEATH_LOCATION = 0x55555555517F
     case "aarch64":
-        DEATH_LOCATION = 0xaaaaaaaa0784
+        DEATH_LOCATION = BASE + 0x784
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 

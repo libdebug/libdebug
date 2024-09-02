@@ -6,7 +6,7 @@
 
 from unittest import TestCase
 from utils.thread_utils import FUN_ARG_0
-from utils.binary_utils import RESOLVE_EXE
+from utils.binary_utils import BASE, RESOLVE_EXE
 
 from libdebug import debugger
 from libdebug.utils.libcontext import libcontext
@@ -36,12 +36,12 @@ match libcontext.platform:
         TEST_STEP_ALIAS_OFFSET_1 = 4
         TEST_STEP_ALIAS_OFFSET_2 = 8
 
-        TEST_STEP_UNTIL_ALIAS_ADDRESS = 0xaaaaaaaa083c
+        TEST_STEP_UNTIL_ALIAS_ADDRESS = BASE + 0x083c
 
-        TEST_FINISH_ALIAS_ADDRESS_1 = 0xaaaaaaaa0908
-        TEST_FINISH_ALIAS_ADDRESS_2 = 0xaaaaaaaa0938
-        TEST_FINISH_ALIAS_ADDRESS_3 = 0xaaaaaaaa0914
-        TEST_FINISH_ALIAS_FUNCTION_A_ADDRESS = 0xaaaaaaaa0814
+        TEST_FINISH_ALIAS_ADDRESS_1 = BASE + 0x0908
+        TEST_FINISH_ALIAS_ADDRESS_2 = BASE + 0x0938
+        TEST_FINISH_ALIAS_ADDRESS_3 = BASE + 0x0914
+        TEST_FINISH_ALIAS_FUNCTION_A_ADDRESS = BASE + 0x0814
 
         TEST_WAITING_ALIAS_BP2_ADDRESS = 0x7fc
         TEST_WAITING_ALIAS_BP3_ADDRESS = 0x820
