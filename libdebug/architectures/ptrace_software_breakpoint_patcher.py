@@ -4,15 +4,13 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-from libdebug.utils.libcontext import libcontext
 
-
-def software_breakpoint_byte_size() -> int:
+def software_breakpoint_byte_size(architecture: str) -> int:
     """Return the size of a software breakpoint instruction."""
-    match libcontext.arch:
-        case "amd64":
+    match architecture:
+        case "amd64" | "i386":
             return 1
-        case "x86":
-            return 1
+        case "aarch64":
+            return 4
         case _:
-            raise ValueError(f"Unsupported architecture: {libcontext.arch}")
+            raise ValueError(f"Unsupported architecture: {architecture}")

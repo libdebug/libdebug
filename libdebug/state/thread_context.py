@@ -181,7 +181,7 @@ class ThreadContext:
             as_symbols (bool, optional): Whether to return the backtrace as symbols
         """
         self._internal_debugger._ensure_process_stopped()
-        stack_unwinder = stack_unwinding_provider()
+        stack_unwinder = stack_unwinding_provider(self._internal_debugger.arch)
         backtrace = stack_unwinder.unwind(self)
         if as_symbols:
             maps = self._internal_debugger.debugging_interface.maps()
@@ -191,7 +191,7 @@ class ThreadContext:
     def print_backtrace(self: ThreadContext) -> None:
         """Prints the current backtrace of the thread."""
         self._internal_debugger._ensure_process_stopped()
-        stack_unwinder = stack_unwinding_provider()
+        stack_unwinder = stack_unwinding_provider(self._internal_debugger.arch)
         backtrace = stack_unwinder.unwind(self)
         maps = self._internal_debugger.debugging_interface.maps()
         for return_address in backtrace:
@@ -204,7 +204,7 @@ class ThreadContext:
     def current_return_address(self: ThreadContext) -> int:
         """Returns the return address of the current function."""
         self._internal_debugger._ensure_process_stopped()
-        stack_unwinder = stack_unwinding_provider()
+        stack_unwinder = stack_unwinding_provider(self._internal_debugger.arch)
 
         try:
             return_address = stack_unwinder.get_return_address(self)
