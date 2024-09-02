@@ -23,6 +23,8 @@ typedef struct SymbolInfo
     struct SymbolInfo *next;
 } SymbolInfo;
 
+void process_symbol_tables(Elf *elf);
+
 // Function to add new symbol info to the linked list
 SymbolInfo *add_symbol_info(SymbolInfo **head, const char *name, Dwarf_Addr low_pc, Dwarf_Addr high_pc)
 {
