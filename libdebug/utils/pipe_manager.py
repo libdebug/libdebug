@@ -7,10 +7,14 @@
 from __future__ import annotations
 
 import os
+import sys
+import threading
 import time
 from select import select
 
 from libdebug.liblog import liblog
+from libdebug.utils.print_style import PrintStyle
+from libdebug.utils.libterminal import LibTerminal, StdoutWrapper, StderrWrapper
 
 
 class PipeManager:
@@ -318,7 +322,12 @@ class PipeManager:
             liblog.warning("The input data is a string, converting to bytes")
             data = data.encode()
 
-        return os.write(self.stdin_write, data)
+        try:
+            number_bytes = os.write(self.stdin_write, data)
+        except OSError as e:
+            raise RuntimeError("Broken pipe. Is the child process still running?") from e
+
+        return number_bytes
 
     def sendline(self: PipeManager, data: bytes) -> int:
         """Sends data to the child process stdin and append a newline.
@@ -384,3 +393,93 @@ class PipeManager:
         received = self.recvuntil(delims=delims, occurences=occurences, drop=drop, timeout=timeout)
         sent = self.sendline(data)
         return (received, sent)
+
+
+
+
+    def interactive(self: PipeManager, prompt: str = f"{PrintStyle.RED}$ {PrintStyle.RESET}") -> None:
+        """Interacts with the child process."""
+        liblog.info("Calling interactive mode")
+
+        stdout_backup = sys.stdout
+        stderr_backup = sys.stderr
+        
+        libterminal = LibTerminal(prompt.encode())
+
+        sys.stdout = StdoutWrapper(stdout_backup, libterminal)
+        sys.stderr = StderrWrapper(stderr_backup, libterminal)
+
+        import logging as logger
+
+        for handler in liblog.general_logger.handlers:
+            if isinstance(handler, logger.StreamHandler):
+                handler.stream = sys.stdout
+
+        go = True
+
+        def _recv_thread() -> None:
+            """Receives data from the child process."""
+            stdout_is_open = True
+            stderr_is_open = True
+
+            # To avoid reinventing the wheel, we want to use the Python built-in input() function.
+            # However, if we simply forward the stdout and stderr to the terminal, the input() function
+            # will not work as expected. We must account for the internal Python text handling, so we
+            # need to use sys.stdout.write() and sys.stderr.write() to print the stdout and stderr of the
+            # child process. We cannot use sys.stdout.buffer.write() and sys.stderr.buffer.write() or os.write()
+            # because they will not handle the text correctly in conjunction with the input() function.
+            # The result should be the input console of the user always at the lower part of the terminal,
+            # automatically adapting to what the child process prints in stdout and stderr.
+
+            while go and (stdout_is_open or stderr_is_open):
+                # We can afford to treat stdout and stderr sequentially. This approach should also prevent
+                # messing up the order of the information printed by the child process.
+                # To avoid starvation, we will read at most one byte at a time and force a switch between pipes
+                # upon receiving a newline character.
+                if stdout_is_open:
+                    try:
+                        while recv_stdout := self._recv(numb=1, timeout=0.05, stderr=False):
+                            sys.stdout.write(payload=recv_stdout, source = "stdout")
+                            if recv_stdout == b"\n":
+                                break
+                    except RuntimeError:
+                        # The child process has closed the stdout pipe
+                        liblog.warning("The stdout pipe of the child process is not available anymore")
+                        stdout_is_open = False
+                        continue
+                if stderr_is_open:
+                    try:
+                        while recv_stderr := self._recv(numb=1, timeout=0.05, stderr=True):
+                            sys.stderr.write(payload=recv_stderr, source = "stderr")
+                            if recv_stderr == b"\n":
+                                break
+                    except RuntimeError:
+                        # The child process has closed the stderr pipe
+                        liblog.warning("The stderr pipe of the child process is not available anymore")
+                        stderr_is_open = False
+                        continue
+
+        # We do not want interferences between the information printed in stdout and stderr by the child
+        # process and the user input, so we need to handle them in distinct threads.
+        thread = threading.Thread(target=_recv_thread)
+        thread.start()
+
+        try:
+            recv_stdin = b""
+            while True:
+                sys.stdout.write(payload=recv_stdin, source = "stdin")
+                recv_stdin = sys.stdin.read(1)
+                if recv_stdin == b"\n":
+                    self.sendline(libterminal.stdin_buffer)
+                    recv_stdin = b""
+                    libterminal.clear_stdin_buffer()
+        except KeyboardInterrupt:
+            pass
+        except RuntimeError:
+            liblog.warning("The stdin pipe of the child process is not available anymore")
+        finally:
+            liblog.info("Exiting interactive mode")
+            go = False
+
+        # Wait for the thread to finish
+        thread.join()
