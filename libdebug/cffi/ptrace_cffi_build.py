@@ -310,11 +310,14 @@ elif architecture == "aarch64":
     """
 elif architecture == "i686":
     fp_regs_struct = """
+    #pragma pack(push, 1)
     struct reg_80
     {
         unsigned char data[10];
     };
+    #pragma pack(pop)
 
+    #pragma pack(push, 1)
     struct fp_regs_struct
     {
         _Bool dirty; // true if the debugging script has modified the state of the registers
@@ -330,6 +333,7 @@ elif architecture == "i686":
         unsigned long ds;
         struct reg_80 st[8];
     };
+    #pragma pack(pop)
     """
 
     fpregs_define = """
