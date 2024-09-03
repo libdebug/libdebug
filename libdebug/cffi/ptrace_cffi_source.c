@@ -83,7 +83,7 @@ struct global_state {
     _Bool handle_syscall_enabled;
 };
 
-#ifdef ARCH_AMD64
+#if defined ARCH_AMD64 || defined ARCH_I386
 int getregs(int tid, struct ptrace_regs_struct *regs)
 {
     return ptrace(PTRACE_GETREGS, tid, NULL, regs);
@@ -123,7 +123,7 @@ int setregs(int tid, struct ptrace_regs_struct *regs)
 }
 #endif
 
-#ifdef ARCH_AMD64
+#if defined ARCH_AMD64 || defined ARCH_I386
 
 #define DR_BASE 0x350
 #define DR_SIZE 0x8
@@ -404,7 +404,7 @@ struct fp_regs_struct *get_thread_fp_regs(struct global_state *state, int tid)
     return NULL;
 }
 
-#ifdef ARCH_AMD64
+#if defined ARCH_AMD64 || defined ARCH_I386
 void get_fp_regs(int tid, struct fp_regs_struct *fpregs)
 {
     #if (XSAVE == 0)
@@ -699,7 +699,7 @@ long singlestep(struct global_state *state, int tid)
         t = t->next;
     }
 
-#ifdef ARCH_AMD64
+#if defined ARCH_AMD64 || defined ARCH_I386
     return ptrace(PTRACE_SINGLESTEP, tid, NULL, signal_to_forward);
 #endif
 
@@ -1160,7 +1160,7 @@ int stepping_finish(struct global_state *state, int tid)
         // Get value at current instruction pointer
         opcode_window = ptrace(PTRACE_PEEKDATA, tid, (void *)current_ip, NULL);
 
-#ifdef ARCH_AMD64
+#if defined ARCH_AMD64 || defined ARCH_I386
         // on amd64 we care only about the first byte
         opcode = opcode_window & 0xFF;
 #endif

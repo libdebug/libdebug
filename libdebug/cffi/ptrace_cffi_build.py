@@ -308,6 +308,93 @@ elif architecture == "aarch64":
         return 0; // Not a CALL
     }
     """
+elif architecture == "i686":
+    fp_regs_struct = """
+    struct reg_80
+    {
+        unsigned char data[10];
+    };
+
+    struct fp_regs_struct
+    {
+        _Bool dirty; // true if the debugging script has modified the state of the registers
+        _Bool fresh; // true if the registers have already been fetched for this state
+        unsigned char bool_padding[2];
+        unsigned short cwd;
+        unsigned short swd;
+        unsigned short twd;
+        unsigned short fop;
+        unsigned long ip;
+        unsigned long cs;
+        unsigned long dp;
+        unsigned long ds;
+        struct reg_80 st[8];
+    };
+    """
+
+    fpregs_define = """
+    #define FPREGS_AVX 0
+    """
+
+    ptrace_regs_struct = """
+    struct ptrace_regs_struct
+    {
+        unsigned long ebx;
+        unsigned long ecx;
+        unsigned long edx;
+        unsigned long esi;
+        unsigned long edi;
+        unsigned long ebp;
+        unsigned long eax;
+        unsigned long xds;
+        unsigned long xes;
+        unsigned long xfs;
+        unsigned long xgs;
+        unsigned long orig_eax;
+        unsigned long eip;
+        unsigned long xcs;
+        unsigned long eflags;
+        unsigned long esp;
+        unsigned long xss;
+    };
+    """
+
+    arch_define = """
+    #define ARCH_I386
+    """
+
+    breakpoint_define = """
+    #define INSTRUCTION_POINTER(regs) (regs.eip)
+    #define INSTALL_BREAKPOINT(instruction) ((instruction & 0xFFFFFF00) | 0xCC)
+    #define BREAKPOINT_SIZE 1
+    #define IS_SW_BREAKPOINT(instruction) (instruction == 0xCC)
+    """
+
+    control_flow_define = """
+    // i686 Architecture specific
+    #define IS_RET_INSTRUCTION(instruction) (instruction == 0xC3 || instruction == 0xCB || instruction == 0xC2 || instruction == 0xCA)
+
+    int IS_CALL_INSTRUCTION(uint8_t* instr)
+    {
+        // Check for direct CALL (E8 xx xx xx xx)
+        if (instr[0] == (uint8_t)0xE8) {
+            return 1; // It's a CALL
+        }
+
+        // Check for indirect CALL using ModR/M (FF /2)
+        if (instr[0] == (uint8_t)0xFF) {
+            // Extract ModR/M byte
+            uint8_t modRM = (uint8_t)instr[1];
+            uint8_t reg = (modRM >> 3) & 7; // Middle three bits
+
+            if (reg == 2) {
+                return 1; // It's a CALL
+            }
+        }
+
+        return 0; // Not a CALL
+    }
+    """
 else:
     raise NotImplementedError(f"Architecture {platform.machine()} not available.")
 
