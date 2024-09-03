@@ -341,6 +341,12 @@ class InternalDebugger:
         The debugger object cannot be used after this method is called.
         This method should only be called to free up resources when the debugger object is no longer needed.
         """
+        if self.instanced and self.running:
+            self.interrupt()
+            self.kill()
+
+        self.instanced = False
+
         if self.__polling_thread is not None:
             self.__polling_thread_command_queue.put((THREAD_TERMINATE, ()))
             self.__polling_thread.join()
