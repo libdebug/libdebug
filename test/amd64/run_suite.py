@@ -8,6 +8,7 @@ import sys
 import unittest
 
 from scripts.alias_test import AliasTest
+from scripts.atexit_handler_test import AtexitHandlerTest
 from scripts.attach_detach_test import AttachDetachTest
 from scripts.auto_waiting_test import AutoWaitingNlinks, AutoWaitingTest
 from scripts.backtrace_test import BacktraceTest
@@ -205,6 +206,16 @@ def fast_suite():
     suite.addTest(AliasTest("test_finish_alias"))
     suite.addTest(AliasTest("test_waiting_alias"))
     suite.addTest(AliasTest("test_interrupt_alias"))
+    suite.addTest(AtexitHandlerTest("test_attach_detach_1"))
+    suite.addTest(AtexitHandlerTest("test_attach_detach_2"))
+    suite.addTest(AtexitHandlerTest("test_attach_detach_3"))
+    suite.addTest(AtexitHandlerTest("test_attach_detach_4"))
+    suite.addTest(AtexitHandlerTest("test_attach_1"))
+    suite.addTest(AtexitHandlerTest("test_attach_2"))
+    suite.addTest(AtexitHandlerTest("test_run_1"))
+    suite.addTest(AtexitHandlerTest("test_run_2"))
+    suite.addTest(AtexitHandlerTest("test_run_3"))
+    suite.addTest(AtexitHandlerTest("test_run_4"))
     return suite
 
 
