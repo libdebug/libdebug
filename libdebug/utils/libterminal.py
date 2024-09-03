@@ -119,6 +119,11 @@ class LibTerminal:
         self._stdin_settings_backup = tcgetattr(sys.stdin.fileno())
         tty.setraw(sys.stdin.fileno())
 
+        # Activate the cursor for the stdin. This avoids conflicts with some libraries or terminal settings that
+        # hide the cursor.
+        self._stdout.write(b"\x1b[?25h")
+        self._stderr.flush()
+
     @property
     def stdin_buffer(self: LibTerminal) -> bytes:
         """Returns the current stdin buffer."""
@@ -253,7 +258,17 @@ class LibTerminal:
                     if self._stdin_index < len(self._stdin_buffer):
                         self._stdin_index += 1
                     self._write_from_stdin_manager(b"")
+                case [b"\x1b", b"O", b"C"]:
+                    # Right arrow
+                    if self._stdin_index < len(self._stdin_buffer):
+                        self._stdin_index += 1
+                    self._write_from_stdin_manager(b"")
                 case [b"\x1b", b"[", b"D"]:
+                    # Left arrow
+                    if self._stdin_index > 0:
+                        self._stdin_index -= 1
+                    self._write_from_stdin_manager(b"")
+                case [b"\x1b", b"O", b"D"]:
                     # Left arrow
                     if self._stdin_index > 0:
                         self._stdin_index -= 1
@@ -311,6 +326,11 @@ class LibTerminal:
 
         # Restore the stdin settings
         tcsetattr(sys.stdin.fileno(), TCSADRAIN, self._stdin_settings_backup)
+
+        # Deactivate the cursor for the stdin. This avoids conflicts with some libraries or terminal settings that
+        # hide the cursor.
+        self._stdout.write(b"\x1b[?25l")
+        self._stderr.flush()
 
 
 class StdoutWrapper:
