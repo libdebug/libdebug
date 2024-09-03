@@ -6,11 +6,9 @@
 
 from __future__ import annotations
 
-import logging as logger
 import os
 import sys
 import time
-import tty
 from select import select
 from threading import Event, Thread
 
@@ -411,7 +409,7 @@ class LibPipe:
             if stdout_is_open:
                 try:
                     while recv_stdout := self._recv(numb=1, timeout=0.05, stderr=False):
-                        sys.stdout.write(payload=recv_stdout, source="stdout")
+                        sys.stdout.write_known_source(payload=recv_stdout)
                         if recv_stdout == b"\n":
                             break
                 except RuntimeError:
@@ -422,7 +420,7 @@ class LibPipe:
             if stderr_is_open:
                 try:
                     while recv_stderr := self._recv(numb=1, timeout=0.05, stderr=True):
-                        sys.stderr.write(payload=recv_stderr, source="stderr")
+                        sys.stderr.write_known_source(payload=recv_stderr)
                         if recv_stderr == b"\n":
                             break
                 except RuntimeError:

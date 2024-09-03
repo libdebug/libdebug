@@ -43,12 +43,13 @@ def known_manager_preliminary_operations(method: callable) -> callable:
 
     return wrapper
 
+
 def unknown_manager_preliminary_operations(method: callable) -> callable:
     """Decorator to perform preliminary operations before executing an unknown manager."""
 
     @wraps(method)
     def wrapper(self: LibTerminal, payload: bytes | str) -> ...:
-                # If the payload is a string, we need to convert it to bytes
+        # If the payload is a string, we need to convert it to bytes
         # (this is necessary because we do not know the source of the payload)
         if isinstance(payload, str):
             payload = payload.encode()
@@ -66,6 +67,7 @@ def unknown_manager_preliminary_operations(method: callable) -> callable:
         return method(self, payload)
 
     return wrapper
+
 
 class LibTerminal:
     """Class that represents a terminal to interact with the child process."""
@@ -136,7 +138,7 @@ class LibTerminal:
         self._stderr.write(b"\r" + b" " * number_of_chars_stderr + b"\r")
 
     @known_manager_preliminary_operations
-    def _write_from_stdout_manager(self, payload: bytes) -> int:
+    def _write_from_known_stdout_manager(self, payload: bytes) -> int:
         """Writes data coming from the stdout pipe of the child process."""
         # Write the stderr buffer to the console stderr
         self._stderr.write(self._stderr_buffer)
@@ -159,7 +161,7 @@ class LibTerminal:
         return len(payload)
 
     @known_manager_preliminary_operations
-    def _write_from_stderr_manager(self, payload: bytes) -> int:
+    def _write_from_known_stderr_manager(self, payload: bytes) -> int:
         """Writes data coming from the stderr pipe of the child process."""
         # Write the data to the console stderr
         self._stderr_buffer += payload
@@ -319,14 +321,13 @@ class StdoutWrapper:
         self._fd: object = fd
         self._terminal: LibTerminal = terminal
 
-    def write(self, payload: bytes | str, source: str | None = None) -> int:
+    def write(self, payload: bytes | str) -> int:
         """Overloads the write method to allow for custom behavior."""
-        if source == "stdout":
-            return self._terminal._write_from_stdout_manager(payload)
-        elif source == "stdin":
-            return self._terminal._write_from_stdin_manager(payload)
-        else:
-            return self._terminal._write_from_unknown_stdout_manager(payload)
+        return self._terminal._write_from_unknown_stdout_manager(payload)
+
+    def write_known_source(self, payload: bytes | str) -> int:
+        """Custom write method for known sources."""
+        return self._terminal._write_from_known_stdout_manager(payload)
 
     def __getattr__(self, k: any) -> any:
         """Ensure that all other attributes are forwarded to the original file descriptor."""
@@ -341,12 +342,13 @@ class StderrWrapper:
         self._fd: object = fd
         self._terminal: LibTerminal = terminal
 
-    def write(self, payload: bytes | str, source: str | None = None) -> int:
+    def write(self, payload: bytes | str) -> int:
         """Overloads the write method to allow for custom behavior."""
-        if source == "stderr":
-            return self._terminal._write_from_stderr_manager(payload)
-        else:
-            return self._terminal._write_from_unknown_stderr_manager(payload)
+        return self._terminal._write_from_unknown_stderr_manager(payload)
+
+    def write_known_source(self, payload: bytes | str) -> int:
+        """Custom write method for known sources."""
+        return self._terminal._write_from_known_stderr_manager(payload)
 
     def __getattr__(self, k: any) -> any:
         """Ensure that all other attributes are forwarded to the original file descriptor."""
