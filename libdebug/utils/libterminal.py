@@ -43,6 +43,29 @@ def known_manager_preliminary_operations(method: callable) -> callable:
 
     return wrapper
 
+def unknown_manager_preliminary_operations(method: callable) -> callable:
+    """Decorator to perform preliminary operations before executing an unknown manager."""
+
+    @wraps(method)
+    def wrapper(self: LibTerminal, payload: bytes | str) -> ...:
+                # If the payload is a string, we need to convert it to bytes
+        # (this is necessary because we do not know the source of the payload)
+        if isinstance(payload, str):
+            payload = payload.encode()
+
+        # Move the cursor to the beginning of the line
+        self._clear_row()
+
+        # Replace newline characters with newline + carriage return
+        payload = payload.replace(b"\n", b"\n\r")
+
+        # Update the ANSI escape sequence buffer. This is necessary to move the cursor correctly
+        # according to the stdin buffer index
+        self._ansi_buffer = b"\x1b[1D" * (len(self._stdin_buffer) - self._stdin_index)
+
+        return method(self, payload)
+
+    return wrapper
 
 class LibTerminal:
     """Class that represents a terminal to interact with the child process."""
@@ -182,54 +205,34 @@ class LibTerminal:
 
         return len(payload)
 
+    @unknown_manager_preliminary_operations
     def _write_from_unknown_stdout_manager(self, payload: bytes | str) -> int:
         """Writes data coming from an unknown source."""
-        # If the payload is a string, we need to convert it to bytes
-        # (this is necessary because we do not know the source of the payload)
-        if isinstance(payload, str):
-            payload = payload.encode()
-
-        # Move the cursor to the beginning of the line
-        self._clear_row()
-
-        # Replace newline characters with newline + carriage return
-        payload = payload.replace(b"\n", b"\n\r")
-
         # Write the data to the console stderr
         self._stdout.write(payload)
 
-        # Write the  stderr buffer to the console stderr
+        # Write the stderr buffer to the console stderr
         self._stderr.write(self._stderr_buffer)
 
         # Write the stdout buffer, the prompt, and the stdin buffer on the console stdout
-        self._stdout.write(self._stdout_buffer + self._prompt + self._stdin_buffer)
+        self._stdout.write(self._stdout_buffer + self._prompt + self._stdin_buffer + self._ansi_buffer)
 
         # Flush the buffers
         self._stderr.flush()
         self._stdout.flush()
         return len(payload)
 
+    @unknown_manager_preliminary_operations
     def _write_from_unknown_stderr_manager(self, payload: bytes | str) -> int:
         """Writes data coming from an unknown source."""
-        # If the payload is a string, we need to convert it to bytes
-        # (this is necessary because we do not know the source of the payload)
-        if isinstance(payload, str):
-            payload = payload.encode()
-
-        # Move the cursor to the beginning of the line
-        self._clear_row()
-
-        # Replace newline characters with newline + carriage return
-        payload = payload.replace(b"\n", b"\n\r")
-
         # Write the data to the console stderr
         self._stderr.write(payload)
 
-        # Write the  stderr buffer to the console stderr
+        # Write the stderr buffer to the console stderr
         self._stderr.write(self._stderr_buffer)
 
         # Write the stdout buffer, the prompt, and the stdin buffer on the console stdout
-        self._stdout.write(self._stdout_buffer + self._prompt + self._stdin_buffer)
+        self._stdout.write(self._stdout_buffer + self._prompt + self._stdin_buffer + self._ansi_buffer)
 
         # Flush the buffers
         self._stderr.flush()
@@ -240,7 +243,6 @@ class LibTerminal:
         """Manages the stdin escape sequences."""
         # Add the character to the escape sequence
         self._escape_sequence.append(char)
-        liblog.error(f"Escape sequence: {self._escape_sequence}")
         if len(self._escape_sequence) == 3:
             match self._escape_sequence:
                 # We are interested only in the escape sequences that move the cursor
