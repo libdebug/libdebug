@@ -35,6 +35,7 @@ from libdebug.debugger.internal_debugger_instance_manager import (
 from libdebug.interfaces.interface_helper import provide_debugging_interface
 from libdebug.liblog import liblog
 from libdebug.state.resume_context import ResumeContext
+from libdebug.utils.ansi_escape_codes import ANSIColors
 from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.debugger_wrappers import (
     background_alias,
@@ -48,7 +49,6 @@ from libdebug.utils.debugging_utils import (
 )
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.platform_utils import get_platform_register_size
-from libdebug.utils.print_style import PrintStyle
 from libdebug.utils.signal_utils import (
     resolve_signal_name,
     resolve_signal_number,
@@ -381,11 +381,11 @@ class InternalDebugger:
         maps = self.maps()
         for memory_map in maps:
             if "x" in memory_map.permissions:
-                print(f"{PrintStyle.RED}{memory_map}{PrintStyle.RESET}")
+                print(f"{ANSIColors.RED}{memory_map}{ANSIColors.RESET}")
             elif "w" in memory_map.permissions:
-                print(f"{PrintStyle.YELLOW}{memory_map}{PrintStyle.RESET}")
+                print(f"{ANSIColors.YELLOW}{memory_map}{ANSIColors.RESET}")
             elif "r" in memory_map.permissions:
-                print(f"{PrintStyle.GREEN}{memory_map}{PrintStyle.RESET}")
+                print(f"{ANSIColors.GREEN}{memory_map}{ANSIColors.RESET}")
             else:
                 print(memory_map)
 
@@ -894,15 +894,13 @@ class InternalDebugger:
         self: InternalDebugger,
         thread: ThreadContext,
     ) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
-        """
+        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self.__threaded_next(thread)
 
     @background_alias(_background_next)
     @change_state_function_thread
     def next(self: InternalDebugger, thread: ThreadContext) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
-        """
+        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._ensure_process_stopped()
         self.__polling_thread_command_queue.put((self.__threaded_next, (thread,)))
         self._join_and_check_status()

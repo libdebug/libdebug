@@ -13,6 +13,7 @@ from logging import StreamHandler
 from termios import TCSADRAIN, tcgetattr, tcsetattr
 
 from libdebug.liblog import liblog
+from libdebug.utils.ansi_escape_codes import ANSIKeyboadStrings
 
 
 def known_manager_preliminary_operations(method: callable) -> callable:
@@ -80,8 +81,9 @@ class LibTerminal:
         self._stderr_buffer: bytes = b""
         self._ansi_buffer: bytes = b""
 
-        # Initialize the escape sequence flag
-        self._escape_sequence: list[bytes] = []
+        # Initialize the escape sequence variables
+        self._escape_sequence: bytes = b""
+        self._longest_escape_sequence: int = ANSIKeyboadStrings.get_longest_key_length()
 
         # Initialize the stdin index to keep track of the current position in the stdin buffer
         self._stdin_index = 0
@@ -249,53 +251,40 @@ class LibTerminal:
     def _stdin_escape_sequence_manager(self, char: bytes) -> None:
         """Manages the stdin escape sequences."""
         # Add the character to the escape sequence
-        self._escape_sequence.append(char)
-        if len(self._escape_sequence) == 3:
+        self._escape_sequence += char
+        if len(self._escape_sequence) == self._longest_escape_sequence:
             match self._escape_sequence:
                 # We are interested only in the escape sequences that move the cursor
-                case [b"\x1b", b"[", b"C"]:
-                    # Right arrow
+                case ANSIKeyboadStrings.RIGHT_ARROW_KEY | ANSIKeyboadStrings.RIGHT_ARROW_KEYPAD:
                     if self._stdin_index < len(self._stdin_buffer):
                         self._stdin_index += 1
                     self._write_from_stdin_manager(b"")
-                case [b"\x1b", b"O", b"C"]:
-                    # Right arrow
-                    if self._stdin_index < len(self._stdin_buffer):
-                        self._stdin_index += 1
-                    self._write_from_stdin_manager(b"")
-                case [b"\x1b", b"[", b"D"]:
-                    # Left arrow
-                    if self._stdin_index > 0:
-                        self._stdin_index -= 1
-                    self._write_from_stdin_manager(b"")
-                case [b"\x1b", b"O", b"D"]:
-                    # Left arrow
+                case ANSIKeyboadStrings.LEFT_ARROW_KEY | ANSIKeyboadStrings.LEFT_ARROW_KEYPAD:
                     if self._stdin_index > 0:
                         self._stdin_index -= 1
                     self._write_from_stdin_manager(b"")
                 case _:
                     # This is not an interesting escape sequence
                     for el in self._escape_sequence:
-                        self._write_from_stdin_manager(el)
+                        self._write_from_stdin_manager(bytes([el]))
             # Clear the escape sequence
-            self._escape_sequence = []
+            self._escape_sequence = b""
 
     def _stdin_buffer_manager(self, char: bytes) -> None:
         """Manages the stdin buffer."""
         match char:
-            case b"\x7f":
-                # Backspace
-                if len(self._stdin_buffer) > 0:
-                    self._stdin_buffer = self._stdin_buffer[:-1]
+            case ANSIKeyboadStrings.DELETE_KEY:
+                if self._stdin_index > 0:
+                    self._stdin_buffer = (
+                        self._stdin_buffer[: self._stdin_index - 1] + self._stdin_buffer[self._stdin_index :]
+                    )
+                    self._stdin_index -= 1
                 self._write_from_stdin_manager(b"")
-            case b"\x1b":
-                # Escape sequence
-                self._escape_sequence.append(char)
-            case b"\x03":
-                # Ctrl+C
+            case ANSIKeyboadStrings.ESCAPE_KEY:
+                self._escape_sequence += char
+            case ANSIKeyboadStrings.CTRL_C_KEY:
                 raise KeyboardInterrupt
-            case b"\x04":
-                # Ctrl+D
+            case ANSIKeyboadStrings.CTRL_D_KEY:
                 raise EOFError
             case _:
                 if self._escape_sequence:

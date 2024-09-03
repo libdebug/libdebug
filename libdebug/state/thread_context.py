@@ -12,8 +12,8 @@ from libdebug.debugger.internal_debugger_instance_manager import (
     provide_internal_debugger,
 )
 from libdebug.liblog import liblog
+from libdebug.utils.ansi_escape_codes import ANSIColors
 from libdebug.utils.debugging_utils import resolve_address_in_maps
-from libdebug.utils.print_style import PrintStyle
 from libdebug.utils.signal_utils import resolve_signal_name, resolve_signal_number
 
 if TYPE_CHECKING:
@@ -197,9 +197,9 @@ class ThreadContext:
         for return_address in backtrace:
             return_address_symbol = resolve_address_in_maps(return_address, maps)
             if return_address_symbol[:2] == "0x":
-                print(f"{PrintStyle.RED}{return_address:#x} {PrintStyle.RESET}")
+                print(f"{ANSIColors.RED}{return_address:#x} {ANSIColors.RESET}")
             else:
-                print(f"{PrintStyle.RED}{return_address:#x} <{return_address_symbol}> {PrintStyle.RESET}")
+                print(f"{ANSIColors.RED}{return_address:#x} <{return_address_symbol}> {ANSIColors.RESET}")
 
     def current_return_address(self: ThreadContext) -> int:
         """Returns the return address of the current function."""
@@ -249,8 +249,7 @@ class ThreadContext:
         self._internal_debugger.finish(self, heuristic=heuristic)
 
     def next(self: ThreadContext) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
-        """
+        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._internal_debugger.next(self)
 
     def si(self: ThreadContext) -> None:
@@ -288,6 +287,5 @@ class ThreadContext:
         self._internal_debugger.finish(self, heuristic)
 
     def ni(self: ThreadContext) -> None:
-        """Alias for the `next` method. Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
-        """
+        """Alias for the `next` method. Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._internal_debugger.next(self)

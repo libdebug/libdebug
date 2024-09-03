@@ -13,8 +13,8 @@ from select import select
 from threading import Event, Thread
 
 from libdebug.liblog import liblog
+from libdebug.utils.ansi_escape_codes import ANSIColors
 from libdebug.utils.libterminal import LibTerminal
-from libdebug.utils.print_style import PrintStyle
 
 
 class LibPipe:
@@ -22,7 +22,7 @@ class LibPipe:
 
     _instance = None
     timeout_default: int = 2
-    prompt_default: bytes = f"{PrintStyle.RED}$ {PrintStyle.RESET}".encode()
+    prompt_default: bytes = f"{ANSIColors.RED}$ {ANSIColors.RESET}".encode()
     end_interactive: Event = Event()
 
     def __init__(self: LibPipe, stdin_write: int, stdout_read: int, stderr_read: int) -> None:
