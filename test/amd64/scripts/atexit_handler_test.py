@@ -47,9 +47,9 @@ class AtexitHandlerTest(unittest.TestCase):
         # The process should not have been killed
         self.assertIn(pid, psutil.pids())
 
-        process = psutil.Process(pid)
-        process.kill()
-        process.wait()
+        # We can actually still use the debugger
+        d.interrupt()
+        d.kill()
 
         # The process should now be dead
         self.assertNotIn(pid, psutil.pids())
@@ -90,9 +90,9 @@ class AtexitHandlerTest(unittest.TestCase):
         # The process should not have been killed
         self.assertIn(pid, psutil.pids())
 
-        process = psutil.Process(pid)
-        process.kill()
-        process.wait()
+        # We can actually still use the debugger
+        d.interrupt()
+        d.kill()
 
         # The process should now be dead
         self.assertNotIn(pid, psutil.pids())
