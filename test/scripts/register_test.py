@@ -392,3 +392,117 @@ class RegisterTest(TestCase):
 
         d.kill()
         d.terminate()
+
+    @skipUnless(libcontext.platform == "i386", "Requires i386")
+    def test_registers_i386(self):
+        d = debugger(RESOLVE_EXE("basic_test"))
+        d.run()
+
+        bp1 = d.breakpoint(0x8049186, hardware=False)
+        bp2 = d.breakpoint(0x80491a3, hardware=False)
+        bp3 = d.breakpoint(0x80491ac, hardware=False)
+        bp4 = d.breakpoint(0x80491b5, hardware=False)
+
+        d.cont()
+
+        self.assertEqual(d.regs.eip, bp1.address)
+
+        self.assertEqual(d.regs.eax, 0x00112233)
+        self.assertEqual(d.regs.ebx, 0x11223344)
+        self.assertEqual(d.regs.ecx, 0x22334455)
+        self.assertEqual(d.regs.edx, 0x33445566)
+        self.assertEqual(d.regs.esi, 0x44556677)
+        self.assertEqual(d.regs.edi, 0x55667788)
+        self.assertEqual(d.regs.ebp, 0x66778899)
+
+        d.cont()
+
+        self.assertEqual(d.regs.eip, bp2.address)
+
+        self.assertEqual(d.regs.ax, 0x1122)
+        self.assertEqual(d.regs.bx, 0x2233)
+        self.assertEqual(d.regs.cx, 0x3344)
+        self.assertEqual(d.regs.dx, 0x4455)
+        self.assertEqual(d.regs.si, 0x5566)
+        self.assertEqual(d.regs.di, 0x6677)
+        self.assertEqual(d.regs.bp, 0x7788)
+
+        d.cont()
+
+        self.assertEqual(d.regs.eip, bp3.address)
+
+        self.assertEqual(d.regs.al, 0x11)
+        self.assertEqual(d.regs.bl, 0x22)
+        self.assertEqual(d.regs.cl, 0x33)
+        self.assertEqual(d.regs.dl, 0x44)
+
+        d.cont()
+
+        self.assertEqual(d.regs.eip, bp4.address)
+
+        self.assertEqual(d.regs.ah, 0x12)
+        self.assertEqual(d.regs.bh, 0x23)
+        self.assertEqual(d.regs.ch, 0x34)
+        self.assertEqual(d.regs.dh, 0x45)
+
+        d.cont()
+
+        d.kill()
+        d.terminate()
+
+    @skipUnless(libcontext.platform == "i386", "Requires i386")
+    def test_registers_hardware_i386(self):
+        d = debugger(RESOLVE_EXE("basic_test"))
+        d.run()
+
+        bp1 = d.breakpoint(0x8049186, hardware=True)
+        bp2 = d.breakpoint(0x80491a3, hardware=True)
+        bp3 = d.breakpoint(0x80491ac, hardware=True)
+        bp4 = d.breakpoint(0x80491b5, hardware=True)
+
+        d.cont()
+
+        self.assertEqual(d.regs.eip, bp1.address)
+
+        self.assertEqual(d.regs.eax, 0x00112233)
+        self.assertEqual(d.regs.ebx, 0x11223344)
+        self.assertEqual(d.regs.ecx, 0x22334455)
+        self.assertEqual(d.regs.edx, 0x33445566)
+        self.assertEqual(d.regs.esi, 0x44556677)
+        self.assertEqual(d.regs.edi, 0x55667788)
+        self.assertEqual(d.regs.ebp, 0x66778899)
+
+        d.cont()
+
+        self.assertEqual(d.regs.eip, bp2.address)
+
+        self.assertEqual(d.regs.ax, 0x1122)
+        self.assertEqual(d.regs.bx, 0x2233)
+        self.assertEqual(d.regs.cx, 0x3344)
+        self.assertEqual(d.regs.dx, 0x4455)
+        self.assertEqual(d.regs.si, 0x5566)
+        self.assertEqual(d.regs.di, 0x6677)
+        self.assertEqual(d.regs.bp, 0x7788)
+
+        d.cont()
+
+        self.assertEqual(d.regs.eip, bp3.address)
+
+        self.assertEqual(d.regs.al, 0x11)
+        self.assertEqual(d.regs.bl, 0x22)
+        self.assertEqual(d.regs.cl, 0x33)
+        self.assertEqual(d.regs.dl, 0x44)
+
+        d.cont()
+
+        self.assertEqual(d.regs.eip, bp4.address)
+
+        self.assertEqual(d.regs.ah, 0x12)
+        self.assertEqual(d.regs.bh, 0x23)
+        self.assertEqual(d.regs.ch, 0x34)
+        self.assertEqual(d.regs.dh, 0x45)
+
+        d.cont()
+
+        d.kill()
+        d.terminate()

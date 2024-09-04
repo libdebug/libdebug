@@ -12,6 +12,10 @@ def FUN_ARG_0(t) -> int:
             return t.regs.rdi
         case "aarch64":
             return t.regs.x0
+        case "i386":
+            return int.from_bytes(t.mem[t.regs.esp + 4, 4], "little")
+        case _:
+            raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
         
 def FUN_RET_VAL(t) -> int:
     match libcontext.platform:
@@ -19,3 +23,7 @@ def FUN_RET_VAL(t) -> int:
             return t.regs.rax
         case "aarch64":
             return t.regs.x0
+        case "i386":
+            return t.regs.eax
+        case _:
+            raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")

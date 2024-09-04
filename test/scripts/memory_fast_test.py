@@ -9,6 +9,7 @@ from utils.binary_utils import RESOLVE_EXE
 from utils.thread_utils import FUN_ARG_0
 
 from libdebug import debugger, libcontext
+from libdebug.utils.platform_utils import get_platform_register_size
 
 
 class MemoryFastTest(TestCase):
@@ -51,10 +52,10 @@ class MemoryFastTest(TestCase):
         with libcontext.tmp(sym_lvl=5):
             arena = d.memory["main_arena", 256, "libc"]
 
-        def p64(x):
-            return x.to_bytes(8, "little")
+        def pack(x):
+            return x.to_bytes(get_platform_register_size(d.arch), "little")
 
-        self.assertTrue(p64(address - 0x10) in arena)
+        self.assertTrue(pack(address - get_platform_register_size(d.arch) * 2) in arena)
 
         d.kill()
         d.terminate()
