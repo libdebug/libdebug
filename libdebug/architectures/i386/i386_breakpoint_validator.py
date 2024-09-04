@@ -17,5 +17,5 @@ def validate_breakpoint_i386(bp: Breakpoint) -> None:
     if bp.condition not in ["w", "rw", "x"]:
         raise ValueError("Invalid condition for watchpoints. Supported conditions are 'w', 'rw', 'x'.")
 
-    if bp.length not in [1, 2, 4, 8]:
-        raise ValueError("Invalid length for watchpoints. Supported lengths are 1, 2, 4, 8.")
+    if bp.length not in [1, 2, 4]:
+        raise ValueError("Invalid length for watchpoints. Supported lengths are 1, 2, 4.")
