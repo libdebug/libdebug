@@ -19,6 +19,9 @@ match libcontext.platform:
     case "aarch64":
         THREAD_TEST_COMPLEX_BP2_ADDRESS = "thread_1_function+18"
         THREAD_TEST_COMPLEX_BP3_ADDRESS = "thread_2_function+24"
+    case "i386":
+        THREAD_TEST_COMPLEX_BP2_ADDRESS = "thread_1_function+23"
+        THREAD_TEST_COMPLEX_BP3_ADDRESS = "thread_2_function+2a"
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 

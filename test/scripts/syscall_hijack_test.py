@@ -22,6 +22,10 @@ match libcontext.platform:
         WRITE_NUM = 64
         BP_ADDRESS = 0x9f0
         OUTPUT_STR = hex(BASE + 0xab0)
+    case "i386":
+        WRITE_NUM = 4
+        BP_ADDRESS = 0x122f
+        OUTPUT_STR = "0x402008"
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 

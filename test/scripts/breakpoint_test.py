@@ -44,7 +44,7 @@ match libcontext.platform:
         TEST_BP_DISABLE_ON_CREATION_ADDRESS = 0x1235
 
         def CHECK_REGISTERS(harness, d):
-            value = int.from_bytes(d.memory[d.regs.esp + 8, 4], "little")
+            value = int.from_bytes(d.memory[d.regs.esp + 4, 4], "little")
             harness.assertEqual(value, 45)
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
