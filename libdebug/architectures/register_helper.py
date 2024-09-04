@@ -10,6 +10,9 @@ from libdebug.architectures.aarch64.aarch64_ptrace_register_holder import (
 from libdebug.architectures.amd64.amd64_ptrace_register_holder import (
     Amd64PtraceRegisterHolder,
 )
+from libdebug.architectures.i386.i386_ptrace_register_holder import (
+    I386PtraceRegisterHolder,
+)
 from libdebug.data.register_holder import RegisterHolder
 
 
@@ -20,9 +23,11 @@ def register_holder_provider(
 ) -> RegisterHolder:
     """Returns an instance of the register holder to be used by the `_InternalDebugger` class."""
     match architecture:
-        case "amd64" | "i386":
+        case "amd64":
             return Amd64PtraceRegisterHolder(register_file, fp_register_file)
         case "aarch64":
             return Aarch64PtraceRegisterHolder(register_file, fp_register_file)
+        case "i386":
+            return I386PtraceRegisterHolder(register_file, fp_register_file)
         case _:
             raise NotImplementedError(f"Architecture {architecture} not available.")

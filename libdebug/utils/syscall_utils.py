@@ -21,6 +21,8 @@ def get_remote_definition_url(arch: str) -> str:
             return f"{SYSCALLS_REMOTE}/x86/64/x64/latest/table.json"
         case "aarch64":
             return f"{SYSCALLS_REMOTE}/arm64/64/aarch64/latest/table.json"
+        case "i386":
+            return f"{SYSCALLS_REMOTE}/x86/32/ia32/latest/table.json"
         case _:
             raise ValueError(f"Architecture {arch} not supported")
 
