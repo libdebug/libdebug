@@ -409,21 +409,21 @@ ffibuilder.cdef(fp_regs_struct, packed=True)
 ffibuilder.cdef("""
     struct ptrace_hit_bp {
         int pid;
-        uint64_t addr;
-        uint64_t bp_instruction;
-        uint64_t prev_instruction;
+        unsigned long addr;
+        unsigned long bp_instruction;
+        unsigned long prev_instruction;
     };
 
     struct software_breakpoint {
-        uint64_t addr;
-        uint64_t instruction;
-        uint64_t patched_instruction;
+        unsigned long addr;
+        unsigned long instruction;
+        unsigned long patched_instruction;
         char enabled;
         struct software_breakpoint *next;
     };
 
     struct hardware_breakpoint {
-        uint64_t addr;
+        unsigned long addr;
         int tid;
         char enabled;
         char type[2];
@@ -462,17 +462,17 @@ ffibuilder.cdef("""
     void ptrace_reattach_from_gdb(struct global_state *state, int pid);
     void ptrace_set_options(int pid);
 
-    uint64_t ptrace_peekdata(int pid, uint64_t addr);
-    uint64_t ptrace_pokedata(int pid, uint64_t addr, uint64_t data);
+    unsigned long ptrace_peekdata(int pid, unsigned long addr);
+    unsigned long ptrace_pokedata(int pid, unsigned long addr, unsigned long data);
 
     struct fp_regs_struct *get_thread_fp_regs(struct global_state *state, int tid);
     void get_fp_regs(int tid, struct fp_regs_struct *fpregs);
     void set_fp_regs(int tid, struct fp_regs_struct *fpregs);
 
-    uint64_t ptrace_geteventmsg(int pid);
+    unsigned long ptrace_geteventmsg(int pid);
 
     long singlestep(struct global_state *state, int tid);
-    int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps);
+    int step_until(struct global_state *state, int tid, unsigned long addr, int max_steps);
 
     int cont_all_and_set_bps(struct global_state *state, int pid);
 
@@ -485,15 +485,15 @@ ffibuilder.cdef("""
     void unregister_thread(struct global_state *state, int tid);
     void free_thread_list(struct global_state *state);
 
-    void register_breakpoint(struct global_state *state, int pid, uint64_t address);
-    void unregister_breakpoint(struct global_state *state, uint64_t address);
-    void enable_breakpoint(struct global_state *state, uint64_t address);
-    void disable_breakpoint(struct global_state *state, uint64_t address);
+    void register_breakpoint(struct global_state *state, int pid, unsigned long address);
+    void unregister_breakpoint(struct global_state *state, unsigned long address);
+    void enable_breakpoint(struct global_state *state, unsigned long address);
+    void disable_breakpoint(struct global_state *state, unsigned long address);
 
-    void register_hw_breakpoint(struct global_state *state, int tid, uint64_t address, char type[2], char len);
-    void unregister_hw_breakpoint(struct global_state *state, int tid, uint64_t address);
-    void enable_hw_breakpoint(struct global_state *state, int tid, uint64_t address);
-    void disable_hw_breakpoint(struct global_state *state, int tid, uint64_t address);
+    void register_hw_breakpoint(struct global_state *state, int tid, unsigned long address, char type[2], char len);
+    void unregister_hw_breakpoint(struct global_state *state, int tid, unsigned long address);
+    void enable_hw_breakpoint(struct global_state *state, int tid, unsigned long address);
+    void disable_hw_breakpoint(struct global_state *state, int tid, unsigned long address);
     unsigned long get_hit_hw_breakpoint(struct global_state *state, int tid);
     int get_remaining_hw_breakpoint_count(struct global_state *state, int tid);
     int get_remaining_hw_watchpoint_count(struct global_state *state, int tid);
