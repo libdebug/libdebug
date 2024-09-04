@@ -17,6 +17,8 @@ match libcontext.platform:
         ADDRESS = 0x1222
     case "aarch64":
         ADDRESS = 0x974
+    case "i386":
+        ADDRESS = 0x1235
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 

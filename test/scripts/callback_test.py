@@ -17,6 +17,8 @@ match libcontext.platform:
         TEST_CALLBACK_STEP_OFFSET = 1
     case "aarch64":
         TEST_CALLBACK_STEP_OFFSET = 4
+    case "i386":
+        TEST_CALLBACK_STEP_OFFSET = 1
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 

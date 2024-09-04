@@ -36,6 +36,16 @@ match libcontext.platform:
         def CHECK_REGISTERS(harness, d):
             harness.assertEqual(d.regs.x1, 45)
             harness.assertEqual(d.regs.w1, 45)
+    case "i386":
+        TEST_BPS_ADDRESS_1 = 0x11d0
+        TEST_BPS_ADDRESS_2 = 0x11ea
+        TEST_BPS_ADDRESS_3 = 0x11d7
+
+        TEST_BP_DISABLE_ON_CREATION_ADDRESS = 0x1235
+
+        def CHECK_REGISTERS(harness, d):
+            value = int.from_bytes(d.memory[d.regs.esp + 8, 4], "little")
+            harness.assertEqual(value, 45)
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 
