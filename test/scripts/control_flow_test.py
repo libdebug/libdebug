@@ -54,6 +54,27 @@ match libcontext.platform:
         TEST_STEP_AND_CONT_ADDRESS_2 = BASE + 0x840
 
         TEST_STEP_UNTIL_AND_CONT_ADDRESS = BASE + 0x83c
+    case "i386":
+        TEST_STEP_ALIAS_OFFSET_1 = 1
+        TEST_STEP_ALIAS_OFFSET_2 = 3
+
+        TEST_STEP_UNTIL_1_ADDRESS = 0x401238
+
+        TEST_STEP_UNTIL_2_ADDRESS_1 = 0x4011bd
+        TEST_STEP_UNTIL_2_ADDRESS_2 = 0x401238
+        TEST_STEP_UNTIL_2_ADDRESS_3 = 0x4011d3
+
+        TEST_STEP_UNTIL_3_ADDRESS_1 = 0x4011bd
+        TEST_STEP_UNTIL_3_BP_1 = 0x4011c4
+        TEST_STEP_UNTIL_3_BP_2 = 0x4011cb
+        TEST_STEP_UNTIL_3_BP_3 = 0x4011d7
+        TEST_STEP_UNTIL_3_ADDRESS_2 = 0x401238
+        TEST_STEP_UNTIL_3_ADDRESS_3 = 0x4011d3
+
+        TEST_STEP_AND_CONT_ADDRESS_1 = 0x4011fc
+        TEST_STEP_AND_CONT_ADDRESS_2 = 0x4011ff
+
+        TEST_STEP_UNTIL_AND_CONT_ADDRESS = 0x4011fc
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 
