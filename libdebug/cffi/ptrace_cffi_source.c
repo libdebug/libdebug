@@ -125,8 +125,8 @@ int setregs(int tid, struct ptrace_regs_struct *regs)
 
 #if defined ARCH_AMD64 || defined ARCH_I386
 
-#define DR_BASE 0x350
-#define DR_SIZE 0x8
+#define DR_BASE offsetof(struct user, u_debugreg[0])
+#define DR_SIZE sizeof(unsigned long)
 #define CTRL_LOCAL(x) (1 << (2 * x))
 #define CTRL_COND(x) (16 + (4 * x))
 #define CTRL_COND_VAL(x) (x == 'x' ? 0 : (x == 'w' ? 1 : 3))
