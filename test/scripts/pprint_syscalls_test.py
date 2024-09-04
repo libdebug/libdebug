@@ -17,9 +17,15 @@ match libcontext.platform:
     case "amd64":
         READ_NUM = 0
         MMAP_NUM = 9
+        MMAP_NAME = "mmap"
     case "aarch64":
         READ_NUM = 63
         MMAP_NUM = 222
+        MMAP_NAME = "mmap"
+    case "i386":
+        READ_NUM = 3
+        MMAP_NUM = 192
+        MMAP_NAME = "mmap_pgoff"
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 
@@ -46,7 +52,7 @@ class PPrintSyscallsTest(TestCase):
 
         self.assertIn("write", self.capturedOutput.getvalue())
         self.assertIn("read", self.capturedOutput.getvalue())
-        self.assertIn("mmap", self.capturedOutput.getvalue())
+        self.assertIn(MMAP_NAME, self.capturedOutput.getvalue())
         self.assertIn("getcwd", self.capturedOutput.getvalue())
         self.assertIn("exit_group", self.capturedOutput.getvalue())
 
@@ -56,7 +62,7 @@ class PPrintSyscallsTest(TestCase):
 
         self.assertEqual(self.capturedOutput.getvalue().count("write"), 2)
         self.assertEqual(self.capturedOutput.getvalue().count("read"), 1)
-        self.assertEqual(self.capturedOutput.getvalue().count("mmap"), 1)
+        self.assertEqual(self.capturedOutput.getvalue().count(MMAP_NAME), 1)
         self.assertEqual(self.capturedOutput.getvalue().count("getcwd"), 1)
         self.assertEqual(self.capturedOutput.getvalue().count("exit_group"), 1)
 
@@ -74,7 +80,7 @@ class PPrintSyscallsTest(TestCase):
 
         self.assertIn("write", self.capturedOutput.getvalue())
         self.assertIn("read", self.capturedOutput.getvalue())
-        self.assertIn("mmap", self.capturedOutput.getvalue())
+        self.assertIn(MMAP_NAME, self.capturedOutput.getvalue())
         self.assertIn("getcwd", self.capturedOutput.getvalue())
         self.assertIn("exit_group", self.capturedOutput.getvalue())
 
@@ -84,7 +90,7 @@ class PPrintSyscallsTest(TestCase):
 
         self.assertEqual(self.capturedOutput.getvalue().count("write"), 2)
         self.assertEqual(self.capturedOutput.getvalue().count("read"), 1)
-        self.assertEqual(self.capturedOutput.getvalue().count("mmap"), 1)
+        self.assertEqual(self.capturedOutput.getvalue().count(MMAP_NAME), 1)
         self.assertEqual(self.capturedOutput.getvalue().count("getcwd"), 1)
         self.assertEqual(self.capturedOutput.getvalue().count("exit_group"), 1)
 
@@ -111,7 +117,7 @@ class PPrintSyscallsTest(TestCase):
 
         self.assertIn("write", self.capturedOutput.getvalue())
         self.assertIn("read", self.capturedOutput.getvalue())
-        self.assertIn("mmap", self.capturedOutput.getvalue())
+        self.assertIn(MMAP_NAME, self.capturedOutput.getvalue())
         self.assertIn("getcwd", self.capturedOutput.getvalue())
         self.assertIn("exit_group", self.capturedOutput.getvalue())
         self.assertIn(
@@ -125,7 +131,7 @@ class PPrintSyscallsTest(TestCase):
 
         self.assertEqual(self.capturedOutput.getvalue().count("write"), 2)
         self.assertEqual(self.capturedOutput.getvalue().count("read"), 1)
-        self.assertEqual(self.capturedOutput.getvalue().count("mmap"), 1)
+        self.assertEqual(self.capturedOutput.getvalue().count(MMAP_NAME), 1)
         self.assertEqual(self.capturedOutput.getvalue().count("getcwd"), 1)
         self.assertEqual(self.capturedOutput.getvalue().count("exit_group"), 1)
         self.assertEqual(self.capturedOutput.getvalue().count("callback"), 1)
@@ -148,7 +154,7 @@ class PPrintSyscallsTest(TestCase):
 
         self.assertIn("write", self.capturedOutput.getvalue())
         self.assertIn("read", self.capturedOutput.getvalue())
-        self.assertIn("mmap", self.capturedOutput.getvalue())
+        self.assertIn(MMAP_NAME, self.capturedOutput.getvalue())
         self.assertIn("getcwd", self.capturedOutput.getvalue())
         self.assertIn("exit_group", self.capturedOutput.getvalue())
         self.assertIn(
@@ -160,7 +166,7 @@ class PPrintSyscallsTest(TestCase):
             self.capturedOutput.getvalue().count("write"), 3
         )  # 2 from the test, 1 from the hijack
         self.assertEqual(self.capturedOutput.getvalue().count("read"), 1)
-        self.assertEqual(self.capturedOutput.getvalue().count("mmap"), 1)
+        self.assertEqual(self.capturedOutput.getvalue().count(MMAP_NAME), 1)
         self.assertEqual(self.capturedOutput.getvalue().count("getcwd"), 1)
         self.assertEqual(self.capturedOutput.getvalue().count("exit_group"), 1)
         self.assertEqual(self.capturedOutput.getvalue().count("hijacked"), 1)
@@ -182,13 +188,13 @@ class PPrintSyscallsTest(TestCase):
 
         self.assertIn("write", self.capturedOutput.getvalue())
         self.assertIn("read", self.capturedOutput.getvalue())
-        self.assertIn("mmap", self.capturedOutput.getvalue())
+        self.assertIn(MMAP_NAME, self.capturedOutput.getvalue())
         self.assertNotIn("getcwd", self.capturedOutput.getvalue())
         self.assertNotIn("exit_group", self.capturedOutput.getvalue())
 
         self.assertEqual(self.capturedOutput.getvalue().count("write"), 2)
         self.assertEqual(self.capturedOutput.getvalue().count("read"), 1)
-        self.assertEqual(self.capturedOutput.getvalue().count("mmap"), 1)
+        self.assertEqual(self.capturedOutput.getvalue().count(MMAP_NAME), 1)
 
     def test_pprint_which_syscalls_pprint_before(self):
         d = debugger(RESOLVE_EXE("handle_syscall_test"))
@@ -206,13 +212,13 @@ class PPrintSyscallsTest(TestCase):
 
         self.assertIn("write", self.capturedOutput.getvalue())
         self.assertIn("read", self.capturedOutput.getvalue())
-        self.assertIn("mmap", self.capturedOutput.getvalue())
+        self.assertIn(MMAP_NAME, self.capturedOutput.getvalue())
         self.assertNotIn("getcwd", self.capturedOutput.getvalue())
         self.assertNotIn("exit_group", self.capturedOutput.getvalue())
 
         self.assertEqual(self.capturedOutput.getvalue().count("write"), 2)
         self.assertEqual(self.capturedOutput.getvalue().count("read"), 1)
-        self.assertEqual(self.capturedOutput.getvalue().count("mmap"), 1)
+        self.assertEqual(self.capturedOutput.getvalue().count(MMAP_NAME), 1)
 
     def test_pprint_which_syscalls_pprint_after_and_before(self):
         d = debugger(RESOLVE_EXE("handle_syscall_test"))
@@ -231,12 +237,12 @@ class PPrintSyscallsTest(TestCase):
 
         self.assertIn("write", self.capturedOutput.getvalue())
         self.assertNotIn("read", self.capturedOutput.getvalue())
-        self.assertIn("mmap", self.capturedOutput.getvalue())
+        self.assertIn(MMAP_NAME, self.capturedOutput.getvalue())
         self.assertNotIn("getcwd", self.capturedOutput.getvalue())
         self.assertNotIn("exit_group", self.capturedOutput.getvalue())
 
         self.assertEqual(self.capturedOutput.getvalue().count("write"), 2)
-        self.assertEqual(self.capturedOutput.getvalue().count("mmap"), 1)
+        self.assertEqual(self.capturedOutput.getvalue().count(MMAP_NAME), 1)
 
     def test_pprint_which_syscalls_not_pprint_after(self):
         d = debugger(RESOLVE_EXE("handle_syscall_test"))
@@ -254,7 +260,7 @@ class PPrintSyscallsTest(TestCase):
 
         self.assertNotIn("write", self.capturedOutput.getvalue())
         self.assertNotIn("read", self.capturedOutput.getvalue())
-        self.assertNotIn("mmap", self.capturedOutput.getvalue())
+        self.assertNotIn(MMAP_NAME, self.capturedOutput.getvalue())
         self.assertIn("getcwd", self.capturedOutput.getvalue())
         self.assertIn("exit_group", self.capturedOutput.getvalue())
 
@@ -277,7 +283,7 @@ class PPrintSyscallsTest(TestCase):
 
         self.assertNotIn("write", self.capturedOutput.getvalue())
         self.assertNotIn("read", self.capturedOutput.getvalue())
-        self.assertNotIn("mmap", self.capturedOutput.getvalue())
+        self.assertNotIn(MMAP_NAME, self.capturedOutput.getvalue())
         self.assertIn("getcwd", self.capturedOutput.getvalue())
         self.assertIn("exit_group", self.capturedOutput.getvalue())
 
@@ -301,7 +307,7 @@ class PPrintSyscallsTest(TestCase):
 
         self.assertNotIn("write", self.capturedOutput.getvalue())
         self.assertIn("read", self.capturedOutput.getvalue())
-        self.assertNotIn("mmap", self.capturedOutput.getvalue())
+        self.assertNotIn(MMAP_NAME, self.capturedOutput.getvalue())
         self.assertIn("getcwd", self.capturedOutput.getvalue())
         self.assertIn("exit_group", self.capturedOutput.getvalue())
 

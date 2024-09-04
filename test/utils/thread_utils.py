@@ -13,7 +13,7 @@ def FUN_ARG_0(t) -> int:
         case "aarch64":
             return t.regs.x0
         case "i386":
-            return int.from_bytes(t.mem[t.regs.esp, 4], "little")
+            return int.from_bytes(t.mem[t.regs.esp + 4, 4], "little")
         case _:
             raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
         

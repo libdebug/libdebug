@@ -22,11 +22,19 @@ match libcontext.platform:
         MMAP_NUM = 9
         GETCWD_NUM = 0x4F
         BP_ADDRESS = 0x401196
+        MMAP_NAME = "mmap"
     case "aarch64":
         WRITE_NUM = 64
         MMAP_NUM = 222
         GETCWD_NUM = 17
         BP_ADDRESS = 0x9d4
+        MMAP_NAME = "mmap"
+    case "i386":
+        WRITE_NUM = 4
+        MMAP_NUM = 192
+        GETCWD_NUM = 183
+        BP_ADDRESS = 0x121a
+        MMAP_NAME = "mmap_pgoff"
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 
@@ -94,7 +102,7 @@ class SyscallHandleTest(TestCase):
             self.assertEqual(d.memory[ptr, 8], os.getcwd()[:8].encode())
 
         handler1 = d.handle_syscall("write", on_enter_write, None)
-        handler2 = d.handle_syscall("mmap", None, on_exit_mmap)
+        handler2 = d.handle_syscall(MMAP_NAME, None, on_exit_mmap)
         handler3 = d.handle_syscall("getcwd", on_enter_getcwd, on_exit_getcwd)
 
         r.sendline(b"provola")
@@ -149,7 +157,7 @@ class SyscallHandleTest(TestCase):
             self.assertEqual(d.memory[ptr, 8], os.getcwd()[:8].encode())
 
         handler1 = d.handle_syscall("write", on_enter_write, None)
-        handler2 = d.handle_syscall("mmap", None, on_exit_mmap)
+        handler2 = d.handle_syscall(MMAP_NAME, None, on_exit_mmap)
         handler3 = d.handle_syscall("getcwd", on_enter_getcwd, on_exit_getcwd)
 
         r.sendline(b"provola")
@@ -478,7 +486,7 @@ class SyscallHandleTest(TestCase):
             self.assertEqual(d.memory[ptr, 8], os.getcwd()[:8].encode())
 
         handler1 = d.handle_syscall("write")
-        handler2 = d.handle_syscall("mmap")
+        handler2 = d.handle_syscall(MMAP_NAME)
         handler3 = d.handle_syscall("getcwd")
 
         r.sendline(b"provola")
@@ -541,7 +549,7 @@ class SyscallHandleTest(TestCase):
             self.assertEqual(d.memory[ptr, 8], os.getcwd()[:8].encode())
 
         handler1 = d.handle_syscall("write")
-        handler2 = d.handle_syscall("mmap")
+        handler2 = d.handle_syscall(MMAP_NAME)
         handler3 = d.handle_syscall("getcwd")
 
         d.pprint_syscalls = True

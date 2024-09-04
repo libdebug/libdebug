@@ -102,6 +102,8 @@ match libcontext.platform:
             harness.assertTrue(red.regs.dh == 0x44)
     case "aarch64":
         pass
+    case "i386":
+        pass
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 

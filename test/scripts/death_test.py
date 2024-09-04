@@ -18,6 +18,8 @@ match libcontext.platform:
         DEATH_LOCATION = 0x55555555517F
     case "aarch64":
         DEATH_LOCATION = BASE + 0x784
+    case "i386":
+        DEATH_LOCATION = 0x4011d4
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 

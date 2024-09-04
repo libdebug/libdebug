@@ -16,6 +16,8 @@ match libcontext.platform:
         TEST_SIGNAL_MULTITHREAD_SEND_SIGNAL_BP_ADDRESS = 0x14d8
     case "aarch64":
         TEST_SIGNAL_MULTITHREAD_SEND_SIGNAL_BP_ADDRESS = 0xf1c
+    case "i386":
+        TEST_SIGNAL_MULTITHREAD_SEND_SIGNAL_BP_ADDRESS = 0x156a
     case _:
         raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
 
