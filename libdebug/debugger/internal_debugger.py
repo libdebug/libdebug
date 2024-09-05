@@ -123,8 +123,8 @@ class InternalDebugger:
     process_id: int
     """The PID of the debugged process."""
 
-    pipe_manager: LibPipe
-    """The pipe manager used to communicate with the debugged process."""
+    lib_pipe: LibPipe
+    """The LibPipe used to communicate with the debugged process."""
 
     memory: MemoryView
     """The memory view of the debugged process."""
@@ -168,7 +168,7 @@ class InternalDebugger:
         self.syscalls_to_not_pprint = None
         self.signals_to_block = []
         self.pprint_syscalls = False
-        self.pipe_manager = None
+        self.lib_pipe = None
         self.process_id = 0
         self.threads = []
         self.instanced = False
@@ -188,7 +188,7 @@ class InternalDebugger:
         self.syscalls_to_not_pprint = None
         self.signals_to_block.clear()
         self.pprint_syscalls = False
-        self.pipe_manager = None
+        self.lib_pipe = None
         self.process_id = 0
         self.threads.clear()
         self.instanced = False
@@ -197,7 +197,6 @@ class InternalDebugger:
 
     def start_up(self: InternalDebugger) -> None:
         """Starts up the context."""
-
         # The context is linked to itself
         link_to_internal_debugger(self, self)
 
@@ -257,10 +256,10 @@ class InternalDebugger:
 
         self._join_and_check_status()
 
-        if not self.pipe_manager:
+        if not self.lib_pipe:
             raise RuntimeError("Something went wrong during pipe initialization.")
 
-        return self.pipe_manager
+        return self.lib_pipe
 
     def attach(self: InternalDebugger, pid: int) -> None:
         """Attaches to an existing process."""
@@ -304,8 +303,8 @@ class InternalDebugger:
 
         self.instanced = False
 
-        if self.pipe_manager:
-            self.pipe_manager.close()
+        if self.lib_pipe:
+            self.lib_pipe.close()
 
         self._join_and_check_status()
 
