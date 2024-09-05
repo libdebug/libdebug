@@ -318,11 +318,6 @@ class LibTerminal:
         # Restore the stdin settings
         tcsetattr(sys.stdin.fileno(), TCSADRAIN, self._stdin_settings_backup)
 
-        # Deactivate the cursor for the stdin. This avoids conflicts with some libraries or terminal settings that
-        # hide the cursor.
-        self._stdout.write(ANSIPrivateModes.HIDE_CURSOR)
-        self._stderr.flush()
-
 
 class StdoutWrapper:
     """Wrapper around stdout to allow for custom write method."""
