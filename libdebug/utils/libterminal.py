@@ -13,7 +13,7 @@ from logging import StreamHandler
 from termios import TCSADRAIN, tcgetattr, tcsetattr
 
 from libdebug.liblog import liblog
-from libdebug.utils.ansi_escape_codes import ANSIKeyboadStrings
+from libdebug.utils.ansi_escape_codes import ANSIKeyboadStrings, ANSIPrivateModes
 
 
 def known_manager_preliminary_operations(method: callable) -> callable:
@@ -30,7 +30,7 @@ def known_manager_preliminary_operations(method: callable) -> callable:
         payload = payload.decode("ascii", errors="backslashreplace").encode()
 
         # Escape the ANSI escape prefix
-        if payload == b"\x1b":
+        if payload == ANSIKeyboadStrings.ESCAPE_KEY:
             payload = b"\\x1b"
 
         # Move the cursor to the beginning of the line
@@ -38,7 +38,7 @@ def known_manager_preliminary_operations(method: callable) -> callable:
 
         # Update the ANSI escape sequence buffer. This is necessary to move the cursor correctly
         # according to the stdin buffer index
-        self._ansi_buffer = b"\x1b[1D" * (len(self._stdin_buffer) - self._stdin_index)
+        self._ansi_buffer = ANSIKeyboadStrings.LEFT_ARROW_KEY * (len(self._stdin_buffer) - self._stdin_index)
 
         return method(self, payload)
 
@@ -63,7 +63,7 @@ def unknown_manager_preliminary_operations(method: callable) -> callable:
 
         # Update the ANSI escape sequence buffer. This is necessary to move the cursor correctly
         # according to the stdin buffer index
-        self._ansi_buffer = b"\x1b[1D" * (len(self._stdin_buffer) - self._stdin_index)
+        self._ansi_buffer = ANSIKeyboadStrings.LEFT_ARROW_KEY * (len(self._stdin_buffer) - self._stdin_index)
 
         return method(self, payload)
 
@@ -91,39 +91,40 @@ class LibTerminal:
         # Set the terminal prompt
         self._prompt: bytes = prompt
 
-        # Shortcut to the stdout and stderr
+        # Shortcut to the stdout and stderr buffer objects
         self._stdout: object = sys.stdout.buffer
         self._stderr: object = sys.stderr.buffer
 
         # Backup the original stdout and stderr
         self._stdout_backup: object = sys.stdout
         self._stderr_backup: object = sys.stderr
+        self._stdin_backup: object = sys.stdin
 
         # Redirect stdout and stderr to the terminal
         sys.stdout = StdoutWrapper(self._stdout_backup, self)
         sys.stderr = StderrWrapper(self._stderr_backup, self)
-        sys.stdin = StdinWrapper(sys.stdin, self)
+        sys.stdin = StdinWrapper(self._stdin_backup, self)
 
         # Redirect the loggers to the terminal
         for handler in liblog.general_logger.handlers:
             if isinstance(handler, StreamHandler):
-                handler.stream = sys.stdout
+                handler.stream = sys.stderr
 
         for handler in liblog.pipe_logger.handlers:
             if isinstance(handler, StreamHandler):
-                handler.stream = sys.stdout
+                handler.stream = sys.stderr
 
         for handler in liblog.debugger_logger.handlers:
             if isinstance(handler, StreamHandler):
-                handler.stream = sys.stdout
+                handler.stream = sys.stderr
 
         # Set the stdin to raw mode
-        self._stdin_settings_backup = tcgetattr(sys.stdin.fileno())
-        tty.setraw(sys.stdin.fileno())
+        self._stdin_settings_backup = tcgetattr(self._stdin_backup.fileno())
+        tty.setraw(self._stdin_backup.fileno())
 
-        # Activate the cursor for the stdin. This avoids conflicts with some libraries or terminal settings that
-        # hide the cursor.
-        self._stdout.write(b"\x1b[?25h")
+        # Activate the cursor for the user input. This avoids conflicts with some libraries or terminal settings 
+        # that hide the cursor.
+        self._stdout.write(ANSIPrivateModes.SHOW_CURSOR)
         self._stderr.flush()
 
     @property
@@ -270,7 +271,7 @@ class LibTerminal:
             # Clear the escape sequence
             self._escape_sequence = b""
 
-    def _stdin_buffer_manager(self, char: bytes) -> None:
+    def stdin_buffer_manager(self, char: bytes) -> None:
         """Manages the stdin buffer."""
         match char:
             case ANSIKeyboadStrings.DELETE_KEY:
@@ -299,6 +300,7 @@ class LibTerminal:
         # Restore the original stdout and stderr
         sys.stdout = self._stdout_backup
         sys.stderr = self._stderr_backup
+        sys.stdin = self._stdin_backup
 
         # Restore the loggers
         for handler in liblog.general_logger.handlers:
@@ -318,7 +320,7 @@ class LibTerminal:
 
         # Deactivate the cursor for the stdin. This avoids conflicts with some libraries or terminal settings that
         # hide the cursor.
-        self._stdout.write(b"\x1b[?25l")
+        self._stdout.write(ANSIPrivateModes.HIDE_CURSOR)
         self._stderr.flush()
 
 
@@ -372,19 +374,19 @@ class StdinWrapper:
         self._fd: object = fd
         self._terminal: LibTerminal = terminal
 
-    def readline(self) -> bytes:
-        """Reads a line from the input."""
+    def readline_known_source(self) -> bytes:
+        """Custom readline method for known sources."""
         char = b""
         while True:
             char = self._fd.read(1).encode()
-            if char == b"\r":
+            if char == ANSIKeyboadStrings.ENTER_KEY:
                 # The terminal is set to raw mode, so the Enter key sends a carriage return character
                 # instead of a newline character. We need to convert it to a newline character.
                 recv_stdin = self._terminal.stdin_buffer + b"\n"
                 self._terminal.clear_stdin_buffer()
                 return recv_stdin
             else:
-                self._terminal._stdin_buffer_manager(char)
+                self._terminal.stdin_buffer_manager(char)
 
     def __getattr__(self, k: any) -> any:
         """Ensure that all other attributes are forwarded to the original file descriptor."""

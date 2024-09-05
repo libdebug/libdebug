@@ -443,7 +443,7 @@ class LibPipe:
 
         try:
             while True:
-                self.send(sys.stdin.readline())
+                self.send(sys.stdin.readline_known_source())
         except KeyboardInterrupt:
             # Ctrl+C
             pass
