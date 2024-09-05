@@ -164,7 +164,7 @@ class PtraceInterface(DebuggingInterface):
         self.register_new_thread(child_pid)
         continue_to_entry_point = self._internal_debugger.autoreach_entrypoint
         self._setup_parent(continue_to_entry_point)
-        self._internal_debugger.pipe_manager = self._setup_pipe()
+        self._internal_debugger.lib_pipe = self._setup_pipe()
 
     def attach(self: PtraceInterface, pid: int) -> None:
         """Attaches to the specified process.
@@ -411,9 +411,9 @@ class PtraceInterface(DebuggingInterface):
             os.close(self.stdout_write)
             os.close(self.stderr_write)
         except Exception as e:
-            # TODO: custom exception
             raise Exception("Closing fds failed: %r", e) from e
-        return LibPipe(self.stdin_write, self.stdout_read, self.stderr_read)
+        with extend_internal_debugger(self):
+            return LibPipe(self.stdin_write, self.stdout_read, self.stderr_read)
 
     def _setup_parent(self: PtraceInterface, continue_to_entry_point: bool) -> None:
         """Sets up the parent process after the child process has been created or attached to."""

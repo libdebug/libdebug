@@ -11,16 +11,20 @@ import sys
 import time
 from select import select
 from threading import Event, Thread
+from typing import TYPE_CHECKING
 
+from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 from libdebug.liblog import liblog
 from libdebug.utils.ansi_escape_codes import ANSIColors
 from libdebug.utils.libterminal import LibTerminal
+
+if TYPE_CHECKING:
+    from libdebug.debugger.internal_debugger import InternalDebugger
 
 
 class LibPipe:
     """Class for managing pipes of the child process."""
 
-    _instance = None
     timeout_default: int = 2
     prompt_default: bytes = f"{ANSIColors.RED}$ {ANSIColors.RESET}".encode()
     end_interactive: Event = Event()
@@ -36,6 +40,7 @@ class LibPipe:
         self.stdin_write: int = stdin_write
         self.stdout_read: int = stdout_read
         self.stderr_read: int = stderr_read
+        self._internal_debugger: InternalDebugger = provide_internal_debugger(self)
 
     def _recv(
         self: LibPipe,
@@ -104,7 +109,7 @@ class LibPipe:
                 data = os.read(pipe_read, 4096)
                 data_buffer += data
 
-        # liblog.pipe(f"Received {len(data_buffer)} bytes from the child process: {data_buffer!r}")
+        liblog.pipe(f"Received {len(data_buffer)} bytes from the child process: {data_buffer!r}")
         return data_buffer
 
     def close(self: LibPipe) -> None:
@@ -443,7 +448,13 @@ class LibPipe:
 
         try:
             while True:
-                self.send(sys.stdin.readline_known_source())
+                ready, _, _ = select([sys.stdin], [], [], 0.05)
+                if ready:
+                    self.send(sys.stdin.readline_known_source())
+                if not self._internal_debugger.running:
+                    event_type = self._internal_debugger.resume_context.event_type
+                    liblog.warning(f"The debugged process has stopped due to a {event_type} event")
+                    break
         except KeyboardInterrupt:
             # Ctrl+C
             pass
