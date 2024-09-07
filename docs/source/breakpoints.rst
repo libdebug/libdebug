@@ -14,7 +14,7 @@ libdebug provides a simple API to set breakpoints in your debugged program. The 
 
 .. code-block:: python
 
-    from libdebug import Debugger
+    from libdebug import debugger
 
     d = debugger("./test_program")
 
