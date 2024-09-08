@@ -5,14 +5,13 @@
 #
 
 from unittest import TestCase
-from utils.binary_utils import RESOLVE_EXE
+from utils.binary_utils import PLATFORM, RESOLVE_EXE
 from utils.thread_utils import FUN_RET_VAL
 
 from libdebug import debugger
-from libdebug.utils.libcontext import libcontext
 
 
-match libcontext.platform:
+match PLATFORM:
     case "amd64":
         THREAD_TEST_COMPLEX_BP2_ADDRESS = "thread_1_function+17"
         THREAD_TEST_COMPLEX_BP3_ADDRESS = "thread_2_function+1e"
@@ -23,7 +22,7 @@ match libcontext.platform:
         THREAD_TEST_COMPLEX_BP2_ADDRESS = "thread_1_function+23"
         THREAD_TEST_COMPLEX_BP3_ADDRESS = "thread_2_function+2a"
     case _:
-        raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
+        raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
 
 class ThreadTest(TestCase):
     def test_thread(self):

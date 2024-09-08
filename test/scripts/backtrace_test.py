@@ -5,7 +5,7 @@
 #
 
 from unittest import TestCase, skipUnless
-from utils.binary_utils import RESOLVE_EXE
+from utils.binary_utils import PLATFORM, RESOLVE_EXE
 
 from libdebug import debugger
 from libdebug.utils.libcontext import libcontext
@@ -15,7 +15,7 @@ class BacktraceTest(TestCase):
     def setUp(self):
         self.d = debugger(RESOLVE_EXE("backtrace_test"))
 
-    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_backtrace_as_symbols_amd64(self):
         d = self.d
 
@@ -107,7 +107,7 @@ class BacktraceTest(TestCase):
         d.kill()
         d.terminate()
 
-    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_backtrace_amd64(self):
         d = self.d
 
@@ -199,7 +199,7 @@ class BacktraceTest(TestCase):
         d.kill()
         d.terminate()
 
-    @skipUnless(libcontext.platform == "aarch64", "Requires aarch64")
+    @skipUnless(PLATFORM == "aarch64", "Requires aarch64")
     def test_backtrace_as_symbols_aarch64(self):
         d = self.d
 

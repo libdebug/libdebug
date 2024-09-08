@@ -7,13 +7,12 @@
 import io
 import logging
 from unittest import TestCase
-from utils.binary_utils import RESOLVE_EXE
+from utils.binary_utils import PLATFORM, RESOLVE_EXE
 
 from libdebug import debugger
-from libdebug.utils.libcontext import libcontext
 
 
-match libcontext.platform:
+match PLATFORM:
     case "amd64":
         ADDRESS = 0x12c4
     case "aarch64":
@@ -21,7 +20,7 @@ match libcontext.platform:
     case "i386":
         ADDRESS = 0x12fa
     case _:
-        raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
+        raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
 
 class SignalCatchTest(TestCase):
     def setUp(self):

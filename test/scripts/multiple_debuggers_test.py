@@ -5,13 +5,12 @@
 #
 
 from unittest import TestCase, skipUnless
-from utils.binary_utils import RESOLVE_EXE
+from utils.binary_utils import PLATFORM, RESOLVE_EXE
 
 from libdebug import debugger
-from libdebug.utils.libcontext import libcontext
 
 
-match libcontext.platform:
+match PLATFORM:
     case "amd64":
         BP2_ADDRESS = 0x40115B
         BP3_ADDRESS = 0x40116D
@@ -105,11 +104,11 @@ match libcontext.platform:
     case "i386":
         pass
     case _:
-        raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
+        raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
 
 
 class MultipleDebuggersTest(TestCase):
-    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_multiple_debuggers_amd64(self):
         bpd = debugger(RESOLVE_EXE("breakpoint_test"))
         red = debugger(RESOLVE_EXE("basic_test"))

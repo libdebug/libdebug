@@ -5,7 +5,7 @@
 #
 
 from unittest import TestCase
-from utils.binary_utils import RESOLVE_EXE
+from utils.binary_utils import BASE, RESOLVE_EXE
 from utils.thread_utils import FUN_ARG_0
 
 from libdebug import debugger, libcontext
@@ -138,7 +138,7 @@ class MemoryFastTest(TestCase):
 
         d.run()
 
-        base = d.instruction_pointer & 0xFFFFFFFFFFFFF000 - 0x1000
+        base = BASE
 
         # Test different ways to access memory at the start of the file
         file_0 = d.memory[base, 256]
@@ -207,7 +207,7 @@ class MemoryFastTest(TestCase):
 
         d.run()
 
-        base = d.instruction_pointer & 0xFFFFFFFFFFFFF000 - 0x1000
+        base = BASE
 
         # Validate that slices work correctly
         file_0 = d.memory[0x0:"do_nothing", "binary"]
@@ -358,7 +358,7 @@ class MemoryFastTest(TestCase):
 
         d.run()
 
-        base = d.instruction_pointer & 0xFFFFFFFFFFFFF000 - 0x1000
+        base = BASE
 
         # Test different ways to access memory at the start of the file
         file_0 = d.memory[base, 256]

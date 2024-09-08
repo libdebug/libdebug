@@ -5,14 +5,13 @@
 #
 
 from unittest import TestCase, skipUnless
-from utils.binary_utils import RESOLVE_EXE
+from utils.binary_utils import PLATFORM, RESOLVE_EXE
 
 from libdebug import debugger
-from libdebug.utils.libcontext import libcontext
 
 
 class AutoWaitingTest(TestCase):
-    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_bps_auto_waiting_amd64(self):
         d = debugger(RESOLVE_EXE("breakpoint_test"), auto_interrupt_on_command=False)
 

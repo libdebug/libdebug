@@ -7,21 +7,21 @@
 import io
 import logging
 from unittest import TestCase
-from utils.binary_utils import BASE, RESOLVE_EXE
+from utils.binary_utils import PLATFORM, BASE, RESOLVE_EXE
 
 from libdebug import debugger
 from libdebug.utils.libcontext import libcontext
 
 
-match libcontext.platform:
+match PLATFORM:
     case "amd64":
         DEATH_LOCATION = 0x55555555517F
     case "aarch64":
         DEATH_LOCATION = BASE + 0x784
     case "i386":
-        DEATH_LOCATION = 0x4011d4
+        DEATH_LOCATION = BASE + 0x11d4
     case _:
-        raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
+        raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
 
 
 class DeathTest(TestCase):

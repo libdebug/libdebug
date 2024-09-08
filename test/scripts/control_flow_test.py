@@ -5,13 +5,12 @@
 #
 
 from unittest import TestCase, skipUnless
-from utils.binary_utils import BASE, RESOLVE_EXE
+from utils.binary_utils import PLATFORM, BASE, RESOLVE_EXE
 
 from libdebug import debugger
-from libdebug.utils.libcontext import libcontext
 
 
-match libcontext.platform:
+match PLATFORM:
     case "amd64":
         TEST_STEP_ALIAS_OFFSET_1 = 1
         TEST_STEP_ALIAS_OFFSET_2 = 4
@@ -58,25 +57,25 @@ match libcontext.platform:
         TEST_STEP_ALIAS_OFFSET_1 = 1
         TEST_STEP_ALIAS_OFFSET_2 = 3
 
-        TEST_STEP_UNTIL_1_ADDRESS = 0x401238
+        TEST_STEP_UNTIL_1_ADDRESS = BASE + 0x1238
 
-        TEST_STEP_UNTIL_2_ADDRESS_1 = 0x4011bd
-        TEST_STEP_UNTIL_2_ADDRESS_2 = 0x401238
-        TEST_STEP_UNTIL_2_ADDRESS_3 = 0x4011d3
+        TEST_STEP_UNTIL_2_ADDRESS_1 = BASE + 0x11bd
+        TEST_STEP_UNTIL_2_ADDRESS_2 = BASE + 0x1238
+        TEST_STEP_UNTIL_2_ADDRESS_3 = BASE + 0x11d3
 
-        TEST_STEP_UNTIL_3_ADDRESS_1 = 0x4011bd
-        TEST_STEP_UNTIL_3_BP_1 = 0x4011c4
-        TEST_STEP_UNTIL_3_BP_2 = 0x4011cb
-        TEST_STEP_UNTIL_3_BP_3 = 0x4011d7
-        TEST_STEP_UNTIL_3_ADDRESS_2 = 0x401238
-        TEST_STEP_UNTIL_3_ADDRESS_3 = 0x4011d3
+        TEST_STEP_UNTIL_3_ADDRESS_1 = BASE + 0x11bd
+        TEST_STEP_UNTIL_3_BP_1 = BASE + 0x11c4
+        TEST_STEP_UNTIL_3_BP_2 = BASE + 0x11cb
+        TEST_STEP_UNTIL_3_BP_3 = BASE + 0x11d7
+        TEST_STEP_UNTIL_3_ADDRESS_2 = BASE + 0x1238
+        TEST_STEP_UNTIL_3_ADDRESS_3 = BASE + 0x11d3
 
-        TEST_STEP_AND_CONT_ADDRESS_1 = 0x4011fc
-        TEST_STEP_AND_CONT_ADDRESS_2 = 0x4011ff
+        TEST_STEP_AND_CONT_ADDRESS_1 = BASE + 0x11fc
+        TEST_STEP_AND_CONT_ADDRESS_2 = BASE + 0x11ff
 
-        TEST_STEP_UNTIL_AND_CONT_ADDRESS = 0x4011fc
+        TEST_STEP_UNTIL_AND_CONT_ADDRESS = BASE + 0x11fc
     case _:
-        raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
+        raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
 
 
 class ControlFlowTest(TestCase):

@@ -10,14 +10,13 @@
 
 import string
 from unittest import TestCase, skipUnless
-from utils.binary_utils import RESOLVE_EXE
+from utils.binary_utils import PLATFORM, RESOLVE_EXE
 
 from libdebug import debugger
-from libdebug.utils.libcontext import libcontext
 
 
 class DeepDiveDivisionTest(TestCase):
-    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_deep_dive_division(self):
         def brutone(flag, current):
             def checkino(d, b):

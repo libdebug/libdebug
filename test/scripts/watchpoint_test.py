@@ -5,14 +5,13 @@
 #
 
 from unittest import TestCase, skipUnless
-from utils.binary_utils import RESOLVE_EXE
+from utils.binary_utils import PLATFORM, RESOLVE_EXE
 
 from libdebug import debugger
-from libdebug.utils.libcontext import libcontext
 
 
 class WatchpointTest(TestCase):
-    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_watchpoint_amd64(self):
         d = debugger(RESOLVE_EXE("watchpoint_test"), auto_interrupt_on_command=False)
 
@@ -64,7 +63,7 @@ class WatchpointTest(TestCase):
         d.kill()
         d.terminate()
 
-    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_watchpoint_callback_amd64(self):
         global_char_ip = []
         global_int_ip = []
@@ -142,7 +141,7 @@ class WatchpointTest(TestCase):
         # There is one extra hit performed by the exit routine of libc
         self.assertEqual(wp3.hit_count, 3)
 
-    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_watchpoint_disable_amd64(self):
         d = debugger(RESOLVE_EXE("watchpoint_test"), auto_interrupt_on_command=False)
 
@@ -190,7 +189,7 @@ class WatchpointTest(TestCase):
         d.kill()
         d.terminate()
 
-    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_watchpoint_disable_reenable_amd64(self):
         d = debugger(RESOLVE_EXE("watchpoint_test"), auto_interrupt_on_command=False)
 
@@ -240,7 +239,7 @@ class WatchpointTest(TestCase):
         d.kill()
         d.terminate()
 
-    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_watchpoint_alias_amd64(self):
         d = debugger(RESOLVE_EXE("watchpoint_test"), auto_interrupt_on_command=False)
 
@@ -275,7 +274,7 @@ class WatchpointTest(TestCase):
         d.kill()
         d.terminate()
 
-    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_watchpoint_callback_amd64(self):
         global_char_ip = []
         global_int_ip = []
@@ -327,7 +326,7 @@ class WatchpointTest(TestCase):
         # There is one extra hit performed by the exit routine of libc
         self.assertEqual(wp3.hit_count, 3)
 
-    @skipUnless(libcontext.platform == "aarch64", "Requires aarch64")
+    @skipUnless(PLATFORM == "aarch64", "Requires aarch64")
     def test_watchpoint_aarch64(self):
         d = debugger(RESOLVE_EXE("watchpoint_test"), auto_interrupt_on_command=False)
 
@@ -374,7 +373,7 @@ class WatchpointTest(TestCase):
 
         d.kill()
 
-    @skipUnless(libcontext.platform == "aarch64", "Requires aarch64")
+    @skipUnless(PLATFORM == "aarch64", "Requires aarch64")
     def test_watchpoint_callback_aarch64(self):
         global_char_ip = []
         global_int_ip = []

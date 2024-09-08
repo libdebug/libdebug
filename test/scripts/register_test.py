@@ -5,13 +5,12 @@
 #
 
 from unittest import TestCase, skipUnless
-from utils.binary_utils import RESOLVE_EXE
+from utils.binary_utils import PLATFORM, RESOLVE_EXE
 
 from libdebug import debugger
-from libdebug.utils.libcontext import libcontext
 
 class RegisterTest(TestCase):
-    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_registers_amd64(self):
         d = debugger(RESOLVE_EXE("basic_test"))
 
@@ -111,7 +110,7 @@ class RegisterTest(TestCase):
         d.kill()
         d.terminate()
 
-    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_registers_hardware_amd64(self):
         d = debugger(RESOLVE_EXE("basic_test"))
 
@@ -211,7 +210,7 @@ class RegisterTest(TestCase):
         d.kill()
         d.terminate()
 
-    @skipUnless(libcontext.platform == "aarch64", "Requires aarch64")
+    @skipUnless(PLATFORM == "aarch64", "Requires aarch64")
     def test_registers_aarch64(self):
         d = debugger(RESOLVE_EXE("basic_test"))
         d.run()
@@ -302,7 +301,7 @@ class RegisterTest(TestCase):
         d.kill()
         d.terminate()
 
-    @skipUnless(libcontext.platform == "aarch64", "Requires aarch64")
+    @skipUnless(PLATFORM == "aarch64", "Requires aarch64")
     def test_registers_hardware_aarch64(self):
         d = debugger(RESOLVE_EXE("basic_test"))
         d.run()
@@ -393,7 +392,7 @@ class RegisterTest(TestCase):
         d.kill()
         d.terminate()
 
-    @skipUnless(libcontext.platform == "i386", "Requires i386")
+    @skipUnless(PLATFORM == "i386", "Requires i386")
     def test_registers_i386(self):
         d = debugger(RESOLVE_EXE("basic_test"))
         d.run()
@@ -450,7 +449,7 @@ class RegisterTest(TestCase):
         d.kill()
         d.terminate()
 
-    @skipUnless(libcontext.platform == "i386", "Requires i386")
+    @skipUnless(PLATFORM == "i386", "Requires i386")
     def test_registers_hardware_i386(self):
         d = debugger(RESOLVE_EXE("basic_test"))
         d.run()

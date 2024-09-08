@@ -5,14 +5,13 @@
 #
 
 from unittest import TestCase, skipUnless
-from utils.binary_utils import RESOLVE_EXE
+from utils.binary_utils import PLATFORM, RESOLVE_EXE
 from utils.thread_utils import FUN_ARG_0
 
 from libdebug import debugger
-from libdebug.utils.libcontext import libcontext
 
 
-match libcontext.platform:
+match PLATFORM:
     case "amd64":
         TEST_CALLBACK_STEP_OFFSET = 1
     case "aarch64":
@@ -20,7 +19,7 @@ match libcontext.platform:
     case "i386":
         TEST_CALLBACK_STEP_OFFSET = 1
     case _:
-        raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
+        raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
 
 class CallbackTest(TestCase):
     def setUp(self):

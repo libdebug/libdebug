@@ -8,14 +8,13 @@ import sys
 from pathlib import Path
 from random import randint
 from unittest import TestCase, skipUnless
-from utils.binary_utils import RESOLVE_EXE
+from utils.binary_utils import PLATFORM, RESOLVE_EXE
 
 from libdebug import debugger
-from libdebug.utils.libcontext import libcontext
 
 
 class FloatingPointTest(TestCase):
-    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_floating_point_reg_access_amd64(self):
         # This test is divided into two parts, depending on the current hardware
 
@@ -291,7 +290,7 @@ class FloatingPointTest(TestCase):
         d.kill()
         d.terminate()
 
-    @skipUnless(libcontext.platform == "aarch64", "Requires aarch64")
+    @skipUnless(PLATFORM == "aarch64", "Requires aarch64")
     def test_floating_point_reg_access_aarch64(self):
         d = debugger(RESOLVE_EXE("floating_point_test"))
         

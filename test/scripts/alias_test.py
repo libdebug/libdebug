@@ -6,13 +6,12 @@
 
 from unittest import TestCase
 from utils.thread_utils import FUN_ARG_0
-from utils.binary_utils import BASE, RESOLVE_EXE
+from utils.binary_utils import BASE, PLATFORM, RESOLVE_EXE
 
 from libdebug import debugger
-from libdebug.utils.libcontext import libcontext
 
 
-match libcontext.platform:
+match PLATFORM:
     case "amd64":
         TEST_STEP_ALIAS_OFFSET_1 = 1
         TEST_STEP_ALIAS_OFFSET_2 = 4
@@ -53,12 +52,12 @@ match libcontext.platform:
         TEST_STEP_ALIAS_OFFSET_1 = 1
         TEST_STEP_ALIAS_OFFSET_2 = 3
 
-        TEST_STEP_UNTIL_ALIAS_ADDRESS = 0x4011fc
+        TEST_STEP_UNTIL_ALIAS_ADDRESS = BASE + 0x11fc
 
-        TEST_FINISH_ALIAS_ADDRESS_1 = 0x40125f
-        TEST_FINISH_ALIAS_ADDRESS_2 = 0x40128f
-        TEST_FINISH_ALIAS_ADDRESS_3 = 0x401262
-        TEST_FINISH_ALIAS_FUNCTION_A_ADDRESS = 0x4011a9
+        TEST_FINISH_ALIAS_ADDRESS_1 = BASE + 0x125f
+        TEST_FINISH_ALIAS_ADDRESS_2 = BASE + 0x128f
+        TEST_FINISH_ALIAS_ADDRESS_3 = BASE + 0x1262
+        TEST_FINISH_ALIAS_FUNCTION_A_ADDRESS = BASE + 0x11a9
 
         TEST_WAITING_ALIAS_BP2_ADDRESS = 0x11d0
         TEST_WAITING_ALIAS_BP3_ADDRESS = 0x11ea
@@ -67,7 +66,7 @@ match libcontext.platform:
             value = int.from_bytes(d.memory[d.regs.esp + 4, 4], "little")
             harness.assertEqual(value, 45)
     case _:
-        raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
+        raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
 
 
 class AliasTest(TestCase):

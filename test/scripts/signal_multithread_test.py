@@ -5,13 +5,12 @@
 #
 
 from unittest import TestCase
-from utils.binary_utils import RESOLVE_EXE
+from utils.binary_utils import PLATFORM, RESOLVE_EXE
 
 from libdebug import debugger
-from libdebug.utils.libcontext import libcontext
 
 
-match libcontext.platform:
+match PLATFORM:
     case "amd64":
         TEST_SIGNAL_MULTITHREAD_SEND_SIGNAL_BP_ADDRESS = 0x14d8
     case "aarch64":
@@ -19,7 +18,7 @@ match libcontext.platform:
     case "i386":
         TEST_SIGNAL_MULTITHREAD_SEND_SIGNAL_BP_ADDRESS = 0x156a
     case _:
-        raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
+        raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
 
 class SignalMultithreadTest(TestCase):
     def test_signal_multithread_undet_catch_signal_block(self):

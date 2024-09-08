@@ -5,7 +5,7 @@
 #
 
 from unittest import TestCase, skipUnless
-from utils.binary_utils import RESOLVE_EXE
+from utils.binary_utils import PLATFORM, RESOLVE_EXE
 from time import perf_counter_ns
 
 from libdebug import debugger
@@ -13,7 +13,7 @@ from libdebug.utils.libcontext import libcontext
 
 
 class LargeBinarySymTest(TestCase):
-    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_large_binary_symbol_load_times(self):
         d = debugger(RESOLVE_EXE("node"))
 
@@ -38,7 +38,7 @@ class LargeBinarySymTest(TestCase):
         d.kill()
         d.terminate()
 
-    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_large_binary_demangle(self):
         d = debugger(RESOLVE_EXE("node"))
 

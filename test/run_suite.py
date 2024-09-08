@@ -5,80 +5,52 @@
 #
 
 import sys
+from argparse import ArgumentParser
 from unittest import TestSuite, TestLoader, TextTestRunner
 
-from scripts.alias_test import AliasTest
-from scripts.antidebug_escaping_test import AntidebugEscapingTest
-from scripts.attach_detach_test import AttachDetachTest
-from scripts.auto_waiting_test import AutoWaitingTest
-from scripts.backtrace_test import BacktraceTest
-from scripts.breakpoint_test import BreakpointTest
-from scripts.brute_test import BruteTest
-from scripts.callback_test import CallbackTest
-from scripts.control_flow_test import ControlFlowTest
-from scripts.death_test import DeathTest
-from scripts.deep_dive_division_test import DeepDiveDivisionTest
-from scripts.finish_test import FinishTest
-from scripts.floating_point_test import FloatingPointTest
-from scripts.jumpout_test import JumpoutTest
-from scripts.jumpstart_test import JumpstartTest
-from scripts.large_binary_sym_test import LargeBinarySymTest
-from scripts.memory_test import MemoryTest
-from scripts.memory_fast_test import MemoryFastTest
-from scripts.multiple_debuggers_test import MultipleDebuggersTest
-from scripts.next_test import NextTest
-from scripts.nlinks_test import NlinksTest
-from scripts.pprint_syscalls_test import PPrintSyscallsTest
-from scripts.register_test import RegisterTest
-from scripts.signal_catch_test import SignalCatchTest
-from scripts.signal_multithread_test import SignalMultithreadTest
-from scripts.speed_test import SpeedTest
-from scripts.syscall_handle_test import SyscallHandleTest
-from scripts.syscall_hijack_test import SyscallHijackTest
-from scripts.thread_test import ThreadTest
-from scripts.vmwhere1_test import Vmwhere1Test
-from scripts.watchpoint_test import WatchpointTest
+import scripts
+
 
 def fast_suite():
     suite = TestSuite()
 
-    suite.addTest(TestLoader().loadTestsFromTestCase(AliasTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(AntidebugEscapingTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(AttachDetachTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(AutoWaitingTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(BacktraceTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(BreakpointTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(CallbackTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(ControlFlowTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(DeathTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(FinishTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(FloatingPointTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(JumpstartTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(LargeBinarySymTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(MemoryTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(MemoryFastTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(MultipleDebuggersTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(NextTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(NlinksTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(PPrintSyscallsTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(RegisterTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(SignalCatchTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(SignalMultithreadTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(SyscallHandleTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(SyscallHijackTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(ThreadTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(WatchpointTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.AliasTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.AntidebugEscapingTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.AttachDetachTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.AutoWaitingTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.BacktraceTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.BreakpointTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.CallbackTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.ControlFlowTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.DeathTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.FinishTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.FloatingPointTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.JumpstartTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.LargeBinarySymTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.MemoryTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.MemoryFastTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.MultipleDebuggersTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.NextTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.NlinksTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.PPrintSyscallsTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.RegisterTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SignalCatchTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SignalMultithreadTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SyscallHandleTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SyscallHijackTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.ThreadTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.WatchpointTest))
 
     return suite
 
 def full_suite():
     suite = fast_suite()
 
-    suite.addTest(TestLoader().loadTestsFromTestCase(BruteTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(DeepDiveDivisionTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(JumpoutTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(SpeedTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(Vmwhere1Test))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.BruteTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.DeepDiveDivisionTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.JumpoutTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SpeedTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.Vmwhere1Test))
 
     return suite
 
@@ -86,25 +58,39 @@ def stress_suite():
     suite = TestSuite()
 
     for _ in range(1024):
-        suite.addTest(TestLoader().loadTestsFromTestCase(ThreadTest))
+        suite.addTest(TestLoader().loadTestsFromTestCase(scripts.ThreadTest))
 
     return suite
 
-def main():
+def main(suite: str):
     if sys.version_info >= (3, 12):
         runner = TextTestRunner(verbosity=2, durations=3)
     else:
         runner = TextTestRunner(verbosity=2)
 
-    if len(sys.argv) > 1 and sys.argv[1].lower() == "slow":
+    if suite == "slow":
         suite = full_suite()
-    elif len(sys.argv) > 1 and sys.argv[1].lower() == "stress":
+    elif suite == "stress":
         suite = stress_suite()
         runner.verbosity = 1
-    else:
+    elif suite == "fast":
         suite = fast_suite()
+    else:
+        raise ValueError(f"Invalid suite: {suite}")
 
     runner.run(suite)
 
 if __name__ == "__main__":
-    main()
+    parser = ArgumentParser(prog="libdebug Test Suite", description="Run the test suite")
+    parser.add_argument("suite", type=str, help="The suite to run the tests from", choices=["fast", "slow", "stress"], default="fast", nargs="?")
+
+    dbg = 'dbg' in sys.argv
+    if dbg:
+        sys.argv.remove('dbg')
+
+    args = parser.parse_args()
+
+    if dbg:
+        sys.argv.append('dbg')
+
+    main(args.suite)

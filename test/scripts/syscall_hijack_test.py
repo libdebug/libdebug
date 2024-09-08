@@ -7,13 +7,12 @@
 import io
 import sys
 from unittest import TestCase
-from utils.binary_utils import BASE, RESOLVE_EXE
+from utils.binary_utils import PLATFORM, BASE, RESOLVE_EXE
 
 from libdebug import debugger
-from libdebug.utils.libcontext import libcontext
 
 
-match libcontext.platform:
+match PLATFORM:
     case "amd64":
         WRITE_NUM = 1
         BP_ADDRESS = 0x4011B0
@@ -25,9 +24,9 @@ match libcontext.platform:
     case "i386":
         WRITE_NUM = 4
         BP_ADDRESS = 0x122f
-        OUTPUT_STR = "0x402008"
+        OUTPUT_STR = hex(BASE + 0x2008)
     case _:
-        raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
+        raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
 
 
 class SyscallHijackTest(TestCase):

@@ -9,17 +9,16 @@
 #
 
 from unittest import TestCase, skipUnless
-from utils.binary_utils import RESOLVE_EXE
+from utils.binary_utils import PLATFORM, RESOLVE_EXE
 
 from libdebug import debugger
-from libdebug.utils.libcontext import libcontext
 
 
 class JumpoutTest(TestCase):
     def setUp(self):
         self.exceptions = []
 
-    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_jumpout(self):
         flag = ""
         first = 0x55
@@ -56,7 +55,7 @@ class JumpoutTest(TestCase):
 
         self.assertEqual(flag, "SECCON{jump_table_everywhere}")
 
-    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_callback_jumpout(self):
         global flag
         global first
@@ -99,7 +98,7 @@ class JumpoutTest(TestCase):
         if self.exceptions:
             raise self.exceptions[0]
 
-    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_callback_intermixing(self):
         global secval
 
@@ -144,7 +143,7 @@ class JumpoutTest(TestCase):
         if self.exceptions:
             raise self.exceptions[0]
 
-    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_jumpout_auto_waiting(self):
         flag = ""
         first = 0x55
@@ -181,7 +180,7 @@ class JumpoutTest(TestCase):
 
         self.assertEqual(flag, "SECCON{jump_table_everywhere}")
 
-    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_jumpout_waiting(self):
         flag = ""
         first = 0x55

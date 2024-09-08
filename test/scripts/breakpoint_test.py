@@ -7,13 +7,12 @@
 import io
 import logging
 from unittest import TestCase, skipUnless
-from utils.binary_utils import RESOLVE_EXE
+from utils.binary_utils import PLATFORM, RESOLVE_EXE
 
 from libdebug import debugger
-from libdebug.utils.libcontext import libcontext
 
 
-match libcontext.platform:
+match PLATFORM:
     case "amd64":
         TEST_BPS_ADDRESS_1 = 0x40115B
         TEST_BPS_ADDRESS_2 = 0x40116D
@@ -47,7 +46,7 @@ match libcontext.platform:
             value = int.from_bytes(d.memory[d.regs.esp + 4, 4], "little")
             harness.assertEqual(value, 45)
     case _:
-        raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
+        raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
 
 class BreakpointTest(TestCase):
     def setUp(self):
@@ -361,7 +360,7 @@ class BreakpointTest(TestCase):
         d.kill()
         d.terminate()
 
-    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_bp_backing_file_amd64(self):
         d = debugger(RESOLVE_EXE("executable_section_test"))
 
@@ -446,7 +445,7 @@ class BreakpointTest(TestCase):
         d.kill()
         d.terminate()
 
-    @skipUnless(libcontext.platform == "aarch64", "Requires aarch64")
+    @skipUnless(PLATFORM == "aarch64", "Requires aarch64")
     def test_bp_backing_file_aarch64(self):
         d = debugger(RESOLVE_EXE("executable_section_test"))
 

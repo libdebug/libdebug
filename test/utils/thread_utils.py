@@ -4,10 +4,10 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-from libdebug.utils.libcontext import libcontext
+from utils.binary_utils import PLATFORM
 
 def FUN_ARG_0(t) -> int:
-    match libcontext.platform:
+    match PLATFORM:
         case "amd64":
             return t.regs.rdi
         case "aarch64":
@@ -15,10 +15,10 @@ def FUN_ARG_0(t) -> int:
         case "i386":
             return int.from_bytes(t.mem[t.regs.esp + 4, 4], "little")
         case _:
-            raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
+            raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
         
 def FUN_RET_VAL(t) -> int:
-    match libcontext.platform:
+    match PLATFORM:
         case "amd64":
             return t.regs.rax
         case "aarch64":
@@ -26,4 +26,4 @@ def FUN_RET_VAL(t) -> int:
         case "i386":
             return t.regs.eax
         case _:
-            raise NotImplementedError(f"Platform {libcontext.platform} not supported by this test")
+            raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")

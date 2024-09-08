@@ -10,10 +10,9 @@
 #
 
 from unittest import TestCase, skipUnless
-from utils.binary_utils import RESOLVE_EXE
+from utils.binary_utils import PLATFORM, RESOLVE_EXE
 
 from libdebug import debugger
-from libdebug.utils.libcontext import libcontext
 
 
 class NlinksTest(TestCase):
@@ -121,7 +120,7 @@ class NlinksTest(TestCase):
         self.assertEqual(flag, b"BM8\xd3\x02\x00\x00\x00")
         return flag
 
-    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_nlinks(self):
         flag = self.get_passsphrase_from_class_3_binaries()
         flag = self.get_passsphrase_from_class_1_binaries(flag)
@@ -226,7 +225,7 @@ class NlinksTest(TestCase):
         self.assertEqual(flag, b"BM8\xd3\x02\x00\x00\x00")
         return flag
 
-    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_nlinks_auto_waiting(self):
         flag = self.aw_get_passsphrase_from_class_3_binaries()
         flag = self.aw_get_passsphrase_from_class_1_binaries(flag)
@@ -334,7 +333,7 @@ class NlinksTest(TestCase):
         self.assertEqual(flag, b"BM8\xd3\x02\x00\x00\x00")
         return flag
 
-    @skipUnless(libcontext.platform == "amd64", "Requires amd64")
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_nlinks_waiting(self):
         flag = self.w_get_passsphrase_from_class_3_binaries()
         flag = self.w_get_passsphrase_from_class_1_binaries(flag)
