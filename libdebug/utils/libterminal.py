@@ -21,10 +21,6 @@ def known_manager_preliminary_operations(method: callable) -> callable:
 
     @wraps(method)
     def wrapper(self: LibTerminal, payload: bytes) -> ...:
-        # The manager can handle one byte at a time, so we check the length of the payload
-        if len(payload) > 1:
-            raise ValueError("The payload must be one byte long.")
-
         # If the paylpad is not ascii, we need to escape it.
         # This is not strictly necessary, but it is useful to improve the readability of the output
         payload = payload.decode("ascii", errors="backslashreplace").encode()
