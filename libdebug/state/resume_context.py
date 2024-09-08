@@ -18,7 +18,7 @@ class ResumeContext:
         self.is_startup: bool = False
         self.block_on_signal: bool = False
         self.threads_with_signals_to_forward: list[int] = []
-        self.event_type: EventType = EventType.UNKNOWN
+        self.event_type: EventType | None = None
 
     def clear(self: ResumeContext) -> None:
         """Clears the context."""
@@ -28,7 +28,7 @@ class ResumeContext:
         self.is_startup = False
         self.block_on_signal = False
         self.threads_with_signals_to_forward.clear()
-        self.event_type = EventType.UNKNOWN
+        self.event_type = None
 
 
 class EventType:

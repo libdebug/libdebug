@@ -451,8 +451,9 @@ class LibPipe:
                 ready, _, _ = select([sys.stdin], [], [], 0.05)
                 if ready:
                     self.send(sys.stdin.readline_known_source())
-                if not self._internal_debugger.running:
-                    event_type = self._internal_debugger.resume_context.event_type
+                if not self._internal_debugger.running and (
+                    event_type := self._internal_debugger.resume_context.event_type
+                ):
                     liblog.warning(f"The debugged process has stopped due to a {event_type} event")
                     break
         except KeyboardInterrupt:
