@@ -27,7 +27,7 @@ class LibPipe:
 
     timeout_default: int = 2
     prompt_default: bytes = f"{ANSIColors.RED}$ {ANSIColors.RESET}".encode()
-    end_interactive: Event = Event()
+    __end_interactive: Event = Event()
 
     def __init__(self: LibPipe, stdin_write: int, stdout_read: int, stderr_read: int) -> None:
         """Initializes the LibPipe class.
@@ -406,7 +406,7 @@ class LibPipe:
         stdout_is_open = True
         stderr_is_open = True
 
-        while not self.end_interactive.is_set() and (stdout_is_open or stderr_is_open):
+        while not self.__end_interactive.is_set() and (stdout_is_open or stderr_is_open):
             # We can afford to treat stdout and stderr sequentially. This approach should also prevent
             # messing up the order of the information printed by the child process.
             # To avoid starvation, we will read at most one byte at a time and force a switch between pipes
@@ -463,10 +463,13 @@ class LibPipe:
             liblog.warning("The stdin pipe of the child process is not available anymore")
         finally:
             # Wait for the thread to finish
-            self.end_interactive.set()
+            self.__end_interactive.set()
             thread.join()
 
             # Reset the terminal
             libterminal.reset()
+
+            # Unset the interactive mode
+            self.__end_interactive.clear()
 
             liblog.info("Exiting interactive mode")
