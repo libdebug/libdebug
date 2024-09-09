@@ -39,13 +39,13 @@ class Amd64StackUnwinder(StackUnwindingManager):
         while current_rbp:
             try:
                 # Read the return address
-                return_address = int.from_bytes(target.memory[current_rbp + 8, 8], byteorder="little")
+                return_address = int.from_bytes(target.memory[current_rbp + 8, 8, "absolute"], byteorder="little")
 
                 if not any(vmap.start <= return_address < vmap.end for vmap in vmaps):
                     break
 
                 # Read the previous rbp and set it as the current one
-                current_rbp = int.from_bytes(target.memory[current_rbp, 8], byteorder="little")
+                current_rbp = int.from_bytes(target.memory[current_rbp, 8, "absolute"], byteorder="little")
 
                 stack_trace.append(return_address)
             except (OSError, ValueError):
@@ -74,17 +74,17 @@ class Amd64StackUnwinder(StackUnwindingManager):
         Returns:
             int: The return address.
         """
-        instruction_window = target.memory[target.regs.rip, 4]
+        instruction_window = target.memory[target.regs.rip, 4, "absolute"]
 
         # Check if the instruction window is a function preamble and handle each case
         return_address = None
 
         if self._preamble_state(instruction_window) == 0:
-            return_address = target.memory[target.regs.rbp + 8, 8]
+            return_address = target.memory[target.regs.rbp + 8, 8, "absolute"]
         elif self._preamble_state(instruction_window) == 1:
-            return_address = target.memory[target.regs.rsp, 8]
+            return_address = target.memory[target.regs.rsp, 8, "absolute"]
         else:
-            return_address = target.memory[target.regs.rsp + 8, 8]
+            return_address = target.memory[target.regs.rsp + 8, 8, "absolute"]
 
         return int.from_bytes(return_address, byteorder="little")
 

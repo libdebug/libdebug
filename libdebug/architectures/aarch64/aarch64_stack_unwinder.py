@@ -37,8 +37,8 @@ class Aarch64StackUnwinder(StackUnwindingManager):
         # Follow the frame chain
         while frame_pointer:
             try:
-                link_register = int.from_bytes(target.memory[frame_pointer + 8, 8], byteorder="little")
-                frame_pointer = int.from_bytes(target.memory[frame_pointer, 8], byteorder="little")
+                link_register = int.from_bytes(target.memory[frame_pointer + 8, 8, "absolute"], byteorder="little")
+                frame_pointer = int.from_bytes(target.memory[frame_pointer, 8, "absolute"], byteorder="little")
 
                 if not any(vmap.start <= link_register < vmap.end for vmap in vmaps):
                     break
