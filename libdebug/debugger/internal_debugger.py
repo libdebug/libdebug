@@ -72,7 +72,7 @@ if TYPE_CHECKING:
     from libdebug.utils.pipe_manager import PipeManager
 
 THREAD_TERMINATE = -1
-GDB_GOBACK_LOCATION = str((Path(__file__).parent / "utils" / "gdb.py").resolve())
+GDB_GOBACK_LOCATION = str((Path(__file__).parent.parent / "utils" / "gdb.py").resolve())
 
 
 class InternalDebugger:
