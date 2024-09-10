@@ -207,7 +207,7 @@ class ThreadContext:
         stack_unwinder = stack_unwinding_provider(self._internal_debugger.arch)
 
         try:
-            return_address = stack_unwinder.get_return_address(self)
+            return_address = stack_unwinder.get_return_address(self, self._internal_debugger.debugging_interface.maps())
         except (OSError, ValueError) as e:
             raise ValueError(
                 "Failed to get the return address. Check stack frame registers (e.g., base pointer).",
