@@ -265,11 +265,11 @@ class InternalDebugger:
 
         self.__polling_thread_command_queue.put((self.__threaded_run, ()))
 
+        self._join_and_check_status()
+
         if self.escape_antidebug:
             liblog.debugger("Enabling anti-debugging escape mechanism.")
             self._enable_antidebug_escaping()
-
-        self._join_and_check_status()
 
         if not self.pipe_manager:
             raise RuntimeError("Something went wrong during pipe initialization.")
@@ -1477,6 +1477,8 @@ class InternalDebugger:
         link_to_internal_debugger(handler, self)
 
         self.__polling_thread_command_queue.put((self.__threaded_handle_syscall, (handler,)))
+
+        self._join_and_check_status()
 
         # Seutp hidden state for the handler
         handler._traceme_called = False
