@@ -343,6 +343,8 @@ class InternalDebugger:
         """
         if self.instanced and self.running:
             self.interrupt()
+
+        if self.instanced:
             self.kill()
 
         self.instanced = False

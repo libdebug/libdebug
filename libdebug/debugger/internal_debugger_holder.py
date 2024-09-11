@@ -42,11 +42,6 @@ def _cleanup_internal_debugger() -> None:
                 liblog.debugger(f"Error while interrupting debuggee: {e}")
 
             try:
-                debugger.kill()
-            except Exception as e:
-                liblog.debugger(f"Error while killing debuggee: {e}")
-
-            try:
                 debugger.terminate()
             except Exception as e:
                 liblog.debugger(f"Error while terminating the debugger: {e}")
