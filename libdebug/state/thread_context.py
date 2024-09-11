@@ -201,8 +201,9 @@ class ThreadContext:
             else:
                 print(f"{PrintStyle.RED}{return_address:#x} <{return_address_symbol}> {PrintStyle.RESET}")
 
-    def current_return_address(self: ThreadContext) -> int:
-        """Returns the return address of the current function."""
+    @property
+    def saved_ip(self: ThreadContext) -> int:
+        """The return address of the current function."""
         self._internal_debugger._ensure_process_stopped()
         stack_unwinder = stack_unwinding_provider(self._internal_debugger.arch)
 
@@ -249,8 +250,7 @@ class ThreadContext:
         self._internal_debugger.finish(self, heuristic=heuristic)
 
     def next(self: ThreadContext) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
-        """
+        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._internal_debugger.next(self)
 
     def si(self: ThreadContext) -> None:
@@ -288,6 +288,5 @@ class ThreadContext:
         self._internal_debugger.finish(self, heuristic)
 
     def ni(self: ThreadContext) -> None:
-        """Alias for the `next` method. Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
-        """
+        """Alias for the `next` method. Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._internal_debugger.next(self)
