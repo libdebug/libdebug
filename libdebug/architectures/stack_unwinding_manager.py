@@ -10,6 +10,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from libdebug.data.memory_map import MemoryMap
     from libdebug.state.thread_context import ThreadContext
 
 
@@ -21,5 +22,5 @@ class StackUnwindingManager(ABC):
         """Unwind the stack of the target process."""
 
     @abstractmethod
-    def get_return_address(self: StackUnwindingManager, target: ThreadContext) -> int:
+    def get_return_address(self: StackUnwindingManager, target: ThreadContext, vmaps: list[MemoryMap]) -> int:
         """Get the return address of the current function."""

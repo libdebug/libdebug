@@ -234,19 +234,19 @@ class FinishTest(unittest.TestCase):
         # We need to repeat the check for the three stages of the function preamble
 
         # Get current return address
-        curr_srip = stack_unwinder.get_return_address(d)
+        curr_srip = d.saved_ip
         self.assertEqual(curr_srip, RETURN_POINT_FROM_C)
 
         d.step()
 
         # Get current return address
-        curr_srip = stack_unwinder.get_return_address(d)
+        curr_srip = d.saved_ip
         self.assertEqual(curr_srip, RETURN_POINT_FROM_C)
 
         d.step()
 
         # Get current return address
-        curr_srip = stack_unwinder.get_return_address(d)
+        curr_srip = d.saved_ip
         self.assertEqual(curr_srip, RETURN_POINT_FROM_C)
 
         d.kill()
