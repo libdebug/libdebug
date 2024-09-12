@@ -9,8 +9,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from libdebug.architectures.stack_unwinding_manager import StackUnwindingManager
+from libdebug.liblog import liblog
 
 if TYPE_CHECKING:
+    from libdebug.data.memory_map import MemoryMap
     from libdebug.state.thread_context import ThreadContext
 
 
@@ -29,10 +31,18 @@ class Aarch64StackUnwinder(StackUnwindingManager):
         assert hasattr(target.regs, "pc")
 
         frame_pointer = target.regs.x29
-        initial_link_register = target.regs.x30
-        stack_trace = [target.regs.pc, initial_link_register]
 
         vmaps = target._internal_debugger.debugging_interface.maps()
+        initial_link_register = None
+
+        try:
+            initial_link_register = self.get_return_address(target, vmaps)
+        except ValueError:
+            liblog.warning(
+                "Failed to get the return address. Check stack frame registers (e.g., base pointer). The stack trace may be incomplete.",
+            )
+
+        stack_trace = [target.regs.pc, initial_link_register] if initial_link_register else [target.regs.pc]
 
         # Follow the frame chain
         while frame_pointer:
@@ -56,13 +66,19 @@ class Aarch64StackUnwinder(StackUnwindingManager):
 
         return stack_trace
 
-    def get_return_address(self: Aarch64StackUnwinder, target: ThreadContext) -> int:
+    def get_return_address(self: Aarch64StackUnwinder, target: ThreadContext, vmaps: list[MemoryMap]) -> int:
         """Get the return address of the current function.
 
         Args:
             target (ThreadContext): The target ThreadContext.
+            vmaps (list[MemoryMap]): The memory maps of the process.
 
         Returns:
             int: The return address.
         """
-        return target.regs.x30
+        return_address = target.regs.x30
+
+        if not any(vmap.start <= return_address < vmap.end for vmap in vmaps):
+            raise ValueError("Return address not in any valid memory map")
+
+        return return_address

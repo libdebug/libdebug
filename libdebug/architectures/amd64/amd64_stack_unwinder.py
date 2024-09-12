@@ -63,7 +63,7 @@ class Amd64StackUnwinder(StackUnwindingManager):
                 stack_trace.append(first_return_address)
         except (OSError, ValueError):
             liblog.warning(
-                "Failed to get the return address from the stack. Check stack frame registers (e.g., base pointer). The stack trace may be incomplete.",
+                "Failed to get the return address. Check stack frame registers (e.g., base pointer). The stack trace may be incomplete.",
             )
 
         return stack_trace
