@@ -13,7 +13,11 @@ from logging import StreamHandler
 from termios import TCSADRAIN, tcgetattr, tcsetattr
 
 from libdebug.liblog import liblog
-from libdebug.utils.ansi_escape_codes import ANSIKeyboadStrings, ANSIPrivateModes
+from libdebug.utils.ansi_escape_codes import (
+    ANSIKeyboadStrings,
+    ANSIPrivateModes,
+    ASCIICodes,
+)
 
 
 def known_manager_preliminary_operations(method: callable) -> callable:
@@ -34,7 +38,9 @@ def known_manager_preliminary_operations(method: callable) -> callable:
 
         # Update the ANSI escape sequence buffer. This is necessary to move the cursor correctly
         # according to the stdin buffer index
-        self._ansi_buffer = ANSIKeyboadStrings.LEFT_ARROW_KEY * (len(self._stdin_buffer) - self._stdin_index)
+        self._ansi_buffer = ANSIKeyboadStrings.LEFT_ARROW_KEY * (
+            len(self._stdin_buffer) - self._stdin_index
+        )
 
         return method(self, payload)
 
@@ -59,7 +65,9 @@ def unknown_manager_preliminary_operations(method: callable) -> callable:
 
         # Update the ANSI escape sequence buffer. This is necessary to move the cursor correctly
         # according to the stdin buffer index
-        self._ansi_buffer = ANSIKeyboadStrings.LEFT_ARROW_KEY * (len(self._stdin_buffer) - self._stdin_index)
+        self._ansi_buffer = ANSIKeyboadStrings.LEFT_ARROW_KEY * (
+            len(self._stdin_buffer) - self._stdin_index
+        )
 
         return method(self, payload)
 
@@ -118,7 +126,7 @@ class LibTerminal:
         self._stdin_settings_backup = tcgetattr(self._stdin_backup.fileno())
         tty.setraw(self._stdin_backup.fileno())
 
-        # Activate the cursor for the user input. This avoids conflicts with some libraries or terminal settings 
+        # Activate the cursor for the user input. This avoids conflicts with some libraries or terminal settings
         # that hide the cursor.
         self._stdout.write(ANSIPrivateModes.SHOW_CURSOR)
         self._stderr.flush()
@@ -135,11 +143,8 @@ class LibTerminal:
 
     def _clear_row(self) -> None:
         """Clears the current row."""
-        number_of_chars_stdout = len(self._stdout_buffer) + len(self._stdin_buffer) + len(self._prompt)
-        self._stderr.write(b"\r" + b" " * number_of_chars_stdout + b"\r")
-
-        number_of_chars_stderr = len(self._stderr_buffer) + len(self._stdin_buffer) + len(self._prompt)
-        self._stderr.write(b"\r" + b" " * number_of_chars_stderr + b"\r")
+        self._stdout.write(ANSIKeyboadStrings.ERASE_LINE + ASCIICodes.CARRIAGE_RETURN)
+        self._stderr.write(ANSIKeyboadStrings.ERASE_LINE + ASCIICodes.CARRIAGE_RETURN)
 
     @known_manager_preliminary_operations
     def _write_from_known_stdout_manager(self, payload: bytes) -> int:
@@ -152,7 +157,9 @@ class LibTerminal:
         if payload == b"\n":
             # Add a carriage return character at the end of the line
             self._stdout_buffer += b"\r"
-        self._stdout.write(self._stdout_buffer + self._prompt + self._stdin_buffer + self._ansi_buffer)
+        self._stdout.write(
+            self._stdout_buffer + self._prompt + self._stdin_buffer + self._ansi_buffer
+        )
 
         # Flush the buffers
         self._stderr.flush()
@@ -175,7 +182,9 @@ class LibTerminal:
         self._stderr.write(self._stderr_buffer)
 
         # Write the stdout buffer, the prompt, and the stdin buffer on the console stdout
-        self._stdout.write(self._stdout_buffer + self._prompt + self._stdin_buffer + self._ansi_buffer)
+        self._stdout.write(
+            self._stdout_buffer + self._prompt + self._stdin_buffer + self._ansi_buffer
+        )
 
         # Flush the buffers
         self._stderr.flush()
@@ -198,12 +207,16 @@ class LibTerminal:
             self._stdin_buffer += payload
         else:
             self._stdin_buffer = (
-                self._stdin_buffer[: self._stdin_index] + payload + self._stdin_buffer[self._stdin_index :]
+                self._stdin_buffer[: self._stdin_index]
+                + payload
+                + self._stdin_buffer[self._stdin_index :]
             )
         self._stdin_index += len(payload)
 
         # Write the data to the console stdout
-        self._stdout.write(self._stdout_buffer + self._prompt + self._stdin_buffer + self._ansi_buffer)
+        self._stdout.write(
+            self._stdout_buffer + self._prompt + self._stdin_buffer + self._ansi_buffer
+        )
 
         # Flush the buffers
         self._stderr.flush()
@@ -221,7 +234,9 @@ class LibTerminal:
         self._stderr.write(self._stderr_buffer)
 
         # Write the stdout buffer, the prompt, and the stdin buffer on the console stdout
-        self._stdout.write(self._stdout_buffer + self._prompt + self._stdin_buffer + self._ansi_buffer)
+        self._stdout.write(
+            self._stdout_buffer + self._prompt + self._stdin_buffer + self._ansi_buffer
+        )
 
         # Flush the buffers
         self._stderr.flush()
@@ -238,7 +253,9 @@ class LibTerminal:
         self._stderr.write(self._stderr_buffer)
 
         # Write the stdout buffer, the prompt, and the stdin buffer on the console stdout
-        self._stdout.write(self._stdout_buffer + self._prompt + self._stdin_buffer + self._ansi_buffer)
+        self._stdout.write(
+            self._stdout_buffer + self._prompt + self._stdin_buffer + self._ansi_buffer
+        )
 
         # Flush the buffers
         self._stderr.flush()
@@ -249,39 +266,49 @@ class LibTerminal:
         """Manages the stdin escape sequences."""
         # Add the character to the escape sequence
         self._escape_sequence += char
-        if len(self._escape_sequence) == self._longest_escape_sequence:
+        import string
+
+        if char.decode() in string.ascii_letters:
             match self._escape_sequence:
                 # We are interested only in the escape sequences that move the cursor
-                case ANSIKeyboadStrings.RIGHT_ARROW_KEY | ANSIKeyboadStrings.RIGHT_ARROW_KEYPAD:
+                case (
+                    ANSIKeyboadStrings.RIGHT_ARROW_KEY
+                    | ANSIKeyboadStrings.RIGHT_ARROW_KEYPAD
+                ):
                     if self._stdin_index < len(self._stdin_buffer):
                         self._stdin_index += 1
                     self._write_from_stdin_manager(b"")
-                case ANSIKeyboadStrings.LEFT_ARROW_KEY | ANSIKeyboadStrings.LEFT_ARROW_KEYPAD:
+                    self._escape_sequence = b""
+                case (
+                    ANSIKeyboadStrings.LEFT_ARROW_KEY
+                    | ANSIKeyboadStrings.LEFT_ARROW_KEYPAD
+                ):
                     if self._stdin_index > 0:
                         self._stdin_index -= 1
                     self._write_from_stdin_manager(b"")
+                    self._escape_sequence = b""
                 case _:
                     # This is not an interesting escape sequence
                     for el in self._escape_sequence:
                         self._write_from_stdin_manager(bytes([el]))
-            # Clear the escape sequence
             self._escape_sequence = b""
 
     def stdin_buffer_manager(self, char: bytes) -> None:
         """Manages the stdin buffer."""
         match char:
-            case ANSIKeyboadStrings.DELETE_KEY:
+            case ASCIICodes.DELETE:
                 if self._stdin_index > 0:
                     self._stdin_buffer = (
-                        self._stdin_buffer[: self._stdin_index - 1] + self._stdin_buffer[self._stdin_index :]
+                        self._stdin_buffer[: self._stdin_index - 1]
+                        + self._stdin_buffer[self._stdin_index :]
                     )
                     self._stdin_index -= 1
                 self._write_from_stdin_manager(b"")
             case ANSIKeyboadStrings.ESCAPE_KEY:
                 self._escape_sequence += char
-            case ANSIKeyboadStrings.CTRL_C_KEY:
+            case ASCIICodes.CTRL_C:
                 raise KeyboardInterrupt
-            case ANSIKeyboadStrings.CTRL_D_KEY:
+            case ASCIICodes.CTRL_D:
                 raise EOFError
             case _:
                 if self._escape_sequence:
@@ -370,7 +397,7 @@ class StdinWrapper:
         char = b""
         while True:
             char = self._fd.read(1).encode()
-            if char == ANSIKeyboadStrings.ENTER_KEY:
+            if char == ASCIICodes.CARRIAGE_RETURN:
                 # The terminal is set to raw mode, so the Enter key sends a carriage return character
                 # instead of a newline character. We need to convert it to a newline character.
                 recv_stdin = self._terminal.stdin_buffer + b"\n"

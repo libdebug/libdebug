@@ -36,10 +36,7 @@ class ANSIKeyboadStrings:
     DOWN_ARROW_KEYPAD = ESCAPE_KEY + b"OB"
     RIGHT_ARROW_KEYPAD = ESCAPE_KEY + b"OC"
     LEFT_ARROW_KEYPAD = ESCAPE_KEY + b"OD"
-    DELETE_KEY = b"\x7f"
-    CTRL_C_KEY = b"\x03"
-    CTRL_D_KEY = b"\x04"
-    ENTER_KEY = b"\r"
+    ERASE_LINE = ESCAPE_KEY + b"[2K"
 
     @classmethod
     def get_longest_key_length(cls: ANSIKeyboadStrings) -> int:
@@ -49,6 +46,22 @@ class ANSIKeyboadStrings:
             for attr in cls.__dict__
             if not attr.startswith("__") and isinstance(getattr(cls, attr), bytes)
         )
+
+
+class ASCIICodes:
+    """Class to define ASCII control codes for the terminal."""
+
+    BELL = b"\x07"
+    BACKSPACE = b"\x08"
+    TAB = b"\x09"
+    NEWLINE = b"\x0a"
+    VERTICAL_TAB = b"\x0b"
+    FORM_FEED = b"\x0c"
+    CARRIAGE_RETURN = b"\x0d"
+    ESCAPE = b"\x1b"
+    DELETE = b"\x7f"
+    CTRL_C = b"\x03"
+    CTRL_D = b"\x04"
 
 
 class ANSIPrivateModes:

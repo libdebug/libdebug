@@ -23,7 +23,10 @@ import psutil
 from libdebug.architectures.breakpoint_validator import validate_hardware_breakpoint
 from libdebug.architectures.syscall_hijacker import SyscallHijacker
 from libdebug.builtin.antidebug_syscall_handler import on_enter_ptrace, on_exit_ptrace
-from libdebug.builtin.pretty_print_syscall_handler import pprint_on_enter, pprint_on_exit
+from libdebug.builtin.pretty_print_syscall_handler import (
+    pprint_on_enter,
+    pprint_on_exit,
+)
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
@@ -221,7 +224,9 @@ class InternalDebugger:
         self.start_processing_thread()
         with extend_internal_debugger(self):
             self.debugging_interface = provide_debugging_interface()
-            self._fast_memory = DirectMemoryView(self._fast_read_memory, self._fast_write_memory)
+            self._fast_memory = DirectMemoryView(
+                self._fast_read_memory, self._fast_write_memory
+            )
             self._slow_memory = ChunkedMemoryView(
                 self._peek_memory,
                 self._poke_memory,
@@ -282,7 +287,7 @@ class InternalDebugger:
 
         self._process_memory_manager.open(self.process_id)
 
-        return self.pipe_manager
+        return self.lib_pipe
 
     def attach(self: InternalDebugger, pid: int) -> None:
         """Attaches to an existing process."""
@@ -462,9 +467,13 @@ class InternalDebugger:
             position = hex(address)
 
         if condition != "x" and not hardware:
-            raise ValueError("Breakpoint condition is supported only for hardware watchpoints.")
+            raise ValueError(
+                "Breakpoint condition is supported only for hardware watchpoints."
+            )
 
-        bp = Breakpoint(address, position, 0, hardware, callback, condition.lower(), length)
+        bp = Breakpoint(
+            address, position, 0, hardware, callback, condition.lower(), length
+        )
 
         if hardware:
             validate_hardware_breakpoint(self.arch, bp)
@@ -534,7 +543,9 @@ class InternalDebugger:
 
         link_to_internal_debugger(catcher, self)
 
-        self.__polling_thread_command_queue.put((self.__threaded_catch_signal, (catcher,)))
+        self.__polling_thread_command_queue.put(
+            (self.__threaded_catch_signal, (catcher,))
+        )
 
         self._join_and_check_status()
 
@@ -564,7 +575,11 @@ class InternalDebugger:
         else:
             original_signal_number = original_signal
 
-        new_signal_number = resolve_signal_number(new_signal) if isinstance(new_signal, str) else new_signal
+        new_signal_number = (
+            resolve_signal_number(new_signal)
+            if isinstance(new_signal, str)
+            else new_signal
+        )
 
         if original_signal_number == new_signal_number:
             raise ValueError(
@@ -600,7 +615,11 @@ class InternalDebugger:
         Returns:
             HandledSyscall: The HandledSyscall object.
         """
-        syscall_number = resolve_syscall_number(self.arch, syscall) if isinstance(syscall, str) else syscall
+        syscall_number = (
+            resolve_syscall_number(self.arch, syscall)
+            if isinstance(syscall, str)
+            else syscall
+        )
 
         if not isinstance(recursive, bool):
             raise TypeError("recursive must be a boolean")
@@ -661,12 +680,16 @@ class InternalDebugger:
             raise ValueError("Invalid keyword arguments in syscall hijack")
 
         if isinstance(original_syscall, str):
-            original_syscall_number = resolve_syscall_number(self.arch, original_syscall)
+            original_syscall_number = resolve_syscall_number(
+                self.arch, original_syscall
+            )
         else:
             original_syscall_number = original_syscall
 
         new_syscall_number = (
-            resolve_syscall_number(self.arch, new_syscall) if isinstance(new_syscall, str) else new_syscall
+            resolve_syscall_number(self.arch, new_syscall)
+            if isinstance(new_syscall, str)
+            else new_syscall
         )
 
         if original_syscall_number == new_syscall_number:
@@ -763,7 +786,10 @@ class InternalDebugger:
                 else:
                     bp_args.append("b *" + hex(bp.address))
 
-                if self.threads[0].instruction_pointer == bp.address and not bp.hardware:
+                if (
+                    self.threads[0].instruction_pointer == bp.address
+                    and not bp.hardware
+                ):
                     # We have to enqueue an additional continue
                     bp_args.append("-ex")
                     bp_args.append("ni")
@@ -913,7 +939,9 @@ class InternalDebugger:
 
     @background_alias(_background_finish)
     @change_state_function_thread
-    def finish(self: InternalDebugger, thread: ThreadContext, heuristic: str = "backtrace") -> None:
+    def finish(
+        self: InternalDebugger, thread: ThreadContext, heuristic: str = "backtrace"
+    ) -> None:
         """Continues execution until the current function returns or the process stops.
 
         The command requires a heuristic to determine the end of the function. The available heuristics are:
@@ -957,18 +985,18 @@ class InternalDebugger:
             # Check if the syscall is already handled (by the user or by the pretty print handler)
             if syscall_number in self.handled_syscalls:
                 handler = self.handled_syscalls[syscall_number]
-                if syscall_number not in (self.syscalls_to_not_pprint or []) and syscall_number in (
-                    self.syscalls_to_pprint or syscall_numbers
-                ):
+                if syscall_number not in (
+                    self.syscalls_to_not_pprint or []
+                ) and syscall_number in (self.syscalls_to_pprint or syscall_numbers):
                     handler.on_enter_pprint = pprint_on_enter
                     handler.on_exit_pprint = pprint_on_exit
                 else:
                     # Remove the pretty print handler from previous pretty print calls
                     handler.on_enter_pprint = None
                     handler.on_exit_pprint = None
-            elif syscall_number not in (self.syscalls_to_not_pprint or []) and syscall_number in (
-                self.syscalls_to_pprint or syscall_numbers
-            ):
+            elif syscall_number not in (
+                self.syscalls_to_not_pprint or []
+            ) and syscall_number in (self.syscalls_to_pprint or syscall_numbers):
                 handler = SyscallHandler(
                     syscall_number,
                     None,
@@ -1091,7 +1119,9 @@ class InternalDebugger:
                 liblog.warning(
                     f"No backing file specified and no corresponding absolute address found for {hex(address)}. Assuming {backing_file}.",
                 )
-        elif backing_file == (full_backing_path := self._process_full_path) or backing_file in [
+        elif backing_file == (
+            full_backing_path := self._process_full_path
+        ) or backing_file in [
             "binary",
             self._process_name,
         ]:
@@ -1134,8 +1164,12 @@ class InternalDebugger:
         if backing_file == "hybrid":
             # If no explicit backing file is specified, we have to assume it is in the main map
             backing_file = self._process_full_path
-            liblog.debugger(f"No backing file specified for the symbol {symbol}. Assuming {backing_file}.")
-        elif backing_file == (full_backing_path := self._process_full_path) or backing_file in [
+            liblog.debugger(
+                f"No backing file specified for the symbol {symbol}. Assuming {backing_file}."
+            )
+        elif backing_file == (
+            full_backing_path := self._process_full_path
+        ) or backing_file in [
             "binary",
             self._process_name,
         ]:
@@ -1311,11 +1345,15 @@ class InternalDebugger:
         )
         self.debugging_interface.set_signal_catcher(catcher)
 
-    def __threaded_handle_syscall(self: InternalDebugger, handler: SyscallHandler) -> None:
+    def __threaded_handle_syscall(
+        self: InternalDebugger, handler: SyscallHandler
+    ) -> None:
         liblog.debugger(f"Setting the handler for syscall {handler.syscall_number}.")
         self.debugging_interface.set_syscall_handler(handler)
 
-    def __threaded_unhandle_syscall(self: InternalDebugger, handler: SyscallHandler) -> None:
+    def __threaded_unhandle_syscall(
+        self: InternalDebugger, handler: SyscallHandler
+    ) -> None:
         liblog.debugger(f"Unsetting the handler for syscall {handler.syscall_number}.")
         self.debugging_interface.unset_syscall_handler(handler)
 
@@ -1334,7 +1372,9 @@ class InternalDebugger:
         self.debugging_interface.step_until(thread, address, max_steps)
         self.set_stopped()
 
-    def __threaded_finish(self: InternalDebugger, thread: ThreadContext, heuristic: str) -> None:
+    def __threaded_finish(
+        self: InternalDebugger, thread: ThreadContext, heuristic: str
+    ) -> None:
         prefix = heuristic.capitalize()
 
         liblog.debugger(f"{prefix} finish on thread %s", thread.thread_id)
@@ -1353,18 +1393,28 @@ class InternalDebugger:
     def __threaded_migrate_from_gdb(self: InternalDebugger) -> None:
         self.debugging_interface.migrate_from_gdb()
 
-    def __threaded_peek_memory(self: InternalDebugger, address: int) -> bytes | BaseException:
+    def __threaded_peek_memory(
+        self: InternalDebugger, address: int
+    ) -> bytes | BaseException:
         value = self.debugging_interface.peek_memory(address)
-        return value.to_bytes(get_platform_register_size(libcontext.platform), sys.byteorder)
+        return value.to_bytes(
+            get_platform_register_size(libcontext.platform), sys.byteorder
+        )
 
-    def __threaded_poke_memory(self: InternalDebugger, address: int, data: bytes) -> None:
+    def __threaded_poke_memory(
+        self: InternalDebugger, address: int, data: bytes
+    ) -> None:
         int_data = int.from_bytes(data, sys.byteorder)
         self.debugging_interface.poke_memory(address, int_data)
 
-    def __threaded_fetch_fp_registers(self: InternalDebugger, registers: Registers) -> None:
+    def __threaded_fetch_fp_registers(
+        self: InternalDebugger, registers: Registers
+    ) -> None:
         self.debugging_interface.fetch_fp_registers(registers)
 
-    def __threaded_flush_fp_registers(self: InternalDebugger, registers: Registers) -> None:
+    def __threaded_flush_fp_registers(
+        self: InternalDebugger, registers: Registers
+    ) -> None:
         self.debugging_interface.flush_fp_registers(registers)
 
     @background_alias(__threaded_peek_memory)
@@ -1454,7 +1504,9 @@ class InternalDebugger:
     def _fetch_fp_registers(self: InternalDebugger, registers: Registers) -> None:
         """Fetches the floating point registers of a thread."""
         if not self.instanced:
-            raise RuntimeError("Process not running, cannot read floating-point registers.")
+            raise RuntimeError(
+                "Process not running, cannot read floating-point registers."
+            )
 
         self._ensure_process_stopped()
 
@@ -1468,7 +1520,9 @@ class InternalDebugger:
     def _flush_fp_registers(self: InternalDebugger, registers: Registers) -> None:
         """Flushes the floating point registers of a thread."""
         if not self.instanced:
-            raise RuntimeError("Process not running, cannot write floating-point registers.")
+            raise RuntimeError(
+                "Process not running, cannot write floating-point registers."
+            )
 
         self._ensure_process_stopped()
 
@@ -1490,7 +1544,9 @@ class InternalDebugger:
 
         link_to_internal_debugger(handler, self)
 
-        self.__polling_thread_command_queue.put((self.__threaded_handle_syscall, (handler,)))
+        self.__polling_thread_command_queue.put(
+            (self.__threaded_handle_syscall, (handler,))
+        )
 
         self._join_and_check_status()
 
