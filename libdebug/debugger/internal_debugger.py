@@ -123,6 +123,9 @@ class InternalDebugger:
     syscalls_to_not_pprint: list[int] | None
     """The syscalls to not pretty print."""
 
+    kill_on_exit: bool
+    """A flag that indicates if the debugger should kill the debugged process when it exits."""
+
     threads: list[ThreadContext]
     """A list of all the threads of the debugged process."""
 
@@ -187,6 +190,7 @@ class InternalDebugger:
         self._is_running = False
         self.resume_context = ResumeContext()
         self.arch = map_arch(libcontext.platform)
+        self.kill_on_exit = True
         self._process_memory_manager = ProcessMemoryManager()
         self.fast_memory = False
         self.__polling_thread_command_queue = Queue()
@@ -332,11 +336,19 @@ class InternalDebugger:
         self._join_and_check_status()
 
     def terminate(self: InternalDebugger) -> None:
-        """Terminates the background thread.
+        """Interrupts the process, kills it and then terminates the background thread.
 
-        The debugger object cannot be used after this method is called.
+        The debugger object will not be usable after this method is called.
         This method should only be called to free up resources when the debugger object is no longer needed.
         """
+        if self.instanced and self.running:
+            self.interrupt()
+
+        if self.instanced:
+            self.kill()
+
+        self.instanced = False
+
         if self.__polling_thread is not None:
             self.__polling_thread_command_queue.put((THREAD_TERMINATE, ()))
             self.__polling_thread.join()
