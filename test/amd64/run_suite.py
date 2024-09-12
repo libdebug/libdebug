@@ -8,6 +8,7 @@ import sys
 import unittest
 
 from scripts.alias_test import AliasTest
+from scripts.atexit_handler_test import AtexitHandlerTest
 from scripts.attach_detach_test import AttachDetachTest
 from scripts.auto_waiting_test import AutoWaitingNlinks, AutoWaitingTest
 from scripts.backtrace_test import BacktraceTest
@@ -27,6 +28,7 @@ from scripts.jumpout_test import Jumpout
 from scripts.jumpstart_test import JumpstartTest
 from scripts.large_binary_sym_test import LargeBinarySymTest
 from scripts.memory_test import MemoryTest
+from scripts.memory_fast_test import MemoryFastTest
 from scripts.multiple_debuggers_test import MultipleDebuggersTest
 from scripts.next_test import NextTest
 from scripts.nlinks_test import Nlinks
@@ -65,6 +67,17 @@ def fast_suite():
     suite.addTest(MemoryTest("test_memory_multiple_runs"))
     suite.addTest(MemoryTest("test_memory_access_while_running"))
     suite.addTest(MemoryTest("test_memory_access_methods"))
+    suite.addTest(MemoryFastTest("test_memory"))
+    suite.addTest(MemoryFastTest("test_mem_access_libs"))
+    suite.addTest(MemoryFastTest("test_memory_access_methods_backing_file"))
+    suite.addTest(MemoryFastTest("test_memory_exceptions"))
+    suite.addTest(MemoryFastTest("test_memory_multiple_runs"))
+    suite.addTest(MemoryFastTest("test_memory_access_while_running"))
+    suite.addTest(MemoryFastTest("test_memory_access_methods"))
+    suite.addTest(MemoryFastTest("test_memory_large_read"))
+    suite.addTest(MemoryFastTest("test_invalid_memory_location"))
+    suite.addTest(MemoryFastTest("test_memory_multiple_threads"))
+    suite.addTest(MemoryFastTest("test_memory_mixed_access"))
     suite.addTest(HwBasicTest("test_basic"))
     suite.addTest(HwBasicTest("test_registers"))
     suite.addTest(BacktraceTest("test_backtrace_as_symbols"))
@@ -193,6 +206,16 @@ def fast_suite():
     suite.addTest(AliasTest("test_finish_alias"))
     suite.addTest(AliasTest("test_waiting_alias"))
     suite.addTest(AliasTest("test_interrupt_alias"))
+    suite.addTest(AtexitHandlerTest("test_attach_detach_1"))
+    suite.addTest(AtexitHandlerTest("test_attach_detach_2"))
+    suite.addTest(AtexitHandlerTest("test_attach_detach_3"))
+    suite.addTest(AtexitHandlerTest("test_attach_detach_4"))
+    suite.addTest(AtexitHandlerTest("test_attach_1"))
+    suite.addTest(AtexitHandlerTest("test_attach_2"))
+    suite.addTest(AtexitHandlerTest("test_run_1"))
+    suite.addTest(AtexitHandlerTest("test_run_2"))
+    suite.addTest(AtexitHandlerTest("test_run_3"))
+    suite.addTest(AtexitHandlerTest("test_run_4"))
     return suite
 
 

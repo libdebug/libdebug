@@ -33,6 +33,6 @@ class Aarch64CallUtilities(CallUtilitiesManager):
         return 0
 
     def get_call_and_skip_amount(self: Aarch64CallUtilities, opcode_window: bytes) -> tuple[bool, int]:
-        """Get the call instruction and the amount of bytes to skip."""
+        """Check if the current instruction is a call instruction and compute the instruction size."""
         skip = self.compute_call_skip(opcode_window)
         return skip != 0, skip

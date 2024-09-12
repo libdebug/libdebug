@@ -349,7 +349,7 @@ int is_breakpoint_hit(struct hardware_breakpoint *bp)
         return 0;
     }
     
-    unsigned long addr = si.si_addr;
+    unsigned long addr = (unsigned long) si.si_addr;
 
     if (addr == bp->addr) {
         return 1;
@@ -479,6 +479,8 @@ void check_and_set_fp_regs(struct thread *t)
     if (t->fpregs.dirty) {
         set_fp_regs(t->tid, &t->fpregs);
     }
+
+    t->fpregs.fresh = 0;
 }
 
 struct ptrace_regs_struct *register_thread(struct global_state *state, int tid)

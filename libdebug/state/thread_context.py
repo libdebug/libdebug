@@ -17,10 +17,10 @@ from libdebug.utils.debugging_utils import resolve_address_in_maps
 from libdebug.utils.signal_utils import resolve_signal_name, resolve_signal_number
 
 if TYPE_CHECKING:
-    from libdebug.data.memory_view import MemoryView
     from libdebug.data.register_holder import RegisterHolder
     from libdebug.data.registers import Registers
     from libdebug.debugger.internal_debugger import InternalDebugger
+    from libdebug.memory.abstract_memory_view import AbstractMemoryView
 
 
 class ThreadContext:
@@ -93,12 +93,12 @@ class ThreadContext:
         return self._dead
 
     @property
-    def memory(self: ThreadContext) -> MemoryView:
+    def memory(self: ThreadContext) -> AbstractMemoryView:
         """The memory view of the debugged process."""
         return self._internal_debugger.memory
 
     @property
-    def mem(self: ThreadContext) -> MemoryView:
+    def mem(self: ThreadContext) -> AbstractMemoryView:
         """Alias for the `memory` property.
 
         Get the memory view of the process.
@@ -167,7 +167,7 @@ class ThreadContext:
         self._internal_debugger._ensure_process_stopped()
         if self._signal_number != 0:
             liblog.debugger(
-                f"Overwriting signal {resolve_signal_name(self._signal_number)} with {resolve_signal_name(signal) if isinstance(signal, int) else signal}."
+                f"Overwriting signal {resolve_signal_name(self._signal_number)} with {resolve_signal_name(signal) if isinstance(signal, int) else signal}.",
             )
         if isinstance(signal, str):
             signal = resolve_signal_number(signal)
@@ -201,13 +201,14 @@ class ThreadContext:
             else:
                 print(f"{ANSIColors.RED}{return_address:#x} <{return_address_symbol}> {ANSIColors.RESET}")
 
-    def current_return_address(self: ThreadContext) -> int:
-        """Returns the return address of the current function."""
+    @property
+    def saved_ip(self: ThreadContext) -> int:
+        """The return address of the current function."""
         self._internal_debugger._ensure_process_stopped()
         stack_unwinder = stack_unwinding_provider(self._internal_debugger.arch)
 
         try:
-            return_address = stack_unwinder.get_return_address(self)
+            return_address = stack_unwinder.get_return_address(self, self._internal_debugger.debugging_interface.maps())
         except (OSError, ValueError) as e:
             raise ValueError(
                 "Failed to get the return address. Check stack frame registers (e.g., base pointer).",

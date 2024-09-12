@@ -64,9 +64,9 @@ class Debugger:
         self._internal_debugger.kill()
 
     def terminate(self: Debugger) -> None:
-        """Terminates the background thread.
+        """Interrupts the process, kills it and then terminates the background thread.
 
-        The debugger object cannot be used after this method is called.
+        The debugger object will not be usable after this method is called.
         This method should only be called to free up resources when the debugger object is no longer needed.
         """
         self._internal_debugger.terminate()
@@ -329,6 +329,18 @@ class Debugger:
         self._internal_debugger.arch = map_arch(value)
 
     @property
+    def kill_on_exit(self: Debugger) -> bool:
+        """Get whether the process will be killed when the debugger exits."""
+        return self._internal_debugger.kill_on_exit
+
+    @kill_on_exit.setter
+    def kill_on_exit(self: Debugger, value: bool) -> None:
+        if not isinstance(value, bool):
+            raise TypeError("kill_on_exit must be a boolean")
+
+        self._internal_debugger.kill_on_exit = value
+
+    @property
     def threads(self: Debugger) -> list[ThreadContext]:
         """Get the list of threads in the process."""
         return self._internal_debugger.threads
@@ -491,6 +503,30 @@ class Debugger:
             raise ValueError("Invalid signal number.")
 
         self._internal_debugger.signals_to_block = signals
+
+    @property
+    def fast_memory(self: Debugger) -> bool:
+        """Get the state of the fast_memory flag.
+
+        It is used to determine if the debugger should use a faster memory access method.
+
+        Returns:
+            bool: True if the debugger should use a faster memory access method, False otherwise.
+        """
+        return self._internal_debugger.fast_memory
+
+    @fast_memory.setter
+    def fast_memory(self: Debugger, value: bool) -> None:
+        """Set the state of the fast_memory flag.
+
+        It is used to determine if the debugger should use a faster memory access method.
+
+        Args:
+            value (bool): the value to set.
+        """
+        if not isinstance(value, bool):
+            raise TypeError("fast_memory must be a boolean")
+        self._internal_debugger.fast_memory = value
 
     def __getattr__(self: Debugger, name: str) -> object:
         """This function is called when an attribute is not found in the `Debugger` object.

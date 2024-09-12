@@ -63,6 +63,17 @@ class BasicTest(unittest.TestCase):
         assert d.regs.x29 == 0xffffeeeeddddcccc
         assert d.regs.x30 == 0x4444333322221111
 
+        assert d.regs.lr == 0x4444333322221111
+        assert d.regs.fp == 0xffffeeeeddddcccc
+        assert d.regs.xzr == 0
+        assert d.regs.wzr == 0
+
+        d.regs.xzr = 0x123456789abcdef0
+        d.regs.wzr = 0x12345678
+
+        assert d.regs.xzr == 0
+        assert d.regs.wzr == 0
+
         assert d.regs.w0 == 0x22221111
         assert d.regs.w1 == 0x66665555
         assert d.regs.w2 == 0xaaaa9999
