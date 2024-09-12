@@ -64,9 +64,9 @@ class Debugger:
         self._internal_debugger.kill()
 
     def terminate(self: Debugger) -> None:
-        """Terminates the background thread.
+        """Interrupts the process, kills it and then terminates the background thread.
 
-        The debugger object cannot be used after this method is called.
+        The debugger object will not be usable after this method is called.
         This method should only be called to free up resources when the debugger object is no longer needed.
         """
         self._internal_debugger.terminate()
