@@ -8,6 +8,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
+from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.signal_utils import (
     get_all_signal_numbers,
     resolve_signal_name,
@@ -63,9 +64,9 @@ class Debugger:
         self._internal_debugger.kill()
 
     def terminate(self: Debugger) -> None:
-        """Terminates the background thread.
+        """Interrupts the process, kills it and then terminates the background thread.
 
-        The debugger object cannot be used after this method is called.
+        The debugger object will not be usable after this method is called.
         This method should only be called to free up resources when the debugger object is no longer needed.
         """
         self._internal_debugger.terminate()
@@ -94,7 +95,7 @@ class Debugger:
         self: Debugger,
         position: int | str,
         hardware: bool = False,
-        condition: str | None = None,
+        condition: str = "x",
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
         file: str = "hybrid",
@@ -264,7 +265,7 @@ class Debugger:
         self: Debugger,
         position: int | str,
         hardware: bool = False,
-        condition: str | None = None,
+        condition: str = "x",
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
         file: str = "hybrid",
@@ -316,6 +317,28 @@ class Debugger:
             callback=callback,
             file=file,
         )
+
+    @property
+    def arch(self: Debugger) -> str:
+        """Get the architecture of the process."""
+        return self._internal_debugger.arch
+
+    @arch.setter
+    def arch(self: Debugger, value: str) -> None:
+        """Set the architecture of the process."""
+        self._internal_debugger.arch = map_arch(value)
+
+    @property
+    def kill_on_exit(self: Debugger) -> bool:
+        """Get whether the process will be killed when the debugger exits."""
+        return self._internal_debugger.kill_on_exit
+
+    @kill_on_exit.setter
+    def kill_on_exit(self: Debugger, value: bool) -> None:
+        if not isinstance(value, bool):
+            raise TypeError("kill_on_exit must be a boolean")
+
+        self._internal_debugger.kill_on_exit = value
 
     @property
     def threads(self: Debugger) -> list[ThreadContext]:
@@ -395,7 +418,10 @@ class Debugger:
         if self._internal_debugger.syscalls_to_pprint is None:
             return None
         else:
-            return [resolve_syscall_name(v) for v in self._internal_debugger.syscalls_to_pprint]
+            return [
+                resolve_syscall_name(self._internal_debugger.arch, v)
+                for v in self._internal_debugger.syscalls_to_pprint
+            ]
 
     @syscalls_to_pprint.setter
     def syscalls_to_pprint(self: Debugger, value: list[int | str] | None) -> None:
@@ -408,7 +434,7 @@ class Debugger:
             self._internal_debugger.syscalls_to_pprint = None
         elif isinstance(value, list):
             self._internal_debugger.syscalls_to_pprint = [
-                v if isinstance(v, int) else resolve_syscall_number(v) for v in value
+                v if isinstance(v, int) else resolve_syscall_number(self._internal_debugger.arch, v) for v in value
             ]
         else:
             raise ValueError(
@@ -427,7 +453,10 @@ class Debugger:
         if self._internal_debugger.syscalls_to_not_pprint is None:
             return None
         else:
-            return [resolve_syscall_name(v) for v in self._internal_debugger.syscalls_to_not_pprint]
+            return [
+                resolve_syscall_name(self._internal_debugger.arch, v)
+                for v in self._internal_debugger.syscalls_to_not_pprint
+            ]
 
     @syscalls_to_not_pprint.setter
     def syscalls_to_not_pprint(self: Debugger, value: list[int | str] | None) -> None:
@@ -440,7 +469,7 @@ class Debugger:
             self._internal_debugger.syscalls_to_not_pprint = None
         elif isinstance(value, list):
             self._internal_debugger.syscalls_to_not_pprint = [
-                v if isinstance(v, int) else resolve_syscall_number(v) for v in value
+                v if isinstance(v, int) else resolve_syscall_number(self._internal_debugger.arch, v) for v in value
             ]
         else:
             raise ValueError(
@@ -474,6 +503,30 @@ class Debugger:
             raise ValueError("Invalid signal number.")
 
         self._internal_debugger.signals_to_block = signals
+
+    @property
+    def fast_memory(self: Debugger) -> bool:
+        """Get the state of the fast_memory flag.
+
+        It is used to determine if the debugger should use a faster memory access method.
+
+        Returns:
+            bool: True if the debugger should use a faster memory access method, False otherwise.
+        """
+        return self._internal_debugger.fast_memory
+
+    @fast_memory.setter
+    def fast_memory(self: Debugger, value: bool) -> None:
+        """Set the state of the fast_memory flag.
+
+        It is used to determine if the debugger should use a faster memory access method.
+
+        Args:
+            value (bool): the value to set.
+        """
+        if not isinstance(value, bool):
+            raise TypeError("fast_memory must be a boolean")
+        self._internal_debugger.fast_memory = value
 
     def __getattr__(self: Debugger, name: str) -> object:
         """This function is called when an attribute is not found in the `Debugger` object.

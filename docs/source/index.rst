@@ -9,6 +9,9 @@
 
 ----
 
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.13151549.svg
+  :target: https://doi.org/10.5281/zenodo.13151549
+
 Quick Start
 ====================================
 Welcome to libdebug! This powerful Python library can be used to debug your binary executables programmatically, providing a robust, user-friendly interface.
@@ -25,7 +28,7 @@ e.g, for version 0.5.0, go to https://docs.libdebug.org/archive/0.5.0
 Supported Architectures
 -----------------------
 
-libdebug currently supports Linux under the x86_64 architecture.
+libdebug currently supports Linux under the x86_64 and AArch64 architectures.
 
 Other operating systems and architectures are not supported at this time.
 
@@ -106,7 +109,7 @@ Now that you have libdebug installed, you can start using it in your scripts. He
 
 The above script will run the binary `test` in the working directory and stop at the function corresponding to the symbol "function". It will then print the value of the RAX register and kill the process.
 
-Conflicts with other python packages
+Conflicts with other Python packages
 ------------------------------------
 
 The current version of libdebug is incompatible with https://github.com/Gallopsled/pwntools.
@@ -119,6 +122,22 @@ Examples of some known issues include:
     This behavior is described in https://github.com/libdebug/libdebug/issues/48.
 - Attaching libdebug to a process that was started with pwntools with ``shell=True`` will cause the process to attach to the shell process instead.
     This behavior is described in https://github.com/libdebug/libdebug/issues/57.
+
+Cite Us
+-------
+Need to cite libdebug in your research? Use the following BibTeX entry:
+
+.. code-block:: bibtex
+
+    @software{libdebug_2024,
+        title = {libdebug: {Build} {Your} {Own} {Debugger}},
+        copyright = {MIT Licence},
+        url = {https://libdebug.org},
+        publisher = {libdebug.org},
+        author = {Digregorio, Gabriele and Bertolini, Roberto Alessandro and Panebianco, Francesco and Polino, Mario},
+        year = {2024},
+        doi = {10.5281/zenodo.13151549},
+    }
 
 .. toctree::
     :maxdepth: 2
