@@ -36,6 +36,8 @@ After creating the debugger object, you can start the execution of the program u
 
 The `run()` command returns a `PipeManager` object, which you can use to interact with the program's standard input, output, and error. To read more about the PipeManager interface, please refer to the PipeManager documentation :class:`libdebug.utils.pipe_manager.PipeManager`. Please note that breakpoints are not kept between different runs of the program. If you want to set a breakpoint again, you should do so after the program has restarted.
 
+Any process will be automatically killed when the debugging script exits. If you want to prevent this behavior, you can set the `kill_on_exit` parameter to False when creating the debugger object, or set the companion attribute `kill_on_exit` to False at runtime.
+
 The command queue
 -----------------
 Control flow commands, register access and memory access are all done through the command queue. This is a FIFO queue of commands that are executed in order. 
@@ -274,6 +276,9 @@ An alternative to running the program from the beginning and to resume libdebug 
 .. code-block:: python
 
     d.attach(pid)
+
+Do note that libdebug automatically kills any running process when the debugging script exits, even if the debugger has detached from it.
+If you want to prevent this behavior, you can set the `kill_on_exit` parameter to False when creating the debugger object, or set the companion attribute `kill_on_exit` to False at runtime.
 
 Graceful Termination
 ====================
