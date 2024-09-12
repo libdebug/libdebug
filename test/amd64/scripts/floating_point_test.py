@@ -23,14 +23,20 @@ class FloatingPointTest(unittest.TestCase):
             # Run an AVX512 test
             self.avx512()
             self.avx()
+            self.xmm()
             self.mmx()
+            self.st()
         elif "avx" in cpuinfo:
             # Run an AVX test
             self.avx()
+            self.xmm()
             self.mmx()
+            self.st()
         else:
             # Run a generic test
+            self.xmm()
             self.mmx()
+            self.st()
 
     def avx512(self):
         d = debugger("binaries/floating_point_2696_test")
@@ -204,7 +210,7 @@ class FloatingPointTest(unittest.TestCase):
 
         d.kill()
 
-    def mmx(self):
+    def xmm(self):
         d = debugger("binaries/floating_point_512_test")
 
         d.run()
@@ -283,3 +289,9 @@ class FloatingPointTest(unittest.TestCase):
         self.assertTrue(bp.hit_on(d))
 
         d.kill()
+
+    def mmx(self):
+        pass
+
+    def st(self):
+        pass

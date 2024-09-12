@@ -228,6 +228,33 @@ def _get_property_fp_zmm1(name: str, index: int) -> property:
 
     return property(getter, setter, None, name)
 
+def _get_property_fp_mmx(name: str, index: int) -> property:
+    def getter(self: Amd64Registers) -> int:
+        if not self._fp_register_file.fresh:
+            self._internal_debugger._fetch_fp_registers(self)
+        return int.from_bytes(self._fp_register_file.legacy.mmx[index].data, "little") & ((1 << 64) - 1)
+
+    def setter(self: Amd64Registers, value: int) -> None:
+        if not self._fp_register_file.fresh:
+            self._internal_debugger._fetch_fp_registers(self)
+        self._fp_register_file.legacy.mmx[index].data = (value & ((1 << 64) - 1)).to_bytes(16, "little")
+        self._fp_register_file.dirty = True
+
+    return property(getter, setter, None, name)
+
+def _get_property_fp_st(name: str, index: int) -> property:
+    def getter(self: Amd64Registers) -> float:
+        if not self._fp_register_file.fresh:
+            self._internal_debugger._fetch_fp_registers(self)
+        return self._fp_register_file.legacy.st[index]
+
+    def setter(self: Amd64Registers, value: float) -> None:
+        if not self._fp_register_file.fresh:
+            self._internal_debugger._fetch_fp_registers(self)
+        self._fp_register_file.legacy.st[index] = value
+        self._fp_register_file.dirty = True
+
+    return property(getter, setter, None, name)
 
 @dataclass
 class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
@@ -287,6 +314,8 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
 
         # setup floating-point registers
         # see libdebug/cffi/ptrace_cffi_build.py for the possible values of fp_register_file.type
+        self._handle_fp_legacy(target_class)
+
         match self.fp_register_file.type:
             case 0:
                 self._handle_fp_512(target_class)
@@ -319,6 +348,16 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
         target_class.syscall_arg3 = _get_property_64("r10")
         target_class.syscall_arg4 = _get_property_64("r8")
         target_class.syscall_arg5 = _get_property_64("r9")
+
+    def _handle_fp_legacy(self: Amd64PtraceRegisterHolder, target_class: type) -> None:
+        """Handle legacy mmx and st registers."""
+        for index in range(8):
+            name = f"mm{index}"
+            setattr(target_class, name, _get_property_fp_mmx(name, index))
+
+        for index in range(8):
+            name = f"st{index}"
+            setattr(target_class, name, _get_property_fp_st(name, index))
 
     def _handle_fp_512(self: Amd64PtraceRegisterHolder, target_class: type) -> None:
         """Handle the case where the xsave area is 512 bytes long, which means we just have the xmm registers."""
