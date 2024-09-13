@@ -37,6 +37,7 @@ int main()
     }
 
     // load into the st registers floating point values
+    __asm__ __volatile__("finit");
     double value8 = 123.456;
     __asm__ __volatile__("fldl %0" : : "m" (value8));
     double value9 = 234.567;

@@ -291,7 +291,72 @@ class FloatingPointTest(unittest.TestCase):
         d.kill()
 
     def mmx(self):
-        pass
+        d = debugger("binaries/floating_point_legacy_test")
+
+        d.run()
+
+        bp1 = d.bp(0x40119e)
+        bp2 = d.bp(0x4011be)
+
+        d.cont()
+
+        self.assertTrue(bp1.hit_on(d))
+
+        self.assertTrue(hasattr(d.regs, "mm0"))
+        self.assertTrue(hasattr(d.regs, "mm7"))
+
+        for i in range(8):
+            baseval = int.from_bytes(bytes(list(range(17 * i, 128 + 17 * i, 17))), "little")
+            self.assertEqual(getattr(d.regs, f"mm{i}"), baseval)
+
+        d.regs.mm0 = 0xDEADBEEFDEADBEEF
+
+        d.cont()
+
+        self.assertTrue(bp2.hit_on(d))
+
+        for i in range(8):
+            val = randint(0, 2**64 - 1)
+            setattr(d.regs, f"mm{i}", val)
+            self.assertEqual(getattr(d.regs, f"mm{i}"), val)
+
+        d.kill()
+        d.terminate()
 
     def st(self):
-        pass
+        d = debugger("binaries/floating_point_legacy_test")
+
+        d.run()
+
+        bp1 = d.bp(0x40124e)
+        bp2 = d.bp(0x401271)
+
+        d.cont()
+
+        self.assertTrue(bp1.hit_on(d))
+
+        self.assertTrue(hasattr(d.regs, "st0"))
+        self.assertTrue(hasattr(d.regs, "st7"))
+
+        self.assertAlmostEqual(d.regs.st0, 890.123)
+        self.assertAlmostEqual(d.regs.st1, 789.012)
+        self.assertAlmostEqual(d.regs.st2, 678.901)
+        self.assertAlmostEqual(d.regs.st3, 567.890)
+        self.assertAlmostEqual(d.regs.st4, 456.789)
+        self.assertAlmostEqual(d.regs.st5, 345.678)
+        self.assertAlmostEqual(d.regs.st6, 234.567)
+        self.assertAlmostEqual(d.regs.st7, 123.456)
+
+        d.regs.st0 = 1337.1337
+
+        d.cont()
+
+        self.assertTrue(bp2.hit_on(d))
+
+        for i in range(8):
+            val = randint(0, 2**64 - 1)
+            setattr(d.regs, f"st{i}", val)
+            self.assertAlmostEqual(getattr(d.regs, f"st{i}"), val)
+
+        d.kill()
+        d.terminate()
