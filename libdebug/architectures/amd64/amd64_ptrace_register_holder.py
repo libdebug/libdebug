@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from ctypes import c_longdouble
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -232,26 +233,29 @@ def _get_property_fp_mmx(name: str, index: int) -> property:
     def getter(self: Amd64Registers) -> int:
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        return int.from_bytes(self._fp_register_file.legacy.mmx[index].data, "little") & ((1 << 64) - 1)
+        return int.from_bytes(self._fp_register_file.mmx[index].data, "little") & ((1 << 64) - 1)
 
     def setter(self: Amd64Registers, value: int) -> None:
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        self._fp_register_file.legacy.mmx[index].data = (value & ((1 << 64) - 1)).to_bytes(16, "little")
+        self._fp_register_file.mmx[index].data = (value & ((1 << 64) - 1)).to_bytes(16, "little")
         self._fp_register_file.dirty = True
 
     return property(getter, setter, None, name)
 
 def _get_property_fp_st(name: str, index: int) -> property:
+    # We should be able to expose the long double member from CFFI directly
+    # But their support for long double does not actually allow for value comparison or manipulation
+    # So, ctypes it is
     def getter(self: Amd64Registers) -> float:
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        return self._fp_register_file.legacy.st[index]
+        return c_longdouble.from_buffer_copy(bytes(self._fp_register_file.mmx[index].data)).value
 
     def setter(self: Amd64Registers, value: float) -> None:
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        self._fp_register_file.legacy.st[index] = value
+        self._fp_register_file.mmx[index].data = bytes(c_longdouble(value))
         self._fp_register_file.dirty = True
 
     return property(getter, setter, None, name)
