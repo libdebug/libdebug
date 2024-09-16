@@ -241,6 +241,9 @@ class PtraceInterface(DebuggingInterface):
         # Reset the event type
         self._internal_debugger.resume_context.event_type = None
 
+        # Reset the breakpoint hit
+        self._internal_debugger.resume_context.breakpoint_hit = None
+
         result = self.lib_trace.cont_all_and_set_bps(
             self._global_state,
             self.process_id,
