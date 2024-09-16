@@ -109,7 +109,7 @@ class PtraceStatusHandler:
                 liblog.debugger("Watchpoint hit at 0x%x", bp.address)
 
         if bp:
-            self.internal_debugger.resume_context.breakpoint_hit = bp
+            self.internal_debugger.resume_context.breakpoint_hit[thread_id] = bp
             self.forward_signal = False
             bp.hit_count += 1
 
