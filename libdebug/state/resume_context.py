@@ -24,7 +24,7 @@ class ResumeContext:
         self.block_on_signal: bool = False
         self.threads_with_signals_to_forward: list[int] = []
         self.event_type: EventType | None = None
-        self.breakpoint_hit: Breakpoint | None = None
+        self.breakpoint_hit: dict[int, Breakpoint] = {}
 
     def clear(self: ResumeContext) -> None:
         """Clears the context."""
@@ -35,7 +35,7 @@ class ResumeContext:
         self.block_on_signal = False
         self.threads_with_signals_to_forward.clear()
         self.event_type = None
-        self.breakpoint_hit = None
+        self.breakpoint_hit = {}
 
 
 class EventType:
