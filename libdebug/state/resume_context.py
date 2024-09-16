@@ -35,7 +35,7 @@ class ResumeContext:
         self.block_on_signal = False
         self.threads_with_signals_to_forward.clear()
         self.event_type = None
-        self.breakpoint_hit = {}
+        self.breakpoint_hit.clear()
 
 
 class EventType:
