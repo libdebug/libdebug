@@ -345,7 +345,11 @@ class InternalDebugger:
             self.interrupt()
 
         if self.instanced:
-            self.kill()
+            try:
+                self.kill()
+            except ProcessLookupError:
+                # The process has already been killed by someone or something else
+                liblog.debugger("Killing process failed: already terminated")
 
         self.instanced = False
 
