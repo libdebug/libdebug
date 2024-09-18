@@ -4,7 +4,7 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-from unittest import TestCase
+from unittest import TestCase, skipIf
 from utils.thread_utils import FUN_ARG_0
 from utils.binary_utils import BASE, PLATFORM, RESOLVE_EXE
 
@@ -153,6 +153,7 @@ class AliasTest(TestCase):
         d.kill()
         d.terminate()
 
+    @skipIf(PLATFORM == "i386", "Test not supported on i386")
     def test_finish_alias(self):
         d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False)
 
