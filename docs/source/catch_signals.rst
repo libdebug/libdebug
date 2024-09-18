@@ -3,6 +3,8 @@ Signals
 
 libdebug supports catching of signals. You can, in fact, execute a callback or pause the script when a specific signal directed at the debugged process is intercepted by the tracer.
 
+Just like with breakpoints and syscall handlers, the callback function is **asynchronous**, meaning that the execution will resume automatically after the callback is executed.
+
 The following is the signature of the callback function:
 
 .. code-block:: python

@@ -7,7 +7,7 @@ Software breakpoints in the Linux kernel are implemented by patching the running
 
 Hardware breakpoints are a more reliable way to set breakpoints than software breakpoints. They are also faster and more flexible. However, hardware breakpoints are limited in number and are hardware-dependent.
 
-Breakpoints
+Placing Breakpoints
 -----------
 
 libdebug provides a simple API to set breakpoints in your debugged program. The `breakpoint()` function sets a breakpoint at a specific address. 
@@ -28,12 +28,31 @@ In the provided example, the debugger will set a breakpoint at the address `0x10
 
 When the program reaches the breakpoint, it will pause. You can enable and disable breakpoint `bp` with the `bp.enable()` and `bp.disable()` functions, respectively.
 
+Relative to What?
+-----------------
+
+By default, the memory access in libdebug is done using an hybrid addressing mode. This means that libdebug will try to resolve the address as an absolute address first. If the address is not found, libdebug will try to resolve the address as a relative address, using as base the one of the binary. In this case, a warning will be printed. You can force the addressing mode by using the following syntax:
+
+.. code-block:: python
+
+    from libdebug import debugger
+
+    d = debugger("./test_program")
+
+    d.run()
+
+    bp = d.breakpoint(0x10ab, file="libc")
+
+    d.cont()
+
+In this case, the breakpoint will be set at the address ``0x10ab`` relative to the ``libc`` memory page. Other than existing pages, you can specify ``absolute`` as the file to force the absolute addressing mode.
+
 Breakpoint hits
 ^^^^^^^^^^^^^^^
 
 Let's now assume to have a program that executes a specific instruction multiple times. Depending on your use-case, you could be interested in the number of times a certain breakpoint has been hit. You could also want to perform a certain set of actions in your script as a result of the hit.
 
-The callback and hit_count properties of a Breakpoint object are useful for exactly this purpose. The following syntax is used to set a callback function for your breakpoint:
+The ``callback`` property of the Breakpoint object can be used to specify a function called upon breakpoint hit. When a callback is specified, the event will be **asynchronous**, which means execution will resume automatically right after handling the breakpoint. The ``hit_count`` is useful to count the number of times a breakpoint has been hit. The following syntax is used to set a callback function for your breakpoint:
 
 .. code-block:: python
 
@@ -42,7 +61,7 @@ The callback and hit_count properties of a Breakpoint object are useful for exac
 
     d.breakpoint(0x11f0, callback=on_breakpoint_hit)
 
-The signature of a callback function is as follows:
+Let's break down the signature of a callback function:
 
 .. code-block:: python
 
@@ -63,17 +82,24 @@ As for the hit_count property, the following is an example of how to it:
 Symbolic addressing
 ^^^^^^^^^^^^^^^^^^^
 
-Just like with memory access, you can use symbolic addressing to set breakpoints. The following syntax is used to set a breakpoint at a specific function:
+Just like with memory access, you can use symbolic addressing to set breakpoints. By default, symbols are only resolved in the binary to avoid ambiguities. The following syntax is used to set a breakpoint at a specific function:
 
 .. code-block:: python
 
     d.breakpoint("vuln")
+
+If needed, you can always specify a shared library to resolve the symbol in:
+
+.. code-block:: python
+
+    d.breakpoint("puts", file="libc")
 
 Relative addressing with respect to a symbol is also supported. The offset is specified as an hexadecimal number following the symbol name:
 
 .. code-block:: python
 
     d.breakpoint("vuln+1f")
+    d.breakpoint("puts+0a", file="libc")
 
 Hardware breakpoints
 ^^^^^^^^^^^^^^^^^^^^

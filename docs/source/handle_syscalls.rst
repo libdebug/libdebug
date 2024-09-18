@@ -11,7 +11,11 @@ Handlers
 --------
 When handling a syscall, the user can provide up to two callback functions that will be called whenever the handled syscall is executed. One that is called before executing the syscall (`on_enter`), the other is called after executing the syscall (`on_exit`).
 
-Please note that it is not necessary to specify both `on_enter` and `on_exit` callbacks. It is sufficient to specify only one of them. The callback function must have the following signature:
+Please note that it is not necessary to specify both `on_enter` and `on_exit` callbacks. It is sufficient to specify only one of them.
+
+Just like with breakpoints, the callback function is **asynchronous**, meaning that the execution will resume automatically after the callback is executed.
+
+The callback function must have the following signature:
 
 .. code-block:: python
 

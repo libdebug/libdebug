@@ -143,6 +143,7 @@ Need to cite libdebug in your research? Use the following BibTeX entry:
     :maxdepth: 2
     :caption: Contents:
     
+    examples
     basic_features
     breakpoints
     handle_syscalls
@@ -150,7 +151,6 @@ Need to cite libdebug in your research? Use the following BibTeX entry:
     multithreading
     quality_of_life
     logging
-    examples
 
 .. autosummary::
    :toctree: _autosummary
