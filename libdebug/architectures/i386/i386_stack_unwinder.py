@@ -12,6 +12,7 @@ from libdebug.architectures.stack_unwinding_manager import StackUnwindingManager
 from libdebug.liblog import logging
 
 if TYPE_CHECKING:
+    from libdebug.data.memory_map import MemoryMap
     from libdebug.state.thread_context import ThreadContext
 
 
@@ -53,10 +54,13 @@ class I386StackUnwinder(StackUnwindingManager):
         # If we are in the prologue of a function, we need to get the return address from the stack
         # using a slightly more complex method
         try:
-            first_return_address = self.get_return_address(target)
+            first_return_address = self.get_return_address(target, vmaps)
 
-            if first_return_address != stack_trace[1]:
-                stack_trace.insert(1, first_return_address)
+            if len(stack_trace) > 1:
+                if first_return_address != stack_trace[1]:
+                    stack_trace.insert(1, first_return_address)
+            else:
+                stack_trace.append(first_return_address)
         except (OSError, ValueError):
             logging.WARNING(
                 "Failed to get the return address from the stack. Check stack frame registers (e.g., base pointer). The stack trace may be incomplete.",
@@ -64,11 +68,12 @@ class I386StackUnwinder(StackUnwindingManager):
 
         return stack_trace
 
-    def get_return_address(self: I386StackUnwinder, target: ThreadContext) -> int:
+    def get_return_address(self: I386StackUnwinder, target: ThreadContext, vmaps: list[MemoryMap]) -> int:
         """Get the return address of the current function.
 
         Args:
             target (ThreadContext): The target ThreadContext.
+            vmaps (list[MemoryMap]): The memory maps of the process.
 
         Returns:
             int: The return address.
@@ -85,7 +90,12 @@ class I386StackUnwinder(StackUnwindingManager):
         else:
             return_address = target.memory[target.regs.esp + 4, 4]
 
-        return int.from_bytes(return_address, byteorder="little")
+        return_address = int.from_bytes(return_address, byteorder="little")
+
+        if not any(vmap.start <= return_address < vmap.end for vmap in vmaps):
+            raise ValueError("Return address is not in any memory map.")
+
+        return return_address
 
     def _preamble_state(self: I386StackUnwinder, instruction_window: bytes) -> int:
         """Check if the instruction window is a function preamble and, if so, at what stage.
