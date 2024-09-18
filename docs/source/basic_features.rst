@@ -143,7 +143,7 @@ Please note that proving a shorter byte-like object than the length you are tryi
 If the byte-like object is longer than the length you are trying to write, the FULL object will be written to memory ignoring the range you provided. A warning is printed in this case.
 
 Absolute and Relative Addressing
--------------------
+--------------------------------
 
 When accessing memory, you can use both absolute and relative addressing. Absolute addressing is the most common way to access memory, where you provide the exact address you want to access. Relative addressing is a more advanced way to access memory, where you provide an address relative to a base address.
 By default, the memory access in libdebug is done using an hybrid addressing mode. This means that libdebug will try to resolve the address as an absolute address first. If the address is not found, libdebug will try to resolve the address as a relative address, using as base the one of the binary. In this case, a warning will be printed.
@@ -164,7 +164,7 @@ If you specify a full or a substring of a file name, libdebug will search for th
 You can also use the wildcard string "binary" to use the base address of the binary as the base address for the relative addressing. The same behavior is applied if you pass a string corresponding to the binary name.
 
 Faster Memory Access
--------------------
+--------------------
 
 By default, libdebug uses the kernel's ptrace interface to access memory. This is guaranteed to work, but it might be slow during large memory transfers.
 To speed up memory access, we provide a secondary system that relies on /proc/$pid/mem for read and write operations. You can enable this feature by setting `fast_memory` to True when instancing the debugger.

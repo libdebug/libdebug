@@ -4,10 +4,18 @@ libdebug.architectures.amd64 package
 Submodules
 ----------
 
-libdebug.architectures.amd64.amd64\_ptrace\_hw\_bp\_helper module
------------------------------------------------------------------
+libdebug.architectures.amd64.amd64\_breakpoint\_validator module
+----------------------------------------------------------------
 
-.. automodule:: libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper
+.. automodule:: libdebug.architectures.amd64.amd64_breakpoint_validator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+libdebug.architectures.amd64.amd64\_call\_utilities module
+----------------------------------------------------------
+
+.. automodule:: libdebug.architectures.amd64.amd64_call_utilities
    :members:
    :undoc-members:
    :show-inheritance:
@@ -32,14 +40,6 @@ libdebug.architectures.amd64.amd64\_stack\_unwinder module
 ----------------------------------------------------------
 
 .. automodule:: libdebug.architectures.amd64.amd64_stack_unwinder
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-libdebug.architectures.amd64.amd64\_syscall\_hijacker module
-------------------------------------------------------------
-
-.. automodule:: libdebug.architectures.amd64.amd64_syscall_hijacker
    :members:
    :undoc-members:
    :show-inheritance:

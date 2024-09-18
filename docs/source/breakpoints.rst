@@ -8,7 +8,7 @@ Software breakpoints in the Linux kernel are implemented by patching the running
 Hardware breakpoints are a more reliable way to set breakpoints than software breakpoints. They are also faster and more flexible. However, hardware breakpoints are limited in number and are hardware-dependent.
 
 Placing Breakpoints
------------
+-------------------
 
 libdebug provides a simple API to set breakpoints in your debugged program. The `breakpoint()` function sets a breakpoint at a specific address. 
 

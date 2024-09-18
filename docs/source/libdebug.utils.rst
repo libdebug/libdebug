@@ -4,6 +4,14 @@ libdebug.utils package
 Submodules
 ----------
 
+libdebug.utils.arch\_mappings module
+------------------------------------
+
+.. automodule:: libdebug.utils.arch_mappings
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 libdebug.utils.debugger\_wrappers module
 ----------------------------------------
 
@@ -48,6 +56,14 @@ libdebug.utils.pipe\_manager module
 -----------------------------------
 
 .. automodule:: libdebug.utils.pipe_manager
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+libdebug.utils.platform\_utils module
+-------------------------------------
+
+.. automodule:: libdebug.utils.platform_utils
    :members:
    :undoc-members:
    :show-inheritance:

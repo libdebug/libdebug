@@ -13,6 +13,7 @@ Subpackages
    libdebug.data
    libdebug.debugger
    libdebug.interfaces
+   libdebug.memory
    libdebug.ptrace
    libdebug.state
    libdebug.utils

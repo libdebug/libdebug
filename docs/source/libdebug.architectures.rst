@@ -7,23 +7,32 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   libdebug.architectures.aarch64
    libdebug.architectures.amd64
 
 Submodules
 ----------
 
-libdebug.architectures.ptrace\_hardware\_breakpoint\_manager module
--------------------------------------------------------------------
+libdebug.architectures.breakpoint\_validator module
+---------------------------------------------------
 
-.. automodule:: libdebug.architectures.ptrace_hardware_breakpoint_manager
+.. automodule:: libdebug.architectures.breakpoint_validator
    :members:
    :undoc-members:
    :show-inheritance:
 
-libdebug.architectures.ptrace\_hardware\_breakpoint\_provider module
---------------------------------------------------------------------
+libdebug.architectures.call\_utilities\_manager module
+------------------------------------------------------
 
-.. automodule:: libdebug.architectures.ptrace_hardware_breakpoint_provider
+.. automodule:: libdebug.architectures.call_utilities_manager
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+libdebug.architectures.call\_utilities\_provider module
+-------------------------------------------------------
+
+.. automodule:: libdebug.architectures.call_utilities_provider
    :members:
    :undoc-members:
    :show-inheritance:
@@ -60,18 +69,10 @@ libdebug.architectures.stack\_unwinding\_provider module
    :undoc-members:
    :show-inheritance:
 
-libdebug.architectures.syscall\_hijacking\_manager module
----------------------------------------------------------
+libdebug.architectures.syscall\_hijacker module
+-----------------------------------------------
 
-.. automodule:: libdebug.architectures.syscall_hijacking_manager
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-libdebug.architectures.syscall\_hijacking\_provider module
-----------------------------------------------------------
-
-.. automodule:: libdebug.architectures.syscall_hijacking_provider
+.. automodule:: libdebug.architectures.syscall_hijacker
    :members:
    :undoc-members:
    :show-inheritance:

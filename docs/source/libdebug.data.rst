@@ -20,14 +20,6 @@ libdebug.data.memory\_map module
    :undoc-members:
    :show-inheritance:
 
-libdebug.data.memory\_view module
----------------------------------
-
-.. automodule:: libdebug.data.memory_view
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 libdebug.data.register\_holder module
 -------------------------------------
 
