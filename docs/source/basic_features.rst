@@ -263,6 +263,14 @@ By default, the behavior of this command is to open GDB in a new terminal window
 
     libcontext.terminal = ['tmux', 'splitw', '-h']
 
+Remember that GDB Migration is meant to be used when the process is stopped. If the process is running, the command will hang, waiting for the process to stop. To forcibly stop the process, you can use the `interrupt()` method.
+
+.. code-block:: python
+
+    d.interrupt()
+    # Now the process is stopped
+    [...]
+
 Once the terminal is set, you can use the ``gdb()`` method.
 
 .. code-block:: python
