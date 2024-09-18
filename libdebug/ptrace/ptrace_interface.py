@@ -310,7 +310,7 @@ class PtraceInterface(DebuggingInterface):
             invalidate_process_cache()
         elif heuristic == "backtrace":
             # Breakpoint to return address
-            last_saved_instruction_pointer = thread.current_return_address()
+            last_saved_instruction_pointer = thread.saved_ip
 
             # If a breakpoint already exists at the return address, we don't need to set a new one
             found = False

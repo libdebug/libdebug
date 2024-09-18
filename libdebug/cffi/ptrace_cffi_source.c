@@ -479,6 +479,8 @@ void check_and_set_fp_regs(struct thread *t)
     if (t->fpregs.dirty) {
         set_fp_regs(t->tid, &t->fpregs);
     }
+
+    t->fpregs.fresh = 0;
 }
 
 struct ptrace_regs_struct *register_thread(struct global_state *state, int tid)

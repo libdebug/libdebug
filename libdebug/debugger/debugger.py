@@ -64,9 +64,9 @@ class Debugger:
         self._internal_debugger.kill()
 
     def terminate(self: Debugger) -> None:
-        """Terminates the background thread.
+        """Interrupts the process, kills it and then terminates the background thread.
 
-        The debugger object cannot be used after this method is called.
+        The debugger object will not be usable after this method is called.
         This method should only be called to free up resources when the debugger object is no longer needed.
         """
         self._internal_debugger.terminate()
@@ -327,6 +327,18 @@ class Debugger:
     def arch(self: Debugger, value: str) -> None:
         """Set the architecture of the process."""
         self._internal_debugger.arch = map_arch(value)
+
+    @property
+    def kill_on_exit(self: Debugger) -> bool:
+        """Get whether the process will be killed when the debugger exits."""
+        return self._internal_debugger.kill_on_exit
+
+    @kill_on_exit.setter
+    def kill_on_exit(self: Debugger, value: bool) -> None:
+        if not isinstance(value, bool):
+            raise TypeError("kill_on_exit must be a boolean")
+
+        self._internal_debugger.kill_on_exit = value
 
     @property
     def threads(self: Debugger) -> list[ThreadContext]:
