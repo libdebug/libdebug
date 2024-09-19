@@ -1,10 +1,16 @@
 # Home
-
-![libdebug logo](assets/libdebug_header.webp)
-
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13151549.svg)](https://doi.org/10.5281/zenodo.13151549)
+<div style="text-align: center;">
+    <img src="assets/libdebug_logo_horiz_light.webp#only-light" loading="lazy" width="512" />
+    <img src="assets/libdebug_logo_horiz_dark.webp#only-dark" loading="lazy" width="512" />
+</div>
 
 ---
+
+[![Static Badge](https://img.shields.io/badge/libdebug.org--white?style=for-the-badge&labelColor=%23009944&color=teal&link=https%3B%2F%2Flibdebug.org)](https://libdebug.org)&nbsp;&nbsp;&nbsp;
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.13151549-blue?style=for-the-badge)](https://doi.org/10.5281/zenodo.13151549)&nbsp;&nbsp;&nbsp;
+[![Built with Material for MkDocs](https://img.shields.io/badge/Material_for_MkDocs-526CFE?style=for-the-badge&logo=MaterialForMkDocs&logoColor=white)](https://squidfunk.github.io/mkdocs-material/)
+
+
 
 ## :material-lightning-bolt: Quick Start
 Welcome to libdebug! This powerful Python library can be used to debug your binary executables programmatically, providing a robust, user-friendly interface. Debugging multithreaded applications can be a nightmare, but libdebug has you covered. Hijack, and manage signals and syscalls with a simple API.
