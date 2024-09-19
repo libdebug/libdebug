@@ -16,8 +16,6 @@ from libdebug.ptrace.ptrace_register_holder import PtraceRegisterHolder
 if TYPE_CHECKING:
     from libdebug.state.thread_context import ThreadContext
 
-AARCH64_GP_REGS = ["x", "w"]
-
 
 def _get_property_64(name: str) -> property:
     def getter(self: Aarch64Registers) -> int:

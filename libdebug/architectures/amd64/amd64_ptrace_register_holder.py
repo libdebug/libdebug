@@ -15,42 +15,6 @@ from libdebug.ptrace.ptrace_register_holder import PtraceRegisterHolder
 if TYPE_CHECKING:
     from libdebug.state.thread_context import ThreadContext
 
-AMD64_GP_REGS = ["a", "b", "c", "d"]
-
-AMD64_BASE_REGS = ["bp", "sp", "si", "di"]
-
-AMD64_EXT_REGS = ["r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"]
-
-AMD64_REGS = [
-    "r15",
-    "r14",
-    "r13",
-    "r12",
-    "rbp",
-    "rbx",
-    "r11",
-    "r10",
-    "r9",
-    "r8",
-    "rax",
-    "rcx",
-    "rdx",
-    "rsi",
-    "rdi",
-    "orig_rax",
-    "rip",
-    "cs",
-    "eflags",
-    "rsp",
-    "ss",
-    "fs_base",
-    "gs_base",
-    "ds",
-    "es",
-    "fs",
-    "gs",
-]
-
 
 def _get_property_64(name: str) -> property:
     def getter(self: Amd64Registers) -> int:
@@ -246,8 +210,8 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
         if hasattr(target_class, "rip"):
             return
 
-        # setup accessors
-        for name in AMD64_GP_REGS:
+        # Setup accessors for general-purpose registers
+        for name in ["a", "b", "c", "d"]:
             name_64 = "r" + name + "x"
             name_32 = "e" + name + "x"
             name_16 = name + "x"
@@ -260,7 +224,8 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
             setattr(target_class, name_8l, _get_property_8l(name_64))
             setattr(target_class, name_8h, _get_property_8h(name_64))
 
-        for name in AMD64_BASE_REGS:
+        # Setup accessors for base registers
+        for name in ["bp", "sp", "si", "di"]:
             name_64 = "r" + name
             name_32 = "e" + name
             name_16 = name
@@ -271,7 +236,8 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
             setattr(target_class, name_16, _get_property_16(name_64))
             setattr(target_class, name_8l, _get_property_8l(name_64))
 
-        for name in AMD64_EXT_REGS:
+        # Setup accessors for extended registers
+        for name in ["r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"]:
             name_64 = name
             name_32 = name + "d"
             name_16 = name + "w"

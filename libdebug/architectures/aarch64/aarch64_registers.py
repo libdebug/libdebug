@@ -25,7 +25,9 @@ class Aarch64Registers(Registers):
         """Returns a string representation of the object."""
         repr_str = f"Aarch64Registers(thread_id={self._thread_id})"
 
-        attributes = [attr for attr in Aarch64Registers.__dict__ if not attr.startswith("_")]
+        attributes = [
+            attr for attr in Aarch64Registers.__dict__ if attr.startswith(("x", "v")) or attr in ["sp", "pc", "xzr"]
+        ]
         max_len = max(len(attr) for attr in attributes) + 1
 
         repr_str += "".join(f"\n\t{attr + ':':<{max_len}} {getattr(self, attr):#010x}" for attr in attributes)
