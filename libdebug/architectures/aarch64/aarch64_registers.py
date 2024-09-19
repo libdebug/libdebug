@@ -16,20 +16,19 @@ from libdebug.debugger.internal_debugger_instance_manager import get_global_inte
 class Aarch64Registers(Registers):
     """This class holds the state of the architectural-dependent registers of a process."""
 
-    def __init__(self: Aarch64Registers, thread_id: int) -> None:
+    def __init__(self: Aarch64Registers, thread_id: int, generic_regs: list[str]) -> None:
         """Initializes the Registers object."""
         self._internal_debugger = get_global_internal_debugger()
         self._thread_id = thread_id
+        self._generic_regs = generic_regs
 
     def __repr__(self: Aarch64Registers) -> str:
         """Returns a string representation of the object."""
         repr_str = f"Aarch64Registers(thread_id={self._thread_id})"
 
-        attributes = [
-            attr for attr in Aarch64Registers.__dict__ if attr.startswith(("x", "v")) or attr in ["sp", "pc", "xzr"]
-        ]
+        attributes = [attr for attr in Aarch64Registers.__dict__ if attr in self._generic_regs]
         max_len = max(len(attr) for attr in attributes) + 1
 
-        repr_str += "".join(f"\n\t{attr + ':':<{max_len}} {getattr(self, attr):#010x}" for attr in attributes)
+        repr_str += "".join(f"\n\t{attr + ':':<{max_len}} {getattr(self, attr):#x}" for attr in attributes)
 
         return repr_str

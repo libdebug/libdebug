@@ -15,6 +15,32 @@ from libdebug.ptrace.ptrace_register_holder import PtraceRegisterHolder
 if TYPE_CHECKING:
     from libdebug.state.thread_context import ThreadContext
 
+AMD64_GP_REGS = ["a", "b", "c", "d"]
+
+AMD64_BASE_REGS = ["bp", "sp", "si", "di"]
+
+AMD64_EXT_REGS = ["r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"]
+
+AMD64_REGS = [
+    "rax",
+    "rbx",
+    "rcx",
+    "rdx",
+    "rdi",
+    "rsi",
+    "r8",
+    "r9",
+    "r10",
+    "r11",
+    "r12",
+    "r13",
+    "r14",
+    "r15",
+    "rbp",
+    "rsp",
+    "rip",
+]
+
 
 def _get_property_64(name: str) -> property:
     def getter(self: Amd64Registers) -> int:
@@ -201,6 +227,14 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
         """Provide a class to hold the register accessors."""
         return Amd64Registers
 
+    def provide_regs(self: Amd64PtraceRegisterHolder) -> list[str]:
+        """Provide the list of registers, excluding the vector registers."""
+        return AMD64_REGS
+
+    def provide_vector_regs(self: Amd64PtraceRegisterHolder) -> list[tuple[str]]:
+        """Provide the list of vector registers prefixes."""
+        return self._vector_registers
+
     def apply_on_regs(self: Amd64PtraceRegisterHolder, target: Amd64Registers, target_class: type) -> None:
         """Apply the register accessors to the Amd64Registers class."""
         target.register_file = self.register_file
@@ -210,8 +244,10 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
         if hasattr(target_class, "rip"):
             return
 
-        # Setup accessors for general-purpose registers
-        for name in ["a", "b", "c", "d"]:
+        self._vector_registers = []
+
+        # setup accessors
+        for name in AMD64_GP_REGS:
             name_64 = "r" + name + "x"
             name_32 = "e" + name + "x"
             name_16 = name + "x"
@@ -224,8 +260,7 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
             setattr(target_class, name_8l, _get_property_8l(name_64))
             setattr(target_class, name_8h, _get_property_8h(name_64))
 
-        # Setup accessors for base registers
-        for name in ["bp", "sp", "si", "di"]:
+        for name in AMD64_BASE_REGS:
             name_64 = "r" + name
             name_32 = "e" + name
             name_16 = name
@@ -236,8 +271,7 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
             setattr(target_class, name_16, _get_property_16(name_64))
             setattr(target_class, name_8l, _get_property_8l(name_64))
 
-        # Setup accessors for extended registers
-        for name in ["r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"]:
+        for name in AMD64_EXT_REGS:
             name_64 = name
             name_32 = name + "d"
             name_16 = name + "w"
@@ -265,6 +299,8 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
                     f"Floating-point register file type {self.fp_register_file.type} not available.",
                 )
 
+        Amd64PtraceRegisterHolder._vector_registers = self._vector_registers
+
     def apply_on_thread(self: Amd64PtraceRegisterHolder, target: ThreadContext, target_class: type) -> None:
         """Apply the register accessors to the thread class."""
         target.register_file = self.register_file
@@ -289,41 +325,43 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
     def _handle_fp_512(self: Amd64PtraceRegisterHolder, target_class: type) -> None:
         """Handle the case where the xsave area is 512 bytes long, which means we just have the xmm registers."""
         for index in range(16):
-            name = f"xmm{index}"
-            setattr(target_class, name, _get_property_fp_xmm0(name, index))
+            name_xmm = f"xmm{index}"
+            setattr(target_class, name_xmm, _get_property_fp_xmm0(name_xmm, index))
+            self._vector_registers.append((name_xmm,))
 
     def _handle_fp_896(self: Amd64PtraceRegisterHolder, target_class: type) -> None:
         """Handle the case where the xsave area is 896 bytes long, which means we have the xmm and ymm registers."""
         for index in range(16):
-            name = f"xmm{index}"
-            setattr(target_class, name, _get_property_fp_xmm0(name, index))
+            name_xmm = f"xmm{index}"
+            setattr(target_class, name_xmm, _get_property_fp_xmm0(name_xmm, index))
 
-        for index in range(16):
-            name = f"ymm{index}"
-            setattr(target_class, name, _get_property_fp_ymm0(name, index))
+            name_ymm = f"ymm{index}"
+            setattr(target_class, name_ymm, _get_property_fp_ymm0(name_ymm, index))
+
+            self._vector_registers.append((name_xmm, name_ymm))
 
     def _handle_fp_2696(self: Amd64PtraceRegisterHolder, target_class: type) -> None:
         """Handle the case where the xsave area is 2696 bytes long, which means we have 32 zmm registers."""
         for index in range(16):
-            name = f"xmm{index}"
-            setattr(target_class, name, _get_property_fp_xmm0(name, index))
+            name_xmm = f"xmm{index}"
+            setattr(target_class, name_xmm, _get_property_fp_xmm0(name_xmm, index))
+
+            name_ymm = f"ymm{index}"
+            setattr(target_class, name_ymm, _get_property_fp_ymm0(name_ymm, index))
+
+            name_zmm = f"zmm{index}"
+            setattr(target_class, name_zmm, _get_property_fp_zmm0(name_zmm, index))
+
+            self._vector_registers.append((name_xmm, name_ymm, name_zmm))
 
         for index in range(16):
-            name = f"ymm{index}"
-            setattr(target_class, name, _get_property_fp_ymm0(name, index))
+            name_xmm = f"xmm{index + 16}"
+            setattr(target_class, name_xmm, _get_property_fp_xmm1(name_xmm, index))
 
-        for index in range(16):
-            name = f"zmm{index}"
-            setattr(target_class, name, _get_property_fp_zmm0(name, index))
+            name_ymm = f"ymm{index + 16}"
+            setattr(target_class, name_ymm, _get_property_fp_ymm1(name_ymm, index))
 
-        for index in range(16):
-            name = f"xmm{index + 16}"
-            setattr(target_class, name, _get_property_fp_xmm1(name, index))
+            name_zmm = f"zmm{index + 16}"
+            setattr(target_class, name_zmm, _get_property_fp_zmm1(name_zmm, index))
 
-        for index in range(16):
-            name = f"ymm{index + 16}"
-            setattr(target_class, name, _get_property_fp_ymm1(name, index))
-
-        for index in range(16):
-            name = f"zmm{index + 16}"
-            setattr(target_class, name, _get_property_fp_zmm1(name, index))
+            self._vector_registers.append((name_xmm, name_ymm, name_zmm))
