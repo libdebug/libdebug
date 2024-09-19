@@ -74,6 +74,4 @@ class Breakpoint:
 
     def __eq__(self: Breakpoint, other: object) -> bool:
         """Check if two breakpoints are equal."""
-        if not isinstance(other, Breakpoint):
-            return False
-        return self.address == other.address
+        return id(self) == id(other)
