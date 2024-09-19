@@ -298,9 +298,9 @@ class InternalDebugger:
 
         self.__polling_thread_command_queue.put((self.__threaded_attach, (pid,)))
 
-        self._process_memory_manager.open(self.process_id)
-
         self._join_and_check_status()
+
+        self._process_memory_manager.open(self.process_id)
 
     def detach(self: InternalDebugger) -> None:
         """Detaches from the process."""
