@@ -36,6 +36,8 @@ After creating the debugger object, you can start the execution of the program u
 
 The `run()` command returns a `PipeManager` object, which you can use to interact with the program's standard input, output, and error. To read more about the PipeManager interface, please refer to the PipeManager documentation :class:`libdebug.utils.pipe_manager.PipeManager`. Please note that breakpoints are not kept between different runs of the program. If you want to set a breakpoint again, you should do so after the program has restarted.
 
+Any process will be automatically killed when the debugging script exits. If you want to prevent this behavior, you can set the `kill_on_exit` parameter to False when creating the debugger object, or set the companion attribute `kill_on_exit` to False at runtime.
+
 The command queue
 -----------------
 Control flow commands, register access and memory access are all done through the command queue. This is a FIFO queue of commands that are executed in order. 
@@ -86,7 +88,7 @@ Register Access
 libdebug offers a simple register access interface for supported architectures. The registers are accessed through the `regs`` attribute of the debugger object. The field includes both general purpose and special registers, as well as the flags register. Effectively, any register that can be accessed by an assembly instruction, can also be accessed through the regs attribute. The debugger specifically exposes properties of the main thread, including the registers. See :doc:`multithreading` to learn how to access registers and other properties from different threads.
 
 Floating point and vector registers are available as well. The syntax is identical to the one used for integer registers.
-The list of available AVX registers is determined during installation by checking the CPU capabilities, thus special registers, such as `zmm0` to `zmm31`, are available only on CPUs that support the specific ISA extension.
+For amd64, the list of available AVX registers is determined during installation by checking the CPU capabilities, thus special registers, such as `zmm0` to `zmm31`, are available only on CPUs that support the specific ISA extension.
 If you believe that your target CPU supports AVX registers, but they are not available during debugging, please file an issue on the GitHub repository and include your precise hardware details, so that we can investigate and resolve the issue.
 
 Memory Access
@@ -161,6 +163,23 @@ If you specify a full or a substring of a file name, libdebug will search for th
 
 You can also use the wildcard string "binary" to use the base address of the binary as the base address for the relative addressing. The same behavior is applied if you pass a string corresponding to the binary name.
 
+Faster Memory Access
+-------------------
+
+By default, libdebug uses the kernel's ptrace interface to access memory. This is guaranteed to work, but it might be slow during large memory transfers.
+To speed up memory access, we provide a secondary system that relies on /proc/$pid/mem for read and write operations. You can enable this feature by setting `fast_memory` to True when instancing the debugger.
+The final behavior is identical, but the speed is significantly improved.
+
+Additionally, you can mix the two memory access methods by changing the `fast_memory` attribute of the debugger at runtime:
+
+.. code-block:: python
+
+    d.fast_memory = True
+
+    # ...
+
+    d.fast_memory = False
+
 Control Flow Commands
 ====================================
 
@@ -234,7 +253,17 @@ The `next` command is similar to the `step` command, but when a ``call`` instruc
 Detach and GDB Migration
 ====================================
 
-If at any time during your script you want to take a more interactive approach to debugging, you can use the `gdb()` method. This will temporarily detach libdebug from the program and give you control over the program using GDB. Quitting GDB will return control to libdebug. The syntax is as follows:
+If at any time during your script you want to take a more interactive approach to debugging, you can use the ``gdb()`` method. This will temporarily detach libdebug from the program and give you control over the program using GDB. Quitting GDB will return control to libdebug. 
+
+By default, the behavior of this command is to open GDB in a new terminal window. For this to work, it is necessary to specify your terminal emulator in the libcontext parameters. The following example shows how to set the terminal to tmux:
+
+.. code-block:: python
+
+    from libdebug import libcontext
+
+    libcontext.terminal = ['tmux', 'splitw', '-h']
+
+Once the terminal is set, you can use the ``gdb()`` method.
 
 .. code-block:: python
 
@@ -257,6 +286,9 @@ An alternative to running the program from the beginning and to resume libdebug 
 .. code-block:: python
 
     d.attach(pid)
+
+Do note that libdebug automatically kills any running process when the debugging script exits, even if the debugger has detached from it.
+If you want to prevent this behavior, you can set the `kill_on_exit` parameter to False when creating the debugger object, or set the companion attribute `kill_on_exit` to False at runtime.
 
 Graceful Termination
 ====================
@@ -303,4 +335,4 @@ You can also access registers after the process has died. This is useful for *po
 Supported Architectures
 =======================
 
-libdebug currently only supports Linux under the x86_64 (AMD64) architecture. Support for other architectures is planned for future releases. Stay tuned.
+libdebug currently only supports Linux under the x86_64 (AMD64) and AArch64 (ARM64) architectures. Support for other architectures is planned for future releases. Stay tuned.

@@ -17,10 +17,10 @@ from libdebug.utils.print_style import PrintStyle
 from libdebug.utils.signal_utils import resolve_signal_name, resolve_signal_number
 
 if TYPE_CHECKING:
-    from libdebug.data.memory_view import MemoryView
     from libdebug.data.register_holder import RegisterHolder
     from libdebug.data.registers import Registers
     from libdebug.debugger.internal_debugger import InternalDebugger
+    from libdebug.memory.abstract_memory_view import AbstractMemoryView
 
 
 class ThreadContext:
@@ -93,12 +93,12 @@ class ThreadContext:
         return self._dead
 
     @property
-    def memory(self: ThreadContext) -> MemoryView:
+    def memory(self: ThreadContext) -> AbstractMemoryView:
         """The memory view of the debugged process."""
         return self._internal_debugger.memory
 
     @property
-    def mem(self: ThreadContext) -> MemoryView:
+    def mem(self: ThreadContext) -> AbstractMemoryView:
         """Alias for the `memory` property.
 
         Get the memory view of the process.
@@ -170,7 +170,7 @@ class ThreadContext:
         self._internal_debugger._ensure_process_stopped()
         if self._signal_number != 0:
             liblog.debugger(
-                f"Overwriting signal {resolve_signal_name(self._signal_number)} with {resolve_signal_name(signal) if isinstance(signal, int) else signal}."
+                f"Overwriting signal {resolve_signal_name(self._signal_number)} with {resolve_signal_name(signal) if isinstance(signal, int) else signal}.",
             )
         if isinstance(signal, str):
             signal = resolve_signal_number(signal)
@@ -184,7 +184,7 @@ class ThreadContext:
             as_symbols (bool, optional): Whether to return the backtrace as symbols
         """
         self._internal_debugger._ensure_process_stopped()
-        stack_unwinder = stack_unwinding_provider()
+        stack_unwinder = stack_unwinding_provider(self._internal_debugger.arch)
         backtrace = stack_unwinder.unwind(self)
         if as_symbols:
             maps = self._internal_debugger.debugging_interface.maps()
@@ -194,7 +194,7 @@ class ThreadContext:
     def print_backtrace(self: ThreadContext) -> None:
         """Prints the current backtrace of the thread."""
         self._internal_debugger._ensure_process_stopped()
-        stack_unwinder = stack_unwinding_provider()
+        stack_unwinder = stack_unwinding_provider(self._internal_debugger.arch)
         backtrace = stack_unwinder.unwind(self)
         maps = self._internal_debugger.debugging_interface.maps()
         for return_address in backtrace:
@@ -204,16 +204,19 @@ class ThreadContext:
             else:
                 print(f"{PrintStyle.RED}{return_address:#x} <{return_address_symbol}> {PrintStyle.RESET}")
 
-    def current_return_address(self: ThreadContext) -> int:
-        """Returns the return address of the current function."""
+    @property
+    def saved_ip(self: ThreadContext) -> int:
+        """The return address of the current function."""
         self._internal_debugger._ensure_process_stopped()
-        stack_unwinder = stack_unwinding_provider()
-        
+        stack_unwinder = stack_unwinding_provider(self._internal_debugger.arch)
+
         try:
-            return_address = stack_unwinder.get_return_address(self)
+            return_address = stack_unwinder.get_return_address(self, self._internal_debugger.debugging_interface.maps())
         except (OSError, ValueError) as e:
-            raise ValueError("Failed to get the return address. Check stack frame registers (e.g., base pointer).") from e
-        
+            raise ValueError(
+                "Failed to get the return address. Check stack frame registers (e.g., base pointer).",
+            ) from e
+
         return return_address
 
     def step(self: ThreadContext) -> None:
@@ -250,8 +253,7 @@ class ThreadContext:
         self._internal_debugger.finish(self, heuristic=heuristic)
 
     def next(self: ThreadContext) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
-        """
+        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._internal_debugger.next(self)
 
     def si(self: ThreadContext) -> None:
@@ -289,6 +291,5 @@ class ThreadContext:
         self._internal_debugger.finish(self, heuristic)
 
     def ni(self: ThreadContext) -> None:
-        """Alias for the `next` method. Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
-        """
+        """Alias for the `next` method. Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._internal_debugger.next(self)

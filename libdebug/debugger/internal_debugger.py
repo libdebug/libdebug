@@ -10,6 +10,7 @@ from __future__ import annotations
 import functools
 import os
 import signal
+import sys
 from pathlib import Path
 from queue import Queue
 from signal import SIGKILL, SIGSTOP, SIGTRAP
@@ -19,11 +20,11 @@ from typing import TYPE_CHECKING
 
 import psutil
 
-from libdebug.architectures.syscall_hijacking_provider import syscall_hijacking_provider
+from libdebug.architectures.breakpoint_validator import validate_hardware_breakpoint
+from libdebug.architectures.syscall_hijacker import SyscallHijacker
 from libdebug.builtin.antidebug_syscall_handler import on_enter_ptrace, on_exit_ptrace
 from libdebug.builtin.pretty_print_syscall_handler import pprint_on_enter, pprint_on_exit
 from libdebug.data.breakpoint import Breakpoint
-from libdebug.data.memory_view import MemoryView
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
 from libdebug.debugger.internal_debugger_instance_manager import (
@@ -32,7 +33,11 @@ from libdebug.debugger.internal_debugger_instance_manager import (
 )
 from libdebug.interfaces.interface_helper import provide_debugging_interface
 from libdebug.liblog import liblog
+from libdebug.memory.chunked_memory_view import ChunkedMemoryView
+from libdebug.memory.direct_memory_view import DirectMemoryView
+from libdebug.memory.process_memory_manager import ProcessMemoryManager
 from libdebug.state.resume_context import ResumeContext
+from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.debugger_wrappers import (
     background_alias,
     change_state_function_process,
@@ -44,6 +49,7 @@ from libdebug.utils.debugging_utils import (
     resolve_symbol_in_maps,
 )
 from libdebug.utils.libcontext import libcontext
+from libdebug.utils.platform_utils import get_platform_register_size
 from libdebug.utils.print_style import PrintStyle
 from libdebug.utils.signal_utils import (
     resolve_signal_name,
@@ -61,11 +67,12 @@ if TYPE_CHECKING:
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.registers import Registers
     from libdebug.interfaces.debugging_interface import DebuggingInterface
+    from libdebug.memory.abstract_memory_view import AbstractMemoryView
     from libdebug.state.thread_context import ThreadContext
     from libdebug.utils.pipe_manager import PipeManager
 
 THREAD_TERMINATE = -1
-GDB_GOBACK_LOCATION = str((Path(__file__).parent / "utils" / "gdb.py").resolve())
+GDB_GOBACK_LOCATION = str((Path(__file__).parent.parent / "utils" / "gdb.py").resolve())
 
 
 class InternalDebugger:
@@ -73,6 +80,9 @@ class InternalDebugger:
 
     aslr_enabled: bool
     """A flag that indicates if ASLR is enabled or not."""
+
+    arch: str
+    """The architecture of the debugged process."""
 
     argv: list[str]
     """The command line arguments of the debugged process."""
@@ -82,6 +92,9 @@ class InternalDebugger:
 
     escape_antidebug: bool
     """A flag that indicates if the debugger should escape anti-debugging techniques."""
+
+    fast_memory: bool
+    """A flag that indicates if the debugger should use a faster memory access method."""
 
     autoreach_entrypoint: bool
     """A flag that indicates if the debugger should automatically reach the entry point of the debugged process."""
@@ -110,6 +123,9 @@ class InternalDebugger:
     syscalls_to_not_pprint: list[int] | None
     """The syscalls to not pretty print."""
 
+    kill_on_exit: bool
+    """A flag that indicates if the debugger should kill the debugged process when it exits."""
+
     threads: list[ThreadContext]
     """A list of all the threads of the debugged process."""
 
@@ -119,7 +135,7 @@ class InternalDebugger:
     pipe_manager: PipeManager
     """The pipe manager used to communicate with the debugged process."""
 
-    memory: MemoryView
+    memory: AbstractMemoryView
     """The memory view of the debugged process."""
 
     debugging_interface: DebuggingInterface
@@ -134,17 +150,23 @@ class InternalDebugger:
     resume_context: ResumeContext
     """Context that indicates if the debugger should resume the debugged process."""
 
-    _polling_thread: Thread | None
+    __polling_thread: Thread | None
     """The background thread used to poll the process for state change."""
 
-    _polling_thread_command_queue: Queue | None
+    __polling_thread_command_queue: Queue | None
     """The queue used to send commands to the background thread."""
 
-    _polling_thread_response_queue: Queue | None
+    __polling_thread_response_queue: Queue | None
     """The queue used to receive responses from the background thread."""
 
     _is_running: bool
     """The overall state of the debugged process. True if the process is running, False otherwise."""
+
+    _fast_memory: DirectMemoryView
+    """The memory view of the debugged process using the fast memory access method."""
+
+    _slow_memory: ChunkedMemoryView
+    """The memory view of the debugged process using the slow memory access method."""
 
     def __init__(self: InternalDebugger) -> None:
         """Initialize the context."""
@@ -163,10 +185,14 @@ class InternalDebugger:
         self.pprint_syscalls = False
         self.pipe_manager = None
         self.process_id = 0
-        self.threads = list()
+        self.threads = []
         self.instanced = False
         self._is_running = False
         self.resume_context = ResumeContext()
+        self.arch = map_arch(libcontext.platform)
+        self.kill_on_exit = True
+        self._process_memory_manager = ProcessMemoryManager()
+        self.fast_memory = False
         self.__polling_thread_command_queue = Queue()
         self.__polling_thread_response_queue = Queue()
 
@@ -189,14 +215,18 @@ class InternalDebugger:
 
     def start_up(self: InternalDebugger) -> None:
         """Starts up the context."""
-
         # The context is linked to itself
         link_to_internal_debugger(self, self)
 
         self.start_processing_thread()
         with extend_internal_debugger(self):
             self.debugging_interface = provide_debugging_interface()
-            self.memory = MemoryView(self._peek_memory, self._poke_memory)
+            self._fast_memory = DirectMemoryView(self._fast_read_memory, self._fast_write_memory)
+            self._slow_memory = ChunkedMemoryView(
+                self._peek_memory,
+                self._poke_memory,
+                unit_size=get_platform_register_size(libcontext.platform),
+            )
 
     def start_processing_thread(self: InternalDebugger) -> None:
         """Starts the thread that will poll the traced process for state change."""
@@ -212,7 +242,7 @@ class InternalDebugger:
         """Raises an error when an invalid call is made in background mode."""
         raise RuntimeError("This method is not available in a callback.")
 
-    def run(self: InternalDebugger) -> None:
+    def run(self: InternalDebugger) -> PipeManager:
         """Starts the process and waits for it to stop."""
         if not self.argv:
             raise RuntimeError("No binary file specified.")
@@ -239,14 +269,16 @@ class InternalDebugger:
 
         self.__polling_thread_command_queue.put((self.__threaded_run, ()))
 
+        self._join_and_check_status()
+
         if self.escape_antidebug:
             liblog.debugger("Enabling anti-debugging escape mechanism.")
             self._enable_antidebug_escaping()
 
-        self._join_and_check_status()
-
         if not self.pipe_manager:
             raise RuntimeError("Something went wrong during pipe initialization.")
+
+        self._process_memory_manager.open(self.process_id)
 
         return self.pipe_manager
 
@@ -268,6 +300,8 @@ class InternalDebugger:
 
         self._join_and_check_status()
 
+        self._process_memory_manager.open(self.process_id)
+
     def detach(self: InternalDebugger) -> None:
         """Detaches from the process."""
         if not self.instanced:
@@ -279,6 +313,8 @@ class InternalDebugger:
 
         self._join_and_check_status()
 
+        self._process_memory_manager.close()
+
     @background_alias(_background_invalid_call)
     def kill(self: InternalDebugger) -> None:
         """Kills the process."""
@@ -287,6 +323,8 @@ class InternalDebugger:
         except (OSError, RuntimeError):
             # This exception might occur if the process has already died
             liblog.debugger("OSError raised during kill")
+
+        self._process_memory_manager.close()
 
         self.__polling_thread_command_queue.put((self.__threaded_kill, ()))
 
@@ -298,11 +336,19 @@ class InternalDebugger:
         self._join_and_check_status()
 
     def terminate(self: InternalDebugger) -> None:
-        """Terminates the background thread.
+        """Interrupts the process, kills it and then terminates the background thread.
 
-        The debugger object cannot be used after this method is called.
+        The debugger object will not be usable after this method is called.
         This method should only be called to free up resources when the debugger object is no longer needed.
         """
+        if self.instanced and self.running:
+            self.interrupt()
+
+        if self.instanced:
+            self.kill()
+
+        self.instanced = False
+
         if self.__polling_thread is not None:
             self.__polling_thread_command_queue.put((THREAD_TERMINATE, ()))
             self.__polling_thread.join()
@@ -363,6 +409,11 @@ class InternalDebugger:
         self._ensure_process_stopped()
         return self.debugging_interface.maps()
 
+    @property
+    def memory(self: InternalDebugger) -> AbstractMemoryView:
+        """The memory view of the debugged process."""
+        return self._fast_memory if self.fast_memory else self._slow_memory
+
     def print_maps(self: InternalDebugger) -> None:
         """Prints the memory maps of the process."""
         self._ensure_process_stopped()
@@ -414,7 +465,7 @@ class InternalDebugger:
         self: InternalDebugger,
         position: int | str,
         hardware: bool = False,
-        condition: str | None = None,
+        condition: str = "x",
         length: int = 1,
         callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
         file: str = "hybrid",
@@ -439,26 +490,13 @@ class InternalDebugger:
             address = self.resolve_address(position, file)
             position = hex(address)
 
-        if condition:
-            if not hardware:
-                raise ValueError(
-                    "Breakpoint condition is supported only for hardware watchpoints.",
-                )
+        if condition != "x" and not hardware:
+            raise ValueError("Breakpoint condition is supported only for hardware watchpoints.")
 
-            if condition.lower() not in ["w", "rw", "x"]:
-                raise ValueError(
-                    "Invalid condition for watchpoints. Supported conditions are 'w', 'rw', 'x'.",
-                )
+        bp = Breakpoint(address, position, 0, hardware, callback, condition.lower(), length)
 
-            if length not in [1, 2, 4, 8]:
-                raise ValueError(
-                    "Invalid length for watchpoints. Supported lengths are 1, 2, 4, 8.",
-                )
-
-        if hardware and not condition:
-            condition = "x"
-
-        bp = Breakpoint(address, position, 0, hardware, callback, condition, length)
+        if hardware:
+            validate_hardware_breakpoint(self.arch, bp)
 
         link_to_internal_debugger(bp, self)
 
@@ -502,15 +540,15 @@ class InternalDebugger:
         match signal_number:
             case SIGKILL.value:
                 raise ValueError(
-                    f"Cannot catch SIGKILL ({signal_number}) as it cannot be caught or ignored. This is a kernel restriction."
+                    f"Cannot catch SIGKILL ({signal_number}) as it cannot be caught or ignored. This is a kernel restriction.",
                 )
             case SIGSTOP.value:
                 raise ValueError(
-                    f"Cannot catch SIGSTOP ({signal_number}) as it is used by the debugger or ptrace for their internal operations."
+                    f"Cannot catch SIGSTOP ({signal_number}) as it is used by the debugger or ptrace for their internal operations.",
                 )
             case SIGTRAP.value:
                 raise ValueError(
-                    f"Cannot catch SIGTRAP ({signal_number}) as it is used by the debugger or ptrace for their internal operations."
+                    f"Cannot catch SIGTRAP ({signal_number}) as it is used by the debugger or ptrace for their internal operations.",
                 )
 
         if signal_number in self.caught_signals:
@@ -591,7 +629,7 @@ class InternalDebugger:
         Returns:
             HandledSyscall: The HandledSyscall object.
         """
-        syscall_number = resolve_syscall_number(syscall) if isinstance(syscall, str) else syscall
+        syscall_number = resolve_syscall_number(self.arch, syscall) if isinstance(syscall, str) else syscall
 
         if not isinstance(recursive, bool):
             raise TypeError("recursive must be a boolean")
@@ -601,7 +639,7 @@ class InternalDebugger:
             handler = self.handled_syscalls[syscall_number]
             if handler.on_enter_user or handler.on_exit_user:
                 liblog.warning(
-                    f"Syscall {resolve_syscall_name(syscall_number)} is already handled by a user-defined handler. Overriding it.",
+                    f"Syscall {resolve_syscall_name(self.arch, syscall_number)} is already handled by a user-defined handler. Overriding it.",
                 )
             handler.on_enter_user = on_enter
             handler.on_exit_user = on_exit
@@ -648,22 +686,24 @@ class InternalDebugger:
         Returns:
             HandledSyscall: The HandledSyscall object.
         """
-        if set(kwargs) - syscall_hijacking_provider().allowed_args:
+        if set(kwargs) - SyscallHijacker.allowed_args:
             raise ValueError("Invalid keyword arguments in syscall hijack")
 
         if isinstance(original_syscall, str):
-            original_syscall_number = resolve_syscall_number(original_syscall)
+            original_syscall_number = resolve_syscall_number(self.arch, original_syscall)
         else:
             original_syscall_number = original_syscall
 
-        new_syscall_number = resolve_syscall_number(new_syscall) if isinstance(new_syscall, str) else new_syscall
+        new_syscall_number = (
+            resolve_syscall_number(self.arch, new_syscall) if isinstance(new_syscall, str) else new_syscall
+        )
 
         if original_syscall_number == new_syscall_number:
             raise ValueError(
                 "The original syscall and the new syscall must be different during hijacking.",
             )
 
-        on_enter = syscall_hijacking_provider().create_hijacker(
+        on_enter = SyscallHijacker().create_hijacker(
             new_syscall_number,
             **kwargs,
         )
@@ -703,7 +743,6 @@ class InternalDebugger:
     @change_state_function_process
     def gdb(self: InternalDebugger, open_in_new_process: bool = True) -> None:
         """Migrates the current debugging session to GDB."""
-
         # TODO: not needed?
         self.interrupt()
 
@@ -924,15 +963,13 @@ class InternalDebugger:
         self: InternalDebugger,
         thread: ThreadContext,
     ) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
-        """
+        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self.__threaded_next(thread)
 
     @background_alias(_background_next)
     @change_state_function_thread
     def next(self: InternalDebugger, thread: ThreadContext) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
-        """
+        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._ensure_process_stopped()
         self.__polling_thread_command_queue.put((self.__threaded_next, (thread,)))
         self._join_and_check_status()
@@ -943,7 +980,7 @@ class InternalDebugger:
         """Handles a syscall in the target process to pretty prints its arguments and return value."""
         self._ensure_process_stopped()
 
-        syscall_numbers = get_all_syscall_numbers()
+        syscall_numbers = get_all_syscall_numbers(self.arch)
 
         for syscall_number in syscall_numbers:
             # Check if the syscall is already handled (by the user or by the pretty print handler)
@@ -1104,7 +1141,7 @@ class InternalDebugger:
 
         if not filtered_maps:
             raise ValueError(
-                f"The specified string {backing_file} does not correspond to any backing file. The available backing files are: {', '.join(set(vmap.backing_file for vmap in maps))}."
+                f"The specified string {backing_file} does not correspond to any backing file. The available backing files are: {', '.join(set(vmap.backing_file for vmap in maps))}.",
             )
         return normalize_and_validate_address(address, filtered_maps)
 
@@ -1329,11 +1366,10 @@ class InternalDebugger:
 
     def __threaded_peek_memory(self: InternalDebugger, address: int) -> bytes | BaseException:
         value = self.debugging_interface.peek_memory(address)
-        # TODO: this is only for amd64
-        return value.to_bytes(8, "little")
+        return value.to_bytes(get_platform_register_size(libcontext.platform), sys.byteorder)
 
     def __threaded_poke_memory(self: InternalDebugger, address: int, data: bytes) -> None:
-        int_data = int.from_bytes(data, "little")
+        int_data = int.from_bytes(data, sys.byteorder)
         self.debugging_interface.poke_memory(address, int_data)
 
     def __threaded_fetch_fp_registers(self: InternalDebugger, registers: Registers) -> None:
@@ -1346,7 +1382,7 @@ class InternalDebugger:
     def _peek_memory(self: InternalDebugger, address: int) -> bytes:
         """Reads memory from the process."""
         if not self.instanced:
-            raise RuntimeError("Process not running, cannot step.")
+            raise RuntimeError("Process not running, cannot access memory.")
 
         if self.running:
             # Reading memory while the process is running could lead to concurrency issues
@@ -1372,11 +1408,27 @@ class InternalDebugger:
 
         return value
 
+    def _fast_read_memory(self: InternalDebugger, address: int, size: int) -> bytes:
+        """Reads memory from the process."""
+        if not self.instanced:
+            raise RuntimeError("Process not running, cannot access memory.")
+
+        if self.running:
+            # Reading memory while the process is running could lead to concurrency issues
+            # and corrupted values
+            liblog.debugger(
+                "Process is running. Waiting for it to stop before reading memory.",
+            )
+
+        self._ensure_process_stopped()
+
+        return self._process_memory_manager.read(address, size)
+
     @background_alias(__threaded_poke_memory)
     def _poke_memory(self: InternalDebugger, address: int, data: bytes) -> None:
         """Writes memory to the process."""
         if not self.instanced:
-            raise RuntimeError("Process not running, cannot step.")
+            raise RuntimeError("Process not running, cannot access memory.")
 
         if self.running:
             # Reading memory while the process is running could lead to concurrency issues
@@ -1393,11 +1445,27 @@ class InternalDebugger:
 
         self._join_and_check_status()
 
+    def _fast_write_memory(self: InternalDebugger, address: int, data: bytes) -> None:
+        """Writes memory to the process."""
+        if not self.instanced:
+            raise RuntimeError("Process not running, cannot access memory.")
+
+        if self.running:
+            # Reading memory while the process is running could lead to concurrency issues
+            # and corrupted values
+            liblog.debugger(
+                "Process is running. Waiting for it to stop before writing to memory.",
+            )
+
+        self._ensure_process_stopped()
+
+        self._process_memory_manager.write(address, data)
+
     @background_alias(__threaded_fetch_fp_registers)
     def _fetch_fp_registers(self: InternalDebugger, registers: Registers) -> None:
         """Fetches the floating point registers of a thread."""
         if not self.instanced:
-            raise RuntimeError("Process not running, cannot step.")
+            raise RuntimeError("Process not running, cannot read floating-point registers.")
 
         self._ensure_process_stopped()
 
@@ -1411,7 +1479,7 @@ class InternalDebugger:
     def _flush_fp_registers(self: InternalDebugger, registers: Registers) -> None:
         """Flushes the floating point registers of a thread."""
         if not self.instanced:
-            raise RuntimeError("Process not running, cannot step.")
+            raise RuntimeError("Process not running, cannot write floating-point registers.")
 
         self._ensure_process_stopped()
 
@@ -1424,7 +1492,7 @@ class InternalDebugger:
     def _enable_antidebug_escaping(self: InternalDebugger) -> None:
         """Enables the anti-debugging escape mechanism."""
         handler = SyscallHandler(
-            resolve_syscall_number("ptrace"),
+            resolve_syscall_number(self.arch, "ptrace"),
             on_enter_ptrace,
             on_exit_ptrace,
             None,
@@ -1434,6 +1502,8 @@ class InternalDebugger:
         link_to_internal_debugger(handler, self)
 
         self.__polling_thread_command_queue.put((self.__threaded_handle_syscall, (handler,)))
+
+        self._join_and_check_status()
 
         # Seutp hidden state for the handler
         handler._traceme_called = False

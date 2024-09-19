@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from libdebug.architectures.call_utilities_manager import CallUtilitiesManager
 
+
 class Amd64CallUtilities(CallUtilitiesManager):
     """Class that provides call utilities for the x86_64 architecture."""
 
@@ -57,7 +58,7 @@ class Amd64CallUtilities(CallUtilitiesManager):
                     return 2  # Register direct
 
         return 0  # Not a CALL
-    
+
     def get_call_and_skip_amount(self, opcode_window: bytes) -> tuple[bool, int]:
         """Check if the current instruction is a call instruction and compute the instruction size."""
         skip = self.compute_call_skip(opcode_window)
