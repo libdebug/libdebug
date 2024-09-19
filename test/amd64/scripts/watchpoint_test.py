@@ -20,7 +20,7 @@ class WatchpointTest(unittest.TestCase):
         wp_long = d.breakpoint("global_long", hardware=True, condition="rw", length=8)
 
         d.cont()
-        
+ 
         self.assertEqual(d.regs.rip, 0x401111)  # mov byte ptr [global_char], 0x1
         self.assertTrue(wp_char.hit_on(d))
         self.assertEqual(wp_char.hit_count, 1)
