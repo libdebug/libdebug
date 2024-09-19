@@ -290,3 +290,12 @@ class ThreadContext:
     def ni(self: ThreadContext) -> None:
         """Alias for the `next` method. Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._internal_debugger.next(self)
+
+    def __repr__(self: ThreadContext) -> str:
+        """Returns a string representation of the object."""
+        repr_str = "ThreadContext()\n"
+        repr_str += f"\tThread ID: {self.thread_id}\n"
+        repr_str += f"\tProcess ID: {self.process_id}\n"
+        repr_str += f"\tInstruction Pointer: {self.instruction_pointer:#x}\n"
+        repr_str += f"\tDead: {self.dead}"
+        return repr_str

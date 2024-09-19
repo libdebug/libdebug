@@ -20,3 +20,14 @@ class Amd64Registers(Registers):
         """Initializes the Registers object."""
         self._internal_debugger = get_global_internal_debugger()
         self._thread_id = thread_id
+
+    def __repr__(self: Amd64Registers) -> str:
+        """Returns a string representation of the object."""
+        repr_str = f"Amd64Registers(thread_id={self._thread_id})"
+
+        attributes = [attr for attr in Amd64Registers.__dict__ if not attr.startswith("_")]
+        max_len = max(len(attr) for attr in attributes) + 1
+
+        repr_str += "".join(f"\n\t{attr + ':':<{max_len}} {getattr(self, attr):#010x}" for attr in attributes)
+
+        return repr_str
