@@ -263,6 +263,12 @@ class PtraceInterface(DebuggingInterface):
         for bp in self._internal_debugger.breakpoints.values():
             bp._disabled_for_step = True
 
+        # Reset the event type
+        self._internal_debugger.resume_context.event_type = None
+
+        # Reset the breakpoint hit
+        self._internal_debugger.resume_context.breakpoint_hit.clear()
+
         result = self.lib_trace.singlestep(self._global_state, thread.thread_id)
         if result == -1:
             errno_val = self.ffi.errno
@@ -281,6 +287,12 @@ class PtraceInterface(DebuggingInterface):
         # Disable all breakpoints for the single step
         for bp in self._internal_debugger.breakpoints.values():
             bp._disabled_for_step = True
+
+        # Reset the event type
+        self._internal_debugger.resume_context.event_type = None
+
+        # Reset the breakpoint hit
+        self._internal_debugger.resume_context.breakpoint_hit.clear()
 
         result = self.lib_trace.step_until(
             self._global_state,
@@ -302,6 +314,12 @@ class PtraceInterface(DebuggingInterface):
             thread (ThreadContext): The thread to step.
             heuristic (str): The heuristic to use.
         """
+        # Reset the event type
+        self._internal_debugger.resume_context.event_type = None
+
+        # Reset the breakpoint hit
+        self._internal_debugger.resume_context.breakpoint_hit.clear()
+
         if heuristic == "step-mode":
             result = self.lib_trace.stepping_finish(
                 self._global_state,
@@ -359,6 +377,11 @@ class PtraceInterface(DebuggingInterface):
 
     def next(self: PtraceInterface, thread: ThreadContext) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
+        # Reset the event type
+        self._internal_debugger.resume_context.event_type = None
+
+        # Reset the breakpoint hit
+        self._internal_debugger.resume_context.breakpoint_hit.clear()
 
         opcode_window = thread.memory.read(thread.instruction_pointer, 8)
 

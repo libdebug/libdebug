@@ -63,14 +63,10 @@ class Breakpoint:
         """Returns whether the breakpoint has been hit on the given thread context."""
         if not self.enabled:
             return False
-        elif self.condition == "x":
-            # TODO: We can unify this with the watchpoint hit check in the future, when
-            # we will have a better management of step, finish, etc.
-            return thread_context.instruction_pointer == self.address
-        else:
-            internal_debugger = provide_internal_debugger(self)
-            internal_debugger._ensure_process_stopped()
-            return internal_debugger.resume_context.breakpoint_hit.get(thread_context.thread_id) == self
+
+        internal_debugger = provide_internal_debugger(self)
+        internal_debugger._ensure_process_stopped()
+        return internal_debugger.resume_context.breakpoint_hit.get(thread_context.thread_id) == self
 
     def __hash__(self: Breakpoint) -> int:
         """Hash the breakpoint by its address, so that it can be used in sets and maps correctly."""
