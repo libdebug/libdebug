@@ -342,7 +342,11 @@ class InternalDebugger:
         This method should only be called to free up resources when the debugger object is no longer needed.
         """
         if self.instanced and self.running:
-            self.interrupt()
+            try:
+                self.interrupt()
+            except ProcessLookupError:
+                # The process has already been killed by someone or something else
+                liblog.debugger("Interrupting process failed: already terminated")
 
         if self.instanced:
             try:
