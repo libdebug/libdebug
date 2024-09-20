@@ -45,7 +45,7 @@ By default, the memory access in libdebug is done using an hybrid addressing mod
 
     d.cont()
 
-In this case, the breakpoint will be set at the address ``0x10ab`` relative to the ``libc`` memory page. Other than existing pages, you can specify ``absolute`` as the file to force the absolute addressing mode.
+In this case, the breakpoint will be set at the address ``0x10ab`` relative to the ``libc`` memory page. Other than existing pages, you can specify ``absolute`` as the file to force the absolute addressing mode, or ``binary`` to force the resolution of the symbol from the executable.
 
 Breakpoint hits
 ^^^^^^^^^^^^^^^
