@@ -297,22 +297,27 @@ class MemoryTest(unittest.TestCase):
 
         assert d.regs.rip == bp.address
         
-        maps = d.search_maps("memory_test")
+        maps = d.maps.find("memory_test")
         
         for vmap in maps:
             self.assertIn("/binaries/memory_test", vmap.backing_file)
             
-        maps_bin = d.search_maps("binary")
+        maps_bin = d.maps.find("binary")
         
         for vmap in maps_bin:
             self.assertIn("/binaries/memory_test", vmap.backing_file)
             
         self.assertEqual(maps, maps_bin)
         
-        maps = d.search_maps("libc")
+        maps = d.maps.find("libc")
         
         for vmap in maps:
             self.assertIn("libc", vmap.backing_file)
+            
+        maps = d.maps.find(d.regs.rsp)
+        
+        for vmap in maps:
+            self.assertIn("stack", vmap.backing_file)
             
         d.kill()
 

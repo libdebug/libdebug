@@ -425,8 +425,8 @@ class MemoryFastTest(unittest.TestCase):
 
         self.assertTrue(d.memory[address : address + 256] == prev)
         
-        start = d.search_maps("heap")[0].start
-        end = d.search_maps("heap")[-1].end - 1
+        start = d.maps.find("heap")[0].start
+        end = d.maps.find("heap")[-1].end - 1
         
         # Search for the string "abcd123456" in the whole memory
         self.assertTrue(d.memory.find(b"abcd123456") == [address + 128])
