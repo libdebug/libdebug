@@ -44,7 +44,6 @@ from libdebug.utils.debugger_wrappers import (
     change_state_function_thread,
 )
 from libdebug.utils.debugging_utils import (
-    check_absolute_address,
     normalize_and_validate_address,
     resolve_symbol_in_maps,
 )
@@ -64,7 +63,7 @@ from libdebug.utils.syscall_utils import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from libdebug.data.memory_map import MemoryMap
+    from libdebug.data.memory_map import MemoryMap, MemoryMapList
     from libdebug.data.registers import Registers
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
@@ -404,7 +403,7 @@ class InternalDebugger:
 
         self._join_and_check_status()
 
-    def maps(self: InternalDebugger) -> list[MemoryMap]:
+    def maps(self: InternalDebugger) -> MemoryMapList[MemoryMap]:
         """Returns the memory maps of the process."""
         self._ensure_process_stopped()
         return self.debugging_interface.maps()
@@ -414,7 +413,7 @@ class InternalDebugger:
         """The memory view of the debugged process."""
         return self._fast_memory if self.fast_memory else self._slow_memory
 
-    def print_maps(self: InternalDebugger) -> None:
+    def pprint_maps(self: InternalDebugger) -> None:
         """Prints the memory maps of the process."""
         self._ensure_process_stopped()
         maps = self.maps()
@@ -428,38 +427,6 @@ class InternalDebugger:
             else:
                 print(memory_map)
 
-    def search_maps(self: InternalDebugger, backing_file: str, maps: list[MemoryMap] | None = None) -> list[MemoryMap]:
-        """Returns the memory maps matching the given substring.
-
-        Args:
-            backing_file (str): The backing file substring to search in the memory maps of the process.
-            maps (list[MemoryMap], optional): The memory maps to search in. Defaults to None.
-        """
-        if backing_file in ["binary", self._process_name]:
-            backing_file = self._process_full_path
-
-        if maps is None:
-            maps = self.debugging_interface.maps()
-
-        filtered_maps = []
-        unique_files = set()
-
-        for vmap in maps:
-            if backing_file in vmap.backing_file:
-                filtered_maps.append(vmap)
-                unique_files.add(vmap.backing_file)
-
-        if len(unique_files) > 1:
-            raise ValueError(
-                f"The substring {backing_file} is present in multiple, different backing files. The address resolution cannot be accurate. The matching backing files are: {', '.join(unique_files)}.",
-            )
-
-        if not filtered_maps:
-            raise ValueError(
-                f"The specified string {backing_file} does not correspond to any backing file. The available backing files are: {', '.join(set(vmap.backing_file for vmap in maps))}."
-            )
-
-        return filtered_maps
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
@@ -1107,7 +1074,7 @@ class InternalDebugger:
         maps = self.debugging_interface.maps()
 
         if backing_file in ["hybrid", "absolute"]:
-            if check_absolute_address(address, maps):
+            if maps.find(address):
                 # If the address is absolute, we can return it directly
                 return address
             elif backing_file == "absolute":
@@ -1123,7 +1090,7 @@ class InternalDebugger:
                     f"No backing file specified and no corresponding absolute address found for {hex(address)}. Assuming {backing_file}.",
                 )
 
-        filtered_maps = self.search_maps(backing_file, maps)
+        filtered_maps = maps.find(backing_file)
 
         return normalize_and_validate_address(address, filtered_maps)
 
@@ -1150,7 +1117,7 @@ class InternalDebugger:
         ]:
             backing_file = full_backing_path
 
-        filtered_maps = self.search_maps(backing_file)
+        filtered_maps = self.maps().find(backing_file)
 
         return resolve_symbol_in_maps(symbol, filtered_maps)
 

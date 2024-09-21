@@ -183,7 +183,7 @@ for test_padding_len in range(0, MAX_TEST_LEN, 4):
 
             # If the current rip corresponds to a known symbol, print the symbol
             try:
-                symbol = resolve_address_in_maps(curr_rip, d.maps())
+                symbol = resolve_address_in_maps(curr_rip, d.maps)
 
                 if not symbol.startswith("0x"):
                     print_color(f"<{symbol}> ", color=LT_COLOR_CYAN, end="")
@@ -320,7 +320,7 @@ for taint_start_index in range(0, test_padding_len + 8, 8):
         # Searching memory for the taint
         print("Searching memory for the taint...")
 
-        for map in d.maps():
+        for map in d.maps:
             # Skip non-writable maps (e.g., vsyscall)
             if 'w' not in map.permissions:
                 continue

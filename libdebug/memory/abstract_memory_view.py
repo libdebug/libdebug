@@ -107,16 +107,9 @@ class AbstractMemoryView(MutableSequence, ABC):
             memory_content = self.read(start, end - start)
             occurrences = find_all_overlapping_occurrences(value, memory_content, start)
         else:
-            start = (
-                self._internal_debugger.resolve_address(start, file, True)
-                if start is not None
-                else self._internal_debugger.search_maps(file)[0].start
-            )
-            end = (
-                self._internal_debugger.resolve_address(end, file, True)
-                if end is not None
-                else self._internal_debugger.search_maps(file)[-1].end - 1
-            )
+            maps = self._internal_debugger.maps().find(file)
+            start = self._internal_debugger.resolve_address(start, file, True) if start is not None else maps[0].start
+            end = self._internal_debugger.resolve_address(end, file, True) if end is not None else maps[-1].end - 1
 
             liblog.debugger(f"Searching in the range {start:#x}-{end:#x}...")
             memory_content = self.read(start, end - start)

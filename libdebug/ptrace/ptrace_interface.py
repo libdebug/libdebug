@@ -13,8 +13,8 @@ import tty
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from libdebug.architectures.register_helper import register_holder_provider
 from libdebug.architectures.call_utilities_provider import call_utilities_provider
+from libdebug.architectures.register_helper import register_holder_provider
 from libdebug.cffi import _ptrace_cffi
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.debugger.internal_debugger_instance_manager import (
@@ -48,7 +48,7 @@ else:
     )
 
 if TYPE_CHECKING:
-    from libdebug.data.memory_map import MemoryMap
+    from libdebug.data.memory_map import MemoryMap, MemoryMapList
     from libdebug.data.registers import Registers
     from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
@@ -770,9 +770,10 @@ class PtraceInterface(DebuggingInterface):
         """Returns the event message."""
         return self.lib_trace.ptrace_geteventmsg(thread_id)
 
-    def maps(self: PtraceInterface) -> list[MemoryMap]:
+    def maps(self: PtraceInterface) -> MemoryMapList[MemoryMap]:
         """Returns the memory maps of the process."""
-        return get_process_maps(self.process_id)
+        with extend_internal_debugger(self._internal_debugger):
+            return get_process_maps(self.process_id)
 
     def get_hit_watchpoint(self: PtraceInterface, thread_id: int) -> Breakpoint:
         """Returns the watchpoint that has been hit."""

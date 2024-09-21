@@ -4,22 +4,17 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-from libdebug.data.memory_map import MemoryMap
+from libdebug.data.memory_map import MemoryMap, MemoryMapList
 from libdebug.liblog import liblog
 from libdebug.utils.elf_utils import is_pie, resolve_address, resolve_symbol
 
 
-def check_absolute_address(address: int, maps: list[MemoryMap]) -> bool:
-    """Checks if the specified address is an absolute address.
-
-    Returns:
-        bool: True if the specified address is an absolute address, False otherwise.
-    """
-    return any(vmap.start <= address < vmap.end for vmap in maps)
-
-
-def normalize_and_validate_address(address: int, maps: list[MemoryMap]) -> int:
+def normalize_and_validate_address(address: int, maps: MemoryMapList[MemoryMap]) -> int:
     """Normalizes and validates the specified address.
+
+    Args:
+        address (int): The address to normalize and validate.
+        maps (MemoryMapList[MemoryMap]): The memory maps.
 
     Returns:
         int: The normalized address.
@@ -38,12 +33,12 @@ def normalize_and_validate_address(address: int, maps: list[MemoryMap]) -> int:
     raise ValueError(f"Address {hex(address)} does not belong to any memory map.")
 
 
-def resolve_symbol_in_maps(symbol: str, maps: list[MemoryMap]) -> int:
+def resolve_symbol_in_maps(symbol: str, maps: MemoryMapList[MemoryMap]) -> int:
     """Returns the address of the specified symbol in the specified memory maps.
 
     Args:
         symbol (str): The symbol whose address should be returned.
-        maps (list[MemoryMap]): The memory maps.
+        maps (MemoryMapList[MemoryMap]): The memory maps.
 
     Returns:
         int: The address of the specified symbol in the specified memory maps.
@@ -79,12 +74,12 @@ def resolve_symbol_in_maps(symbol: str, maps: list[MemoryMap]) -> int:
     raise ValueError(f"Symbol {symbol} not found in the specified mapped file. Please specify a valid symbol.")
 
 
-def resolve_address_in_maps(address: int, maps: list[MemoryMap]) -> str:
+def resolve_address_in_maps(address: int, maps: MemoryMapList[MemoryMap]) -> str:
     """Returns the symbol corresponding to the specified address in the specified memory maps.
 
     Args:
         address (int): The address whose symbol should be returned.
-        maps (list[MemoryMap]): The memory maps.
+        maps (MemoryMapList[MemoryMap]): The memory maps.
 
     Returns:
         str: The symbol corresponding to the specified address in the specified memory maps.
