@@ -70,18 +70,18 @@ class MemoryMap:
 class MemoryMapList(list):
     """A list of memory maps of the target process."""
 
-    def __init__(self, memory_maps: list[MemoryMap]) -> None:
+    def __init__(self: MemoryMapList, memory_maps: list[MemoryMap]) -> None:
         """Initializes the MemoryMapList."""
         super().__init__(memory_maps)
         self._internal_debugger = provide_internal_debugger(self)
 
-    def _search_address(self, address: int) -> MemoryMap:
+    def _search_by_address(self: MemoryMapList, address: int) -> MemoryMap:
         for vmap in self:
             if vmap.start <= address < vmap.end:
                 return [vmap]
         return []
 
-    def _search_backing_file(self, backing_file: str) -> list[MemoryMap]:
+    def _search_by_backing_file(self: MemoryMapList, backing_file: str) -> list[MemoryMap]:
         if backing_file in ["binary", self._internal_debugger._process_name]:
             backing_file = self._internal_debugger._process_full_path
 
@@ -100,7 +100,7 @@ class MemoryMapList(list):
 
         return filtered_maps
 
-    def find(self, value: int | str) -> MemoryMapList[MemoryMap]:
+    def find(self: MemoryMapList, value: int | str) -> MemoryMapList[MemoryMap]:
         """Finds the memory map containing the specified value.
 
         If the value is an integer, it is treated as an address.
@@ -113,9 +113,9 @@ class MemoryMapList(list):
             MemoryMapList[MemoryMap]: The memory maps containing the specified value
         """
         if isinstance(value, int):
-            filtered_maps = self._search_address(value)
+            filtered_maps = self._search_by_address(value)
         elif isinstance(value, str):
-            filtered_maps = self._search_backing_file(value)
+            filtered_maps = self._search_by_backing_file(value)
         else:
             raise TypeError("The value must be an integer or a string.")
 
