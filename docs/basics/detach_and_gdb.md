@@ -29,7 +29,7 @@ To detach completely from the program and continue execution:
 !!! WARNING "Migrating from a running process"
     Remember that GDB Migration is meant to be used when the process is stopped. If the process is running, the command will wait for a [stopping event](../../stopping_events/stopping_events). To forcibly stop the process, you can use the `interrupt()` method before migrating.
 
-# :material-power: Graceful Termination
+## :material-power: Graceful Termination
 If you are finished working with a [Debugger](../../from_pydoc/generated/debugger/debugger/) object and wish to deallocate it, you can terminate it using the `terminate()` command.
 
 !!! ABSTRACT "Syntax"
