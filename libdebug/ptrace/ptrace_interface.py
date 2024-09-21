@@ -13,6 +13,7 @@ import tty
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from libdebug.architectures.call_utilities_provider import call_utilities_provider
 from libdebug.architectures.register_helper import register_holder_provider
 from libdebug.cffi import _ptrace_cffi
 from libdebug.data.breakpoint import Breakpoint
