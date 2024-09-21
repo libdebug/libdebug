@@ -576,3 +576,21 @@ class Debugger:
         else:
             thread_context = self.threads[0]
             setattr(thread_context, name, value)
+
+    def __repr__(self: Debugger) -> str:
+        """Return the string representation of the `Debugger` object."""
+        repr_str = "Debugger("
+        repr_str += f"argv = {self._internal_debugger.argv}, "
+        repr_str += f"aslr = {self._internal_debugger.aslr_enabled}, "
+        repr_str += f"env = {self._internal_debugger.env}, "
+        repr_str += f"escape_antidebug = {self._internal_debugger.escape_antidebug}, "
+        repr_str += f"continue_to_binary_entrypoint = {self._internal_debugger.autoreach_entrypoint}, "
+        repr_str += f"auto_interrupt_on_command = {self._internal_debugger.auto_interrupt_on_command}, "
+        repr_str += f"fast_memory = {self._internal_debugger.fast_memory}, "
+        repr_str += f"kill_on_exit = {self._internal_debugger.kill_on_exit})\n"
+        repr_str += f"  Architecture: {self.arch}\n"
+        repr_str += "  Threads:"
+        for thread in self.threads:
+            repr_str += f"\n    ({thread.tid}, {'dead' if thread.dead else 'alive'}) "
+            repr_str += f"ip: {thread.instruction_pointer:#x}"
+        return repr_str

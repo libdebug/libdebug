@@ -59,6 +59,9 @@ class ThreadContext:
     _internal_debugger: InternalDebugger | None = None
     """The debugging context this thread belongs to."""
 
+    _register_holder: RegisterHolder | None = None
+    """The register holder object."""
+
     _dead: bool = False
     """Whether the thread is dead."""
 
@@ -78,10 +81,11 @@ class ThreadContext:
         """Initializes the Thread Context."""
         self._internal_debugger = provide_internal_debugger(self)
         self._thread_id = thread_id
-        regs_class = registers.provide_regs_class()
-        self.regs = regs_class(thread_id)
-        registers.apply_on_regs(self.regs, regs_class)
-        registers.apply_on_thread(self, ThreadContext)
+        self._register_holder = registers
+        regs_class = self._register_holder.provide_regs_class()
+        self.regs = regs_class(thread_id, self._register_holder.provide_regs())
+        self._register_holder.apply_on_regs(self.regs, regs_class)
+        self._register_holder.apply_on_thread(self, ThreadContext)
 
     def set_as_dead(self: ThreadContext) -> None:
         """Set the thread as dead."""
@@ -204,6 +208,32 @@ class ThreadContext:
             else:
                 print(f"{PrintStyle.RED}{return_address:#x} <{return_address_symbol}> {PrintStyle.RESET}")
 
+    def pprint_registers(self: ThreadContext) -> None:
+        """Pretty prints the thread's registers."""
+        for register in self._register_holder.provide_regs():
+            print(f"{PrintStyle.RED}{register}{PrintStyle.RESET}\t{getattr(self.regs, register):#x}")
+
+    def pprint_regs(self: ThreadContext) -> None:
+        """Alias for the `pprint_registers` method."""
+        self.pprint_registers()
+
+    def pprint_registers_all(self: ThreadContext) -> None:
+        """Pretty prints all the thread's registers."""
+        self.pprint_registers()
+
+        for t in self._register_holder.provide_vector_fp_regs():
+            print(f"{PrintStyle.BLUE}" + "{" + f"{PrintStyle.RESET}")
+            for register in t:
+                value = getattr(self.regs, register)
+                formatted_value = f"{value:#x}" if isinstance(value, int) else str(value)
+                print(f"  {PrintStyle.RED}{register}{PrintStyle.RESET}\t{formatted_value}")
+
+            print(f"{PrintStyle.BLUE}" + "}" + f"{PrintStyle.RESET}")
+
+    def pprint_regs_all(self: ThreadContext) -> None:
+        """Alias for the `pprint_registers_all` method."""
+        self.pprint_registers_all()
+
     @property
     def saved_ip(self: ThreadContext) -> int:
         """The return address of the current function."""
@@ -293,3 +323,12 @@ class ThreadContext:
     def ni(self: ThreadContext) -> None:
         """Alias for the `next` method. Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._internal_debugger.next(self)
+
+    def __repr__(self: ThreadContext) -> str:
+        """Returns a string representation of the object."""
+        repr_str = "ThreadContext()\n"
+        repr_str += f"  Thread ID: {self.thread_id}\n"
+        repr_str += f"  Process ID: {self.process_id}\n"
+        repr_str += f"  Instruction Pointer: {self.instruction_pointer:#x}\n"
+        repr_str += f"  Dead: {self.dead}"
+        return repr_str

@@ -16,7 +16,8 @@ from libdebug.debugger.internal_debugger_instance_manager import get_global_inte
 class Amd64Registers(Registers):
     """This class holds the state of the architectural-dependent registers of a process."""
 
-    def __init__(self: Amd64Registers, thread_id: int) -> None:
+    def __init__(self: Amd64Registers, thread_id: int, generic_regs: list[str]) -> None:
         """Initializes the Registers object."""
         self._internal_debugger = get_global_internal_debugger()
         self._thread_id = thread_id
+        self._generic_regs = generic_regs
