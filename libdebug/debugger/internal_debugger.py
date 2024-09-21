@@ -434,7 +434,7 @@ class InternalDebugger:
         Args:
             backing_file (str): The backing file substring to search in the memory maps of the process.
         """
-        if backing_file == "binary":
+        if backing_file in ["binary", self._process_name]:
             backing_file = self._process_full_path
 
         maps = self.debugging_interface.maps()
