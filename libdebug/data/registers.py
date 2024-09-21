@@ -28,3 +28,8 @@ class Registers(ABC):
         repr_str += "".join(f"\n  {attr + ':':<{max_len}} {getattr(self, attr):#x}" for attr in attributes)
 
         return repr_str
+
+    def find(self: Registers, value: str) -> int:
+        """Find the register containing the specified value."""
+        attributes = self.__class__.__dict__
+        return [attr for attr in attributes if getattr(self, attr) == value]
