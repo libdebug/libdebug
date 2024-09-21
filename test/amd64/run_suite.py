@@ -88,6 +88,7 @@ def fast_suite():
     suite.addTest(AttachDetachTest("test_attach_and_detach_2"))
     suite.addTest(AttachDetachTest("test_attach_and_detach_3"))
     suite.addTest(AttachDetachTest("test_attach_and_detach_4"))
+    suite.addTest(AttachDetachTest("test_attach_multihtread"))
     suite.addTest(ThreadTest("test_thread"))
     suite.addTest(ThreadTest("test_thread_hardware"))
     suite.addTest(ComplexThreadTest("test_thread"))
