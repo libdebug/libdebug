@@ -17,3 +17,14 @@ class Registers(ABC):
     @abstractmethod
     def __init__(self: Registers) -> None:
         """Initializes the Registers object."""
+
+    def __repr__(self: Registers) -> str:
+        """Returns a string representation of the object."""
+        repr_str = f"Aarch64Registers(thread_id={self._thread_id})"
+
+        attributes = [attr for attr in Registers.__dict__ if attr in self._generic_regs]
+        max_len = max(len(attr) for attr in attributes) + 1
+
+        repr_str += "".join(f"\n\t{attr + ':':<{max_len}} {getattr(self, attr):#x}" for attr in attributes)
+
+        return repr_str
