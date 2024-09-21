@@ -157,12 +157,12 @@ class Aarch64PtraceRegisterHolder(PtraceRegisterHolder):
         return Aarch64Registers
 
     def provide_regs(self: Aarch64PtraceRegisterHolder) -> list[str]:
-        """Provide the list of registers, excluding the vector registers."""
+        """Provide the list of registers, excluding the vector and fp registers."""
         return AARCH64_REGS
 
-    def provide_vector_regs(self: Aarch64PtraceRegisterHolder) -> list[tuple[str]]:
-        """Provide the list of vector registers prefixes."""
-        return self._vector_registers
+    def provide_vector_fp_regs(self: Aarch64PtraceRegisterHolder) -> list[tuple[str]]:
+        """Provide the list of vector and floating point registers."""
+        return self._vector_fp_registers
 
     def apply_on_regs(self: Aarch64PtraceRegisterHolder, target: Aarch64Registers, target_class: type) -> None:
         """Apply the register accessors to the Aarch64Registers class."""
@@ -172,7 +172,7 @@ class Aarch64PtraceRegisterHolder(PtraceRegisterHolder):
         if hasattr(target_class, "w0"):
             return
 
-        self._vector_registers = []
+        self._vector_fp_registers = []
 
         for i in range(31):
             name_64 = f"x{i}"
@@ -195,7 +195,7 @@ class Aarch64PtraceRegisterHolder(PtraceRegisterHolder):
             setattr(target_class, name_32, _get_property_fp_32(name_32, i))
             setattr(target_class, name_16, _get_property_fp_16(name_16, i))
             setattr(target_class, name_8, _get_property_fp_8(name_8, i))
-            self._vector_registers.append((name_v, name_128, name_64, name_32, name_16, name_8))
+            self._vector_fp_registers.append((name_v, name_128, name_64, name_32, name_16, name_8))
 
         # setup special aarch64 registers
         target_class.pc = _get_property_64("pc")
@@ -205,7 +205,7 @@ class Aarch64PtraceRegisterHolder(PtraceRegisterHolder):
         target_class.xzr = _get_property_zr("xzr")
         target_class.wzr = _get_property_zr("wzr")
 
-        Aarch64PtraceRegisterHolder._vector_registers = self._vector_registers
+        Aarch64PtraceRegisterHolder._vector_fp_registers = self._vector_fp_registers
 
     def apply_on_thread(self: Aarch64PtraceRegisterHolder, target: ThreadContext, target_class: type) -> None:
         """Apply the register accessors to the thread class."""

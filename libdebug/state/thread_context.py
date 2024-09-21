@@ -214,19 +214,22 @@ class ThreadContext:
         """Alias for the `pprint_registers` method."""
         self.pprint_registers()
 
-    def pprint_all_registers(self: ThreadContext) -> None:
+    def pprint_registers_all(self: ThreadContext) -> None:
         """Pretty prints all the thread's registers."""
         self.pprint_registers()
 
-        for t in self._register_holder.provide_vector_regs():
+        for t in self._register_holder.provide_vector_fp_regs():
             print(f"{PrintStyle.BLUE}" + "{" + f"{PrintStyle.RESET}")
             for register in t:
-                print(f"\t{PrintStyle.RED}{register}{PrintStyle.RESET}\t{getattr(self.regs, register):#x}")
+                value = getattr(self.regs, register)
+                formatted_value = f"{value:#x}" if isinstance(value, int) else str(value)
+                print(f"  {PrintStyle.RED}{register}{PrintStyle.RESET}\t{formatted_value}")
+
             print(f"{PrintStyle.BLUE}" + "}" + f"{PrintStyle.RESET}")
 
-    def pprint_all_regs(self: ThreadContext) -> None:
-        """Alias for the `pprint_all_registers` method."""
-        self.pprint_all_registers()
+    def pprint_regs_all(self: ThreadContext) -> None:
+        """Alias for the `pprint_registers_all` method."""
+        self.pprint_registers_all()
 
     @property
     def saved_ip(self: ThreadContext) -> int:
