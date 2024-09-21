@@ -21,3 +21,7 @@ class Amd64Registers(Registers):
         self._internal_debugger = get_global_internal_debugger()
         self._thread_id = thread_id
         self._generic_regs = generic_regs
+
+    def __repr__(self: Amd64Registers) -> str:
+        """Returns a string representation of the object."""
+        return super().__repr__()
