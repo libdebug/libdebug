@@ -51,7 +51,6 @@ from libdebug.utils.debugging_utils import (
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.platform_utils import get_platform_register_size
 from libdebug.utils.print_style import PrintStyle
-from libdebug.utils.search_utils import find_all_overlapping_occurrences
 from libdebug.utils.signal_utils import (
     resolve_signal_name,
     resolve_signal_number,
@@ -459,46 +458,6 @@ class InternalDebugger:
             )
 
         return filtered_maps
-
-    def search_value(
-        self: InternalDebugger,
-        value: int | bytes | str,
-        backing_file: str = "hybrid",
-        start: int | None = None,
-        end: int | None = None,
-    ) -> list[int]:
-        """Searches for the given value in the specified memory maps of the process.
-
-        The start and end addresses can be used to limit the search to a specific range.
-        If not specified, the search will be performed on the whole memory map.
-
-        Args:
-            value (int | bytes | str): The value to search for.
-            backing_file (str): The backing file to search the value in. Defaults to "hybrid".
-            start (int | None): The start address of the search. Defaults to None.
-            end (int | None): The end address of the search. Defaults to None.
-
-        Returns:
-            list[int]: A list of offset where the value was found.
-        """
-        if backing_file == "hybrid" and (start is None or end is None):
-            raise ValueError("If you do not specify a backing file, you must specify both a start and end address.")
-
-        start = (
-            self.resolve_address(start, backing_file, True)
-            if start is not None
-            else self.search_maps(backing_file)[0].start
-        )
-        end = (
-            self.resolve_address(end, backing_file, True)
-            if end is not None
-            else self.search_maps(backing_file)[-1].end - 1
-        )
-
-        # Read the memory content using the fast memory access method
-        memory_content = self._fast_read_memory(start, end - start)
-
-        return find_all_overlapping_occurrences(value, memory_content)
 
     @background_alias(_background_invalid_call)
     @change_state_function_process

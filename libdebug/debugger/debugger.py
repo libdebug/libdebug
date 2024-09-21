@@ -100,29 +100,6 @@ class Debugger:
         """
         return self._internal_debugger.search_maps(file)
 
-    def search_value(
-        self: InternalDebugger,
-        value: int | bytes | str,
-        file: str = "hybrid",
-        start: int | None = None,
-        end: int | None = None,
-    ) -> list[int]:
-        """Searches for the given value in the specified memory maps of the process.
-
-        The start and end addresses can be used to limit the search to a specific range.
-        If not specified, the search will be performed on the whole memory map.
-
-        Args:
-            value (int | bytes | str): The value to search for.
-            file (str): The backing file to search the value in. Defaults to "hybrid".
-            start (int | None): The start address of the search. Defaults to None.
-            end (int | None): The end address of the search. Defaults to None.
-
-        Returns:
-            list[int]: A list of offset where the value was found.
-        """
-        return self._internal_debugger.search_value(value, file, start, end)
-
     def resolve_symbol(self: Debugger, symbol: str, file: str = "binary") -> int:
         """Resolves the address of the specified symbol.
 

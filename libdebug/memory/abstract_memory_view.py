@@ -11,6 +11,7 @@ from collections.abc import MutableSequence
 
 from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 from libdebug.liblog import liblog
+from libdebug.utils.search_utils import find_all_overlapping_occurrences
 
 
 class AbstractMemoryView(MutableSequence, ABC):
@@ -44,6 +45,85 @@ class AbstractMemoryView(MutableSequence, ABC):
             address (int): The address to write to.
             data (bytes): The data to write.
         """
+
+    def find(
+        self: AbstractMemoryView,
+        value: int | bytes | str,
+        file: str = "all",
+        start: int | None = None,
+        end: int | None = None,
+    ) -> list[int]:
+        """Searches for the given value in the specified memory maps of the process.
+
+        The start and end addresses can be used to limit the search to a specific range.
+        If not specified, the search will be performed on the whole memory map.
+
+        Args:
+            value (int | bytes | str): The value to search for.
+            file (str): The backing file to search the value in. Defaults to "all", which means all memory.
+            start (int | None): The start address of the search. Defaults to None.
+            end (int | None): The end address of the search. Defaults to None.
+
+        Returns:
+            list[int]: A list of offset where the value was found.
+        """
+        occurrences = []
+        if file == "all" and start is None and end is None:
+            for vmap in self._internal_debugger.maps():
+                liblog.debugger(f"Searching in {vmap.backing_file}...")
+                try:
+                    memory_content = self.read(vmap.start, vmap.end - vmap.start)
+                except (OSError, OverflowError):
+                    # There are some memory regions that cannot be read, such as [vvar], [vdso], etc.
+                    continue
+                occurrences += find_all_overlapping_occurrences(value, memory_content, vmap.start)
+        elif file == "all" and start is not None and end is None:
+            for vmap in self._internal_debugger.maps():
+                if vmap.end > start:
+                    liblog.debugger(f"Searching in {vmap.backing_file}...")
+                    read_start = max(vmap.start, start)
+                    try:
+                        memory_content = self.read(read_start, vmap.end - read_start)
+                    except (OSError, OverflowError):
+                        # There are some memory regions that cannot be read, such as [vvar], [vdso], etc.
+                        continue
+                    occurrences += find_all_overlapping_occurrences(value, memory_content, read_start)
+        elif file == "all" and start is None and end is not None:
+            for vmap in self._internal_debugger.maps():
+                if vmap.start < end:
+                    liblog.debugger(f"Searching in {vmap.backing_file}...")
+                    read_end = min(vmap.end, end)
+                    try:
+                        memory_content = self.read(vmap.start, read_end - vmap.start)
+                    except (OSError, OverflowError):
+                        # There are some memory regions that cannot be read, such as [vvar], [vdso], etc.
+                        continue
+                    occurrences += find_all_overlapping_occurrences(value, memory_content, vmap.start)
+        elif file == "all" and start is not None and end is not None:
+            # Search in the specified range, hybrid mode
+            start = self._internal_debugger.resolve_address(start, "hybrid", True)
+            end = self._internal_debugger.resolve_address(end, "hybrid", True)
+            liblog.debugger(f"Searching in the range {start:#x}-{end:#x}...")
+            memory_content = self.read(start, end - start)
+            occurrences = find_all_overlapping_occurrences(value, memory_content, start)
+        else:
+            start = (
+                self._internal_debugger.resolve_address(start, file, True)
+                if start is not None
+                else self._internal_debugger.search_maps(file)[0].start
+            )
+            end = (
+                self._internal_debugger.resolve_address(end, file, True)
+                if end is not None
+                else self._internal_debugger.search_maps(file)[-1].end - 1
+            )
+
+            liblog.debugger(f"Searching in the range {start:#x}-{end:#x}...")
+            memory_content = self.read(start, end - start)
+
+            occurrences = find_all_overlapping_occurrences(value, memory_content, start)
+
+        return occurrences
 
     def __getitem__(self: AbstractMemoryView, key: int | slice | str | tuple) -> bytes:
         """Read from memory, either a single byte or a byte string.
