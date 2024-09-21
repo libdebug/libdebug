@@ -5,6 +5,7 @@
 #
 
 import unittest
+from pwn import process
 
 from libdebug import debugger, libcontext
 
@@ -386,6 +387,19 @@ class MemoryFastTest(unittest.TestCase):
         self.assertEqual(d.memory[base, 8], b"\x01\x02\x03\x04\x05\x06\x07\x08")
         d.memory[base] = b"abcd1234"
         self.assertEqual(d.memory[base, 8], b"abcd1234")
+
+        d.kill()
+        d.terminate()
+
+    def test_memory_attach(self):
+        # Ensure that fast-memory works when attaching to a process
+        r = process("binaries/attach_test")
+
+        d = debugger(fast_memory=True)
+
+        d.attach(r.pid)
+
+        self.assertEqual(d.memory[0x0, 4, "binary"], b"\x7fELF")
 
         d.kill()
         d.terminate()

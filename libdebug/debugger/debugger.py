@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.state.thread_context import ThreadContext
+    from libdebug.utils.pipe_manager import PipeManager
 
 
 class Debugger:
@@ -47,7 +48,7 @@ class Debugger:
         self._internal_debugger = internal_debugger
         self._internal_debugger.start_up()
 
-    def run(self: Debugger) -> None:
+    def run(self: Debugger) -> PipeManager:
         """Starts the process and waits for it to stop."""
         return self._internal_debugger.run()
 
@@ -233,12 +234,12 @@ class Debugger:
         """Migrates the current debugging session to GDB."""
         self._internal_debugger.gdb(open_in_new_process)
 
-    def r(self: Debugger) -> None:
+    def r(self: Debugger) -> PipeManager:
         """Alias for the `run` method.
 
         Starts the process and waits for it to stop.
         """
-        self._internal_debugger.run()
+        return self._internal_debugger.run()
 
     def c(self: Debugger) -> None:
         """Alias for the `cont` method.

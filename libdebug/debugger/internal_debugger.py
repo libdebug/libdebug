@@ -242,7 +242,7 @@ class InternalDebugger:
         """Raises an error when an invalid call is made in background mode."""
         raise RuntimeError("This method is not available in a callback.")
 
-    def run(self: InternalDebugger) -> None:
+    def run(self: InternalDebugger) -> PipeManager:
         """Starts the process and waits for it to stop."""
         if not self.argv:
             raise RuntimeError("No binary file specified.")
@@ -298,9 +298,9 @@ class InternalDebugger:
 
         self.__polling_thread_command_queue.put((self.__threaded_attach, (pid,)))
 
-        self._process_memory_manager.open(self.process_id)
-
         self._join_and_check_status()
+
+        self._process_memory_manager.open(self.process_id)
 
     def detach(self: InternalDebugger) -> None:
         """Detaches from the process."""
