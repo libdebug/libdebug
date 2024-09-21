@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import os
 import signal
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from libdebug.architectures.ptrace_software_breakpoint_patcher import (
@@ -18,8 +17,8 @@ from libdebug.debugger.internal_debugger_instance_manager import provide_interna
 from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_constants import SYSCALL_SIGTRAP, StopEvents
 from libdebug.state.resume_context import EventType
-from libdebug.utils.signal_utils import resolve_signal_name
 from libdebug.utils.process_utils import get_process_tasks
+from libdebug.utils.signal_utils import resolve_signal_name
 
 if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
