@@ -428,16 +428,18 @@ class InternalDebugger:
             else:
                 print(memory_map)
 
-    def search_maps(self: InternalDebugger, backing_file: str) -> list[MemoryMap]:
+    def search_maps(self: InternalDebugger, backing_file: str, maps: list[MemoryMap] | None = None) -> list[MemoryMap]:
         """Returns the memory maps matching the given substring.
 
         Args:
             backing_file (str): The backing file substring to search in the memory maps of the process.
+            maps (list[MemoryMap], optional): The memory maps to search in. Defaults to None.
         """
         if backing_file in ["binary", self._process_name]:
             backing_file = self._process_full_path
 
-        maps = self.debugging_interface.maps()
+        if maps is None:
+            maps = self.debugging_interface.maps()
 
         filtered_maps = []
         unique_files = set()
@@ -1120,29 +1122,9 @@ class InternalDebugger:
                 liblog.warning(
                     f"No backing file specified and no corresponding absolute address found for {hex(address)}. Assuming {backing_file}.",
                 )
-        elif backing_file == (full_backing_path := self._process_full_path) or backing_file in [
-            "binary",
-            self._process_name,
-        ]:
-            backing_file = full_backing_path
 
-        filtered_maps = []
-        unique_files = set()
+        filtered_maps = self.search_maps(backing_file, maps)
 
-        for vmap in maps:
-            if backing_file in vmap.backing_file:
-                filtered_maps.append(vmap)
-                unique_files.add(vmap.backing_file)
-
-        if len(unique_files) > 1:
-            raise ValueError(
-                f"The substring {backing_file} is present in multiple, different backing files. The address resolution cannot be accurate. The matching backing files are: {', '.join(unique_files)}.",
-            )
-
-        if not filtered_maps:
-            raise ValueError(
-                f"The specified string {backing_file} does not correspond to any backing file. The available backing files are: {', '.join(set(vmap.backing_file for vmap in maps))}.",
-            )
         return normalize_and_validate_address(address, filtered_maps)
 
     def resolve_symbol(self: InternalDebugger, symbol: str, backing_file: str) -> int:
