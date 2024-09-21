@@ -17,6 +17,7 @@ from libdebug.architectures.ptrace_software_breakpoint_patcher import (
 from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_constants import SYSCALL_SIGTRAP, StopEvents
+from libdebug.state.resume_context import EventType
 from libdebug.utils.signal_utils import resolve_signal_name
 from libdebug.utils.process_utils import get_process_tasks
 
@@ -70,6 +71,7 @@ class PtraceStatusHandler:
         if not hasattr(thread, "instruction_pointer"):
             # This is a signal trap hit on process startup
             # Do not resume the process until the user decides to do so
+            self.internal_debugger.resume_context.event_type = EventType.STARTUP
             self.internal_debugger.resume_context.resume = False
             self.forward_signal = False
             return
@@ -85,7 +87,7 @@ class PtraceStatusHandler:
         else:
             # If the trap was caused by a software breakpoint, we need to restore the original instruction
             # and set the instruction pointer to the previous instruction.
-            ip -= software_breakpoint_byte_size()
+            ip -= software_breakpoint_byte_size(self.internal_debugger.arch)
 
             bp = self.internal_debugger.breakpoints.get(ip)
             if bp and bp.enabled and not bp._disabled_for_step:
@@ -103,11 +105,12 @@ class PtraceStatusHandler:
 
         # Manage watchpoints
         if not bp:
-            bp = self.ptrace_interface.hardware_bp_helpers[thread_id].is_watchpoint_hit()
+            bp = self.ptrace_interface.get_hit_watchpoint(thread_id)
             if bp:
                 liblog.debugger("Watchpoint hit at 0x%x", bp.address)
 
         if bp:
+            self.internal_debugger.resume_context.breakpoint_hit[thread_id] = bp
             self.forward_signal = False
             bp.hit_count += 1
 
@@ -115,6 +118,7 @@ class PtraceStatusHandler:
                 bp.callback(thread, bp)
             else:
                 # If the breakpoint has no callback, we need to stop the process despite the other signals
+                self.internal_debugger.resume_context.event_type = EventType.BREAKPOINT
                 self.internal_debugger.resume_context.resume = False
 
     def _manage_syscall_on_enter(
@@ -194,6 +198,7 @@ class PtraceStatusHandler:
             handler._has_entered = True
         if not handler.on_enter_user and not handler.on_exit_user and handler.enabled:
             # If the syscall has no callback, we need to stop the process despite the other signals
+            self.internal_debugger.resume_context.event_type = EventType.SYSCALL
             handler._has_entered = True
             self.internal_debugger.resume_context.resume = False
 
@@ -258,6 +263,7 @@ class PtraceStatusHandler:
             handler._skip_exit = False
             if not handler.on_enter_user and not handler.on_exit_user and handler.enabled:
                 # If the syscall has no callback, we need to stop the process despite the other signals
+                self.internal_debugger.resume_context.event_type = EventType.SYSCALL
                 self.internal_debugger.resume_context.resume = False
 
     def _manage_caught_signal(
@@ -309,6 +315,7 @@ class PtraceStatusHandler:
                         )
             else:
                 # If the caught signal has no callback, we need to stop the process despite the other signals
+                self.internal_debugger.resume_context.event = EventType.SIGNAL
                 self.internal_debugger.resume_context.resume = False
 
     def _handle_signal(self: PtraceStatusHandler, thread: ThreadContext) -> bool:
@@ -340,6 +347,7 @@ class PtraceStatusHandler:
                 pid,
                 resolve_signal_name(signum),
             )
+            self.internal_debugger.resume_context.event_type = EventType.USER_INTERRUPT
             self.internal_debugger.resume_context.resume = False
             self.internal_debugger.resume_context.force_interrupt = False
             self.forward_signal = False
@@ -350,6 +358,7 @@ class PtraceStatusHandler:
 
             if self.internal_debugger.resume_context.is_a_step:
                 # The process is stepping, we need to stop the execution
+                self.internal_debugger.resume_context.event_type = EventType.STEP
                 self.internal_debugger.resume_context.resume = False
                 self.internal_debugger.resume_context.is_a_step = False
                 self.forward_signal = False
@@ -381,13 +390,12 @@ class PtraceStatusHandler:
                 case StopEvents.FORK_EVENT:
                     # The process has been forked
                     liblog.warning(
-                        f"Process {pid} forked. Continuing execution of the parent process. The child process will be stopped until the user decides to attach to it."
+                        f"Process {pid} forked. Continuing execution of the parent process. The child process will be stopped until the user decides to attach to it.",
                     )
                     self.forward_signal = False
 
     def _handle_change(self: PtraceStatusHandler, pid: int, status: int, results: list) -> None:
         """Handle a change in the status of a traced process."""
-
         # Initialize the forward_signal flag
         self.forward_signal = True
 

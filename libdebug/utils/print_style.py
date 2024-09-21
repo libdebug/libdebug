@@ -4,6 +4,7 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+
 class PrintStyle:
     """Class to define colors for the terminal."""
 
