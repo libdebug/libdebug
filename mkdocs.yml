@@ -34,6 +34,7 @@ theme:
     - navigation.tabs
     - navigation.tabs.sticky
     - navigation.path
+    - navigation.footer
     - search.suggest
     - search.highlight
     - content.code.copy
@@ -41,8 +42,33 @@ theme:
 plugins:
   - search
   - blog
+  - mkdocstrings
 nav:
   - index.md
+  - code_examples.md
+  - The Basics:
+      - libdebug 101: basics/libdebug101.md
+      - Running an Executable: basics/running_an_executable.md
+      - Process Death (and afterlife): basics/kill_and_post_mortem.md
+      - Command Queue: basics/command_queue.md
+      - Register Access: basics/register_access.md
+      - Memory Access: basics/memory_access.md
+      - Control Flow: basics/control_flow_commands.md
+      - Detaching and GDB Migration: basics/detach_and_gdb.md
+      - Supported Systems: basics/supported_systems.md
+  - Stopping Events:
+      - Stopping Events: stopping_events/stopping_events.md
+      - Callbacks: stopping_events/callbacks.md
+      - Breakpoints: stopping_events/breakpoints.md
+      - Watchpoints: stopping_events/watchpoints.md
+      - Syscalls: stopping_events/syscalls.md
+      - Signals: stopping_events/signals.md
+  - Multithreading:
+      - Multithreading: multithreading/multithreading.md
+  - Logging:
+      - Logging: logging/logging.md
+  - Quality of Life:
+      - Quality of Life: quality_of_life/quality_of_life.md
   - Blog:
     - blog/index.md
     
