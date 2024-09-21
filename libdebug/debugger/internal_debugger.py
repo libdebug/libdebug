@@ -419,15 +419,32 @@ class InternalDebugger:
     def pprint_maps(self: InternalDebugger) -> None:
         """Prints the memory maps of the process."""
         self._ensure_process_stopped()
+        header = (
+            f"{'start':>18}  "
+            f"{'end':>18}  "
+            f"{'perm':>6}  "
+            f"{'size':>8}  "
+            f"{'offset':>8}  "
+            f"{'backing_file':<20}"
+        )
+        print(header)
         for memory_map in self.maps:
+            info = (
+                f"{memory_map.start:#18x}  "
+                f"{memory_map.end:#18x}  "
+                f"{memory_map.permissions:>6}  "
+                f"{memory_map.size:#8x}  "
+                f"{memory_map.offset:#8x}  "
+                f"{memory_map.backing_file}"
+            )
             if "x" in memory_map.permissions:
-                print(f"{PrintStyle.RED}{memory_map}{PrintStyle.RESET}")
+                print(f"{PrintStyle.RED}{info}{PrintStyle.RESET}")
             elif "w" in memory_map.permissions:
-                print(f"{PrintStyle.YELLOW}{memory_map}{PrintStyle.RESET}")
+                print(f"{PrintStyle.YELLOW}{info}{PrintStyle.RESET}")
             elif "r" in memory_map.permissions:
-                print(f"{PrintStyle.GREEN}{memory_map}{PrintStyle.RESET}")
+                print(f"{PrintStyle.GREEN}{info}{PrintStyle.RESET}")
             else:
-                print(memory_map)
+                print(info)
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
