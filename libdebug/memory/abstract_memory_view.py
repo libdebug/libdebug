@@ -23,7 +23,6 @@ class AbstractMemoryView(MutableSequence, ABC):
     def __init__(self: AbstractMemoryView) -> None:
         """Initializes the MemoryView."""
         self._internal_debugger = provide_internal_debugger(self)
-        self.maps_provider = self._internal_debugger.debugging_interface.maps
 
     @abstractmethod
     def read(self: AbstractMemoryView, address: int, size: int) -> bytes:
@@ -69,7 +68,7 @@ class AbstractMemoryView(MutableSequence, ABC):
         """
         occurrences = []
         if file == "all" and start is None and end is None:
-            for vmap in self._internal_debugger.maps():
+            for vmap in self._internal_debugger.maps:
                 liblog.debugger(f"Searching in {vmap.backing_file}...")
                 try:
                     memory_content = self.read(vmap.start, vmap.end - vmap.start)
@@ -78,7 +77,7 @@ class AbstractMemoryView(MutableSequence, ABC):
                     continue
                 occurrences += find_all_overlapping_occurrences(value, memory_content, vmap.start)
         elif file == "all" and start is not None and end is None:
-            for vmap in self._internal_debugger.maps():
+            for vmap in self._internal_debugger.maps:
                 if vmap.end > start:
                     liblog.debugger(f"Searching in {vmap.backing_file}...")
                     read_start = max(vmap.start, start)
@@ -89,7 +88,7 @@ class AbstractMemoryView(MutableSequence, ABC):
                         continue
                     occurrences += find_all_overlapping_occurrences(value, memory_content, read_start)
         elif file == "all" and start is None and end is not None:
-            for vmap in self._internal_debugger.maps():
+            for vmap in self._internal_debugger.maps:
                 if vmap.start < end:
                     liblog.debugger(f"Searching in {vmap.backing_file}...")
                     read_end = min(vmap.end, end)
@@ -107,7 +106,7 @@ class AbstractMemoryView(MutableSequence, ABC):
             memory_content = self.read(start, end - start)
             occurrences = find_all_overlapping_occurrences(value, memory_content, start)
         else:
-            maps = self._internal_debugger.maps().find(file)
+            maps = self._internal_debugger.maps.find(file)
             start = self._internal_debugger.resolve_address(start, file, True) if start is not None else maps[0].start
             end = self._internal_debugger.resolve_address(end, file, True) if end is not None else maps[-1].end - 1
 

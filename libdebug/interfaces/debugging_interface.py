@@ -96,11 +96,12 @@ class DebuggingInterface(ABC):
             heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
         """
 
+    @abstractmethod
     def next(self: DebuggingInterface, thread: ThreadContext) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
 
     @abstractmethod
-    def maps(self: DebuggingInterface) -> MemoryMapList[MemoryMap]:
+    def get_maps(self: DebuggingInterface) -> MemoryMapList[MemoryMap]:
         """Returns the memory maps of the process."""
 
     @abstractmethod

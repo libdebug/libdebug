@@ -191,7 +191,7 @@ class ThreadContext:
         stack_unwinder = stack_unwinding_provider(self._internal_debugger.arch)
         backtrace = stack_unwinder.unwind(self)
         if as_symbols:
-            maps = self._internal_debugger.debugging_interface.maps()
+            maps = self._internal_debugger.debugging_interface.get_maps()
             backtrace = [resolve_address_in_maps(x, maps) for x in backtrace]
         return backtrace
 
@@ -200,7 +200,7 @@ class ThreadContext:
         self._internal_debugger._ensure_process_stopped()
         stack_unwinder = stack_unwinding_provider(self._internal_debugger.arch)
         backtrace = stack_unwinder.unwind(self)
-        maps = self._internal_debugger.debugging_interface.maps()
+        maps = self._internal_debugger.debugging_interface.get_maps()
         for return_address in backtrace:
             return_address_symbol = resolve_address_in_maps(return_address, maps)
             if return_address_symbol[:2] == "0x":
@@ -241,7 +241,7 @@ class ThreadContext:
         stack_unwinder = stack_unwinding_provider(self._internal_debugger.arch)
 
         try:
-            return_address = stack_unwinder.get_return_address(self, self._internal_debugger.debugging_interface.maps())
+            return_address = stack_unwinder.get_return_address(self, self._internal_debugger.maps)
         except (OSError, ValueError) as e:
             raise ValueError(
                 "Failed to get the return address. Check stack frame registers (e.g., base pointer).",

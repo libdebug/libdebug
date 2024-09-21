@@ -34,7 +34,7 @@ class Amd64StackUnwinder(StackUnwindingManager):
         current_rbp = target.regs.rbp
         stack_trace = [target.regs.rip]
 
-        vmaps = target._internal_debugger.debugging_interface.maps()
+        vmaps = target._internal_debugger.debugging_interface.get_maps()
 
         while current_rbp:
             try:

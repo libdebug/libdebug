@@ -32,7 +32,7 @@ class Aarch64StackUnwinder(StackUnwindingManager):
 
         frame_pointer = target.regs.x29
 
-        vmaps = target._internal_debugger.debugging_interface.maps()
+        vmaps = target._internal_debugger.debugging_interface.get_maps()
         initial_link_register = None
 
         try:
