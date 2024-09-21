@@ -138,6 +138,21 @@ class ThreadContext:
         return self._internal_debugger.running
 
     @property
+    def saved_ip(self: ThreadContext) -> int:
+        """The return address of the current function."""
+        self._internal_debugger._ensure_process_stopped()
+        stack_unwinder = stack_unwinding_provider(self._internal_debugger.arch)
+
+        try:
+            return_address = stack_unwinder.get_return_address(self, self._internal_debugger.maps)
+        except (OSError, ValueError) as e:
+            raise ValueError(
+                "Failed to get the return address. Check stack frame registers (e.g., base pointer).",
+            ) from e
+
+        return return_address
+
+    @property
     def exit_code(self: ThreadContext) -> int | None:
         """The thread's exit code."""
         self._internal_debugger._ensure_process_stopped()
@@ -181,6 +196,11 @@ class ThreadContext:
         self._signal_number = signal
         self._internal_debugger.resume_context.threads_with_signals_to_forward.append(self.thread_id)
 
+    @property
+    def signal_number(self: ThreadContext) -> int:
+        """The signal number to forward to the thread."""
+        return self._signal_number
+
     def backtrace(self: ThreadContext, as_symbols: bool = False) -> list:
         """Returns the current backtrace of the thread.
 
@@ -195,8 +215,8 @@ class ThreadContext:
             backtrace = [resolve_address_in_maps(x, maps) for x in backtrace]
         return backtrace
 
-    def print_backtrace(self: ThreadContext) -> None:
-        """Prints the current backtrace of the thread."""
+    def pprint_backtrace(self: ThreadContext) -> None:
+        """Pretty prints the current backtrace of the thread."""
         self._internal_debugger._ensure_process_stopped()
         stack_unwinder = stack_unwinding_provider(self._internal_debugger.arch)
         backtrace = stack_unwinder.unwind(self)
@@ -214,7 +234,10 @@ class ThreadContext:
             print(f"{PrintStyle.RED}{register}{PrintStyle.RESET}\t{getattr(self.regs, register):#x}")
 
     def pprint_regs(self: ThreadContext) -> None:
-        """Alias for the `pprint_registers` method."""
+        """Alias for the `pprint_registers` method.
+
+        Pretty prints the thread's registers.
+        """
         self.pprint_registers()
 
     def pprint_registers_all(self: ThreadContext) -> None:
@@ -231,23 +254,11 @@ class ThreadContext:
             print(f"{PrintStyle.BLUE}" + "}" + f"{PrintStyle.RESET}")
 
     def pprint_regs_all(self: ThreadContext) -> None:
-        """Alias for the `pprint_registers_all` method."""
+        """Alias for the `pprint_registers_all` method.
+
+        Pretty prints all the thread's registers.
+        """
         self.pprint_registers_all()
-
-    @property
-    def saved_ip(self: ThreadContext) -> int:
-        """The return address of the current function."""
-        self._internal_debugger._ensure_process_stopped()
-        stack_unwinder = stack_unwinding_provider(self._internal_debugger.arch)
-
-        try:
-            return_address = stack_unwinder.get_return_address(self, self._internal_debugger.maps)
-        except (OSError, ValueError) as e:
-            raise ValueError(
-                "Failed to get the return address. Check stack frame registers (e.g., base pointer).",
-            ) from e
-
-        return return_address
 
     def step(self: ThreadContext) -> None:
         """Executes a single instruction of the process."""
