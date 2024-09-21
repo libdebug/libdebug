@@ -67,6 +67,7 @@ def fast_suite():
     suite.addTest(MemoryTest("test_memory_multiple_runs"))
     suite.addTest(MemoryTest("test_memory_access_while_running"))
     suite.addTest(MemoryTest("test_memory_access_methods"))
+    suite.addTest(MemoryTest("test_search_maps"))
     suite.addTest(MemoryFastTest("test_memory"))
     suite.addTest(MemoryFastTest("test_mem_access_libs"))
     suite.addTest(MemoryFastTest("test_memory_access_methods_backing_file"))
