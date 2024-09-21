@@ -321,8 +321,8 @@ class ThreadContext:
     def __repr__(self: ThreadContext) -> str:
         """Returns a string representation of the object."""
         repr_str = "ThreadContext()\n"
-        repr_str += f"\tThread ID: {self.thread_id}\n"
-        repr_str += f"\tProcess ID: {self.process_id}\n"
-        repr_str += f"\tInstruction Pointer: {self.instruction_pointer:#x}\n"
-        repr_str += f"\tDead: {self.dead}"
+        repr_str += f"  Thread ID: {self.thread_id}\n"
+        repr_str += f"  Process ID: {self.process_id}\n"
+        repr_str += f"  Instruction Pointer: {self.instruction_pointer:#x}\n"
+        repr_str += f"  Dead: {self.dead}"
         return repr_str

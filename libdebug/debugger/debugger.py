@@ -568,10 +568,9 @@ class Debugger:
         repr_str += f"auto_interrupt_on_command = {self._internal_debugger.auto_interrupt_on_command}, "
         repr_str += f"fast_memory = {self._internal_debugger.fast_memory}, "
         repr_str += f"kill_on_exit = {self._internal_debugger.kill_on_exit})\n"
-        repr_str += f"\tArchitecture: {self.arch}\n"
-        repr_str += f"\tThreads: {', '.join([str(thread.tid) for thread in self.threads])}"
+        repr_str += f"  Architecture: {self.arch}\n"
+        repr_str += "  Threads:"
         for thread in self.threads:
-            repr_str += f"\n\tInstruction Pointer: {thread.instruction_pointer:#x} ({thread.tid})"
-            if thread.dead:
-                repr_str += " [Dead]"
+            repr_str += f"\n    ({thread.tid}, {'dead' if thread.dead else 'alive'}) "
+            repr_str += f"ip: {thread.instruction_pointer:#x}"
         return repr_str
