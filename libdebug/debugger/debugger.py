@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
     from libdebug.data.memory_map import MemoryMap, MemoryMapList
     from libdebug.data.signal_catcher import SignalCatcher
+    from libdebug.data.symbol import Symbol, SymbolDict
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.state.thread_context import ThreadContext
@@ -106,6 +107,11 @@ class Debugger:
             int: The address of the symbol.
         """
         return self._internal_debugger.resolve_symbol(symbol, file)
+
+    @property
+    def symbols(self: Debugger) -> SymbolDict[str, set[Symbol]]:
+        """Get the symbols of the process."""
+        return self._internal_debugger.symbols
 
     def breakpoint(
         self: Debugger,
@@ -387,7 +393,7 @@ class Debugger:
     @property
     def maps(self: Debugger) -> MemoryMapList[MemoryMap]:
         """Get the memory maps of the process."""
-        return self._internal_debugger.maps()
+        return self._internal_debugger.maps
 
     @property
     def pprint_syscalls(self: Debugger) -> bool:

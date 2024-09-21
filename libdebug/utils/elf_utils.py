@@ -62,14 +62,14 @@ def _debuginfod(buildid: str) -> Path:
 
 
 @functools.cache
-def _collect_external_info(path: str) -> SymbolDict[str, list[Symbol]]:
+def _collect_external_info(path: str) -> SymbolDict[str, set[Symbol]]:
     """Returns a dictionary containing the symbols taken from the external debuginfo file.
 
     Args:
         path (str): The path to the ELF file.
 
     Returns:
-        symbols (SymbolDict[str, list[Symbol]]): A dictionary containing the symbols taken from debuginfo file.
+        symbols (SymbolDict[str, set[Symbol]]): A dictionary containing the symbols taken from debuginfo file.
     """
     symbols = SymbolDict()
 
@@ -81,7 +81,7 @@ def _collect_external_info(path: str) -> SymbolDict[str, list[Symbol]]:
 
         while cursor != ffi.NULL:
             symbol_name = ffi.string(cursor.name).decode("utf-8")
-            symbols[symbol_name].append(Symbol(cursor.low_pc, cursor.high_pc, symbol_name))
+            symbols[symbol_name].add(Symbol(cursor.low_pc, cursor.high_pc, symbol_name, path))
             cursor = cursor.next
 
         lib_sym.free_symbol_info(head)
@@ -90,7 +90,7 @@ def _collect_external_info(path: str) -> SymbolDict[str, list[Symbol]]:
 
 
 @functools.cache
-def _parse_elf_file(path: str, debug_info_level: int) -> tuple[SymbolDict[str, list[Symbol]], str | None, str | None]:
+def _parse_elf_file(path: str, debug_info_level: int) -> tuple[SymbolDict[str, set[Symbol]], str | None, str | None]:
     """Returns a dictionary containing the symbols of the specified ELF file and the buildid.
 
     Args:
@@ -98,7 +98,7 @@ def _parse_elf_file(path: str, debug_info_level: int) -> tuple[SymbolDict[str, l
         debug_info_level (int): The debug info level.
 
     Returns:
-        symbols (SymbolDict[str, list[Symbol]): A dict containing the symbols of the specified ELF file.
+        symbols (SymbolDict[str, set[Symbol]): A dict containing the symbols of the specified ELF file.
         buildid (str): The buildid of the specified ELF file.
         debug_file_path (str): The path to the external debuginfo file corresponding.
     """
@@ -114,7 +114,7 @@ def _parse_elf_file(path: str, debug_info_level: int) -> tuple[SymbolDict[str, l
 
         while cursor != ffi.NULL:
             symbol_name = ffi.string(cursor.name).decode("utf-8")
-            symbols[symbol_name].append(Symbol(cursor.low_pc, cursor.high_pc, symbol_name))
+            symbols[symbol_name].add(Symbol(cursor.low_pc, cursor.high_pc, symbol_name, path))
             cursor = cursor.next
 
         lib_sym.free_symbol_info(head)
@@ -148,7 +148,7 @@ def resolve_symbol(path: str, symbol: str) -> int:
     # Retrieve the symbols from the SymbolTableSection
     symbols, buildid, debug_file = _parse_elf_file(path, libcontext.sym_lvl)
     if symbol in symbols:
-        return symbols[symbol][0].start
+        return next(iter(symbols[symbol])).start
 
     # Retrieve the symbols from the external debuginfo file
     if buildid and debug_file and libcontext.sym_lvl > 2:
@@ -156,7 +156,7 @@ def resolve_symbol(path: str, symbol: str) -> int:
         absolute_debug_path_str = str((LOCAL_DEBUG_PATH / folder / debug_file).resolve())
         symbols = _collect_external_info(absolute_debug_path_str)
         if symbol in symbols:
-            return symbols[symbol][0].start
+            return next(iter(symbols[symbol])).start
 
     # Retrieve the symbols from debuginfod
     if buildid and libcontext.sym_lvl > 4:
@@ -164,20 +164,20 @@ def resolve_symbol(path: str, symbol: str) -> int:
         if absolute_debug_path.exists():
             symbols = _collect_external_info(str(absolute_debug_path))
             if symbol in symbols:
-                return symbols[symbol][0].start
+                return next(iter(symbols[symbol])).start
 
     # Symbol not found
     raise ValueError(f"Symbol {symbol} not found in {path}. Please specify a valid symbol.")
 
 
-def get_all_symbols(maps: MemoryMapList[MemoryMap]) -> SymbolDict[str, list[Symbol]]:
+def get_all_symbols(backing_files: set[str]) -> SymbolDict[str, set[Symbol]]:
     """Returns a list of all the symbols in the target process.
 
     Args:
-        maps (MemoryMapList[MemoryMap]): The list of memory maps of the target process.
+        backing_files (set[str]): The set of backing files.
 
     Returns:
-        SymbolDict[str, list[Symbol]]: A list of all the symbols in the target process.
+        SymbolDict[str, set[Symbol]]: A list of all the symbols in the target process.
     """
     symbols = SymbolDict()
 
@@ -186,9 +186,9 @@ def get_all_symbols(maps: MemoryMapList[MemoryMap]) -> SymbolDict[str, list[Symb
             "Symbol resolution is disabled. Please enable it by setting the sym_lvl libcontext parameter to a value greater than 0.",
         )
 
-    for vmap in maps:
+    for file in backing_files:
         # Retrieve the symbols from the SymbolTableSection
-        new_symbols, buildid, debug_file = _parse_elf_file(vmap.backing_file, libcontext.sym_lvl)
+        new_symbols, buildid, debug_file = _parse_elf_file(file, libcontext.sym_lvl)
         symbols += new_symbols
 
         # Retrieve the symbols from the external debuginfo file

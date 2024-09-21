@@ -47,6 +47,7 @@ from libdebug.utils.debugging_utils import (
     normalize_and_validate_address,
     resolve_symbol_in_maps,
 )
+from libdebug.utils.elf_utils import get_all_symbols
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.platform_utils import get_platform_register_size
 from libdebug.utils.print_style import PrintStyle
@@ -65,6 +66,7 @@ if TYPE_CHECKING:
 
     from libdebug.data.memory_map import MemoryMap, MemoryMapList
     from libdebug.data.registers import Registers
+    from libdebug.data.symbol import Symbol, SymbolDict
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
     from libdebug.state.thread_context import ThreadContext
@@ -403,10 +405,11 @@ class InternalDebugger:
 
         self._join_and_check_status()
 
+    @property
     def maps(self: InternalDebugger) -> MemoryMapList[MemoryMap]:
         """Returns the memory maps of the process."""
         self._ensure_process_stopped()
-        return self.debugging_interface.maps()
+        return self.debugging_interface.get_maps()
 
     @property
     def memory(self: InternalDebugger) -> AbstractMemoryView:
@@ -416,8 +419,7 @@ class InternalDebugger:
     def pprint_maps(self: InternalDebugger) -> None:
         """Prints the memory maps of the process."""
         self._ensure_process_stopped()
-        maps = self.maps()
-        for memory_map in maps:
+        for memory_map in self.maps:
             if "x" in memory_map.permissions:
                 print(f"{PrintStyle.RED}{memory_map}{PrintStyle.RESET}")
             elif "w" in memory_map.permissions:
@@ -426,7 +428,6 @@ class InternalDebugger:
                 print(f"{PrintStyle.GREEN}{memory_map}{PrintStyle.RESET}")
             else:
                 print(memory_map)
-
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
@@ -1071,7 +1072,7 @@ class InternalDebugger:
         if skip_absolute_address_validation and backing_file == "absolute":
             return address
 
-        maps = self.debugging_interface.maps()
+        maps = self.maps
 
         if backing_file in ["hybrid", "absolute"]:
             if maps.find(address):
@@ -1111,15 +1112,20 @@ class InternalDebugger:
             # If no explicit backing file is specified, we have to assume it is in the main map
             backing_file = self._process_full_path
             liblog.debugger(f"No backing file specified for the symbol {symbol}. Assuming {backing_file}.")
-        elif backing_file == (full_backing_path := self._process_full_path) or backing_file in [
-            "binary",
-            self._process_name,
-        ]:
-            backing_file = full_backing_path
+        elif backing_file in ["binary", self._process_name]:
+            backing_file = self._process_full_path
 
-        filtered_maps = self.maps().find(backing_file)
+        filtered_maps = self.maps.find(backing_file)
 
         return resolve_symbol_in_maps(symbol, filtered_maps)
+
+    @property
+    def symbols(self: InternalDebugger) -> SymbolDict[str, set[Symbol]]:
+        """Get the symbols of the process."""
+        self._ensure_process_stopped()
+        backing_files = {vmap.backing_file for vmap in self.maps}
+        with extend_internal_debugger(self):
+            return get_all_symbols(backing_files)
 
     def _background_ensure_process_stopped(self: InternalDebugger) -> None:
         """Validates the state of the process."""
