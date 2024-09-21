@@ -48,6 +48,7 @@ def fast_suite():
     suite.addTest(BasicTest("test_registers"))
     suite.addTest(BasicTest("test_step"))
     suite.addTest(BasicTest("test_step_hardware"))
+    suite.addTest(BasicTest("test_register_find"))
     suite.addTest(BasicPieTest("test_basic"))
     suite.addTest(BreakpointTest("test_bps"))
     suite.addTest(BreakpointTest("test_bp_disable"))
