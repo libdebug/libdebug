@@ -34,6 +34,28 @@ class AttachDetachTest(unittest.TestCase):
         d.cont()
 
         d.kill()
+        
+    def test_attach_multihtread(self):
+        r = process("binaries/multithread_input")
+
+        d = debugger()
+        d.attach(r.pid)
+        
+        # Breakpoint at the end of the thread function
+        bp = d.breakpoint(0x128a, hardware=True, callback=lambda _, __: _)
+        
+        self.assertEqual(len(d.threads), 6)
+        
+        d.cont()
+        
+        for _ in range(5):
+            r.recvuntil(b"Enter a number:")
+            r.sendline(b"1")
+
+        d.detach()
+        r.kill()
+        
+        self.assertEqual(bp.hit_count, 5)
 
     def test_attach_and_detach_1(self):
         r = process("binaries/attach_test")
