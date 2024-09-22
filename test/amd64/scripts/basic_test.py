@@ -50,7 +50,7 @@ class BasicTest(unittest.TestCase):
         self.assertTrue(d.regs.r13 == 0x223344AABBCCDD11)
         self.assertTrue(d.regs.r14 == 0x3344AABBCCDD1122)
         self.assertTrue(d.regs.r15 == 0x44AABBCCDD112233)
-        
+
         d.cont()
         self.assertTrue(bp4.address == d.regs.rip)
 
