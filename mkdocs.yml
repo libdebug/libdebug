@@ -58,11 +58,16 @@ nav:
       - Supported Systems: basics/supported_systems.md
   - Stopping Events:
       - Stopping Events: stopping_events/stopping_events.md
-      - Callbacks: stopping_events/callbacks.md
+      - Debugging Flow of Stopping Events: stopping_events/debugging_flow.md
       - Breakpoints: stopping_events/breakpoints.md
       - Watchpoints: stopping_events/watchpoints.md
       - Syscalls: stopping_events/syscalls.md
       - Signals: stopping_events/signals.md
+  - Search API:
+      - Searching Memory Maps: search_api/searching_memory_maps.md
+      - Searching in Memory: search_api/searching_memory.md
+      - Searching in Registers: search_api/searching_registers.md
+      - Searching Symbols: search_api/searching_symbols.md
   - Multithreading:
       - Multithreading: multithreading/multithreading.md
   - Logging:

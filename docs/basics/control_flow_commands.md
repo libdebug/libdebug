@@ -13,7 +13,7 @@ A basic feature of any debugger is the ability to step through the code. **libde
 ### :material-debug-step-into: Single Step
 The `step()` command executes the instruction at the instruction pointer and stops the process. When possible, it uses the hardware single-step feature of the CPU for better performance.
 
-!!! ABSTRACT "Syntax"
+!!! ABSTRACT "Function Signature"
     ```python
     d.step()
     ```
@@ -23,7 +23,7 @@ The `next()` command executes the instruction at the instruction pointer and sto
 
 Please note that the `next()` command resumes the execution of the program if the instruction is a function call. This means that the debugger can encounter [stopping events](../../stopping_events/stopping_events) in the middle of the function, causing the command to return before the function finishes.
 
-!!! ABSTRACT "Syntax"
+!!! ABSTRACT "Function Signature"
     ```python
     d.next()
     ```
@@ -35,7 +35,7 @@ Please note that the `next()` command resumes the execution of the program if th
 
 The `step_until()` command executes single steps until a specific address is reached. Optionally, you can also limit steps to a maximum count (default value is -1, meaning no limit).
 
-!!! ABSTRACT "Syntax"
+!!! ABSTRACT "Function Signature"
     ```python
     d.step_until(position, max_steps=-1, file='hybrid') 
     ```
@@ -46,7 +46,7 @@ The file parameter can be used to specify the choice on relative addressing. Ref
 
 The `cont()` command continues the execution.
 
-!!! ABSTRACT "Syntax"
+!!! ABSTRACT "Function Signature"
     ```python
     d.cont()
     ```
@@ -91,7 +91,7 @@ The `wait()` command is likely the most important in **libdebug**. Loved by most
 ### :material-stop: Interrupt
 You can manually issue a stopping signal to the program using the `interrupt()` command. Clearly, this command is issued as soon as it is executed within the script.
 
-!!! ABSTRACT "Syntax"
+!!! ABSTRACT "Function Signature"
     ```python
     d.interrupt()
     ```
@@ -100,7 +100,7 @@ You can manually issue a stopping signal to the program using the `interrupt()` 
 
 The `finish()` command continues execution until the current function returns or a breakpoint is hit. In other debuggers, this command is known as "step out".
 
-!!! ABSTRACT "Syntax"
+!!! ABSTRACT "Function Signature"
     ```python
     d.finish(heuristic='backtrace')
     ```

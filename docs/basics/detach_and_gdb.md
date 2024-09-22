@@ -7,7 +7,7 @@ search:
 
 In **libdebug**, you can detach from the debugged process and continue execution with the `detach()` method.
 
-!!! ABSTRACT "Syntax"
+!!! ABSTRACT "Function Signature"
     ```python
     d.detach()
     ```
@@ -29,7 +29,7 @@ By default, the behavior of this command is to open GDB in a new terminal window
 
 Once the terminal is set, you can use the `gdb()` method to open GDB in a new terminal window.
 
-!!! ABSTRACT "Syntax"
+!!! ABSTRACT "Function Signature"
     ```python
     d.gdb(open_in_new_process = True)
     ```
@@ -42,7 +42,7 @@ If instead of opening GDB in a new terminal window you want to use the current t
 ## :material-power: Graceful Termination
 If you are finished working with a [Debugger](../../from_pydoc/generated/debugger/debugger/) object and wish to deallocate it, you can terminate it using the `terminate()` command.
 
-!!! ABSTRACT "Syntax"
+!!! ABSTRACT "Function Signature"
     ```python
     d.terminate()
     ```
