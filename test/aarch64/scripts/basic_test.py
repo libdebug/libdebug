@@ -134,7 +134,7 @@ class BasicTest(unittest.TestCase):
         d.kill()
         d.terminate()
 
-    def test_registers(self):
+    def test_register_find(self):
         d = debugger("binaries/basic_test")
         d.run()
 
