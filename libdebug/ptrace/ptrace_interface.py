@@ -178,7 +178,10 @@ class PtraceInterface(DebuggingInterface):
             # https://stackoverflow.com/questions/58918188/why-is-stdin-not-propagated-to-child-process-of-different-process-group
             # We need to set the foreground process group to the child process group, otherwise the child process
             # will not receive the input from the terminal
-            os.tcsetpgrp(0, child_pid)
+            try:
+                os.tcsetpgrp(0, child_pid)
+            except OSError as e:
+                liblog.debugger("Failed to set the foreground process group: %r", e)
 
     def attach(self: PtraceInterface, pid: int) -> None:
         """Attaches to the specified process.
