@@ -9,7 +9,7 @@
 #include <string.h>
 #include <signal.h>
 
-#define SIGPROVOLA 50
+#define SIGPROVOLA 25
 
 const char admin_pwd[] = "admin";
 const char flag[] = "flag{provola}";
