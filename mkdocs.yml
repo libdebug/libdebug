@@ -75,6 +75,7 @@ nav:
       - Pretty Printing: quality_of_life/pretty_printing.md
       - Symbol Resolution: quality_of_life/symbols.md
       - Search API: quality_of_life/search_api.md
+      - Stack Frame Utils: quality_of_life/stack_frame_utils.md
       - Evasion of Anti-Debugging: quality_of_life/anti_debugging.md
   - Blog:
     - blog/index.md

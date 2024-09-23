@@ -15,5 +15,8 @@ Visualizing the state of the process you are debugging can be a daunting task. *
 ### [:octicons-search-24: Search API](../search_api/)
 The search API allows you to search for symbols, memory maps, specific byte-strings in the memory of the process and values in registers.
 
+### [:octicons-stack-24: Stack Frame Utils](../stack_frame_utils/)
+**libdebug** offers utilities to inspect the stack frames of a process.
+
 ### [:material-run-fast: Evasion of Anti-Debugging](../anti_debugging/)
 **libdebug** offers a few functions that will help you evade simple anti-debugging techniques. These functions can be used to bypass checks for the presence of a debugger.
