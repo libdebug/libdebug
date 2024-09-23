@@ -74,7 +74,7 @@ nav:
   - Multithreading:
       - Multithreading: multithreading/multithreading.md
   - Logging:
-      - Logging: logging/logging.md
+      - Logging: logging/liblog.md
   - Quality of Life:
       - Quality of Life: quality_of_life/quality_of_life.md
   - Blog:
