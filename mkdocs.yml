@@ -45,7 +45,10 @@ plugins:
   - mkdocstrings
 nav:
   - index.md
-  - code_examples.md
+  - Code Examples:
+      - Examples Index: code_examples/examples_index.md
+      - nlinks - DEF CON Quals 2023: code_examples/example_nlinks.md
+      - CyberChallenge 24 Workshop: code_examples/example_cc24.md
   - The Basics:
       - libdebug 101: basics/libdebug101.md
       - Running an Executable: basics/running_an_executable.md
