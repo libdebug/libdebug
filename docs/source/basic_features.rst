@@ -34,7 +34,7 @@ After creating the debugger object, you can start the execution of the program u
     pipes = d.run()
 
 
-The `run()` command returns a `LibPipe` object, which you can use to interact with the program's standard input, output, and error. To read more about the LibPipe interface, please refer to the LibPipe documentation :class:`libdebug.utils.libpipe.LibPipe`. Please note that breakpoints are not kept between different runs of the program. If you want to set a breakpoint again, you should do so after the program has restarted.
+The `run()` command returns a `PipeManager` object, which you can use to interact with the program's standard input, output, and error. To read more about the PipeManager interface, please refer to the PipeManager documentation :class:`libdebug.utils.pipe_manager.PipeManager`. Please note that breakpoints are not kept between different runs of the program. If you want to set a breakpoint again, you should do so after the program has restarted.
 
 Any process will be automatically killed when the debugging script exits. If you want to prevent this behavior, you can set the `kill_on_exit` parameter to False when creating the debugger object, or set the companion attribute `kill_on_exit` to False at runtime.
 

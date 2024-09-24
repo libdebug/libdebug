@@ -21,15 +21,15 @@ if TYPE_CHECKING:
     from libdebug.debugger.internal_debugger import InternalDebugger
 
 
-class LibPipe:
+class PipeManager:
     """Class for managing pipes of the child process."""
 
     timeout_default: int = 2
     prompt_default: str = "$ "
     __end_interactive_event: Event = Event()
 
-    def __init__(self: LibPipe, stdin_write: int, stdout_read: int, stderr_read: int) -> None:
-        """Initializes the LibPipe class.
+    def __init__(self: PipeManager, stdin_write: int, stdout_read: int, stderr_read: int) -> None:
+        """Initializes the PipeManager class.
 
         Args:
             stdin_write (int): file descriptor for stdin write.
@@ -42,7 +42,7 @@ class LibPipe:
         self._internal_debugger: InternalDebugger = provide_internal_debugger(self)
 
     def _recv(
-        self: LibPipe,
+        self: PipeManager,
         numb: int | None = None,
         timeout: float = timeout_default,
         stderr: bool = False,
@@ -111,13 +111,13 @@ class LibPipe:
         liblog.pipe(f"Received {len(data_buffer)} bytes from the child process: {data_buffer!r}")
         return data_buffer
 
-    def close(self: LibPipe) -> None:
+    def close(self: PipeManager) -> None:
         """Closes all the pipes of the child process."""
         os.close(self.stdin_write)
         os.close(self.stdout_read)
         os.close(self.stderr_read)
 
-    def recv(self: LibPipe, numb: int | None = None, timeout: int = timeout_default) -> bytes:
+    def recv(self: PipeManager, numb: int | None = None, timeout: int = timeout_default) -> bytes:
         """Receives at most numb bytes from the child process stdout.
 
         Args:
@@ -129,7 +129,7 @@ class LibPipe:
         """
         return self._recv(numb=numb, timeout=timeout, stderr=False)
 
-    def recverr(self: LibPipe, numb: int | None = None, timeout: int = timeout_default) -> bytes:
+    def recverr(self: PipeManager, numb: int | None = None, timeout: int = timeout_default) -> bytes:
         """Receives at most numb bytes from the child process stderr.
 
         Args:
@@ -142,7 +142,7 @@ class LibPipe:
         return self._recv(numb=numb, timeout=timeout, stderr=True)
 
     def _recvonceuntil(
-        self: LibPipe,
+        self: PipeManager,
         delims: bytes,
         drop: bool = False,
         timeout: float = timeout_default,
@@ -193,7 +193,7 @@ class LibPipe:
         return data_buffer
 
     def _recvuntil(
-        self: LibPipe,
+        self: PipeManager,
         delims: bytes,
         occurences: int = 1,
         drop: bool = False,
@@ -230,7 +230,7 @@ class LibPipe:
         return data_buffer
 
     def recvuntil(
-        self: LibPipe,
+        self: PipeManager,
         delims: bytes,
         occurences: int = 1,
         drop: bool = False,
@@ -256,7 +256,7 @@ class LibPipe:
         )
 
     def recverruntil(
-        self: LibPipe,
+        self: PipeManager,
         delims: bytes,
         occurences: int = 1,
         drop: bool = False,
@@ -281,7 +281,7 @@ class LibPipe:
             stderr=True,
         )
 
-    def recvline(self: LibPipe, numlines: int = 1, drop: bool = True, timeout: int = timeout_default) -> bytes:
+    def recvline(self: PipeManager, numlines: int = 1, drop: bool = True, timeout: int = timeout_default) -> bytes:
         """Receives numlines lines from the child process stdout.
 
         Args:
@@ -294,7 +294,7 @@ class LibPipe:
         """
         return self.recvuntil(delims=b"\n", occurences=numlines, drop=drop, timeout=timeout)
 
-    def recverrline(self: LibPipe, numlines: int = 1, drop: bool = True, timeout: int = timeout_default) -> bytes:
+    def recverrline(self: PipeManager, numlines: int = 1, drop: bool = True, timeout: int = timeout_default) -> bytes:
         """Receives numlines lines from the child process stderr.
 
         Args:
@@ -307,7 +307,7 @@ class LibPipe:
         """
         return self.recverruntil(delims=b"\n", occurences=numlines, drop=drop, timeout=timeout)
 
-    def send(self: LibPipe, data: bytes) -> int:
+    def send(self: PipeManager, data: bytes) -> int:
         """Sends data to the child process stdin.
 
         Args:
@@ -335,7 +335,7 @@ class LibPipe:
 
         return number_bytes
 
-    def sendline(self: LibPipe, data: bytes) -> int:
+    def sendline(self: PipeManager, data: bytes) -> int:
         """Sends data to the child process stdin and append a newline.
 
         Args:
@@ -350,7 +350,7 @@ class LibPipe:
         return self.send(data=data + b"\n")
 
     def sendafter(
-        self: LibPipe,
+        self: PipeManager,
         delims: bytes,
         data: bytes,
         occurences: int = 1,
@@ -375,7 +375,7 @@ class LibPipe:
         return (received, sent)
 
     def sendlineafter(
-        self: LibPipe,
+        self: PipeManager,
         delims: bytes,
         data: bytes,
         occurences: int = 1,
@@ -399,7 +399,7 @@ class LibPipe:
         sent = self.sendline(data)
         return (received, sent)
 
-    def _recv_for_interactive(self: LibPipe) -> None:
+    def _recv_for_interactive(self: PipeManager) -> None:
         """Receives data from the child process."""
         stdout_is_open = True
         stderr_is_open = True
@@ -432,7 +432,7 @@ class LibPipe:
                     stderr_is_open = False
                     continue
 
-    def interactive(self: LibPipe, prompt: str = prompt_default) -> None:
+    def interactive(self: PipeManager, prompt: str = prompt_default) -> None:
         """Interacts with the child process."""
         liblog.info("Calling interactive mode")
 

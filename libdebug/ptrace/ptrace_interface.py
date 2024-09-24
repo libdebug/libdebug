@@ -13,8 +13,8 @@ import tty
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from libdebug.architectures.register_helper import register_holder_provider
 from libdebug.architectures.call_utilities_provider import call_utilities_provider
+from libdebug.architectures.register_helper import register_holder_provider
 from libdebug.cffi import _ptrace_cffi
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.debugger.internal_debugger_instance_manager import (
@@ -27,7 +27,7 @@ from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
 from libdebug.state.thread_context import ThreadContext
 from libdebug.utils.debugging_utils import normalize_and_validate_address
 from libdebug.utils.elf_utils import get_entry_point
-from libdebug.utils.libpipe import LibPipe
+from libdebug.utils.pipe_manager import PipeManager
 from libdebug.utils.process_utils import (
     disable_self_aslr,
     get_process_maps,
@@ -164,7 +164,7 @@ class PtraceInterface(DebuggingInterface):
         self.register_new_thread(child_pid)
         continue_to_entry_point = self._internal_debugger.autoreach_entrypoint
         self._setup_parent(continue_to_entry_point)
-        self._internal_debugger.lib_pipe = self._setup_pipe()
+        self._internal_debugger.pipe_manager = self._setup_pipe()
 
     def attach(self: PtraceInterface, pid: int) -> None:
         """Attaches to the specified process.
@@ -419,7 +419,7 @@ class PtraceInterface(DebuggingInterface):
         except Exception as e:
             raise Exception("Closing fds failed: %r", e) from e
         with extend_internal_debugger(self):
-            return LibPipe(self.stdin_write, self.stdout_read, self.stderr_read)
+            return PipeManager(self.stdin_write, self.stdout_read, self.stderr_read)
 
     def _setup_parent(self: PtraceInterface, continue_to_entry_point: bool) -> None:
         """Sets up the parent process after the child process has been created or attached to."""
