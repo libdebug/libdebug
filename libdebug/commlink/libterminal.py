@@ -11,67 +11,21 @@ import threading
 from logging import StreamHandler
 from queue import Queue
 from threading import Event
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING
 
 from prompt_toolkit.application import Application
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import HSplit, Layout
-from prompt_toolkit.lexers import Lexer
 from prompt_toolkit.styles import Style
 from prompt_toolkit.widgets import TextArea
 
-from libdebug.debugger.internal_debugger_instance_manager import (
-    provide_internal_debugger,
-)
+from libdebug.commlink.logging_lexer import LoggingLexer
+from libdebug.commlink.std_wrapper import StdWrapper
+from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 from libdebug.liblog import liblog
-from libdebug.utils.ansi_escape_codes import ANSIColors
 
 if TYPE_CHECKING:
     from prompt_toolkit.application import KeyPressEvent
-    from prompt_toolkit.document import Document
-
-
-class LoggingLexer(Lexer):
-    """Lexer to colorize the output of the terminal."""
-
-    patterns: ClassVar[list[str]] = [
-        f"[{ANSIColors.BRIGHT_YELLOW}WARNING{ANSIColors.DEFAULT_COLOR}]",
-        f"[{ANSIColors.RED}ERROR{ANSIColors.DEFAULT_COLOR}]",
-        f"[{ANSIColors.GREEN}INFO{ANSIColors.DEFAULT_COLOR}]",
-    ]
-
-    def lex_document(self: LoggingLexer, document: Document) -> callable[[int], list[tuple[str, str]]]:
-        """Return a callable that takes a line number and returns a list of tokens for that line."""
-
-        def get_line_tokens(line_number: int) -> list[tuple[str, str]]:
-            line = document.lines[line_number]
-            tokens = []
-            if self.patterns[0] in line:
-                line = line.split(self.patterns[0])
-                tokens.append(("", line[0]))
-                tokens.append(("", "["))
-                tokens.append(("class:warning", "WARNING"))
-                tokens.append(("", "]"))
-                tokens.append(("", line[1]))
-            elif line.startswith(self.patterns[1]):
-                line = line.split(self.patterns[1])
-                tokens.append(("", line[0]))
-                tokens.append(("", "["))
-                tokens.append(("class:error", "ERROR"))
-                tokens.append(("", "]"))
-                tokens.append(("", line[1]))
-            elif line.startswith(self.patterns[2]):
-                line = line.split(self.patterns[2])
-                tokens.append(("", line[0]))
-                tokens.append(("", "["))
-                tokens.append(("class:info", "INFO"))
-                tokens.append(("", "]"))
-                tokens.append(("", line[1]))
-            else:
-                tokens.append(("", line))
-            return tokens
-
-        return get_line_tokens
 
 
 class LibTerminal:
@@ -102,8 +56,8 @@ class LibTerminal:
         self._stderr_backup: object = sys.stderr
 
         # Redirect stdout and stderr to the terminal
-        sys.stdout = StdoutWrapper(self._stdout_backup, self)
-        sys.stderr = StderrWrapper(self._stderr_backup, self)
+        sys.stdout = StdWrapper(self._stdout_backup, self)
+        sys.stderr = StdWrapper(self._stderr_backup, self)
 
         # Redirect the loggers to the terminal
         for handler in liblog.general_logger.handlers:
@@ -121,6 +75,7 @@ class LibTerminal:
         self._run_prompt(prompt)
 
     def _run_prompt(self: LibTerminal, prompt: str) -> None:
+        """Run the prompt_toolkit application."""
         output_field = TextArea(
             style="class:output-field",
             focusable=False,
@@ -133,6 +88,7 @@ class LibTerminal:
 
         @kb.add("enter")
         def on_enter(event: KeyPressEvent) -> None:
+            """Send the user input to the child process."""
             buffer = event.app.current_buffer
             cmd = buffer.text
             if cmd:
@@ -141,7 +97,6 @@ class LibTerminal:
                 except RuntimeError:
                     liblog.warning("The stdin pipe of the child process is not available anymore")
                     # Flush the output field and exit the application
-                    update_output(event.app)
                     app_exit(event)
                 finally:
                     buffer.reset()
@@ -149,19 +104,25 @@ class LibTerminal:
         @kb.add("c-c")
         @kb.add("c-d")
         def app_exit(event: KeyPressEvent) -> None:
+            """Manage the key bindings for the exit of the application."""
             # Flush the output field
             update_output(event.app)
+            # Signal the end of the interactive session
             self.__end_interactive_event.set()
             while self.__end_interactive_event.is_set():
+                # Wait to be sure that the other thread is not polling from the child process's
+                # stderr and stdout pipes anymore
                 pass
             event.app.exit()
 
         layout = Layout(HSplit([output_field, input_field]))
+
+        # Define the style for the prompt_toolkit application to correctly display the log messages
         style = Style.from_dict(
             {
                 "output-field": "",
                 "input-field": "",
-                "warning": "fg:yellow",
+                "warning": "fg:orange",
                 "error": "fg:red",
                 "info": "fg:green",
             },
@@ -175,8 +136,8 @@ class LibTerminal:
             style=style,
         )
 
-        # Function to update the output_field from the queue
         def update_output(app: Application) -> None:
+            """Update the output field with the messages in the queue."""
             to_exit = False
             if not self._internal_debugger.running and (
                 event_type := self._internal_debugger.resume_context.event_type
@@ -239,37 +200,3 @@ class LibTerminal:
         for handler in liblog.debugger_logger.handlers:
             if isinstance(handler, StreamHandler):
                 handler.stream = sys.stderr
-
-
-class StdoutWrapper:
-    """Wrapper around stdout to allow for custom write method."""
-
-    def __init__(self: StdoutWrapper, fd: object, terminal: LibTerminal) -> None:
-        """Initializes the StdoutWrapper object."""
-        self._fd: object = fd
-        self._terminal: LibTerminal = terminal
-
-    def write(self, payload: bytes | str) -> int:
-        """Overloads the write method to allow for custom behavior."""
-        return self._terminal._write_manager(payload)
-
-    def __getattr__(self, k: any) -> any:
-        """Ensure that all other attributes are forwarded to the original file descriptor."""
-        return getattr(self._fd, k)
-
-
-class StderrWrapper:
-    """Wrapper around stderr to allow for custom write method."""
-
-    def __init__(self: StderrWrapper, fd: object, terminal: LibTerminal) -> None:
-        """Initializes the StderrWrapper object."""
-        self._fd: object = fd
-        self._terminal: LibTerminal = terminal
-
-    def write(self, payload: bytes | str) -> int:
-        """Overloads the write method to allow for custom behavior."""
-        return self._terminal._write_manager(payload)
-
-    def __getattr__(self, k: any) -> any:
-        """Ensure that all other attributes are forwarded to the original file descriptor."""
-        return getattr(self._fd, k)

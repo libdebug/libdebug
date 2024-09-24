@@ -67,12 +67,12 @@ from libdebug.utils.syscall_utils import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from libdebug.commlink.pipe_manager import PipeManager
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.registers import Registers
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
     from libdebug.state.thread_context import ThreadContext
-    from libdebug.utils.pipe_manager import PipeManager
 
 THREAD_TERMINATE = -1
 GDB_GOBACK_LOCATION = str((Path(__file__).parent.parent / "utils" / "gdb.py").resolve())

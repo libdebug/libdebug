@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 from libdebug.architectures.call_utilities_provider import call_utilities_provider
 from libdebug.architectures.register_helper import register_holder_provider
 from libdebug.cffi import _ptrace_cffi
+from libdebug.commlink.pipe_manager import PipeManager
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.debugger.internal_debugger_instance_manager import (
     extend_internal_debugger,
@@ -27,7 +28,6 @@ from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
 from libdebug.state.thread_context import ThreadContext
 from libdebug.utils.debugging_utils import normalize_and_validate_address
 from libdebug.utils.elf_utils import get_entry_point
-from libdebug.utils.pipe_manager import PipeManager
 from libdebug.utils.process_utils import (
     disable_self_aslr,
     get_process_maps,

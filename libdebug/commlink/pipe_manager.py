@@ -13,9 +13,9 @@ from select import select
 from threading import Event
 from typing import TYPE_CHECKING
 
+from libdebug.commlink.libterminal import LibTerminal
 from libdebug.debugger.internal_debugger_instance_manager import extend_internal_debugger, provide_internal_debugger
 from libdebug.liblog import liblog
-from libdebug.utils.libterminal import LibTerminal
 
 if TYPE_CHECKING:
     from libdebug.debugger.internal_debugger import InternalDebugger
