@@ -1,11 +1,12 @@
 site_name: Docs / libdebug
-site_url: https://docs.libdebug.org
+site_url: http://localhost:8000
 repo_url: https://github.com/libdebug/libdebug
 repo_name: libdebug
 theme:
   name: material
   logo: assets/libdebug_logo.webp
   favicon: assets/favicon.ico
+  custom_dir: ./docs/overrides
   palette: 
     # Palette toggle for light mode
     - media: "(prefers-color-scheme: light)"
@@ -99,7 +100,6 @@ markdown_extensions:
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
-
 
 extra_css:
   - stylesheets/extra.css
