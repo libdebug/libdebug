@@ -433,7 +433,11 @@ class PipeManager:
                     continue
 
     def interactive(self: PipeManager, prompt: str = prompt_default) -> None:
-        """Interacts with the child process."""
+        """Manually interact with the child process.
+
+        Args:
+            prompt (str, optional): prompt for the interactive mode. Defaults to "$ " (prompt_default).
+        """
         liblog.info("Calling interactive mode")
 
         # Set up and run the terminal
