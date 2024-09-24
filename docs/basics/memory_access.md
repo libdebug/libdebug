@@ -58,7 +58,7 @@ d.memory[d.rsp, 0x10] = b"AAAAAAABC"
 d.memory["main_arena", 16, "libc"] = b"12345678"
 ```
 
-## Absolute and Relative Addressing
+## :material-relative-scale: Absolute and Relative Addressing
 
 Just like with symbols, memory addresses can also be accessed relative to a certain file base. **libdebug** uses `"hybrid"` addressing by default. This means it first attempts to resolve addresses as absolute. If the address does not correspond to an absolute one, it considers it relative to the base of the binary.
 
@@ -77,7 +77,42 @@ You can use the third parameter of the memory access method to select the file y
     d.memory[0x1000, 0x10, "libc"]
     ```
 
-## Faster Memory Access
+## :octicons-search-24: Searching inside Memory
+The `memory` attribute of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object also allows you to search for specific values in the memory of the process. You can search for integers, strings, or [bytes-like](https://docs.python.org/3/glossary.html#term-bytes-like-object) objects.
+
+!!! ABSTRACT "Function Signature"
+    ```python
+    d.memory.find(
+        value: int | bytes | str,
+        file: str = "all",
+        start: int | None = None,
+        end: int | None = None,
+    ) -> list[int]:
+    ```
+
+**Parameters**:
+
+| Argument | Type | Description |
+| --- | --- | --- |
+| `value` | `int` \| `bytes` \| `str` | The value to search for. |
+| `file` | `str` | The backing file to search in (e.g, binary, libc, stack). |
+| `start` | `int` (optional) | The start address of the search (works with both relative and absolute). |
+| `end` | `int` (optional) | The end address of the search (works with both relative and absolute). |
+
+**Returns**:
+
+| Return | Type | Description |
+| --- | --- | --- |
+| `Addresses` | `list[int]` | List of memory addresses where the value was found. |
+
+!!! ABSTRACT "Usage Example"
+    ```python
+    bish_string_addr = d.memory.find("/bin/sh", file="libc")
+
+    value_address = d.memory.find(0x1234, file="stack", start=d.regs.rsp)
+    ```
+
+## :material-clock-fast: Faster Memory Access
 !!! EXAMPLE "Warning: This feature is Experimental!"
     This feature is experimental and may not work as expected. Please report any issues you encounter [:octicons-issue-opened-24: here](https://github.com/libdebug/libdebug/issues).
 

@@ -6,6 +6,9 @@ search:
 # :material-hexadecimal: Register Access
 **libdebug** offers a simple register access interface for supported architectures. Registers through the `regs` attribute of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object or the [Thread Context](../../from_pydoc/generated/state/thread_context). This includes both general-purpose and special registers, as well as the flags.
 
+!!! INFO "Multithreading"
+    In multi-threaded debugging, the `regs` attribute of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object will return the registers of the main thread.
+
 The following is an example of how to interact with the `RAX` register in a debugger object on AMD64:
 
 | Operation | Code Snippet                  |
@@ -323,3 +326,23 @@ Note that the register values are read and written as Python integers. This is t
 
 !!! INFO "Hardware Support"
     **libdebug** only exposes registers which are available on your CPU model. For AMD64, the list of available AVX registers is determined by checking the CPU capabilities. If you believe your CPU supports AVX registers but they are not available, we encourage your to open an [:octicons-issue-opened-24: Issue](https://github.com/libdebug/libdebug/issues) with your hardware details.
+
+## :octicons-search-24: Searching inside Registers
+The `regs` field of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object or the [Thread Context](../../from_pydoc/generated/state/thread_context) can also used to search for specific values inside the registers. 
+
+
+!!! ABSTRACT "Function Signature"
+    ```python
+    d.regs.find(value: float) -> list[str]:
+    ```
+
+The search routine will look for the given value in integer registers when the `value` is an int and in floating point registers when the value is a `float`.
+
+!!! ABSTRACT "Searching for a Value"
+    ```python
+    d.regs.rax = 0x1337
+    
+    # Search for the value 0x1337 in the registers
+    results = d.regs.find(0x1337)
+    print(f"Found in: {results}")
+    ```

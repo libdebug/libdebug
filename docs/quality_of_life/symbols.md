@@ -9,7 +9,7 @@ As described in the [memory access](../memory_access/#absolute-and-relative-addr
 !!! INFO "C++ Demangling"
     Reverse-engineering of C++ binaries can be a struggle. To help out, **libdebug** automatically demangles C++ symbols.
 
-### Symbol Resolution Levels
+### :material-pyramid: Symbol Resolution Levels
 With large binaries and libraries, parsing symbols can become an expensive operation. Because of this, **libdebug** offers the possibility of choosing among 6 levels of symbol resolution. To set the symbol resolution level, you can use the `sym_lvl` property of the [`libcontext`](../../from_pydoc/generated/utils/libcontext) module.
 
 | Level | Description |
@@ -40,3 +40,22 @@ If you want to change the symbol resolution level temporarily, you can use a `wi
     with libcontext.tmp(sym_lvl = 5):
         d.breakpoint('main')
     ```
+
+## :octicons-search-24: Symbol Search
+The `symbols` attribute of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object allows you to search for symbols in the binary and shared libraries.
+
+!!! ABSTRACT "Function Signature"
+    ```python
+    d.symbols.find(value: int | str) -> SymbolDict[str, set[Symbol]]:
+    ```
+
+Given a symbol name or address, this function returns a [SymbolDict](../../from_pydoc/generated/data/symbol/) dictionary with the symbol name as the key and a [set](https://docs.python.org/3/library/stdtypes.html#set-types-set-frozenset) of [Symbol](../../from_pydoc/generated/data/symbol/) objects as the value.
+
+These are the attributes of a [Symbol](../../from_pydoc/generated/data/symbol/) object:
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `start`   | `int` | The start address of the symbol. |
+| `end`     | `int` | The end address of the symbol. |
+| `name`    | `str` | The name of the symbol. |
+| `backing_file` | `str` | The file where the symbol is defined (e.g., binary, libc, ld). |

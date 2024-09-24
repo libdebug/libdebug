@@ -3,7 +3,7 @@ icon: material/note-text
 search:
     boost: 4
 ---
-# :material-note-text: liblog
+# :material-note-text: Logging
 Debugging an application with the freedom of a rich API can lead to flows which are hard to unravel. To aid the user in the debugging process, **libdebug** provides logging. The logging system is implemented in the submodule [`liblog`](../../from_pydoc/generated/liblog) and adheres to the [Python logging system](https://docs.python.org/3/library/logging.html).
 
 ## Event Logging

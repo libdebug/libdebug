@@ -12,11 +12,11 @@ Visualizing the state of the process you are debugging can be a daunting task. *
 ### [:material-alphabetical: Symbol Resolution](../symbols/)
 **libdebug** can resolve symbols in the binary and shared libraries. With big binaries, this can be a computationally intensive, especially if your script needs to be run multiple types. You can set symbol resolution levels and specify where to look for symbols according to your needs.
 
-### [:octicons-search-24: Search API](../search_api/)
-The search API allows you to search for symbols, memory maps, specific byte-strings in the memory of the process and values in registers.
+### [:material-map-plus: Memory Maps](../memory_maps/)
+**libdebug** offers utilities to retrieve the memory maps of a process. This can be useful to understand the memory layout of the process you are debugging.
 
 ### [:octicons-stack-24: Stack Frame Utils](../stack_frame_utils/)
-**libdebug** offers utilities to inspect the stack frames of a process.
+**libdebug** offers utilities to resolve the return addresses of a process.
 
 ### [:material-run-fast: Evasion of Anti-Debugging](../anti_debugging/)
 **libdebug** offers a few functions that will help you evade simple anti-debugging techniques. These functions can be used to bypass checks for the presence of a debugger.
