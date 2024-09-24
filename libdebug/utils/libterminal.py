@@ -11,64 +11,73 @@ import threading
 from logging import StreamHandler
 from queue import Queue
 from threading import Event
+from typing import TYPE_CHECKING, ClassVar
 
 from prompt_toolkit.application import Application
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import HSplit, Layout
-from prompt_toolkit.widgets import TextArea
-from prompt_toolkit.styles import Style
 from prompt_toolkit.lexers import Lexer
-from libdebug.utils.ansi_escape_codes import ANSIColors
+from prompt_toolkit.styles import Style
+from prompt_toolkit.widgets import TextArea
+
 from libdebug.debugger.internal_debugger_instance_manager import (
     provide_internal_debugger,
 )
-from typing import TYPE_CHECKING
-
 from libdebug.liblog import liblog
+from libdebug.utils.ansi_escape_codes import ANSIColors
 
 if TYPE_CHECKING:
     from prompt_toolkit.application import KeyPressEvent
+    from prompt_toolkit.document import Document
+
+
+class LoggingLexer(Lexer):
+    """Lexer to colorize the output of the terminal."""
+
+    patterns: ClassVar[list[str]] = [
+        f"[{ANSIColors.BRIGHT_YELLOW}WARNING{ANSIColors.DEFAULT_COLOR}]",
+        f"[{ANSIColors.RED}ERROR{ANSIColors.DEFAULT_COLOR}]",
+        f"[{ANSIColors.GREEN}INFO{ANSIColors.DEFAULT_COLOR}]",
+    ]
+
+    def lex_document(self: LoggingLexer, document: Document) -> callable[[int], list[tuple[str, str]]]:
+        """Return a callable that takes a line number and returns a list of tokens for that line."""
+
+        def get_line_tokens(line_number: int) -> list[tuple[str, str]]:
+            line = document.lines[line_number]
+            tokens = []
+            if self.patterns[0] in line:
+                line = line.split(self.patterns[0])
+                tokens.append(("", line[0]))
+                tokens.append(("", "["))
+                tokens.append(("class:warning", "WARNING"))
+                tokens.append(("", "]"))
+                tokens.append(("", line[1]))
+            elif line.startswith(self.patterns[1]):
+                line = line.split(self.patterns[1])
+                tokens.append(("", line[0]))
+                tokens.append(("", "["))
+                tokens.append(("class:error", "ERROR"))
+                tokens.append(("", "]"))
+                tokens.append(("", line[1]))
+            elif line.startswith(self.patterns[2]):
+                line = line.split(self.patterns[2])
+                tokens.append(("", line[0]))
+                tokens.append(("", "["))
+                tokens.append(("class:info", "INFO"))
+                tokens.append(("", "]"))
+                tokens.append(("", line[1]))
+            else:
+                tokens.append(("", line))
+            return tokens
+
+        return get_line_tokens
 
 
 class LibTerminal:
     """Class that represents a terminal to interact with the child process."""
 
-    class LoggingLexer(Lexer):
-        """Lexer to colorize the output of the terminal."""
-
-        patterns = [
-            f"[{ANSIColors.BRIGHT_YELLOW}WARNING{ANSIColors.DEFAULT_COLOR}]",
-            f"[{ANSIColors.RED}ERROR{ANSIColors.DEFAULT_COLOR}]",
-            f"[{ANSIColors.GREEN}INFO{ANSIColors.DEFAULT_COLOR}]",
-        ]
-
-        def lex_document(self, document):
-            def get_line_tokens(line_number):
-                line = document.lines[line_number]
-                tokens = []
-                if line.startswith(self.patterns[0]):
-                    line = line.replace(self.patterns[0], "")
-                    tokens.append(("", "["))
-                    tokens.append(("class:warning", "WARNING"))
-                    tokens.append(("", "]"))
-                elif line.startswith(self.patterns[1]):
-                    line = line.replace(self.patterns[1], "")
-                    tokens.append(("", "["))
-                    tokens.append(("class:error", "ERROR"))
-                    tokens.append(("", "]"))
-                elif line.startswith(self.patterns[2]):
-                    line = line.replace(self.patterns[2], "")
-                    tokens.append(("", "["))
-                    tokens.append(("class:info", "INFO"))
-                    tokens.append(("", "]"))
-                tokens.append(("", line))
-                return tokens
-
-            return get_line_tokens
-
-    def __init__(
-        self: LibTerminal, prompt: str, sendline: callable, end_interactive_event: Event
-    ) -> None:
+    def __init__(self: LibTerminal, prompt: str, sendline: callable, end_interactive_event: Event) -> None:
         """Initializes the LibTerminal object."""
         # Provide the internal debugger instance
         self._internal_debugger = provide_internal_debugger(self)
@@ -82,10 +91,10 @@ class LibTerminal:
         # Initialize the message queue for the prompt_toolkit application
         self._app_message_queue: Queue = Queue()
 
-        # Initialize the prompt_toolkit application
+        # Initialize the prompt_toolkit application reference
         self._app: Application | None = None
 
-        # Initialize the thread for the prompt_toolkit application
+        # Initialize the thread reference for the prompt_toolkit application
         self._app_thread: threading.Thread | None = None
 
         # Backup the original stdout and stderr
@@ -109,14 +118,14 @@ class LibTerminal:
             if isinstance(handler, StreamHandler):
                 handler.stream = sys.stderr
 
-        self._spawn_prompt(prompt)
+        self._run_prompt(prompt)
 
-    def _spawn_prompt(self: LibTerminal, prompt: str) -> None:
+    def _run_prompt(self: LibTerminal, prompt: str) -> None:
         output_field = TextArea(
             style="class:output-field",
             focusable=False,
             scrollbar=False,
-            lexer=self.LoggingLexer(),
+            lexer=LoggingLexer(),
         )
         input_field = TextArea(height=3, prompt=prompt, style="class:input-field")
 
@@ -130,9 +139,7 @@ class LibTerminal:
                 try:
                     self._sendline(cmd.encode("ascii"))
                 except RuntimeError:
-                    liblog.warning(
-                        "The stdin pipe of the child process is not available anymore"
-                    )
+                    liblog.warning("The stdin pipe of the child process is not available anymore")
                     # Flush the output field and exit the application
                     update_output(event.app)
                     app_exit(event)
@@ -154,10 +161,10 @@ class LibTerminal:
             {
                 "output-field": "",
                 "input-field": "",
-                "warning": "fg:yellow bold",
-                "error": "fg:red bold",
-                "info": "fg:blue",
-            }
+                "warning": "fg:yellow",
+                "error": "fg:red",
+                "info": "fg:green",
+            },
         )
 
         self._app = Application(
@@ -175,7 +182,7 @@ class LibTerminal:
                 event_type := self._internal_debugger.resume_context.event_type
             ):
                 liblog.warning(
-                    f"The debugged process has stopped due to a {event_type} event"
+                    f"The debugged process has stopped due to a {event_type} event",
                 )
                 # Flush the output field and exit the application
                 self.__end_interactive_event.set()
@@ -204,21 +211,16 @@ class LibTerminal:
 
     def _write_manager(self, payload: bytes) -> int:
         """Put the payload in the message queue for the prompt_toolkit application."""
-        # Write the stderr buffer to the console stderr
         if isinstance(payload, bytes):
-            self._app_message_queue.put(
-                payload.decode("ascii", errors="backslashreplace")
-            )
+            self._app_message_queue.put(payload.decode("ascii", errors="backslashreplace"))
         else:
             self._app_message_queue.put(payload)
 
     def reset(self: LibTerminal) -> None:
-        """Resest the terminal to its original state."""
-
+        """Reset the terminal to its original state."""
         # Wait for the prompt_toolkit application to finish
-        # This (included the timeout) is necessary to avoid a race condition
-        # and deadlock when the application is closed
-        while self._app_thread.join(0.5):
+        # This (included the timeout) is necessary to avoid race conditions and deadlocks
+        while self._app_thread.join(0.1):
             pass
 
         # Restore the original stdout and stderr
