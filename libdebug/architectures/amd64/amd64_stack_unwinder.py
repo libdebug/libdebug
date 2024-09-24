@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import sys
 from typing import TYPE_CHECKING
 
 from libdebug.architectures.stack_unwinding_manager import StackUnwindingManager
@@ -39,13 +40,13 @@ class Amd64StackUnwinder(StackUnwindingManager):
         while current_rbp:
             try:
                 # Read the return address
-                return_address = int.from_bytes(target.memory[current_rbp + 8, 8, "absolute"], byteorder="little")
+                return_address = int.from_bytes(target.memory[current_rbp + 8, 8, "absolute"], sys.byteorder)
 
                 if not any(vmap.start <= return_address < vmap.end for vmap in vmaps):
                     break
 
                 # Read the previous rbp and set it as the current one
-                current_rbp = int.from_bytes(target.memory[current_rbp, 8, "absolute"], byteorder="little")
+                current_rbp = int.from_bytes(target.memory[current_rbp, 8, "absolute"], sys.byteorder)
 
                 stack_trace.append(return_address)
             except (OSError, ValueError):

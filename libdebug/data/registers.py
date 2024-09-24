@@ -29,7 +29,14 @@ class Registers(ABC):
 
         return repr_str
 
-    def find(self: Registers, value: str) -> int:
-        """Find the register containing the specified value."""
+    def find(self: Registers, value: float) -> list[str]:
+        """Find the register containing the specified value.
+
+        Args:
+            value (float): The value to search for.
+
+        Returns:
+            list[str]: A list of names of the registers containing the value.
+        """
         attributes = self.__class__.__dict__
         return [attr for attr in attributes if getattr(self, attr) == value]

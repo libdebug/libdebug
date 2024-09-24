@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import sys
 from typing import TYPE_CHECKING
 
 from libdebug.architectures.stack_unwinding_manager import StackUnwindingManager
@@ -47,8 +48,8 @@ class Aarch64StackUnwinder(StackUnwindingManager):
         # Follow the frame chain
         while frame_pointer:
             try:
-                link_register = int.from_bytes(target.memory[frame_pointer + 8, 8, "absolute"], byteorder="little")
-                frame_pointer = int.from_bytes(target.memory[frame_pointer, 8, "absolute"], byteorder="little")
+                link_register = int.from_bytes(target.memory[frame_pointer + 8, 8, "absolute"], sys.byteorder)
+                frame_pointer = int.from_bytes(target.memory[frame_pointer, 8, "absolute"], sys.byteorder)
 
                 if not vmaps.find(link_register):
                     break

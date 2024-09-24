@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import sys
 from abc import ABC, abstractmethod
 from collections.abc import MutableSequence
 
@@ -47,7 +48,7 @@ class AbstractMemoryView(MutableSequence, ABC):
 
     def find(
         self: AbstractMemoryView,
-        value: int | bytes | str,
+        value: bytes | str | int,
         file: str = "all",
         start: int | None = None,
         end: int | None = None,
@@ -58,7 +59,7 @@ class AbstractMemoryView(MutableSequence, ABC):
         If not specified, the search will be performed on the whole memory map.
 
         Args:
-            value (int | bytes | str): The value to search for.
+            value (bytes | str | int): The value to search for.
             file (str): The backing file to search the value in. Defaults to "all", which means all memory.
             start (int | None): The start address of the search. Defaults to None.
             end (int | None): The end address of the search. Defaults to None.
@@ -66,6 +67,11 @@ class AbstractMemoryView(MutableSequence, ABC):
         Returns:
             list[int]: A list of offset where the value was found.
         """
+        if isinstance(value, str):
+            value = value.encode()
+        elif isinstance(value, int):
+            value = value.to_bytes(1, sys.byteorder)
+
         occurrences = []
         if file == "all" and start is None and end is None:
             for vmap in self._internal_debugger.maps:
