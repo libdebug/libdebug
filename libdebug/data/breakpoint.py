@@ -61,8 +61,17 @@ class Breakpoint:
 
     def hit_on(self: Breakpoint, thread_context: ThreadContext) -> bool:
         """Returns whether the breakpoint has been hit on the given thread context."""
-        return self.enabled and thread_context.instruction_pointer == self.address
+        if not self.enabled:
+            return False
+
+        internal_debugger = provide_internal_debugger(self)
+        internal_debugger._ensure_process_stopped()
+        return internal_debugger.resume_context.breakpoint_hit.get(thread_context.thread_id) == self
 
     def __hash__(self: Breakpoint) -> int:
         """Hash the breakpoint by its address, so that it can be used in sets and maps correctly."""
         return hash(self.address)
+
+    def __eq__(self: Breakpoint, other: object) -> bool:
+        """Check if two breakpoints are equal."""
+        return id(self) == id(other)

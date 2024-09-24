@@ -31,6 +31,7 @@ from libdebug.utils.pipe_manager import PipeManager
 from libdebug.utils.process_utils import (
     disable_self_aslr,
     get_process_maps,
+    get_process_tasks,
     invalidate_process_cache,
 )
 
@@ -176,18 +177,25 @@ class PtraceInterface(DebuggingInterface):
         with extend_internal_debugger(self):
             self.status_handler = PtraceStatusHandler()
 
-        res = self.lib_trace.ptrace_attach(pid)
-        if res == -1:
-            errno_val = self.ffi.errno
-            raise OSError(errno_val, errno.errorcode[errno_val])
+        # Attach to all the tasks of the process
+        self._attach_to_all_tasks(pid)
 
         self.process_id = pid
         self.detached = False
         self._internal_debugger.process_id = pid
-        self.register_new_thread(pid)
         # If we are attaching to a process, we don't want to continue to the entry point
         # which we have probably already passed
         self._setup_parent(False)
+
+    def _attach_to_all_tasks(self: PtraceStatusHandler, pid: int) -> None:
+        """Attach to all the tasks of the process."""
+        tids = get_process_tasks(pid)
+        for tid in tids:
+            res = self.lib_trace.ptrace_attach(tid)
+            if res == -1:
+                errno_val = self.ffi.errno
+                raise OSError(errno_val, errno.errorcode[errno_val])
+            self.register_new_thread(tid)
 
     def detach(self: PtraceInterface) -> None:
         """Detaches from the process."""
@@ -242,7 +250,7 @@ class PtraceInterface(DebuggingInterface):
         self._internal_debugger.resume_context.event_type = None
 
         # Reset the breakpoint hit
-        self._internal_debugger.resume_context.breakpoint_hit = {}
+        self._internal_debugger.resume_context.breakpoint_hit.clear()
 
         result = self.lib_trace.cont_all_and_set_bps(
             self._global_state,
@@ -263,6 +271,12 @@ class PtraceInterface(DebuggingInterface):
         for bp in self._internal_debugger.breakpoints.values():
             bp._disabled_for_step = True
 
+        # Reset the event type
+        self._internal_debugger.resume_context.event_type = None
+
+        # Reset the breakpoint hit
+        self._internal_debugger.resume_context.breakpoint_hit.clear()
+
         result = self.lib_trace.singlestep(self._global_state, thread.thread_id)
         if result == -1:
             errno_val = self.ffi.errno
@@ -281,6 +295,12 @@ class PtraceInterface(DebuggingInterface):
         # Disable all breakpoints for the single step
         for bp in self._internal_debugger.breakpoints.values():
             bp._disabled_for_step = True
+
+        # Reset the event type
+        self._internal_debugger.resume_context.event_type = None
+
+        # Reset the breakpoint hit
+        self._internal_debugger.resume_context.breakpoint_hit.clear()
 
         result = self.lib_trace.step_until(
             self._global_state,
@@ -302,6 +322,12 @@ class PtraceInterface(DebuggingInterface):
             thread (ThreadContext): The thread to step.
             heuristic (str): The heuristic to use.
         """
+        # Reset the event type
+        self._internal_debugger.resume_context.event_type = None
+
+        # Reset the breakpoint hit
+        self._internal_debugger.resume_context.breakpoint_hit.clear()
+
         if heuristic == "step-mode":
             result = self.lib_trace.stepping_finish(
                 self._global_state,
@@ -359,6 +385,11 @@ class PtraceInterface(DebuggingInterface):
 
     def next(self: PtraceInterface, thread: ThreadContext) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
+        # Reset the event type
+        self._internal_debugger.resume_context.event_type = None
+
+        # Reset the breakpoint hit
+        self._internal_debugger.resume_context.breakpoint_hit.clear()
 
         opcode_window = thread.memory.read(thread.instruction_pointer, 8)
 
