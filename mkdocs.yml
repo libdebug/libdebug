@@ -67,7 +67,7 @@ nav:
       - Syscalls: stopping_events/syscalls.md
       - Signals: stopping_events/signals.md
   - Multithreading:
-      - Multithreading: multithreading/multithreading.md
+      - Multithreaded Applications: multithreading/multithreading.md
   - Logging:
       - Logging: logging/liblog.md
   - Quality of Life:

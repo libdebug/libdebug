@@ -16,7 +16,7 @@ There are two functions available to print the registers of a thread: `pprint_re
 
 
 ### :fontawesome-solid-terminal: Syscall Trace Pretty Printing
-When debugging a binary, it is often much faster to guess what the intended functionality is by looking at the syscalls that are being invoked. libdebug offers a function that will intercept any syscall and print its arguments and return value. This can be done by setting the property `pprint_syscalls = True` in the debugger object and resuming execution.
+When debugging a binary, it is often much faster to guess what the intended functionality is by looking at the syscalls that are being invoked. **libdebug** offers a function that will intercept any syscall and print its arguments and return value. This can be done by setting the property `pprint_syscalls = True` in the debugger object and resuming execution.
 
 !!! ABSTRACT "Syscall Trace PPrint Syntax"
     ```python
@@ -33,7 +33,7 @@ The output will be printed to the console in color accoring to the following cod
 | <span style="color: #EAD858">yellow</span> | Value given to a syscall argument in hexadecimal |
 | <del>strikethrough</del> | Syscall was hijacked, the next line contains the syscall executed in its place |
 
-Handled syscalls with a callback associated with them will be listed as such. Additionally, syscalls hijacked through the libdebug API will be highlighted as striken through, allowing you to monitor both the original behavior and your own changes to the flow.
+[Handled syscalls](../../stopping_events/syscalls) with a callback associated with them will be listed as such. Additionally, syscalls [hijacked](../../stopping_events/debugging_flow#hijacking) through the **libdebug** API will be highlighted as striken through, allowing you to monitor both the original behavior and your own changes to the flow.
 
 <img src="https://github.com/libdebug/libdebug/blob/dev/media/pprint_syscalls.png?raw=true" alt="Pretty Printing Syscalls" width="`100%"/>
 
@@ -51,6 +51,6 @@ To pretty print the memory maps of a process, you can simply use the `pprint_map
 
 
 ### :octicons-stack-24: Stack Trace Pretty Printing
-To pretty print the stack trace (backtrace) of a process, you can use the `pprint_backtrace()` function. This will print the stack trace of the process in a human-readable format.
+To pretty print the stack trace ([backtrace](../stack_frame_utils)) of a process, you can use the `pprint_backtrace()` function. This will print the stack trace of the process in a human-readable format.
 
 <img src="../../assets/pprint_backtrace.jpeg" alt="Pretty Printing Stack Trace" width="100%"/>
