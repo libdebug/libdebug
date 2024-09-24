@@ -10,12 +10,11 @@ import os
 import sys
 import time
 from select import select
-from threading import Event, Thread
+from threading import Event
 from typing import TYPE_CHECKING
 
-from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
+from libdebug.debugger.internal_debugger_instance_manager import extend_internal_debugger, provide_internal_debugger
 from libdebug.liblog import liblog
-from libdebug.utils.ansi_escape_codes import ANSIColors
 from libdebug.utils.libterminal import LibTerminal
 
 if TYPE_CHECKING:
@@ -26,8 +25,8 @@ class LibPipe:
     """Class for managing pipes of the child process."""
 
     timeout_default: int = 2
-    prompt_default: bytes = f"{ANSIColors.RED}$ {ANSIColors.RESET}".encode()
-    __end_interactive: Event = Event()
+    prompt_default: str = "$ "
+    __end_interactive_event: Event = Event()
 
     def __init__(self: LibPipe, stdin_write: int, stdout_read: int, stderr_read: int) -> None:
         """Initializes the LibPipe class.
@@ -348,7 +347,6 @@ class LibPipe:
         if isinstance(data, str):
             liblog.warning("The input data is a string, converting to bytes")
             data = data.encode()
-
         return self.send(data=data + b"\n")
 
     def sendafter(
@@ -401,12 +399,12 @@ class LibPipe:
         sent = self.sendline(data)
         return (received, sent)
 
-    def _recv_thread(self: LibPipe) -> None:
+    def _recv_for_interactive(self: LibPipe) -> None:
         """Receives data from the child process."""
         stdout_is_open = True
         stderr_is_open = True
 
-        while not self.__end_interactive.is_set() and (stdout_is_open or stderr_is_open):
+        while not self.__end_interactive_event.is_set() and (stdout_is_open or stderr_is_open):
             # We can afford to treat stdout and stderr sequentially. This approach should also prevent
             # messing up the order of the information printed by the child process.
             # To avoid starvation, we will read at most one byte at a time and force a switch between pipes
@@ -414,7 +412,7 @@ class LibPipe:
             if stdout_is_open:
                 try:
                     while recv_stdout := self._recv(numb=1, timeout=0.05, stderr=False):
-                        sys.stdout.write_known_source(payload=recv_stdout)
+                        sys.stdout.write(payload=recv_stdout)
                         if recv_stdout == b"\n":
                             break
                 except RuntimeError:
@@ -425,7 +423,7 @@ class LibPipe:
             if stderr_is_open:
                 try:
                     while recv_stderr := self._recv(numb=1, timeout=0.05, stderr=True):
-                        sys.stderr.write_known_source(payload=recv_stderr)
+                        sys.stderr.write(payload=recv_stderr)
                         if recv_stderr == b"\n":
                             break
                 except RuntimeError:
@@ -434,42 +432,23 @@ class LibPipe:
                     stderr_is_open = False
                     continue
 
-    def interactive(self: LibPipe, prompt: bytes = prompt_default) -> None:
+    def interactive(self: LibPipe, prompt: str = prompt_default) -> None:
         """Interacts with the child process."""
         liblog.info("Calling interactive mode")
 
         # Set up the terminal
-        libterminal = LibTerminal(prompt=prompt)
+        with extend_internal_debugger(self):
+            libterminal = LibTerminal(prompt, self.sendline, self.__end_interactive_event)
 
         # We do not want interferences between the information printed in stdout and stderr by the child
         # process and the user input, so we need to handle them in distinct threads.
-        thread = Thread(target=self._recv_thread)
-        thread.start()
+        self._recv_for_interactive()
+        
+        # Unset the interactive mode event
+        self.__end_interactive_event.clear()
+        
+        # Reset the terminal
+        libterminal.reset()
 
-        try:
-            while True:
-                ready, _, _ = select([sys.stdin], [], [], 0.05)
-                if ready:
-                    self.send(sys.stdin.readline_known_source())
-                if not self._internal_debugger.running and (
-                    event_type := self._internal_debugger.resume_context.event_type
-                ):
-                    liblog.warning(f"The debugged process has stopped due to a {event_type} event")
-                    break
-        except KeyboardInterrupt:
-            # Ctrl+C
-            pass
-        except RuntimeError:
-            liblog.warning("The stdin pipe of the child process is not available anymore")
-        finally:
-            # Wait for the thread to finish
-            self.__end_interactive.set()
-            thread.join()
 
-            # Reset the terminal
-            libterminal.reset()
-
-            # Unset the interactive mode
-            self.__end_interactive.clear()
-
-            liblog.info("Exiting interactive mode")
+        liblog.info("Exiting interactive mode")
