@@ -1,2 +1,2 @@
-# Blog
+# :material-email-newsletter: Blogposts
 
