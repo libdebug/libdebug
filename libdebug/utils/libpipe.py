@@ -436,19 +436,22 @@ class LibPipe:
         """Interacts with the child process."""
         liblog.info("Calling interactive mode")
 
-        # Set up the terminal
+        # Set up and run the terminal
         with extend_internal_debugger(self):
             libterminal = LibTerminal(prompt, self.sendline, self.__end_interactive_event)
 
-        # We do not want interferences between the information printed in stdout and stderr by the child
-        # process and the user input, so we need to handle them in distinct threads.
+        # Receive data from the child process's stdout and stderr pipes
         self._recv_for_interactive()
-        
+
+        # Be sure that the interactive mode has ended
+        # If the the stderr and stdout pipes are closed, the interactive mode will continue until the user manually
+        # stops it or also the stdin pipe is closed
+        self.__end_interactive_event.wait()
+
         # Unset the interactive mode event
         self.__end_interactive_event.clear()
-        
+
         # Reset the terminal
         libterminal.reset()
-
 
         liblog.info("Exiting interactive mode")
