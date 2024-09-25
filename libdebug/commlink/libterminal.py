@@ -114,6 +114,7 @@ class LibTerminal:
                 # stderr and stdout pipes anymore
                 pass
             event.app.exit()
+            sys.exit(0)
 
         layout = Layout(HSplit([output_field, input_field]))
 
@@ -162,6 +163,7 @@ class LibTerminal:
 
             if to_exit:
                 app.exit()
+                sys.exit(0)
 
         # Add the update_output function to the event loop
         self._app.on_invalidate.add_handler(update_output)
