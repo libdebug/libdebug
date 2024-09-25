@@ -29,8 +29,8 @@ class Registers(ABC):
 
         return repr_str
 
-    def find(self: Registers, value: float) -> list[str]:
-        """Find the register containing the specified value.
+    def filter(self: Registers, value: float) -> list[str]:
+        """Filters the registers by value.
 
         Args:
             value (float): The value to search for.

@@ -1075,7 +1075,7 @@ class InternalDebugger:
         maps = self.maps
 
         if backing_file in ["hybrid", "absolute"]:
-            if maps.find(address):
+            if maps.filter(address):
                 # If the address is absolute, we can return it directly
                 return address
             elif backing_file == "absolute":
@@ -1091,7 +1091,7 @@ class InternalDebugger:
                     f"No backing file specified and no corresponding absolute address found for {hex(address)}. Assuming {backing_file}.",
                 )
 
-        filtered_maps = maps.find(backing_file)
+        filtered_maps = maps.filter(backing_file)
 
         return normalize_and_validate_address(address, filtered_maps)
 
@@ -1115,7 +1115,7 @@ class InternalDebugger:
         elif backing_file in ["binary", self._process_name]:
             backing_file = self._process_full_path
 
-        filtered_maps = self.maps.find(backing_file)
+        filtered_maps = self.maps.filter(backing_file)
 
         return resolve_symbol_in_maps(symbol, filtered_maps)
 

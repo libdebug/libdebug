@@ -51,7 +51,7 @@ class Aarch64StackUnwinder(StackUnwindingManager):
                 link_register = int.from_bytes(target.memory[frame_pointer + 8, 8, "absolute"], sys.byteorder)
                 frame_pointer = int.from_bytes(target.memory[frame_pointer, 8, "absolute"], sys.byteorder)
 
-                if not vmaps.find(link_register):
+                if not vmaps.filter(link_register):
                     break
 
                 # Leaf functions don't set the previous stack frame pointer
@@ -67,7 +67,11 @@ class Aarch64StackUnwinder(StackUnwindingManager):
 
         return stack_trace
 
-    def get_return_address(self: Aarch64StackUnwinder, target: ThreadContext, vmaps: MemoryMapList[MemoryMap]) -> int:
+    def get_return_address(
+        self: Aarch64StackUnwinder,
+        target: ThreadContext,
+        vmaps: MemoryMapList[MemoryMap],
+    ) -> int:
         """Get the return address of the current function.
 
         Args:
@@ -79,7 +83,7 @@ class Aarch64StackUnwinder(StackUnwindingManager):
         """
         return_address = target.regs.x30
 
-        if not vmaps.find(return_address):
+        if not vmaps.filter(return_address):
             raise ValueError("Return address not in any valid memory map")
 
         return return_address

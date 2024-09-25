@@ -54,7 +54,7 @@ class SymbolDict(defaultdict):
         """
         symbols = SymbolDict()
         # Find the memory map that contains the address
-        if maps := get_global_internal_debugger(self).maps.find(address):
+        if maps := get_global_internal_debugger(self).maps.filter(address):
             address -= maps[0].start
         else:
             raise ValueError(
@@ -88,8 +88,11 @@ class SymbolDict(defaultdict):
 
         return symbols
 
-    def find(self: SymbolDict, value: int | str) -> SymbolDict[str, set[Symbol]]:
-        """Finds a symbol by address or name.
+    def filter(self: SymbolDict, value: int | str) -> SymbolDict[str, set[Symbol]]:
+        """Filters the symbols according to the specified value.
+
+        If the value is an integer, it is treated as an address.
+        If the value is a string, it is treated as a symbol name.
 
         Args:
             value (int | str): The address or name of the symbol to find.

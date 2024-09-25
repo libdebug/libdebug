@@ -100,8 +100,8 @@ class MemoryMapList(list):
 
         return filtered_maps
 
-    def find(self: MemoryMapList, value: int | str) -> MemoryMapList[MemoryMap]:
-        """Finds the memory map containing the specified value.
+    def filter(self: MemoryMapList, value: int | str) -> MemoryMapList[MemoryMap]:
+        """Filters the memory maps according to the specified value.
 
         If the value is an integer, it is treated as an address.
         If the value is a string, it is treated as a backing file.
@@ -110,7 +110,7 @@ class MemoryMapList(list):
             value (int | str): The value to search for.
 
         Returns:
-            MemoryMapList[MemoryMap]: The memory maps containing the specified value
+            MemoryMapList[MemoryMap]: The memory maps matching the specified value.
         """
         if isinstance(value, int):
             filtered_maps = self._search_by_address(value)

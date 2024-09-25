@@ -112,7 +112,7 @@ class AbstractMemoryView(MutableSequence, ABC):
             memory_content = self.read(start, end - start)
             occurrences = find_all_overlapping_occurrences(value, memory_content, start)
         else:
-            maps = self._internal_debugger.maps.find(file)
+            maps = self._internal_debugger.maps.filter(file)
             start = self._internal_debugger.resolve_address(start, file, True) if start is not None else maps[0].start
             end = self._internal_debugger.resolve_address(end, file, True) if end is not None else maps[-1].end - 1
 

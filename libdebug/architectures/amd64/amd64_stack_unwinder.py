@@ -93,7 +93,7 @@ class Amd64StackUnwinder(StackUnwindingManager):
 
         return_address = int.from_bytes(return_address, byteorder="little")
 
-        if not vmaps.find(return_address):
+        if not vmaps.filter(return_address):
             raise ValueError("Return address not in memory maps.")
 
         return return_address
