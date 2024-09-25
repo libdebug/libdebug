@@ -6,13 +6,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from libdebug.data.registers import Registers
 from libdebug.debugger.internal_debugger_instance_manager import get_global_internal_debugger
 
 
-@dataclass
 class Amd64Registers(Registers):
     """This class holds the state of the architectural-dependent registers of a process."""
 

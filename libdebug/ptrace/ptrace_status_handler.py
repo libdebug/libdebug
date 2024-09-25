@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import os
 import signal
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from libdebug.architectures.ptrace_software_breakpoint_patcher import (
@@ -18,6 +17,7 @@ from libdebug.debugger.internal_debugger_instance_manager import provide_interna
 from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_constants import SYSCALL_SIGTRAP, StopEvents
 from libdebug.state.resume_context import EventType
+from libdebug.utils.process_utils import get_process_tasks
 from libdebug.utils.signal_utils import resolve_signal_name
 
 if TYPE_CHECKING:
@@ -451,10 +451,7 @@ class PtraceStatusHandler:
 
     def check_for_new_threads(self: PtraceStatusHandler, pid: int) -> None:
         """Check for new threads in the process and register them."""
-        if not Path(f"/proc/{pid}/task").exists():
-            return
-
-        tids = [int(x) for x in os.listdir(f"/proc/{pid}/task")]
+        tids = get_process_tasks(pid)
         for tid in tids:
             if not self.internal_debugger.get_thread_by_id(tid):
                 self.ptrace_interface.register_new_thread(tid, self.internal_debugger)

@@ -31,6 +31,7 @@ from libdebug.utils.pipe_manager import PipeManager
 from libdebug.utils.process_utils import (
     disable_self_aslr,
     get_process_maps,
+    get_process_tasks,
     invalidate_process_cache,
 )
 
@@ -177,18 +178,25 @@ class PtraceInterface(DebuggingInterface):
         with extend_internal_debugger(self):
             self.status_handler = PtraceStatusHandler()
 
-        res = self.lib_trace.ptrace_attach(pid)
-        if res == -1:
-            errno_val = self.ffi.errno
-            raise OSError(errno_val, errno.errorcode[errno_val])
+        # Attach to all the tasks of the process
+        self._attach_to_all_tasks(pid)
 
         self.process_id = pid
         self.detached = False
         self._internal_debugger.process_id = pid
-        self.register_new_thread(pid)
         # If we are attaching to a process, we don't want to continue to the entry point
         # which we have probably already passed
         self._setup_parent(False)
+
+    def _attach_to_all_tasks(self: PtraceStatusHandler, pid: int) -> None:
+        """Attach to all the tasks of the process."""
+        tids = get_process_tasks(pid)
+        for tid in tids:
+            res = self.lib_trace.ptrace_attach(tid)
+            if res == -1:
+                errno_val = self.ffi.errno
+                raise OSError(errno_val, errno.errorcode[errno_val])
+            self.register_new_thread(tid)
 
     def detach(self: PtraceInterface) -> None:
         """Detaches from the process."""
