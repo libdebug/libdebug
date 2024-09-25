@@ -65,7 +65,7 @@ class DeathTest(unittest.TestCase):
         d.kill()
 
     def test_instr_death(self):
-        d = debugger("binaries/segfault_test")
+        d = debugger("binaries/segfault_test", aslr=False)
 
         r = d.run()
 

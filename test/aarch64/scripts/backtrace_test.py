@@ -11,7 +11,7 @@ from libdebug import debugger
 
 class BacktraceTest(unittest.TestCase):
     def setUp(self):
-        self.d = debugger("binaries/backtrace_test")
+        self.d = debugger("binaries/backtrace_test", aslr=False)
 
     def test_backtrace(self):
         d = self.d
