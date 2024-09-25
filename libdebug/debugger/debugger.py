@@ -25,10 +25,12 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from libdebug.data.breakpoint import Breakpoint
-    from libdebug.data.memory_map import MemoryMap, MemoryMapList
+    from libdebug.data.memory_map import MemoryMap
+    from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.data.registers import Registers
     from libdebug.data.signal_catcher import SignalCatcher
-    from libdebug.data.symbol import Symbol, SymbolDict
+    from libdebug.data.symbol import Symbol
+    from libdebug.data.symbol_dict import SymbolDict
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.memory.abstract_memory_view import AbstractMemoryView

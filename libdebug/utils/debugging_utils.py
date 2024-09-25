@@ -4,7 +4,8 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-from libdebug.data.memory_map import MemoryMap, MemoryMapList
+from libdebug.data.memory_map import MemoryMap
+from libdebug.data.memory_map_list import MemoryMapList
 from libdebug.liblog import liblog
 from libdebug.utils.elf_utils import is_pie, resolve_address, resolve_symbol
 
