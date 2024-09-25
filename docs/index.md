@@ -107,7 +107,7 @@ Examples of some known issues include:
 - Attaching **libdebug** to a process that was started with pwntools with `shell=True` will cause the process to attach to the shell process instead. This behavior is described in [:octicons-issue-opened-24: Issue #57](https://github.com/libdebug/libdebug/issues/57).
 
 ## :material-format-quote-open: Cite Us
-Need to cite libdebug in your research? Use the following BibTeX entry:
+Need to cite **libdebug** in your research? Use the following BibTeX entry:
 
 ```bibtex
 @software{libdebug_2024,

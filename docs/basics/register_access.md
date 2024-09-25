@@ -327,22 +327,22 @@ Note that the register values are read and written as Python integers. This is t
 !!! INFO "Hardware Support"
     **libdebug** only exposes registers which are available on your CPU model. For AMD64, the list of available AVX registers is determined by checking the CPU capabilities. If you believe your CPU supports AVX registers but they are not available, we encourage your to open an [:octicons-issue-opened-24: Issue](https://github.com/libdebug/libdebug/issues) with your hardware details.
 
-## :octicons-search-24: Searching inside Registers
-The `regs` field of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object or the [Thread Context](../../from_pydoc/generated/state/thread_context) can also used to search for specific values inside the registers. 
+## :material-filter: Filtering Registers
+The `regs` field of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object or the [Thread Context](../../from_pydoc/generated/state/thread_context) can also used to filter registers with specific values.
 
 
 !!! ABSTRACT "Function Signature"
     ```python
-    d.regs.find(value: float) -> list[str]:
+    d.regs.filter(value: float) -> list[str]:
     ```
 
-The search routine will look for the given value in integer registers when the `value` is an int and in floating point registers when the value is a `float`.
+The filtering routine will look for the given value in integer registers when the `value` is an int and in floating point registers when the value is a `float`.
 
-!!! ABSTRACT "Searching for a Value"
+!!! ABSTRACT "Example of Filtering Registers"
     ```python
     d.regs.rax = 0x1337
     
-    # Search for the value 0x1337 in the registers
-    results = d.regs.find(0x1337)
+    # Filter the value 0x1337 in the registers
+    results = d.regs.filter(0x1337)
     print(f"Found in: {results}")
     ```

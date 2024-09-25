@@ -41,12 +41,12 @@ If you want to change the symbol resolution level temporarily, you can use a `wi
         d.breakpoint('main')
     ```
 
-## :octicons-search-24: Symbol Search
-The `symbols` attribute of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object allows you to search for symbols in the binary and shared libraries.
+## :material-filter: Symbol Filtering
+The `symbols` attribute of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object allows you to filter symbols in the binary and shared libraries.
 
 !!! ABSTRACT "Function Signature"
     ```python
-    d.symbols.find(value: int | str) -> SymbolDict[str, set[Symbol]]:
+    d.symbols.filter(value: int | str) -> SymbolDict[str, set[Symbol]]:
     ```
 
 Given a symbol name or address, this function returns a [SymbolDict](../../from_pydoc/generated/data/symbol/) dictionary with the symbol name as the key and a [set](https://docs.python.org/3/library/stdtypes.html#set-types-set-frozenset) of [Symbol](../../from_pydoc/generated/data/symbol/) objects as the value.

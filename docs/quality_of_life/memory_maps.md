@@ -19,15 +19,15 @@ The `maps` attribute returns a list of [MemoryMap](../../from_pydoc/generated/da
 | `offset` | `int` | The offset of the memory map relative to the backing file. |
 | `backing_file` | `str` | The backing file of the memory map, or the symbolic name of the memory map. |
 
-## :material-map-search: Searching Memory Maps
-You can search for memory maps based on their attributes using the `find()` method of the `maps` attribute. The `find()` method accepts a value that can be either a memory address (`int`) or a symbolic name (`str`) and returns a list of [MemoryMap](../../from_pydoc/generated/data/memory_map/) objects that match the search criteria.
+## :material-filter: Filtering Memory Maps
+You can filter memory maps based on their attributes using the `filter()` method of the `maps` attribute. The `filter()` method accepts a value that can be either a memory address (`int`) or a symbolic name (`str`) and returns a list of [MemoryMap](../../from_pydoc/generated/data/memory_map/) objects that match the criteria.
 
 !!! ABSTRACT "Function Signature"
     ```python
-    d.maps.find(value: int | str) -> MemoryMapList[MemoryMap]:
+    d.maps.filter(value: int | str) -> MemoryMapList[MemoryMap]:
     ```
 
-The behavior of the memory map search depends on the type of the `value` parameter:
+The behavior of the memory map filtering depends on the type of the `value` parameter:
 
 | Queried Value | Return Value |
 |-------------| ------------|
