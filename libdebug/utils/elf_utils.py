@@ -12,7 +12,8 @@ from elftools.elf.elffile import ELFFile
 
 from libdebug.cffi.debug_sym_cffi import ffi
 from libdebug.cffi.debug_sym_cffi import lib as lib_sym
-from libdebug.data.symbol import Symbol, SymbolDict
+from libdebug.data.symbol import Symbol
+from libdebug.data.symbol_dict import SymbolDict
 from libdebug.liblog import liblog
 from libdebug.utils.libcontext import libcontext
 

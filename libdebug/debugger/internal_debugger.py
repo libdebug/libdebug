@@ -64,9 +64,11 @@ from libdebug.utils.syscall_utils import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from libdebug.data.memory_map import MemoryMap, MemoryMapList
+    from libdebug.data.memory_map import MemoryMap
+    from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.data.registers import Registers
-    from libdebug.data.symbol import Symbol, SymbolDict
+    from libdebug.data.symbol import Symbol
+    from libdebug.data.symbol_dict import SymbolDict
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
     from libdebug.state.thread_context import ThreadContext
@@ -343,10 +345,18 @@ class InternalDebugger:
         This method should only be called to free up resources when the debugger object is no longer needed.
         """
         if self.instanced and self.running:
-            self.interrupt()
+            try:
+                self.interrupt()
+            except ProcessLookupError:
+                # The process has already been killed by someone or something else
+                liblog.debugger("Interrupting process failed: already terminated")
 
         if self.instanced:
-            self.kill()
+            try:
+                self.kill()
+            except ProcessLookupError:
+                # The process has already been killed by someone or something else
+                liblog.debugger("Killing process failed: already terminated")
 
         self.instanced = False
 
@@ -1092,7 +1102,7 @@ class InternalDebugger:
         maps = self.maps
 
         if backing_file in ["hybrid", "absolute"]:
-            if maps.find(address):
+            if maps.filter(address):
                 # If the address is absolute, we can return it directly
                 return address
             elif backing_file == "absolute":
@@ -1108,7 +1118,7 @@ class InternalDebugger:
                     f"No backing file specified and no corresponding absolute address found for {hex(address)}. Assuming {backing_file}.",
                 )
 
-        filtered_maps = maps.find(backing_file)
+        filtered_maps = maps.filter(backing_file)
 
         return normalize_and_validate_address(address, filtered_maps)
 
@@ -1132,7 +1142,7 @@ class InternalDebugger:
         elif backing_file in ["binary", self._process_name]:
             backing_file = self._process_full_path
 
-        filtered_maps = self.maps.find(backing_file)
+        filtered_maps = self.maps.filter(backing_file)
 
         return resolve_symbol_in_maps(symbol, filtered_maps)
 
