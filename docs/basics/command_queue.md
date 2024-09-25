@@ -33,10 +33,17 @@ d.breakpoint("func")
 d.cont()
 d.wait()
 
-print(f"RAX: {hex(d.regs.rax)}")
+print(f"RAX: {hex(d.regs.rax)}") # (1)
+
+d.cont()
+
+print(f"RAX: {hex(d.regs.rax)}") # (2)
 ```
+
+1. This is the value of RAX at the breakpoint.
+2. This is the value of RAX shortly after the breakpoint. The process is forcibly stopped to read the register.
 
 In this case, the `wait()` method is used to wait for the [stopping event](../../stopping_events/stopping_events) (in this case, a breakpoint). Read more about the `wait()` method in the section dedicated to [control flow](../control_flow) commands.
 
-!!! WARNING "Unstable Debugging"
-    The ASAP polling mode is not recommended for debugging. It can lead to non-deterministic behavior and may be frustrating to work with. It is recommended to use the ASAP polling mode only when necessary and to avoid it whenever possible.
+!!! TIP "Pwning with **libdebug**"
+    Respectable pwners in the field find that the ASAP polling mode is particularly useful when writing exploits.
