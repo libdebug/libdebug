@@ -447,7 +447,9 @@ class InternalDebugger:
                 f"{memory_map.offset:#8x}  "
                 f"{memory_map.backing_file}"
             )
-            if "x" in memory_map.permissions:
+            if "rwx" in memory_map.permissions:
+                print(f"{PrintStyle.RED}{PrintStyle.UNDERLINE}{info}{PrintStyle.RESET}")
+            elif "x" in memory_map.permissions:
                 print(f"{PrintStyle.RED}{info}{PrintStyle.RESET}")
             elif "w" in memory_map.permissions:
                 print(f"{PrintStyle.YELLOW}{info}{PrintStyle.RESET}")
