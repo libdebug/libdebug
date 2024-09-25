@@ -9,7 +9,8 @@ import os
 from pathlib import Path
 
 from libdebug.cffi._personality_cffi import lib as lib_personality
-from libdebug.data.memory_map import MemoryMap, MemoryMapList
+from libdebug.data.memory_map import MemoryMap
+from libdebug.data.memory_map_list import MemoryMapList
 
 
 @functools.cache

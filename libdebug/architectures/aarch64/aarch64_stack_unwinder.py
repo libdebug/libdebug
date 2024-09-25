@@ -13,7 +13,8 @@ from libdebug.architectures.stack_unwinding_manager import StackUnwindingManager
 from libdebug.liblog import liblog
 
 if TYPE_CHECKING:
-    from libdebug.data.memory_map import MemoryMap, MemoryMapList
+    from libdebug.data.memory_map import MemoryMap
+    from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.state.thread_context import ThreadContext
 
 

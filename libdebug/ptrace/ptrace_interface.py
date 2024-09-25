@@ -48,7 +48,8 @@ else:
     )
 
 if TYPE_CHECKING:
-    from libdebug.data.memory_map import MemoryMap, MemoryMapList
+    from libdebug.data.memory_map import MemoryMap
+    from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.data.registers import Registers
     from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
