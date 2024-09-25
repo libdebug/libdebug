@@ -62,8 +62,11 @@ d.cont()
 # Print RAX
 print(f"RAX is {hex(d.regs.rax)}")
 
-# Kill the process
-d.kill()
+# Write to memory
+d.memory[0x10ad, 8, "binary"] = b"Hello!\x00\x00"
+
+# Continue the execution
+d.cont()
 ```
 
 The above script will run the binary `test` in the working directory and stop at the function corresponding to the symbol "function". It will then print the value of the RAX register and kill the process.
@@ -76,6 +79,9 @@ libdebug offers many advanced features. Take a look at this script doing magic w
 
 ```python
 from libdebug import debugger
+from libdebug import libcontext
+
+libcontext.terminal = ['tmux', 'splitw', '-h']
 
 # Define signal catchers
 def catcher_SIGUSR1(t: ThreadContext, catcher: SignalCatcher) -> None:
@@ -87,6 +93,9 @@ def catcher_SIGINT(t: ThreadContext, catcher: SignalCatcher) -> None:
 
 def catcher_SIGPIPE(t: ThreadContext, catcher: SignalCatcher) -> None:
     print(f"SIGPIPE: Signal number {catcher}")
+
+def handle_geteuid(t: ThreadContext, handler: SyscallHandler) -> None:
+	t.regs.rax = 0x0
 
 # Initialize the debugger
 d = debugger('/path/to/executable', continue_to_binary_entrypoint=False, aslr=False)
@@ -103,6 +112,8 @@ d.hijack_signal("SIGINT", "SIGPIPE", recursive=True)
 # Define which signals to block
 d.signals_to_block = ["SIGPOLL", "SIGIO", "SIGALRM"]
 
+d.handle_syscall("geteuid", on_exit=handle_geteuid)
+
 # Continue execution
 d.cont()
 
@@ -114,6 +125,38 @@ catcher3.disable()
 bp = d.breakpoint(0xdeadc0de, hardware=True)
 
 d.cont()
+d.wait()
+
+d.gdb()
+```
+
+## ASAP Polling (Pwning mode)
+libdebug also allows you to make all commands execute as soon as possible, without having to wait for a stopping event. To enable this mode, you can use the `auto_interrupt_on_command=True` 
+
+```python
+from libdebug import debugger
+
+d = debugger("/path/to/executable", auto_interrupt_on_command=True)
+
+pipes = d.run()
+
+bp = d.breakpoint("function")
+
+d.cont()
+
+# Read shortly after the cont is issued
+# The proess is forcibly stopped to read the register
+value = d.regs.rax
+print(f"RAX is {hex(value)}")
+
+d.memory[0x12ebe, 8, "libc"] = d.symbols.filter["system"][0].start
+
+# Here we should be at the breakpoint
+d.wait()
+# This value is read while the process is stopped at the breakpoint
+ip_value = d.regs.rip
+
+print(f"RIP is {hex(ip_value)}")
 
 d.kill()
 ```
