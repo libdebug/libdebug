@@ -31,12 +31,12 @@ debugger = debugger("test", env = {"LD_PRELOAD": "musl_libc.so"})
 ### Address Space Layout Randomization (ASLR)
 Modern operating system kernels implement mitigations against predictable addresses in binary exploitation scenarios. One such feature is [ASLR](https://en.wikipedia.org/wiki/Address_space_layout_randomization), which randomizes the base address of mapped virtual memory pages (e.g., binary, libraries, stack). When debugging, this feature can become a nuisance for the user.
 
-For your convenience, the default behavior on **libdebug** is to disable ASLR. The debugger `aslr` parameter can be used to change this behavior.
+By default, **libdebug** keeps ASLR enabled. The debugger `aslr` parameter can be used to change this behavior.
 
 ```python
 from libdebug import debugger
 
-debugger = debugger("test", aslr=True)
+debugger = debugger("test", aslr=False)
 ```
 
 ### Binary Entry Point
