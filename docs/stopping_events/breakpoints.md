@@ -42,7 +42,7 @@ The `breakpoint()` function in the [Debugger](../../from_pydoc/generated/debugge
 | `hardware` | `bool` | Set to `True` to set a hardware breakpoint. |
 | `condition` | `str` | The type of access in case of a hardware breakpoint. |
 | `length` | `int` | The size of the word being watched in case of a hardware breakpoint. |
-| `callback` | `Callable` (see callback signature [here](#callback-signature)) | Used to create asyncronous breakpoints (read more on the [debugging flow of stopping events](../debugging_flow)). |
+| `callback` | `Callable` \| `bool` (see callback signature [here](#callback-signature)) | Used to create asyncronous breakpoints (read more on the [debugging flow of stopping events](../debugging_flow)). |
 | `file` | `str` | The backing file for relative addressing. Refer to the [memory access](../../basics/memory_access/#absolute-and-relative-addressing) section for more information on addressing modes. |
 
 **Returns**:
@@ -76,11 +76,11 @@ The `breakpoint()` function in the [Debugger](../../from_pydoc/generated/debugge
 
 
 ### Callback Signature
-If you wish to create an [asynchronous](../debugging_flow) breakpoint, you will have to provide a callback function.
+If you wish to create an [asynchronous](../debugging_flow) breakpoint, you will have to provide a callback function. If you want to leave the callback empty, you can set callback to `True`.
 
 !!! ABSTRACT "Callback Signature"
     ```python
-    def callback(t: ThreadContext, bp: Breakpoint) -> None:
+    def callback(t: ThreadContext, bp: Breakpoint):
     ```
 
 **Parameters**:

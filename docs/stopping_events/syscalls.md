@@ -29,8 +29,8 @@ The `handle_syscall()` function in the [Debugger](../../from_pydoc/generated/deb
 | Argument | Type | Description |
 | --- | --- | --- |
 | `syscall` | `int` \| `str` | The syscall number or name to be handled. If set to `"*"` or `"all"`, all syscalls will be handled. |
-| `on_enter` | `Callable` (see callback signature [here](#callback-signature)) | The callback function to be executed when the syscall is entered. |
-| `on_exit` | `Callable` (see callback signature [here](#callback-signature)) | The callback function to be executed when the syscall is exited. |
+| `on_enter` |  `Callable` \| `bool` (see callback signature [here](#callback-signature)) | The callback function to be executed when the syscall is entered. |
+| `on_exit` |  `Callable` \| `bool` (see callback signature [here](#callback-signature)) | The callback function to be executed when the syscall is exited. |
 | `recursive` | `bool` | If set to `True`, the handler's callback will be executed even if the syscall was triggered by a hijack. |
 
 **Returns**:

@@ -32,7 +32,7 @@ The `catch_signal()` function in the [Debugger](../../from_pydoc/generated/debug
 | Argument | Type | Description |
 | --- | --- | --- |
 | `signal` | `int` \| `str` | The signal number or name to catch. If set to `"*"` or `"all"`, all signals will be caught. |
-| `callback` | `Callable` (see callback signature [here](#callback-signature)) | The callback function to be executed when the signal is received. |
+| `callback` |  `Callable` \| `bool` (see callback signature [here](#callback-signature)) | The callback function to be executed when the signal is received. |
 | `recursive` | `bool` | If set to `True`, the catcher's callback will be executed even if the signal was triggered by a hijack. |
 
 **Returns**:
@@ -45,7 +45,7 @@ The `catch_signal()` function in the [Debugger](../../from_pydoc/generated/debug
 
 !!! ABSTRACT "Callback Signature"
     ```python
-    def callback(t: ThreadContext, catcher: SignalCatcher) -> None:
+    def callback(t: ThreadContext, catcher: SignalCatcher):
     ```
 
 **Parameters**:

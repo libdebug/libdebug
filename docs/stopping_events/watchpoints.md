@@ -23,7 +23,7 @@ The `watchpoint()` function in the [Debugger](../../from_pydoc/generated/debugge
 | `position` | `int` \| `str` | The address or symbol where the watchpoint will be set. |
 | `condition` | `str` | The type of access (see [later section](#valid-access-conditions)). |
 | `length` | `int` | The size of the word being watched (see [later section](#valid-word-lengths)). |
-| `callback` | `Callable` (see callback signature [here](#callback-signature)) | Used to create asyncronous watchpoints (read more on the [debugging flow of stopping events](../debugging_flow)). |
+| `callback` |  `Callable` \| `bool` (see callback signature [here](#callback-signature)) | Used to create asyncronous watchpoints (read more on the [debugging flow of stopping events](../debugging_flow)). |
 | `file` | `str` | The backing file for relative addressing. Refer to the [memory access](../../basics/memory_access/#absolute-and-relative-addressing) section for more information on addressing modes. |
 
 **Returns**:
@@ -51,11 +51,11 @@ The `length` parameter specifies the size of the word being watched. By default,
 | AArch64 | Any length from 1 to 8 bytes |
 
 ### Callback Signature
-If you wish to create an [asynchronous](../debugging_flow) watchpoint, you will have to provide a callback function. Since internally watchpoints are implemented as hardware breakpoints, the callback signature is the same as for [breakpoints](../breakpoints#callback-signature).
+If you wish to create an [asynchronous](../debugging_flow) watchpoint, you will have to provide a callback function. Since internally watchpoints are implemented as hardware breakpoints, the callback signature is the same as for [breakpoints](../breakpoints#callback-signature). As for breakpoints, if you want to leave the callback empty, you can set callback to `True`.
 
 !!! ABSTRACT "Callback Signature"
     ```python
-    def callback(t: ThreadContext, bp: Breakpoint) -> None:
+    def callback(t: ThreadContext, bp: Breakpoint):
     ```
 
 **Parameters**:
