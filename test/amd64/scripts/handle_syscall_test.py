@@ -415,7 +415,6 @@ class HandleSyscallTest(unittest.TestCase):
             self.log_capture_string.getvalue(),
         )
 
-
     def test_handles_sync(self):
         d = debugger("binaries/handle_syscall_test")
 
@@ -477,7 +476,7 @@ class HandleSyscallTest(unittest.TestCase):
         self.assertEqual(handler1.hit_count, 2)
         self.assertEqual(handler2.hit_count, 1)
         self.assertEqual(handler3.hit_count, 1)
-    
+
     def test_handles_sync_with_pprint(self):
         d = debugger("binaries/handle_syscall_test")
 
@@ -541,7 +540,7 @@ class HandleSyscallTest(unittest.TestCase):
         self.assertEqual(handler1.hit_count, 2)
         self.assertEqual(handler2.hit_count, 1)
         self.assertEqual(handler3.hit_count, 1)
-        
+
     def test_handles_sync_hit_on(self):
         d = debugger("binaries/handle_syscall_test")
 
@@ -584,7 +583,7 @@ class HandleSyscallTest(unittest.TestCase):
         handler3 = d.handle_syscall("getcwd")
 
         r.sendline(b"provola")
-        
+
         on_enter_1 = True
         on_exit_2 = True
         on_enter_3 = True
@@ -639,3 +638,38 @@ class HandleSyscallTest(unittest.TestCase):
         self.assertEqual(handler1.hit_count, 2)
         self.assertEqual(handler2.hit_count, 1)
         self.assertEqual(handler3.hit_count, 1)
+
+    def test_handle_all_syscalls(self):
+        d = debugger("binaries/handle_syscall_test")
+
+        for value in ["all", "*", "ALL", -1, "pkm"]:
+            r = d.run()
+
+            enter_count = 0
+            exit_count = 0
+
+            def on_enter_handler(t, hs):
+                nonlocal enter_count
+                enter_count += 1
+
+            def on_exit_handler(t, hs):
+                nonlocal exit_count
+                exit_count += 1
+
+            handler = d.handle_syscall(
+                value, on_enter=on_enter_handler, on_exit=on_exit_handler
+            )
+
+            r.sendline(b"provola")
+
+            d.cont()
+
+            d.kill()
+
+            # The exit_group syscall is handled only during entering for obvious reasons.
+            # Hence, we have 6 enter events and 5 exit events. The hit_count is incremented
+            # at the end of the syscall execution, so it is incremented only during the exit
+            # event.
+            self.assertEqual(handler.hit_count, 5)
+            self.assertEqual(enter_count, 6)
+            self.assertEqual(exit_count, 5)

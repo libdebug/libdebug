@@ -155,6 +155,7 @@ def fast_suite():
     suite.addTest(HandleSyscallTest("test_handles_sync_with_pprint"))
     suite.addTest(HandleSyscallTest("test_handles_sync_hit_on"))
     suite.addTest(HandleSyscallTest("test_handles_empty_callback"))
+    suite.addTest(HandleSyscallTest("test_handle_all_syscalls"))
     suite.addTest(AntidebugEscapingTest("test_antidebug_escaping"))
     suite.addTest(SyscallHijackTest("test_hijack_syscall"))
     suite.addTest(SyscallHijackTest("test_hijack_syscall_with_pprint"))
