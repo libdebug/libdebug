@@ -466,7 +466,7 @@ class InternalDebugger:
         hardware: bool = False,
         condition: str = "x",
         length: int = 1,
-        callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
+        callback: None | bool | Callable[[ThreadContext, Breakpoint], None] = None,
         file: str = "hybrid",
     ) -> Breakpoint:
         """Sets a breakpoint at the specified location.
@@ -477,8 +477,8 @@ class InternalDebugger:
             Defaults to False.
             condition (str, optional): The trigger condition for the breakpoint. Defaults to None.
             length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
-            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the
-            breakpoint is hit. Defaults to None.
+            callback (None | bool | Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called
+            when the breakpoint is hit. If True, an empty callback will be set. Defaults to None.
             file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
             (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
             the "binary" map file).
@@ -491,6 +491,11 @@ class InternalDebugger:
 
         if condition != "x" and not hardware:
             raise ValueError("Breakpoint condition is supported only for hardware watchpoints.")
+
+        if callback is True:
+
+            def callback(_: ThreadContext, __: Breakpoint) -> None:
+                pass
 
         bp = Breakpoint(address, position, 0, hardware, callback, condition.lower(), length)
 
@@ -514,20 +519,20 @@ class InternalDebugger:
     def catch_signal(
         self: InternalDebugger,
         signal: int | str,
-        callback: None | Callable[[ThreadContext, SignalCatcher], None] = None,
+        callback: None | bool | Callable[[ThreadContext, SignalCatcher], None] = None,
         recursive: bool = False,
     ) -> SignalCatcher:
         """Catch a signal in the target process.
 
         Args:
             signal (int | str): The signal to catch.
-            callback (Callable[[ThreadContext, CaughtSignal], None], optional): A callback to be called when the signal is
-            caught. Defaults to None.
+            callback (None | bool | Callable[[ThreadContext, SignalCatcher], None], optional): A callback to be called
+            when the signal is caught. If True, an empty callback will be set. Defaults to None.
             recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher
             associated with the new signal should be considered as well. Defaults to False.
 
         Returns:
-            CaughtSignal: The CaughtSignal object.
+            SignalCatcher: The SignalCatcher object.
         """
         if isinstance(signal, str):
             signal_number = resolve_signal_number(signal)
@@ -558,6 +563,11 @@ class InternalDebugger:
         if not isinstance(recursive, bool):
             raise TypeError("recursive must be a boolean")
 
+        if callback is True:
+
+            def callback(_: ThreadContext, __: SignalCatcher) -> None:
+                pass
+
         catcher = SignalCatcher(signal_number, callback, recursive)
 
         link_to_internal_debugger(catcher, self)
@@ -585,7 +595,7 @@ class InternalDebugger:
             associated with the new signal should be considered as well. Defaults to False.
 
         Returns:
-            CaughtSignal: The CaughtSignal object.
+            SignalCatcher: The SignalCatcher object.
         """
         if isinstance(original_signal, str):
             original_signal_number = resolve_signal_number(original_signal)
@@ -618,20 +628,30 @@ class InternalDebugger:
 
         Args:
             syscall (int | str): The syscall name or number to handle.
-            on_enter (Callable[[ThreadContext, HandledSyscall], None], optional): The callback to execute when the
-            syscall is entered. Defaults to None.
-            on_exit (Callable[[ThreadContext, HandledSyscall], None], optional): The callback to execute when the
-            syscall is exited. Defaults to None.
+            on_enter (None | bool |Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute
+            when the syscall is entered. If True, an empty callback will be set. Defaults to None.
+            on_exit (None | bool | Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute
+            when the syscall is exited. If True, an empty callback will be set. Defaults to None.
             recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler
             associated with the new syscall should be considered as well. Defaults to False.
 
         Returns:
-            HandledSyscall: The HandledSyscall object.
+            SyscallHandler: The SyscallHandler object.
         """
         syscall_number = resolve_syscall_number(self.arch, syscall) if isinstance(syscall, str) else syscall
 
         if not isinstance(recursive, bool):
             raise TypeError("recursive must be a boolean")
+
+        if on_enter is True:
+
+            def on_enter(_: ThreadContext, __: SyscallHandler) -> None:
+                pass
+
+        if on_exit is True:
+
+            def on_exit(_: ThreadContext, __: SyscallHandler) -> None:
+                pass
 
         # Check if the syscall is already handled (by the user or by the pretty print handler)
         if syscall_number in self.handled_syscalls:
@@ -683,7 +703,7 @@ class InternalDebugger:
             **kwargs: (int, optional): The arguments to pass to the new syscall.
 
         Returns:
-            HandledSyscall: The HandledSyscall object.
+            SyscallHandler: The SyscallHandler object.
         """
         if set(kwargs) - SyscallHijacker.allowed_args:
             raise ValueError("Invalid keyword arguments in syscall hijack")
