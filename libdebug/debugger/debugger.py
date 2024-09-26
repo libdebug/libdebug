@@ -221,10 +221,11 @@ class Debugger:
         """Handle a syscall in the target process.
 
         Args:
-            syscall (int | str): The syscall name or number to handle.
-            on_enter (None | bool |Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute 
+            syscall (int | str): The syscall name or number to handle. If "*", "ALL", "all" or -1 is passed, all
+            syscalls will be handled.
+            on_enter (None | bool |Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute
             when the syscall is entered. If True, an empty callback will be set. Defaults to None.
-            on_exit (None | bool | Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute 
+            on_exit (None | bool | Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute
             when the syscall is exited. If True, an empty callback will be set. Defaults to None.
             recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler
             associated with the new syscall should be considered as well. Defaults to False.
@@ -244,7 +245,8 @@ class Debugger:
         """Hijacks a syscall in the target process.
 
         Args:
-            original_syscall (int | str): The syscall name or number to hijack.
+            original_syscall (int | str): The syscall name or number to hijack. If "*", "ALL", "all" or -1 is passed,
+            all syscalls will be hijacked.
             new_syscall (int | str): The syscall name or number to hijack the original syscall with.
             recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler
             associated with the new syscall should be considered as well. Defaults to False.

@@ -210,12 +210,15 @@ class PtraceStatusHandler:
 
         syscall_number = thread.syscall_number
 
-        if syscall_number not in self.internal_debugger.handled_syscalls:
+        if syscall_number in self.internal_debugger.handled_syscalls:
+            handler = self.internal_debugger.handled_syscalls[syscall_number]
+        elif -1 in self.internal_debugger.handled_syscalls:
+            # Handle all syscalls is enabled
+            handler = self.internal_debugger.handled_syscalls[-1]
+        else:
             # This is a syscall we don't care about
             # Resume the execution
             return
-
-        handler = self.internal_debugger.handled_syscalls[syscall_number]
 
         if not handler._has_entered:
             # The syscall is being entered

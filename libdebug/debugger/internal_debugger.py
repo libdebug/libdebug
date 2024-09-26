@@ -627,7 +627,8 @@ class InternalDebugger:
         """Handle a syscall in the target process.
 
         Args:
-            syscall (int | str): The syscall name or number to handle.
+            syscall (int | str): The syscall name or number to handle. If "*", "ALL", "all", or -1 is passed, all
+            syscalls will be handled.
             on_enter (None | bool |Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute
             when the syscall is entered. If True, an empty callback will be set. Defaults to None.
             on_exit (None | bool | Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute
@@ -696,7 +697,8 @@ class InternalDebugger:
         """Hijacks a syscall in the target process.
 
         Args:
-            original_syscall (int | str): The syscall name or number to hijack.
+            original_syscall (int | str): The syscall name or number to hijack. If "*", "ALL", "all" or -1 is passed,
+            all syscalls will be hijacked.
             new_syscall (int | str): The syscall name or number to hijack the original syscall with.
             recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler
             associated with the new syscall should be considered as well. Defaults to False.
@@ -716,6 +718,9 @@ class InternalDebugger:
         new_syscall_number = (
             resolve_syscall_number(self.arch, new_syscall) if isinstance(new_syscall, str) else new_syscall
         )
+
+        if new_syscall_number == -1:
+            raise ValueError("Cannot hijack a syscall with the 'ALL' syscall.")
 
         if original_syscall_number == new_syscall_number:
             raise ValueError(
