@@ -66,7 +66,7 @@ class Breakpoint:
 
         internal_debugger = provide_internal_debugger(self)
         internal_debugger._ensure_process_stopped()
-        return internal_debugger.resume_context.breakpoint_hit.get(thread_context.thread_id) == self
+        return internal_debugger.resume_context.event_hit_ref.get(thread_context.thread_id) == self
 
     def __hash__(self: Breakpoint) -> int:
         """Hash the breakpoint by its address, so that it can be used in sets and maps correctly."""

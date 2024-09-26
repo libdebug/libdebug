@@ -141,10 +141,10 @@ class LibTerminal:
             """Update the output field with the messages in the queue."""
             to_exit = False
             if not self._internal_debugger.running and (
-                event_type := self._internal_debugger.resume_context.event_type
+                event_type := self._internal_debugger.resume_context.get_event_type()
             ):
                 liblog.warning(
-                    f"The debugged process has stopped due to a {event_type} event",
+                    f"The debugged process has stopped due to the following event(s). {event_type}",
                 )
                 # Flush the output field and exit the application
                 self.__end_interactive_event.set()
