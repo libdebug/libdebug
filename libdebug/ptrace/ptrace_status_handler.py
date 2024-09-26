@@ -70,7 +70,7 @@ class PtraceStatusHandler:
         if not hasattr(thread, "instruction_pointer"):
             # This is a signal trap hit on process startup
             # Do not resume the process until the user decides to do so
-            self.internal_debugger.resume_context.event_type = EventType.STARTUP
+            self.internal_debugger.resume_context.event_type[thread_id] = EventType.STARTUP
             self.internal_debugger.resume_context.resume = False
             self.forward_signal = False
             return
@@ -109,7 +109,7 @@ class PtraceStatusHandler:
                 liblog.debugger("Watchpoint hit at 0x%x", bp.address)
 
         if bp:
-            self.internal_debugger.resume_context.breakpoint_hit[thread_id] = bp
+            self.internal_debugger.resume_context.event_hit_ref[thread_id] = bp
             self.forward_signal = False
             bp.hit_count += 1
 
@@ -117,7 +117,7 @@ class PtraceStatusHandler:
                 bp.callback(thread, bp)
             else:
                 # If the breakpoint has no callback, we need to stop the process despite the other signals
-                self.internal_debugger.resume_context.event_type = EventType.BREAKPOINT
+                self.internal_debugger.resume_context.event_type[thread_id] = EventType.BREAKPOINT
                 self.internal_debugger.resume_context.resume = False
 
     def _manage_syscall_on_enter(
@@ -197,7 +197,7 @@ class PtraceStatusHandler:
             handler._has_entered = True
         if not handler.on_enter_user and not handler.on_exit_user and handler.enabled:
             # If the syscall has no callback, we need to stop the process despite the other signals
-            self.internal_debugger.resume_context.event_type = EventType.SYSCALL
+            self.internal_debugger.resume_context.event_type[thread.thread_id] = EventType.SYSCALL
             handler._has_entered = True
             self.internal_debugger.resume_context.resume = False
 
@@ -216,6 +216,8 @@ class PtraceStatusHandler:
             return
 
         handler = self.internal_debugger.handled_syscalls[syscall_number]
+
+        self.internal_debugger.resume_context.event_hit_ref[thread_id] = handler
 
         if not handler._has_entered:
             # The syscall is being entered
@@ -262,7 +264,7 @@ class PtraceStatusHandler:
             handler._skip_exit = False
             if not handler.on_enter_user and not handler.on_exit_user and handler.enabled:
                 # If the syscall has no callback, we need to stop the process despite the other signals
-                self.internal_debugger.resume_context.event_type = EventType.SYSCALL
+                self.internal_debugger.resume_context.event_type[thread_id] = EventType.SYSCALL
                 self.internal_debugger.resume_context.resume = False
 
     def _manage_caught_signal(
@@ -324,6 +326,8 @@ class PtraceStatusHandler:
         if signal_number in self.internal_debugger.caught_signals:
             catcher = self.internal_debugger.caught_signals[signal_number]
 
+            self.internal_debugger.resume_context.event_hit_ref[thread.thread_id] = catcher
+
             self._manage_caught_signal(catcher, thread, signal_number, {signal_number})
 
     def _internal_signal_handler(
@@ -346,7 +350,7 @@ class PtraceStatusHandler:
                 pid,
                 resolve_signal_name(signum),
             )
-            self.internal_debugger.resume_context.event_type = EventType.USER_INTERRUPT
+            self.internal_debugger.resume_context.event_type[pid] = EventType.USER_INTERRUPT
             self.internal_debugger.resume_context.resume = False
             self.internal_debugger.resume_context.force_interrupt = False
             self.forward_signal = False
@@ -357,7 +361,7 @@ class PtraceStatusHandler:
 
             if self.internal_debugger.resume_context.is_a_step:
                 # The process is stepping, we need to stop the execution
-                self.internal_debugger.resume_context.event_type = EventType.STEP
+                self.internal_debugger.resume_context.event_type[pid] = EventType.STEP
                 self.internal_debugger.resume_context.resume = False
                 self.internal_debugger.resume_context.is_a_step = False
                 self.forward_signal = False
