@@ -525,7 +525,7 @@ class InternalDebugger:
         """Catch a signal in the target process.
 
         Args:
-            signal (int | str): The signal to catch.
+            signal (int | str): The signal to catch. If "*", "ALL", "all" or -1 is passed, all signals will be caught.
             callback (None | bool | Callable[[ThreadContext, SignalCatcher], None], optional): A callback to be called
             when the signal is caught. If True, an empty callback will be set. Defaults to None.
             recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher
@@ -589,7 +589,8 @@ class InternalDebugger:
         """Hijack a signal in the target process.
 
         Args:
-            original_signal (int | str): The signal to hijack.
+            original_signal (int | str): The signal to hijack. If "*", "ALL", "all" or -1 is passed, all signals will be
+            hijacked.
             new_signal (int | str): The signal to hijack the original signal with.
             recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher
             associated with the new signal should be considered as well. Defaults to False.
@@ -603,6 +604,9 @@ class InternalDebugger:
             original_signal_number = original_signal
 
         new_signal_number = resolve_signal_number(new_signal) if isinstance(new_signal, str) else new_signal
+
+        if new_signal_number == -1:
+            raise ValueError("Cannot hijack a signal with the 'ALL' signal.")
 
         if original_signal_number == new_signal_number:
             raise ValueError(

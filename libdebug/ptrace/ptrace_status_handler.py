@@ -328,6 +328,15 @@ class PtraceStatusHandler:
             catcher = self.internal_debugger.caught_signals[signal_number]
 
             self._manage_caught_signal(catcher, thread, signal_number, {signal_number})
+        elif -1 in self.internal_debugger.caught_signals and signal_number not in (
+            signal.SIGSTOP,
+            signal.SIGTRAP,
+            signal.SIGKILL,
+        ):
+            # Handle all signals is enabled
+            catcher = self.internal_debugger.caught_signals[-1]
+
+            self._manage_caught_signal(catcher, thread, signal_number, {signal_number})
 
     def _internal_signal_handler(
         self: PtraceStatusHandler,
