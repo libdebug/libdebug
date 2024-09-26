@@ -197,6 +197,7 @@ def fast_suite():
     suite.addTest(SignalCatchTest("test_signal_catch_sync_block"))
     suite.addTest(SignalCatchTest("test_signal_catch_sync_pass"))
     suite.addTest(SignalCatchTest("test_signal_empty_callback"))
+    suite.addTest(SignalCatchTest("test_catch_all_signals"))
     suite.addTest(SignalMultithreadTest("test_signal_multithread_undet_catch_signal_block"))
     suite.addTest(SignalMultithreadTest("test_signal_multithread_undet_pass"))
     suite.addTest(SignalMultithreadTest("test_signal_multithread_det_catch_signal_block"))
