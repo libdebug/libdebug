@@ -9,7 +9,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
-
 @dataclass(frozen=True)
 class MemoryMap:
     """A memory map of the target process.
@@ -59,6 +58,11 @@ class MemoryMap:
             ) from e
 
         return MemoryMap(start, end, permissions, size, int_offset, backing_file)
+
+    @property
+    def base(self: MemoryMap) -> int:
+        """Alias for the start address of the memory map."""
+        return self.start
 
     def __repr__(self: MemoryMap) -> str:
         """Return the string representation of the memory map."""
