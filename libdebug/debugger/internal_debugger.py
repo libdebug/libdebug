@@ -69,6 +69,7 @@ if TYPE_CHECKING:
     from libdebug.data.registers import Registers
     from libdebug.data.symbol import Symbol
     from libdebug.data.symbol_dict import SymbolDict
+    from libdebug.debugger import Debugger
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
     from libdebug.state.thread_context import ThreadContext
@@ -152,6 +153,9 @@ class InternalDebugger:
 
     resume_context: ResumeContext
     """Context that indicates if the debugger should resume the debugged process."""
+
+    debugger: Debugger
+    """The debugger object."""
 
     __polling_thread: Thread | None
     """The background thread used to poll the process for state change."""

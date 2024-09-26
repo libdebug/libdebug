@@ -55,6 +55,8 @@ def debugger(
     debugger = Debugger()
     debugger.post_init_(internal_debugger)
 
+    internal_debugger.debugger = debugger
+
     # If we are attaching, we assume the architecture is the same as the current platform
     if argv:
         debugger.arch = elf_architecture(argv[0])
