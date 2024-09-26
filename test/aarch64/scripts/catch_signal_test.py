@@ -1264,3 +1264,27 @@ class CatchSignalTest(unittest.TestCase):
         self.assertEqual(signals.count(b"Received signal 2"), 2)
         self.assertEqual(signals.count(b"Received signal 3"), 3)
         self.assertEqual(signals.count(b"Received signal 13"), 3)
+        
+    def test_signal_empty_callback(self):
+        d = debugger("binaries/catch_signal_test")
+
+        d.signals_to_block = ["SIGUSR1", 15, "SIGINT", 3, 13]
+
+        d.run()
+
+        catcher1 = d.catch_signal(10, callback=True)
+        catcher2 = d.catch_signal("SIGTERM", callback=True)
+        catcher3 = d.catch_signal(2, callback=True)
+        catcher4 = d.catch_signal("SIGQUIT", callback=True)
+        catcher5 = d.catch_signal("SIGPIPE", callback=True)
+
+        d.cont()
+
+        d.kill()
+
+        self.assertEqual(2, catcher1.hit_count)
+        self.assertEqual(2, catcher2.hit_count)
+        self.assertEqual(2, catcher3.hit_count)
+        self.assertEqual(3, catcher4.hit_count)
+        self.assertEqual(3, catcher5.hit_count)
+

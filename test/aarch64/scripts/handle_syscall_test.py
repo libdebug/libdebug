@@ -550,3 +550,25 @@ class HandleSyscallTest(unittest.TestCase):
         self.assertEqual(handler1.hit_count, 2)
         self.assertEqual(handler2.hit_count, 1)
         self.assertEqual(handler3.hit_count, 1)
+    
+    
+    def test_handles_empty_callback(self):
+        d = debugger("binaries/handle_syscall_test")
+
+        r = d.run()
+
+        handler1 = d.handle_syscall("write", True, None)
+        handler2 = d.handle_syscall("mmap", None, True)
+        handler3 = d.handle_syscall("getcwd", True, True)
+
+        r.sendline(b"provola")
+
+        d.cont()
+        d.wait()
+
+        d.kill()
+        d.terminate()
+
+        self.assertEqual(handler1.hit_count, 2)
+        self.assertEqual(handler2.hit_count, 1)
+        self.assertEqual(handler3.hit_count, 1)
