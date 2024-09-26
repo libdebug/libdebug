@@ -41,6 +41,8 @@ int main() {
         }
     }
 
+    printf("All threads have been created.\n");
+
     // Wait for all threads to complete
     for (i = 0; i < NUM_THREADS; i++) {
         pthread_join(threads[i], NULL);
