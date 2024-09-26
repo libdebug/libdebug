@@ -41,7 +41,7 @@ All **libdebug** stopping events share some common attributes that can be employ
 All stopping events can be enabled or disabled at any time. You can read the `enabled` attribute to check the current state of the event. To enable or disable the event, you can call the `enable()` or `disable()` methods respectively.
 
 ### :material-lambda: Callback
-The callback function of the event can be set, changed or removed (set to `None`) at any time. Please be mindful of the event mode resulting from the change on the callback parameter.
+The callback function of the event can be set, changed or removed (set to `None`) at any time. Please be mindful of the event mode resulting from the change on the callback parameter. Additionally, you can set the callback to `True` to register an empty callback.
 
 ### :simple-ticktick: Hit Records
 Stopping events have attributes that can help you keep track of hits. For example, the `hit_count` attribute stores the number of times the event has been triggered.

@@ -31,7 +31,7 @@ The `catch_signal()` function in the [Debugger](../../from_pydoc/generated/debug
 
 | Argument | Type | Description |
 | --- | --- | --- |
-| `signal` | `int` \| `str` | The signal number or name to catch. |
+| `signal` | `int` \| `str` | The signal number or name to catch. If set to `"*"` or `"all"`, all signals will be caught. |
 | `callback` | `Callable` (see callback signature [here](#callback-signature)) | The callback function to be executed when the signal is received. |
 | `recursive` | `bool` | If set to `True`, the catcher's callback will be executed even if the signal was triggered by a hijack. |
 
@@ -110,7 +110,7 @@ When hijacking a signal, the user can provide an alternative signal to be execut
 
 | Argument | Type | Description |
 | --- | --- | --- |
-| `original_signal` | `int` \| `str` | The signal number or name to be hijacked. |
+| `original_signal` | `int` \| `str` | The signal number or name to be hijacked. If set to `"*"` or `"all"`, all signals will be hijacked. |
 | `new_signal` | `int` \| `str` | The signal number or name to be delivered instead. |
 | `recursive` | `bool` | If set to `True`, the catcher's callback will be executed even if the signal was dispached by a hijack. |
 

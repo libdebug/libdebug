@@ -106,6 +106,9 @@ Examples of some known issues include:
 - `ptrace` not intercepting SIGTRAP signals when the process is run with pwntools. This behavior is described in [:octicons-issue-opened-24: Issue #48](https://github.com/libdebug/libdebug/issues/48).
 - Attaching **libdebug** to a process that was started with pwntools with `shell=True` will cause the process to attach to the shell process instead. This behavior is described in [:octicons-issue-opened-24: Issue #57](https://github.com/libdebug/libdebug/issues/57).
 
+## :fontawesome-solid-clock-rotate-left: Older versions of the documentation
+The documentation for versions of **libdebug** older that 0.7.0 has to be accessed manually at [http://docs.libdebug.org/archive/VERSION](http://docs.libdebug.org/archive/VERSION), where `VERSION` is the version number you are looking for.
+
 ## :material-format-quote-open: Cite Us
 Need to cite **libdebug** in your research? Use the following BibTeX entry:
 

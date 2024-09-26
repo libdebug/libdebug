@@ -28,7 +28,7 @@ The `handle_syscall()` function in the [Debugger](../../from_pydoc/generated/deb
 
 | Argument | Type | Description |
 | --- | --- | --- |
-| `syscall` | `int` \| `str` | The syscall number or name to be handled. |
+| `syscall` | `int` \| `str` | The syscall number or name to be handled. If set to `"*"` or `"all"`, all syscalls will be handled. |
 | `on_enter` | `Callable` (see callback signature [here](#callback-signature)) | The callback function to be executed when the syscall is entered. |
 | `on_exit` | `Callable` (see callback signature [here](#callback-signature)) | The callback function to be executed when the syscall is exited. |
 | `recursive` | `bool` | If set to `True`, the handler's callback will be executed even if the syscall was triggered by a hijack. |
@@ -54,11 +54,11 @@ The `handle_syscall()` function in the [Debugger](../../from_pydoc/generated/deb
 | `handler` | [SyscallHandler](../../from_pydoc/generated/data/syscall_handler) | The SyscallHandler object that triggered the callback. |
 
 !!! INFO "Nuances of Syscall Handling"
-    The syscall handler is the only [stopping event](../stopping_events/) that can be triggered by the same syscall twice in a row. This is because the handler is triggered both when the syscall is entered and when it is exited. As a result the `hit_on()` function does not exist in the [SyscallHandler](../../from_pydoc/generated/data/syscall_handler) object.
+    The syscall handler is the only [stopping event](../stopping_events/) that can be triggered by the same syscall twice in a row. This is because the handler is triggered both when the syscall is entered and when it is exited. As a result the `hit_on()` method of the [SyscallHandler](../../from_pydoc/generated/data/syscall_handler) object will return `True` in both instances.
 
-    Instead, you can use the `hit_on_enter()` and `hit_on_exit()` functions to check if cause of the process stop was the syscall entering or exiting, respectively.
+    You can also use the `hit_on_enter()` and `hit_on_exit()` functions to check if the cause of the process stop was the syscall entering or exiting, respectively.
 
-    As for the `hit_count` attribute, it stores the number of times the syscall was *exited*.
+    As for the `hit_count` attribute, it only stores the number of times the syscall was *exited*.
 
 ---
 
@@ -108,7 +108,7 @@ When hijacking a syscall, the user can provide an alternative syscall to be exec
 
 | Argument | Type | Description |
 | --- | --- | --- |
-| `original_syscall` | `int` \| `str` | The syscall number or name to be hijacked. |
+| `original_syscall` | `int` \| `str` | The syscall number or name to be hijacked. If set to `"*"` or `"all"`, all syscalls will be hijacked. |
 | `new_syscall` | `int` \| `str` | The syscall number or name to be executed instead. |
 | `recursive` | `bool` | If set to `True`, the handler's callback will be executed even if the syscall was triggered by a hijack. |
 | `**kwargs` | `(int, optional)` | Additional arguments to be passed to the new syscall. |

@@ -18,7 +18,7 @@ In **libdebug**, you can detach from the debugged process and continue execution
 ## :simple-gnu: GDB Migration
 If at any time during your script you want to take a more traditional approach to debugging, you can seamlessly switch to [GDB](https://www.sourceware.org/gdb/). This will temporarily detach libdebug from the program and give you control over the program using GDB. Quitting GDB will return control to libdebug. 
 
-By default, the behavior of this command is to open GDB in a new terminal window. For this to work, it is necessary to specify your terminal emulator in the [libcontext](../../from_pydoc/generated/utils/libcontext) parameters.
+By default, the behavior of this command is to open GDB in a new terminal window. For this to work, **libdebug** needs to know which terminal emulator you are using. By default, it will check if the `TERM` environment variable is set and, if not, will fallback to `xterm`. If you are using a different terminal emulator, such as `tmux` or `gnome-terminal`, it is highly recommended to set it in the [libcontext](../../from_pydoc/generated/utils/libcontext) parameters.
 
 !!! ABSTRACT "Example of setting the terminal with tmux"
     ```python

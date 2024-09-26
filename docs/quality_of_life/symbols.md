@@ -10,7 +10,7 @@ As described in the [memory access](../memory_access/#absolute-and-relative-addr
     Reverse-engineering of C++ binaries can be a struggle. To help out, **libdebug** automatically demangles C++ symbols.
 
 ### :material-pyramid: Symbol Resolution Levels
-With large binaries and libraries, parsing symbols can become an expensive operation. Because of this, **libdebug** offers the possibility of choosing among 6 levels of symbol resolution. To set the symbol resolution level, you can use the `sym_lvl` property of the [`libcontext`](../../from_pydoc/generated/utils/libcontext) module.
+With large binaries and libraries, parsing symbols can become an expensive operation. Because of this, **libdebug** offers the possibility of choosing among 6 maximum levels of symbol resolution. To set the symbol resolution level, you can use the `sym_lvl` property of the [`libcontext`](../../from_pydoc/generated/utils/libcontext) module. The default value is level 5.
 
 | Level | Description |
 |-------|-------------|
@@ -21,13 +21,13 @@ With large binaries and libraries, parsing symbols can become an expensive opera
 | 4     | Parse the external debug file DWARF, if the file exists in the system. |
 | 5     | Download the external debug file using `debuginfod`. The file is cached in the default folder for `debuginfod`. |
 
-The default value is level 4.
+Upon searching for symbols, **libdebug** will proceed from the lowest level to the set maximum.
 
 !!! ABSTRACT "Example of setting the symbol resolution level"
     ```python
     from libdebug import libcontext
 
-    libcontext.sym_lvl = 5
+    libcontext.sym_lvl = 3
     d.breakpoint('main')
     ```
 
@@ -59,3 +59,6 @@ These are the attributes of a [Symbol](../../from_pydoc/generated/data/symbol/) 
 | `end`     | `int` | The end address of the symbol. |
 | `name`    | `str` | The name of the symbol. |
 | `backing_file` | `str` | The file where the symbol is defined (e.g., binary, libc, ld). |
+
+!!! INFO "Slow Symbol Resolution"
+    Please keep in mind that symbol resolution can be an expensive operation on large binaries and shared libraries. If you are experiencing performance issues, you can set the [symbol resolution level](#material-pyramid-symbol-resolution-levels) to a lower value.
