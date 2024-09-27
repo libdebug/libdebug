@@ -212,6 +212,12 @@ class PtraceInterface(DebuggingInterface):
             res = self.lib_trace.ptrace_attach(tid)
             if res == -1:
                 errno_val = self.ffi.errno
+                if errno_val == errno.EPERM:
+                    raise PermissionError(
+                        errno_val,
+                        errno.errorcode[errno_val],
+                        "You don't have permission to attach to the process. Did you check the ptrace_scope?",
+                    )
                 raise OSError(errno_val, errno.errorcode[errno_val])
             self.register_new_thread(tid)
 

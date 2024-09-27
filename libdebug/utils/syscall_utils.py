@@ -59,6 +59,9 @@ def resolve_syscall_number(architecture: str, name: str) -> int:
     """Resolve a syscall name to its number."""
     definitions = get_syscall_definitions(architecture)
 
+    if name in ["all", "*", "ALL", "pkm"]:
+        return -1
+
     for syscall in definitions["syscalls"]:
         if syscall["name"] == name:
             return syscall["number"]
@@ -70,6 +73,9 @@ def resolve_syscall_number(architecture: str, name: str) -> int:
 def resolve_syscall_name(architecture: str, number: int) -> str:
     """Resolve a syscall number to its name."""
     definitions = get_syscall_definitions(architecture)
+
+    if number == -1:
+        return "all"
 
     for syscall in definitions["syscalls"]:
         if syscall["number"] == number:

@@ -40,6 +40,9 @@ def resolve_signal_number(name: str) -> int:
     Returns:
         int: the signal number.
     """
+    if name in ["ALL", "all", "*", "pkm"]:
+        return -1
+
     signal_to_number, _ = create_signal_mappings()
 
     try:
@@ -58,6 +61,9 @@ def resolve_signal_name(number: int) -> str:
     Returns:
         str: the signal name.
     """
+    if number == -1:
+        return "ALL"
+
     _, number_to_signal = create_signal_mappings()
 
     try:

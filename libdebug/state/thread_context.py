@@ -19,6 +19,7 @@ from libdebug.utils.signal_utils import resolve_signal_name, resolve_signal_numb
 if TYPE_CHECKING:
     from libdebug.data.register_holder import RegisterHolder
     from libdebug.data.registers import Registers
+    from libdebug.debugger.debugger import Debugger
     from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
 
@@ -90,6 +91,11 @@ class ThreadContext:
     def set_as_dead(self: ThreadContext) -> None:
         """Set the thread as dead."""
         self._dead = True
+
+    @property
+    def debugger(self: ThreadContext) -> Debugger:
+        """The debugging context this thread belongs to."""
+        return self._internal_debugger.debugger
 
     @property
     def dead(self: ThreadContext) -> bool:
