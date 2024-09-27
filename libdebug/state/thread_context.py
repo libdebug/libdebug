@@ -231,7 +231,26 @@ class ThreadContext:
     def pprint_registers(self: ThreadContext) -> None:
         """Pretty prints the thread's registers."""
         for register in self._register_holder.provide_regs():
-            print(f"{PrintStyle.RED}{register}{PrintStyle.RESET}\t{getattr(self.regs, register):#x}")
+            attr = getattr(self.regs, register)
+            color = ""
+            style = ""
+            formatted_attr = f"{attr:#x}"
+
+            if maps := self._internal_debugger.maps.filter(attr):
+                permissions = maps[0].permissions
+                if "rwx" in permissions:
+                    color = PrintStyle.RED
+                    style = PrintStyle.UNDERLINE
+                elif "x" in permissions:
+                    color = PrintStyle.RED
+                elif "w" in permissions:
+                    color = PrintStyle.YELLOW
+                elif "r" in permissions:
+                    color = PrintStyle.GREEN
+
+            if color or style:
+                formatted_attr = f"{color}{style}{attr:#x}{PrintStyle.RESET}"
+            print(f"{PrintStyle.RED}{register}{PrintStyle.RESET}\t{formatted_attr}")
 
     def pprint_regs(self: ThreadContext) -> None:
         """Alias for the `pprint_registers` method.

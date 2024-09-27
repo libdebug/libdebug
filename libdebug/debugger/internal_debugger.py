@@ -245,8 +245,12 @@ class InternalDebugger:
         """Raises an error when an invalid call is made in background mode."""
         raise RuntimeError("This method is not available in a callback.")
 
-    def run(self: InternalDebugger) -> PipeManager:
-        """Starts the process and waits for it to stop."""
+    def run(self: InternalDebugger, redirect_pipes: bool = True) -> PipeManager | None:
+        """Starts the process and waits for it to stop.
+
+        Args:
+            redirect_pipes (bool): Whether to hook and redirect the pipes of the process to a PipeManager.
+        """
         if not self.argv:
             raise RuntimeError("No binary file specified.")
 
@@ -270,7 +274,7 @@ class InternalDebugger:
         if not self.__polling_thread_command_queue.empty():
             raise RuntimeError("Polling thread command queue not empty.")
 
-        self.__polling_thread_command_queue.put((self.__threaded_run, ()))
+        self.__polling_thread_command_queue.put((self.__threaded_run, (redirect_pipes, )))
 
         self._join_and_check_status()
 
@@ -278,7 +282,7 @@ class InternalDebugger:
             liblog.debugger("Enabling anti-debugging escape mechanism.")
             self._enable_antidebug_escaping()
 
-        if not self.pipe_manager:
+        if redirect_pipes and not self.pipe_manager:
             raise RuntimeError("Something went wrong during pipe initialization.")
 
         self._process_memory_manager.open(self.process_id)
@@ -1231,9 +1235,9 @@ class InternalDebugger:
         with Path(f"/proc/{self.process_id}/comm").open() as f:
             return f.read().strip()
 
-    def __threaded_run(self: InternalDebugger) -> None:
+    def __threaded_run(self: InternalDebugger, redirect_pipes: bool) -> None:
         liblog.debugger("Starting process %s.", self.argv[0])
-        self.debugging_interface.run()
+        self.debugging_interface.run(redirect_pipes)
 
         self.set_stopped()
 

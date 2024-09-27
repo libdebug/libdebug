@@ -33,6 +33,7 @@ from scripts.multiple_debuggers_test import MultipleDebuggersTest
 from scripts.next_test import NextTest
 from scripts.nlinks_test import Nlinks
 from scripts.pprint_syscalls_test import PPrintSyscallsTest
+from scripts.run_pipes_test import RunPipesTest
 from scripts.signals_multithread_test import SignalMultithreadTest
 from scripts.speed_test import SpeedTest
 from scripts.thread_test import ComplexThreadTest, ThreadTest
@@ -221,6 +222,7 @@ def fast_suite():
     suite.addTest(AtexitHandlerTest("test_run_2"))
     suite.addTest(AtexitHandlerTest("test_run_3"))
     suite.addTest(AtexitHandlerTest("test_run_4"))
+    suite.addTest(RunPipesTest("test_binary_proxy"))
     return suite
 
 
