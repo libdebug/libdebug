@@ -16,7 +16,7 @@ def strcmp_admin_mode(t, bp):
     t.regs.rax = 3
 
 def on_signal_sigprovola(t, sc):
-    print("SIGPROVOLA")
+    print("SIGPROVOLA", flush=True)
 
 d.run(redirect_pipes=False)
 
@@ -24,7 +24,7 @@ bp = d.breakpoint(0x401218, callback=strcmp_admin_mode)
 
 sh = d.handle_syscall("write", on_enter=on_enter_write)
 
-sc = d.catch_signal(25, callback=on_signal_sigprovola)
+sc = d.catch_signal(50, callback=on_signal_sigprovola)
 d.signals_to_block = [50]
 
 d.cont()

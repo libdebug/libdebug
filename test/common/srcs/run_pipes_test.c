@@ -9,7 +9,7 @@
 #include <string.h>
 #include <signal.h>
 
-#define SIGPROVOLA 25
+#define SIGPROVOLA 50
 
 const char admin_pwd[] = "admin";
 const char flag[] = "flag{provola}";
@@ -42,7 +42,6 @@ void sigprovola_handler(int sig)
     printf("Wowsers! This fine piece of code developed by Io_no should have never reached this state!\n");
     printf("Stacktrace[0]: %p\n", __builtin_return_address(0));
     printf("Stacktrace[1]: %s\n", flag);
-    printf("Stacktrace[2]: %p\n", __builtin_return_address(2));
 }
 
 int main()

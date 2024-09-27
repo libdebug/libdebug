@@ -6,51 +6,89 @@
 
 import unittest
 
-from pwn import process
+from subprocess import Popen, PIPE
 
 
 class RunPipesTest(unittest.TestCase):
     def test_binary_proxy(self):
-        unpatched = process("binaries/run_pipes_test")
+        unpatched = Popen(["binaries/run_pipes_test"], stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
-        unpatched.recvuntil(b"1.")
+        buffer = b""
+        while b"1." not in buffer:
+            buffer += unpatched.stdout.read(1)
 
         # Option 1 should print the flag
-        unpatched.sendline(b"1")
-        self.assertIn(b"flag{provola}", unpatched.recvuntil(b"1."))
+        unpatched.stdin.write(b"1\n")
+        unpatched.stdin.flush()
+
+        buffer = b""
+        while b"1." not in buffer:
+            buffer += unpatched.stdout.read(1)
+        self.assertIn(b"flag{provola}", buffer)
 
         # Option 2 should print the flag after the admin mode check
-        unpatched.sendline(b"2")
-        unpatched.sendline(b"admin")
-        self.assertIn(b"flag{provola}", unpatched.recvuntil(b"1."))
+        unpatched.stdin.write(b"2\n")
+        unpatched.stdin.flush()
+        unpatched.stdin.write(b"admin\n")
+        unpatched.stdin.flush()
+
+        buffer = b""
+        while b"1." not in buffer:
+            buffer += unpatched.stdout.read(1)
+        self.assertIn(b"flag{provola}", buffer)
 
         # Option 3 should print the flag after the signal handler
-        unpatched.sendline(b"3")
-        self.assertIn(b"flag{provola}", unpatched.recvuntil(b"1."))
+        unpatched.stdin.write(b"3\n")
+        unpatched.stdin.flush()
+
+        buffer = b""
+        while b"1." not in buffer:
+            buffer += unpatched.stdout.read(1)
+        self.assertIn(b"flag{provola}", buffer)
 
         # Exit
-        unpatched.sendline(b"4")
+        unpatched.stdin.write(b"4\n")
+        unpatched.stdin.flush()
 
         unpatched.kill()
 
-        patched = process(["python3", "scripts/run_pipes_test_script.py"])
+        patched = Popen(["python3", "scripts/run_pipes_test_script.py"], stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
-        patched.recvuntil(b"1.")
+        buffer = b""
+        while b"1." not in buffer:
+            buffer += patched.stdout.read(1)
 
         # Option 1 should print not the flag
-        patched.sendline(b"1")
-        self.assertIn(b"flag{nahmate}", patched.recvuntil(b"1."))
+        patched.stdin.write(b"1\n")
+        patched.stdin.flush()
+
+        buffer = b""
+        while b"1." not in buffer:
+            buffer += patched.stdout.read(1)
+        self.assertIn(b"flag{nahmate}", buffer)
 
         # Option 2 should not print the flag after the admin mode check
-        patched.sendline(b"2")
-        patched.sendline(b"admin")
-        self.assertIn(b"Wrong password", patched.recvuntil(b"1."))
+        patched.stdin.write(b"2\n")
+        patched.stdin.flush()
+        patched.stdin.write(b"admin\n")
+        patched.stdin.flush()
+
+        buffer = b""
+        while b"1." not in buffer:
+            buffer += patched.stdout.read(1)
+        self.assertIn(b"Wrong password", buffer)
 
         # Option 3 should not print the flag after the signal handler
-        patched.sendline(b"3")
-        self.assertIn(b"SIGPROVOLA", patched.recvuntil(b"1."))
+        patched.stdin.write(b"3\n")
+        patched.stdin.flush()
+
+        buffer = b""
+        while b"1." not in buffer:
+            buffer += patched.stdout.read(1)
+        self.assertIn(b"SIGPROVOLA", buffer)
 
         # Exit
-        patched.sendline(b"4")
+        patched.stdin.write(b"4\n")
+        patched.stdin.flush()
 
         patched.kill()
