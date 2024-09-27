@@ -99,7 +99,7 @@ class PtraceInterface(DebuggingInterface):
         """Sets the tracer options."""
         self.lib_trace.ptrace_set_options(self.process_id)
 
-    def run(self: PtraceInterface) -> None:
+    def run(self: PtraceInterface, redirect_pipes: bool) -> None:
         """Runs the specified process."""
         if not self._disabled_aslr and not self._internal_debugger.aslr_enabled:
             disable_self_aslr()
@@ -114,15 +114,30 @@ class PtraceInterface(DebuggingInterface):
         with extend_internal_debugger(self):
             self.status_handler = PtraceStatusHandler()
 
-        # Creating pipes for stdin, stdout, stderr
-        self.stdin_read, self.stdin_write = os.pipe()
-        self.stdout_read, self.stdout_write = pty.openpty()
-        self.stderr_read, self.stderr_write = pty.openpty()
+        file_actions = []
 
-        # Setting stdout, stderr to raw mode to avoid terminal control codes interfering with the
-        # output
-        tty.setraw(self.stdout_read)
-        tty.setraw(self.stderr_read)
+        if redirect_pipes:
+            # Creating pipes for stdin, stdout, stderr
+            self.stdin_read, self.stdin_write = os.pipe()
+            self.stdout_read, self.stdout_write = pty.openpty()
+            self.stderr_read, self.stderr_write = pty.openpty()
+
+            # Setting stdout, stderr to raw mode to avoid terminal control codes interfering with the
+            # output
+            tty.setraw(self.stdout_read)
+            tty.setraw(self.stderr_read)
+
+            file_actions.extend([
+                (POSIX_SPAWN_CLOSE, self.stdin_write),
+                (POSIX_SPAWN_CLOSE, self.stdout_read),
+                (POSIX_SPAWN_CLOSE, self.stderr_read),
+                (POSIX_SPAWN_DUP2, self.stdin_read, 0),
+                (POSIX_SPAWN_DUP2, self.stdout_write, 1),
+                (POSIX_SPAWN_DUP2, self.stderr_write, 2),
+                (POSIX_SPAWN_CLOSE, self.stdin_read),
+                (POSIX_SPAWN_CLOSE, self.stdout_write),
+                (POSIX_SPAWN_CLOSE, self.stderr_write),
+            ])
 
         # argv[1] is the length of the custom environment variables
         # argv[2:2 + env_len] is the custom environment variables
@@ -146,17 +161,7 @@ class PtraceInterface(DebuggingInterface):
             JUMPSTART_LOCATION,
             argv,
             os.environ,
-            file_actions=[
-                (POSIX_SPAWN_CLOSE, self.stdin_write),
-                (POSIX_SPAWN_CLOSE, self.stdout_read),
-                (POSIX_SPAWN_CLOSE, self.stderr_read),
-                (POSIX_SPAWN_DUP2, self.stdin_read, 0),
-                (POSIX_SPAWN_DUP2, self.stdout_write, 1),
-                (POSIX_SPAWN_DUP2, self.stderr_write, 2),
-                (POSIX_SPAWN_CLOSE, self.stdin_read),
-                (POSIX_SPAWN_CLOSE, self.stdout_write),
-                (POSIX_SPAWN_CLOSE, self.stderr_write),
-            ],
+            file_actions=file_actions,
             setpgroup=0,
         )
 
@@ -166,7 +171,19 @@ class PtraceInterface(DebuggingInterface):
         self.register_new_thread(child_pid)
         continue_to_entry_point = self._internal_debugger.autoreach_entrypoint
         self._setup_parent(continue_to_entry_point)
-        self._internal_debugger.pipe_manager = self._setup_pipe()
+
+        if redirect_pipes:
+            self._internal_debugger.pipe_manager = self._setup_pipe()
+        else:
+            self._internal_debugger.pipe_manager = None
+
+            # https://stackoverflow.com/questions/58918188/why-is-stdin-not-propagated-to-child-process-of-different-process-group
+            # We need to set the foreground process group to the child process group, otherwise the child process
+            # will not receive the input from the terminal
+            try:
+                os.tcsetpgrp(0, child_pid)
+            except OSError as e:
+                liblog.debugger("Failed to set the foreground process group: %r", e)
 
     def attach(self: PtraceInterface, pid: int) -> None:
         """Attaches to the specified process.

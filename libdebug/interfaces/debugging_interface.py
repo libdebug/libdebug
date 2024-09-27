@@ -31,8 +31,12 @@ class DebuggingInterface(ABC):
         """Resets the state of the interface."""
 
     @abstractmethod
-    def run(self: DebuggingInterface) -> None:
-        """Runs the specified process."""
+    def run(self: DebuggingInterface, redirect_pipes: bool) -> None:
+        """Runs the specified process.
+
+        Args:
+            redirect_pipes (bool): Whether to hook and redirect the pipes of the process to a PipeManager.
+        """
 
     @abstractmethod
     def attach(self: DebuggingInterface, pid: int) -> None:
