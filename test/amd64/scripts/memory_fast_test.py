@@ -403,3 +403,45 @@ class MemoryFastTest(unittest.TestCase):
 
         d.kill()
         d.terminate()
+
+    def test_search_memory(self):
+        d = debugger("binaries/memory_test", fast_memory=True)
+
+        d.run()
+
+        bp = d.breakpoint("change_memory")
+
+        d.cont()
+
+        assert d.regs.rip == bp.address
+
+        address = d.regs.rdi
+        prev = bytes(range(256))
+
+        self.assertTrue(d.memory[address, 256] == prev)
+        
+        d.memory[address + 128 :] = b"abcd123456"
+        prev = prev[:128] + b"abcd123456" + prev[138:]
+
+        self.assertTrue(d.memory[address : address + 256] == prev)
+        
+        start = d.maps.filter("heap")[0].start
+        end = d.maps.filter("heap")[-1].end - 1
+        
+        # Search for the string "abcd123456" in the whole memory
+        self.assertTrue(d.memory.find(b"abcd123456") == [address + 128])
+        
+        # Search for the string "abcd123456" in the memory starting from start
+        self.assertTrue(d.memory.find(b"abcd123456", start=start) == [address + 128])
+        
+        # Search for the string "abcd123456" in the memory ending at end
+        self.assertTrue(d.memory.find(b"abcd123456", end=end) == [address + 128])
+        
+        # Search for the string "abcd123456" in the heap using backing file
+        self.assertTrue(d.memory.find(b"abcd123456", file="heap") == [address + 128])
+        
+        # Search for the string "abcd123456" in the heap using start and end
+        self.assertTrue(d.memory.find(b"abcd123456", start=start, end=end) == [address + 128])
+
+        d.kill()
+        d.terminate()

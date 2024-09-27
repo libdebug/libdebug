@@ -44,10 +44,10 @@ from libdebug.utils.debugger_wrappers import (
     change_state_function_thread,
 )
 from libdebug.utils.debugging_utils import (
-    check_absolute_address,
     normalize_and_validate_address,
     resolve_symbol_in_maps,
 )
+from libdebug.utils.elf_utils import get_all_symbols
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.platform_utils import get_platform_register_size
 from libdebug.utils.print_style import PrintStyle
@@ -65,7 +65,10 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from libdebug.data.memory_map import MemoryMap
+    from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.data.registers import Registers
+    from libdebug.data.symbol import Symbol
+    from libdebug.data.symbol_dict import SymbolDict
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
     from libdebug.state.thread_context import ThreadContext
@@ -412,21 +415,21 @@ class InternalDebugger:
 
         self._join_and_check_status()
 
-    def maps(self: InternalDebugger) -> list[MemoryMap]:
+    @property
+    def maps(self: InternalDebugger) -> MemoryMapList[MemoryMap]:
         """Returns the memory maps of the process."""
         self._ensure_process_stopped()
-        return self.debugging_interface.maps()
+        return self.debugging_interface.get_maps()
 
     @property
     def memory(self: InternalDebugger) -> AbstractMemoryView:
         """The memory view of the debugged process."""
         return self._fast_memory if self.fast_memory else self._slow_memory
 
-    def print_maps(self: InternalDebugger) -> None:
+    def pprint_maps(self: InternalDebugger) -> None:
         """Prints the memory maps of the process."""
         self._ensure_process_stopped()
-        maps = self.maps()
-        for memory_map in maps:
+        for memory_map in self.maps:
             if "x" in memory_map.permissions:
                 print(f"{PrintStyle.RED}{memory_map}{PrintStyle.RESET}")
             elif "w" in memory_map.permissions:
@@ -1079,10 +1082,10 @@ class InternalDebugger:
         if skip_absolute_address_validation and backing_file == "absolute":
             return address
 
-        maps = self.debugging_interface.maps()
+        maps = self.maps
 
         if backing_file in ["hybrid", "absolute"]:
-            if check_absolute_address(address, maps):
+            if maps.filter(address):
                 # If the address is absolute, we can return it directly
                 return address
             elif backing_file == "absolute":
@@ -1097,29 +1100,9 @@ class InternalDebugger:
                 liblog.warning(
                     f"No backing file specified and no corresponding absolute address found for {hex(address)}. Assuming {backing_file}.",
                 )
-        elif backing_file == (full_backing_path := self._process_full_path) or backing_file in [
-            "binary",
-            self._process_name,
-        ]:
-            backing_file = full_backing_path
 
-        filtered_maps = []
-        unique_files = set()
+        filtered_maps = maps.filter(backing_file)
 
-        for vmap in maps:
-            if backing_file in vmap.backing_file:
-                filtered_maps.append(vmap)
-                unique_files.add(vmap.backing_file)
-
-        if len(unique_files) > 1:
-            raise ValueError(
-                f"The substring {backing_file} is present in multiple, different backing files. The address resolution cannot be accurate. The matching backing files are: {', '.join(unique_files)}.",
-            )
-
-        if not filtered_maps:
-            raise ValueError(
-                f"The specified string {backing_file} does not correspond to any backing file. The available backing files are: {', '.join(set(vmap.backing_file for vmap in maps))}.",
-            )
         return normalize_and_validate_address(address, filtered_maps)
 
     def resolve_symbol(self: InternalDebugger, symbol: str, backing_file: str) -> int:
@@ -1132,8 +1115,6 @@ class InternalDebugger:
         Returns:
             int: The address of the symbol.
         """
-        maps = self.debugging_interface.maps()
-
         if backing_file == "absolute":
             raise ValueError("Cannot use `absolute` backing file with symbols.")
 
@@ -1141,31 +1122,20 @@ class InternalDebugger:
             # If no explicit backing file is specified, we have to assume it is in the main map
             backing_file = self._process_full_path
             liblog.debugger(f"No backing file specified for the symbol {symbol}. Assuming {backing_file}.")
-        elif backing_file == (full_backing_path := self._process_full_path) or backing_file in [
-            "binary",
-            self._process_name,
-        ]:
-            backing_file = full_backing_path
+        elif backing_file in ["binary", self._process_name]:
+            backing_file = self._process_full_path
 
-        filtered_maps = []
-        unique_files = set()
-
-        for vmap in maps:
-            if backing_file in vmap.backing_file:
-                filtered_maps.append(vmap)
-                unique_files.add(vmap.backing_file)
-
-        if len(unique_files) > 1:
-            raise ValueError(
-                f"The substring {backing_file} is present in multiple, different backing files. The address resolution cannot be accurate. The matching backing files are: {', '.join(unique_files)}.",
-            )
-
-        if not filtered_maps:
-            raise ValueError(
-                f"The specified string {backing_file} does not correspond to any backing file. The available backing files are: {', '.join(set(vmap.backing_file for vmap in maps))}.",
-            )
+        filtered_maps = self.maps.filter(backing_file)
 
         return resolve_symbol_in_maps(symbol, filtered_maps)
+
+    @property
+    def symbols(self: InternalDebugger) -> SymbolDict[str, set[Symbol]]:
+        """Get the symbols of the process."""
+        self._ensure_process_stopped()
+        backing_files = {vmap.backing_file for vmap in self.maps}
+        with extend_internal_debugger(self):
+            return get_all_symbols(backing_files)
 
     def _background_ensure_process_stopped(self: InternalDebugger) -> None:
         """Validates the state of the process."""

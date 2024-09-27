@@ -1,4 +1,5 @@
 #
+# This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
 # Copyright (c) 2023-2024  Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
@@ -8,6 +9,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
+from libdebug.liblog import liblog
 from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.signal_utils import (
     get_all_signal_numbers,
@@ -24,7 +26,10 @@ if TYPE_CHECKING:
 
     from libdebug.data.breakpoint import Breakpoint
     from libdebug.data.memory_map import MemoryMap
+    from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.data.signal_catcher import SignalCatcher
+    from libdebug.data.symbol import Symbol
+    from libdebug.data.symbol_dict import SymbolDict
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.state.thread_context import ThreadContext
@@ -84,13 +89,31 @@ class Debugger:
         """Waits for the process to stop."""
         self._internal_debugger.wait()
 
-    def maps(self: Debugger) -> list[MemoryMap]:
-        """Returns the memory maps of the process."""
-        return self._internal_debugger.maps()
-
     def print_maps(self: Debugger) -> None:
         """Prints the memory maps of the process."""
-        self._internal_debugger.print_maps()
+        liblog.warning("The `print_maps` method is deprecated. Use `d.pprint_maps` instead.")
+        self._internal_debugger.pprint_maps()
+
+    def pprint_maps(self: Debugger) -> None:
+        """Prints the memory maps of the process."""
+        self._internal_debugger.pprint_maps()
+
+    def resolve_symbol(self: Debugger, symbol: str, file: str = "binary") -> int:
+        """Resolves the address of the specified symbol.
+
+        Args:
+            symbol (str): The symbol to resolve.
+            file (str): The backing file to resolve the symbol in. Defaults to "binary"
+
+        Returns:
+            int: The address of the symbol.
+        """
+        return self._internal_debugger.resolve_symbol(symbol, file)
+
+    @property
+    def symbols(self: Debugger) -> SymbolDict[str, set[Symbol]]:
+        """Get the symbols of the process."""
+        return self._internal_debugger.symbols
 
     def breakpoint(
         self: Debugger,
@@ -370,6 +393,11 @@ class Debugger:
         return self._internal_debugger.caught_signals
 
     @property
+    def maps(self: Debugger) -> MemoryMapList[MemoryMap]:
+        """Get the memory maps of the process."""
+        return self._internal_debugger.maps
+
+    @property
     def pprint_syscalls(self: Debugger) -> bool:
         """Get the state of the pprint_syscalls flag.
 
@@ -556,3 +584,21 @@ class Debugger:
         else:
             thread_context = self.threads[0]
             setattr(thread_context, name, value)
+
+    def __repr__(self: Debugger) -> str:
+        """Return the string representation of the `Debugger` object."""
+        repr_str = "Debugger("
+        repr_str += f"argv = {self._internal_debugger.argv}, "
+        repr_str += f"aslr = {self._internal_debugger.aslr_enabled}, "
+        repr_str += f"env = {self._internal_debugger.env}, "
+        repr_str += f"escape_antidebug = {self._internal_debugger.escape_antidebug}, "
+        repr_str += f"continue_to_binary_entrypoint = {self._internal_debugger.autoreach_entrypoint}, "
+        repr_str += f"auto_interrupt_on_command = {self._internal_debugger.auto_interrupt_on_command}, "
+        repr_str += f"fast_memory = {self._internal_debugger.fast_memory}, "
+        repr_str += f"kill_on_exit = {self._internal_debugger.kill_on_exit})\n"
+        repr_str += f"  Architecture: {self.arch}\n"
+        repr_str += "  Threads:"
+        for thread in self.threads:
+            repr_str += f"\n    ({thread.tid}, {'dead' if thread.dead else 'alive'}) "
+            repr_str += f"ip: {thread.instruction_pointer:#x}"
+        return repr_str

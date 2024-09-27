@@ -50,6 +50,7 @@ else:
 
 if TYPE_CHECKING:
     from libdebug.data.memory_map import MemoryMap
+    from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.data.registers import Registers
     from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
@@ -467,7 +468,7 @@ class PtraceInterface(DebuggingInterface):
             entry_point = get_entry_point(self._internal_debugger.argv[0])
 
             # For PIE binaries, the entry point is a relative address
-            entry_point = normalize_and_validate_address(entry_point, self.maps())
+            entry_point = normalize_and_validate_address(entry_point, self.get_maps())
 
             bp = Breakpoint(entry_point, hardware=True)
             self.set_breakpoint(bp)
@@ -778,9 +779,10 @@ class PtraceInterface(DebuggingInterface):
         """Returns the event message."""
         return self.lib_trace.ptrace_geteventmsg(thread_id)
 
-    def maps(self: PtraceInterface) -> list[MemoryMap]:
+    def get_maps(self: PtraceInterface) -> MemoryMapList[MemoryMap]:
         """Returns the memory maps of the process."""
-        return get_process_maps(self.process_id)
+        with extend_internal_debugger(self._internal_debugger):
+            return get_process_maps(self.process_id)
 
     def get_hit_watchpoint(self: PtraceInterface, thread_id: int) -> Breakpoint:
         """Returns the watchpoint that has been hit."""

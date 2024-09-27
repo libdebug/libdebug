@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
     from libdebug.data.memory_map import MemoryMap
+    from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.data.registers import Registers
     from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
@@ -96,12 +97,12 @@ class DebuggingInterface(ABC):
             heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
         """
 
+    @abstractmethod
     def next(self: DebuggingInterface, thread: ThreadContext) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
-        """
+        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
 
     @abstractmethod
-    def maps(self: DebuggingInterface) -> list[MemoryMap]:
+    def get_maps(self: DebuggingInterface) -> MemoryMapList[MemoryMap]:
         """Returns the memory maps of the process."""
 
     @abstractmethod
