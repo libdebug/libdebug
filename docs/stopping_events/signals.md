@@ -110,7 +110,7 @@ When hijacking a signal, the user can provide an alternative signal to be execut
 
 | Argument | Type | Description |
 | --- | --- | --- |
-| `original_signal` | `int` \| `str` | The signal number or name to be hijacked. If set to `"*"` or `"all"`, all signals will be hijacked. |
+| `original_signal` | `int` \| `str` | The signal number or name to be hijacked. If set to `"*"` or `"all"`, all signals except the restricted ones will be hijacked. |
 | `new_signal` | `int` \| `str` | The signal number or name to be delivered instead. |
 | `recursive` | `bool` | If set to `True`, the catcher's callback will be executed even if the signal was dispached by a hijack. |
 
