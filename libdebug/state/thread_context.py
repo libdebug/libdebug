@@ -245,18 +245,18 @@ class ThreadContext:
             if maps := self._internal_debugger.maps.filter(attr):
                 permissions = maps[0].permissions
                 if "rwx" in permissions:
-                    color = PrintStyle.RED
-                    style = PrintStyle.UNDERLINE
+                    color = ANSIColors.RED
+                    style = ANSIColors.UNDERLINE
                 elif "x" in permissions:
-                    color = PrintStyle.RED
+                    color = ANSIColors.RED
                 elif "w" in permissions:
-                    color = PrintStyle.YELLOW
+                    color = ANSIColors.YELLOW
                 elif "r" in permissions:
-                    color = PrintStyle.GREEN
+                    color = ANSIColors.GREEN
 
             if color or style:
-                formatted_attr = f"{color}{style}{attr:#x}{PrintStyle.RESET}"
-            print(f"{PrintStyle.RED}{register}{PrintStyle.RESET}\t{formatted_attr}")
+                formatted_attr = f"{color}{style}{attr:#x}{ANSIColors.RESET}"
+            print(f"{ANSIColors.RED}{register}{ANSIColors.RESET}\t{formatted_attr}")
 
     def pprint_regs(self: ThreadContext) -> None:
         """Alias for the `pprint_registers` method.
@@ -270,13 +270,13 @@ class ThreadContext:
         self.pprint_registers()
 
         for t in self._register_holder.provide_vector_fp_regs():
-            print(f"{PrintStyle.BLUE}" + "{" + f"{PrintStyle.RESET}")
+            print(f"{ANSIColors.BLUE}" + "{" + f"{ANSIColors.RESET}")
             for register in t:
                 value = getattr(self.regs, register)
                 formatted_value = f"{value:#x}" if isinstance(value, int) else str(value)
-                print(f"  {PrintStyle.RED}{register}{PrintStyle.RESET}\t{formatted_value}")
+                print(f"  {ANSIColors.RED}{register}{ANSIColors.RESET}\t{formatted_value}")
 
-            print(f"{PrintStyle.BLUE}" + "}" + f"{PrintStyle.RESET}")
+            print(f"{ANSIColors.BLUE}" + "}" + f"{ANSIColors.RESET}")
 
     def pprint_regs_all(self: ThreadContext) -> None:
         """Alias for the `pprint_registers_all` method.
