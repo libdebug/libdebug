@@ -43,14 +43,14 @@ class PipeManager:
 
     def _recv(
         self: PipeManager,
-        numb: int | None = None,
+        numb: int = 4096,
         timeout: float = timeout_default,
         stderr: bool = False,
     ) -> bytes:
         """Receives at most numb bytes from the child process.
 
         Args:
-            numb (int, optional): number of bytes to receive. Defaults to None.
+            numb (int, optional): number of bytes to receive. Defaults to 4096.
             timeout (float, optional): timeout in seconds. Defaults to timeout_default.
             stderr (bool, optional): receive from stderr. Defaults to False.
 
@@ -69,44 +69,35 @@ class PipeManager:
         # Buffer for the received data
         data_buffer = b""
 
-        if numb:
-            # Checking the numb
-            if numb < 0:
-                raise ValueError("The number of bytes to receive must be positive")
+        # Checking the numb
+        if numb < 0:
+            raise ValueError("The number of bytes to receive must be positive")
 
-            # Setting the alarm
-            end_time = time.time() + timeout
-            while numb > 0:
-                if end_time is not None and time.time() > end_time:
-                    # Timeout reached
-                    break
+        # Setting the alarm
+        end_time = time.time() + timeout
 
-                # Adjust the timeout for select to the remaining time
-                remaining_time = None if end_time is None else max(0, end_time - time.time())
-                ready, _, _ = select([pipe_read], [], [], remaining_time)
+        while numb > 0:
+            if end_time is not None and time.time() > end_time:
+                # Timeout reached
+                break
 
-                if not ready:
-                    # No data ready within the remaining timeout
-                    break
+            ready, _, _ = select([pipe_read], [], [], 0.1)
 
-                try:
-                    data = os.read(pipe_read, numb)
-                except OSError as e:
-                    raise RuntimeError("Broken pipe. Is the child process still running?") from e
+            if not ready:
+                # No data ready within the remaining timeout
+                break
 
-                if not data:
-                    # No more data available
-                    break
+            try:
+                data = os.read(pipe_read, numb)
+            except OSError as e:
+                raise RuntimeError("Broken pipe. Is the child process still running?") from e
 
-                numb -= len(data)
-                data_buffer += data
-        else:
-            ready, _, _ = select([pipe_read], [], [], timeout)
+            if not data:
+                # No more data available
+                break
 
-            if ready:
-                # Read all available bytes up to 4096
-                data = os.read(pipe_read, 4096)
-                data_buffer += data
+            numb -= len(data)
+            data_buffer += data
 
         liblog.pipe(f"Received {len(data_buffer)} bytes from the child process: {data_buffer!r}")
         return data_buffer
@@ -117,11 +108,15 @@ class PipeManager:
         os.close(self.stdout_read)
         os.close(self.stderr_read)
 
-    def recv(self: PipeManager, numb: int | None = None, timeout: int = timeout_default) -> bytes:
+    def recv(
+        self: PipeManager,
+        numb: int = 4096,
+        timeout: int = timeout_default,
+    ) -> bytes:
         """Receives at most numb bytes from the child process stdout.
 
         Args:
-            numb (int, optional): number of bytes to receive. Defaults to None.
+            numb (int, optional): number of bytes to receive. Defaults to 4096.
             timeout (int, optional): timeout in seconds. Defaults to timeout_default.
 
         Returns:
@@ -129,11 +124,15 @@ class PipeManager:
         """
         return self._recv(numb=numb, timeout=timeout, stderr=False)
 
-    def recverr(self: PipeManager, numb: int | None = None, timeout: int = timeout_default) -> bytes:
+    def recverr(
+        self: PipeManager,
+        numb: int = 4096,
+        timeout: int = timeout_default,
+    ) -> bytes:
         """Receives at most numb bytes from the child process stderr.
 
         Args:
-            numb (int, optional): number of bytes to receive. Defaults to None.
+            numb (int, optional): number of bytes to receive. Defaults to 4096.
             timeout (int, optional): timeout in seconds. Defaults to timeout_default.
 
         Returns:
@@ -147,6 +146,7 @@ class PipeManager:
         drop: bool = False,
         timeout: float = timeout_default,
         stderr: bool = False,
+        optional: bool = False,
     ) -> bytes:
         """Receives data from the child process until the delimiters are found.
 
@@ -155,6 +155,7 @@ class PipeManager:
             drop (bool, optional): drop the delimiter. Defaults to False.
             timeout (float, optional): timeout in seconds. Defaults to timeout_default.
             stderr (bool, optional): receive from stderr. Defaults to False.
+            optional (bool, optional): if ignore the until component of the receive when the child process is not running. Defaults to False.
 
         Returns:
             bytes: received data from the child process stdout.
@@ -174,13 +175,8 @@ class PipeManager:
         end_time = time.time() + timeout
         while True:
             if end_time is not None and time.time() > end_time:
-                # Timeout reached
                 raise TimeoutError("Timeout reached")
-
-            # Adjust the timeout for select to the remaining time
-            remaining_time = None if end_time is None else max(0, end_time - time.time())
-
-            data = self._recv(numb=1, timeout=remaining_time, stderr=stderr)
+            data = self._recv(numb=1, timeout=0.1, stderr=stderr)
 
             data_buffer += data
 
@@ -189,6 +185,15 @@ class PipeManager:
                 if drop:
                     data_buffer = data_buffer[: -len(delims)]
                 break
+
+            if not data and not self._internal_debugger.running:
+                # We will not receive more data, the child process is not running
+                if optional:
+                    break
+                event = self._internal_debugger.resume_context.get_event_type()
+                raise RuntimeError(
+                    f"Receive until error. The debugged process has stopped due to the following event(s). {event}",
+                )
 
         return data_buffer
 
@@ -199,6 +204,7 @@ class PipeManager:
         drop: bool = False,
         timeout: float = timeout_default,
         stderr: bool = False,
+        optional: bool = False,
     ) -> bytes:
         """Receives data from the child process until the delimiters are found occurences time.
 
@@ -208,6 +214,7 @@ class PipeManager:
             drop (bool, optional): drop the delimiter. Defaults to False.
             timeout (float, optional): timeout in seconds. Defaults to timeout_default.
             stderr (bool, optional): receive from stderr. Defaults to False.
+            optional (bool, optional): if ignore the until component of the receive when the child process is not running. Defaults to False.
 
         Returns:
             bytes: received data from the child process stdout.
@@ -225,7 +232,13 @@ class PipeManager:
             # Adjust the timeout for select to the remaining time
             remaining_time = None if end_time is None else max(0, end_time - time.time())
 
-            data_buffer += self._recvonceuntil(delims=delims, drop=drop, timeout=remaining_time, stderr=stderr)
+            data_buffer += self._recvonceuntil(
+                delims=delims,
+                drop=drop,
+                timeout=remaining_time,
+                stderr=stderr,
+                optional=optional,
+            )
 
         return data_buffer
 
@@ -235,6 +248,7 @@ class PipeManager:
         occurences: int = 1,
         drop: bool = False,
         timeout: int = timeout_default,
+        optional: bool = False,
     ) -> bytes:
         """Receives data from the child process stdout until the delimiters are found.
 
@@ -243,6 +257,7 @@ class PipeManager:
             occurences (int, optional): number of delimiters to find. Defaults to 1.
             drop (bool, optional): drop the delimiter. Defaults to False.
             timeout (int, optional): timeout in seconds. Defaults to timeout_default.
+            optional (bool, optional): if ignore the until component of the receive when the child process is not running. Defaults to False.
 
         Returns:
             bytes: received data from the child process stdout.
@@ -253,6 +268,7 @@ class PipeManager:
             drop=drop,
             timeout=timeout,
             stderr=False,
+            optional=optional,
         )
 
     def recverruntil(
@@ -261,6 +277,7 @@ class PipeManager:
         occurences: int = 1,
         drop: bool = False,
         timeout: int = timeout_default,
+        optional: bool = False,
     ) -> bytes:
         """Receives data from the child process stderr until the delimiters are found.
 
@@ -269,6 +286,7 @@ class PipeManager:
             occurences (int, optional): number of delimiters to find. Defaults to 1.
             drop (bool, optional): drop the delimiter. Defaults to False.
             timeout (int, optional): timeout in seconds. Defaults to timeout_default.
+            optional (bool, optional): if ignore the until component of the receive when the child process is not running. Defaults to False.
 
         Returns:
             bytes: received data from the child process stderr.
@@ -279,33 +297,48 @@ class PipeManager:
             drop=drop,
             timeout=timeout,
             stderr=True,
+            optional=optional,
         )
 
-    def recvline(self: PipeManager, numlines: int = 1, drop: bool = True, timeout: int = timeout_default) -> bytes:
+    def recvline(
+        self: PipeManager,
+        numlines: int = 1,
+        drop: bool = True,
+        timeout: int = timeout_default,
+        optional: bool = False,
+    ) -> bytes:
         """Receives numlines lines from the child process stdout.
 
         Args:
             numlines (int, optional): number of lines to receive. Defaults to 1.
             drop (bool, optional): drop the line ending. Defaults to True.
             timeout (int, optional): timeout in seconds. Defaults to timeout_default.
+            optional (bool, optional): if ignore the until component of the receive when the child process is not running. Defaults to False.
 
         Returns:
             bytes: received lines from the child process stdout.
         """
-        return self.recvuntil(delims=b"\n", occurences=numlines, drop=drop, timeout=timeout)
+        return self.recvuntil(delims=b"\n", occurences=numlines, drop=drop, timeout=timeout, optional=optional)
 
-    def recverrline(self: PipeManager, numlines: int = 1, drop: bool = True, timeout: int = timeout_default) -> bytes:
+    def recverrline(
+        self: PipeManager,
+        numlines: int = 1,
+        drop: bool = True,
+        timeout: int = timeout_default,
+        optional: bool = False,
+    ) -> bytes:
         """Receives numlines lines from the child process stderr.
 
         Args:
             numlines (int, optional): number of lines to receive. Defaults to 1.
             drop (bool, optional): drop the line ending. Defaults to True.
             timeout (int, optional): timeout in seconds. Defaults to timeout_default.
+            optional (bool, optional): if ignore the until component of the receive when the child process is not running. Defaults to False.
 
         Returns:
             bytes: received lines from the child process stdout.
         """
-        return self.recverruntil(delims=b"\n", occurences=numlines, drop=drop, timeout=timeout)
+        return self.recverruntil(delims=b"\n", occurences=numlines, drop=drop, timeout=timeout, optional=optional)
 
     def send(self: PipeManager, data: bytes) -> int:
         """Sends data to the child process stdin.
@@ -356,8 +389,9 @@ class PipeManager:
         occurences: int = 1,
         drop: bool = False,
         timeout: int = timeout_default,
+        optional: bool = False,
     ) -> tuple[bytes, int]:
-        """Sends data to the child process stdin after the delimiters are found.
+        """Sends data to the child process stdin after the delimiters are found in the stdout.
 
         Args:
             delims (bytes): delimiters where to stop.
@@ -365,12 +399,46 @@ class PipeManager:
             occurences (int, optional): number of delimiters to find. Defaults to 1.
             drop (bool, optional): drop the delimiter. Defaults to False.
             timeout (int, optional): timeout in seconds. Defaults to timeout_default.
+            optional (bool, optional): if ignore the until component of the receive when the child process is not running. Defaults to False.
 
         Returns:
             bytes: received data from the child process stdout.
             int: number of bytes sent.
         """
-        received = self.recvuntil(delims=delims, occurences=occurences, drop=drop, timeout=timeout)
+        received = self.recvuntil(delims=delims, occurences=occurences, drop=drop, timeout=timeout, optional=optional)
+        sent = self.send(data)
+        return (received, sent)
+
+    def sendaftererr(
+        self: PipeManager,
+        delims: bytes,
+        data: bytes,
+        occurences: int = 1,
+        drop: bool = False,
+        timeout: int = timeout_default,
+        optional: bool = False,
+    ) -> tuple[bytes, int]:
+        """Sends data to the child process stdin after the delimiters are found in stderr.
+
+        Args:
+            delims (bytes): delimiters where to stop.
+            data (bytes): data to send.
+            occurences (int, optional): number of delimiters to find. Defaults to 1.
+            drop (bool, optional): drop the delimiter. Defaults to False.
+            timeout (int, optional): timeout in seconds. Defaults to timeout_default.
+            optional (bool, optional): if ignore the until component of the receive when the child process is not running. Defaults to False.
+
+        Returns:
+            bytes: received data from the child process stderr.
+            int: number of bytes sent.
+        """
+        received = self.recverruntil(
+            delims=delims,
+            occurences=occurences,
+            drop=drop,
+            timeout=timeout,
+            optional=optional,
+        )
         sent = self.send(data)
         return (received, sent)
 
@@ -381,8 +449,9 @@ class PipeManager:
         occurences: int = 1,
         drop: bool = False,
         timeout: int = timeout_default,
+        optional: bool = False,
     ) -> tuple[bytes, int]:
-        """Sends line to the child process stdin after the delimiters are found.
+        """Sends line to the child process stdin after the delimiters are found in the stdout.
 
         Args:
             delims (bytes): delimiters where to stop.
@@ -390,12 +459,42 @@ class PipeManager:
             occurences (int, optional): number of delimiters to find. Defaults to 1.
             drop (bool, optional): drop the delimiter. Defaults to False.
             timeout (int, optional): timeout in seconds. Defaults to timeout_default.
+            optional (bool, optional): if ignore the until component of the receive when the child process is not running. Defaults to False.
 
         Returns:
             bytes: received data from the child process stdout.
             int: number of bytes sent.
         """
-        received = self.recvuntil(delims=delims, occurences=occurences, drop=drop, timeout=timeout)
+        received = self.recvuntil(delims=delims, occurences=occurences, drop=drop, timeout=timeout, optional=optional)
+        sent = self.sendline(data)
+        return (received, sent)
+
+    def sendlineaftererr(
+        self: PipeManager,
+        delims: bytes,
+        data: bytes,
+        occurences: int = 1,
+        drop: bool = False,
+        timeout: int = timeout_default,
+        optional: bool = False,
+    ) -> tuple[bytes, int]:
+        """Sends line to the child process stdin after the delimiters are found in the stderr.
+
+        Args:
+            delims (bytes): delimiters where to stop.
+            data (bytes): data to send.
+            occurences (int, optional): number of delimiters to find. Defaults to 1.
+            drop (bool, optional): drop the delimiter. Defaults to False.
+            timeout (int, optional): timeout in seconds. Defaults to timeout_default.
+            optional (bool, optional): if ignore the until component of the receive when the child process is not running. Defaults to False.
+
+        Returns:
+            bytes: received data from the child process stderr.
+            int: number of bytes sent.
+        """
+        received = self.recverruntil(
+            delims=delims, occurences=occurences, drop=drop, timeout=timeout, optional=optional
+        )
         sent = self.sendline(data)
         return (received, sent)
 
