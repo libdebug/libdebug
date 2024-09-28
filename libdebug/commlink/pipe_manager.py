@@ -12,6 +12,7 @@ import time
 from select import select
 from threading import Event
 from typing import TYPE_CHECKING
+from time import perf_counter
 
 from libdebug.commlink.libterminal import LibTerminal
 from libdebug.debugger.internal_debugger_instance_manager import extend_internal_debugger, provide_internal_debugger
@@ -21,12 +22,34 @@ if TYPE_CHECKING:
     from libdebug.debugger.internal_debugger import InternalDebugger
 
 
+class BufferData:
+    def __init__(self, data):
+        self.data = data
+
+    def update(self, new_data):
+        self.data += new_data
+
+    def clear(self):
+        self.data = b""
+
+    def get_data(self):
+        return self.data
+
+    def __len__(self):
+        return len(self.data)
+
+    def __repr__(self) -> str:
+        return self.data.__repr__()
+
+    def __getitem__(self, key):
+        return self.data[key]
+
+
 class PipeManager:
     """Class for managing pipes of the child process."""
 
     timeout_default: int = 2
     prompt_default: str = "$ "
-    __end_interactive_event: Event = Event()
 
     def __init__(self: PipeManager, stdin_write: int, stdout_read: int, stderr_read: int) -> None:
         """Initializes the PipeManager class.
@@ -39,23 +62,30 @@ class PipeManager:
         self.stdin_write: int = stdin_write
         self.stdout_read: int = stdout_read
         self.stderr_read: int = stderr_read
+        self.stderr_is_open: bool = True
+        self.stdout_is_open: bool = True
         self._internal_debugger: InternalDebugger = provide_internal_debugger(self)
 
-    def _recv(
+        self.__stdout_buffer: BufferData = BufferData(b"")
+        self.__stderr_buffer: BufferData = BufferData(b"")
+
+        self.__end_interactive_event: Event = Event()
+
+    def _raw_recv(
         self: PipeManager,
-        numb: int = 4096,
-        timeout: float = timeout_default,
+        numb: int | None = None,
+        timeout: float | None = None,
         stderr: bool = False,
-    ) -> bytes:
+    ) -> int:
         """Receives at most numb bytes from the child process.
 
         Args:
-            numb (int, optional): number of bytes to receive. Defaults to 4096.
-            timeout (float, optional): timeout in seconds. Defaults to timeout_default.
+            numb (int | None, optional): number of bytes to receive. Defaults to None.
+            timeout (float, optional): timeout in seconds. Defaults to None.
             stderr (bool, optional): receive from stderr. Defaults to False.
 
         Returns:
-            bytes: received bytes from the child process stdout.
+            int: number of bytes received.
 
         Raises:
             ValueError: numb is negative.
@@ -66,47 +96,102 @@ class PipeManager:
         if not pipe_read:
             raise RuntimeError("No pipe of the child process")
 
-        # Buffer for the received data
-        data_buffer = b""
+        data_buffer = self.__stderr_buffer if stderr else self.__stdout_buffer
 
-        # Checking the numb
-        if numb < 0:
-            raise ValueError("The number of bytes to receive must be positive")
+        received_numb = 0
 
-        # Setting the alarm
-        end_time = time.time() + timeout
+        if numb is not None and timeout is not None:
+            # Setting the alarm
+            end_time = time.time() + timeout
 
-        while numb > 0:
-            if end_time is not None and time.time() > end_time:
-                # Timeout reached
-                break
+            # Checking the numb
+            if numb < 0:
+                raise ValueError("The number of bytes to receive must be positive")
 
-            ready, _, _ = select([pipe_read], [], [], 0.1)
+            while numb > received_numb:
+                if time.time() > end_time:
+                    # Timeout reached
+                    break
 
-            if not ready:
-                # No data ready within the remaining timeout
-                break
+                ready, _, _ = select([pipe_read], [], [], 1e-5)
 
-            try:
-                data = os.read(pipe_read, numb)
-            except OSError as e:
-                raise RuntimeError("Broken pipe. Is the child process still running?") from e
+                if not ready:
+                    # No data ready within the remaining timeout
+                    break
 
-            if not data:
-                # No more data available
-                break
+                try:
+                    data = os.read(pipe_read, numb)
+                except OSError:
+                    if stderr:
+                        self.stderr_is_open = False
+                    else:
+                        self.stdout_is_open = False
+                    break
 
-            numb -= len(data)
-            data_buffer += data
+                if not data:
+                    # No more data available
+                    break
 
-        liblog.pipe(f"Received {len(data_buffer)} bytes from the child process: {data_buffer!r}")
-        return data_buffer
+                received_numb += len(data)
+                data_buffer.update(data)
+        else:
+            # We will receive all the available data
+            ready, _, _ = select([pipe_read], [], [], 1e-5)
+
+            if ready:
+                try:
+                    data = os.read(pipe_read, 4096)
+                    received_numb += len(data)
+                    data_buffer.update(data)
+                except OSError:
+                    if stderr:
+                        self.stderr_is_open = False
+                    else:
+                        self.stdout_is_open = False
+
+        if received_numb:
+            liblog.pipe(f"{'stderr' if stderr else 'stdout'} {received_numb}B: {data_buffer[:received_numb]!r}")
+        return received_numb
 
     def close(self: PipeManager) -> None:
         """Closes all the pipes of the child process."""
         os.close(self.stdin_write)
         os.close(self.stdout_read)
         os.close(self.stderr_read)
+
+    def _buffered_recv(self: PipeManager, numb: int, timeout: int, stderr: bool) -> bytes:
+        """Receives at most numb bytes from the child process stdout.
+
+        Args:
+            numb (int): number of bytes to receive.
+            timeout (int): timeout in seconds.
+            stderr (bool): receive from stderr.
+
+        Returns:
+            bytes: received bytes from the child process stdout.
+        """
+        data_buffer = self.__stderr_buffer if stderr else self.__stdout_buffer
+        open_flag = self.stderr_is_open if stderr else self.stdout_is_open
+
+        data_buffer_len = len(data_buffer)
+
+        if data_buffer_len >= numb:
+            # We have enough data in the buffer
+            received = data_buffer[:numb]
+            data_buffer.update(data_buffer[numb:])
+            return received
+
+        remaining = numb - data_buffer_len
+        if open_flag:
+            # We can receive more data
+            self._raw_recv(numb=remaining, timeout=timeout, stderr=stderr)
+        elif data_buffer_len == 0:
+            # The pipe is not available and no data is buffered
+            raise RuntimeError(f"Broken {'stderr' if stderr else 'stdout'} pipe. Is the child process still alive?")
+
+        received = data_buffer.get_data()
+        data_buffer.clear()
+        return received
 
     def recv(
         self: PipeManager,
@@ -122,7 +207,7 @@ class PipeManager:
         Returns:
             bytes: received bytes from the child process stdout.
         """
-        return self._recv(numb=numb, timeout=timeout, stderr=False)
+        return self._buffered_recv(numb=numb, timeout=timeout, stderr=False)
 
     def recverr(
         self: PipeManager,
@@ -138,7 +223,7 @@ class PipeManager:
         Returns:
             bytes: received bytes from the child process stderr.
         """
-        return self._recv(numb=numb, timeout=timeout, stderr=True)
+        return self._buffered_recv(numb=numb, timeout=timeout, stderr=True)
 
     def _recvonceuntil(
         self: PipeManager,
@@ -169,33 +254,40 @@ class PipeManager:
             delims = delims.encode()
 
         # Buffer for the received data
-        data_buffer = b""
+        data_buffer: bytes = self.__stdout_buffer if not stderr else self.__stderr_buffer
+
+        open_flag = self.stdout_is_open if not stderr else self.stderr_is_open
 
         # Setting the alarm
         end_time = time.time() + timeout
         while True:
-            if end_time is not None and time.time() > end_time:
-                raise TimeoutError("Timeout reached")
-            data = self._recv(numb=1, timeout=0.1, stderr=stderr)
-
-            data_buffer += data
-
-            if delims in data_buffer:
-                # Delims reached
-                if drop:
-                    data_buffer = data_buffer[: -len(delims)]
+            if delims in data_buffer.get_data():
                 break
 
-            if not data and not self._internal_debugger.running:
+            if time.time() > end_time:
+                raise TimeoutError("Timeout reached")
+
+            if not open_flag:
+                raise RuntimeError(f"Broken {'stderr' if stderr else 'stdout'} pipe. Is the child process still alive?")
+
+            received_numb = self._raw_recv(stderr=stderr)
+
+            if received_numb == 0 and not self._internal_debugger.running:
                 # We will not receive more data, the child process is not running
                 if optional:
-                    break
+                    return b""
                 event = self._internal_debugger.resume_context.get_event_type()
                 raise RuntimeError(
                     f"Receive until error. The debugged process has stopped due to the following event(s). {event}",
                 )
-
-        return data_buffer
+        until = data_buffer.get_data().find(delims)
+        received_data = data_buffer[:until]
+        if not drop:
+            delimiter = data_buffer[until : until + len(delims)]
+        remaining_data = data_buffer[until + len(delims) :]
+        data_buffer.clear()
+        data_buffer.update(remaining_data)
+        return received_data
 
     def _recvuntil(
         self: PipeManager,
@@ -510,7 +602,7 @@ class PipeManager:
             # upon receiving a newline character.
             if stdout_is_open:
                 try:
-                    while recv_stdout := self._recv(numb=1, timeout=0.05, stderr=False):
+                    while recv_stdout := self._raw_recv(numb=1, timeout=0.05, stderr=False):
                         sys.stdout.write(payload=recv_stdout)
                         if recv_stdout == b"\n":
                             break
@@ -521,7 +613,7 @@ class PipeManager:
                     continue
             if stderr_is_open:
                 try:
-                    while recv_stderr := self._recv(numb=1, timeout=0.05, stderr=True):
+                    while recv_stderr := self._raw_recv(numb=1, timeout=0.05, stderr=True):
                         sys.stderr.write(payload=recv_stderr)
                         if recv_stderr == b"\n":
                             break
