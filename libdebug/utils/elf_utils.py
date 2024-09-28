@@ -38,6 +38,8 @@ def _download_debuginfod(buildid: str, debuginfod_path: Path) -> None:
 
             with debuginfod_path.open("wb") as f:
                 f.write(r.content)
+        else:
+            liblog.error(f"Failed to download debuginfo file. Error code: {r.status_code}")
     except Exception as e:
         liblog.debugger(f"Exception {e} occurred while downloading debuginfod symbols")
 

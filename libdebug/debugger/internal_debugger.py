@@ -23,7 +23,10 @@ import psutil
 from libdebug.architectures.breakpoint_validator import validate_hardware_breakpoint
 from libdebug.architectures.syscall_hijacker import SyscallHijacker
 from libdebug.builtin.antidebug_syscall_handler import on_enter_ptrace, on_exit_ptrace
-from libdebug.builtin.pretty_print_syscall_handler import pprint_on_enter, pprint_on_exit
+from libdebug.builtin.pretty_print_syscall_handler import (
+    pprint_on_enter,
+    pprint_on_exit,
+)
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
@@ -37,6 +40,7 @@ from libdebug.memory.chunked_memory_view import ChunkedMemoryView
 from libdebug.memory.direct_memory_view import DirectMemoryView
 from libdebug.memory.process_memory_manager import ProcessMemoryManager
 from libdebug.state.resume_context import ResumeContext
+from libdebug.utils.ansi_escape_codes import ANSIColors
 from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.debugger_wrappers import (
     background_alias,
@@ -50,7 +54,6 @@ from libdebug.utils.debugging_utils import (
 from libdebug.utils.elf_utils import get_all_symbols
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.platform_utils import get_platform_register_size
-from libdebug.utils.print_style import PrintStyle
 from libdebug.utils.signal_utils import (
     resolve_signal_name,
     resolve_signal_number,
@@ -64,6 +67,7 @@ from libdebug.utils.syscall_utils import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from libdebug.commlink.pipe_manager import PipeManager
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.data.registers import Registers
@@ -73,7 +77,6 @@ if TYPE_CHECKING:
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
     from libdebug.state.thread_context import ThreadContext
-    from libdebug.utils.pipe_manager import PipeManager
 
 THREAD_TERMINATE = -1
 GDB_GOBACK_LOCATION = str((Path(__file__).parent.parent / "utils" / "gdb.py").resolve())
@@ -137,7 +140,7 @@ class InternalDebugger:
     """The PID of the debugged process."""
 
     pipe_manager: PipeManager
-    """The pipe manager used to communicate with the debugged process."""
+    """The PipeManager used to communicate with the debugged process."""
 
     memory: AbstractMemoryView
     """The memory view of the debugged process."""
@@ -456,13 +459,13 @@ class InternalDebugger:
                 f"{memory_map.backing_file}"
             )
             if "rwx" in memory_map.permissions:
-                print(f"{PrintStyle.RED}{PrintStyle.UNDERLINE}{info}{PrintStyle.RESET}")
+                print(f"{ANSIColors.RED}{ANSIColors.UNDERLINE}{info}{ANSIColors.RESET}")
             elif "x" in memory_map.permissions:
-                print(f"{PrintStyle.RED}{info}{PrintStyle.RESET}")
+                print(f"{ANSIColors.RED}{info}{ANSIColors.RESET}")
             elif "w" in memory_map.permissions:
-                print(f"{PrintStyle.YELLOW}{info}{PrintStyle.RESET}")
+                print(f"{ANSIColors.YELLOW}{info}{ANSIColors.RESET}")
             elif "r" in memory_map.permissions:
-                print(f"{PrintStyle.GREEN}{info}{PrintStyle.RESET}")
+                print(f"{ANSIColors.GREEN}{info}{ANSIColors.RESET}")
             else:
                 print(info)
 

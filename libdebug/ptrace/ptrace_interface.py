@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 from libdebug.architectures.call_utilities_provider import call_utilities_provider
 from libdebug.architectures.register_helper import register_holder_provider
 from libdebug.cffi import _ptrace_cffi
+from libdebug.commlink.pipe_manager import PipeManager
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.debugger.internal_debugger_instance_manager import (
     extend_internal_debugger,
@@ -27,7 +28,6 @@ from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
 from libdebug.state.thread_context import ThreadContext
 from libdebug.utils.debugging_utils import normalize_and_validate_address
 from libdebug.utils.elf_utils import get_entry_point
-from libdebug.utils.pipe_manager import PipeManager
 from libdebug.utils.process_utils import (
     disable_self_aslr,
     get_process_maps,
@@ -472,9 +472,9 @@ class PtraceInterface(DebuggingInterface):
             os.close(self.stdout_write)
             os.close(self.stderr_write)
         except Exception as e:
-            # TODO: custom exception
             raise Exception("Closing fds failed: %r", e) from e
-        return PipeManager(self.stdin_write, self.stdout_read, self.stderr_read)
+        with extend_internal_debugger(self):
+            return PipeManager(self.stdin_write, self.stdout_read, self.stderr_read)
 
     def _setup_parent(self: PtraceInterface, continue_to_entry_point: bool) -> None:
         """Sets up the parent process after the child process has been created or attached to."""

@@ -12,8 +12,8 @@ from libdebug.debugger.internal_debugger_instance_manager import (
     provide_internal_debugger,
 )
 from libdebug.liblog import liblog
+from libdebug.utils.ansi_escape_codes import ANSIColors
 from libdebug.utils.debugging_utils import resolve_address_in_maps
-from libdebug.utils.print_style import PrintStyle
 from libdebug.utils.signal_utils import resolve_signal_name, resolve_signal_number
 
 if TYPE_CHECKING:
@@ -230,9 +230,9 @@ class ThreadContext:
         for return_address in backtrace:
             return_address_symbol = resolve_address_in_maps(return_address, maps)
             if return_address_symbol[:2] == "0x":
-                print(f"{PrintStyle.RED}{return_address:#x} {PrintStyle.RESET}")
+                print(f"{ANSIColors.RED}{return_address:#x} {ANSIColors.RESET}")
             else:
-                print(f"{PrintStyle.RED}{return_address:#x} <{return_address_symbol}> {PrintStyle.RESET}")
+                print(f"{ANSIColors.RED}{return_address:#x} <{return_address_symbol}> {ANSIColors.RESET}")
 
     def pprint_registers(self: ThreadContext) -> None:
         """Pretty prints the thread's registers."""
@@ -245,18 +245,18 @@ class ThreadContext:
             if maps := self._internal_debugger.maps.filter(attr):
                 permissions = maps[0].permissions
                 if "rwx" in permissions:
-                    color = PrintStyle.RED
-                    style = PrintStyle.UNDERLINE
+                    color = ANSIColors.RED
+                    style = ANSIColors.UNDERLINE
                 elif "x" in permissions:
-                    color = PrintStyle.RED
+                    color = ANSIColors.RED
                 elif "w" in permissions:
-                    color = PrintStyle.YELLOW
+                    color = ANSIColors.YELLOW
                 elif "r" in permissions:
-                    color = PrintStyle.GREEN
+                    color = ANSIColors.GREEN
 
             if color or style:
-                formatted_attr = f"{color}{style}{attr:#x}{PrintStyle.RESET}"
-            print(f"{PrintStyle.RED}{register}{PrintStyle.RESET}\t{formatted_attr}")
+                formatted_attr = f"{color}{style}{attr:#x}{ANSIColors.RESET}"
+            print(f"{ANSIColors.RED}{register}{ANSIColors.RESET}\t{formatted_attr}")
 
     def pprint_regs(self: ThreadContext) -> None:
         """Alias for the `pprint_registers` method.
@@ -270,13 +270,13 @@ class ThreadContext:
         self.pprint_registers()
 
         for t in self._register_holder.provide_vector_fp_regs():
-            print(f"{PrintStyle.BLUE}" + "{" + f"{PrintStyle.RESET}")
+            print(f"{ANSIColors.BLUE}" + "{" + f"{ANSIColors.RESET}")
             for register in t:
                 value = getattr(self.regs, register)
                 formatted_value = f"{value:#x}" if isinstance(value, int) else str(value)
-                print(f"  {PrintStyle.RED}{register}{PrintStyle.RESET}\t{formatted_value}")
+                print(f"  {ANSIColors.RED}{register}{ANSIColors.RESET}\t{formatted_value}")
 
-            print(f"{PrintStyle.BLUE}" + "}" + f"{PrintStyle.RESET}")
+            print(f"{ANSIColors.BLUE}" + "}" + f"{ANSIColors.RESET}")
 
     def pprint_regs_all(self: ThreadContext) -> None:
         """Alias for the `pprint_registers_all` method.
