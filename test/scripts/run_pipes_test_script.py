@@ -4,9 +4,11 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+import sys
+
 from libdebug import debugger
 
-d = debugger("binaries/run_pipes_test")
+d = debugger(sys.argv[1])
 
 def on_enter_write(t, sh):
     if b"flag" in t.memory[t.syscall_arg1, 50]:

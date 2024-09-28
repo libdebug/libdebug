@@ -22,6 +22,7 @@ from .next_test import NextTest
 from .nlinks_test import NlinksTest
 from .pprint_syscalls_test import PPrintSyscallsTest
 from .register_test import RegisterTest
+from .run_pipes_test import RunPipesTest
 from .signal_catch_test import SignalCatchTest
 from .signal_multithread_test import SignalMultithreadTest
 from .speed_test import SpeedTest

@@ -35,6 +35,7 @@ def fast_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.NlinksTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.PPrintSyscallsTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.RegisterTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.RunPipesTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SignalCatchTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SignalMultithreadTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SyscallHandleTest))

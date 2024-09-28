@@ -4,14 +4,14 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-import unittest
-
 from subprocess import Popen, PIPE
+from unittest import TestCase
+from utils.binary_utils import RESOLVE_EXE
 
 
-class RunPipesTest(unittest.TestCase):
+class RunPipesTest(TestCase):
     def test_binary_proxy(self):
-        unpatched = Popen(["binaries/run_pipes_test"], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        unpatched = Popen([RESOLVE_EXE("run_pipes_test")], stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
         buffer = b""
         while b"1." not in buffer:
@@ -52,7 +52,7 @@ class RunPipesTest(unittest.TestCase):
 
         unpatched.kill()
 
-        patched = Popen(["python3", "scripts/run_pipes_test_script.py"], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        patched = Popen(["python3", "scripts/run_pipes_test_script.py", RESOLVE_EXE("run_pipes_test")], stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
         buffer = b""
         while b"1." not in buffer:
