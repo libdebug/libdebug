@@ -10,7 +10,6 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from libdebug.architectures.i386.i386_registers import I386Registers
-from libdebug.data.register_holder import RegisterHolder
 from libdebug.ptrace.ptrace_register_holder import PtraceRegisterHolder
 
 if TYPE_CHECKING:
