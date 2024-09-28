@@ -127,17 +127,19 @@ class PtraceInterface(DebuggingInterface):
             tty.setraw(self.stdout_read)
             tty.setraw(self.stderr_read)
 
-            file_actions.extend([
-                (POSIX_SPAWN_CLOSE, self.stdin_write),
-                (POSIX_SPAWN_CLOSE, self.stdout_read),
-                (POSIX_SPAWN_CLOSE, self.stderr_read),
-                (POSIX_SPAWN_DUP2, self.stdin_read, 0),
-                (POSIX_SPAWN_DUP2, self.stdout_write, 1),
-                (POSIX_SPAWN_DUP2, self.stderr_write, 2),
-                (POSIX_SPAWN_CLOSE, self.stdin_read),
-                (POSIX_SPAWN_CLOSE, self.stdout_write),
-                (POSIX_SPAWN_CLOSE, self.stderr_write),
-            ])
+            file_actions.extend(
+                [
+                    (POSIX_SPAWN_CLOSE, self.stdin_write),
+                    (POSIX_SPAWN_CLOSE, self.stdout_read),
+                    (POSIX_SPAWN_CLOSE, self.stderr_read),
+                    (POSIX_SPAWN_DUP2, self.stdin_read, 0),
+                    (POSIX_SPAWN_DUP2, self.stdout_write, 1),
+                    (POSIX_SPAWN_DUP2, self.stderr_write, 2),
+                    (POSIX_SPAWN_CLOSE, self.stdin_read),
+                    (POSIX_SPAWN_CLOSE, self.stdout_write),
+                    (POSIX_SPAWN_CLOSE, self.stderr_write),
+                ]
+            )
 
         # argv[1] is the length of the custom environment variables
         # argv[2:2 + env_len] is the custom environment variables
@@ -231,6 +233,12 @@ class PtraceInterface(DebuggingInterface):
         self.lib_trace.ptrace_detach_and_cont(self._global_state, self.process_id)
 
         self.detached = True
+
+        # Reset the event type
+        self._internal_debugger.resume_context.event_type.clear()
+
+        # Reset the breakpoint hit
+        self._internal_debugger.resume_context.event_hit_ref.clear()
 
     def kill(self: PtraceInterface) -> None:
         """Instantly terminates the process."""
