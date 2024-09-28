@@ -659,7 +659,7 @@ class SyscallHandleTest(TestCase):
         r = d.run()
 
         handler1 = d.handle_syscall("write", True, None)
-        handler2 = d.handle_syscall("mmap", None, True)
+        handler2 = d.handle_syscall(MMAP_NAME, None, True)
         handler3 = d.handle_syscall("getcwd", True, True)
 
         r.sendline(b"provola")

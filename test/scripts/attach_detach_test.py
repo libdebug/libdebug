@@ -20,12 +20,16 @@ match PLATFORM:
     case "amd64":
         TEST_ATTACH_AND_DETACH_3_BP1_ADDRESS = 0x125E
         TEST_ATTACH_AND_DETACH_3_BP2_ADDRESS = 0x1261
+
+        TEST_MULTITHREAD_ADDRESS = 0x128a
     case "aarch64":
         TEST_ATTACH_AND_DETACH_3_BP1_ADDRESS = 0xa04
         TEST_ATTACH_AND_DETACH_3_BP2_ADDRESS = 0xa08
     case "i386":
         TEST_ATTACH_AND_DETACH_3_BP1_ADDRESS = 0x1251
         TEST_ATTACH_AND_DETACH_3_BP2_ADDRESS = 0x1255
+
+        TEST_MULTITHREAD_ADDRESS = 0x1243
     case _:
         raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
 
@@ -59,7 +63,7 @@ class AttachDetachTest(unittest.TestCase):
         d.attach(r.pid)
         
         # Breakpoint at the end of the thread function
-        bp = d.breakpoint(0x128a, hardware=True, callback=lambda _, __: _, file="binary")
+        bp = d.breakpoint(TEST_MULTITHREAD_ADDRESS, hardware=True, callback=lambda _, __: _, file="binary")
         
         self.assertEqual(len(d.threads), 6)
         

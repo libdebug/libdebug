@@ -416,9 +416,9 @@ class MemoryFastTest(TestCase):
 
         d.cont()
 
-        assert d.regs.rip == bp.address
+        assert d.instruction_pointer == bp.address
 
-        address = d.regs.rdi
+        address = FUN_ARG_0(d)
         prev = bytes(range(256))
 
         self.assertTrue(d.memory[address, 256] == prev)

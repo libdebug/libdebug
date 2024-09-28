@@ -27,3 +27,14 @@ def FUN_RET_VAL(t) -> int:
             return t.regs.eax
         case _:
             raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
+
+def STACK_POINTER(t) -> int:
+    match PLATFORM:
+        case "amd64":
+            return t.regs.rsp
+        case "aarch64":
+            return t.regs.sp
+        case "i386":
+            return t.regs.esp
+        case _:
+            raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")

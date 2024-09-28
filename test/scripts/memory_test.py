@@ -8,7 +8,7 @@ import io
 import logging
 from unittest import TestCase
 from utils.binary_utils import RESOLVE_EXE, base_of
-from utils.thread_utils import FUN_ARG_0
+from utils.thread_utils import FUN_ARG_0, STACK_POINTER
 
 from libdebug import debugger
 from libdebug.utils.libcontext import libcontext
@@ -326,7 +326,7 @@ class MemoryTest(TestCase):
         for vmap in maps:
             self.assertIn("libc", vmap.backing_file)
             
-        maps = d.maps.filter(d.regs.rsp)
+        maps = d.maps.filter(STACK_POINTER(d))
         
         for vmap in maps:
             self.assertIn("stack", vmap.backing_file)

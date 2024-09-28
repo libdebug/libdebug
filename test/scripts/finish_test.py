@@ -52,7 +52,7 @@ match PLATFORM:
 class FinishTest(TestCase):
     @skipIf(PLATFORM == "i386", "Test not supported on i386")
     def test_finish_exact_no_auto_interrupt_no_breakpoint(self):
-        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False, aslr=False)
 
         # ------------------ Block 1 ------------------ #
         #       Return from the first function call     #
@@ -92,7 +92,7 @@ class FinishTest(TestCase):
         d.terminate()
 
     def test_finish_heuristic_no_auto_interrupt_no_breakpoint(self):
-        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False, aslr=False)
 
         # ------------------ Block 1 ------------------ #
         #       Return from the first function call     #
@@ -133,7 +133,7 @@ class FinishTest(TestCase):
 
     @skipIf(PLATFORM == "i386", "Test not supported on i386")
     def test_finish_exact_auto_interrupt_no_breakpoint(self):
-        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=True)
+        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=True, aslr=False)
 
         # ------------------ Block 1 ------------------ #
         #       Return from the first function call     #
@@ -175,7 +175,7 @@ class FinishTest(TestCase):
         d.terminate()
 
     def test_finish_heuristic_auto_interrupt_no_breakpoint(self):
-        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=True)
+        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=True, aslr=False)
 
         # ------------------ Block 1 ------------------ #
         #       Return from the first function call     #
@@ -218,7 +218,7 @@ class FinishTest(TestCase):
 
     @skipIf(PLATFORM == "i386", "Test not supported on i386")
     def test_finish_exact_no_auto_interrupt_breakpoint(self):
-        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False, aslr=False)
 
         # Reach function c
         d.run()
@@ -238,7 +238,7 @@ class FinishTest(TestCase):
         d.terminate()
 
     def test_finish_heuristic_no_auto_interrupt_breakpoint(self):
-        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False, aslr=False)
 
         # Reach function c
         d.run()
@@ -258,7 +258,7 @@ class FinishTest(TestCase):
         d.terminate()
 
     def test_heuristic_return_address(self):
-        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False, aslr=False)
 
         # Reach function c
         d.run()
@@ -292,7 +292,7 @@ class FinishTest(TestCase):
 
     @skipIf(PLATFORM == "i386", "Test not supported on i386")
     def test_exact_breakpoint_return(self):
-        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False, aslr=False)
 
         # Reach function c
         d.run()
@@ -314,7 +314,7 @@ class FinishTest(TestCase):
         d.terminate()
 
     def test_heuristic_breakpoint_return(self):
-        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False, aslr=False)
 
         # Reach function c
         d.run()
@@ -336,7 +336,7 @@ class FinishTest(TestCase):
         d.terminate()
 
     def test_breakpoint_collision(self):
-        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False, aslr=False)
 
         # Reach function c
         d.run()

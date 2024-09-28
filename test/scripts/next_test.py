@@ -44,7 +44,7 @@ match PLATFORM:
 
 class NextTest(TestCase):
     def test_next(self):
-        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False, aslr=False)
         d.run()
 
         # Get to test entrypoint
@@ -72,7 +72,7 @@ class NextTest(TestCase):
         d.terminate()
 
     def test_next_breakpoint(self):
-        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False, aslr=False)
         d.run()
 
         # Get to test entrypoint
@@ -103,7 +103,7 @@ class NextTest(TestCase):
         d.terminate()
 
     def test_next_breakpoint_hw(self):
-        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False, aslr=False)
         d.run()
 
         # Get to test entrypoint

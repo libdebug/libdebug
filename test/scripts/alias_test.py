@@ -105,7 +105,7 @@ class AliasTest(TestCase):
         d.terminate()
 
     def test_step_until_alias(self):
-        d = debugger(RESOLVE_EXE("breakpoint_test"))
+        d = debugger(RESOLVE_EXE("breakpoint_test"), aslr=False)
         d.r()
 
         bp1 = d.bp("main")
@@ -155,7 +155,7 @@ class AliasTest(TestCase):
 
     @skipIf(PLATFORM == "i386", "Test not supported on i386")
     def test_finish_alias(self):
-        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False, aslr=False)
 
         # ------------------ Block 1 ------------------ #
         #       Return from the first function call     #

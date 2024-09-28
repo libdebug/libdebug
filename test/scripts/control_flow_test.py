@@ -156,7 +156,7 @@ class ControlFlowTest(TestCase):
         d.terminate()
 
     def test_step_until_1(self):
-        d = debugger(RESOLVE_EXE("breakpoint_test"))
+        d = debugger(RESOLVE_EXE("breakpoint_test"), aslr=False)
         d.run()
 
         bp = d.breakpoint("main")
@@ -174,7 +174,7 @@ class ControlFlowTest(TestCase):
         d.terminate()
 
     def test_step_until_2(self):
-        d = debugger(RESOLVE_EXE("breakpoint_test"))
+        d = debugger(RESOLVE_EXE("breakpoint_test"), aslr=False)
         d.run()
 
         bp = d.breakpoint(TEST_STEP_UNTIL_2_ADDRESS_1, hardware=True)
@@ -192,7 +192,7 @@ class ControlFlowTest(TestCase):
         d.terminate()
 
     def test_step_until_3(self):
-        d = debugger(RESOLVE_EXE("breakpoint_test"))
+        d = debugger(RESOLVE_EXE("breakpoint_test"), aslr=False)
         d.run()
 
         bp = d.breakpoint(TEST_STEP_UNTIL_3_ADDRESS_1)
@@ -217,7 +217,7 @@ class ControlFlowTest(TestCase):
         d.terminate()
 
     def test_step_and_cont(self):
-        d = debugger(RESOLVE_EXE("breakpoint_test"))
+        d = debugger(RESOLVE_EXE("breakpoint_test"), aslr=False)
         d.run()
 
         bp1 = d.breakpoint("main")
@@ -247,7 +247,7 @@ class ControlFlowTest(TestCase):
         d.terminate()
 
     def test_step_and_cont_hardware(self):
-        d = debugger(RESOLVE_EXE("breakpoint_test"))
+        d = debugger(RESOLVE_EXE("breakpoint_test"), aslr=False)
         d.run()
 
         bp1 = d.breakpoint("main", hardware=True)
@@ -277,7 +277,7 @@ class ControlFlowTest(TestCase):
         d.terminate()
 
     def test_step_until_and_cont(self):
-        d = debugger(RESOLVE_EXE("breakpoint_test"))
+        d = debugger(RESOLVE_EXE("breakpoint_test"), aslr=False)
         d.run()
 
         bp1 = d.breakpoint("main")
@@ -302,7 +302,7 @@ class ControlFlowTest(TestCase):
         d.terminate()
 
     def test_step_until_and_cont_hardware(self):
-        d = debugger(RESOLVE_EXE("breakpoint_test"))
+        d = debugger(RESOLVE_EXE("breakpoint_test"), aslr=False)
         d.run()
 
         bp1 = d.breakpoint("main", hardware=True)

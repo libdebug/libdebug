@@ -277,7 +277,7 @@ class SyscallHijackTest(TestCase):
 
             write_count += 1
 
-        d = debugger(RESOLVE_EXE("handle_syscall_test"))
+        d = debugger(RESOLVE_EXE("handle_syscall_test"), aslr=False)
 
         write_count = 0
         r = d.run()
