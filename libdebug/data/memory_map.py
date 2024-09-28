@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -58,6 +58,11 @@ class MemoryMap:
             ) from e
 
         return MemoryMap(start, end, permissions, size, int_offset, backing_file)
+
+    @property
+    def base(self: MemoryMap) -> int:
+        """Alias for the start address of the memory map."""
+        return self.start
 
     def __repr__(self: MemoryMap) -> str:
         """Return the string representation of the memory map."""

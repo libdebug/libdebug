@@ -48,10 +48,10 @@ from libdebug.utils.debugger_wrappers import (
     change_state_function_thread,
 )
 from libdebug.utils.debugging_utils import (
-    check_absolute_address,
     normalize_and_validate_address,
     resolve_symbol_in_maps,
 )
+from libdebug.utils.elf_utils import get_all_symbols
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.platform_utils import get_platform_register_size
 from libdebug.utils.signal_utils import (
@@ -69,7 +69,11 @@ if TYPE_CHECKING:
 
     from libdebug.commlink.pipe_manager import PipeManager
     from libdebug.data.memory_map import MemoryMap
+    from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.data.registers import Registers
+    from libdebug.data.symbol import Symbol
+    from libdebug.data.symbol_dict import SymbolDict
+    from libdebug.debugger import Debugger
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
     from libdebug.state.thread_context import ThreadContext
@@ -152,6 +156,9 @@ class InternalDebugger:
 
     resume_context: ResumeContext
     """Context that indicates if the debugger should resume the debugged process."""
+
+    debugger: Debugger
+    """The debugger object."""
 
     __polling_thread: Thread | None
     """The background thread used to poll the process for state change."""
@@ -245,8 +252,12 @@ class InternalDebugger:
         """Raises an error when an invalid call is made in background mode."""
         raise RuntimeError("This method is not available in a callback.")
 
-    def run(self: InternalDebugger) -> PipeManager:
-        """Starts the process and waits for it to stop."""
+    def run(self: InternalDebugger, redirect_pipes: bool = True) -> PipeManager | None:
+        """Starts the process and waits for it to stop.
+
+        Args:
+            redirect_pipes (bool): Whether to hook and redirect the pipes of the process to a PipeManager.
+        """
         if not self.argv:
             raise RuntimeError("No binary file specified.")
 
@@ -270,7 +281,7 @@ class InternalDebugger:
         if not self.__polling_thread_command_queue.empty():
             raise RuntimeError("Polling thread command queue not empty.")
 
-        self.__polling_thread_command_queue.put((self.__threaded_run, ()))
+        self.__polling_thread_command_queue.put((self.__threaded_run, (redirect_pipes, )))
 
         self._join_and_check_status()
 
@@ -278,9 +289,7 @@ class InternalDebugger:
             liblog.debugger("Enabling anti-debugging escape mechanism.")
             self._enable_antidebug_escaping()
 
-        self._join_and_check_status()
-
-        if not self.pipe_manager:
+        if redirect_pipes and not self.pipe_manager:
             raise RuntimeError("Something went wrong during pipe initialization.")
 
         self._process_memory_manager.open(self.process_id)
@@ -417,29 +426,48 @@ class InternalDebugger:
 
         self._join_and_check_status()
 
-    def maps(self: InternalDebugger) -> list[MemoryMap]:
+    @property
+    def maps(self: InternalDebugger) -> MemoryMapList[MemoryMap]:
         """Returns the memory maps of the process."""
         self._ensure_process_stopped()
-        return self.debugging_interface.maps()
+        return self.debugging_interface.get_maps()
 
     @property
     def memory(self: InternalDebugger) -> AbstractMemoryView:
         """The memory view of the debugged process."""
         return self._fast_memory if self.fast_memory else self._slow_memory
 
-    def print_maps(self: InternalDebugger) -> None:
+    def pprint_maps(self: InternalDebugger) -> None:
         """Prints the memory maps of the process."""
         self._ensure_process_stopped()
-        maps = self.maps()
-        for memory_map in maps:
-            if "x" in memory_map.permissions:
-                print(f"{ANSIColors.RED}{memory_map}{ANSIColors.RESET}")
+        header = (
+            f"{'start':>18}  "
+            f"{'end':>18}  "
+            f"{'perm':>6}  "
+            f"{'size':>8}  "
+            f"{'offset':>8}  "
+            f"{'backing_file':<20}"
+        )
+        print(header)
+        for memory_map in self.maps:
+            info = (
+                f"{memory_map.start:#18x}  "
+                f"{memory_map.end:#18x}  "
+                f"{memory_map.permissions:>6}  "
+                f"{memory_map.size:#8x}  "
+                f"{memory_map.offset:#8x}  "
+                f"{memory_map.backing_file}"
+            )
+            if "rwx" in memory_map.permissions:
+                print(f"{ANSIColors.RED}{ANSIColors.UNDERLINE}{info}{ANSIColors.RESET}")
+            elif "x" in memory_map.permissions:
+                print(f"{ANSIColors.RED}{info}{ANSIColors.RESET}")
             elif "w" in memory_map.permissions:
-                print(f"{ANSIColors.YELLOW}{memory_map}{ANSIColors.RESET}")
+                print(f"{ANSIColors.YELLOW}{info}{ANSIColors.RESET}")
             elif "r" in memory_map.permissions:
-                print(f"{ANSIColors.GREEN}{memory_map}{ANSIColors.RESET}")
+                print(f"{ANSIColors.GREEN}{info}{ANSIColors.RESET}")
             else:
-                print(memory_map)
+                print(info)
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
@@ -449,7 +477,7 @@ class InternalDebugger:
         hardware: bool = False,
         condition: str = "x",
         length: int = 1,
-        callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
+        callback: None | bool | Callable[[ThreadContext, Breakpoint], None] = None,
         file: str = "hybrid",
     ) -> Breakpoint:
         """Sets a breakpoint at the specified location.
@@ -460,8 +488,8 @@ class InternalDebugger:
             Defaults to False.
             condition (str, optional): The trigger condition for the breakpoint. Defaults to None.
             length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
-            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the
-            breakpoint is hit. Defaults to None.
+            callback (None | bool | Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called
+            when the breakpoint is hit. If True, an empty callback will be set. Defaults to None.
             file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
             (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
             the "binary" map file).
@@ -474,6 +502,11 @@ class InternalDebugger:
 
         if condition != "x" and not hardware:
             raise ValueError("Breakpoint condition is supported only for hardware watchpoints.")
+
+        if callback is True:
+
+            def callback(_: ThreadContext, __: Breakpoint) -> None:
+                pass
 
         bp = Breakpoint(address, position, 0, hardware, callback, condition.lower(), length)
 
@@ -497,20 +530,20 @@ class InternalDebugger:
     def catch_signal(
         self: InternalDebugger,
         signal: int | str,
-        callback: None | Callable[[ThreadContext, SignalCatcher], None] = None,
+        callback: None | bool | Callable[[ThreadContext, SignalCatcher], None] = None,
         recursive: bool = False,
     ) -> SignalCatcher:
         """Catch a signal in the target process.
 
         Args:
-            signal (int | str): The signal to catch.
-            callback (Callable[[ThreadContext, CaughtSignal], None], optional): A callback to be called when the signal is
-            caught. Defaults to None.
+            signal (int | str): The signal to catch. If "*", "ALL", "all" or -1 is passed, all signals will be caught.
+            callback (None | bool | Callable[[ThreadContext, SignalCatcher], None], optional): A callback to be called
+            when the signal is caught. If True, an empty callback will be set. Defaults to None.
             recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher
             associated with the new signal should be considered as well. Defaults to False.
 
         Returns:
-            CaughtSignal: The CaughtSignal object.
+            SignalCatcher: The SignalCatcher object.
         """
         if isinstance(signal, str):
             signal_number = resolve_signal_number(signal)
@@ -541,6 +574,11 @@ class InternalDebugger:
         if not isinstance(recursive, bool):
             raise TypeError("recursive must be a boolean")
 
+        if callback is True:
+
+            def callback(_: ThreadContext, __: SignalCatcher) -> None:
+                pass
+
         catcher = SignalCatcher(signal_number, callback, recursive)
 
         link_to_internal_debugger(catcher, self)
@@ -562,13 +600,14 @@ class InternalDebugger:
         """Hijack a signal in the target process.
 
         Args:
-            original_signal (int | str): The signal to hijack.
+            original_signal (int | str): The signal to hijack. If "*", "ALL", "all" or -1 is passed, all signals will be
+            hijacked.
             new_signal (int | str): The signal to hijack the original signal with.
             recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher
             associated with the new signal should be considered as well. Defaults to False.
 
         Returns:
-            CaughtSignal: The CaughtSignal object.
+            SignalCatcher: The SignalCatcher object.
         """
         if isinstance(original_signal, str):
             original_signal_number = resolve_signal_number(original_signal)
@@ -576,6 +615,9 @@ class InternalDebugger:
             original_signal_number = original_signal
 
         new_signal_number = resolve_signal_number(new_signal) if isinstance(new_signal, str) else new_signal
+
+        if new_signal_number == -1:
+            raise ValueError("Cannot hijack a signal with the 'ALL' signal.")
 
         if original_signal_number == new_signal_number:
             raise ValueError(
@@ -600,21 +642,32 @@ class InternalDebugger:
         """Handle a syscall in the target process.
 
         Args:
-            syscall (int | str): The syscall name or number to handle.
-            on_enter (Callable[[ThreadContext, HandledSyscall], None], optional): The callback to execute when the
-            syscall is entered. Defaults to None.
-            on_exit (Callable[[ThreadContext, HandledSyscall], None], optional): The callback to execute when the
-            syscall is exited. Defaults to None.
+            syscall (int | str): The syscall name or number to handle. If "*", "ALL", "all", or -1 is passed, all
+            syscalls will be handled.
+            on_enter (None | bool |Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute
+            when the syscall is entered. If True, an empty callback will be set. Defaults to None.
+            on_exit (None | bool | Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute
+            when the syscall is exited. If True, an empty callback will be set. Defaults to None.
             recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler
             associated with the new syscall should be considered as well. Defaults to False.
 
         Returns:
-            HandledSyscall: The HandledSyscall object.
+            SyscallHandler: The SyscallHandler object.
         """
         syscall_number = resolve_syscall_number(self.arch, syscall) if isinstance(syscall, str) else syscall
 
         if not isinstance(recursive, bool):
             raise TypeError("recursive must be a boolean")
+
+        if on_enter is True:
+
+            def on_enter(_: ThreadContext, __: SyscallHandler) -> None:
+                pass
+
+        if on_exit is True:
+
+            def on_exit(_: ThreadContext, __: SyscallHandler) -> None:
+                pass
 
         # Check if the syscall is already handled (by the user or by the pretty print handler)
         if syscall_number in self.handled_syscalls:
@@ -659,14 +712,15 @@ class InternalDebugger:
         """Hijacks a syscall in the target process.
 
         Args:
-            original_syscall (int | str): The syscall name or number to hijack.
+            original_syscall (int | str): The syscall name or number to hijack. If "*", "ALL", "all" or -1 is passed,
+            all syscalls will be hijacked.
             new_syscall (int | str): The syscall name or number to hijack the original syscall with.
             recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler
             associated with the new syscall should be considered as well. Defaults to False.
             **kwargs: (int, optional): The arguments to pass to the new syscall.
 
         Returns:
-            HandledSyscall: The HandledSyscall object.
+            SyscallHandler: The SyscallHandler object.
         """
         if set(kwargs) - SyscallHijacker.allowed_args:
             raise ValueError("Invalid keyword arguments in syscall hijack")
@@ -679,6 +733,9 @@ class InternalDebugger:
         new_syscall_number = (
             resolve_syscall_number(self.arch, new_syscall) if isinstance(new_syscall, str) else new_syscall
         )
+
+        if new_syscall_number == -1:
+            raise ValueError("Cannot hijack a syscall with the 'ALL' syscall.")
 
         if original_syscall_number == new_syscall_number:
             raise ValueError(
@@ -1084,10 +1141,10 @@ class InternalDebugger:
         if skip_absolute_address_validation and backing_file == "absolute":
             return address
 
-        maps = self.debugging_interface.maps()
+        maps = self.maps
 
         if backing_file in ["hybrid", "absolute"]:
-            if check_absolute_address(address, maps):
+            if maps.filter(address):
                 # If the address is absolute, we can return it directly
                 return address
             elif backing_file == "absolute":
@@ -1102,29 +1159,9 @@ class InternalDebugger:
                 liblog.warning(
                     f"No backing file specified and no corresponding absolute address found for {hex(address)}. Assuming {backing_file}.",
                 )
-        elif backing_file == (full_backing_path := self._process_full_path) or backing_file in [
-            "binary",
-            self._process_name,
-        ]:
-            backing_file = full_backing_path
 
-        filtered_maps = []
-        unique_files = set()
+        filtered_maps = maps.filter(backing_file)
 
-        for vmap in maps:
-            if backing_file in vmap.backing_file:
-                filtered_maps.append(vmap)
-                unique_files.add(vmap.backing_file)
-
-        if len(unique_files) > 1:
-            raise ValueError(
-                f"The substring {backing_file} is present in multiple, different backing files. The address resolution cannot be accurate. The matching backing files are: {', '.join(unique_files)}.",
-            )
-
-        if not filtered_maps:
-            raise ValueError(
-                f"The specified string {backing_file} does not correspond to any backing file. The available backing files are: {', '.join(set(vmap.backing_file for vmap in maps))}.",
-            )
         return normalize_and_validate_address(address, filtered_maps)
 
     def resolve_symbol(self: InternalDebugger, symbol: str, backing_file: str) -> int:
@@ -1137,8 +1174,6 @@ class InternalDebugger:
         Returns:
             int: The address of the symbol.
         """
-        maps = self.debugging_interface.maps()
-
         if backing_file == "absolute":
             raise ValueError("Cannot use `absolute` backing file with symbols.")
 
@@ -1146,31 +1181,20 @@ class InternalDebugger:
             # If no explicit backing file is specified, we have to assume it is in the main map
             backing_file = self._process_full_path
             liblog.debugger(f"No backing file specified for the symbol {symbol}. Assuming {backing_file}.")
-        elif backing_file == (full_backing_path := self._process_full_path) or backing_file in [
-            "binary",
-            self._process_name,
-        ]:
-            backing_file = full_backing_path
+        elif backing_file in ["binary", self._process_name]:
+            backing_file = self._process_full_path
 
-        filtered_maps = []
-        unique_files = set()
-
-        for vmap in maps:
-            if backing_file in vmap.backing_file:
-                filtered_maps.append(vmap)
-                unique_files.add(vmap.backing_file)
-
-        if len(unique_files) > 1:
-            raise ValueError(
-                f"The substring {backing_file} is present in multiple, different backing files. The address resolution cannot be accurate. The matching backing files are: {', '.join(unique_files)}.",
-            )
-
-        if not filtered_maps:
-            raise ValueError(
-                f"The specified string {backing_file} does not correspond to any backing file. The available backing files are: {', '.join(set(vmap.backing_file for vmap in maps))}.",
-            )
+        filtered_maps = self.maps.filter(backing_file)
 
         return resolve_symbol_in_maps(symbol, filtered_maps)
+
+    @property
+    def symbols(self: InternalDebugger) -> SymbolDict[str, set[Symbol]]:
+        """Get the symbols of the process."""
+        self._ensure_process_stopped()
+        backing_files = {vmap.backing_file for vmap in self.maps}
+        with extend_internal_debugger(self):
+            return get_all_symbols(backing_files)
 
     def _background_ensure_process_stopped(self: InternalDebugger) -> None:
         """Validates the state of the process."""
@@ -1247,9 +1271,9 @@ class InternalDebugger:
         with Path(f"/proc/{self.process_id}/comm").open() as f:
             return f.read().strip()
 
-    def __threaded_run(self: InternalDebugger) -> None:
+    def __threaded_run(self: InternalDebugger, redirect_pipes: bool) -> None:
         liblog.debugger("Starting process %s.", self.argv[0])
-        self.debugging_interface.run()
+        self.debugging_interface.run(redirect_pipes)
 
         self.set_stopped()
 

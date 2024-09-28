@@ -1,4 +1,5 @@
 #
+# This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
 # Copyright (c) 2023-2024  Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
@@ -8,6 +9,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
+from libdebug.liblog import liblog
 from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.signal_utils import (
     get_all_signal_numbers,
@@ -25,9 +27,14 @@ if TYPE_CHECKING:
     from libdebug.commlink.pipe_manager import PipeManager
     from libdebug.data.breakpoint import Breakpoint
     from libdebug.data.memory_map import MemoryMap
+    from libdebug.data.memory_map_list import MemoryMapList
+    from libdebug.data.registers import Registers
     from libdebug.data.signal_catcher import SignalCatcher
+    from libdebug.data.symbol import Symbol
+    from libdebug.data.symbol_dict import SymbolDict
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.debugger.internal_debugger import InternalDebugger
+    from libdebug.memory.abstract_memory_view import AbstractMemoryView
     from libdebug.state.thread_context import ThreadContext
 
 
@@ -48,9 +55,13 @@ class Debugger:
         self._internal_debugger = internal_debugger
         self._internal_debugger.start_up()
 
-    def run(self: Debugger) -> PipeManager:
-        """Starts the process and waits for it to stop."""
-        return self._internal_debugger.run()
+    def run(self: Debugger, redirect_pipes: bool = True) -> PipeManager | None:
+        """Starts the process and waits for it to stop.
+
+        Args:
+            redirect_pipes (bool): Whether to hook and redirect the pipes of the process to a PipeManager.
+        """
+        return self._internal_debugger.run(redirect_pipes)
 
     def attach(self: Debugger, pid: int) -> None:
         """Attaches to an existing process."""
@@ -84,13 +95,31 @@ class Debugger:
         """Waits for the process to stop."""
         self._internal_debugger.wait()
 
-    def maps(self: Debugger) -> list[MemoryMap]:
-        """Returns the memory maps of the process."""
-        return self._internal_debugger.maps()
-
     def print_maps(self: Debugger) -> None:
         """Prints the memory maps of the process."""
-        self._internal_debugger.print_maps()
+        liblog.warning("The `print_maps` method is deprecated. Use `d.pprint_maps` instead.")
+        self._internal_debugger.pprint_maps()
+
+    def pprint_maps(self: Debugger) -> None:
+        """Prints the memory maps of the process."""
+        self._internal_debugger.pprint_maps()
+
+    def resolve_symbol(self: Debugger, symbol: str, file: str = "binary") -> int:
+        """Resolves the address of the specified symbol.
+
+        Args:
+            symbol (str): The symbol to resolve.
+            file (str): The backing file to resolve the symbol in. Defaults to "binary"
+
+        Returns:
+            int: The address of the symbol.
+        """
+        return self._internal_debugger.resolve_symbol(symbol, file)
+
+    @property
+    def symbols(self: Debugger) -> SymbolDict[str, set[Symbol]]:
+        """Get the symbols of the process."""
+        return self._internal_debugger.symbols
 
     def breakpoint(
         self: Debugger,
@@ -98,7 +127,7 @@ class Debugger:
         hardware: bool = False,
         condition: str = "x",
         length: int = 1,
-        callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
+        callback: None | bool | Callable[[ThreadContext, Breakpoint], None] = None,
         file: str = "hybrid",
     ) -> Breakpoint:
         """Sets a breakpoint at the specified location.
@@ -109,8 +138,8 @@ class Debugger:
             Defaults to False.
             condition (str, optional): The trigger condition for the breakpoint. Defaults to None.
             length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
-            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the
-            breakpoint is hit. Defaults to None.
+            callback (None | bool | Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called
+            when the breakpoint is hit. If True, an empty callback will be set. Defaults to None.
             file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
             (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
             the "binary" map file).
@@ -122,7 +151,7 @@ class Debugger:
         position: int | str,
         condition: str = "w",
         length: int = 1,
-        callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
+        callback: None | bool | Callable[[ThreadContext, Breakpoint], None] = None,
         file: str = "hybrid",
     ) -> Breakpoint:
         """Sets a watchpoint at the specified location. Internally, watchpoints are implemented as breakpoints.
@@ -132,8 +161,8 @@ class Debugger:
             condition (str, optional): The trigger condition for the watchpoint (either "w", "rw" or "x").
             Defaults to "w".
             length (int, optional): The size of the word in being watched (1, 2, 4 or 8). Defaults to 1.
-            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the
-            watchpoint is hit. Defaults to None.
+            callback (None | bool | Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called
+            when the watchpoint is hit. If True, an empty callback will be set. Defaults to None.
             file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
             (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
             the "binary" map file).
@@ -150,20 +179,20 @@ class Debugger:
     def catch_signal(
         self: Debugger,
         signal: int | str,
-        callback: None | Callable[[ThreadContext, SignalCatcher], None] = None,
+        callback: None | bool | Callable[[ThreadContext, SignalCatcher], None] = None,
         recursive: bool = False,
     ) -> SignalCatcher:
         """Catch a signal in the target process.
 
         Args:
-            signal (int | str): The signal to catch.
-            callback (Callable[[ThreadContext, CaughtSignal], None], optional): A callback to be called when the signal
-            is caught. Defaults to None.
+            signal (int | str): The signal to catch. If "*", "ALL", "all" or -1 is passed, all signals will be caught.
+            callback (None | bool | Callable[[ThreadContext, SignalCatcher], None], optional): A callback to be called
+            when the signal is caught. If True, an empty callback will be set. Defaults to None.
             recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher
             associated with the new signal should be considered as well. Defaults to False.
 
         Returns:
-            CaughtSignal: The CaughtSignal object.
+            SignalCatcher: The SignalCatcher object.
         """
         return self._internal_debugger.catch_signal(signal, callback, recursive)
 
@@ -176,36 +205,38 @@ class Debugger:
         """Hijack a signal in the target process.
 
         Args:
-            original_signal (int | str): The signal to hijack.
+            original_signal (int | str): The signal to hijack. If "*", "ALL", "all" or -1 is passed, all signals will be
+            hijacked.
             new_signal (int | str): The signal to hijack the original signal with.
             recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher
             associated with the new signal should be considered as well. Defaults to False.
 
         Returns:
-            CaughtSignal: The CaughtSignal object.
+            SignalCatcher: The SignalCatcher object.
         """
         return self._internal_debugger.hijack_signal(original_signal, new_signal, recursive)
 
     def handle_syscall(
         self: Debugger,
         syscall: int | str,
-        on_enter: Callable[[ThreadContext, SyscallHandler], None] | None = None,
-        on_exit: Callable[[ThreadContext, SyscallHandler], None] | None = None,
+        on_enter: None | bool | Callable[[ThreadContext, SyscallHandler], None] = None,
+        on_exit: None | bool | Callable[[ThreadContext, SyscallHandler], None] = None,
         recursive: bool = False,
     ) -> SyscallHandler:
         """Handle a syscall in the target process.
 
         Args:
-            syscall (int | str): The syscall name or number to handle.
-            on_enter (Callable[[ThreadContext, HandledSyscall], None], optional): The callback to execute when the
-            syscall is entered. Defaults to None.
-            on_exit (Callable[[ThreadContext, HandledSyscall], None], optional): The callback to execute when the
-            syscall is exited. Defaults to None.
+            syscall (int | str): The syscall name or number to handle. If "*", "ALL", "all" or -1 is passed, all
+            syscalls will be handled.
+            on_enter (None | bool |Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute
+            when the syscall is entered. If True, an empty callback will be set. Defaults to None.
+            on_exit (None | bool | Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute
+            when the syscall is exited. If True, an empty callback will be set. Defaults to None.
             recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler
             associated with the new syscall should be considered as well. Defaults to False.
 
         Returns:
-            HandledSyscall: The HandledSyscall object.
+            SyscallHandler: The SyscallHandler object.
         """
         return self._internal_debugger.handle_syscall(syscall, on_enter, on_exit, recursive)
 
@@ -219,14 +250,15 @@ class Debugger:
         """Hijacks a syscall in the target process.
 
         Args:
-            original_syscall (int | str): The syscall name or number to hijack.
+            original_syscall (int | str): The syscall name or number to hijack. If "*", "ALL", "all" or -1 is passed,
+            all syscalls will be hijacked.
             new_syscall (int | str): The syscall name or number to hijack the original syscall with.
             recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler
             associated with the new syscall should be considered as well. Defaults to False.
             **kwargs: (int, optional): The arguments to pass to the new syscall.
 
         Returns:
-            HandledSyscall: The HandledSyscall object.
+            SyscallHandler: The SyscallHandler object.
         """
         return self._internal_debugger.hijack_syscall(original_syscall, new_syscall, recursive, **kwargs)
 
@@ -234,12 +266,15 @@ class Debugger:
         """Migrates the current debugging session to GDB."""
         self._internal_debugger.gdb(open_in_new_process)
 
-    def r(self: Debugger) -> PipeManager:
+    def r(self: Debugger, redirect_pipes: bool = True) -> PipeManager | None:
         """Alias for the `run` method.
 
         Starts the process and waits for it to stop.
+
+        Args:
+            redirect_pipes (bool): Whether to hook and redirect the pipes of the process to a PipeManager.
         """
-        return self._internal_debugger.run()
+        return self._internal_debugger.run(redirect_pipes)
 
     def c(self: Debugger) -> None:
         """Alias for the `cont` method.
@@ -356,7 +391,7 @@ class Debugger:
         """Get the handled syscalls dictionary.
 
         Returns:
-            dict[int, HandledSyscall]: the handled syscalls dictionary.
+            dict[int, SyscallHandler]: the handled syscalls dictionary.
         """
         return self._internal_debugger.handled_syscalls
 
@@ -365,9 +400,14 @@ class Debugger:
         """Get the caught signals dictionary.
 
         Returns:
-            dict[int, CaughtSignal]: the caught signals dictionary.
+            dict[int, SignalCatcher]: the caught signals dictionary.
         """
         return self._internal_debugger.caught_signals
+
+    @property
+    def maps(self: Debugger) -> MemoryMapList[MemoryMap]:
+        """Get the memory maps of the process."""
+        return self._internal_debugger.maps
 
     @property
     def pprint_syscalls(self: Debugger) -> bool:
@@ -529,30 +569,365 @@ class Debugger:
             raise TypeError("fast_memory must be a boolean")
         self._internal_debugger.fast_memory = value
 
-    def __getattr__(self: Debugger, name: str) -> object:
-        """This function is called when an attribute is not found in the `Debugger` object.
+    @property
+    def instruction_pointer(self: Debugger) -> int:
+        """Get the main thread's instruction pointer."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        return self.threads[0].instruction_pointer
 
-        It is used to forward the call to the first `ThreadContext` object.
+    @instruction_pointer.setter
+    def instruction_pointer(self: Debugger, value: int) -> None:
+        """Set the main thread's instruction pointer."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        self.threads[0].instruction_pointer = value
+
+    @property
+    def syscall_arg0(self: Debugger) -> int:
+        """Get the main thread's syscall argument 0."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        return self.threads[0].syscall_arg0
+
+    @syscall_arg0.setter
+    def syscall_arg0(self: Debugger, value: int) -> None:
+        """Set the main thread's syscall argument 0."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        self.threads[0].syscall_arg0 = value
+
+    @property
+    def syscall_arg1(self: Debugger) -> int:
+        """Get the main thread's syscall argument 1."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        return self.threads[0].syscall_arg1
+
+    @syscall_arg1.setter
+    def syscall_arg1(self: Debugger, value: int) -> None:
+        """Set the main thread's syscall argument 1."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        self.threads[0].syscall_arg1 = value
+
+    @property
+    def syscall_arg2(self: Debugger) -> int:
+        """Get the main thread's syscall argument 2."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        return self.threads[0].syscall_arg2
+
+    @syscall_arg2.setter
+    def syscall_arg2(self: Debugger, value: int) -> None:
+        """Set the main thread's syscall argument 2."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        self.threads[0].syscall_arg2 = value
+
+    @property
+    def syscall_arg3(self: Debugger) -> int:
+        """Get the main thread's syscall argument 3."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        return self.threads[0].syscall_arg3
+
+    @syscall_arg3.setter
+    def syscall_arg3(self: Debugger, value: int) -> None:
+        """Set the main thread's syscall argument 3."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        self.threads[0].syscall_arg3 = value
+
+    @property
+    def syscall_arg4(self: Debugger) -> int:
+        """Get the main thread's syscall argument 4."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        return self.threads[0].syscall_arg4
+
+    @syscall_arg4.setter
+    def syscall_arg4(self: Debugger, value: int) -> None:
+        """Set the main thread's syscall argument 4."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        self.threads[0].syscall_arg4 = value
+
+    @property
+    def syscall_arg5(self: Debugger) -> int:
+        """Get the main thread's syscall argument 5."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        return self.threads[0].syscall_arg5
+
+    @syscall_arg5.setter
+    def syscall_arg5(self: Debugger, value: int) -> None:
+        """Set the main thread's syscall argument 5."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        self.threads[0].syscall_arg5 = value
+
+    @property
+    def syscall_number(self: Debugger) -> int:
+        """Get the main thread's syscall number."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        return self.threads[0].syscall_number
+
+    @syscall_number.setter
+    def syscall_number(self: Debugger, value: int) -> None:
+        """Set the main thread's syscall number."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        self.threads[0].syscall_number = value
+
+    @property
+    def syscall_return(self: Debugger) -> int:
+        """Get the main thread's syscall return value."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        return self.threads[0].syscall_return
+
+    @syscall_return.setter
+    def syscall_return(self: Debugger, value: int) -> None:
+        """Set the main thread's syscall return value."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        self.threads[0].syscall_return = value
+
+    @property
+    def regs(self: Debugger) -> Registers:
+        """Get the main thread's registers."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        return self.threads[0].regs
+
+    @property
+    def dead(self: Debugger) -> bool:
+        """Whether the process is dead."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        return self.threads[0].dead
+
+    @property
+    def memory(self: Debugger) -> AbstractMemoryView:
+        """The memory view of the process."""
+        return self._internal_debugger.memory
+
+    @property
+    def mem(self: Debugger) -> AbstractMemoryView:
+        """Alias for the `memory` property.
+
+        Get the memory view of the process.
+        """
+        return self._internal_debugger.memory
+
+    @property
+    def process_id(self: Debugger) -> int:
+        """The process ID."""
+        return self._internal_debugger.process_id
+
+    @property
+    def pid(self: Debugger) -> int:
+        """Alias for `process_id` property.
+
+        The process ID.
+        """
+        return self._internal_debugger.process_id
+
+    @property
+    def thread_id(self: Debugger) -> int:
+        """The thread ID of the main thread."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        return self.threads[0].tid
+
+    @property
+    def tid(self: Debugger) -> int:
+        """Alias for `thread_id` property.
+
+        The thread ID of the main thread.
+        """
+        return self._thread_id
+
+    @property
+    def running(self: Debugger) -> bool:
+        """Whether the process is running."""
+        return self._internal_debugger.running
+
+    @property
+    def saved_ip(self: Debugger) -> int:
+        """Get the saved instruction pointer of the main thread."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        return self.threads[0].saved_ip
+
+    @property
+    def exit_code(self: Debugger) -> int | None:
+        """The main thread's exit code."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        return self.threads[0].exit_code
+
+    @property
+    def exit_signal(self: Debugger) -> str | None:
+        """The main thread's exit signal."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        return self.threads[0].exit_signal
+
+    @property
+    def signal(self: Debugger) -> str | None:
+        """The signal to be forwarded to the main thread."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        return self.threads[0].signal
+
+    @signal.setter
+    def signal(self: Debugger, signal: str | int) -> None:
+        """Set the signal to forward to the main thread."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        self.threads[0].signal = signal
+
+    @property
+    def signal_number(self: Debugger) -> int | None:
+        """The signal number to be forwarded to the main thread."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        return self.threads[0].signal_number
+
+    def backtrace(self: Debugger, as_symbols: bool = False) -> list:
+        """Returns the current backtrace of the main thread.
+
+        Args:
+            as_symbols (bool, optional): Whether to return the backtrace as symbols
         """
         if not self.threads:
-            raise AttributeError(f"'debugger has no attribute '{name}'")
+            raise ValueError("No threads available.")
+        return self.threads[0].backtrace(as_symbols)
 
-        thread_context = self.threads[0]
+    def pprint_backtrace(self: Debugger) -> None:
+        """Pretty pints the current backtrace of the main thread."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        self.threads[0].pprint_backtrace()
 
-        # hasattr internally calls getattr, so we use this to avoid double access to the attribute
-        # do not use None as default value, as it is a valid value
-        if (attr := getattr(thread_context, name, self._sentinel)) == self._sentinel:
-            raise AttributeError(f"'Debugger has no attribute '{name}'")
-        return attr
+    def pprint_registers(self: Debugger) -> None:
+        """Pretty prints the main thread's registers."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        self.threads[0].pprint_registers()
 
-    def __setattr__(self: Debugger, name: str, value: object) -> None:
-        """This function is called when an attribute is set in the `Debugger` object.
+    def pprint_regs(self: Debugger) -> None:
+        """Alias for the `pprint_registers` method.
 
-        It is used to forward the call to the first `ThreadContext` object.
+        Pretty prints the main thread's registers.
         """
-        # First we check if the attribute is available in the `Debugger` object
-        if hasattr(Debugger, name):
-            super().__setattr__(name, value)
-        else:
-            thread_context = self.threads[0]
-            setattr(thread_context, name, value)
+        self.pprint_registers()
+
+    def pprint_registers_all(self: Debugger) -> None:
+        """Pretty prints all the main thread's registers."""
+        if not self.threads:
+            raise ValueError("No threads available.")
+        self.threads[0].pprint_registers_all()
+
+    def pprint_regs_all(self: Debugger) -> None:
+        """Alias for the `pprint_registers_all` method.
+
+        Pretty prints all the main thread's registers.
+        """
+        self.pprint_registers_all()
+
+    def step(self: Debugger) -> None:
+        """Executes a single instruction of the process."""
+        self._internal_debugger.step(self)
+
+    def step_until(
+        self: Debugger,
+        position: int | str,
+        max_steps: int = -1,
+        file: str = "hybrid",
+    ) -> None:
+        """Executes instructions of the process until the specified location is reached.
+
+        Args:
+            position (int | bytes): The location to reach.
+            max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
+            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
+            the "binary" map file).
+        """
+        self._internal_debugger.step_until(self, position, max_steps, file)
+
+    def finish(self: Debugger, heuristic: str = "backtrace") -> None:
+        """Continues execution until the current function returns or the process stops.
+
+        The command requires a heuristic to determine the end of the function. The available heuristics are:
+        - `backtrace`: The debugger will place a breakpoint on the saved return address found on the stack and continue execution on all threads.
+        - `step-mode`: The debugger will step on the specified thread until the current function returns. This will be slower.
+
+        Args:
+            heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
+        """
+        self._internal_debugger.finish(self, heuristic=heuristic)
+
+    def next(self: Debugger) -> None:
+        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
+        self._internal_debugger.next(self)
+
+    def si(self: Debugger) -> None:
+        """Alias for the `step` method.
+
+        Executes a single instruction of the process.
+        """
+        self._internal_debugger.step(self)
+
+    def su(
+        self: Debugger,
+        position: int | str,
+        max_steps: int = -1,
+    ) -> None:
+        """Alias for the `step_until` method.
+
+        Executes instructions of the process until the specified location is reached.
+
+        Args:
+            position (int | bytes): The location to reach.
+            max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
+        """
+        self._internal_debugger.step_until(self, position, max_steps)
+
+    def fin(self: Debugger, heuristic: str = "backtrace") -> None:
+        """Alias for the `finish` method. Continues execution until the current function returns or the process stops.
+
+        The command requires a heuristic to determine the end of the function. The available heuristics are:
+        - `backtrace`: The debugger will place a breakpoint on the saved return address found on the stack and continue execution on all threads.
+        - `step-mode`: The debugger will step on the specified thread until the current function returns. This will be slower.
+
+        Args:
+            heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
+        """
+        self._internal_debugger.finish(self, heuristic)
+
+    def ni(self: Debugger) -> None:
+        """Alias for the `next` method. Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
+        self._internal_debugger.next(self)
+
+    def __repr__(self: Debugger) -> str:
+        """Return the string representation of the `Debugger` object."""
+        repr_str = "Debugger("
+        repr_str += f"argv = {self._internal_debugger.argv}, "
+        repr_str += f"aslr = {self._internal_debugger.aslr_enabled}, "
+        repr_str += f"env = {self._internal_debugger.env}, "
+        repr_str += f"escape_antidebug = {self._internal_debugger.escape_antidebug}, "
+        repr_str += f"continue_to_binary_entrypoint = {self._internal_debugger.autoreach_entrypoint}, "
+        repr_str += f"auto_interrupt_on_command = {self._internal_debugger.auto_interrupt_on_command}, "
+        repr_str += f"fast_memory = {self._internal_debugger.fast_memory}, "
+        repr_str += f"kill_on_exit = {self._internal_debugger.kill_on_exit})\n"
+        repr_str += f"  Architecture: {self.arch}\n"
+        repr_str += "  Threads:"
+        for thread in self.threads:
+            repr_str += f"\n    ({thread.tid}, {'dead' if thread.dead else 'alive'}) "
+            repr_str += f"ip: {thread.instruction_pointer:#x}"
+        return repr_str

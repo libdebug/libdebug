@@ -164,6 +164,106 @@ class BasicTest(unittest.TestCase):
 
         d.cont()
         d.kill()
+        
+    def test_register_find(self):
+        d = self.d
+
+        d.run()
+
+        bp1 = d.breakpoint(0x4011CA)
+        bp2 = d.breakpoint(0x40128D)
+        bp3 = d.breakpoint(0x401239)
+        bp4 = d.breakpoint(0x4011F4)
+        bp5 = d.breakpoint(0x401296)
+
+        d.cont()
+        self.assertTrue(bp1.address == d.regs.rip)
+        
+        self.assertIn("rax", d.regs.filter(0x0011223344556677))
+        self.assertIn("rbx", d.regs.filter(0x1122334455667700))
+        self.assertIn("rcx", d.regs.filter(0x2233445566770011))
+        self.assertIn("rdx", d.regs.filter(0x3344556677001122))
+        self.assertIn("rsi", d.regs.filter(0x4455667700112233))
+        self.assertIn("rdi", d.regs.filter(0x5566770011223344))
+        self.assertIn("rbp", d.regs.filter(0x6677001122334455))
+        self.assertIn("r8", d.regs.filter(0xAABBCCDD11223344))
+        self.assertIn("r9", d.regs.filter(0xBBCCDD11223344AA))
+        self.assertIn("r10", d.regs.filter(0xCCDD11223344AABB))
+        self.assertIn("r11", d.regs.filter(0xDD11223344AABBCC))
+        self.assertIn("r12", d.regs.filter(0x11223344AABBCCDD))
+        self.assertIn("r13", d.regs.filter(0x223344AABBCCDD11))
+        self.assertIn("r14", d.regs.filter(0x3344AABBCCDD1122))
+        self.assertIn("r15", d.regs.filter(0x44AABBCCDD112233))
+        
+        d.cont()
+        self.assertTrue(bp4.address == d.regs.rip)
+        
+        self.assertIn("al", d.regs.filter(0x11))
+        self.assertIn("bl", d.regs.filter(0x22))
+        self.assertIn("cl", d.regs.filter(0x33))
+        self.assertIn("dl", d.regs.filter(0x44))
+        self.assertIn("sil", d.regs.filter(0x55))
+        self.assertIn("dil", d.regs.filter(0x66))
+        self.assertIn("bpl", d.regs.filter(0x77))
+        self.assertIn("r8b", d.regs.filter(0x88))
+        self.assertIn("r9b", d.regs.filter(0x99))
+        self.assertIn("r10b", d.regs.filter(0xAA))
+        self.assertIn("r11b", d.regs.filter(0xBB))
+        self.assertIn("r12b", d.regs.filter(0xCC))
+        self.assertIn("r13b", d.regs.filter(0xDD))
+        self.assertIn("r14b", d.regs.filter(0xEE))
+        self.assertIn("r15b", d.regs.filter(0xFF))
+
+        d.cont()
+        self.assertTrue(bp3.address == d.regs.rip)
+        
+        self.assertIn("ax", d.regs.filter(0x1122))
+        self.assertIn("bx", d.regs.filter(0x2233))
+        self.assertIn("cx", d.regs.filter(0x3344))
+        self.assertIn("dx", d.regs.filter(0x4455))
+        self.assertIn("si", d.regs.filter(0x5566))
+        self.assertIn("di", d.regs.filter(0x6677))
+        self.assertIn("bp", d.regs.filter(0x7788))
+        self.assertIn("r8w", d.regs.filter(0x8899))
+        self.assertIn("r9w", d.regs.filter(0x99AA))
+        self.assertIn("r10w", d.regs.filter(0xAABB))
+        self.assertIn("r11w", d.regs.filter(0xBBCC))
+        self.assertIn("r12w", d.regs.filter(0xCCDD))
+        self.assertIn("r13w", d.regs.filter(0xDDEE))
+        self.assertIn("r14w", d.regs.filter(0xEEFF))
+        self.assertIn("r15w", d.regs.filter(0xFF00))
+
+        d.cont()
+        self.assertTrue(bp2.address == d.regs.rip)
+        
+        self.assertIn("eax", d.regs.filter(0x11223344))
+        self.assertIn("ebx", d.regs.filter(0x22334455))
+        self.assertIn("ecx", d.regs.filter(0x33445566))
+        self.assertIn("edx", d.regs.filter(0x44556677))
+        self.assertIn("esi", d.regs.filter(0x55667788))
+        self.assertIn("edi", d.regs.filter(0x66778899))
+        self.assertIn("ebp", d.regs.filter(0x778899AA))
+        self.assertIn("r8d", d.regs.filter(0x8899AABB))
+        self.assertIn("r9d", d.regs.filter(0x99AABBCC))
+        self.assertIn("r10d", d.regs.filter(0xAABBCCDD))
+        self.assertIn("r11d", d.regs.filter(0xBBCCDD11))
+        self.assertIn("r12d", d.regs.filter(0xCCDD1122))
+        self.assertIn("r13d", d.regs.filter(0xDD112233))
+        self.assertIn("r14d", d.regs.filter(0x11223344))
+        self.assertIn("r15d", d.regs.filter(0x22334455))
+        
+
+        d.cont()
+        self.assertTrue(bp5.address == d.regs.rip)
+        
+        self.assertIn("ah", d.regs.filter(0x11))
+        self.assertIn("bh", d.regs.filter(0x22))
+        self.assertIn("ch", d.regs.filter(0x33))
+        self.assertIn("dh", d.regs.filter(0x44))
+        
+
+        self.d.cont()
+        self.d.kill()
 
 
 class BasicPieTest(unittest.TestCase):
