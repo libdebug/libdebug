@@ -525,10 +525,27 @@ void unregister_thread(struct global_state *state, int tid)
             // Add the thread to the dead list
             t->next = state->dead_t_HEAD;
             state->dead_t_HEAD = t;
-            return;
+            break;
         }
         prev = t;
         t = t->next;
+    }
+
+    struct hardware_breakpoint *hw_b = state->hw_b_HEAD;
+    struct hardware_breakpoint *hw_b_prev = NULL;
+
+    while (hw_b != NULL) {
+        if (hw_b->tid == tid) {
+            if (hw_b_prev == NULL) {
+                state->hw_b_HEAD = hw_b->next;
+            } else {
+                hw_b_prev->next = hw_b->next;
+            }
+            free(hw_b);
+            return;
+        }
+        hw_b_prev = hw_b;
+        hw_b = hw_b->next;
     }
 }
 

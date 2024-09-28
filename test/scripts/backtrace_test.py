@@ -13,7 +13,7 @@ from libdebug.utils.libcontext import libcontext
 
 class BacktraceTest(TestCase):
     def setUp(self):
-        self.d = debugger(RESOLVE_EXE("backtrace_test"))
+        self.d = debugger(RESOLVE_EXE("backtrace_test"), aslr=False)
 
     @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_backtrace_as_symbols_amd64(self):
@@ -289,3 +289,4 @@ class BacktraceTest(TestCase):
         )
 
         d.kill()
+        d.terminate()

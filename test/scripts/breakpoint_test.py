@@ -373,7 +373,7 @@ class BreakpointTest(TestCase):
         d.wait()
 
         if bp1.hit_on(d):
-            for vmap in d.maps():
+            for vmap in d.maps:
                 if "x" in vmap.permissions and "anon" in vmap.backing_file:
                     section = vmap.backing_file
             bp2 = d.breakpoint(0xD, file=section)
@@ -399,7 +399,7 @@ class BreakpointTest(TestCase):
         d.wait()
 
         if bp1.hit_on(d):
-            for vmap in d.maps():
+            for vmap in d.maps:
                 if "x" in vmap.permissions and "anon" in vmap.backing_file:
                     section = vmap.backing_file
             bp2 = d.breakpoint(0xD, file=section)
@@ -420,7 +420,7 @@ class BreakpointTest(TestCase):
         d.wait()
 
         if bp1.hit_on(d):
-            for vmap in d.maps():
+            for vmap in d.maps:
                 if "x" in vmap.permissions and "anon" in vmap.backing_file:
                     section = vmap.backing_file
             bp2 = d.breakpoint(0xD, file=section)
@@ -458,7 +458,7 @@ class BreakpointTest(TestCase):
         d.wait()
 
         if bp1.hit_on(d):
-            for vmap in d.maps():
+            for vmap in d.maps:
                 if "x" in vmap.permissions and "anon" in vmap.backing_file:
                     section = vmap.backing_file
             bp2 = d.breakpoint(0x10, file=section)
@@ -484,7 +484,7 @@ class BreakpointTest(TestCase):
         d.wait()
 
         if bp1.hit_on(d):
-            for vmap in d.maps():
+            for vmap in d.maps:
                 if "x" in vmap.permissions and "anon" in vmap.backing_file:
                     section = vmap.backing_file
             bp2 = d.breakpoint(0x10, file=section)
@@ -505,7 +505,7 @@ class BreakpointTest(TestCase):
         d.wait()
 
         if bp1.hit_on(d):
-            for vmap in d.maps():
+            for vmap in d.maps:
                 if "x" in vmap.permissions and "anon" in vmap.backing_file:
                     section = vmap.backing_file
             bp2 = d.breakpoint(0x10, file=section)

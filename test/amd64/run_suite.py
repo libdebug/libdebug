@@ -33,6 +33,7 @@ from scripts.multiple_debuggers_test import MultipleDebuggersTest
 from scripts.next_test import NextTest
 from scripts.nlinks_test import Nlinks
 from scripts.pprint_syscalls_test import PPrintSyscallsTest
+from scripts.run_pipes_test import RunPipesTest
 from scripts.signals_multithread_test import SignalMultithreadTest
 from scripts.speed_test import SpeedTest
 from scripts.thread_test import ComplexThreadTest, ThreadTest
@@ -48,6 +49,7 @@ def fast_suite():
     suite.addTest(BasicTest("test_registers"))
     suite.addTest(BasicTest("test_step"))
     suite.addTest(BasicTest("test_step_hardware"))
+    suite.addTest(BasicTest("test_register_find"))
     suite.addTest(BasicPieTest("test_basic"))
     suite.addTest(BreakpointTest("test_bps"))
     suite.addTest(BreakpointTest("test_bp_disable"))
@@ -67,6 +69,7 @@ def fast_suite():
     suite.addTest(MemoryTest("test_memory_multiple_runs"))
     suite.addTest(MemoryTest("test_memory_access_while_running"))
     suite.addTest(MemoryTest("test_memory_access_methods"))
+    suite.addTest(MemoryTest("test_search_maps"))
     suite.addTest(MemoryFastTest("test_memory"))
     suite.addTest(MemoryFastTest("test_mem_access_libs"))
     suite.addTest(MemoryFastTest("test_memory_access_methods_backing_file"))
@@ -78,6 +81,8 @@ def fast_suite():
     suite.addTest(MemoryFastTest("test_invalid_memory_location"))
     suite.addTest(MemoryFastTest("test_memory_multiple_threads"))
     suite.addTest(MemoryFastTest("test_memory_mixed_access"))
+    suite.addTest(MemoryFastTest("test_memory_attach"))
+    suite.addTest(MemoryFastTest("test_search_memory"))
     suite.addTest(HwBasicTest("test_basic"))
     suite.addTest(HwBasicTest("test_registers"))
     suite.addTest(BacktraceTest("test_backtrace_as_symbols"))
@@ -87,6 +92,7 @@ def fast_suite():
     suite.addTest(AttachDetachTest("test_attach_and_detach_2"))
     suite.addTest(AttachDetachTest("test_attach_and_detach_3"))
     suite.addTest(AttachDetachTest("test_attach_and_detach_4"))
+    suite.addTest(AttachDetachTest("test_attach_multithread"))
     suite.addTest(ThreadTest("test_thread"))
     suite.addTest(ThreadTest("test_thread_hardware"))
     suite.addTest(ComplexThreadTest("test_thread"))
@@ -100,6 +106,7 @@ def fast_suite():
     suite.addTest(CallbackTest("test_callback_pid_accessible"))
     suite.addTest(CallbackTest("test_callback_pid_accessible_alias"))
     suite.addTest(CallbackTest("test_callback_tid_accessible_alias"))
+    suite.addTest(CallbackTest("test_callback_empty"))
     suite.addTest(FinishTest("test_finish_exact_no_auto_interrupt_no_breakpoint"))
     suite.addTest(FinishTest("test_finish_heuristic_no_auto_interrupt_no_breakpoint"))
     suite.addTest(FinishTest("test_finish_exact_auto_interrupt_no_breakpoint"))
@@ -147,6 +154,9 @@ def fast_suite():
     suite.addTest(HandleSyscallTest("test_handle_overwrite_with_pprint"))
     suite.addTest(HandleSyscallTest("test_handles_sync"))
     suite.addTest(HandleSyscallTest("test_handles_sync_with_pprint"))
+    suite.addTest(HandleSyscallTest("test_handles_sync_hit_on"))
+    suite.addTest(HandleSyscallTest("test_handles_empty_callback"))
+    suite.addTest(HandleSyscallTest("test_handle_all_syscalls"))
     suite.addTest(AntidebugEscapingTest("test_antidebug_escaping"))
     suite.addTest(SyscallHijackTest("test_hijack_syscall"))
     suite.addTest(SyscallHijackTest("test_hijack_syscall_with_pprint"))
@@ -187,6 +197,8 @@ def fast_suite():
     suite.addTest(SignalCatchTest("test_signal_send_signal"))
     suite.addTest(SignalCatchTest("test_signal_catch_sync_block"))
     suite.addTest(SignalCatchTest("test_signal_catch_sync_pass"))
+    suite.addTest(SignalCatchTest("test_signal_empty_callback"))
+    suite.addTest(SignalCatchTest("test_catch_all_signals"))
     suite.addTest(SignalMultithreadTest("test_signal_multithread_undet_catch_signal_block"))
     suite.addTest(SignalMultithreadTest("test_signal_multithread_undet_pass"))
     suite.addTest(SignalMultithreadTest("test_signal_multithread_det_catch_signal_block"))
@@ -216,6 +228,7 @@ def fast_suite():
     suite.addTest(AtexitHandlerTest("test_run_2"))
     suite.addTest(AtexitHandlerTest("test_run_3"))
     suite.addTest(AtexitHandlerTest("test_run_4"))
+    suite.addTest(RunPipesTest("test_binary_proxy"))
     return suite
 
 

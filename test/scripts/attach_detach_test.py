@@ -7,6 +7,7 @@
 import logging
 import unittest
 
+import subprocess
 from pwn import process
 from utils.binary_utils import PLATFORM, RESOLVE_EXE
 
@@ -45,6 +46,34 @@ class AttachDetachTest(unittest.TestCase):
         d.cont()
 
         d.kill()
+        d.terminate()
+        
+    def test_attach_multithread(self):
+        r = subprocess.Popen([RESOLVE_EXE("multithread_input")], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+
+        # Synchronize with the process to be sure that all threads have been created
+        while b"All threads have been created." not in r.stdout.readline():
+            pass
+        
+        d = debugger()
+        d.attach(r.pid)
+        
+        # Breakpoint at the end of the thread function
+        bp = d.breakpoint(0x128a, hardware=True, callback=lambda _, __: _, file="binary")
+        
+        self.assertEqual(len(d.threads), 6)
+        
+        d.cont()
+        
+        for _ in range(5):
+            r.stdin.write(b"1\n")
+            r.stdin.flush()
+
+        d.detach()
+        r.kill()
+        
+        self.assertEqual(bp.hit_count, 5)
+
         d.terminate()
 
     def test_attach_and_detach_1(self):

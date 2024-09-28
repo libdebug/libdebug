@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import os
 import signal
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from libdebug.architectures.ptrace_software_breakpoint_patcher import (
@@ -17,6 +16,8 @@ from libdebug.architectures.ptrace_software_breakpoint_patcher import (
 from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_constants import SYSCALL_SIGTRAP, StopEvents
+from libdebug.state.resume_context import EventType
+from libdebug.utils.process_utils import get_process_tasks
 from libdebug.utils.signal_utils import resolve_signal_name
 
 if TYPE_CHECKING:
@@ -69,6 +70,7 @@ class PtraceStatusHandler:
         if not hasattr(thread, "instruction_pointer"):
             # This is a signal trap hit on process startup
             # Do not resume the process until the user decides to do so
+            self.internal_debugger.resume_context.event_type = EventType.STARTUP
             self.internal_debugger.resume_context.resume = False
             self.forward_signal = False
             return
@@ -107,6 +109,7 @@ class PtraceStatusHandler:
                 liblog.debugger("Watchpoint hit at 0x%x", bp.address)
 
         if bp:
+            self.internal_debugger.resume_context.breakpoint_hit[thread_id] = bp
             self.forward_signal = False
             bp.hit_count += 1
 
@@ -114,6 +117,7 @@ class PtraceStatusHandler:
                 bp.callback(thread, bp)
             else:
                 # If the breakpoint has no callback, we need to stop the process despite the other signals
+                self.internal_debugger.resume_context.event_type = EventType.BREAKPOINT
                 self.internal_debugger.resume_context.resume = False
 
     def _manage_syscall_on_enter(
@@ -193,6 +197,7 @@ class PtraceStatusHandler:
             handler._has_entered = True
         if not handler.on_enter_user and not handler.on_exit_user and handler.enabled:
             # If the syscall has no callback, we need to stop the process despite the other signals
+            self.internal_debugger.resume_context.event_type = EventType.SYSCALL
             handler._has_entered = True
             self.internal_debugger.resume_context.resume = False
 
@@ -205,12 +210,15 @@ class PtraceStatusHandler:
 
         syscall_number = thread.syscall_number
 
-        if syscall_number not in self.internal_debugger.handled_syscalls:
+        if syscall_number in self.internal_debugger.handled_syscalls:
+            handler = self.internal_debugger.handled_syscalls[syscall_number]
+        elif -1 in self.internal_debugger.handled_syscalls:
+            # Handle all syscalls is enabled
+            handler = self.internal_debugger.handled_syscalls[-1]
+        else:
             # This is a syscall we don't care about
             # Resume the execution
             return
-
-        handler = self.internal_debugger.handled_syscalls[syscall_number]
 
         if not handler._has_entered:
             # The syscall is being entered
@@ -257,6 +265,7 @@ class PtraceStatusHandler:
             handler._skip_exit = False
             if not handler.on_enter_user and not handler.on_exit_user and handler.enabled:
                 # If the syscall has no callback, we need to stop the process despite the other signals
+                self.internal_debugger.resume_context.event_type = EventType.SYSCALL
                 self.internal_debugger.resume_context.resume = False
 
     def _manage_caught_signal(
@@ -308,6 +317,7 @@ class PtraceStatusHandler:
                         )
             else:
                 # If the caught signal has no callback, we need to stop the process despite the other signals
+                self.internal_debugger.resume_context.event = EventType.SIGNAL
                 self.internal_debugger.resume_context.resume = False
 
     def _handle_signal(self: PtraceStatusHandler, thread: ThreadContext) -> bool:
@@ -316,6 +326,15 @@ class PtraceStatusHandler:
 
         if signal_number in self.internal_debugger.caught_signals:
             catcher = self.internal_debugger.caught_signals[signal_number]
+
+            self._manage_caught_signal(catcher, thread, signal_number, {signal_number})
+        elif -1 in self.internal_debugger.caught_signals and signal_number not in (
+            signal.SIGSTOP,
+            signal.SIGTRAP,
+            signal.SIGKILL,
+        ):
+            # Handle all signals is enabled
+            catcher = self.internal_debugger.caught_signals[-1]
 
             self._manage_caught_signal(catcher, thread, signal_number, {signal_number})
 
@@ -339,6 +358,7 @@ class PtraceStatusHandler:
                 pid,
                 resolve_signal_name(signum),
             )
+            self.internal_debugger.resume_context.event_type = EventType.USER_INTERRUPT
             self.internal_debugger.resume_context.resume = False
             self.internal_debugger.resume_context.force_interrupt = False
             self.forward_signal = False
@@ -349,6 +369,7 @@ class PtraceStatusHandler:
 
             if self.internal_debugger.resume_context.is_a_step:
                 # The process is stepping, we need to stop the execution
+                self.internal_debugger.resume_context.event_type = EventType.STEP
                 self.internal_debugger.resume_context.resume = False
                 self.internal_debugger.resume_context.is_a_step = False
                 self.forward_signal = False
@@ -442,10 +463,7 @@ class PtraceStatusHandler:
 
     def check_for_new_threads(self: PtraceStatusHandler, pid: int) -> None:
         """Check for new threads in the process and register them."""
-        if not Path(f"/proc/{pid}/task").exists():
-            return
-
-        tids = [int(x) for x in os.listdir(f"/proc/{pid}/task")]
+        tids = get_process_tasks(pid)
         for tid in tids:
             if not self.internal_debugger.get_thread_by_id(tid):
                 self.ptrace_interface.register_new_thread(tid, self.internal_debugger)

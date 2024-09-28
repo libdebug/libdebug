@@ -7,7 +7,7 @@
 import io
 import logging
 from unittest import TestCase
-from utils.binary_utils import BASE, RESOLVE_EXE
+from utils.binary_utils import RESOLVE_EXE, base_of
 from utils.thread_utils import FUN_ARG_0
 
 from libdebug import debugger
@@ -155,7 +155,7 @@ class MemoryTest(TestCase):
 
         d.run()
 
-        base = BASE
+        base = base_of(d)
 
         # Test different ways to access memory at the start of the file
         file_0 = d.memory[base, 256]
@@ -224,7 +224,7 @@ class MemoryTest(TestCase):
 
         d.run()
 
-        base = BASE
+        base = base_of(d)
 
         # Validate that slices work correctly
         file_0 = d.memory[0x0:"do_nothing", "binary"]
@@ -295,6 +295,42 @@ class MemoryTest(TestCase):
         with self.assertRaises(ValueError):
             d.memory["main":"main+8", "absolute"] = b"abcd1234"
 
+        d.kill()
+        d.terminate()
+    
+    def test_search_maps(self):
+        d = self.d
+
+        d.run()
+
+        bp = d.breakpoint("leak_address")
+
+        d.cont()
+
+        assert d.instruction_pointer == bp.address
+        
+        maps = d.maps.filter("memory_test")
+        
+        for vmap in maps:
+            self.assertIn(RESOLVE_EXE("memory_test"), vmap.backing_file)
+            
+        maps_bin = d.maps.filter("binary")
+        
+        for vmap in maps_bin:
+            self.assertIn(RESOLVE_EXE("memory_test"), vmap.backing_file)
+            
+        self.assertEqual(maps, maps_bin)
+        
+        maps = d.maps.filter("libc")
+        
+        for vmap in maps:
+            self.assertIn("libc", vmap.backing_file)
+            
+        maps = d.maps.filter(d.regs.rsp)
+        
+        for vmap in maps:
+            self.assertIn("stack", vmap.backing_file)
+            
         d.kill()
         d.terminate()
 

@@ -574,3 +574,139 @@ class SyscallHandleTest(TestCase):
         self.assertEqual(handler1.hit_count, 2)
         self.assertEqual(handler2.hit_count, 1)
         self.assertEqual(handler3.hit_count, 1)
+
+    def test_handles_sync_hit_on(self):
+        d = debugger(RESOLVE_EXE("handle_syscall_test"))
+
+        r = d.run()
+
+        ptr = 0
+        write_count = 0
+
+        def on_enter_write(d, sh):
+            nonlocal write_count
+
+            if write_count == 0:
+                self.assertTrue(sh.syscall_number == WRITE_NUM)
+                self.assertEqual(d.memory[d.syscall_arg1, 13], b"Hello, World!")
+                self.assertEqual(d.syscall_arg0, 1)
+                write_count += 1
+            else:
+                self.assertTrue(sh.syscall_number == WRITE_NUM)
+                self.assertEqual(d.memory[d.syscall_arg1, 7], b"provola")
+                self.assertEqual(d.syscall_arg0, 1)
+                write_count += 1
+
+        def on_exit_mmap(d, sh):
+            self.assertTrue(sh.syscall_number == MMAP_NUM)
+
+            nonlocal ptr
+
+            ptr = FUN_RET_VAL(d)
+
+        def on_enter_getcwd(d, sh):
+            self.assertTrue(sh.syscall_number == GETCWD_NUM)
+            self.assertEqual(d.syscall_arg0, ptr)
+
+        def on_exit_getcwd(d, sh):
+            self.assertTrue(sh.syscall_number == GETCWD_NUM)
+            self.assertEqual(d.memory[ptr, 8], os.getcwd()[:8].encode())
+
+        handler1 = d.handle_syscall("write")
+        handler2 = d.handle_syscall(MMAP_NAME)
+        handler3 = d.handle_syscall("getcwd")
+
+        r.sendline(b"provola")
+
+        on_enter_1 = True
+        on_exit_2 = True
+        on_enter_3 = True
+
+        while not d.dead:
+            d.cont()
+            d.wait()
+            if handler1.hit_on(d):
+                if on_enter_1:
+                    on_enter_write(d, handler1)
+                    on_enter_1 = False
+                else:
+                    on_enter_1 = True
+            elif handler2.hit_on(d):
+                if on_exit_2:
+                    on_exit_2 = False
+                else:
+                    on_exit_mmap(d, handler2)
+                    on_exit_2 = True
+            elif handler3.hit_on(d):
+                if on_enter_3:
+                    on_enter_getcwd(d, handler3)
+                    on_enter_3 = False
+                else:
+                    on_exit_getcwd(d, handler3)
+                    on_enter_3 = True
+
+        d.kill()
+        d.terminate()
+
+        self.assertEqual(write_count, 2)
+        self.assertEqual(handler1.hit_count, 2)
+        self.assertEqual(handler2.hit_count, 1)
+        self.assertEqual(handler3.hit_count, 1)
+
+    def test_handles_empty_callback(self):
+        d = debugger(RESOLVE_EXE("handle_syscall_test"))
+
+        r = d.run()
+
+        handler1 = d.handle_syscall("write", True, None)
+        handler2 = d.handle_syscall("mmap", None, True)
+        handler3 = d.handle_syscall("getcwd", True, True)
+
+        r.sendline(b"provola")
+
+        d.cont()
+        d.wait()
+
+        d.kill()
+        d.terminate()
+
+        self.assertEqual(handler1.hit_count, 2)
+        self.assertEqual(handler2.hit_count, 1)
+        self.assertEqual(handler3.hit_count, 1)
+        
+    def test_handle_all_syscalls(self):
+        d = debugger(RESOLVE_EXE("handle_syscall_test"))
+
+        for value in ["all", "*", "ALL", -1, "pkm"]:
+            r = d.run()
+
+            enter_count = 0
+            exit_count = 0
+
+            def on_enter_handler(t, hs):
+                nonlocal enter_count
+                enter_count += 1
+
+            def on_exit_handler(t, hs):
+                nonlocal exit_count
+                exit_count += 1
+
+            handler = d.handle_syscall(
+                value, on_enter=on_enter_handler, on_exit=on_exit_handler
+            )
+
+            r.sendline(b"provola")
+
+            d.cont()
+
+            d.kill()
+
+            # The exit_group syscall is handled only during entering for obvious reasons.
+            # Hence, we have 6 enter events and 5 exit events. The hit_count is incremented
+            # at the end of the syscall execution, so it is incremented only during the exit
+            # event.
+            self.assertEqual(handler.hit_count, 5)
+            self.assertEqual(enter_count, 6)
+            self.assertEqual(exit_count, 5)
+
+        d.terminate()

@@ -79,7 +79,7 @@ class DeathTest(TestCase):
         d.kill()
 
     def test_instr_death(self):
-        d = debugger(RESOLVE_EXE("segfault_test"))
+        d = debugger(RESOLVE_EXE("segfault_test"), aslr=False)
 
         r = d.run()
 

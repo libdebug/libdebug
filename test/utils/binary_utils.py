@@ -16,15 +16,18 @@ def RESOLVE_EXE(file: str) -> str:
     return f"binaries/{PLATFORM}/{file}"
 
 def _base_address() -> int:
-    d = debugger(RESOLVE_EXE("basic_test_pie"))
+    d = debugger(RESOLVE_EXE("basic_test_pie"), aslr=False)
 
     d.run()
 
-    base = d.maps()[0].start
+    base = d.maps[0].start
 
     d.kill()
     d.terminate()
 
     return base
+
+def base_of(d) -> int:
+    return d.maps[0].start
 
 BASE = _base_address()
