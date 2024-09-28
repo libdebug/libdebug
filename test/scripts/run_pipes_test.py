@@ -6,7 +6,7 @@
 
 from subprocess import Popen, PIPE
 from unittest import TestCase
-from utils.binary_utils import RESOLVE_EXE
+from utils.binary_utils import PLATFORM, RESOLVE_EXE
 
 
 class RunPipesTest(TestCase):
@@ -52,7 +52,7 @@ class RunPipesTest(TestCase):
 
         unpatched.kill()
 
-        patched = Popen(["python3", "scripts/run_pipes_test_script.py", RESOLVE_EXE("run_pipes_test")], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        patched = Popen(["python3", f"scripts/run_pipes_test_script_{PLATFORM}.py", RESOLVE_EXE("run_pipes_test")], stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
         buffer = b""
         while b"1." not in buffer:
