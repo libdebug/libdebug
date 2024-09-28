@@ -14,6 +14,7 @@ from threading import Event
 from typing import TYPE_CHECKING
 
 from prompt_toolkit.application import Application
+from prompt_toolkit.filters.base import Condition
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import HSplit, Layout
 from prompt_toolkit.styles import Style
@@ -55,6 +56,13 @@ class LibTerminal:
         self._stdout_backup: object = sys.stdout
         self._stderr_backup: object = sys.stderr
 
+        # Content buffer for the output field. This is necessary to avoid losing the output
+        # messages when the application is closed
+        self._output_buffer: str = ""
+
+        # Mouse support flag
+        self._mouse_support: bool = False
+
         # Redirect stdout and stderr to the terminal
         sys.stdout = StdWrapper(self._stdout_backup, self)
         sys.stderr = StdWrapper(self._stderr_backup, self)
@@ -76,13 +84,22 @@ class LibTerminal:
 
     def _run_prompt(self: LibTerminal, prompt: str) -> None:
         """Run the prompt_toolkit application."""
+        header_text = "Ctrl+C/Ctrl+D: Exit | Tab: Switch Focus | Ctrl+M: Mouse Mode\n"
+
+        header = TextArea(
+            text=header_text,
+            style="class:header",
+            height=1,
+            focusable=False,
+            read_only=True,
+        )
         output_field = TextArea(
             style="class:output-field",
-            focusable=False,
-            scrollbar=False,
+            focusable=True,
+            scrollbar=True,
             lexer=LoggingLexer(),
         )
-        input_field = TextArea(height=3, prompt=prompt, style="class:input-field")
+        input_field = TextArea(height=3, prompt=prompt, style="class:input-field", focusable=True)
 
         kb = KeyBindings()
 
@@ -116,7 +133,34 @@ class LibTerminal:
             event.app.exit()
             sys.exit(0)
 
-        layout = Layout(HSplit([output_field, input_field]))
+        # Switch focus to output_field
+        @kb.add("c-o")
+        def focus_output(event: KeyPressEvent) -> None:
+            """Switch focus to the output field."""
+            event.app.layout.focus(output_field)
+
+        # Switch focus to input_field
+        @kb.add("c-i")
+        def focus_input(event: KeyPressEvent) -> None:
+            """Switch focus to the input field."""
+            event.app.layout.focus(input_field)
+
+        @kb.add("tab")
+        def focus_next(event: KeyPressEvent) -> None:
+            """Switch focus to the next field."""
+            event.app.layout.focus_next()
+
+        @Condition
+        def mouse_support_on() -> bool:
+            """Check if the mouse support is enabled."""
+            return self._mouse_support
+
+        @kb.add("c-m")
+        def enable_mouse_support(_: KeyPressEvent) -> None:
+            """Enable mouse support."""
+            self._mouse_support = not self._mouse_support
+
+        layout = Layout(HSplit([header, output_field, input_field]), focused_element=input_field)
 
         # Define the style for the prompt_toolkit application to correctly display the log messages
         style = Style.from_dict(
@@ -126,6 +170,7 @@ class LibTerminal:
                 "warning": "fg:orange",
                 "error": "fg:red",
                 "info": "fg:green",
+                "header": "fg:#FF6500 bold",
             },
         )
 
@@ -135,6 +180,8 @@ class LibTerminal:
             full_screen=False,
             refresh_interval=0.5,
             style=style,
+            erase_when_done=True,
+            mouse_support=mouse_support_on,
         )
 
         def update_output(app: Application) -> None:
@@ -160,6 +207,7 @@ class LibTerminal:
             while not self._app_message_queue.empty():
                 msg += self._app_message_queue.get()
             output_field.buffer.insert_text(msg)
+            self._output_buffer += msg
 
             if to_exit:
                 app.exit()
@@ -202,3 +250,6 @@ class LibTerminal:
         for handler in liblog.debugger_logger.handlers:
             if isinstance(handler, StreamHandler):
                 handler.stream = sys.stderr
+
+        # Print the output buffer to the original stdout to avoid losing the output messages
+        print(self._output_buffer)

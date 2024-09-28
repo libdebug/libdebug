@@ -568,14 +568,12 @@ class PipeManager:
         while not self.__end_interactive_event.is_set() and (stdout_is_open or stderr_is_open):
             # We can afford to treat stdout and stderr sequentially. This approach should also prevent
             # messing up the order of the information printed by the child process.
-            # To avoid starvation, we will read at most one byte at a time and force a switch between pipes
-            # upon receiving a newline character.
+            # To avoid starvation, we switch between pipes upon receiving a bunch of data from one of them.
             if stdout_is_open:
                 try:
-                    while recv_stdout := self._raw_recv(numb=1, timeout=0.05, stderr=False):
-                        sys.stdout.write(payload=recv_stdout)
-                        if recv_stdout == b"\n":
-                            break
+                    while self._raw_recv(stderr=False):
+                        sys.stdout.write(payload=self.__stdout_buffer.get_data())
+                        self.__stdout_buffer.clear()
                 except RuntimeError:
                     # The child process has closed the stdout pipe
                     liblog.warning("The stdout pipe of the child process is not available anymore")
@@ -583,10 +581,9 @@ class PipeManager:
                     continue
             if stderr_is_open:
                 try:
-                    while recv_stderr := self._raw_recv(numb=1, timeout=0.05, stderr=True):
-                        sys.stderr.write(payload=recv_stderr)
-                        if recv_stderr == b"\n":
-                            break
+                    while self._raw_recv(stderr=True):
+                        sys.stderr.write(payload=self.__stderr_buffer.get_data())
+                        self.__stderr_buffer.clear()
                 except RuntimeError:
                     # The child process has closed the stderr pipe
                     liblog.warning("The stderr pipe of the child process is not available anymore")
