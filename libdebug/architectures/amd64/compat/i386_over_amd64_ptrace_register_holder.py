@@ -157,3 +157,11 @@ class I386OverAMD64PtraceRegisterHolder(PtraceRegisterHolder):
         target_class.syscall_arg3 = _get_property_32("rsi")
         target_class.syscall_arg4 = _get_property_32("rdi")
         target_class.syscall_arg5 = _get_property_32("rbp")
+
+    def provide_regs(self: I386OverAMD64PtraceRegisterHolder) -> list[str]:
+        """Provide the list of registers, excluding the vector and fp registers."""
+        return I386_REGS
+
+    def provide_vector_fp_regs(self: I386OverAMD64PtraceRegisterHolder) -> list[str]:
+        """Provide the list of vector and floating point registers."""
+        return []

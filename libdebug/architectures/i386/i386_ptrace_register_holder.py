@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from libdebug.architectures.i386.i386_registers import I386Registers
+from libdebug.data.register_holder import RegisterHolder
 from libdebug.ptrace.ptrace_register_holder import PtraceRegisterHolder
 
 if TYPE_CHECKING:
@@ -151,3 +152,11 @@ class I386PtraceRegisterHolder(PtraceRegisterHolder):
         target_class.syscall_arg3 = _get_property_32("esi")
         target_class.syscall_arg4 = _get_property_32("edi")
         target_class.syscall_arg5 = _get_property_32("ebp")
+
+    def provide_regs(self: I386PtraceRegisterHolder) -> list[str]:
+        """Provide the list of registers, excluding the vector and fp registers."""
+        return I386_REGS
+
+    def provide_vector_fp_regs(self: I386PtraceRegisterHolder) -> list[str]:
+        """Provide the list of vector and floating point registers."""
+        return []
