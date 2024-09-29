@@ -242,7 +242,7 @@ class InternalDebugger:
         """Raises an error when an invalid call is made in background mode."""
         raise RuntimeError("This method is not available in a callback.")
 
-    def run(self: InternalDebugger) -> None:
+    def run(self: InternalDebugger) -> PipeManager:
         """Starts the process and waits for it to stop."""
         if not self.argv:
             raise RuntimeError("No binary file specified.")

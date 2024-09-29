@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.state.thread_context import ThreadContext
+    from libdebug.utils.pipe_manager import PipeManager
 
 
 class Debugger:
@@ -36,7 +37,7 @@ class Debugger:
     _sentinel: object = object()
     """A sentinel object."""
 
-    _internal_debugger: InternalDebugger | None = None
+    _internal_debugger: InternalDebugger = None
     """The internal debugger object."""
 
     def __init__(self: Debugger) -> None:
@@ -47,7 +48,7 @@ class Debugger:
         self._internal_debugger = internal_debugger
         self._internal_debugger.start_up()
 
-    def run(self: Debugger) -> None:
+    def run(self: Debugger) -> PipeManager:
         """Starts the process and waits for it to stop."""
         return self._internal_debugger.run()
 
