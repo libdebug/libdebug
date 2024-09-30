@@ -57,8 +57,6 @@ You can interact with the process's pipe manager using the following commands:
 ### :material-keyboard: Interactive I/O
 The pipe manager contains a method called `interactive()` that allows you to directly interact with the process's standard I/O. This method will print characters from standard output and read your inputs, letting you interact naturally with the process. The `interactive()` method is blocking, so the execution of the script will wait for the user to terminate the interactive session. To do so, you can press `Ctrl+C` or `Ctrl+D`.
 
-Contrary to what happens with [pwntools](https://github.com/Gallopsled/pwntools), the `interactive()` method does not close upon sending an empty line.
-
 !!! ABSTRACT "Function Signature"
     ```python
     pipe.interactive(prompt: str = prompt_default):

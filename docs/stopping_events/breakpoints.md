@@ -25,6 +25,10 @@ Hardware breakpoints are a more reliable way to set breakpoints. They are made p
 !!! INFO "Pros and Cons of Hardware Breakpoints"
     Hardware breakpoints are not affected by self-modifying code. They are also faster and more flexible. However, hardware breakpoints are limited in number and are hardware-dependent, so their support may vary across different systems.
 
+!!! INFO "Hardware Breakpoint Alignment in AArch64"
+        Hardware breakpoints have to be aligned to 4 bytes (which is the size of an ARM instruction).
+
+
 ## **libdebug** API for Breakpoints
 
 The `breakpoint()` function in the [Debugger](../../from_pydoc/generated/debugger/debugger/) object sets a breakpoint at a specific address.
