@@ -50,6 +50,9 @@ The `length` parameter specifies the size of the word being watched. By default,
 | AMD64 | 1, 2, 4, 8 |
 | AArch64 | Any length from 1 to 8 bytes |
 
+!!! INFO "Watchpoint alignment in AArch64"
+        The address of the watchpoint on AArch64-based CPUs needs to be aligned to 8 bytes.
+
 ### Callback Signature
 If you wish to create an [asynchronous](../debugging_flow) watchpoint, you will have to provide a callback function. Since internally watchpoints are implemented as hardware breakpoints, the callback signature is the same as for [breakpoints](../breakpoints#callback-signature). As for breakpoints, if you want to leave the callback empty, you can set callback to `True`.
 

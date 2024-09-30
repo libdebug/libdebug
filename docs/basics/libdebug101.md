@@ -12,10 +12,12 @@ from libdebug import debugger
 debugger = debugger(argv=["./program", "arg1", "arg2"]) # (1)
 ```
 
-1. You can either pass the name of the executable as a positional string argument, or a list of argv parameters for the execution.
+1. `argv` can either be a string (the name/path of the executable) or an array corresponding to the argument vector of the execution.
 
 !!! INFO "Am I already debugging?"
     Creating a [Debugger](../../from_pydoc/generated/debugger/debugger/) object will not start the execution automatically. You can reuse the same debugger to iteratively run multiple instances of the program. This is particularly useful for smart bruteforcing or fuzzing scripts.
+
+    Performing debugger initialization each time is not required and can be expensive.
 
     To run the executable, refer to [Running an Executable](../running_an_executable)
 

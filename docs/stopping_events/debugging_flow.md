@@ -30,7 +30,7 @@ When a **synchronous** event is hit, the process will stop, awaiting further com
 | Event Type | Description                          | Notes                                |
 |------------|--------------------------------------|--------------------------------------|
 | [Breakpoint](../breakpoints) | Stops the process when a certain address is executed | Can be a software or a hardware breakpoint    |
-| [Watchpoint](../watchpoints) | Stops the process when a memory area is read, written or executed | Alias for a hardware breakpoint |
+| [Watchpoint](../watchpoints) | Stops the process when a memory area is read or written | Alias for a hardware breakpoint |
 | [Syscall](../syscalls)    | Stops the process when a syscall is made | Two events are supported: syscall start and end |
 | [Signal](../signals)     | Stops the process when a signal is received |  |
 

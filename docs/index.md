@@ -70,9 +70,9 @@ python run_suite.py
     The test folder includes the `Makefile` that was used to build the required binaries for transparency. However, the compiled binaries may differ due to scheduling, hardware, and compiler versions. Some tests have hardcoded absolute addresses and will likely fail as a result.
 
 ## Your First Script
-Now that you have **libdebug** installed, you can start using it in your scripts. Here is a simple example of how to use **libdebug** to debug a binary:
+Now that you have **libdebug** installed, you can start using it in your scripts. Here is a simple example of how to use **libdebug** to debug an executable:
 
-```python title="**libdebug**'s Hello World!"
+```python title="libdebug's Hello World!"
 from libdebug import debugger
 
 d = debugger("./test") # (1)

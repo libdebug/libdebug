@@ -25,9 +25,9 @@ Different architectures have slightly different ways to retrieve the return addr
     # A few calls later...
     [...]
 
-    current_ip = d.backtrace[0]
-    return_addresse = d.backtrace[1]
-    other_return_addresses = d.backtrace[2:]
+    current_ip = d.backtrace()[0]
+    return_addresse = d.backtrace()[1]
+    other_return_addresses = d.backtrace()[2:]
     ```
 
 Additionally, the field `saved_ip` of the [Debugger](../../from_pydoc/generated/debugger/debugger/) or [ThreadContext](../../from_pydoc/generated/state/thread_context/) objects will contain the return address of the current function.

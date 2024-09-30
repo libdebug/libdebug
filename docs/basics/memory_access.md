@@ -58,6 +58,15 @@ d.memory[d.rsp, 0x10] = b"AAAAAAABC"
 d.memory["main_arena", 16, "libc"] = b"12345678"
 ```
 
+!!! WARNING "Length/Slice when writing"
+        When writing to memory, slices and length are ignored in favour of the length of the specified [*bytes-like*](https://docs.python.org/3/glossary.html#term-bytes-like-object) object.
+
+        In the following example, only 4 bytes are written:
+        
+        ```python
+        d.memory["main_arena", 50] = b"\x0a\xeb\x12\xfc"
+        ```
+
 ## :material-relative-scale: Absolute and Relative Addressing
 
 Just like with symbols, memory addresses can also be accessed relative to a certain file base. **libdebug** uses `"hybrid"` addressing by default. This means it first attempts to resolve addresses as absolute. If the address does not correspond to an absolute one, it considers it relative to the base of the binary.

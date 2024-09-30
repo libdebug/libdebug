@@ -94,7 +94,7 @@ The `handle_syscall()` function in the [Debugger](../../from_pydoc/generated/deb
     The script above will print "open syscall was entered".
 
 ## :octicons-number-24: Resolution of Syscall Numbers
-Syscall handlers can be created with the identifier number of the syscall or by the syscall's common name. In the second case, syscall names are resolved from a definition list for Linux syscalls on the target architecture. The list is fetched from [mebeim's syscall table](https://syscalls.mebeim.net). We thank him for hosting such a precious resource. Once downloaded, the list cached internally. 
+Syscall handlers can be created with the identifier number of the syscall or by the syscall's common name. In the second case, syscall names are resolved from a definition list for Linux syscalls on the target architecture. The list is fetched from [mebeim's syscall table](https://syscalls.mebeim.net). We thank him for hosting such a precious resource. Once downloaded, the list is cached internally. 
 
 ## :material-arrow-decision: Hijacking
 When hijacking a syscall, the user can provide an alternative syscall to be executed in place of the original one. Internally, the hijack is implemented by registering a handler for the syscall and replacing the syscall number with the new one.
