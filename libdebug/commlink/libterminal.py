@@ -11,6 +11,7 @@ import threading
 from logging import StreamHandler
 from pathlib import Path
 from queue import Queue
+from termios import TCSANOW, tcsetattr
 from threading import Event
 from typing import TYPE_CHECKING
 
@@ -201,5 +202,5 @@ class LibTerminal:
             if isinstance(handler, StreamHandler):
                 handler.stream = sys.stderr
 
-        # Print the output buffer to the original stdout to avoid losing the output messages
-        print(self._output_buffer)
+        # Restore the original stdin settings
+        tcsetattr(sys.stdin.fileno(), TCSANOW, self._internal_debugger.stdin_settings_backup)

@@ -15,6 +15,7 @@ from pathlib import Path
 from queue import Queue
 from signal import SIGKILL, SIGSTOP, SIGTRAP
 from subprocess import Popen
+from termios import tcgetattr
 from threading import Thread, current_thread
 from typing import TYPE_CHECKING
 
@@ -66,6 +67,7 @@ from libdebug.utils.syscall_utils import (
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from typing import Any
 
     from libdebug.commlink.pipe_manager import PipeManager
     from libdebug.data.memory_map import MemoryMap
@@ -160,6 +162,9 @@ class InternalDebugger:
     debugger: Debugger
     """The debugger object."""
 
+    stdin_settings_backup: list[Any]
+    """The backup of the stdin settings. Used to restore the original settings after possible conflicts due to the pipe manager interacactive mode."""
+
     __polling_thread: Thread | None
     """The background thread used to poll the process for state change."""
 
@@ -199,6 +204,7 @@ class InternalDebugger:
         self.instanced = False
         self._is_running = False
         self.resume_context = ResumeContext()
+        self.stdin_settings_backup = tcgetattr(sys.stdin.fileno())
         self.arch = map_arch(libcontext.platform)
         self.kill_on_exit = True
         self._process_memory_manager = ProcessMemoryManager()
@@ -281,7 +287,7 @@ class InternalDebugger:
         if not self.__polling_thread_command_queue.empty():
             raise RuntimeError("Polling thread command queue not empty.")
 
-        self.__polling_thread_command_queue.put((self.__threaded_run, (redirect_pipes, )))
+        self.__polling_thread_command_queue.put((self.__threaded_run, (redirect_pipes,)))
 
         self._join_and_check_status()
 
