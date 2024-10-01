@@ -16,7 +16,8 @@ from threading import Event
 from typing import TYPE_CHECKING
 
 from prompt_toolkit.application import Application, run_in_terminal
-from prompt_toolkit.history import FileHistory, InMemoryHistory
+from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+from prompt_toolkit.history import FileHistory
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import Layout
 from prompt_toolkit.widgets import TextArea
@@ -92,6 +93,8 @@ class LibTerminal:
             height=3,
             prompt=prompt,
             style="class:input-field",
+            history=FileHistory(str(PATH_HISTORY)),
+            auto_suggest=AutoSuggestFromHistory(),
         )
 
         kb = KeyBindings()
@@ -104,6 +107,7 @@ class LibTerminal:
             if cmd:
                 try:
                     self._sendline(cmd.encode("ascii"))
+                    buffer.history.append_string(cmd)
                 except RuntimeError:
                     liblog.warning("The stdin pipe of the child process is not available anymore")
                     # Flush the output field and exit the application
@@ -124,7 +128,14 @@ class LibTerminal:
                 # stderr and stdout pipes anymore
                 pass
             event.app.exit()
-            sys.exit(0)
+
+        @kb.add("tab")  # Replace with the key you want to use
+        def accept_suggestion(event: KeyPressEvent) -> None:
+            """Accept the auto-suggestion."""
+            buffer = event.current_buffer
+            suggestion = buffer.suggestion
+            if suggestion:
+                buffer.insert_text(suggestion.text)
 
         layout = Layout(input_field)
 
