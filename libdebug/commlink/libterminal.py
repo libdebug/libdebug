@@ -9,12 +9,14 @@ from __future__ import annotations
 import sys
 import threading
 from logging import StreamHandler
+from pathlib import Path
 from queue import Queue
 from threading import Event
 from typing import TYPE_CHECKING
 
 from prompt_toolkit.application import Application
 from prompt_toolkit.filters.base import Condition
+from prompt_toolkit.history import FileHistory, InMemoryHistory
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import HSplit, Layout
 from prompt_toolkit.styles import Style
@@ -27,6 +29,8 @@ from libdebug.liblog import liblog
 
 if TYPE_CHECKING:
     from prompt_toolkit.application import KeyPressEvent
+
+PATH_HISTORY = Path.home() / ".cache" / "libdebug" / "history"
 
 
 class LibTerminal:
@@ -80,11 +84,16 @@ class LibTerminal:
             if isinstance(handler, StreamHandler):
                 handler.stream = sys.stderr
 
+        # Create the history file if it does not exist
+        if not PATH_HISTORY.exists():
+            PATH_HISTORY.parent.mkdir(parents=True, exist_ok=True)
+            PATH_HISTORY.touch()
+
         self._run_prompt(prompt)
 
     def _run_prompt(self: LibTerminal, prompt: str) -> None:
         """Run the prompt_toolkit application."""
-        header_text = "Ctrl+C/Ctrl+D: Exit | Tab: Switch Focus | Ctrl+M: Mouse Mode\n"
+        header_text = "Ctrl+C/Ctrl+D: Exit | Tab: Switch Focus | Ctrl+S: Mouse Scroll\n"
 
         header = TextArea(
             text=header_text,
@@ -99,7 +108,13 @@ class LibTerminal:
             scrollbar=True,
             lexer=LoggingLexer(),
         )
-        input_field = TextArea(height=3, prompt=prompt, style="class:input-field", focusable=True)
+        input_field = TextArea(
+            height=3,
+            prompt=prompt,
+            style="class:input-field",
+            focusable=True,
+            history=InMemoryHistory(),
+        )
 
         kb = KeyBindings()
 
@@ -155,9 +170,9 @@ class LibTerminal:
             """Check if the mouse support is enabled."""
             return self._mouse_support
 
-        @kb.add("c-m")
+        @kb.add("c-s")
         def enable_mouse_support(_: KeyPressEvent) -> None:
-            """Enable mouse support."""
+            """Enable mouse scroll support."""
             self._mouse_support = not self._mouse_support
 
         layout = Layout(HSplit([header, output_field, input_field]), focused_element=input_field)
