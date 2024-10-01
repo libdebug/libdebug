@@ -42,6 +42,17 @@ AMD64_REGS = [
     "rip",
 ]
 
+AMD64_SPECIAL_REGS = [
+    "cs",
+    "eflags",
+    "ss",
+    "fs_base",
+    "gs_base",
+    "ds",
+    "es",
+    "fs",
+    "gs",
+]
 
 def _get_property_64(name: str) -> property:
     def getter(self: Amd64Registers) -> int:
@@ -315,6 +326,9 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
             setattr(target_class, name_32, _get_property_32(name_64))
             setattr(target_class, name_16, _get_property_16(name_64))
             setattr(target_class, name_8l, _get_property_8l(name_64))
+
+        for name in AMD64_SPECIAL_REGS:
+            setattr(target_class, name, _get_property_64(name))
 
         # setup special registers
         target_class.rip = _get_property_64("rip")
