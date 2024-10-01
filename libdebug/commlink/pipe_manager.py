@@ -571,8 +571,15 @@ class PipeManager:
             # To avoid starvation, we switch between pipes upon receiving a bunch of data from one of them.
             if stdout_is_open:
                 try:
-                    while self._raw_recv(stderr=False):
-                        sys.stdout.write(payload=self.__stdout_buffer.get_data())
+                    while True:
+                        new_recv = self._raw_recv()
+                        payload = self.__stdout_buffer.get_data()
+
+                        if not (new_recv or payload):
+                            # No more data available in the stdout pipe at the moment
+                            break
+
+                        sys.stdout.write(payload)
                         self.__stdout_buffer.clear()
                 except RuntimeError:
                     # The child process has closed the stdout pipe
@@ -581,8 +588,15 @@ class PipeManager:
                     continue
             if stderr_is_open:
                 try:
-                    while self._raw_recv(stderr=True):
-                        sys.stderr.write(payload=self.__stderr_buffer.get_data())
+                    while True:
+                        new_recv = self._raw_recv(stderr=True)
+                        payload = self.__stderr_buffer.get_data()
+
+                        if not (new_recv or payload):
+                            # No more data available in the stderr pipe at the moment
+                            break
+
+                        sys.stderr.write(payload)
                         self.__stderr_buffer.clear()
                 except RuntimeError:
                     # The child process has closed the stderr pipe
