@@ -92,7 +92,7 @@ def _get_property_8h(name: str) -> property:
 
 @dataclass
 class I386PtraceRegisterHolder(PtraceRegisterHolder):
-    """A class that provides views and setters for the registers of an x86_64 process."""
+    """A class that provides views and setters for the registers of an i386 process."""
 
     def provide_regs_class(self: I386PtraceRegisterHolder) -> type:
         """Provide a class to hold the register accessors."""
