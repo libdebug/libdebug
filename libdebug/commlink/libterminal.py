@@ -35,7 +35,13 @@ PATH_HISTORY = Path.home() / ".cache" / "libdebug" / "history"
 class LibTerminal:
     """Class that represents a terminal to interact with the child process."""
 
-    def __init__(self: LibTerminal, prompt: str, sendline: callable, end_interactive_event: Event) -> None:
+    def __init__(
+        self: LibTerminal,
+        prompt: str,
+        sendline: callable,
+        end_interactive_event: Event,
+        auto_quit: bool,
+    ) -> None:
         """Initializes the LibTerminal object."""
         # Provide the internal debugger instance
         self._internal_debugger = provide_internal_debugger(self)
@@ -46,22 +52,21 @@ class LibTerminal:
         # Event to signal the end of the interactive session
         self.__end_interactive_event: Event = end_interactive_event
 
+        # Flag to indicate if the terminal should automatically quit when the debugged process stops
+        self._auto_quit: bool = auto_quit
+
         # Initialize the message queue for the prompt_toolkit application
         self._app_message_queue: Queue = Queue()
 
         # Initialize the thread reference for the prompt_toolkit application
         self._app_thread: threading.Thread | None = None
 
+        # Flag to indicate if the terminal has warned the user about the stop of the debugged process
+        self._has_warned_stop: bool = False
+
         # Backup the original stdout and stderr
         self._stdout_backup: object = sys.stdout
         self._stderr_backup: object = sys.stderr
-
-        # Content buffer for the output field. This is necessary to avoid losing the output
-        # messages when the application is closed
-        self._output_buffer: str = ""
-
-        # Mouse support flag
-        self._mouse_support: bool = False
 
         # Redirect stdout and stderr to the terminal
         sys.stdout = StdWrapper(self._stdout_backup, self)
@@ -80,7 +85,7 @@ class LibTerminal:
             if isinstance(handler, StreamHandler):
                 handler.stream = sys.stderr
 
-        # Create the history file if it does not exist
+        # Create the history file, if it does not exist
         if not PATH_HISTORY.exists():
             PATH_HISTORY.parent.mkdir(parents=True, exist_ok=True)
             PATH_HISTORY.touch()
@@ -106,7 +111,7 @@ class LibTerminal:
             cmd = buffer.text
             if cmd:
                 try:
-                    self._sendline(cmd.encode("ascii"))
+                    self._sendline(cmd.encode("utf-8"))
                     buffer.history.append_string(cmd)
                 except RuntimeError:
                     liblog.warning("The stdin pipe of the child process is not available anymore")
@@ -127,7 +132,7 @@ class LibTerminal:
                 pass
             event.app.exit()
 
-        @kb.add("tab")  # Replace with the key you want to use
+        @kb.add("tab")
         def accept_suggestion(event: KeyPressEvent) -> None:
             """Accept the auto-suggestion."""
             buffer = event.current_buffer
@@ -137,6 +142,10 @@ class LibTerminal:
 
         layout = Layout(input_field)
 
+        # Note: The refresh_interval is set to 0.5 seconds is an arbitrary trade-off between the
+        # responsiveness of the terminal and the CPU usage. Little values also cause difficulties
+        # in the management of the copy-paste. We might consider to change the value in the future or
+        # to make it dynamic/configurable.
         app = Application(
             layout=layout,
             key_bindings=kb,
@@ -146,21 +155,23 @@ class LibTerminal:
 
         def update_output(app: Application) -> None:
             """Update the output field with the messages in the queue."""
-            to_exit = False
-            if not self._internal_debugger.running and (
-                event_type := self._internal_debugger.resume_context.get_event_type()
+            if (
+                not self._internal_debugger.running
+                and (event_type := self._internal_debugger.resume_context.get_event_type())
+                and not self._has_warned_stop
             ):
                 liblog.warning(
                     f"The debugged process has stopped due to the following event(s). {event_type}",
                 )
-                # Flush the output field and exit the application
-                self.__end_interactive_event.set()
-                to_exit = True
+                self._has_warned_stop = True
+                if self._auto_quit:
+                    # Flush the output field and exit the application
+                    self.__end_interactive_event.set()
 
-                while self.__end_interactive_event.is_set():
-                    # Wait to be sure that the other thread is not polling from the child process
-                    # stderr and stdout pipes anymore
-                    pass
+                    while self.__end_interactive_event.is_set():
+                        # Wait to be sure that the other thread is not polling from the child process
+                        # stderr and stdout pipes anymore
+                        pass
 
             # Update the output field with the messages in the queue
             msg = b""
@@ -176,7 +187,7 @@ class LibTerminal:
                 run_in_terminal(lambda: sys.stdout.buffer.write(msg))
                 run_in_terminal(lambda: sys.stdout.buffer.flush())
 
-            if to_exit:
+            if self._has_warned_stop and self._auto_quit:
                 app.exit()
 
         # Add the update_output function to the event loop
@@ -189,9 +200,11 @@ class LibTerminal:
     def _write_manager(self, payload: bytes) -> int:
         """Put the payload in the message queue for the prompt_toolkit application."""
         if isinstance(payload, bytes):
-            self._app_message_queue.put(payload.decode("ascii", errors="backslashreplace").encode("ascii"))
+            # We want the special characters to be displayed correctly
+            self._app_message_queue.put(payload.decode("utf-8", errors="backslashreplace").encode("utf-8"))
         else:
-            self._app_message_queue.put(payload.encode("ascii", errors="backslashreplace"))
+            # We need to encode the payload to bytes
+            self._app_message_queue.put(payload.encode("utf-8"))
 
     def reset(self: LibTerminal) -> None:
         """Reset the terminal to its original state."""

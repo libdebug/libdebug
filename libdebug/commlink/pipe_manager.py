@@ -604,24 +604,25 @@ class PipeManager:
                 liblog.warning("The stderr pipe of the child process is not available anymore")
                 stderr_has_warned = True
 
-    def interactive(self: PipeManager, prompt: str = prompt_default) -> None:
+    def interactive(self: PipeManager, prompt: str = prompt_default, auto_quit: bool = False) -> None:
         """Manually interact with the child process.
 
         Args:
             prompt (str, optional): prompt for the interactive mode. Defaults to "$ " (prompt_default).
+            auto_quit (bool, optional): if automatically quit the interactive mode when the child process is not running. Defaults to False.
         """
         liblog.info("Calling interactive mode")
 
         # Set up and run the terminal
         with extend_internal_debugger(self):
-            libterminal = LibTerminal(prompt, self.sendline, self.__end_interactive_event)
+            libterminal = LibTerminal(prompt, self.sendline, self.__end_interactive_event, auto_quit)
 
         # Receive data from the child process's stdout and stderr pipes
         self._recv_for_interactive()
 
         # Be sure that the interactive mode has ended
         # If the the stderr and stdout pipes are closed, the interactive mode will continue until the user manually
-        # stops it or also the stdin pipe is closed
+        # stops it
         self.__end_interactive_event.wait()
 
         # Unset the interactive mode event
