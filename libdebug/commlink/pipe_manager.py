@@ -36,11 +36,11 @@ class PipeManager:
             stdout_read (int): file descriptor for stdout read.
             stderr_read (int): file descriptor for stderr read.
         """
-        self.stdin_write: int = stdin_write
-        self.stdout_read: int = stdout_read
-        self.stderr_read: int = stderr_read
-        self.stderr_is_open: bool = True
-        self.stdout_is_open: bool = True
+        self._stdin_write: int = stdin_write
+        self._stdout_read: int = stdout_read
+        self._stderr_read: int = stderr_read
+        self._stderr_is_open: bool = True
+        self._stdout_is_open: bool = True
         self._internal_debugger: InternalDebugger = provide_internal_debugger(self)
 
         self.__stdout_buffer: BufferData = BufferData(b"")
@@ -64,7 +64,7 @@ class PipeManager:
         Returns:
             int: number of bytes received.
         """
-        pipe_read: int = self.stderr_read if stderr else self.stdout_read
+        pipe_read: int = self._stderr_read if stderr else self._stdout_read
 
         if not pipe_read:
             raise RuntimeError("No pipe of the child process")
@@ -74,12 +74,12 @@ class PipeManager:
         received_numb = 0
 
         if numb is not None and timeout is not None:
-            # Setting the alarm
-            end_time = time.time() + timeout
-
             # Checking the numb
             if numb < 0:
                 raise ValueError("The number of bytes to receive must be positive")
+
+            # Setting the alarm
+            end_time = time.time() + timeout
 
             while numb > received_numb:
                 if time.time() > end_time:
@@ -96,9 +96,9 @@ class PipeManager:
                     data = os.read(pipe_read, numb)
                 except OSError:
                     if stderr:
-                        self.stderr_is_open = False
+                        self._stderr_is_open = False
                     else:
-                        self.stdout_is_open = False
+                        self._stdout_is_open = False
                     break
 
                 if not data:
@@ -119,9 +119,9 @@ class PipeManager:
                         data_buffer.append(data)
                 except OSError:
                     if stderr:
-                        self.stderr_is_open = False
+                        self._stderr_is_open = False
                     else:
-                        self.stdout_is_open = False
+                        self._stdout_is_open = False
 
         if received_numb:
             liblog.pipe(f"{'stderr' if stderr else 'stdout'} {received_numb}B: {data_buffer[:received_numb]!r}")
@@ -129,9 +129,9 @@ class PipeManager:
 
     def close(self: PipeManager) -> None:
         """Closes all the pipes of the child process."""
-        os.close(self.stdin_write)
-        os.close(self.stdout_read)
-        os.close(self.stderr_read)
+        os.close(self._stdin_write)
+        os.close(self._stdout_read)
+        os.close(self._stderr_read)
 
     def _buffered_recv(self: PipeManager, numb: int, timeout: int, stderr: bool) -> bytes:
         """Receives at most numb bytes from the child process stdout or stderr.
@@ -145,7 +145,7 @@ class PipeManager:
             bytes: received bytes from the child process stdout or stderr.
         """
         data_buffer = self.__stderr_buffer if stderr else self.__stdout_buffer
-        open_flag = self.stderr_is_open if stderr else self.stdout_is_open
+        open_flag = self._stderr_is_open if stderr else self._stdout_is_open
 
         data_buffer_len = len(data_buffer)
 
@@ -224,9 +224,9 @@ class PipeManager:
             delims = delims.encode()
 
         # Buffer for the received data
-        data_buffer: bytes = self.__stdout_buffer if not stderr else self.__stderr_buffer
+        data_buffer = self.__stdout_buffer if not stderr else self.__stderr_buffer
 
-        open_flag = self.stdout_is_open if not stderr else self.stderr_is_open
+        open_flag = self._stdout_is_open if not stderr else self._stderr_is_open
 
         # Setting the alarm
         end_time = time.time() + timeout
@@ -414,7 +414,7 @@ class PipeManager:
         Raises:
             RuntimeError: no stdin pipe of the child process.
         """
-        if not self.stdin_write:
+        if not self._stdin_write:
             raise RuntimeError("No stdin pipe of the child process")
 
         liblog.pipe(f"Sending {len(data)} bytes to the child process: {data!r}")
@@ -424,7 +424,7 @@ class PipeManager:
             data = data.encode()
 
         try:
-            number_bytes = os.write(self.stdin_write, data)
+            number_bytes = os.write(self._stdin_write, data)
         except OSError as e:
             raise RuntimeError("Broken pipe. Is the child process still running?") from e
 
@@ -573,7 +573,7 @@ class PipeManager:
             # We can afford to treat stdout and stderr sequentially. This approach should also prevent
             # messing up the order of the information printed by the child process.
             # To avoid starvation, we switch between pipes upon receiving a bunch of data from one of them.
-            if self.stdout_is_open:
+            if self._stdout_is_open:
                 while True:
                     new_recv = self._raw_recv()
                     payload = self.__stdout_buffer.get_data()
@@ -588,7 +588,7 @@ class PipeManager:
                 # The child process has closed the stdout pipe and we have to print the warning message
                 liblog.warning("The stdout pipe of the child process is not available anymore")
                 stdout_has_warned = True
-            if self.stderr_is_open:
+            if self._stderr_is_open:
                 while True:
                     new_recv = self._raw_recv(stderr=True)
                     payload = self.__stderr_buffer.get_data()
