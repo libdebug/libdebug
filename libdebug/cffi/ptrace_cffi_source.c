@@ -17,7 +17,7 @@
 #include <sys/wait.h>
 
 // Run some static assertions to ensure that the fp types are correct
-#ifdef ARCH_AMD64 || ARCH_I386
+#if defined ARCH_AMD64 || defined ARCH_I386
     #ifndef FPREGS_AVX
         #error "FPREGS_AVX must be defined"
     #endif
@@ -496,7 +496,7 @@ struct ptrace_regs_struct *register_thread(struct global_state *state, int tid)
     t->tid = tid;
     t->signal_to_forward = 0;
 
-#ifdef ARCH_AMD64 || ARCH_I386
+#if defined ARCH_AMD64 || defined ARCH_I386
     t->fpregs.type = FPREGS_AVX;
 #endif
     t->fpregs.dirty = 0;
