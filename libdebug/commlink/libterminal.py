@@ -11,7 +11,7 @@ import threading
 from logging import StreamHandler
 from pathlib import Path
 from queue import Queue
-from termios import TCSANOW, tcsetattr
+from termios import TCSANOW, tcgetattr, tcsetattr
 from threading import Event
 from typing import TYPE_CHECKING
 
@@ -84,6 +84,10 @@ class LibTerminal:
         for handler in liblog.debugger_logger.handlers:
             if isinstance(handler, StreamHandler):
                 handler.stream = sys.stderr
+
+        # Save the original stdin settings, if needed. Just in case
+        if not self._internal_debugger.stdin_settings_backup:
+            self._internal_debugger.stdin_settings_backup = tcgetattr(sys.stdin.fileno())
 
         # Create the history file, if it does not exist
         if not PATH_HISTORY.exists():

@@ -15,7 +15,6 @@ from pathlib import Path
 from queue import Queue
 from signal import SIGKILL, SIGSTOP, SIGTRAP
 from subprocess import Popen
-from termios import tcgetattr
 from threading import Thread, current_thread
 from typing import TYPE_CHECKING
 
@@ -204,7 +203,7 @@ class InternalDebugger:
         self.instanced = False
         self._is_running = False
         self.resume_context = ResumeContext()
-        self.stdin_settings_backup = tcgetattr(sys.stdin.fileno())
+        self.stdin_settings_backup = []
         self.arch = map_arch(libcontext.platform)
         self.kill_on_exit = True
         self._process_memory_manager = ProcessMemoryManager()

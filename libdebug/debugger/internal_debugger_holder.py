@@ -39,7 +39,8 @@ def _cleanup_internal_debugger() -> None:
 
         # Restore the original stdin settings, just in case
         try:
-            tcsetattr(sys.stdin.fileno(), TCSANOW, debugger.stdin_settings_backup)
+            if debugger.stdin_settings_backup:
+                tcsetattr(sys.stdin.fileno(), TCSANOW, debugger.stdin_settings_backup)
         except Exception as e:
             liblog.debugger(f"Error while restoring the original stdin settings: {e}")
 
