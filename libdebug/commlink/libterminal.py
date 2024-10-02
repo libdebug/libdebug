@@ -110,8 +110,6 @@ class LibTerminal:
                     buffer.history.append_string(cmd)
                 except RuntimeError:
                     liblog.warning("The stdin pipe of the child process is not available anymore")
-                    # Flush the output field and exit the application
-                    app_exit(event)
                 finally:
                     buffer.reset()
 
@@ -170,7 +168,13 @@ class LibTerminal:
                 msg += self._app_message_queue.get()
 
             if msg:
+                if not msg.endswith(b"\n"):
+                    # Add a newline character at the end of the message
+                    # to avoid the prompt_toolkit bug that causes the last line to be
+                    # overwritten by the prompt
+                    msg += b"\n"
                 run_in_terminal(lambda: sys.stdout.buffer.write(msg))
+                run_in_terminal(lambda: sys.stdout.buffer.flush())
 
             if to_exit:
                 app.exit()

@@ -555,54 +555,54 @@ class PipeManager:
             int: number of bytes sent.
         """
         received = self.recverruntil(
-            delims=delims, occurences=occurences, drop=drop, timeout=timeout, optional=optional
+            delims=delims,
+            occurences=occurences,
+            drop=drop,
+            timeout=timeout,
+            optional=optional,
         )
         sent = self.sendline(data)
         return (received, sent)
 
     def _recv_for_interactive(self: PipeManager) -> None:
         """Receives data from the child process."""
-        stdout_is_open = True
-        stderr_is_open = True
+        stdout_has_warned = False
+        stderr_has_warned = False
 
-        while not self.__end_interactive_event.is_set() and (stdout_is_open or stderr_is_open):
+        while not (self.__end_interactive_event.is_set() or (stdout_has_warned and stderr_has_warned)):
             # We can afford to treat stdout and stderr sequentially. This approach should also prevent
             # messing up the order of the information printed by the child process.
             # To avoid starvation, we switch between pipes upon receiving a bunch of data from one of them.
-            if stdout_is_open:
-                try:
-                    while True:
-                        new_recv = self._raw_recv()
-                        payload = self.__stdout_buffer.get_data()
+            if self.stdout_is_open:
+                while True:
+                    new_recv = self._raw_recv()
+                    payload = self.__stdout_buffer.get_data()
 
-                        if not (new_recv or payload):
-                            # No more data available in the stdout pipe at the moment
-                            break
+                    if not (new_recv or payload):
+                        # No more data available in the stdout pipe at the moment
+                        break
 
-                        sys.stdout.write(payload)
-                        self.__stdout_buffer.clear()
-                except RuntimeError:
-                    # The child process has closed the stdout pipe
-                    liblog.warning("The stdout pipe of the child process is not available anymore")
-                    stdout_is_open = False
-                    continue
-            if stderr_is_open:
-                try:
-                    while True:
-                        new_recv = self._raw_recv(stderr=True)
-                        payload = self.__stderr_buffer.get_data()
+                    sys.stdout.write(payload)
+                    self.__stdout_buffer.clear()
+            elif not stdout_has_warned:
+                # The child process has closed the stdout pipe and we have to print the warning message
+                liblog.warning("The stdout pipe of the child process is not available anymore")
+                stdout_has_warned = True
+            if self.stderr_is_open:
+                while True:
+                    new_recv = self._raw_recv(stderr=True)
+                    payload = self.__stderr_buffer.get_data()
 
-                        if not (new_recv or payload):
-                            # No more data available in the stderr pipe at the moment
-                            break
+                    if not (new_recv or payload):
+                        # No more data available in the stderr pipe at the moment
+                        break
 
-                        sys.stderr.write(payload)
-                        self.__stderr_buffer.clear()
-                except RuntimeError:
-                    # The child process has closed the stderr pipe
-                    liblog.warning("The stderr pipe of the child process is not available anymore")
-                    stderr_is_open = False
-                    continue
+                    sys.stderr.write(payload)
+                    self.__stderr_buffer.clear()
+            elif not stderr_has_warned:
+                # The child process has closed the stderr pipe
+                liblog.warning("The stderr pipe of the child process is not available anymore")
+                stderr_has_warned = True
 
     def interactive(self: PipeManager, prompt: str = prompt_default) -> None:
         """Manually interact with the child process.
