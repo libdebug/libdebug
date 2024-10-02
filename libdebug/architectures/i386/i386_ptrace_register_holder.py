@@ -9,6 +9,17 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from libdebug.architectures.amd64.amd64_ptrace_register_holder import (
+    _get_property_8h,
+    _get_property_8l,
+    _get_property_16,
+    _get_property_32,
+    _get_property_fp_mmx,
+    _get_property_fp_st,
+    _get_property_fp_xmm0,
+    _get_property_fp_ymm0,
+    _get_property_fp_zmm0,
+)
 from libdebug.architectures.i386.i386_registers import I386Registers
 from libdebug.ptrace.ptrace_register_holder import PtraceRegisterHolder
 
@@ -39,57 +50,6 @@ I386_REGS = [
 ]
 
 
-def _get_property_32(name: str) -> property:
-    def getter(self: I386Registers) -> int:
-        self._internal_debugger._ensure_process_stopped()
-        return getattr(self.register_file, name) & 0xFFFFFFFF
-
-    def setter(self: I386Registers, value: int) -> None:
-        self._internal_debugger._ensure_process_stopped()
-        return setattr(self.register_file, name, value & 0xFFFFFFFF)
-
-    return property(getter, setter, None, name)
-
-
-def _get_property_16(name: str) -> property:
-    def getter(self: I386Registers) -> int:
-        self._internal_debugger._ensure_process_stopped()
-        return getattr(self.register_file, name) & 0xFFFF
-
-    def setter(self: I386Registers, value: int) -> None:
-        self._internal_debugger._ensure_process_stopped()
-        value = getattr(self.register_file, name) & ~0xFFFF | (value & 0xFFFF)
-        setattr(self.register_file, name, value)
-
-    return property(getter, setter, None, name)
-
-
-def _get_property_8l(name: str) -> property:
-    def getter(self: I386Registers) -> int:
-        self._internal_debugger._ensure_process_stopped()
-        return getattr(self.register_file, name) & 0xFF
-
-    def setter(self: I386Registers, value: int) -> None:
-        self._internal_debugger._ensure_process_stopped()
-        value = getattr(self.register_file, name) & ~0xFF | (value & 0xFF)
-        setattr(self.register_file, name, value)
-
-    return property(getter, setter, None, name)
-
-
-def _get_property_8h(name: str) -> property:
-    def getter(self: I386Registers) -> int:
-        self._internal_debugger._ensure_process_stopped()
-        return getattr(self.register_file, name) >> 8 & 0xFF
-
-    def setter(self: I386Registers, value: int) -> None:
-        self._internal_debugger._ensure_process_stopped()
-        value = getattr(self.register_file, name) & ~0xFF00 | (value & 0xFF) << 8
-        setattr(self.register_file, name, value)
-
-    return property(getter, setter, None, name)
-
-
 @dataclass
 class I386PtraceRegisterHolder(PtraceRegisterHolder):
     """A class that provides views and setters for the registers of an i386 process."""
@@ -106,6 +66,8 @@ class I386PtraceRegisterHolder(PtraceRegisterHolder):
         # If the accessors are already defined, we don't need to redefine them
         if hasattr(target_class, "eip"):
             return
+
+        self._vector_fp_registers = []
 
         # setup accessors
         for name in I386_GP_REGS:
@@ -130,6 +92,23 @@ class I386PtraceRegisterHolder(PtraceRegisterHolder):
 
         # setup special registers
         target_class.eip = _get_property_32("eip")
+
+        self._handle_fp_legacy(target_class)
+
+        match self.fp_register_file.type:
+            case 0:
+                self._handle_fp_512(target_class)
+            case 1:
+                self._handle_fp_896(target_class)
+            case 2:
+                self._handle_fp_2696(target_class)
+            case _:
+                raise NotImplementedError(
+                    f"Floating-point register file type {self.fp_register_file.type} not available.",
+                )
+
+        I386PtraceRegisterHolder._vector_fp_registers = self._vector_fp_registers
+
 
     def apply_on_thread(self: I386PtraceRegisterHolder, target: ThreadContext, target_class: type) -> None:
         """Apply the register accessors to the thread class."""
@@ -158,4 +137,50 @@ class I386PtraceRegisterHolder(PtraceRegisterHolder):
 
     def provide_vector_fp_regs(self: I386PtraceRegisterHolder) -> list[str]:
         """Provide the list of vector and floating point registers."""
-        return []
+        return self._vector_fp_registers
+
+    def _handle_fp_legacy(self: I386PtraceRegisterHolder, target_class: type) -> None:
+        """Handle legacy mmx and st registers."""
+        for index in range(8):
+            name_mm = f"mm{index}"
+            setattr(target_class, name_mm, _get_property_fp_mmx(name_mm, index))
+
+            name_st = f"st{index}"
+            setattr(target_class, name_st, _get_property_fp_st(name_st, index))
+
+            self._vector_fp_registers.append((name_mm, name_st))
+
+    def _handle_fp_512(self: I386PtraceRegisterHolder, target_class: type) -> None:
+        """Handle the case where the xsave area is 512 bytes long, which means we just have the xmm registers."""
+        # i386 only gets 8 registers
+        for index in range(8):
+            name_xmm = f"xmm{index}"
+            setattr(target_class, name_xmm, _get_property_fp_xmm0(name_xmm, index))
+            self._vector_fp_registers.append((name_xmm,))
+
+    def _handle_fp_896(self: I386PtraceRegisterHolder, target_class: type) -> None:
+        """Handle the case where the xsave area is 896 bytes long, which means we have the xmm and ymm registers."""
+        # i386 only gets 8 registers
+        for index in range(8):
+            name_xmm = f"xmm{index}"
+            setattr(target_class, name_xmm, _get_property_fp_xmm0(name_xmm, index))
+
+            name_ymm = f"ymm{index}"
+            setattr(target_class, name_ymm, _get_property_fp_ymm0(name_ymm, index))
+
+            self._vector_fp_registers.append((name_xmm, name_ymm))
+
+    def _handle_fp_2696(self: I386PtraceRegisterHolder, target_class: type) -> None:
+        """Handle the case where the xsave area is 2696 bytes long, which means we have 32 zmm registers."""
+        # i386 only gets 8 registers
+        for index in range(8):
+            name_xmm = f"xmm{index}"
+            setattr(target_class, name_xmm, _get_property_fp_xmm0(name_xmm, index))
+
+            name_ymm = f"ymm{index}"
+            setattr(target_class, name_ymm, _get_property_fp_ymm0(name_ymm, index))
+
+            name_zmm = f"zmm{index}"
+            setattr(target_class, name_zmm, _get_property_fp_zmm0(name_zmm, index))
+
+            self._vector_fp_registers.append((name_xmm, name_ymm, name_zmm))

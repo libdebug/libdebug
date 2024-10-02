@@ -12,7 +12,7 @@ from cffi import FFI
 
 architecture = platform.machine()
 
-if architecture == "x86_64":
+def parse_fp_regs_x86():
     # We need to determine if we have AVX, AVX2, AVX512, etc.
     path = Path("/proc/cpuinfo")
 
@@ -143,6 +143,11 @@ if architecture == "x86_64":
         fpregs_define += """
         #define XSAVE 1
         """
+
+    return fp_regs_struct, fpregs_define
+
+if architecture == "x86_64":
+    fp_regs_struct, fpregs_define = parse_fp_regs_x86()
 
     ptrace_regs_struct = """
     struct ptrace_regs_struct
@@ -309,36 +314,7 @@ elif architecture == "aarch64":
     }
     """
 elif architecture == "i686":
-    fp_regs_struct = """
-    #pragma pack(push, 1)
-    struct reg_80
-    {
-        unsigned char data[10];
-    };
-    #pragma pack(pop)
-
-    #pragma pack(push, 1)
-    struct fp_regs_struct
-    {
-        _Bool dirty; // true if the debugging script has modified the state of the registers
-        _Bool fresh; // true if the registers have already been fetched for this state
-        unsigned char bool_padding[2];
-        unsigned short cwd;
-        unsigned short swd;
-        unsigned short twd;
-        unsigned short fop;
-        unsigned long ip;
-        unsigned long cs;
-        unsigned long dp;
-        unsigned long ds;
-        struct reg_80 st[8];
-    };
-    #pragma pack(pop)
-    """
-
-    fpregs_define = """
-    #define FPREGS_AVX 0
-    """
+    fp_regs_struct, fpregs_define = parse_fp_regs_x86()
 
     ptrace_regs_struct = """
     struct ptrace_regs_struct
