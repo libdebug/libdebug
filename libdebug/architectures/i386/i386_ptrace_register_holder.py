@@ -40,13 +40,6 @@ I386_REGS = [
     "ebp",
     "esp",
     "eip",
-    "eflags",
-    "cs",
-    "ss",
-    "ds",
-    "es",
-    "fs",
-    "gs",
 ]
 
 
