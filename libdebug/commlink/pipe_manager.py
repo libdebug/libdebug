@@ -87,7 +87,7 @@ class PipeManager:
                     break
 
                 try:
-                    data = os.read(pipe_read, numb)
+                    data = os.read(pipe_read, 4096)
                     if not data:
                         # No more data available
                         break
@@ -143,18 +143,19 @@ class PipeManager:
             # We have enough data in the buffer
             received = data_buffer[:numb]
             data_buffer.overwrite(data_buffer[numb:])
-            return received
-
-        if open_flag:
+        elif open_flag:
             # We can receive more data
             remaining = numb - data_buffer_len
             self._raw_recv(numb=remaining, timeout=timeout, stderr=stderr)
-        elif data_buffer_len == 0:
+            received = data_buffer[:numb]
+            data_buffer.overwrite(data_buffer[numb:])
+        elif data_buffer_len != 0:
+            # The pipe is not available but we have some data in the buffer. We will return just that
+            received = data_buffer.get_data()
+            data_buffer.clear()
+        else:
             # The pipe is not available and no data is buffered
             raise RuntimeError(f"Broken {'stderr' if stderr else 'stdout'} pipe. Is the child process still alive?")
-
-        received = data_buffer.get_data()
-        data_buffer.clear()
         return received
 
     def recv(
