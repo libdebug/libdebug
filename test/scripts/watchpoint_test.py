@@ -427,3 +427,466 @@ class WatchpointTest(TestCase):
         self.assertEqual(wp2.hit_count, 1)
         self.assertEqual(wp3.hit_count, 2)
         self.assertEqual(wp4.hit_count, 1)
+
+    @skipUnless(PLATFORM == "aarch64", "Requires aarch64")
+    def test_watchpoint_disable_aarch64(self):
+        d = debugger(RESOLVE_EXE("watchpoint_test"), auto_interrupt_on_command=False)
+
+        d.run()
+
+        wp_char = d.breakpoint("global_char", hardware=True, condition="rw", length=1)
+        wp_int = d.breakpoint("global_int", hardware=True, condition="w", length=4)
+        wp_short = d.breakpoint("global_short", hardware=True, condition="r", length=2)
+        wp_long = d.breakpoint("global_long", hardware=True, condition="rw", length=8)
+
+        d.cont()
+
+        base = d.regs.pc & ~0xfff
+
+        # strb w1, [x0] => global_char
+        self.assertEqual(d.regs.pc, base + 0x724)
+        self.assertTrue(wp_char.hit_on(d))
+        self.assertEqual(wp_char.hit_count, 1)
+        self.assertEqual(wp_int.hit_count, 0)
+        self.assertEqual(wp_short.hit_count, 0)
+        self.assertEqual(wp_long.hit_count, 0)
+
+        d.cont()
+
+        # str w1, [x0] => global_int
+        self.assertEqual(d.regs.pc, base + 0x748)
+        self.assertTrue(wp_int.hit_on(d))
+        self.assertEqual(wp_char.hit_count, 1)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_short.hit_count, 0)
+        self.assertEqual(wp_long.hit_count, 0)
+
+        d.cont()
+
+        # str x1, [x0] => global_long
+        self.assertEqual(d.regs.pc, base + 0x764)
+        self.assertTrue(wp_long.hit_on(d))
+        self.assertEqual(wp_char.hit_count, 1)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_short.hit_count, 0)
+        self.assertEqual(wp_long.hit_count, 1)
+
+        # disable watchpoint
+        wp_char.disable()
+
+        d.cont()
+
+        # ldr w0, [x0] => global_short
+        self.assertEqual(d.regs.pc, base + 0x790)
+        self.assertTrue(wp_short.hit_on(d))
+        self.assertEqual(wp_char.hit_count, 1)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_short.hit_count, 1)
+        self.assertEqual(wp_long.hit_count, 1)
+
+        d.cont()
+
+        # ldr x0, [x0] => global_long
+        self.assertEqual(d.regs.pc, base + 0x7b0)
+        self.assertTrue(wp_long.hit_on(d))
+        self.assertEqual(wp_char.hit_count, 1)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_short.hit_count, 1)
+        self.assertEqual(wp_long.hit_count, 2)
+
+        d.cont()
+
+        d.kill()
+        d.terminate()
+
+    @skipUnless(PLATFORM == "aarch64", "Requires aarch64")
+    def test_watchpoint_disable_reenable_aarch64(self):
+        d = debugger(RESOLVE_EXE("watchpoint_test"), auto_interrupt_on_command=False)
+
+        d.run()
+
+        wp_char = d.breakpoint("global_char", hardware=True, condition="rw", length=1)
+        wp_int = d.breakpoint("global_int", hardware=True, condition="w", length=4)
+        wp_short = d.breakpoint("global_short", hardware=True, condition="r", length=2)
+        wp_long = d.breakpoint("global_long", hardware=True, condition="rw", length=8)
+
+        d.cont()
+
+        base = d.regs.pc & ~0xfff
+
+        # strb w1, [x0] => global_char
+        self.assertEqual(d.regs.pc, base + 0x724)
+        self.assertTrue(wp_char.hit_on(d))
+        self.assertEqual(wp_char.hit_count, 1)
+        self.assertEqual(wp_int.hit_count, 0)
+        self.assertEqual(wp_short.hit_count, 0)
+        self.assertEqual(wp_long.hit_count, 0)
+
+        d.cont()
+
+        # str w1, [x0] => global_int
+        self.assertEqual(d.regs.pc, base + 0x748)
+        self.assertTrue(wp_int.hit_on(d))
+        self.assertEqual(wp_char.hit_count, 1)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_short.hit_count, 0)
+        self.assertEqual(wp_long.hit_count, 0)
+
+        # disable watchpoint
+        wp_long.disable()
+
+        d.cont()
+
+        # ldrb w0, [x0] => global_char
+        self.assertEqual(d.regs.pc, base + 0x780)
+        self.assertTrue(wp_char.hit_on(d))
+        self.assertEqual(wp_char.hit_count, 2)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_short.hit_count, 0)
+        self.assertEqual(wp_long.hit_count, 0)
+
+        # re-enable watchpoint
+        wp_long.enable()
+
+        d.cont()
+
+        # ldr w0, [x0] => global_short
+        self.assertEqual(d.regs.pc, base + 0x790)
+        self.assertTrue(wp_short.hit_on(d))
+        self.assertEqual(wp_char.hit_count, 2)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_short.hit_count, 1)
+        self.assertEqual(wp_long.hit_count, 0)
+
+        d.cont()
+
+        # ldr x0, [x0] => global_long
+        self.assertEqual(d.regs.pc, base + 0x7b0)
+        self.assertTrue(wp_long.hit_on(d))
+        self.assertEqual(wp_char.hit_count, 2)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_short.hit_count, 1)
+        self.assertEqual(wp_long.hit_count, 1)
+
+        d.cont()
+
+        d.kill()
+        d.terminate()
+
+    @skipUnless(PLATFORM == "aarch64", "Requires aarch64")
+    def test_watchpoint_alias_aarch64(self):
+        d = debugger(RESOLVE_EXE("watchpoint_test"), auto_interrupt_on_command=False)
+
+        d.run()
+
+        d.wp("global_char", condition="rw", length=1)
+        d.watchpoint("global_int", condition="w", length=4)
+        d.watchpoint("global_short", condition="r", length=2)
+        d.watchpoint("global_long", condition="rw", length=8)
+
+        d.cont()
+
+        base = d.regs.pc & ~0xfff
+
+        # strb w1, [x0] => global_char
+        self.assertEqual(d.regs.pc, base + 0x724)
+
+        d.cont()
+
+        # str w1, [x0] => global_int
+        self.assertEqual(d.regs.pc, base + 0x748)
+
+        d.cont()
+
+        # str x1, [x0] => global_long
+        self.assertEqual(d.regs.pc, base + 0x764)
+
+        d.cont()
+
+        # ldrb w0, [x0] => global_char
+        self.assertEqual(d.regs.pc, base + 0x780)
+
+        d.cont()
+
+        # ldr w0, [x0] => global_short
+        self.assertEqual(d.regs.pc, base + 0x790)
+
+        d.cont()
+
+        # ldr x0, [x0] => global_long
+        self.assertEqual(d.regs.pc, base + 0x7b0)
+
+        d.cont()
+
+        d.kill()
+        d.terminate()
+
+    @skipUnless(PLATFORM == "i386", "Requires i386")
+    def test_watchpoint_i386(self):
+        d = debugger(RESOLVE_EXE("watchpoint_test"), auto_interrupt_on_command=False)
+
+        d.run()
+
+        wp_char = d.breakpoint("global_char", hardware=True, condition="rw", length=1)
+        wp_int = d.breakpoint("global_int", hardware=True, condition="w", length=4)
+        wp_long = d.breakpoint("global_long", hardware=True, condition="rw", length=4)
+
+        d.cont()
+
+        self.assertEqual(d.regs.eip, 0x8049166)  # mov byte ptr [global_char], 0x1
+        self.assertTrue(wp_char.hit_on(d))
+        self.assertEqual(wp_char.hit_count, 1)
+        self.assertEqual(wp_int.hit_count, 0)
+        self.assertEqual(wp_long.hit_count, 0)
+
+        d.cont()
+
+        self.assertEqual(d.regs.eip, 0x8049179)  # mov dword ptr [global_int], 0x4050607
+        self.assertTrue(wp_int.hit_on(d))
+        self.assertEqual(wp_char.hit_count, 1)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_long.hit_count, 0)
+
+        d.cont()
+
+        self.assertEqual(
+            d.regs.eip, 0x8049183
+        )  # mov dword ptr [global_long], 0xc0d0e0f
+        self.assertTrue(wp_long.hit_on(d))
+        self.assertEqual(wp_char.hit_count, 1)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_long.hit_count, 1)
+
+        d.cont()
+
+        self.assertEqual(d.regs.eip, 0x80491b7)  # movzx eax, byte ptr [global_char]
+        self.assertTrue(wp_char.hit_on(d))
+        self.assertEqual(wp_char.hit_count, 2)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_long.hit_count, 1)
+
+        d.cont()
+
+        self.assertEqual(d.regs.eip, 0x80491d5)  # mov eax, dword ptr [global_long]
+        self.assertTrue(wp_long.hit_on(d))
+        self.assertEqual(wp_char.hit_count, 2)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_long.hit_count, 2)
+
+        d.cont()
+
+        d.kill()
+        d.terminate()
+
+    @skipUnless(PLATFORM == "i386", "Requires i386")
+    def test_watchpoint_callback_i386(self):
+        global_char_ip = []
+        global_int_ip = []
+        global_long_ip = []
+
+        def watchpoint_global_char(t, b):
+            nonlocal global_char_ip
+
+            global_char_ip.append(t.instruction_pointer)
+
+        def watchpoint_global_int(t, b):
+            nonlocal global_int_ip
+
+            global_int_ip.append(t.instruction_pointer)
+
+        def watchpoint_global_long(t, b):
+            nonlocal global_long_ip
+
+            global_long_ip.append(t.instruction_pointer)
+
+        d = debugger(RESOLVE_EXE("watchpoint_test"), auto_interrupt_on_command=False)
+
+        d.run()
+
+        wp1 = d.breakpoint(
+            "global_char",
+            hardware=True,
+            condition="rw",
+            length=1,
+            callback=watchpoint_global_char,
+        )
+        wp2 = d.breakpoint(
+            "global_int",
+            hardware=True,
+            condition="w",
+            length=4,
+            callback=watchpoint_global_int,
+        )
+        wp3 = d.breakpoint(
+            "global_long",
+            hardware=True,
+            condition="rw",
+            length=4,
+            callback=watchpoint_global_long,
+        )
+
+        d.cont()
+
+        d.kill()
+        d.terminate()
+
+        self.assertEqual(global_char_ip[0], 0x8049166)  # mov byte ptr [global_char], 0x1
+        self.assertEqual(
+            global_int_ip[0], 0x8049179
+        )  # mov dword ptr [global_int], 0x4050607
+        self.assertEqual(
+            global_long_ip[0], 0x8049183
+        )  # mov dword ptr [global_long], 0xc0d0e0f
+        self.assertEqual(
+            global_char_ip[1], 0x80491b7
+        )  # movzx eax, byte ptr [global_char]
+        self.assertEqual(
+            global_long_ip[1], 0x80491d5
+        )  # mov eax, dword ptr [global_long]
+
+        self.assertEqual(len(global_char_ip), 2)
+        self.assertEqual(len(global_int_ip), 1)
+        self.assertEqual(len(global_long_ip), 3) # There is one extra hit performed by the exit routine of libc
+        self.assertEqual(wp1.hit_count, 2)
+        self.assertEqual(wp2.hit_count, 1)
+        self.assertEqual(wp3.hit_count, 3) # There is one extra hit performed by the exit routine of libc
+
+    @skipUnless(PLATFORM == "i386", "Requires i386")
+    def test_watchpoint_disable_i386(self):
+        d = debugger(RESOLVE_EXE("watchpoint_test"), auto_interrupt_on_command=False)
+
+        d.run()
+
+        wp_char = d.breakpoint("global_char", hardware=True, condition="rw", length=1)
+        wp_int = d.breakpoint("global_int", hardware=True, condition="w", length=4)
+        wp_long = d.breakpoint("global_long", hardware=True, condition="rw", length=4)
+
+        d.cont()
+
+        self.assertEqual(d.regs.eip, 0x8049166)  # mov byte ptr [global_char], 0x1
+        self.assertTrue(wp_char.hit_on(d))
+        self.assertEqual(wp_char.hit_count, 1)
+        self.assertEqual(wp_int.hit_count, 0)
+        self.assertEqual(wp_long.hit_count, 0)
+
+        d.cont()
+
+        self.assertEqual(d.regs.eip, 0x8049179)  # mov dword ptr [global_int], 0x4050607
+        self.assertTrue(wp_int.hit_on(d))
+        self.assertEqual(wp_char.hit_count, 1)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_long.hit_count, 0)
+
+        d.cont()
+
+        self.assertEqual(
+            d.regs.eip, 0x8049183
+        )  # mov dword ptr [global_long], 0xc0d0e0f
+        self.assertTrue(wp_long.hit_on(d))
+        self.assertEqual(wp_char.hit_count, 1)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_long.hit_count, 1)
+
+        # disable watchpoint
+        wp_char.disable()
+
+        d.cont()
+
+        self.assertEqual(d.regs.eip, 0x80491d5)  # mov eax, dword ptr [global_long]
+        self.assertTrue(wp_long.hit_on(d))
+        self.assertEqual(wp_char.hit_count, 1)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_long.hit_count, 2)
+
+        d.cont()
+
+        d.kill()
+        d.terminate()
+
+    @skipUnless(PLATFORM == "i386", "Requires i386")
+    def test_watchpoint_disable_reenable_i386(self):
+        d = debugger(RESOLVE_EXE("watchpoint_test"), auto_interrupt_on_command=False)
+
+        d.run()
+
+        wp_char = d.breakpoint("global_char", hardware=True, condition="rw", length=1)
+        wp_int = d.breakpoint("global_int", hardware=True, condition="w", length=4)
+        wp_long = d.breakpoint("global_long", hardware=True, condition="rw", length=4)
+
+        d.cont()
+
+        self.assertEqual(d.regs.eip, 0x8049166)  # mov byte ptr [global_char], 0x1
+        self.assertTrue(wp_char.hit_on(d))
+        self.assertEqual(wp_char.hit_count, 1)
+        self.assertEqual(wp_int.hit_count, 0)
+        self.assertEqual(wp_long.hit_count, 0)
+
+        d.cont()
+
+        self.assertEqual(d.regs.eip, 0x8049179)  # mov dword ptr [global_int], 0x4050607
+        self.assertTrue(wp_int.hit_on(d))
+        self.assertEqual(wp_char.hit_count, 1)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_long.hit_count, 0)
+
+        # disable watchpoint
+        wp_long.disable()
+
+        d.cont()
+
+        self.assertEqual(d.regs.eip, 0x80491b7)  # movzx eax, byte ptr [global_char]
+        self.assertTrue(wp_char.hit_on(d))
+        self.assertEqual(wp_char.hit_count, 2)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_long.hit_count, 0)
+
+        # re-enable watchpoint
+        wp_long.enable()
+
+        d.cont()
+
+        self.assertEqual(d.regs.eip, 0x80491d5)  # mov eax, dword ptr [global_long]
+        self.assertTrue(wp_long.hit_on(d))
+        self.assertEqual(wp_char.hit_count, 2)
+        self.assertEqual(wp_int.hit_count, 1)
+        self.assertEqual(wp_long.hit_count, 1)
+
+        d.cont()
+
+        d.kill()
+        d.terminate()
+
+    @skipUnless(PLATFORM == "i386", "Requires i386")
+    def test_watchpoint_alias_i386(self):
+        d = debugger(RESOLVE_EXE("watchpoint_test"), auto_interrupt_on_command=False)
+
+        d.run()
+
+        d.wp("global_char", condition="rw", length=1)
+        d.watchpoint("global_int", condition="w", length=4)
+        d.watchpoint("global_long", condition="rw", length=4)
+
+        d.cont()
+
+        self.assertEqual(d.instruction_pointer, 0x8049166)  # mov byte ptr [global_char], 0x1
+
+        d.cont()
+
+        self.assertEqual(d.instruction_pointer, 0x8049179)  # mov dword ptr [global_int], 0x4050607
+
+        d.cont()
+
+        self.assertEqual(d.instruction_pointer, 0x8049183)  # mov dword ptr [global_long], 0xc0d0e0f
+
+        d.cont()
+
+        self.assertEqual(d.instruction_pointer, 0x80491b7)  # movzx eax, byte ptr [global_char]
+
+        d.cont()
+
+        self.assertEqual(d.instruction_pointer, 0x80491d5)  # mov eax, dword ptr [global_long]
+
+        d.cont()
+
+        d.kill()
+        d.terminate()
