@@ -290,3 +290,181 @@ class BacktraceTest(TestCase):
 
         d.kill()
         d.terminate()
+
+    @skipUnless(PLATFORM == "aarch64", "Requires aarch64")
+    def test_backtrace_aarch64(self):
+        # TODO
+        pass
+
+    @skipUnless(PLATFORM == "i386", "Requires i386")
+    def test_backtrace_as_symbols_i386(self):
+        d = self.d
+
+        d.run()
+
+        bp0 = d.breakpoint("main+e")
+        bp1 = d.breakpoint("function1+9")
+        bp2 = d.breakpoint("function2+9")
+        bp3 = d.breakpoint("function3+9")
+        bp4 = d.breakpoint("function4+9")
+        bp5 = d.breakpoint("function5+9")
+        bp6 = d.breakpoint("function6+9")
+
+        d.cont()
+
+        self.assertTrue(d.regs.eip == bp0.address)
+        backtrace = d.backtrace(as_symbols=True)
+        self.assertIn("_start", backtrace.pop())
+        self.assertEqual(backtrace[:1], ["main+e"])
+
+        d.cont()
+
+        self.assertTrue(d.regs.eip == bp1.address)
+        backtrace = d.backtrace(as_symbols=True)
+        self.assertIn("_start", backtrace.pop())
+        self.assertEqual(backtrace[:2], ["function1+9", "main+16"])
+
+        d.cont()
+
+        self.assertTrue(d.regs.eip == bp2.address)
+        backtrace = d.backtrace(as_symbols=True)
+        self.assertIn("_start", backtrace.pop())
+        self.assertEqual(backtrace[:3], ["function2+9", "function1+10", "main+16"])
+
+        d.cont()
+
+        self.assertTrue(d.regs.eip == bp3.address)
+        backtrace = d.backtrace(as_symbols=True)
+        self.assertIn("_start", backtrace.pop())
+        self.assertEqual(
+            backtrace[:4], ["function3+9", "function2+15", "function1+10", "main+16"]
+        )
+
+        d.cont()
+
+        self.assertTrue(d.regs.eip == bp4.address)
+        backtrace = d.backtrace(as_symbols=True)
+        self.assertIn("_start", backtrace.pop())
+        self.assertEqual(
+            backtrace[:5],
+            ["function4+9", "function3+15", "function2+15", "function1+10", "main+16"],
+        )
+
+        d.cont()
+
+        self.assertTrue(d.regs.eip == bp5.address)
+        backtrace = d.backtrace(as_symbols=True)
+        self.assertIn("_start", backtrace.pop())
+        self.assertEqual(
+            backtrace[:6],
+            [
+                "function5+9",
+                "function4+15",
+                "function3+15",
+                "function2+15",
+                "function1+10",
+                "main+16",
+            ],
+        )
+
+        d.cont()
+
+        self.assertTrue(d.regs.eip == bp6.address)
+        backtrace = d.backtrace(as_symbols=True)
+        self.assertIn("_start", backtrace.pop())
+        self.assertEqual(
+            backtrace[:7],
+            [
+                "function6+9",
+                "function5+15",
+                "function4+15",
+                "function3+15",
+                "function2+15",
+                "function1+10",
+                "main+16",
+            ],
+        )
+
+        d.kill()
+        d.terminate()
+
+    @skipUnless(PLATFORM == "i386", "Requires i386")
+    def test_backtrace_i386(self):
+        d = self.d
+
+        d.run()
+
+        bp0 = d.breakpoint("main+e")
+        bp1 = d.breakpoint("function1+9")
+        bp2 = d.breakpoint("function2+9")
+        bp3 = d.breakpoint("function3+9")
+        bp4 = d.breakpoint("function4+9")
+        bp5 = d.breakpoint("function5+9")
+        bp6 = d.breakpoint("function6+9")
+
+        d.cont()
+
+        self.assertTrue(d.regs.eip == bp0.address)
+        backtrace = d.backtrace()
+        backtrace.pop()
+        self.assertEqual(backtrace[:1], [0x8049174])
+
+        d.cont()
+
+        self.assertTrue(d.regs.eip == bp1.address)
+        backtrace = d.backtrace()
+        backtrace.pop()
+        self.assertEqual(backtrace[:2], [0x80491a8, 0x804917c])
+
+        d.cont()
+
+        self.assertTrue(d.regs.eip == bp2.address)
+        backtrace = d.backtrace()
+        backtrace.pop()
+        self.assertEqual(backtrace[:3], [0x80491bd, 0x80491af, 0x804917c])
+
+        d.cont()
+
+        self.assertTrue(d.regs.eip == bp3.address)
+        backtrace = d.backtrace()
+        backtrace.pop()
+        self.assertEqual(backtrace[:4], [0x80491d7, 0x80491c9, 0x80491af, 0x804917c])
+
+        d.cont()
+
+        self.assertTrue(d.regs.eip == bp4.address)
+        backtrace = d.backtrace()
+        backtrace.pop()
+        self.assertEqual(
+            backtrace[:5], [0x80491f1, 0x80491e3, 0x80491c9, 0x80491af, 0x804917c]
+        )
+
+        d.cont()
+
+        self.assertTrue(d.regs.eip == bp5.address)
+        backtrace = d.backtrace()
+        backtrace.pop()
+        self.assertEqual(
+            backtrace[:6], [0x804920b, 0x80491fd, 0x80491e3, 0x80491c9, 0x80491af, 0x804917c]
+        )
+
+        d.cont()
+
+        self.assertTrue(d.regs.eip == bp6.address)
+        backtrace = d.backtrace()
+        backtrace.pop()
+        self.assertEqual(
+            backtrace[:7],
+            [
+                0x8049225,
+                0x8049217,
+                0x80491fd,
+                0x80491e3,
+                0x80491c9,
+                0x80491af,
+                0x804917c,
+            ],
+        )
+
+        d.kill()
+        d.terminate()
