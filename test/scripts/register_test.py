@@ -701,3 +701,60 @@ class RegisterTest(TestCase):
 
         d.kill()
         d.terminate()
+
+    @skipUnless(PLATFORM == "i386", "Requires i386")
+    def test_register_find_i386(self):
+        d = debugger(RESOLVE_EXE("basic_test"))
+        d.run()
+
+        bp1 = d.breakpoint(0x8049186)
+        bp2 = d.breakpoint(0x80491a3)
+        bp3 = d.breakpoint(0x80491ac)
+        bp4 = d.breakpoint(0x80491b5)
+
+        d.cont()
+
+        self.assertTrue(bp1.address == d.regs.eip)
+
+        self.assertIn("eax", d.regs.filter(0x00112233))
+        self.assertIn("ebx", d.regs.filter(0x11223344))
+        self.assertIn("ecx", d.regs.filter(0x22334455))
+        self.assertIn("edx", d.regs.filter(0x33445566))
+        self.assertIn("esi", d.regs.filter(0x44556677))
+        self.assertIn("edi", d.regs.filter(0x55667788))
+        self.assertIn("ebp", d.regs.filter(0x66778899))
+
+        d.cont()
+
+        self.assertTrue(bp2.address == d.regs.eip)
+
+        self.assertIn("ax", d.regs.filter(0x1122))
+        self.assertIn("bx", d.regs.filter(0x2233))
+        self.assertIn("cx", d.regs.filter(0x3344))
+        self.assertIn("dx", d.regs.filter(0x4455))
+        self.assertIn("si", d.regs.filter(0x5566))
+        self.assertIn("di", d.regs.filter(0x6677))
+        self.assertIn("bp", d.regs.filter(0x7788))
+
+        d.cont()
+
+        self.assertTrue(bp3.address == d.regs.eip)
+
+        self.assertIn("al", d.regs.filter(0x11))
+        self.assertIn("bl", d.regs.filter(0x22))
+        self.assertIn("cl", d.regs.filter(0x33))
+        self.assertIn("dl", d.regs.filter(0x44))
+
+        d.cont()
+
+        self.assertTrue(bp4.address == d.regs.eip)
+
+        self.assertIn("ah", d.regs.filter(0x12))
+        self.assertIn("bh", d.regs.filter(0x23))
+        self.assertIn("ch", d.regs.filter(0x34))
+        self.assertIn("dh", d.regs.filter(0x45))
+
+        d.cont()
+
+        d.kill()
+        d.terminate()
