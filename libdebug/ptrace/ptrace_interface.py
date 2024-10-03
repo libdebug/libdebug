@@ -10,6 +10,7 @@ import errno
 import os
 import pty
 import tty
+from fcntl import F_GETFL, F_SETFL, fcntl
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -126,6 +127,12 @@ class PtraceInterface(DebuggingInterface):
             # output
             tty.setraw(self.stdout_read)
             tty.setraw(self.stderr_read)
+
+            flags = fcntl(self.stdout_read, F_GETFL)
+            fcntl(self.stdout_read, F_SETFL, flags | os.O_NONBLOCK)
+
+            flags = fcntl(self.stderr_read, F_GETFL)
+            fcntl(self.stderr_read, F_SETFL, flags | os.O_NONBLOCK)
 
             file_actions.extend(
                 [

@@ -9,7 +9,7 @@ from __future__ import annotations
 import os
 import sys
 import time
-from select import select
+from errno import EAGAIN
 from threading import Event
 from typing import TYPE_CHECKING
 
@@ -86,38 +86,28 @@ class PipeManager:
                     # Timeout reached
                     break
 
-                ready, _, _ = select([pipe_read], [], [], 1e-5)
-
-                if not ready:
-                    # No data ready within the remaining timeout
-                    break
-
                 try:
                     data = os.read(pipe_read, numb)
-                except OSError:
-                    if stderr:
-                        self._stderr_is_open = False
-                    else:
-                        self._stdout_is_open = False
-                    break
-
-                if not data:
-                    # No more data available
-                    break
+                    if not data:
+                        # No more data available
+                        break
+                except OSError as e:
+                    if e.errno != EAGAIN:
+                        if stderr:
+                            self._stderr_is_open = False
+                        else:
+                            self._stdout_is_open = False
 
                 received_numb += len(data)
                 data_buffer.append(data)
         else:
-            # We will receive all the available data
-            ready, _, _ = select([pipe_read], [], [], 1e-5)
-
-            if ready:
-                try:
-                    data = os.read(pipe_read, 4096)
-                    if data:
-                        received_numb += len(data)
-                        data_buffer.append(data)
-                except OSError:
+            try:
+                data = os.read(pipe_read, 4096)
+                if data:
+                    received_numb += len(data)
+                    data_buffer.append(data)
+            except OSError as e:
+                if e.errno != EAGAIN:
                     if stderr:
                         self._stderr_is_open = False
                     else:
