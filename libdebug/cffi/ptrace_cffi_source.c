@@ -29,7 +29,7 @@
     #if (FPREGS_AVX == 0)
         _Static_assert((sizeof(struct fp_regs_struct) - offsetof(struct fp_regs_struct, padding0)) == 512, "user_fpregs_struct size is not 512 bytes");
     #elif (FPREGS_AVX == 1)
-        _Static_assert((sizeof(struct fp_regs_struct) - offsetof(struct fp_regs_struct, padding0)) == 896, "user_fpregs_struct size is not 896 bytes");
+        _Static_assert((sizeof(struct fp_regs_struct) - offsetof(struct fp_regs_struct, padding0)) == 1088, "user_fpregs_struct size is not 1088 bytes");
     #elif (FPREGS_AVX == 2)
         _Static_assert((sizeof(struct fp_regs_struct) - offsetof(struct fp_regs_struct, padding0)) == 2696, "user_fpregs_struct size is not 2696 bytes");
     #else
