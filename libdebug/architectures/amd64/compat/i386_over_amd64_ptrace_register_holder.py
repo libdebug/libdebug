@@ -60,7 +60,7 @@ class I386OverAMD64PtraceRegisterHolder(PtraceRegisterHolder):
 
     def apply_on_regs(
         self: I386OverAMD64PtraceRegisterHolder,
-        target: I386OverAMD64PtraceRegisterHolder,
+        target: I386OverAMD64Registers,
         target_class: type,
     ) -> None:
         """Apply the register accessors to the I386Registers class."""
