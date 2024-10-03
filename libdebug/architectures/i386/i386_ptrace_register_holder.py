@@ -97,18 +97,17 @@ class I386PtraceRegisterHolder(PtraceRegisterHolder):
 
         match self.fp_register_file.type:
             case 0:
-                self._handle_fp_512(target_class)
+                self._handle_vector_512(target_class)
             case 1:
-                self._handle_fp_896(target_class)
+                self._handle_vector_896(target_class)
             case 2:
-                self._handle_fp_2696(target_class)
+                self._handle_vector_2696(target_class)
             case _:
                 raise NotImplementedError(
                     f"Floating-point register file type {self.fp_register_file.type} not available.",
                 )
 
         I386PtraceRegisterHolder._vector_fp_registers = self._vector_fp_registers
-
 
     def apply_on_thread(self: I386PtraceRegisterHolder, target: ThreadContext, target_class: type) -> None:
         """Apply the register accessors to the thread class."""
@@ -150,7 +149,7 @@ class I386PtraceRegisterHolder(PtraceRegisterHolder):
 
             self._vector_fp_registers.append((name_mm, name_st))
 
-    def _handle_fp_512(self: I386PtraceRegisterHolder, target_class: type) -> None:
+    def _handle_vector_512(self: I386PtraceRegisterHolder, target_class: type) -> None:
         """Handle the case where the xsave area is 512 bytes long, which means we just have the xmm registers."""
         # i386 only gets 8 registers
         for index in range(8):
@@ -158,7 +157,7 @@ class I386PtraceRegisterHolder(PtraceRegisterHolder):
             setattr(target_class, name_xmm, _get_property_fp_xmm0(name_xmm, index))
             self._vector_fp_registers.append((name_xmm,))
 
-    def _handle_fp_896(self: I386PtraceRegisterHolder, target_class: type) -> None:
+    def _handle_vector_896(self: I386PtraceRegisterHolder, target_class: type) -> None:
         """Handle the case where the xsave area is 896 bytes long, which means we have the xmm and ymm registers."""
         # i386 only gets 8 registers
         for index in range(8):
@@ -170,7 +169,7 @@ class I386PtraceRegisterHolder(PtraceRegisterHolder):
 
             self._vector_fp_registers.append((name_xmm, name_ymm))
 
-    def _handle_fp_2696(self: I386PtraceRegisterHolder, target_class: type) -> None:
+    def _handle_vector_2696(self: I386PtraceRegisterHolder, target_class: type) -> None:
         """Handle the case where the xsave area is 2696 bytes long, which means we have 32 zmm registers."""
         # i386 only gets 8 registers
         for index in range(8):
