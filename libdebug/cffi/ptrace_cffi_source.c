@@ -1157,6 +1157,11 @@ int check_if_dl_trampoline(struct global_state *state, unsigned long instruction
     //      0xf7fdaf98 <_dl_runtime_profile+8>:  push   edx
 
     unsigned long data;
+
+    if ((instruction_pointer & 0xf) != 0xb) {
+        return 0;
+    }
+
     instruction_pointer -= 0xb;
 
     data = ptrace(PTRACE_PEEKDATA, state->t_HEAD->tid, (void *)instruction_pointer, NULL);
@@ -1190,24 +1195,6 @@ int check_if_dl_trampoline(struct global_state *state, unsigned long instruction
     data = data & 0xFFFFFFFF;
 
     if (data != 0x9066000c) {
-        return 0;
-    }
-
-    instruction_pointer += 0x4;
-
-    data = ptrace(PTRACE_PEEKDATA, state->t_HEAD->tid, (void *)instruction_pointer, NULL);
-    data = data & 0xFFFFFFFF;
-
-    if (data != 0x24048354) {
-        return 0;
-    }
-
-    instruction_pointer += 0x4;
-
-    data = ptrace(PTRACE_PEEKDATA, state->t_HEAD->tid, (void *)instruction_pointer, NULL);
-    data = data & 0xFFFFFFFF;
-
-    if (data != 0x51505508) {
         return 0;
     }
 
