@@ -153,7 +153,6 @@ class AliasTest(TestCase):
         d.kill()
         d.terminate()
 
-    @skipIf(PLATFORM == "i386", "Test not supported on i386")
     def test_finish_alias(self):
         d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False, aslr=False)
 

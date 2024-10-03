@@ -50,7 +50,6 @@ match PLATFORM:
 
 
 class FinishTest(TestCase):
-    @skipIf(PLATFORM == "i386", "Test not supported on i386")
     def test_finish_exact_no_auto_interrupt_no_breakpoint(self):
         d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False, aslr=False)
 
@@ -131,7 +130,6 @@ class FinishTest(TestCase):
         d.kill()
         d.terminate()
 
-    @skipIf(PLATFORM == "i386", "Test not supported on i386")
     def test_finish_exact_auto_interrupt_no_breakpoint(self):
         d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=True, aslr=False)
 
@@ -216,7 +214,6 @@ class FinishTest(TestCase):
         d.kill()
         d.terminate()
 
-    @skipIf(PLATFORM == "i386", "Test not supported on i386")
     def test_finish_exact_no_auto_interrupt_breakpoint(self):
         d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False, aslr=False)
 
@@ -290,7 +287,6 @@ class FinishTest(TestCase):
         d.kill()
         d.terminate()
 
-    @skipIf(PLATFORM == "i386", "Test not supported on i386")
     def test_exact_breakpoint_return(self):
         d = debugger(RESOLVE_EXE("finish_test"), auto_interrupt_on_command=False, aslr=False)
 
