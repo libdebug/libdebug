@@ -9,10 +9,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from libdebug.architectures.stack_unwinding_manager import StackUnwindingManager
-from libdebug.liblog import logging
+from libdebug.liblog import liblog
 
 if TYPE_CHECKING:
     from libdebug.data.memory_map import MemoryMap
+    from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.state.thread_context import ThreadContext
 
 
@@ -34,7 +35,7 @@ class I386StackUnwinder(StackUnwindingManager):
         current_ebp = target.regs.ebp
         stack_trace = [target.regs.eip]
 
-        vmaps = target._internal_debugger.debugging_interface.maps()
+        vmaps = target._internal_debugger.debugging_interface.get_maps()
 
         while current_ebp:
             try:
@@ -62,13 +63,13 @@ class I386StackUnwinder(StackUnwindingManager):
             else:
                 stack_trace.append(first_return_address)
         except (OSError, ValueError):
-            logging.WARNING(
+            liblog.WARNING(
                 "Failed to get the return address from the stack. Check stack frame registers (e.g., base pointer). The stack trace may be incomplete.",
             )
 
         return stack_trace
 
-    def get_return_address(self: I386StackUnwinder, target: ThreadContext, vmaps: list[MemoryMap]) -> int:
+    def get_return_address(self: I386StackUnwinder, target: ThreadContext, vmaps: MemoryMapList[MemoryMap]) -> int:
         """Get the return address of the current function.
 
         Args:
@@ -92,7 +93,7 @@ class I386StackUnwinder(StackUnwindingManager):
 
         return_address = int.from_bytes(return_address, byteorder="little")
 
-        if not any(vmap.start <= return_address < vmap.end for vmap in vmaps):
+        if not vmaps.filter(return_address):
             raise ValueError("Return address is not in any memory map.")
 
         return return_address
