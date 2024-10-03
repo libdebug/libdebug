@@ -452,7 +452,7 @@ ffibuilder.cdef("""
 
     int cont_all_and_set_bps(struct global_state *state, int pid);
 
-    int stepping_finish(struct global_state *state, int tid);
+    int stepping_finish(struct global_state *state, int tid, _Bool use_trampoline_heuristic);
 
     struct thread_status *wait_all_and_update_regs(struct global_state *state, int pid);
     void free_thread_status_list(struct thread_status *head);

@@ -1139,7 +1139,83 @@ void free_breakpoints(struct global_state *state)
     state->hw_b_HEAD = NULL;
 }
 
-int stepping_finish(struct global_state *state, int tid)
+#if defined ARCH_AMD64 || defined ARCH_I386
+int check_if_dl_trampoline(struct global_state *state, unsigned long instruction_pointer)
+{
+    // https://codebrowser.dev/glibc/glibc/sysdeps/i386/dl-trampoline.S.html
+    //      0xf7fdaf80 <_dl_runtime_resolve+16>: pop    edx
+    //      0xf7fdaf81 <_dl_runtime_resolve+17>: mov    ecx,DWORD PTR [esp]
+    //      0xf7fdaf84 <_dl_runtime_resolve+20>: mov    DWORD PTR [esp],eax
+    //      0xf7fdaf87 <_dl_runtime_resolve+23>: mov    eax,DWORD PTR [esp+0x4]
+    // =>   0xf7fdaf8b <_dl_runtime_resolve+27>: ret    0xc
+    //      0xf7fdaf8e:  xchg   ax,ax
+    //      0xf7fdaf90 <_dl_runtime_profile>:    push   esp
+    //      0xf7fdaf91 <_dl_runtime_profile+1>:  add    DWORD PTR [esp],0x8
+    //      0xf7fdaf95 <_dl_runtime_profile+5>:  push   ebp
+    //      0xf7fdaf96 <_dl_runtime_profile+6>:  push   eax
+    //      0xf7fdaf97 <_dl_runtime_profile+7>:  push   ecx
+    //      0xf7fdaf98 <_dl_runtime_profile+8>:  push   edx
+
+    unsigned long data;
+    instruction_pointer -= 0xb;
+
+    data = ptrace(PTRACE_PEEKDATA, state->t_HEAD->tid, (void *)instruction_pointer, NULL);
+    data = data & 0xFFFFFFFF; // on i386 we get 4 bytes from the ptrace call, while on amd64 we get 8 bytes
+
+    if (data != 0x240c8b5a) {
+        return 0;
+    }
+
+    instruction_pointer += 0x4;
+
+    data = ptrace(PTRACE_PEEKDATA, state->t_HEAD->tid, (void *)instruction_pointer, NULL);
+    data = data & 0xFFFFFFFF;
+
+    if (data != 0x8b240489) {
+        return 0;
+    }
+
+    instruction_pointer += 0x4;
+
+    data = ptrace(PTRACE_PEEKDATA, state->t_HEAD->tid, (void *)instruction_pointer, NULL);
+    data = data & 0xFFFFFFFF;
+
+    if (data != 0xc2042444) {
+        return 0;
+    }
+
+    instruction_pointer += 0x4;
+
+    data = ptrace(PTRACE_PEEKDATA, state->t_HEAD->tid, (void *)instruction_pointer, NULL);
+    data = data & 0xFFFFFFFF;
+
+    if (data != 0x9066000c) {
+        return 0;
+    }
+
+    instruction_pointer += 0x4;
+
+    data = ptrace(PTRACE_PEEKDATA, state->t_HEAD->tid, (void *)instruction_pointer, NULL);
+    data = data & 0xFFFFFFFF;
+
+    if (data != 0x24048354) {
+        return 0;
+    }
+
+    instruction_pointer += 0x4;
+
+    data = ptrace(PTRACE_PEEKDATA, state->t_HEAD->tid, (void *)instruction_pointer, NULL);
+    data = data & 0xFFFFFFFF;
+
+    if (data != 0x51505508) {
+        return 0;
+    }
+
+    return 1;
+}
+#endif
+
+int stepping_finish(struct global_state *state, int tid, _Bool use_trampoline_heuristic)
 {
     int status = prepare_for_run(state, tid);
 
@@ -1199,6 +1275,18 @@ int stepping_finish(struct global_state *state, int tid)
             nested_call_counter++;
         else if (IS_RET_INSTRUCTION(opcode))
             nested_call_counter--;
+
+#if defined ARCH_AMD64 || defined ARCH_I386
+        // On i386, dl-trampoline.S ends with a ret instruction to the resolved address
+        // While, on amd64, it ends with a jmp to the resolved address
+        // On i386, this decrements the nested_call_counter even if it shouldn't
+        // So we need to heuristically check if we are in a dl-trampoline.S
+        // And if so, we need to re-increment the nested_call_counter
+        // https://codebrowser.dev/glibc/glibc/sysdeps/i386/dl-trampoline.S.html
+        if (use_trampoline_heuristic && check_if_dl_trampoline(state, current_ip)) {
+            nested_call_counter++;
+        }
+#endif
 
     } while (nested_call_counter > 0);
 
