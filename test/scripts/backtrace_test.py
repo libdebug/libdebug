@@ -5,7 +5,7 @@
 #
 
 from unittest import TestCase, skipUnless
-from utils.binary_utils import PLATFORM, RESOLVE_EXE
+from utils.binary_utils import BASE, PLATFORM, RESOLVE_EXE
 
 from libdebug import debugger
 from libdebug.utils.libcontext import libcontext
@@ -293,8 +293,94 @@ class BacktraceTest(TestCase):
 
     @skipUnless(PLATFORM == "aarch64", "Requires aarch64")
     def test_backtrace_aarch64(self):
-        # TODO
-        pass
+        d = self.d
+
+        d.run()
+
+        bp0 = d.breakpoint("main+8")
+        bp1 = d.breakpoint("function1+8")
+        bp2 = d.breakpoint("function2+8")
+        bp3 = d.breakpoint("function3+8")
+        bp4 = d.breakpoint("function4+8")
+        bp5 = d.breakpoint("function5+8")
+        bp6 = d.breakpoint("function6+8")
+
+        d.cont()
+
+        self.assertTrue(d.regs.pc == bp0.address)
+        backtrace = d.backtrace()
+        backtrace.pop()
+        self.assertEqual(backtrace[:1], [BASE + 0x75c])
+
+        d.cont()
+
+        self.assertTrue(d.regs.pc == bp1.address)
+        backtrace = d.backtrace()
+        backtrace.pop()
+        self.assertEqual(backtrace[:2], [BASE + 0x788, BASE + 0x760])
+
+        d.cont()
+
+        self.assertTrue(d.regs.pc == bp2.address)
+        backtrace = d.backtrace()
+        backtrace.pop()
+        self.assertEqual(backtrace[:3], [BASE + 0x7a0, BASE + 0x790, BASE + 0x760])
+
+        d.cont()
+
+        self.assertTrue(d.regs.pc == bp3.address)
+        backtrace = d.backtrace()
+        backtrace.pop()
+        self.assertEqual(
+            backtrace[:4], [BASE + 0x7c0, BASE + 0x7b0, BASE + 0x790, BASE + 0x760]
+        )
+
+        d.cont()
+
+        self.assertTrue(d.regs.pc == bp4.address)
+        backtrace = d.backtrace()
+        backtrace.pop()
+        self.assertEqual(
+            backtrace[:5], [BASE + 0x7e0, BASE + 0x7d0, BASE + 0x7b0, BASE + 0x790, BASE + 0x760]
+        )
+
+        d.cont()
+
+        self.assertTrue(d.regs.pc == bp5.address)
+        backtrace = d.backtrace()
+        backtrace.pop()
+        self.assertEqual(
+            backtrace[:6],
+            [
+                BASE + 0x800,
+                BASE + 0x7f0,
+                BASE + 0x7d0,
+                BASE + 0x7b0,
+                BASE + 0x790,
+                BASE + 0x760,
+            ],
+        )
+
+        d.cont()
+
+        self.assertTrue(d.regs.pc == bp6.address)
+        backtrace = d.backtrace()
+        backtrace.pop()
+        self.assertEqual(
+            backtrace[:7],
+            [
+                BASE + 0x820,
+                BASE + 0x810,
+                BASE + 0x7f0,
+                BASE + 0x7d0,
+                BASE + 0x7b0,
+                BASE + 0x790,
+                BASE + 0x760,
+            ],
+        )
+
+        d.kill()
+        d.terminate()
 
     @skipUnless(PLATFORM == "i386", "Requires i386")
     def test_backtrace_as_symbols_i386(self):
