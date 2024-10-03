@@ -1158,9 +1158,10 @@ int check_if_dl_trampoline(struct global_state *state, unsigned long instruction
 
     unsigned long data;
 
-    if ((instruction_pointer & 0xf) != 0xb) {
-        return 0;
-    }
+    // if ((instruction_pointer & 0xf) != 0xb) {
+    //     return 0;
+    // }
+    // breaks if libc is compiled with CET
 
     instruction_pointer -= 0xb;
 
