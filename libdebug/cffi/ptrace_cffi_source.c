@@ -1156,6 +1156,18 @@ int check_if_dl_trampoline(struct global_state *state, unsigned long instruction
     //      0xf7fdaf97 <_dl_runtime_profile+7>:  push   ecx
     //      0xf7fdaf98 <_dl_runtime_profile+8>:  push   edx
 
+    // https://elixir.bootlin.com/glibc/glibc-2.35/source/sysdeps/i386/dl-trampoline.S
+    //      0xf7fd9004 <_dl_runtime_resolve+20>:	pop    edx
+    //      0xf7fd9005 <_dl_runtime_resolve+21>:	mov    ecx,DWORD PTR [esp]
+    //      0xf7fd9008 <_dl_runtime_resolve+24>:	mov    DWORD PTR [esp],eax
+    //      0xf7fd900b <_dl_runtime_resolve+27>:	mov    eax,DWORD PTR [esp+0x4]
+    // =>   0xf7fd900f <_dl_runtime_resolve+31>:	ret    0xc
+    //      0xf7fd9012:	lea    esi,[esi+eiz*1+0x0]
+    //      0xf7fd9019:	lea    esi,[esi+eiz*1+0x0]
+    //      0xf7fd9020 <_dl_runtime_resolve_shstk>:	endbr32
+    //      0xf7fd9024 <_dl_runtime_resolve_shstk+4>:	push   eax
+    //      0xf7fd9025 <_dl_runtime_resolve_shstk+5>:	push   edx
+
     unsigned long data;
 
     // if ((instruction_pointer & 0xf) != 0xb) {
@@ -1193,9 +1205,9 @@ int check_if_dl_trampoline(struct global_state *state, unsigned long instruction
     instruction_pointer += 0x4;
 
     data = ptrace(PTRACE_PEEKDATA, state->t_HEAD->tid, (void *)instruction_pointer, NULL);
-    data = data & 0xFFFFFFFF;
+    data = data & 0xFFFF;
 
-    if (data != 0x9066000c) {
+    if (data != 0x000c) {
         return 0;
     }
 
