@@ -173,6 +173,9 @@ class InternalDebugger:
     _is_running: bool
     """The overall state of the debugged process. True if the process is running, False otherwise."""
 
+    _is_migrated_to_gdb: bool
+    """A flag that indicates if the debuggee was migrated to GDB."""
+
     _fast_memory: DirectMemoryView
     """The memory view of the debugged process using the fast memory access method."""
 
@@ -199,6 +202,7 @@ class InternalDebugger:
         self.threads = []
         self.instanced = False
         self._is_running = False
+        self._is_migrated_to_gdb = False
         self.resume_context = ResumeContext()
         self.arch = map_arch(libcontext.platform)
         self.kill_on_exit = True
@@ -808,6 +812,8 @@ class InternalDebugger:
 
         resume_event = GdbResumeEvent(self, lambda_fun)
 
+        self._is_migrated_to_gdb = True
+
         if blocking:
             resume_event.join()
             return None
@@ -908,6 +914,8 @@ class InternalDebugger:
         self.__polling_thread_command_queue.put((self.__threaded_migrate_from_gdb, ()))
 
         self._join_and_check_status()
+
+        self._is_migrated_to_gdb = False
 
     def _background_step(self: InternalDebugger, thread: ThreadContext) -> None:
         """Executes a single instruction of the process.
@@ -1225,11 +1233,16 @@ class InternalDebugger:
 
     def _background_ensure_process_stopped(self: InternalDebugger) -> None:
         """Validates the state of the process."""
-        # In background mode, there shouldn't be anything to do here
+        # There is no case where this should ever happen, but...
+        if self._is_migrated_to_gdb:
+            raise RuntimeError("Cannot execute this command after migrating to GDB.")
 
     @background_alias(_background_ensure_process_stopped)
     def _ensure_process_stopped(self: InternalDebugger) -> None:
         """Validates the state of the process."""
+        if self._is_migrated_to_gdb:
+            raise RuntimeError("Cannot execute this command after migrating to GDB.")
+
         if not self.running:
             return
 
