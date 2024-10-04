@@ -46,7 +46,7 @@ else:
     The [Debugger](../../from_pydoc/generated/debugger/debugger/) object also exposes the `running` property. This is not the opposite of `dead`. The `running` property is `True` when the process is running and `False` when it is not. If execution was stopped by the debugger awaiting a command, the `running` property will be equal to `False`. However, in this case the process is still alive.
 
 ### Cause of Death
-Has your process passed away unexpectedly? We are sorry to hear that. If your process is indeed defunct, you can access the exit code and signal using `exit_code` and `exit_signal`:
+Has your process passed away unexpectedly? We are sorry to hear that. If your process is indeed defunct, you can access the exit code and signal using `exit_code` and `exit_signal`. When there is no valid exit code or signal, these properties will return `None`.
 
 ```python
 if d.dead:

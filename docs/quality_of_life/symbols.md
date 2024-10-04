@@ -4,13 +4,13 @@ search:
     boost: 4
 ---
 ## :material-alphabetical: Symbol Resolution
-As described in the [memory access](../memory_access/#absolute-and-relative-addressing) section, many functions in **libdebug** accept symbols as an alternative to actual addresses.
+As described in the [memory access](../../basics/memory_access/#absolute-and-relative-addressing) section, many functions in **libdebug** accept symbols as an alternative to actual addresses.
 
 !!! INFO "C++ Demangling"
     Reverse-engineering of C++ binaries can be a struggle. To help out, **libdebug** automatically demangles C++ symbols.
 
 ### :material-pyramid: Symbol Resolution Levels
-With large binaries and libraries, parsing symbols can become an expensive operation. Because of this, **libdebug** offers the possibility of choosing among 6 maximum levels of symbol resolution. To set the symbol resolution level, you can use the `sym_lvl` property of the [`libcontext`](../../from_pydoc/generated/utils/libcontext) module. The default value is level 5.
+With large binaries and libraries, parsing symbols can become an expensive operation. Because of this, **libdebug** offers the possibility of choosing among 5 levels of symbol resolution. To set the symbol resolution level, you can use the `sym_lvl` property of the [`libcontext`](../../from_pydoc/generated/utils/libcontext) module. The default value is level 5.
 
 | Level | Description |
 |-------|-------------|
@@ -49,7 +49,7 @@ The `symbols` attribute of the [Debugger](../../from_pydoc/generated/debugger/de
     d.symbols.filter(value: int | str) -> SymbolDict[str, set[Symbol]]:
     ```
 
-Given a symbol name or address, this function returns a [SymbolDict](../../from_pydoc/generated/data/symbol/) dictionary with the symbol name as the key and a [set](https://docs.python.org/3/library/stdtypes.html#set-types-set-frozenset) of [Symbol](../../from_pydoc/generated/data/symbol/) objects as the value.
+Given a symbol name or address, this function returns a [SymbolDict](../../from_pydoc/generated/data/symbol_dict/) dictionary with the symbol name as the key and a [set](https://docs.python.org/3/library/stdtypes.html#set-types-set-frozenset) of [Symbol](../../from_pydoc/generated/data/symbol/) objects as the value.
 
 These are the attributes of a [Symbol](../../from_pydoc/generated/data/symbol/) object:
 
@@ -61,4 +61,4 @@ These are the attributes of a [Symbol](../../from_pydoc/generated/data/symbol/) 
 | `backing_file` | `str` | The file where the symbol is defined (e.g., binary, libc, ld). |
 
 !!! INFO "Slow Symbol Resolution"
-    Please keep in mind that symbol resolution can be an expensive operation on large binaries and shared libraries. If you are experiencing performance issues, you can set the [symbol resolution level](#material-pyramid-symbol-resolution-levels) to a lower value.
+    Please keep in mind that symbol resolution can be an expensive operation on large binaries and shared libraries. If you are experiencing performance issues, you can set the [symbol resolution level](#symbol-resolution-levels) to a lower value.

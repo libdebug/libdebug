@@ -59,13 +59,13 @@ d.memory["main_arena", 16, "libc"] = b"12345678"
 ```
 
 !!! WARNING "Length/Slice when writing"
-        When writing to memory, slices and length are ignored in favour of the length of the specified [*bytes-like*](https://docs.python.org/3/glossary.html#term-bytes-like-object) object.
+    When writing to memory, slices and length are ignored in favor of the length of the specified [*bytes-like*](https://docs.python.org/3/glossary.html#term-bytes-like-object) object.
 
-        In the following example, only 4 bytes are written:
-        
-        ```python
-        d.memory["main_arena", 50] = b"\x0a\xeb\x12\xfc"
-        ```
+    In the following example, only 4 bytes are written:
+    
+    ```python
+    d.memory["main_arena", 50] = b"\x0a\xeb\x12\xfc"
+    ```
 
 ## :material-relative-scale: Absolute and Relative Addressing
 

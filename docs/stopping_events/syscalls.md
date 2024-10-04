@@ -6,6 +6,36 @@ search:
 # :fontawesome-solid-terminal: Syscalls
 System calls (a.k.a. syscalls or software interrupts) are the interface between user space and kernel space. They are used to request services from the kernel, such as reading from a file or creating a new process. **libdebug** allows you to trace syscalls invoked by the debugged program. Specifically, you can choose to **handle** or **hijack** a specific syscall (read more on [hijacking](../stopping_events/#hijacking)).
 
+For extra convenience, the [Debugger](../../from_pydoc/generated/debugger/debugger/) and the [ThreadContext](../../from_pydoc/generated/state/thread_context) objects provide a system-agnostic interface to the arguments and return values of syscalls. Interacting directly with these parameters enables you to create scripts that are independent of the syscall calling convention specific to the target architecture.
+
+| Field | Description |
+| --- | --- |
+| `syscall_number` | The number of the syscall. |
+| `syscall_arg0` | The first argument of the syscall. |
+| `syscall_arg1` | The second argument of the syscall. |
+| `syscall_arg2` | The third argument of the syscall. |
+| `syscall_arg3` | The fourth argument of the syscall. |
+| `syscall_arg4` | The fifth argument of the syscall. |
+| `syscall_arg5` | The sixth argument of the syscall. |
+| `syscall_return` | The return value of the syscall. |
+
+!!! ABSTRACT "Example of Syscall Parameters"
+    ```python
+    [...] # (1)
+
+    binsh_str = d.memory.find(b"/bin/sh\x00", file="libc")[0]
+
+    d.syscall_arg0 = binsh_str
+    d.syscall_arg1 = 0x0
+    d.syscall_arg2 = 0x0
+    d.syscall_number = 0x3b
+
+    d.step() # (2)
+    ```
+
+    1. The instruction pointer is on a syscall / SVC instruction
+    2. Now the `execve('/bin/sh', 0, 0)` will be executed in place of the previous syscall.
+
 ## :material-format-align-middle: Syscall Handlers
 Syscall handlers can be created to register [stopping events](../stopping_events/) for when a syscall is entered and exited.
 
@@ -14,7 +44,6 @@ Syscall handlers can be created to register [stopping events](../stopping_events
 
 !!! INFO "Multiple handlers for the same syscall"
     Please note that there can be at most **one** user-defined handler or hijack for each syscall. If a new handler is defined for a syscall that is already handled or hijacked, the new handler will replace the old one, and a warning will be printed.
-
 
 ## **libdebug** API for Syscall Handlers
 The `handle_syscall()` function in the [Debugger](../../from_pydoc/generated/debugger/debugger/) object registers a handler for the specified syscall.

@@ -80,6 +80,7 @@ The `catch_signal()` function in the [Debugger](../../from_pydoc/generated/debug
     catcher2 = d.catch_signal('SIGINT', callback=catcher_SIGINT)
 
     d.cont()
+    d.wait()
     ```
 
 !!! ABSTRACT "Example of synchronous signal catching"

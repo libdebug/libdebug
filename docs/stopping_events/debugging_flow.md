@@ -49,7 +49,7 @@ Stopping events have attributes that can help you keep track of hits. For exampl
 The `hit_on()` function is used to check if the stopping event was the cause of the process stopping. It is particularly useful when debugging multithreaded applications, as it takes a [ThreadContext](../../from_pydoc/generated/state/thread_context) as a parameter. Refer to [multithreading](../../multithreading/multithreading) for more information.
 
 ### :material-arrow-decision: Hijacking
-Hijacking is a powerful feature that allows you to change the flow of the process when a stopping event is hit. It is available for both syscalls and signals, but currently not for other stopping events. When registering an hijack for a compatible stopping event, that execution flow will be replaced with another.
+Hijacking is a powerful feature that allows you to change the flow of the process when a stopping event is hit. It is available for both syscalls and signals, but currently not for other stopping events. When registering a hijack for a compatible stopping event, that execution flow will be replaced with another.
 
 <figure markdown="span">
   ![Hijack of a Signal](../../assets/hijack.webp#only-light){ width="90%" }

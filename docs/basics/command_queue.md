@@ -12,6 +12,7 @@ In the following example, the content of the `RAX` register is printed after the
 from libdebug import debugger
 
 d = debugger("program")
+d.run()
 
 d.breakpoint("func")
 
@@ -38,6 +39,10 @@ print(f"RAX: {hex(d.regs.rax)}") # (1)
 d.cont()
 
 print(f"RAX: {hex(d.regs.rax)}") # (2)
+
+d.cont()
+
+[...]
 ```
 
 1. This is the value of RAX at the breakpoint.

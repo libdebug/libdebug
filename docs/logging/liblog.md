@@ -37,13 +37,13 @@ The `dbg` option is the combination of the `pipe` and `debugger` options. It dis
 **libdebug** defines logging levels and information types to allow the user to filter the granularity of the the information they want to see. Logger levels for each event type can be changed at runtime using the [`libcontext`](../../from_pydoc/generated/utils/libcontext) module.
 
 !!! ABSTRACT "Example of setting logging levels"
-        ```python
-        from libdebug import libcontext
+    ```python
+    from libdebug import libcontext
 
-        libcontext.general_logger = 'DEBUG'
-        libcontext.pipe_logger = 'DEBUG'
-        libcontext.debugger_logger = 'DEBUG'
-        ```
+    libcontext.general_logger = 'DEBUG'
+    libcontext.pipe_logger = 'DEBUG'
+    libcontext.debugger_logger = 'DEBUG'
+    ```
 
 | Logger | Description | Supported Levels | Default Level |
 | --- | --- | --- | --- |

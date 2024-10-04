@@ -78,8 +78,7 @@ There is so much more that can be done with libdebug. Please read the [documenta
 libdebug offers many advanced features. Take a look at this script doing magic with signals:
 
 ```python
-from libdebug import debugger
-from libdebug import libcontext
+from libdebug import debugger, libcontext
 
 libcontext.terminal = ['tmux', 'splitw', '-h']
 
@@ -94,7 +93,7 @@ def catcher_SIGINT(t: ThreadContext, catcher: SignalCatcher) -> None:
 def catcher_SIGPIPE(t: ThreadContext, catcher: SignalCatcher) -> None:
     print(f"SIGPIPE: Signal number {catcher}")
 
-def handle_geteuid(t: ThreadContext, handler: SyscallHandler) -> None:
+def geteuid_handler(t: ThreadContext, handler: SyscallHandler) -> None:
 	t.regs.rax = 0x0
 
 # Initialize the debugger
@@ -130,7 +129,7 @@ d.wait()
 d.gdb()
 ```
 
-## ASAP Polling (Pwning mode)
+## Auto Interrupt on Command
 libdebug also allows you to make all commands execute as soon as possible, without having to wait for a stopping event. To enable this mode, you can use the `auto_interrupt_on_command=True` 
 
 ```python
@@ -145,14 +144,22 @@ bp = d.breakpoint("function")
 d.cont()
 
 # Read shortly after the cont is issued
-# The proess is forcibly stopped to read the register
+# The process is forcibly stopped to read the register
 value = d.regs.rax
 print(f"RAX is {hex(value)}")
 
-d.memory[0x12ebe, 8, "libc"] = d.symbols.filter["system"][0].start
+system_offset = d.symbols.filter("system")["system"].pop().start
+libc_base = d.maps.filter("libc")[0].base
+
+system_address = libc_base + system_offset
+
+d.memory[0x12ebe, 8, "libc"] = int.to_bytes(system_address, 8, "little")
+
+d.cont()
+d.wait()
 
 # Here we should be at the breakpoint
-d.wait()
+
 # This value is read while the process is stopped at the breakpoint
 ip_value = d.regs.rip
 

@@ -21,7 +21,7 @@ Each thread has its own register set, stack, and instruction pointer. However, t
 
 - :fontawesome-solid-memory: The virtual address space is usually shared between threads. Currently, **libdebug** does not handle the threading options that separate the memory layout. The assumption is that all threads have access to the same memory space.
 
-- :material-sign-caution: Software breakpoints are implemented through code patching in the process memory. This means that a breakpoint set in one thread will affect all threads.
+- :material-sign-caution: Software breakpoints are implemented through code patching in the process memory. This means that a breakpoint set in one thread will be replicated across all threads.
     - When using [synchronous](../../stopping_events/debugging_flow) breakpoints, you will need to "diagnose" the stopping event to determine which thread triggered the breakpoint. You can do this by checking the return value of the [`hit_on()`](../../stopping_events/debugging_flow/#hit-records) method of the [Breakpoint](../../from_pydoc/generated/data/breakpoint/) object. Passing the [ThreadContext](../../from_pydoc/generated/state/thread_context/) as an argument will return `True` if the breakpoint was hit by that thread.
 
     - When using [asynchronous](../../stopping_events/debugging_flow) breakpoints, the breakpoint will be more intuitive to handle, as the signature of the [callback function](../../stopping_events/breakpoints#callback-signature) includes the [ThreadContext](../../from_pydoc/generated/state/thread_context/) object that triggered the breakpoint.
