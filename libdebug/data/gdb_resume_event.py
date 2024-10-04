@@ -28,8 +28,13 @@ class GdbResumeEvent:
         """
         self._internal_debugger = internal_debugger
         self._lambda_function = lambda_function
+        self._joined = False
 
     def join(self: GdbResumeEvent) -> None:
         """Resumes the debugging session, blocking the script until GDB terminate and libdebug reattaches."""
+        if self._joined:
+            raise RuntimeError("GdbResumeEvent already joined")
+
         self._lambda_function()
         self._internal_debugger._resume_from_gdb()
+        self._joined = True
