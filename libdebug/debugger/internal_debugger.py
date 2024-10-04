@@ -786,7 +786,7 @@ class InternalDebugger:
         migrate_breakpoints: bool = True,
         open_in_new_process: bool = True,
         blocking: bool = True,
-    ) -> GdbResumeEvent | None:
+    ) -> GdbResumeEvent:
         """Migrates the current debugging session to GDB."""
         # TODO: not needed?
         self.interrupt()

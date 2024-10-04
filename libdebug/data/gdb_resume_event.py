@@ -30,6 +30,6 @@ class GdbResumeEvent:
         self._lambda_function = lambda_function
 
     def join(self: GdbResumeEvent) -> None:
-        """Resumes the debugging session, blocking the script until done."""
+        """Resumes the debugging session, blocking the script until GDB terminate and libdebug reattaches."""
         self._lambda_function()
         self._internal_debugger._resume_from_gdb()
