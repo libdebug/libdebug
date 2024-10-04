@@ -385,3 +385,22 @@ class CallbackTest(unittest.TestCase):
         d.kill()
 
         self.assertTrue(hit)
+        
+    def test_callback_empty(self):
+        self.exceptions.clear()
+
+
+        d = debugger("binaries/basic_test")
+
+        d.run()
+
+        bp = d.breakpoint("register_test", callback=True)
+
+        d.cont()
+
+        d.kill()
+
+        self.assertEqual(bp.hit_count, 1)
+
+        if self.exceptions:
+            raise self.exceptions[0]

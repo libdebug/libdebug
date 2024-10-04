@@ -49,7 +49,7 @@ class SignalCatcher:
 
     def hit_on(self: SignalCatcher, thread_context: ThreadContext) -> bool:
         """Returns whether the signal catcher has been hit on the given thread context."""
-        return self.enabled and thread_context._signal_number == self.signal_number
+        return self.enabled and thread_context.signal_number == self.signal_number
 
     def __hash__(self: SignalCatcher) -> int:
         """Return the hash of the signal catcher, based just on the signal number."""

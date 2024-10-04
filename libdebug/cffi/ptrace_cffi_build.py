@@ -50,7 +50,7 @@ if architecture == "x86_64":
             _Bool fresh; // true if the registers have already been fetched for this state
             unsigned char bool_padding[6];
             unsigned char padding0[32];
-            struct reg_128 st[8];
+            struct reg_128 mmx[8];
             struct reg_128 xmm0[16];
             unsigned char padding1[96];
             // end of the 512 byte legacy region
@@ -88,7 +88,7 @@ if architecture == "x86_64":
             _Bool fresh; // true if the registers have already been fetched for this state
             unsigned char bool_padding[6];
             unsigned char padding0[32];
-            struct reg_128 st[8];
+            struct reg_128 mmx[8];
             struct reg_128 xmm0[16];
             unsigned char padding1[96];
             // end of the 512 byte legacy region
@@ -96,6 +96,7 @@ if architecture == "x86_64":
             // ymm0 starts at offset 576
             struct reg_128 ymm0[16];
             unsigned char padding3[64];
+            unsigned char padding4[192]; // mpx save area
         };
         #pragma pack(pop)
         """
@@ -121,7 +122,7 @@ if architecture == "x86_64":
             _Bool fresh; // true if the registers have already been fetched for this state
             unsigned char bool_padding[6];
             unsigned char padding0[32];
-            struct reg_128 st[8];
+            struct reg_128 mmx[8];
             struct reg_128 xmm0[16];
             unsigned char padding1[96];
         };

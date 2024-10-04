@@ -61,6 +61,10 @@ class SyscallHandler:
         self.enabled = False
         self._has_entered = False
 
+    def hit_on(self: SyscallHandler, thread_context: ThreadContext) -> bool:
+        """Returns whether the syscall handler has been hit on the given thread context."""
+        return self.enabled and thread_context.syscall_number == self.syscall_number
+
     def hit_on_enter(self: SyscallHandler, thread_context: ThreadContext) -> bool:
         """Returns whether the syscall handler has been hit during the syscall entry on the given thread context."""
         return self.enabled and thread_context.syscall_number == self.syscall_number and self._has_entered

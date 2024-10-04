@@ -1264,3 +1264,49 @@ class SignalCatchTest(unittest.TestCase):
         self.assertEqual(signals.count(b"Received signal 2"), 2)
         self.assertEqual(signals.count(b"Received signal 3"), 3)
         self.assertEqual(signals.count(b"Received signal 13"), 3)
+        
+    def test_signal_empty_callback(self):
+        d = debugger("binaries/catch_signal_test")
+
+        d.signals_to_block = ["SIGUSR1", 15, "SIGINT", 3, 13]
+
+        d.run()
+
+        catcher1 = d.catch_signal(10, callback=True)
+        catcher2 = d.catch_signal("SIGTERM", callback=True)
+        catcher3 = d.catch_signal(2, callback=True)
+        catcher4 = d.catch_signal("SIGQUIT", callback=True)
+        catcher5 = d.catch_signal("SIGPIPE", callback=True)
+
+        d.cont()
+
+        d.kill()
+
+        self.assertEqual(2, catcher1.hit_count)
+        self.assertEqual(2, catcher2.hit_count)
+        self.assertEqual(2, catcher3.hit_count)
+        self.assertEqual(3, catcher4.hit_count)
+        self.assertEqual(3, catcher5.hit_count)
+        
+    def test_catch_all_signals(self):
+        d = debugger("binaries/catch_signal_test")
+
+        d.signals_to_block = ["SIGUSR1", 15, "SIGINT", 3, 13]
+        
+        for value in ["ALL", "all", "*", "pkm", -1]:
+            counter = 0
+
+            d.run()
+            
+            def catcher(t, cs):
+                nonlocal counter
+                counter += 1
+
+            catcher = d.catch_signal(value, callback=catcher)
+
+            d.cont()
+
+            d.kill()
+
+            self.assertEqual(12, catcher.hit_count)
+            self.assertEqual(12, counter)

@@ -20,8 +20,9 @@ class WatchpointTest(unittest.TestCase):
         wp_long = d.breakpoint("global_long", hardware=True, condition="rw", length=8)
 
         d.cont()
-
+ 
         self.assertEqual(d.regs.rip, 0x401111)  # mov byte ptr [global_char], 0x1
+        self.assertTrue(wp_char.hit_on(d))
         self.assertEqual(wp_char.hit_count, 1)
         self.assertEqual(wp_int.hit_count, 0)
         self.assertEqual(wp_long.hit_count, 0)
@@ -29,6 +30,7 @@ class WatchpointTest(unittest.TestCase):
         d.cont()
 
         self.assertEqual(d.regs.rip, 0x401124)  # mov dword ptr [global_int], 0x4050607
+        self.assertTrue(wp_int.hit_on(d))
         self.assertEqual(wp_char.hit_count, 1)
         self.assertEqual(wp_int.hit_count, 1)
         self.assertEqual(wp_long.hit_count, 0)
@@ -38,6 +40,7 @@ class WatchpointTest(unittest.TestCase):
         self.assertEqual(
             d.regs.rip, 0x401135
         )  # mov qword ptr [global_long], 0x8090a0b0c0d0e0f
+        self.assertTrue(wp_long.hit_on(d))
         self.assertEqual(wp_char.hit_count, 1)
         self.assertEqual(wp_int.hit_count, 1)
         self.assertEqual(wp_long.hit_count, 1)
@@ -45,6 +48,7 @@ class WatchpointTest(unittest.TestCase):
         d.cont()
 
         self.assertEqual(d.regs.rip, 0x401155)  # movzx eax, byte ptr [global_char]
+        self.assertTrue(wp_char.hit_on(d))
         self.assertEqual(wp_char.hit_count, 2)
         self.assertEqual(wp_int.hit_count, 1)
         self.assertEqual(wp_long.hit_count, 1)
@@ -52,6 +56,7 @@ class WatchpointTest(unittest.TestCase):
         d.cont()
 
         self.assertEqual(d.regs.rip, 0x401173)  # mov rax, qword ptr [global_long]
+        self.assertTrue(wp_long.hit_on(d))
         self.assertEqual(wp_char.hit_count, 2)
         self.assertEqual(wp_int.hit_count, 1)
         self.assertEqual(wp_long.hit_count, 2)
@@ -148,6 +153,7 @@ class WatchpointTest(unittest.TestCase):
         d.cont()
 
         self.assertEqual(d.regs.rip, 0x401111)  # mov byte ptr [global_char], 0x1
+        self.assertTrue(wp_char.hit_on(d))
         self.assertEqual(wp_char.hit_count, 1)
         self.assertEqual(wp_int.hit_count, 0)
         self.assertEqual(wp_long.hit_count, 0)
@@ -155,6 +161,7 @@ class WatchpointTest(unittest.TestCase):
         d.cont()
 
         self.assertEqual(d.regs.rip, 0x401124)  # mov dword ptr [global_int], 0x4050607
+        self.assertTrue(wp_int.hit_on(d))
         self.assertEqual(wp_char.hit_count, 1)
         self.assertEqual(wp_int.hit_count, 1)
         self.assertEqual(wp_long.hit_count, 0)
@@ -164,6 +171,7 @@ class WatchpointTest(unittest.TestCase):
         self.assertEqual(
             d.regs.rip, 0x401135
         )  # mov qword ptr [global_long], 0x8090a0b0c0d0e0f
+        self.assertTrue(wp_long.hit_on(d))
         self.assertEqual(wp_char.hit_count, 1)
         self.assertEqual(wp_int.hit_count, 1)
         self.assertEqual(wp_long.hit_count, 1)
@@ -174,6 +182,7 @@ class WatchpointTest(unittest.TestCase):
         d.cont()
 
         self.assertEqual(d.regs.rip, 0x401173)  # mov rax, qword ptr [global_long]
+        self.assertTrue(wp_long.hit_on(d))
         self.assertEqual(wp_char.hit_count, 1)
         self.assertEqual(wp_int.hit_count, 1)
         self.assertEqual(wp_long.hit_count, 2)
@@ -194,6 +203,7 @@ class WatchpointTest(unittest.TestCase):
         d.cont()
 
         self.assertEqual(d.regs.rip, 0x401111)  # mov byte ptr [global_char], 0x1
+        self.assertTrue(wp_char.hit_on(d))
         self.assertEqual(wp_char.hit_count, 1)
         self.assertEqual(wp_int.hit_count, 0)
         self.assertEqual(wp_long.hit_count, 0)
@@ -201,6 +211,7 @@ class WatchpointTest(unittest.TestCase):
         d.cont()
 
         self.assertEqual(d.regs.rip, 0x401124)  # mov dword ptr [global_int], 0x4050607
+        self.assertTrue(wp_int.hit_on(d))
         self.assertEqual(wp_char.hit_count, 1)
         self.assertEqual(wp_int.hit_count, 1)
         self.assertEqual(wp_long.hit_count, 0)
@@ -212,6 +223,7 @@ class WatchpointTest(unittest.TestCase):
 
 
         self.assertEqual(d.regs.rip, 0x401155)  # movzx eax, byte ptr [global_char]
+        self.assertTrue(wp_char.hit_on(d))
         self.assertEqual(wp_char.hit_count, 2)
         self.assertEqual(wp_int.hit_count, 1)
         self.assertEqual(wp_long.hit_count, 0)
@@ -222,6 +234,7 @@ class WatchpointTest(unittest.TestCase):
         d.cont()
 
         self.assertEqual(d.regs.rip, 0x401173)  # mov rax, qword ptr [global_long]
+        self.assertTrue(wp_long.hit_on(d))
         self.assertEqual(wp_char.hit_count, 2)
         self.assertEqual(wp_int.hit_count, 1)
         self.assertEqual(wp_long.hit_count, 1)

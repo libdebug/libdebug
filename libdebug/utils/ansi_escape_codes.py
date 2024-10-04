@@ -4,8 +4,10 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+from __future__ import annotations
 
-class PrintStyle:
+
+class ANSIColors:
     """Class to define colors for the terminal."""
 
     RED = "\033[91m"

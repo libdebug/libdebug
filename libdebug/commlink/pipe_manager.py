@@ -7,17 +7,26 @@
 from __future__ import annotations
 
 import os
+import sys
 import time
 from select import select
+from threading import Event
+from typing import TYPE_CHECKING
 
+from libdebug.commlink.libterminal import LibTerminal
+from libdebug.debugger.internal_debugger_instance_manager import extend_internal_debugger, provide_internal_debugger
 from libdebug.liblog import liblog
+
+if TYPE_CHECKING:
+    from libdebug.debugger.internal_debugger import InternalDebugger
 
 
 class PipeManager:
     """Class for managing pipes of the child process."""
 
-    _instance = None
     timeout_default: int = 2
+    prompt_default: str = "$ "
+    __end_interactive_event: Event = Event()
 
     def __init__(self: PipeManager, stdin_write: int, stdout_read: int, stderr_read: int) -> None:
         """Initializes the PipeManager class.
@@ -30,6 +39,7 @@ class PipeManager:
         self.stdin_write: int = stdin_write
         self.stdout_read: int = stdout_read
         self.stderr_read: int = stderr_read
+        self._internal_debugger: InternalDebugger = provide_internal_debugger(self)
 
     def _recv(
         self: PipeManager,
@@ -318,7 +328,12 @@ class PipeManager:
             liblog.warning("The input data is a string, converting to bytes")
             data = data.encode()
 
-        return os.write(self.stdin_write, data)
+        try:
+            number_bytes = os.write(self.stdin_write, data)
+        except OSError as e:
+            raise RuntimeError("Broken pipe. Is the child process still running?") from e
+
+        return number_bytes
 
     def sendline(self: PipeManager, data: bytes) -> int:
         """Sends data to the child process stdin and append a newline.
@@ -332,7 +347,6 @@ class PipeManager:
         if isinstance(data, str):
             liblog.warning("The input data is a string, converting to bytes")
             data = data.encode()
-
         return self.send(data=data + b"\n")
 
     def sendafter(
@@ -384,3 +398,64 @@ class PipeManager:
         received = self.recvuntil(delims=delims, occurences=occurences, drop=drop, timeout=timeout)
         sent = self.sendline(data)
         return (received, sent)
+
+    def _recv_for_interactive(self: PipeManager) -> None:
+        """Receives data from the child process."""
+        stdout_is_open = True
+        stderr_is_open = True
+
+        while not self.__end_interactive_event.is_set() and (stdout_is_open or stderr_is_open):
+            # We can afford to treat stdout and stderr sequentially. This approach should also prevent
+            # messing up the order of the information printed by the child process.
+            # To avoid starvation, we will read at most one byte at a time and force a switch between pipes
+            # upon receiving a newline character.
+            if stdout_is_open:
+                try:
+                    while recv_stdout := self._recv(numb=1, timeout=0.05, stderr=False):
+                        sys.stdout.write(payload=recv_stdout)
+                        if recv_stdout == b"\n":
+                            break
+                except RuntimeError:
+                    # The child process has closed the stdout pipe
+                    liblog.warning("The stdout pipe of the child process is not available anymore")
+                    stdout_is_open = False
+                    continue
+            if stderr_is_open:
+                try:
+                    while recv_stderr := self._recv(numb=1, timeout=0.05, stderr=True):
+                        sys.stderr.write(payload=recv_stderr)
+                        if recv_stderr == b"\n":
+                            break
+                except RuntimeError:
+                    # The child process has closed the stderr pipe
+                    liblog.warning("The stderr pipe of the child process is not available anymore")
+                    stderr_is_open = False
+                    continue
+
+    def interactive(self: PipeManager, prompt: str = prompt_default) -> None:
+        """Manually interact with the child process.
+
+        Args:
+            prompt (str, optional): prompt for the interactive mode. Defaults to "$ " (prompt_default).
+        """
+        liblog.info("Calling interactive mode")
+
+        # Set up and run the terminal
+        with extend_internal_debugger(self):
+            libterminal = LibTerminal(prompt, self.sendline, self.__end_interactive_event)
+
+        # Receive data from the child process's stdout and stderr pipes
+        self._recv_for_interactive()
+
+        # Be sure that the interactive mode has ended
+        # If the the stderr and stdout pipes are closed, the interactive mode will continue until the user manually
+        # stops it or also the stdin pipe is closed
+        self.__end_interactive_event.wait()
+
+        # Unset the interactive mode event
+        self.__end_interactive_event.clear()
+
+        # Reset the terminal
+        libterminal.reset()
+
+        liblog.info("Exiting interactive mode")
