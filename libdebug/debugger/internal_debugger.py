@@ -28,6 +28,7 @@ from libdebug.builtin.pretty_print_syscall_handler import (
     pprint_on_exit,
 )
 from libdebug.data.breakpoint import Breakpoint
+from libdebug.data.gdb_resume_event import GdbResumeEvent
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
 from libdebug.debugger.internal_debugger_instance_manager import (
@@ -780,7 +781,12 @@ class InternalDebugger:
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
-    def gdb(self: InternalDebugger, migrate_breakpoints: bool = True, open_in_new_process: bool = True) -> None:
+    def gdb(
+        self: InternalDebugger,
+        migrate_breakpoints: bool = True,
+        open_in_new_process: bool = True,
+        blocking: bool = True,
+    ) -> GdbResumeEvent | None:
         """Migrates the current debugging session to GDB."""
         # TODO: not needed?
         self.interrupt()
@@ -792,17 +798,21 @@ class InternalDebugger:
         command = self._craft_gdb_migration_command(migrate_breakpoints)
 
         if open_in_new_process and libcontext.terminal:
-            self._open_gdb_in_new_process(command)
+            lambda_fun = self._open_gdb_in_new_process(command)
         else:
             if open_in_new_process:
                 liblog.warning(
                     "Cannot open in a new process. Please configure the terminal in libcontext.terminal.",
                 )
-            self._open_gdb_in_shell(command)
+            lambda_fun = self._open_gdb_in_shell(command)
 
-        self.__polling_thread_command_queue.put((self.__threaded_migrate_from_gdb, ()))
+        resume_event = GdbResumeEvent(self, lambda_fun)
 
-        self._join_and_check_status()
+        if blocking:
+            resume_event.join()
+            return None
+        else:
+            return resume_event
 
     def _craft_gdb_migration_command(self: InternalDebugger, migrate_breakpoints: bool) -> list[str]:
         """Crafts the command to migrate to GDB."""
@@ -849,40 +859,55 @@ class InternalDebugger:
 
         os.waitpid(initial_pid, 0)
 
-        liblog.debugger("Waiting for GDB process to terminate...")
+        def wait_for_termination() -> None:
+            liblog.debugger("Waiting for GDB process to terminate...")
 
-        for proc in psutil.process_iter():
-            try:
-                cmdline = proc.cmdline()
-            except psutil.ZombieProcess:
-                # This is a zombie process, which psutil tracks but we cannot interact with
-                continue
+            for proc in psutil.process_iter():
+                try:
+                    cmdline = proc.cmdline()
+                except psutil.ZombieProcess:
+                    # This is a zombie process, which psutil tracks but we cannot interact with
+                    continue
 
-            if args == cmdline:
-                gdb_process = proc
-                break
-        else:
-            raise RuntimeError("GDB process not found.")
+                if args == cmdline:
+                    gdb_process = proc
+                    break
+            else:
+                raise RuntimeError("GDB process not found.")
 
-        while gdb_process.is_running() and gdb_process.status() != psutil.STATUS_ZOMBIE:
-            # As the GDB process is in a different group, we do not have the authority to wait on it
-            # So we must keep polling it until it is no longer running
-            pass
+            while gdb_process.is_running() and gdb_process.status() != psutil.STATUS_ZOMBIE:
+                # As the GDB process is in a different group, we do not have the authority to wait on it
+                # So we must keep polling it until it is no longer running
+                pass
+
+        return wait_for_termination
 
     def _open_gdb_in_shell(self: InternalDebugger, args: list[str]) -> None:
         """Open GDB in the current shell."""
         gdb_pid = os.fork()
+
         if gdb_pid == 0:  # This is the child process.
             os.execv("/bin/gdb", args)
-        else:  # This is the parent process.
-            # Parent ignores SIGINT, so only GDB (child) receives it
-            signal.signal(signal.SIGINT, signal.SIG_IGN)
+            raise RuntimeError("Failed to execute GDB.")
 
+        # This is the parent process.
+        # Parent ignores SIGINT, so only GDB (child) receives it
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+        def wait_for_termination() -> None:
             # Wait for the child process to finish
             os.waitpid(gdb_pid, 0)
 
             # Reset the SIGINT behavior to default handling after child exits
             signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+        return wait_for_termination
+
+    def _resume_from_gdb(self: InternalDebugger) -> None:
+        """Resumes the process after migrating from GDB."""
+        self.__polling_thread_command_queue.put((self.__threaded_migrate_from_gdb, ()))
+
+        self._join_and_check_status()
 
     def _background_step(self: InternalDebugger, thread: ThreadContext) -> None:
         """Executes a single instruction of the process.
