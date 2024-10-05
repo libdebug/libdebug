@@ -54,6 +54,7 @@ AMD64_SPECIAL_REGS = [
     "gs",
 ]
 
+
 def _get_property_64(name: str) -> property:
     def getter(self: Amd64Registers) -> int:
         self._internal_debugger._ensure_process_stopped()
@@ -279,6 +280,10 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
     def provide_vector_fp_regs(self: Amd64PtraceRegisterHolder) -> list[tuple[str]]:
         """Provide the list of vector and floating point registers."""
         return self._vector_fp_registers
+
+    def provide_special_regs(self: Amd64PtraceRegisterHolder) -> list[str]:
+        """Provide the list of special registers, which are not intended for general-purpose use."""
+        return AMD64_SPECIAL_REGS
 
     def apply_on_regs(self: Amd64PtraceRegisterHolder, target: Amd64Registers, target_class: type) -> None:
         """Apply the register accessors to the Amd64Registers class."""

@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from libdebug.architectures.aarch64.aarch64_registers import Aarch64Registers
+from libdebug.data.register_holder import RegisterHolder
 from libdebug.ptrace.ptrace_register_holder import PtraceRegisterHolder
 
 if TYPE_CHECKING:
@@ -18,6 +19,7 @@ if TYPE_CHECKING:
 
 AARCH64_REGS = [f"x{i}" for i in range(31)] + ["sp", "xzr", "pc"]
 
+AARCH64_SPECIAL_REGS = ["pstate"]
 
 def _get_property_64(name: str) -> property:
     def getter(self: Aarch64Registers) -> int:
@@ -163,6 +165,10 @@ class Aarch64PtraceRegisterHolder(PtraceRegisterHolder):
     def provide_vector_fp_regs(self: Aarch64PtraceRegisterHolder) -> list[tuple[str]]:
         """Provide the list of vector and floating point registers."""
         return self._vector_fp_registers
+
+    def provide_special_regs(self: Aarch64PtraceRegisterHolder) -> list[str]:
+        """Provide the list of special registers, which are not intended for general-purpose use."""
+        return AARCH64_SPECIAL_REGS
 
     def apply_on_regs(self: Aarch64PtraceRegisterHolder, target: Aarch64Registers, target_class: type) -> None:
         """Apply the register accessors to the Aarch64Registers class."""
