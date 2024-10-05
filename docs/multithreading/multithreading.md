@@ -38,6 +38,4 @@ Each thread has its own register set, stack, and instruction pointer. However, t
 
 
 !!! EXAMPLE "How to access TLS?"
-    While the virtual address space is shared between threads, each thread has its own [Thread Local Storage (TLS)](https://en.wikipedia.org/wiki/Thread-local_storage) area. As it stands, **libdebug** does not provide a direct interface to the TLS area. Moreover, some of the registers that are used to access the TLS area are not exposed by **libdebug** in the `regs` attribute.
-    
-    You can still access segment registers on Intel architectures through the `register_file` attribute of the `regs` holder. For example, `t.regs.register_file.fs_base` will return the value of the `FS` segment base register.
+    While the virtual address space is shared between threads, each thread has its own [Thread Local Storage (TLS)](https://en.wikipedia.org/wiki/Thread-local_storage) area. As it stands, **libdebug** does not provide a direct interface to the TLS area.

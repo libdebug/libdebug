@@ -39,6 +39,17 @@ Note that the register values are read and written as Python integers. This is t
     | R14       | Integer        | R14D, R14W, R14B| General-purpose register                          |
     | R15       | Integer        | R15D, R15W, R15B| General-purpose register                          |
     | RIP       | Integer        | EIP             | Instruction pointer                               |
+    | **Flags** |
+    | EFLAGS    | Integer        |           | Flags register                                    |
+    | **Segment Registers** |
+    | CS        | Integer        |                 | Code segment                                      |
+    | DS        | Integer        |                 | Data segment                                      |
+    | ES        | Integer        |                 | Extra segment                                     |
+    | FS        | Integer        |                 | Additional segment                                |
+    | GS        | Integer        |                 | Additional segment                                |
+    | SS        | Integer        |                 | Stack segment                                     |
+    | FS_BASE   | Integer        |                 | FS segment base address                           |
+    | GS_BASE   | Integer        |                 | GS segment base address                           |
     | **Floating Point Registers** |
     | XMM0      | Integer |                 | Lower 128 bits of YMM0/ZMM0                       |
     | XMM1      | Integer |                 | Lower 128 bits of YMM1/ZMM1                       |
@@ -91,6 +102,46 @@ Note that the register values are read and written as Python integers. This is t
     | **Floating Point (Legacy x87)** |
     | ST(0)-ST(7)| Floating Point |                 | x87 FPU data registers                            |
     | MM0-MM7    | Integer |                 | MMX registers                                     |
+=== "i386"
+    | Register  | Type          | Related       | Description                                       |
+    |-----------|---------------|-----------------|---------------------------------------------------|
+    | **General Purpose** |
+    | EAX       | Integer        | AX, AH, AL     | Accumulator register                              |
+    | EBX       | Integer        | BX, BH, BL     | Base register                                     |
+    | ECX       | Integer        | CX, CH, CL     | Counter register                                  |
+    | EDX       | Integer        | DX, DH, DL     | Data register                                     |
+    | ESI       | Integer        | SI             | Source index for string operations                |
+    | EDI       | Integer        | DI             | Destination index for string operations           |
+    | EBP       | Integer        | BP             | Base pointer (frame pointer)                      |
+    | ESP       | Integer        | SP             | Stack pointer                                     |
+    | EIP       | Integer        | IP             | Instruction pointer                               |
+    | **Flags** |
+    | EFLAGS    | Integer        |                | Flags register                                    |
+    | **Segment Registers** |
+    | CS        | Integer        |                | Code segment                                      |
+    | DS        | Integer        |                | Data segment                                      |
+    | ES        | Integer        |                | Extra segment                                     |
+    | FS        | Integer        |                | Additional segment                                |
+    | GS        | Integer        |                | Additional segment                                |
+    | SS        | Integer        |                | Stack segment                                     |
+    | **Floating Point Registers** |
+    | ST(0)-ST(7)| Floating Point |                | x87 FPU data registers                            |
+    | XMM0      | Integer        |                | Lower 128 bits of YMM0/ZMM0                       |
+    | XMM1      | Integer        |                | Lower 128 bits of YMM1/ZMM1                       |
+    | XMM2      | Integer        |                | Lower 128 bits of YMM2/ZMM2                       |
+    | XMM3      | Integer        |                | Lower 128 bits of YMM3/ZMM3                       |
+    | XMM4      | Integer        |                | Lower 128 bits of YMM4/ZMM4                       |
+    | XMM5      | Integer        |                | Lower 128 bits of YMM5/ZMM5                       |
+    | XMM6      | Integer        |                | Lower 128 bits of YMM6/ZMM6                       |
+    | XMM7      | Integer        |                | Lower 128 bits of YMM7/ZMM7                       |
+    | YMM0      | Integer        |                | 256-bit AVX extension of XMM0                     |
+    | YMM1      | Integer        |                | 256-bit AVX extension of XMM1                     |
+    | YMM2      | Integer        |                | 256-bit AVX extension of XMM2                     |
+    | YMM3      | Integer        |                | 256-bit AVX extension of XMM3                     |
+    | YMM4      | Integer        |                | 256-bit AVX extension of XMM4                     |
+    | YMM5      | Integer        |                | 256-bit AVX extension of XMM5                     |
+    | YMM6      | Integer        |                | 256-bit AVX extension of XMM6                     |
+    | YMM7      | Integer        |                | 256-bit AVX extension of XMM7                     |
 === "AArch64"
     | Register  | Type            | Alias(es)        | Description                                      |
     |-----------|-----------------|------------------|--------------------------------------------------|
