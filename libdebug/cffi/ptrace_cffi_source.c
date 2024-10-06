@@ -1142,6 +1142,7 @@ int stepping_finish(struct global_state *state, int tid)
 
     uint64_t previous_ip, current_ip;
     uint64_t opcode_window, opcode;
+    struct software_breakpoint *b = state->sw_b_HEAD;
 
     // We need to keep track of the nested calls
     int nested_call_counter = 1;
@@ -1196,7 +1197,6 @@ int stepping_finish(struct global_state *state, int tid)
 
 cleanup:
     // remove any installed breakpoint
-    struct software_breakpoint *b = state->sw_b_HEAD;
     while (b != NULL) {
         if (b->enabled) {
             ptrace(PTRACE_POKEDATA, tid, (void *)b->addr, b->instruction);
