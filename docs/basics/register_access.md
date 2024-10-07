@@ -180,6 +180,8 @@ Note that the register values are read and written as Python integers. This is t
     | XZR       | Integer          | WZR, ZR          | Zero register (always reads as zero)             |
     | SP        | Integer          |                  | Stack pointer                                    |
     | PC        | Integer          |                  | Program counter                                  |
+    | **Flags** |
+    | PSTATE      | Integer          |                  | [Processor state in exception handling](https://developer.arm.com/documentation/100933/0100/Processor-state-in-exception-handling)            |
     | **Floating Point Registers (SIMD/FP)** |
     | V0        | Integer   |                  | Vector or scalar register                        |
     | V1        | Integer   |                  | Vector or scalar register                        |
