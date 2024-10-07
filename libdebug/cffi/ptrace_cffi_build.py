@@ -96,6 +96,7 @@ def parse_fp_regs_x86():
             // ymm0 starts at offset 576
             struct reg_128 ymm0[16];
             unsigned char padding3[64];
+            unsigned char padding4[192]; // mpx save area
         };
         #pragma pack(pop)
         """

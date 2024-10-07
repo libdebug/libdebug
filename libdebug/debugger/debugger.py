@@ -262,9 +262,14 @@ class Debugger:
         """
         return self._internal_debugger.hijack_syscall(original_syscall, new_syscall, recursive, **kwargs)
 
-    def gdb(self: Debugger, open_in_new_process: bool = True) -> None:
-        """Migrates the current debugging session to GDB."""
-        self._internal_debugger.gdb(open_in_new_process)
+    def gdb(self: Debugger, migrate_breakpoints: bool = True, open_in_new_process: bool = True) -> None:
+        """Migrates the current debugging session to GDB.
+
+        Args:
+            migrate_breakpoints (bool): Whether to migrate over the breakpoints set in libdebug to GDB.
+            open_in_new_process (bool): Whether to attempt to open GDB in a new process instead of the current one.
+        """
+        self._internal_debugger.gdb(migrate_breakpoints, open_in_new_process)
 
     def r(self: Debugger, redirect_pipes: bool = True) -> PipeManager | None:
         """Alias for the `run` method.

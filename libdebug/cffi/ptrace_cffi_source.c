@@ -29,7 +29,7 @@
     #if (FPREGS_AVX == 0)
         _Static_assert((sizeof(struct fp_regs_struct) - offsetof(struct fp_regs_struct, padding0)) == 512, "user_fpregs_struct size is not 512 bytes");
     #elif (FPREGS_AVX == 1)
-        _Static_assert((sizeof(struct fp_regs_struct) - offsetof(struct fp_regs_struct, padding0)) == 896, "user_fpregs_struct size is not 896 bytes");
+        _Static_assert((sizeof(struct fp_regs_struct) - offsetof(struct fp_regs_struct, padding0)) == 1088, "user_fpregs_struct size is not 1088 bytes");
     #elif (FPREGS_AVX == 2)
         _Static_assert((sizeof(struct fp_regs_struct) - offsetof(struct fp_regs_struct, padding0)) == 2696, "user_fpregs_struct size is not 2696 bytes");
     #else
@@ -1235,6 +1235,7 @@ int stepping_finish(struct global_state *state, int tid, _Bool use_trampoline_he
 
     unsigned long previous_ip, current_ip;
     unsigned long opcode_window, opcode;
+    struct software_breakpoint *b = state->sw_b_HEAD;
 
     // We need to keep track of the nested calls
     int nested_call_counter = 1;
@@ -1301,7 +1302,6 @@ int stepping_finish(struct global_state *state, int tid, _Bool use_trampoline_he
 
 cleanup:
     // remove any installed breakpoint
-    struct software_breakpoint *b = state->sw_b_HEAD;
     while (b != NULL) {
         if (b->enabled) {
             ptrace(PTRACE_POKEDATA, tid, (void *)b->addr, b->instruction);

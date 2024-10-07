@@ -281,7 +281,7 @@ class InternalDebugger:
         if not self.__polling_thread_command_queue.empty():
             raise RuntimeError("Polling thread command queue not empty.")
 
-        self.__polling_thread_command_queue.put((self.__threaded_run, (redirect_pipes, )))
+        self.__polling_thread_command_queue.put((self.__threaded_run, (redirect_pipes,)))
 
         self._join_and_check_status()
 
@@ -780,7 +780,7 @@ class InternalDebugger:
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
-    def gdb(self: InternalDebugger, open_in_new_process: bool = True) -> None:
+    def gdb(self: InternalDebugger, migrate_breakpoints: bool = True, open_in_new_process: bool = True) -> None:
         """Migrates the current debugging session to GDB."""
         # TODO: not needed?
         self.interrupt()
@@ -789,20 +789,22 @@ class InternalDebugger:
 
         self._join_and_check_status()
 
+        command = self._craft_gdb_migration_command(migrate_breakpoints)
+
         if open_in_new_process and libcontext.terminal:
-            self._open_gdb_in_new_process()
+            self._open_gdb_in_new_process(command)
         else:
             if open_in_new_process:
                 liblog.warning(
                     "Cannot open in a new process. Please configure the terminal in libcontext.terminal.",
                 )
-            self._open_gdb_in_shell()
+            self._open_gdb_in_shell(command)
 
         self.__polling_thread_command_queue.put((self.__threaded_migrate_from_gdb, ()))
 
         self._join_and_check_status()
 
-    def _craft_gdb_migration_command(self: InternalDebugger) -> list[str]:
+    def _craft_gdb_migration_command(self: InternalDebugger, migrate_breakpoints: bool) -> list[str]:
         """Crafts the command to migrate to GDB."""
         gdb_command = [
             "/bin/gdb",
@@ -816,6 +818,9 @@ class InternalDebugger:
             "-ex",
             "ni",
         ]
+
+        if not migrate_breakpoints:
+            return gdb_command
 
         bp_args = []
         for bp in self.breakpoints.values():
@@ -838,10 +843,8 @@ class InternalDebugger:
 
         return gdb_command + bp_args
 
-    def _open_gdb_in_new_process(self: InternalDebugger) -> None:
+    def _open_gdb_in_new_process(self: InternalDebugger, args: list[str]) -> None:
         """Opens GDB in a new process following the configuration in libcontext.terminal."""
-        args = self._craft_gdb_migration_command()
-
         initial_pid = Popen(libcontext.terminal + args).pid
 
         os.waitpid(initial_pid, 0)
@@ -866,11 +869,10 @@ class InternalDebugger:
             # So we must keep polling it until it is no longer running
             pass
 
-    def _open_gdb_in_shell(self: InternalDebugger) -> None:
+    def _open_gdb_in_shell(self: InternalDebugger, args: list[str]) -> None:
         """Open GDB in the current shell."""
         gdb_pid = os.fork()
         if gdb_pid == 0:  # This is the child process.
-            args = self._craft_gdb_migration_command()
             os.execv("/bin/gdb", args)
         else:  # This is the parent process.
             # Parent ignores SIGINT, so only GDB (child) receives it
