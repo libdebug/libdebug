@@ -186,6 +186,9 @@ class Aarch64PtraceRegisterHolder(PtraceRegisterHolder):
             setattr(target_class, name_64, _get_property_64(name_64))
             setattr(target_class, name_32, _get_property_32(name_64))
 
+        for reg in AARCH64_SPECIAL_REGS:
+            setattr(target_class, reg, _get_property_64(reg))
+
         # setup the floating point registers
         for i in range(32):
             name_v = f"v{i}"
