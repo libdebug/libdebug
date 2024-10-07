@@ -13,7 +13,7 @@ from libdebug.debugger.internal_debugger_instance_manager import (
 )
 from libdebug.liblog import liblog
 from libdebug.utils.ansi_escape_codes import ANSIColors
-from libdebug.utils.debugging_utils import resolve_address_in_maps
+from libdebug.utils.debugging_utils import resolve_address_in_maps, resolve_tls_symbol_in_maps
 from libdebug.utils.signal_utils import resolve_signal_name, resolve_signal_number
 
 if TYPE_CHECKING:
@@ -56,6 +56,9 @@ class ThreadContext:
 
     regs: Registers
     """The thread's registers."""
+
+    tls_address: int
+    """The thread's TLS address."""
 
     _internal_debugger: InternalDebugger | None = None
     """The debugging context this thread belongs to."""
@@ -207,6 +210,11 @@ class ThreadContext:
         """The signal number to forward to the thread."""
         return self._signal_number
 
+    @property
+    def tls_address(self: ThreadContext) -> int:
+        """The thread's TLS address."""
+        return self._internal_debugger._get_tls_address(self)
+
     def backtrace(self: ThreadContext, as_symbols: bool = False) -> list:
         """Returns the current backtrace of the thread.
 
@@ -321,6 +329,27 @@ class ThreadContext:
     def next(self: ThreadContext) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._internal_debugger.next(self)
+
+    def tls(self: ThreadContext, item: int | str, size: int = 8, backing_file: str | None = None) -> bytes:
+        """Returns the TLS item of the specified size.
+
+        Args:
+            item (int | str): The item to retrieve from the thread's local storage.
+            size (int, optional): The size of the item. Defaults to 8.
+            backing_file (str, optional): The user-defined backing file to resolve the address in. Defaults to all files.
+        """
+        maps = self._internal_debugger.debugging_interface.get_maps()
+
+        if backing_file:
+            maps = maps.filter(backing_file)
+
+        offset = resolve_tls_symbol_in_maps(item, maps) if isinstance(item, str) else item
+
+        base = self.tls_address
+
+        print(hex(base - offset - size))
+
+        return self.memory[base - offset - size, size, "absolute"]
 
     def si(self: ThreadContext) -> None:
         """Alias for the `step` method.

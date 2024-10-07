@@ -1320,3 +1320,26 @@ unsigned long get_hit_hw_breakpoint(struct global_state *state, int tid)
 
     return 0;
 }
+
+unsigned long get_tls_address(int tid)
+{
+#if defined ARCH_AMD64
+    struct ptrace_regs_struct regs;
+
+    getregs(tid, &regs);
+
+    return regs.fs_base;
+#endif
+
+#if defined ARCH_AARCH64
+    unsigned long tls_address[2] = {0, 0};
+
+    struct iovec iov;
+    iov.iov_base = tls_address;
+    iov.iov_len = sizeof(tls_address);
+
+    ptrace(PTRACE_GETREGSET, tid, NT_ARM_TLS, &iov);
+
+    return tls_address[0];
+#endif
+}

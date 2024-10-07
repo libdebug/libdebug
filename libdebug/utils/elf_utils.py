@@ -136,12 +136,13 @@ def _parse_elf_file(path: str, debug_info_level: int) -> tuple[SymbolDict[str, s
 
 
 @functools.cache
-def resolve_symbol(path: str, symbol: str) -> int:
+def _resolve_symbol(path: str, symbol: str, in_tls: bool) -> int:
     """Returns the address of the specified symbol in the specified ELF file.
 
     Args:
         path (str): The path to the ELF file.
         symbol (str): The symbol whose address should be returned.
+        in_tls (bool): True if the symbol is supposed to be in thread-local storage, False otherwise.
 
     Returns:
         int: The address of the specified symbol in the specified ELF file.
@@ -154,7 +155,12 @@ def resolve_symbol(path: str, symbol: str) -> int:
     # Retrieve the symbols from the SymbolTableSection
     symbols, buildid, debug_file = _parse_elf_file(path, libcontext.sym_lvl)
     if symbol in symbols:
-        return next(iter(symbols[symbol])).start
+        resolved: Symbol = next(iter(symbols[symbol]))
+        if resolved.thread_local and not in_tls:
+            raise RuntimeError(f"Symbol {symbol} is in thread-local storage. Please specify a valid symbol.")
+        if not resolved.thread_local and in_tls:
+            raise RuntimeError(f"Symbol {symbol} is not in thread-local storage. Please specify a valid symbol.")
+        return resolved.start
 
     # Retrieve the symbols from the external debuginfo file
     if buildid and debug_file and libcontext.sym_lvl > 2:
@@ -162,7 +168,12 @@ def resolve_symbol(path: str, symbol: str) -> int:
         absolute_debug_path_str = str((LOCAL_DEBUG_PATH / folder / debug_file).resolve())
         symbols = _collect_external_info(absolute_debug_path_str)
         if symbol in symbols:
-            return next(iter(symbols[symbol])).start
+            resolved: Symbol = next(iter(symbols[symbol]))
+            if resolved.thread_local and not in_tls:
+                raise RuntimeError(f"Symbol {symbol} is in thread-local storage. Please specify a valid symbol.")
+            if not resolved.thread_local and in_tls:
+                raise RuntimeError(f"Symbol {symbol} is not in thread-local storage. Please specify a valid symbol.")
+            return resolved.start
 
     # Retrieve the symbols from debuginfod
     if buildid and libcontext.sym_lvl > 4:
@@ -170,10 +181,41 @@ def resolve_symbol(path: str, symbol: str) -> int:
         if absolute_debug_path.exists():
             symbols = _collect_external_info(str(absolute_debug_path))
             if symbol in symbols:
-                return next(iter(symbols[symbol])).start
+                resolved: Symbol = next(iter(symbols[symbol]))
+                if resolved.thread_local and not in_tls:
+                    raise RuntimeError(f"Symbol {symbol} is in thread-local storage. Please specify a valid symbol.")
+                if not resolved.thread_local and in_tls:
+                    raise RuntimeError(f"Symbol {symbol} is not in thread-local storage. Please specify a valid symbol.")
+                return resolved.start
 
     # Symbol not found
     raise ValueError(f"Symbol {symbol} not found in {path}. Please specify a valid symbol.")
+
+
+def resolve_symbol(path: str, symbol: str) -> int:
+    """Returns the address of the specified symbol in the specified ELF file.
+
+    Args:
+        path (str): The path to the ELF file.
+        symbol (str): The symbol whose address should be returned.
+
+    Returns:
+        int: The address of the specified symbol in the specified ELF file.
+    """
+    return _resolve_symbol(path, symbol, in_tls=False)
+
+
+def resolve_tls_symbol(path: str, symbol: str) -> int:
+    """Returns the offset of the specified thread-local symbol.
+
+    Args:
+        path (str): The path to the ELF file defining the symbol.
+        symbol (str): The symbol whose offset should be returned.
+
+    Returns:
+        int: The address of the specified symbol.
+    """
+    return _resolve_symbol(path, symbol, in_tls=True)
 
 
 def get_all_symbols(backing_files: set[str]) -> SymbolDict[str, set[Symbol]]:

@@ -7,7 +7,7 @@
 from libdebug.data.memory_map import MemoryMap
 from libdebug.data.memory_map_list import MemoryMapList
 from libdebug.liblog import liblog
-from libdebug.utils.elf_utils import is_pie, resolve_address, resolve_symbol
+from libdebug.utils.elf_utils import is_pie, resolve_address, resolve_symbol, resolve_tls_symbol
 
 
 def normalize_and_validate_address(address: int, maps: MemoryMapList[MemoryMap]) -> int:
@@ -73,6 +73,44 @@ def resolve_symbol_in_maps(symbol: str, maps: MemoryMapList[MemoryMap]) -> int:
             pass
 
     raise ValueError(f"Symbol {symbol} not found in the specified mapped file. Please specify a valid symbol.")
+
+
+def resolve_tls_symbol_in_maps(symbol: str, maps: MemoryMapList[MemoryMap]) -> int:
+    """Returns the offset of the specified TLS symbol defined in one of specified memory maps.
+
+    Args:
+        symbol (str): The TLS symbol whose offset should be returned.
+        maps (MemoryMapList[MemoryMap]): The memory maps.
+
+    Returns:
+        int: The offset of the specified TLS symbol.
+
+    Throws:
+        ValueError: If the specified TLS symbol does not belong to any memory map.
+    """
+    mapped_files = {}
+
+    if "+" in symbol:
+        symbol, offset_str = symbol.split("+")
+        offset = int(offset_str, 16)
+    else:
+        offset = 0
+
+    for vmap in maps:
+        if vmap.backing_file and vmap.backing_file not in mapped_files and vmap.backing_file[0] != "[":
+            mapped_files[vmap.backing_file] = vmap.start
+
+    for file in mapped_files:
+        try:
+            address = resolve_tls_symbol(file, symbol)
+
+            return address + offset
+        except OSError as e:
+            liblog.debugger(f"Error while resolving TLS symbol {symbol} in {file}: {e}")
+        except ValueError:
+            pass
+
+    raise ValueError(f"TLS symbol {symbol} not found in the specified mapped files. Please specify a valid TLS symbol.")
 
 
 def resolve_address_in_maps(address: int, maps: MemoryMapList[MemoryMap]) -> str:

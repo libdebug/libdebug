@@ -409,6 +409,8 @@ ffibuilder.cdef("""
     int get_remaining_hw_watchpoint_count(struct global_state *state, int tid);
 
     void free_breakpoints(struct global_state *state);
+
+    unsigned long get_tls_address(int tid);
 """
 )
 

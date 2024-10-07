@@ -820,3 +820,14 @@ class PtraceInterface(DebuggingInterface):
             return bp
 
         return None
+
+    def get_tls_address(self: DebuggingInterface, thread: ThreadContext) -> int:
+        """Returns the address of the thread-local storage for the specified thread.
+
+        Args:
+            thread (ThreadContext): The thread to query.
+
+        Returns:
+            int: The address of the thread-local storage.
+        """
+        return self.lib_trace.get_tls_address(thread.thread_id)

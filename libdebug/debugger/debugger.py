@@ -751,6 +751,21 @@ class Debugger:
         return self._thread_id
 
     @property
+    def tls_address(self: Debugger) -> int:
+        """The address of the thread-local storage."""
+        return self.threads[0].tls_address
+
+    def tls(self: ThreadContext, item: int | str, size: int = 8, backing_file: str | None = None) -> bytes:
+        """Returns the TLS item of the specified size.
+
+        Args:
+            item (int | str): The item to retrieve from the thread's local storage.
+            size (int, optional): The size of the item. Defaults to 8.
+            backing_file (str, optional): The user-defined backing file to resolve the address in. Defaults to all files.
+        """
+        return self.threads[0].tls(item, size, backing_file)
+
+    @property
     def running(self: Debugger) -> bool:
         """Whether the process is running."""
         return self._internal_debugger.running

@@ -1188,6 +1188,29 @@ class InternalDebugger:
 
         return resolve_symbol_in_maps(symbol, filtered_maps)
 
+    def _get_tls_address(self: InternalDebugger, thread: ThreadContext) -> int:
+        """Get the address of the thread-local storage.
+
+        Args:
+            thread (ThreadContext): The thread to get the TLS address for.
+
+        Returns:
+            int: The address of the thread-local storage.
+        """
+        self._ensure_process_stopped()
+        self.__polling_thread_command_queue.put((self.__threaded_get_tls_address, (thread,)))
+
+        # We cannot call _join_and_check_status here, as we need the return value which might not be an exception
+        self.__polling_thread_command_queue.join()
+
+        value = self.__polling_thread_response_queue.get()
+        self.__polling_thread_response_queue.task_done()
+
+        if isinstance(value, BaseException):
+            raise value
+
+        return value
+
     @property
     def symbols(self: InternalDebugger) -> SymbolDict[str, set[Symbol]]:
         """Get the symbols of the process."""
@@ -1401,6 +1424,9 @@ class InternalDebugger:
 
     def __threaded_flush_fp_registers(self: InternalDebugger, registers: Registers) -> None:
         self.debugging_interface.flush_fp_registers(registers)
+
+    def __threaded_get_tls_address(self: InternalDebugger, thread: ThreadContext) -> int:
+        return self.debugging_interface.get_tls_address(thread)
 
     @background_alias(__threaded_peek_memory)
     def _peek_memory(self: InternalDebugger, address: int) -> bytes:
