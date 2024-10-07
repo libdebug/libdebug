@@ -83,7 +83,9 @@ def _collect_external_info(path: str) -> SymbolDict[str, set[Symbol]]:
 
         while cursor != ffi.NULL:
             symbol_name = ffi.string(cursor.name).decode("utf-8")
-            symbols[symbol_name].add(Symbol(cursor.low_pc, cursor.high_pc, symbol_name, path))
+            symbols[symbol_name].add(
+                Symbol(cursor.low_pc, cursor.high_pc, symbol_name, cursor.is_in_thread_local_storage, path),
+            )
             cursor = cursor.next
 
         lib_sym.free_symbol_info(head)
@@ -116,7 +118,9 @@ def _parse_elf_file(path: str, debug_info_level: int) -> tuple[SymbolDict[str, s
 
         while cursor != ffi.NULL:
             symbol_name = ffi.string(cursor.name).decode("utf-8")
-            symbols[symbol_name].add(Symbol(cursor.low_pc, cursor.high_pc, symbol_name, path))
+            symbols[symbol_name].add(
+                Symbol(cursor.low_pc, cursor.high_pc, symbol_name, cursor.is_in_thread_local_storage, path),
+            )
             cursor = cursor.next
 
         lib_sym.free_symbol_info(head)
