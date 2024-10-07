@@ -5,6 +5,7 @@
 #
 from __future__ import annotations
 
+import sys
 from typing import TYPE_CHECKING
 
 from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
@@ -347,9 +348,11 @@ class ThreadContext:
 
         base = self.tls_address
 
-        print(hex(base - offset - size))
+        dtv_address = int.from_bytes(self.memory[base + 8, 8], sys.byteorder)
+        # dtv[1] always points to the base of the TLS for the executable
+        tls_storage_base = int.from_bytes(self.memory[dtv_address + 0x10, 8], sys.byteorder)
 
-        return self.memory[base - offset - size, size, "absolute"]
+        return self.memory[tls_storage_base + offset, size, "absolute"]
 
     def si(self: ThreadContext) -> None:
         """Alias for the `step` method.
