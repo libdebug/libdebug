@@ -14,7 +14,6 @@ from libdebug.cffi.debug_sym_cffi import ffi
 from libdebug.cffi.debug_sym_cffi import lib as lib_sym
 from libdebug.data.symbol import Symbol
 from libdebug.data.symbol_list import SymbolList
-from libdebug.debugger.internal_debugger_instance_manager import extend_internal_debugger
 from libdebug.liblog import liblog
 from libdebug.utils.libcontext import libcontext
 
@@ -36,6 +35,7 @@ def _download_debuginfod(buildid: str, debuginfod_path: Path) -> None:
 
         if r.ok:
             debuginfod_path.parent.mkdir(parents=True, exist_ok=True)
+            print("done", debuginfod_path)
 
             with debuginfod_path.open("wb") as f:
                 f.write(r.content)

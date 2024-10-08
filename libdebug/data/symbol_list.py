@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from libdebug.debugger.internal_debugger_instance_manager import extend_internal_debugger, get_global_internal_debugger
+from libdebug.debugger.internal_debugger_instance_manager import get_global_internal_debugger
 
 if TYPE_CHECKING:
     from libdebug.data.symbol import Symbol
