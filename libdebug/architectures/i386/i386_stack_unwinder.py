@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 
 class I386StackUnwinder(StackUnwindingManager):
-    """Class that provides stack unwinding for the x86_64 architecture."""
+    """Class that provides stack unwinding for the i386 architecture."""
 
     def unwind(self: I386StackUnwinder, target: ThreadContext) -> list:
         """Unwind the stack of a process.
@@ -45,7 +45,7 @@ class I386StackUnwinder(StackUnwindingManager):
                 if not any(vmap.start <= return_address < vmap.end for vmap in vmaps):
                     break
 
-                # Read the previous rbp and set it as the current one
+                # Read the previous ebp and set it as the current one
                 current_ebp = int.from_bytes(target.memory[current_ebp, 4], byteorder="little")
 
                 stack_trace.append(return_address)
