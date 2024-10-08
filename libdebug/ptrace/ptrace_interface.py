@@ -356,6 +356,7 @@ class PtraceInterface(DebuggingInterface):
             result = self.lib_trace.stepping_finish(
                 self._global_state,
                 thread.thread_id,
+                self._internal_debugger.arch == "i386",
             )
 
             if result == -1:
