@@ -26,6 +26,7 @@ if TYPE_CHECKING:
 
     from libdebug.commlink.pipe_manager import PipeManager
     from libdebug.data.breakpoint import Breakpoint
+    from libdebug.data.gdb_resume_event import GdbResumeEvent
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.data.registers import Registers
@@ -262,9 +263,20 @@ class Debugger:
         """
         return self._internal_debugger.hijack_syscall(original_syscall, new_syscall, recursive, **kwargs)
 
-    def gdb(self: Debugger, open_in_new_process: bool = True) -> None:
-        """Migrates the current debugging session to GDB."""
-        self._internal_debugger.gdb(open_in_new_process)
+    def gdb(
+        self: Debugger,
+        migrate_breakpoints: bool = True,
+        open_in_new_process: bool = True,
+        blocking: bool = True,
+    ) -> GdbResumeEvent:
+        """Migrates the current debugging session to GDB.
+
+        Args:
+            migrate_breakpoints (bool): Whether to migrate over the breakpoints set in libdebug to GDB.
+            open_in_new_process (bool): Whether to attempt to open GDB in a new process instead of the current one.
+            blocking (bool): Whether to block the script until GDB is closed.
+        """
+        return self._internal_debugger.gdb(migrate_breakpoints, open_in_new_process, blocking)
 
     def r(self: Debugger, redirect_pipes: bool = True) -> PipeManager | None:
         """Alias for the `run` method.
