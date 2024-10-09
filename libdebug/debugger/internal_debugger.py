@@ -153,6 +153,9 @@ class InternalDebugger:
     instanced: bool = False
     """Whether the process was started and has not been killed yet."""
 
+    is_debugging: bool = False
+    """Whether the debugger is currently debugging a process."""
+
     pprint_syscalls: bool
     """A flag that indicates if the debugger should pretty print syscalls."""
 
@@ -205,6 +208,7 @@ class InternalDebugger:
         self.process_id = 0
         self.threads = []
         self.instanced = False
+        self.is_debugging = False
         self._is_running = False
         self._is_migrated_to_gdb = False
         self.resume_context = ResumeContext()
@@ -230,6 +234,7 @@ class InternalDebugger:
         self.process_id = 0
         self.threads.clear()
         self.instanced = False
+        self.is_debugging = False
         self._is_running = False
         self.resume_context.clear()
 
@@ -279,7 +284,7 @@ class InternalDebugger:
                 f"File {self.argv[0]} is not executable.",
             )
 
-        if self.instanced:
+        if self.is_debugging:
             liblog.debugger("Process already running, stopping it before restarting.")
             self.kill()
         if self.threads:
@@ -287,6 +292,7 @@ class InternalDebugger:
             self.debugging_interface.reset()
 
         self.instanced = True
+        self.is_debugging = True
 
         if not self.__polling_thread_command_queue.empty():
             raise RuntimeError("Polling thread command queue not empty.")
@@ -308,7 +314,7 @@ class InternalDebugger:
 
     def attach(self: InternalDebugger, pid: int) -> None:
         """Attaches to an existing process."""
-        if self.instanced:
+        if self.is_debugging:
             liblog.debugger("Process already running, stopping it before restarting.")
             self.kill()
         if self.threads:
@@ -316,6 +322,7 @@ class InternalDebugger:
             self.debugging_interface.reset()
 
         self.instanced = True
+        self.is_debugging = True
 
         if not self.__polling_thread_command_queue.empty():
             raise RuntimeError("Polling thread command queue not empty.")
@@ -328,12 +335,14 @@ class InternalDebugger:
 
     def detach(self: InternalDebugger) -> None:
         """Detaches from the process."""
-        if not self.instanced:
+        if not self.is_debugging:
             raise RuntimeError("Process not running, cannot detach.")
 
         self._ensure_process_stopped()
 
         self.__polling_thread_command_queue.put((self.__threaded_detach, ()))
+
+        self.is_debugging = False
 
         self._join_and_check_status()
 
@@ -353,6 +362,7 @@ class InternalDebugger:
         self.__polling_thread_command_queue.put((self.__threaded_kill, ()))
 
         self.instanced = False
+        self.is_debugging = False
 
         if self.pipe_manager:
             self.pipe_manager.close()
@@ -380,6 +390,7 @@ class InternalDebugger:
                 liblog.debugger("Killing process failed: already terminated")
 
         self.instanced = False
+        self.is_debugging = False
 
         if self.__polling_thread is not None:
             self.__polling_thread_command_queue.put((THREAD_TERMINATE, ()))
@@ -404,7 +415,7 @@ class InternalDebugger:
     @background_alias(_background_invalid_call)
     def interrupt(self: InternalDebugger) -> None:
         """Interrupts the process."""
-        if not self.instanced:
+        if not self.is_debugging:
             raise RuntimeError("Process not running, cannot interrupt.")
 
         # We have to ensure that at least one thread is alive before executing the method
@@ -422,7 +433,7 @@ class InternalDebugger:
     @background_alias(_background_invalid_call)
     def wait(self: InternalDebugger) -> None:
         """Waits for the process to stop."""
-        if not self.instanced:
+        if not self.is_debugging:
             raise RuntimeError("Process not running, cannot wait.")
 
         self._join_and_check_status()
@@ -1450,7 +1461,7 @@ class InternalDebugger:
     @background_alias(__threaded_peek_memory)
     def _peek_memory(self: InternalDebugger, address: int) -> bytes:
         """Reads memory from the process."""
-        if not self.instanced:
+        if not self.is_debugging:
             raise RuntimeError("Process not running, cannot access memory.")
 
         if self.running:
@@ -1479,7 +1490,7 @@ class InternalDebugger:
 
     def _fast_read_memory(self: InternalDebugger, address: int, size: int) -> bytes:
         """Reads memory from the process."""
-        if not self.instanced:
+        if not self.is_debugging:
             raise RuntimeError("Process not running, cannot access memory.")
 
         if self.running:
@@ -1496,7 +1507,7 @@ class InternalDebugger:
     @background_alias(__threaded_poke_memory)
     def _poke_memory(self: InternalDebugger, address: int, data: bytes) -> None:
         """Writes memory to the process."""
-        if not self.instanced:
+        if not self.is_debugging:
             raise RuntimeError("Process not running, cannot access memory.")
 
         if self.running:
@@ -1516,7 +1527,7 @@ class InternalDebugger:
 
     def _fast_write_memory(self: InternalDebugger, address: int, data: bytes) -> None:
         """Writes memory to the process."""
-        if not self.instanced:
+        if not self.is_debugging:
             raise RuntimeError("Process not running, cannot access memory.")
 
         if self.running:
@@ -1533,7 +1544,7 @@ class InternalDebugger:
     @background_alias(__threaded_fetch_fp_registers)
     def _fetch_fp_registers(self: InternalDebugger, registers: Registers) -> None:
         """Fetches the floating point registers of a thread."""
-        if not self.instanced:
+        if not self.is_debugging:
             raise RuntimeError("Process not running, cannot read floating-point registers.")
 
         self._ensure_process_stopped()
@@ -1547,7 +1558,7 @@ class InternalDebugger:
     @background_alias(__threaded_flush_fp_registers)
     def _flush_fp_registers(self: InternalDebugger, registers: Registers) -> None:
         """Flushes the floating point registers of a thread."""
-        if not self.instanced:
+        if not self.is_debugging:
             raise RuntimeError("Process not running, cannot write floating-point registers.")
 
         self._ensure_process_stopped()

@@ -234,7 +234,7 @@ class PipeManager:
 
             received_numb = self._raw_recv(stderr=stderr)
 
-            if received_numb == 0 and not self._internal_debugger.running:
+            if received_numb == 0 and not self._internal_debugger.running and self._internal_debugger.is_debugging:
                 # We will not receive more data, the child process is not running
                 if optional:
                     return b""
