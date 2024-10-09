@@ -19,5 +19,7 @@ def get_platform_register_size(arch: str) -> int:
             return 8
         case "aarch64":
             return 8
+        case "i386":
+            return 4
         case _:
             raise ValueError(f"Architecture {arch} not supported.")
