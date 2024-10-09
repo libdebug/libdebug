@@ -205,7 +205,7 @@ class PipeManager:
             drop (bool, optional): drop the delimiter. Defaults to False.
             timeout (float, optional): timeout in seconds. Defaults to timeout_default.
             stderr (bool, optional): receive from stderr. Defaults to False.
-            optional (bool, optional): if ignore the until component of the receive when the child process is not running. Defaults to False.
+            optional (bool, optional): whether to ignore the wait for the received input if the command is executed when the process is stopped. Defaults to False.
 
         Returns:
             bytes: received data from the child process stdout.
@@ -267,7 +267,7 @@ class PipeManager:
             drop (bool, optional): drop the delimiter. Defaults to False.
             timeout (float, optional): timeout in seconds. Defaults to timeout_default.
             stderr (bool, optional): receive from stderr. Defaults to False.
-            optional (bool, optional): if ignore the until component of the receive when the child process is not running. Defaults to False.
+            optional (bool, optional): whether to ignore the wait for the received input if the command is executed when the process is stopped. Defaults to False.
 
         Returns:
             bytes: received data from the child process stdout.
@@ -310,7 +310,7 @@ class PipeManager:
             occurences (int, optional): number of delimiters to find. Defaults to 1.
             drop (bool, optional): drop the delimiter. Defaults to False.
             timeout (int, optional): timeout in seconds. Defaults to timeout_default.
-            optional (bool, optional): if ignore the until component of the receive when the child process is not running. Defaults to False.
+            optional (bool, optional): whether to ignore the wait for the received input if the command is executed when the process is stopped. Defaults to False.
 
         Returns:
             bytes: received data from the child process stdout.
@@ -339,7 +339,7 @@ class PipeManager:
             occurences (int, optional): number of delimiters to find. Defaults to 1.
             drop (bool, optional): drop the delimiter. Defaults to False.
             timeout (int, optional): timeout in seconds. Defaults to timeout_default.
-            optional (bool, optional): if ignore the until component of the receive when the child process is not running. Defaults to False.
+            optional (bool, optional): whether to ignore the wait for the received input if the command is executed when the process is stopped. Defaults to False.
 
         Returns:
             bytes: received data from the child process stderr.
@@ -366,7 +366,7 @@ class PipeManager:
             numlines (int, optional): number of lines to receive. Defaults to 1.
             drop (bool, optional): drop the line ending. Defaults to True.
             timeout (int, optional): timeout in seconds. Defaults to timeout_default.
-            optional (bool, optional): if ignore the until component of the receive when the child process is not running. Defaults to False.
+            optional (bool, optional): whether to ignore the wait for the received input if the command is executed when the process is stopped. Defaults to False.
 
         Returns:
             bytes: received lines from the child process stdout.
@@ -386,7 +386,7 @@ class PipeManager:
             numlines (int, optional): number of lines to receive. Defaults to 1.
             drop (bool, optional): drop the line ending. Defaults to True.
             timeout (int, optional): timeout in seconds. Defaults to timeout_default.
-            optional (bool, optional): if ignore the until component of the receive when the child process is not running. Defaults to False.
+            optional (bool, optional): whether to ignore the wait for the received input if the command is executed when the process is stopped. Defaults to False.
 
         Returns:
             bytes: received lines from the child process stdout.
@@ -452,7 +452,7 @@ class PipeManager:
             occurences (int, optional): number of delimiters to find. Defaults to 1.
             drop (bool, optional): drop the delimiter. Defaults to False.
             timeout (int, optional): timeout in seconds. Defaults to timeout_default.
-            optional (bool, optional): if ignore the until component of the receive when the child process is not running. Defaults to False.
+            optional (bool, optional): whether to ignore the wait for the received input if the command is executed when the process is stopped. Defaults to False.
 
         Returns:
             bytes: received data from the child process stdout.
@@ -479,7 +479,7 @@ class PipeManager:
             occurences (int, optional): number of delimiters to find. Defaults to 1.
             drop (bool, optional): drop the delimiter. Defaults to False.
             timeout (int, optional): timeout in seconds. Defaults to timeout_default.
-            optional (bool, optional): if ignore the until component of the receive when the child process is not running. Defaults to False.
+            optional (bool, optional): whether to ignore the wait for the received input if the command is executed when the process is stopped. Defaults to False.
 
         Returns:
             bytes: received data from the child process stderr.
@@ -512,7 +512,7 @@ class PipeManager:
             occurences (int, optional): number of delimiters to find. Defaults to 1.
             drop (bool, optional): drop the delimiter. Defaults to False.
             timeout (int, optional): timeout in seconds. Defaults to timeout_default.
-            optional (bool, optional): if ignore the until component of the receive when the child process is not running. Defaults to False.
+            optional (bool, optional): whether to ignore the wait for the received input if the command is executed when the process is stopped. Defaults to False.
 
         Returns:
             bytes: received data from the child process stdout.
@@ -539,7 +539,7 @@ class PipeManager:
             occurences (int, optional): number of delimiters to find. Defaults to 1.
             drop (bool, optional): drop the delimiter. Defaults to False.
             timeout (int, optional): timeout in seconds. Defaults to timeout_default.
-            optional (bool, optional): if ignore the until component of the receive when the child process is not running. Defaults to False.
+            optional (bool, optional): whether to ignore the wait for the received input if the command is executed when the process is stopped. Defaults to False.
 
         Returns:
             bytes: received data from the child process stderr.
@@ -600,7 +600,7 @@ class PipeManager:
 
         Args:
             prompt (str, optional): prompt for the interactive mode. Defaults to "$ " (prompt_default).
-            auto_quit (bool, optional): if automatically quit the interactive mode when the child process is not running. Defaults to False.
+            auto_quit (bool, optional): whether to automatically quit the interactive mode when the child process is not running. Defaults to False.
         """
         liblog.info("Calling interactive mode")
 
