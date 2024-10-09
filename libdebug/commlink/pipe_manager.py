@@ -215,13 +215,13 @@ class PipeManager:
             delims = delims.encode()
 
         # Buffer for the received data
-        data_buffer = self.__stdout_buffer if not stderr else self.__stderr_buffer
-
-        open_flag = self._stdout_is_open if not stderr else self._stderr_is_open
+        data_buffer = self.__stderr_buffer if stderr else self.__stdout_buffer
 
         # Setting the alarm
         end_time = time.time() + timeout
         while True:
+            open_flag = self._stderr_is_open if stderr else self._stdout_is_open
+
             if (until := data_buffer.find(delims)) != -1:
                 break
 
@@ -235,10 +235,8 @@ class PipeManager:
             received_numb = self._raw_recv(stderr=stderr)
 
             if (
-                received_numb == 0
-                and not self._internal_debugger.running
-                and self._internal_debugger.is_debugging
-                and (event := self._internal_debugger.resume_context.get_event_type())
+                received_numb == 0 and not self._internal_debugger.running and self._internal_debugger.is_debugging
+                # and (event := self._internal_debugger.resume_context.get_event_type())
             ):
                 # We will not receive more data, the child process is not running
                 if optional:
