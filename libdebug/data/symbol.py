@@ -16,12 +16,14 @@ class Symbol:
     start (int): The start address of the symbol in the target process.
     end (int): The end address of the symbol in the target process.
     name (str): The name of the symbol in the target process.
+    is_in_tls (bool): Whether the symbol is in the thread-local storage of the target process.
     backing_file (str): The backing file of the symbol in the target process.
     """
 
     start: int
     end: int
     name: str
+    thread_local: bool
     backing_file: str
 
     def __hash__(self: Symbol) -> int:
@@ -30,4 +32,4 @@ class Symbol:
 
     def __repr__(self: Symbol) -> str:
         """Returns the string representation of the symbol."""
-        return f"Symbol(start={self.start:#x}, end={self.end:#x}, name={self.name}, backing_file={self.backing_file})"
+        return f"Symbol(start={self.start:#x}, end={self.end:#x}, name={self.name}, thread_local={self.thread_local}, backing_file={self.backing_file})"

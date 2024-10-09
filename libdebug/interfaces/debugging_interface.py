@@ -192,3 +192,14 @@ class DebuggingInterface(ABC):
         Args:
             registers (Registers): The registers instance to flush.
         """
+
+    @abstractmethod
+    def get_tls_address(self: DebuggingInterface, thread: ThreadContext) -> int:
+        """Returns the address of the thread-local storage for the specified thread.
+
+        Args:
+            thread (ThreadContext): The thread to query.
+
+        Returns:
+            int: The address of the thread-local storage.
+        """

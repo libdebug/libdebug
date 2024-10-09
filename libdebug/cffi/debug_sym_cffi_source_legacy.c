@@ -17,7 +17,8 @@
 
 typedef struct SymbolInfo
 {
-    char *name;
+    char *name, *demangled_name;
+    _Bool is_in_thread_local_storage;
     unsigned long long high_pc;
     unsigned long long low_pc;
     struct SymbolInfo *next;
@@ -30,7 +31,8 @@ SymbolInfo *add_symbol_info(SymbolInfo **head, const char *name, Dwarf_Addr low_
 {
     SymbolInfo *new_node = (SymbolInfo *) malloc(sizeof(SymbolInfo));
     char *demangled_name = cplus_demangle_v3(name, DMGL_PARAMS | DMGL_ANSI | DMGL_TYPES);
-    new_node->name = demangled_name ? demangled_name : strdup(name);
+    new_node->name = strdup(name);
+    new_node->demangled_name = demangled_name;
     new_node->low_pc = low_pc;
     new_node->high_pc = high_pc;
     new_node->next = *head;
@@ -49,6 +51,7 @@ void free_symbol_info(SymbolInfo *head)
         SymbolInfo *tmp = head;
         head = head->next;
         free(tmp->name);
+        free(tmp->demangled_name);
         free(tmp);
     }
 }

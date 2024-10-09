@@ -14,7 +14,8 @@ ffibuilder.cdef(
     """
     typedef struct SymbolInfo
     {
-        char *name;
+        char *name, *demangled_name;
+        _Bool is_in_thread_local_storage;
         unsigned long long high_pc;
         unsigned long low_pc;
         struct SymbolInfo *next;

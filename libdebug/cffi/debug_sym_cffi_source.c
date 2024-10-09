@@ -17,7 +17,8 @@
 
 typedef struct SymbolInfo
 {
-    char *name;
+    char *name, *demangled_name;
+    _Bool is_in_thread_local_storage;
     unsigned long long high_pc;
     unsigned long low_pc;
     struct SymbolInfo *next;
@@ -26,13 +27,15 @@ typedef struct SymbolInfo
 void process_symbol_tables(Elf *elf);
 
 // Function to add new symbol info to the linked list
-SymbolInfo *add_symbol_info(SymbolInfo **head, const char *name, Dwarf_Addr low_pc, Dwarf_Addr high_pc)
+SymbolInfo *add_symbol_info(SymbolInfo **head, const char *name, Dwarf_Addr low_pc, Dwarf_Addr high_pc, _Bool is_in_tls)
 {
     SymbolInfo *new_node = (SymbolInfo *)malloc(sizeof(SymbolInfo));
     char *demangled_name = cplus_demangle_v3(name, DMGL_PARAMS | DMGL_ANSI | DMGL_TYPES);
-    new_node->name = demangled_name ? demangled_name : strdup(name);
+    new_node->name = strdup(name);
+    new_node->demangled_name = demangled_name;
     new_node->low_pc = low_pc;
     new_node->high_pc = high_pc;
+    new_node->is_in_thread_local_storage = is_in_tls;
     new_node->next = *head;
     *head = new_node;
     return new_node;
@@ -49,6 +52,7 @@ void free_symbol_info(SymbolInfo *head)
         SymbolInfo *tmp = head;
         head = head->next;
         free(tmp->name);
+        free(tmp->demangled_name);
         free(tmp);
     }
 }
@@ -74,6 +78,8 @@ int process_die(Dwarf_Debug dbg, Dwarf_Die the_die)
     Dwarf_Attribute *attrs;
     Dwarf_Signed attrcount, i;
     int is_formaddr = -1;
+    _Bool is_in_tls = 0;
+    Dwarf_Addr offset = 0;
 
     if (dwarf_tag(the_die, &tag, &error) != DW_DLV_OK) {
         perror("Error getting DIE tag");
@@ -104,6 +110,53 @@ int process_die(Dwarf_Debug dbg, Dwarf_Die the_die)
                                     is_formaddr = 0;
                                 }
                             }
+                        } else if (attrcode == DW_AT_location) {
+                            Dwarf_Half form;
+                            if (dwarf_whatform(attrs[i], &form, &error) == DW_DLV_OK) {
+                                if (form == DW_FORM_exprloc) {
+                                    Dwarf_Ptr expr_data;
+                                    Dwarf_Unsigned expr_len;
+                                    if (dwarf_formexprloc(attrs[i], &expr_len, &expr_data, &error) == DW_DLV_OK) {
+                                        // Parse the expression manually, since `dwarf_loclist_from_expr` is not available
+                                        Dwarf_Unsigned offset = 0;
+                                        Dwarf_Unsigned lowpc = 0, highpc = 0;
+                                        int is_in_tls = 0;
+
+                                        // Loop through the expression bytes
+                                        for (Dwarf_Unsigned i = 0; i < expr_len;) {
+                                            unsigned char opcode = ((unsigned char *)expr_data)[i];
+                                            i++;
+
+                                            switch (opcode) {
+                                                case DW_OP_GNU_push_tls_address:
+                                                case DW_OP_form_tls_address:
+                                                    lowpc = offset;
+                                                    highpc = offset + 8; // Assume 8 bytes for now
+                                                    is_in_tls = 1;
+                                                    break;
+
+                                                case DW_OP_const8u: {
+                                                    // DW_OP_const8u takes 8 bytes of immediate value
+                                                    Dwarf_Unsigned const_val = 0;
+                                                    for (int j = 0; j < 8; j++) {
+                                                        const_val |= ((unsigned char *)expr_data)[i + j] << (j * 8);
+                                                    }
+                                                    offset = const_val;
+                                                    i += 8;
+                                                    break;
+                                                }
+
+                                                default:
+                                                    break;
+                                            }
+
+                                            if (is_in_tls) {
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                     dwarf_dealloc(dbg, attrs[i], DW_DLA_ATTR);
@@ -116,7 +169,7 @@ int process_die(Dwarf_Debug dbg, Dwarf_Die the_die)
             if (is_formaddr == 0) {
                 highpc += lowpc;
             }
-            add_symbol_info(&head, die_name, lowpc, highpc);
+            add_symbol_info(&head, die_name, lowpc, highpc, is_in_tls);
         }
         if (die_name) {
             dwarf_dealloc(dbg, die_name, DW_DLA_STRING);
@@ -219,9 +272,10 @@ void process_symbol_tables(Elf *elf)
                 if (name) {
                     Dwarf_Addr low_pc = sym.st_value;
                     Dwarf_Addr high_pc = sym.st_value + sym.st_size;
+                    _Bool is_in_tls = (sym.st_info & 0xf) == STT_TLS;
                     if (high_pc != 0 && high_pc != 0) {
-                        add_symbol_info(&head, name, low_pc, high_pc);
-                    };
+                        add_symbol_info(&head, name, low_pc, high_pc, is_in_tls);
+                    }
                 }
             }
         }
