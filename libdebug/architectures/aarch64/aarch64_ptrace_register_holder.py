@@ -46,22 +46,25 @@ def _get_property_32(name: str) -> property:
 
 
 def _get_property_zr(name: str) -> property:
-    def getter(_: Aarch64Registers) -> int:
+    def getter(self: Aarch64Registers) -> int:
+        self._internal_debugger._ensure_process_stopped()
         return 0
 
-    def setter(_: Aarch64Registers, __: int) -> None:
-        pass
+    def setter(self: Aarch64Registers, _: int) -> None:
+        self._internal_debugger._ensure_process_stopped()
 
     return property(getter, setter, None, name)
 
 
 def _get_property_fp_8(name: str, index: int) -> property:
     def getter(self: Aarch64Registers) -> int:
+        self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         return int.from_bytes(self._fp_register_file.vregs[index].data, sys.byteorder) & 0xFF
 
     def setter(self: Aarch64Registers, value: int) -> None:
+        self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         data = value.to_bytes(1, sys.byteorder)
@@ -73,11 +76,13 @@ def _get_property_fp_8(name: str, index: int) -> property:
 
 def _get_property_fp_16(name: str, index: int) -> property:
     def getter(self: Aarch64Registers) -> int:
+        self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         return int.from_bytes(self._fp_register_file.vregs[index].data, sys.byteorder) & 0xFFFF
 
     def setter(self: Aarch64Registers, value: int) -> None:
+        self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         data = value.to_bytes(2, sys.byteorder)
@@ -89,11 +94,13 @@ def _get_property_fp_16(name: str, index: int) -> property:
 
 def _get_property_fp_32(name: str, index: int) -> property:
     def getter(self: Aarch64Registers) -> int:
+        self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         return int.from_bytes(self._fp_register_file.vregs[index].data, sys.byteorder) & 0xFFFFFFFF
 
     def setter(self: Aarch64Registers, value: int) -> None:
+        self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         data = value.to_bytes(4, sys.byteorder)
@@ -105,11 +112,13 @@ def _get_property_fp_32(name: str, index: int) -> property:
 
 def _get_property_fp_64(name: str, index: int) -> property:
     def getter(self: Aarch64Registers) -> int:
+        self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         return int.from_bytes(self._fp_register_file.vregs[index].data, sys.byteorder) & 0xFFFFFFFFFFFFFFFF
 
     def setter(self: Aarch64Registers, value: int) -> None:
+        self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         data = value.to_bytes(8, sys.byteorder)
@@ -121,11 +130,13 @@ def _get_property_fp_64(name: str, index: int) -> property:
 
 def _get_property_fp_128(name: str, index: int) -> property:
     def getter(self: Aarch64Registers) -> int:
+        self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         return int.from_bytes(self._fp_register_file.vregs[index].data, sys.byteorder)
 
     def setter(self: Aarch64Registers, value: int) -> None:
+        self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         data = value.to_bytes(16, sys.byteorder)

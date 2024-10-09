@@ -12,7 +12,7 @@ from cffi import FFI
 
 architecture = platform.machine()
 
-if architecture == "x86_64":
+def parse_fp_regs_x86():
     # We need to determine if we have AVX, AVX2, AVX512, etc.
     path = Path("/proc/cpuinfo")
 
@@ -144,6 +144,11 @@ if architecture == "x86_64":
         fpregs_define += """
         #define XSAVE 1
         """
+
+    return fp_regs_struct, fpregs_define
+
+if architecture == "x86_64":
+    fp_regs_struct, fpregs_define = parse_fp_regs_x86()
 
     ptrace_regs_struct = """
     struct ptrace_regs_struct
@@ -309,6 +314,68 @@ elif architecture == "aarch64":
         return 0; // Not a CALL
     }
     """
+elif architecture == "i686":
+    fp_regs_struct, fpregs_define = parse_fp_regs_x86()
+
+    ptrace_regs_struct = """
+    struct ptrace_regs_struct
+    {
+        unsigned long ebx;
+        unsigned long ecx;
+        unsigned long edx;
+        unsigned long esi;
+        unsigned long edi;
+        unsigned long ebp;
+        unsigned long eax;
+        unsigned long xds;
+        unsigned long xes;
+        unsigned long xfs;
+        unsigned long xgs;
+        unsigned long orig_eax;
+        unsigned long eip;
+        unsigned long xcs;
+        unsigned long eflags;
+        unsigned long esp;
+        unsigned long xss;
+    };
+    """
+
+    arch_define = """
+    #define ARCH_I386
+    """
+
+    breakpoint_define = """
+    #define INSTRUCTION_POINTER(regs) (regs.eip)
+    #define INSTALL_BREAKPOINT(instruction) ((instruction & 0xFFFFFF00) | 0xCC)
+    #define BREAKPOINT_SIZE 1
+    #define IS_SW_BREAKPOINT(instruction) (instruction == 0xCC)
+    """
+
+    control_flow_define = """
+    // i686 Architecture specific
+    #define IS_RET_INSTRUCTION(instruction) (instruction == 0xC3 || instruction == 0xCB || instruction == 0xC2 || instruction == 0xCA)
+
+    int IS_CALL_INSTRUCTION(uint8_t* instr)
+    {
+        // Check for direct CALL (E8 xx xx xx xx)
+        if (instr[0] == (uint8_t)0xE8) {
+            return 1; // It's a CALL
+        }
+
+        // Check for indirect CALL using ModR/M (FF /2)
+        if (instr[0] == (uint8_t)0xFF) {
+            // Extract ModR/M byte
+            uint8_t modRM = (uint8_t)instr[1];
+            uint8_t reg = (modRM >> 3) & 7; // Middle three bits
+
+            if (reg == 2) {
+                return 1; // It's a CALL
+            }
+        }
+
+        return 0; // Not a CALL
+    }
+    """
 else:
     raise NotImplementedError(f"Architecture {platform.machine()} not available.")
 
@@ -319,21 +386,21 @@ ffibuilder.cdef(fp_regs_struct, packed=True)
 ffibuilder.cdef("""
     struct ptrace_hit_bp {
         int pid;
-        uint64_t addr;
-        uint64_t bp_instruction;
-        uint64_t prev_instruction;
+        unsigned long addr;
+        unsigned long bp_instruction;
+        unsigned long prev_instruction;
     };
 
     struct software_breakpoint {
-        uint64_t addr;
-        uint64_t instruction;
-        uint64_t patched_instruction;
+        unsigned long addr;
+        unsigned long instruction;
+        unsigned long patched_instruction;
         char enabled;
         struct software_breakpoint *next;
     };
 
     struct hardware_breakpoint {
-        uint64_t addr;
+        unsigned long addr;
         int tid;
         char enabled;
         char type[2];
@@ -372,21 +439,21 @@ ffibuilder.cdef("""
     void ptrace_reattach_from_gdb(struct global_state *state, int pid);
     void ptrace_set_options(int pid);
 
-    uint64_t ptrace_peekdata(int pid, uint64_t addr);
-    uint64_t ptrace_pokedata(int pid, uint64_t addr, uint64_t data);
+    unsigned long ptrace_peekdata(int pid, unsigned long addr);
+    unsigned long ptrace_pokedata(int pid, unsigned long addr, unsigned long data);
 
     struct fp_regs_struct *get_thread_fp_regs(struct global_state *state, int tid);
     void get_fp_regs(int tid, struct fp_regs_struct *fpregs);
     void set_fp_regs(int tid, struct fp_regs_struct *fpregs);
 
-    uint64_t ptrace_geteventmsg(int pid);
+    unsigned long ptrace_geteventmsg(int pid);
 
     long singlestep(struct global_state *state, int tid);
-    int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps);
+    int step_until(struct global_state *state, int tid, unsigned long addr, int max_steps);
 
     int cont_all_and_set_bps(struct global_state *state, int pid);
 
-    int stepping_finish(struct global_state *state, int tid);
+    int stepping_finish(struct global_state *state, int tid, _Bool use_trampoline_heuristic);
 
     struct thread_status *wait_all_and_update_regs(struct global_state *state, int pid);
     void free_thread_status_list(struct thread_status *head);
@@ -395,15 +462,15 @@ ffibuilder.cdef("""
     void unregister_thread(struct global_state *state, int tid);
     void free_thread_list(struct global_state *state);
 
-    void register_breakpoint(struct global_state *state, int pid, uint64_t address);
-    void unregister_breakpoint(struct global_state *state, uint64_t address);
-    void enable_breakpoint(struct global_state *state, uint64_t address);
-    void disable_breakpoint(struct global_state *state, uint64_t address);
+    void register_breakpoint(struct global_state *state, int pid, unsigned long address);
+    void unregister_breakpoint(struct global_state *state, unsigned long address);
+    void enable_breakpoint(struct global_state *state, unsigned long address);
+    void disable_breakpoint(struct global_state *state, unsigned long address);
 
-    void register_hw_breakpoint(struct global_state *state, int tid, uint64_t address, char type[2], char len);
-    void unregister_hw_breakpoint(struct global_state *state, int tid, uint64_t address);
-    void enable_hw_breakpoint(struct global_state *state, int tid, uint64_t address);
-    void disable_hw_breakpoint(struct global_state *state, int tid, uint64_t address);
+    void register_hw_breakpoint(struct global_state *state, int tid, unsigned long address, char type[2], char len);
+    void unregister_hw_breakpoint(struct global_state *state, int tid, unsigned long address);
+    void enable_hw_breakpoint(struct global_state *state, int tid, unsigned long address);
+    void disable_hw_breakpoint(struct global_state *state, int tid, unsigned long address);
     unsigned long get_hit_hw_breakpoint(struct global_state *state, int tid);
     int get_remaining_hw_breakpoint_count(struct global_state *state, int tid);
     int get_remaining_hw_watchpoint_count(struct global_state *state, int tid);

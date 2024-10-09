@@ -17,7 +17,7 @@
 #include <sys/wait.h>
 
 // Run some static assertions to ensure that the fp types are correct
-#ifdef ARCH_AMD64
+#if defined ARCH_AMD64 || defined ARCH_I386
     #ifndef FPREGS_AVX
         #error "FPREGS_AVX must be defined"
     #endif
@@ -39,21 +39,21 @@
 
 struct ptrace_hit_bp {
     int pid;
-    uint64_t addr;
-    uint64_t bp_instruction;
-    uint64_t prev_instruction;
+    unsigned long addr;
+    unsigned long bp_instruction;
+    unsigned long prev_instruction;
 };
 
 struct software_breakpoint {
-    uint64_t addr;
-    uint64_t instruction;
-    uint64_t patched_instruction;
+    unsigned long addr;
+    unsigned long instruction;
+    unsigned long patched_instruction;
     char enabled;
     struct software_breakpoint *next;
 };
 
 struct hardware_breakpoint {
-    uint64_t addr;
+    unsigned long addr;
     int tid;
     char enabled;
     char type[2];
@@ -83,7 +83,7 @@ struct global_state {
     _Bool handle_syscall_enabled;
 };
 
-#ifdef ARCH_AMD64
+#if defined ARCH_AMD64 || defined ARCH_I386
 int getregs(int tid, struct ptrace_regs_struct *regs)
 {
     return ptrace(PTRACE_GETREGS, tid, NULL, regs);
@@ -123,10 +123,10 @@ int setregs(int tid, struct ptrace_regs_struct *regs)
 }
 #endif
 
-#ifdef ARCH_AMD64
+#if defined ARCH_AMD64 || defined ARCH_I386
 
-#define DR_BASE 0x350
-#define DR_SIZE 0x8
+#define DR_BASE offsetof(struct user, u_debugreg[0])
+#define DR_SIZE sizeof(unsigned long)
 #define CTRL_LOCAL(x) (1 << (2 * x))
 #define CTRL_COND(x) (16 + (4 * x))
 #define CTRL_COND_VAL(x) (x == 'x' ? 0 : (x == 'w' ? 1 : 3))
@@ -404,7 +404,7 @@ struct fp_regs_struct *get_thread_fp_regs(struct global_state *state, int tid)
     return NULL;
 }
 
-#ifdef ARCH_AMD64
+#if defined ARCH_AMD64 || defined ARCH_I386
 void get_fp_regs(int tid, struct fp_regs_struct *fpregs)
 {
     #if (XSAVE == 0)
@@ -496,7 +496,7 @@ struct ptrace_regs_struct *register_thread(struct global_state *state, int tid)
     t->tid = tid;
     t->signal_to_forward = 0;
 
-#ifdef ARCH_AMD64
+#if defined ARCH_AMD64 || defined ARCH_I386
     t->fpregs.type = FPREGS_AVX;
 #endif
     t->fpregs.dirty = 0;
@@ -677,7 +677,7 @@ void ptrace_set_options(int pid)
     ptrace(PTRACE_SETOPTIONS, pid, NULL, options);
 }
 
-uint64_t ptrace_peekdata(int pid, uint64_t addr)
+unsigned long ptrace_peekdata(int pid, unsigned long addr)
 {
     // Since the value returned by a successful PTRACE_PEEK*
     // request may be -1, the caller must clear errno before the call,
@@ -686,14 +686,14 @@ uint64_t ptrace_peekdata(int pid, uint64_t addr)
     return ptrace(PTRACE_PEEKDATA, pid, (void *)addr, NULL);
 }
 
-uint64_t ptrace_pokedata(int pid, uint64_t addr, uint64_t data)
+unsigned long ptrace_pokedata(int pid, unsigned long addr, unsigned long data)
 {
     return ptrace(PTRACE_POKEDATA, pid, (void *)addr, data);
 }
 
-uint64_t ptrace_geteventmsg(int pid)
+unsigned long ptrace_geteventmsg(int pid)
 {
-    uint64_t data = 0;
+    unsigned long data = 0;
 
     ptrace(PTRACE_GETEVENTMSG, pid, NULL, &data);
 
@@ -718,7 +718,7 @@ long singlestep(struct global_state *state, int tid)
         t = t->next;
     }
 
-#ifdef ARCH_AMD64
+#if defined ARCH_AMD64 || defined ARCH_I386
     return ptrace(PTRACE_SINGLESTEP, tid, NULL, signal_to_forward);
 #endif
 
@@ -741,7 +741,7 @@ long singlestep(struct global_state *state, int tid)
 #endif
 }
 
-int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps)
+int step_until(struct global_state *state, int tid, unsigned long addr, int max_steps)
 {
     // flush any register changes
     struct thread *t = state->t_HEAD, *stepping_thread = NULL;
@@ -758,7 +758,7 @@ int step_until(struct global_state *state, int tid, uint64_t addr, int max_steps
     }
 
     int count = 0, status = 0;
-    uint64_t previous_ip;
+    unsigned long previous_ip;
 
     if (!stepping_thread) {
         perror("Thread not found");
@@ -832,7 +832,7 @@ int prepare_for_run(struct global_state *state, int pid)
 
     while (t != NULL) {
         t_hit = 0;
-        uint64_t ip = INSTRUCTION_POINTER(t->regs);
+        unsigned long ip = INSTRUCTION_POINTER(t->regs);
 
         b = state->sw_b_HEAD;
         while (b != NULL && !t_hit) {
@@ -1012,9 +1012,9 @@ void free_thread_status_list(struct thread_status *head)
     }
 }
 
-void register_breakpoint(struct global_state *state, int pid, uint64_t address)
+void register_breakpoint(struct global_state *state, int pid, unsigned long address)
 {
-    uint64_t instruction, patched_instruction;
+    unsigned long instruction, patched_instruction;
 
     instruction = ptrace(PTRACE_PEEKDATA, pid, (void *)address, NULL);
 
@@ -1058,7 +1058,7 @@ void register_breakpoint(struct global_state *state, int pid, uint64_t address)
     }
 }
 
-void unregister_breakpoint(struct global_state *state, uint64_t address)
+void unregister_breakpoint(struct global_state *state, unsigned long address)
 {
     struct software_breakpoint *b = state->sw_b_HEAD;
     struct software_breakpoint *prev = NULL;
@@ -1078,7 +1078,7 @@ void unregister_breakpoint(struct global_state *state, uint64_t address)
     }
 }
 
-void enable_breakpoint(struct global_state *state, uint64_t address)
+void enable_breakpoint(struct global_state *state, unsigned long address)
 {
     struct software_breakpoint *b = state->sw_b_HEAD;
 
@@ -1096,7 +1096,7 @@ void enable_breakpoint(struct global_state *state, uint64_t address)
     }
 }
 
-void disable_breakpoint(struct global_state *state, uint64_t address)
+void disable_breakpoint(struct global_state *state, unsigned long address)
 {
     struct software_breakpoint *b = state->sw_b_HEAD;
 
@@ -1139,7 +1139,83 @@ void free_breakpoints(struct global_state *state)
     state->hw_b_HEAD = NULL;
 }
 
-int stepping_finish(struct global_state *state, int tid)
+#if defined ARCH_AMD64 || defined ARCH_I386
+int check_if_dl_trampoline(struct global_state *state, unsigned long instruction_pointer)
+{
+    // https://codebrowser.dev/glibc/glibc/sysdeps/i386/dl-trampoline.S.html
+    //      0xf7fdaf80 <_dl_runtime_resolve+16>: pop    edx
+    //      0xf7fdaf81 <_dl_runtime_resolve+17>: mov    ecx,DWORD PTR [esp]
+    //      0xf7fdaf84 <_dl_runtime_resolve+20>: mov    DWORD PTR [esp],eax
+    //      0xf7fdaf87 <_dl_runtime_resolve+23>: mov    eax,DWORD PTR [esp+0x4]
+    // =>   0xf7fdaf8b <_dl_runtime_resolve+27>: ret    0xc
+    //      0xf7fdaf8e:  xchg   ax,ax
+    //      0xf7fdaf90 <_dl_runtime_profile>:    push   esp
+    //      0xf7fdaf91 <_dl_runtime_profile+1>:  add    DWORD PTR [esp],0x8
+    //      0xf7fdaf95 <_dl_runtime_profile+5>:  push   ebp
+    //      0xf7fdaf96 <_dl_runtime_profile+6>:  push   eax
+    //      0xf7fdaf97 <_dl_runtime_profile+7>:  push   ecx
+    //      0xf7fdaf98 <_dl_runtime_profile+8>:  push   edx
+
+    // https://elixir.bootlin.com/glibc/glibc-2.35/source/sysdeps/i386/dl-trampoline.S
+    //      0xf7fd9004 <_dl_runtime_resolve+20>:	pop    edx
+    //      0xf7fd9005 <_dl_runtime_resolve+21>:	mov    ecx,DWORD PTR [esp]
+    //      0xf7fd9008 <_dl_runtime_resolve+24>:	mov    DWORD PTR [esp],eax
+    //      0xf7fd900b <_dl_runtime_resolve+27>:	mov    eax,DWORD PTR [esp+0x4]
+    // =>   0xf7fd900f <_dl_runtime_resolve+31>:	ret    0xc
+    //      0xf7fd9012:	lea    esi,[esi+eiz*1+0x0]
+    //      0xf7fd9019:	lea    esi,[esi+eiz*1+0x0]
+    //      0xf7fd9020 <_dl_runtime_resolve_shstk>:	endbr32
+    //      0xf7fd9024 <_dl_runtime_resolve_shstk+4>:	push   eax
+    //      0xf7fd9025 <_dl_runtime_resolve_shstk+5>:	push   edx
+
+    unsigned long data;
+
+    // if ((instruction_pointer & 0xf) != 0xb) {
+    //     return 0;
+    // }
+    // breaks if libc is compiled with CET
+
+    instruction_pointer -= 0xb;
+
+    data = ptrace(PTRACE_PEEKDATA, state->t_HEAD->tid, (void *)instruction_pointer, NULL);
+    data = data & 0xFFFFFFFF; // on i386 we get 4 bytes from the ptrace call, while on amd64 we get 8 bytes
+
+    if (data != 0x240c8b5a) {
+        return 0;
+    }
+
+    instruction_pointer += 0x4;
+
+    data = ptrace(PTRACE_PEEKDATA, state->t_HEAD->tid, (void *)instruction_pointer, NULL);
+    data = data & 0xFFFFFFFF;
+
+    if (data != 0x8b240489) {
+        return 0;
+    }
+
+    instruction_pointer += 0x4;
+
+    data = ptrace(PTRACE_PEEKDATA, state->t_HEAD->tid, (void *)instruction_pointer, NULL);
+    data = data & 0xFFFFFFFF;
+
+    if (data != 0xc2042444) {
+        return 0;
+    }
+
+    instruction_pointer += 0x4;
+
+    data = ptrace(PTRACE_PEEKDATA, state->t_HEAD->tid, (void *)instruction_pointer, NULL);
+    data = data & 0xFFFF;
+
+    if (data != 0x000c) {
+        return 0;
+    }
+
+    return 1;
+}
+#endif
+
+int stepping_finish(struct global_state *state, int tid, _Bool use_trampoline_heuristic)
 {
     int status = prepare_for_run(state, tid);
 
@@ -1157,8 +1233,9 @@ int stepping_finish(struct global_state *state, int tid)
         return -1;
     }
 
-    uint64_t previous_ip, current_ip;
-    uint64_t opcode_window, opcode;
+    unsigned long previous_ip, current_ip;
+    unsigned long opcode_window, opcode;
+    struct software_breakpoint *b = state->sw_b_HEAD;
 
     // We need to keep track of the nested calls
     int nested_call_counter = 1;
@@ -1179,7 +1256,7 @@ int stepping_finish(struct global_state *state, int tid)
         // Get value at current instruction pointer
         opcode_window = ptrace(PTRACE_PEEKDATA, tid, (void *)current_ip, NULL);
 
-#ifdef ARCH_AMD64
+#if defined ARCH_AMD64 || defined ARCH_I386
         // on amd64 we care only about the first byte
         opcode = opcode_window & 0xFF;
 #endif
@@ -1200,6 +1277,18 @@ int stepping_finish(struct global_state *state, int tid)
         else if (IS_RET_INSTRUCTION(opcode))
             nested_call_counter--;
 
+#if defined ARCH_AMD64 || defined ARCH_I386
+        // On i386, dl-trampoline.S ends with a ret instruction to the resolved address
+        // While, on amd64, it ends with a jmp to the resolved address
+        // On i386, this decrements the nested_call_counter even if it shouldn't
+        // So we need to heuristically check if we are in a dl-trampoline.S
+        // And if so, we need to re-increment the nested_call_counter
+        // https://codebrowser.dev/glibc/glibc/sysdeps/i386/dl-trampoline.S.html
+        if (use_trampoline_heuristic && check_if_dl_trampoline(state, current_ip)) {
+            nested_call_counter++;
+        }
+#endif
+
     } while (nested_call_counter > 0);
 
     // We are in a return instruction, do the last step
@@ -1213,7 +1302,6 @@ int stepping_finish(struct global_state *state, int tid)
 
 cleanup:
     // remove any installed breakpoint
-    struct software_breakpoint *b = state->sw_b_HEAD;
     while (b != NULL) {
         if (b->enabled) {
             ptrace(PTRACE_POKEDATA, tid, (void *)b->addr, b->instruction);
@@ -1224,7 +1312,7 @@ cleanup:
     return 0;
 }
 
-void register_hw_breakpoint(struct global_state *state, int tid, uint64_t address, char type[2], char len)
+void register_hw_breakpoint(struct global_state *state, int tid, unsigned long address, char type[2], char len)
 {
     struct hardware_breakpoint *b = state->hw_b_HEAD;
 
@@ -1250,7 +1338,7 @@ void register_hw_breakpoint(struct global_state *state, int tid, uint64_t addres
     install_hardware_breakpoint(b);
 }
 
-void unregister_hw_breakpoint(struct global_state *state, int tid, uint64_t address)
+void unregister_hw_breakpoint(struct global_state *state, int tid, unsigned long address)
 {
     struct hardware_breakpoint *b = state->hw_b_HEAD;
     struct hardware_breakpoint *prev = NULL;
@@ -1275,7 +1363,7 @@ void unregister_hw_breakpoint(struct global_state *state, int tid, uint64_t addr
     }
 }
 
-void enable_hw_breakpoint(struct global_state *state, int tid, uint64_t address)
+void enable_hw_breakpoint(struct global_state *state, int tid, unsigned long address)
 {
     struct hardware_breakpoint *b = state->hw_b_HEAD;
 
@@ -1291,7 +1379,7 @@ void enable_hw_breakpoint(struct global_state *state, int tid, uint64_t address)
     }
 }
 
-void disable_hw_breakpoint(struct global_state *state, int tid, uint64_t address)
+void disable_hw_breakpoint(struct global_state *state, int tid, unsigned long address)
 {
     struct hardware_breakpoint *b = state->hw_b_HEAD;
 
