@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 class SymbolList(list):
-    """A dictionary of symbols in the target process."""
+    """A list of symbols in the target process."""
 
     def __init__(self: SymbolList, symbols: list[Symbol]) -> None:
         """Initializes the SymbolDict."""
@@ -78,6 +78,13 @@ class SymbolList(list):
             raise TypeError("The value must be an integer or a string.")
 
         return SymbolList(filtered_symbols)
+
+    def __getitem__(self: SymbolList, key: str) -> Symbol:
+        """Returns the symbol with the specified name."""
+        symbols = [symbol for symbol in self if symbol.name == key]
+        if not symbols:
+            raise KeyError(f"Symbol '{key}' not found.")
+        return symbols
 
     def __hash__(self) -> int:
         """Return the hash of the symbol list."""
