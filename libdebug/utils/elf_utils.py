@@ -35,8 +35,6 @@ def _download_debuginfod(buildid: str, debuginfod_path: Path) -> None:
 
         if r.ok:
             debuginfod_path.parent.mkdir(parents=True, exist_ok=True)
-            print("done", debuginfod_path)
-
             with debuginfod_path.open("wb") as f:
                 f.write(r.content)
         else:
