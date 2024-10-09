@@ -327,16 +327,16 @@ elif architecture == "i686":
         unsigned long edi;
         unsigned long ebp;
         unsigned long eax;
-        unsigned long xds;
-        unsigned long xes;
-        unsigned long xfs;
-        unsigned long xgs;
+        unsigned long ds;
+        unsigned long es;
+        unsigned long fs;
+        unsigned long gs;
         unsigned long orig_eax;
         unsigned long eip;
-        unsigned long xcs;
+        unsigned long cs;
         unsigned long eflags;
         unsigned long esp;
-        unsigned long xss;
+        unsigned long ss;
     };
     """
 

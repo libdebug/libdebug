@@ -43,15 +43,15 @@ AMD64_REGS = [
 ]
 
 AMD64_SPECIAL_REGS = [
-    "cs",
     "eflags",
+    "cs",
     "ss",
-    "fs_base",
-    "gs_base",
     "ds",
     "es",
     "fs",
     "gs",
+    "fs_base",
+    "gs_base",
 ]
 
 
