@@ -17,18 +17,30 @@ class MyBreakpoint(gdb.Breakpoint):
         
     def stop(self):
         """ Callback function to be called at each breakpoint hit """
-        pass
-
+        global start, end
+        
+        # Start the timer
+        start = perf_counter()
+        
+        # Access to RSP register to get the address
+        address = gdb.selected_frame().read_register("rsp") - 0x10000
+        
+        # Read the memory
+        gdb.selected_inferior().read_memory(address, 0x10000)
+        
+        # Stop the timer
+        end = perf_counter()
+        
 class Debugger(gdb.Command):
     """ Class to handle the debugging session """
     def __init__(self):
-        super(Debugger, self).__init__("breakpoint_gdb", gdb.COMMAND_USER)
+        super(Debugger, self).__init__("memory_gdb", gdb.COMMAND_USER)
         
     def test(self):
         """ This test includes the time to:
         - run the debugged process from the entrypoint,
         - hit the breakpoint 1000 times,
-        - each time the breakpoint is hit, execute an empty callback,
+        - each time the breakpoint is hit, retrieve the RSP register and read the memory,
         - wait the process to end.
         """
         gdb.execute("set pagination off")
@@ -39,14 +51,8 @@ class Debugger(gdb.Command):
         # Set the hardware breakpoint
         MyBreakpoint("*0x401302")
         
-        # Start the timer
-        start = perf_counter()
-        
         # Continue the process from the entrypoint and wait for the process to end
         gdb.execute("continue")
-        
-        # Stop the timer
-        end = perf_counter()
 
         # Delete the breakpoints
         gdb.execute("del breakpoints")
@@ -65,8 +71,8 @@ class Debugger(gdb.Command):
             self.test()
 
         # Save the result in a pickle file
-        with open("breakpoint_gdb.pkl", "wb") as f:
+        with open("memory_gdb.pkl", "wb") as f:
             pickle.dump(self.results, f)
         # print("Results:", self.results)
-        
+                
 Debugger()
