@@ -45,7 +45,7 @@ class Debugger:
     _sentinel: object = object()
     """A sentinel object."""
 
-    _internal_debugger: InternalDebugger | None = None
+    _internal_debugger: InternalDebugger
     """The internal debugger object."""
 
     def __init__(self: Debugger) -> None:
