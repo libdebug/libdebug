@@ -184,13 +184,13 @@ class PtraceStatusHandler:
                         callback_hijack._skip_exit = True
             elif handler.on_enter_pprint:
                 # Pretty print the syscall number
-                handler.on_enter_pprint(thread, syscall_number, callback=True)
+                handler.on_enter_pprint(thread, syscall_number, callback=True, old_args=old_args)
                 handler._has_entered = True
             else:
                 handler._has_entered = True
         elif handler.on_enter_pprint:
             # Pretty print the syscall number
-            handler.on_enter_pprint(thread, syscall_number)
+            handler.on_enter_pprint(thread, syscall_number, callback=(handler.on_exit_user is not None))
             handler._has_entered = True
         elif handler.on_exit_pprint or handler.on_exit_user:
             # The syscall has been entered but the user did not define an on_enter callback
