@@ -228,11 +228,23 @@ class ThreadContext:
         backtrace = stack_unwinder.unwind(self)
         maps = self._internal_debugger.debugging_interface.get_maps()
         for return_address in backtrace:
-            return_address_symbol = resolve_address_in_maps(return_address, maps)
+            filtered_maps = maps.filter(return_address)
+            return_address_symbol = resolve_address_in_maps(return_address, filtered_maps)
+            permissions = filtered_maps[0].permissions
+            if "rwx" in permissions:
+                style = f"{ANSIColors.UNDERLINE}{ANSIColors.RED}"
+            elif "x" in permissions:
+                style = f"{ANSIColors.RED}"
+            elif "w" in permissions:
+                # This should not happen, but it's here for completeness
+                style = f"{ANSIColors.YELLOW}"
+            elif "r" in permissions:
+                # This should not happen, but it's here for completeness
+                style = f"{ANSIColors.GREEN}"
             if return_address_symbol[:2] == "0x":
-                print(f"{ANSIColors.RED}{return_address:#x} {ANSIColors.RESET}")
+                print(f"{style}{return_address:#x} {ANSIColors.RESET}")
             else:
-                print(f"{ANSIColors.RED}{return_address:#x} <{return_address_symbol}> {ANSIColors.RESET}")
+                print(f"{style}{return_address:#x} <{return_address_symbol}> {ANSIColors.RESET}")
 
     def pprint_registers(self: ThreadContext) -> None:
         """Pretty prints the thread's registers."""
