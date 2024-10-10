@@ -43,10 +43,11 @@ classifiers = [
 keywords = ["libdebug", "debugger", "elf", "ptrace", "gdb", "debug", "ctf", "reverse-engineering", "reverse", "rev", "scriptable", "script"]
 dependencies = [
     "capstone",
-    "cffi",
+    "nanobind",
     "psutil",
     "pyelftools",
     "requests",
+    "prompt-toolkit",
 ]
 
 [project.optional-dependencies]

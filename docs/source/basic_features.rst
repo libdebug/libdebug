@@ -253,7 +253,17 @@ The `next` command is similar to the `step` command, but when a ``call`` instruc
 Detach and GDB Migration
 ====================================
 
-If at any time during your script you want to take a more interactive approach to debugging, you can use the `gdb()` method. This will temporarily detach libdebug from the program and give you control over the program using GDB. Quitting GDB will return control to libdebug. The syntax is as follows:
+If at any time during your script you want to take a more interactive approach to debugging, you can use the ``gdb()`` method. This will temporarily detach libdebug from the program and give you control over the program using GDB. Quitting GDB will return control to libdebug. 
+
+By default, the behavior of this command is to open GDB in a new terminal window. For this to work, it is necessary to specify your terminal emulator in the libcontext parameters. The following example shows how to set the terminal to tmux:
+
+.. code-block:: python
+
+    from libdebug import libcontext
+
+    libcontext.terminal = ['tmux', 'splitw', '-h']
+
+Once the terminal is set, you can use the ``gdb()`` method.
 
 .. code-block:: python
 

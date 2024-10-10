@@ -18,6 +18,7 @@ if not (
     os.path.isfile("/usr/include/sys/ptrace.h")
     or os.path.isfile("/usr/include/x86_64-linux-gnu/sys/ptrace.h")
     or os.path.isfile("/usr/include/aarch64-linux-gnu/sys/ptrace.h")
+    or os.path.isfile("/usr/include/i386-linux-gnu/sys/ptrace.h")
 ):
     print("Required C libraries not found. Please install ptrace or kernel headers")
     exit(1)
@@ -73,17 +74,17 @@ setup(
     author="JinBlack, Io_no, MrIndeciso, Frank01001",
     description="A library to debug binary programs",
     packages=find_packages(include=["libdebug", "libdebug.*"]),
-    install_requires=["capstone", "pyelftools", "cffi", "requests", "psutil"],
+    install_requires=["capstone", "pyelftools", "cffi", "requests", "psutil", "prompt-toolkit"],
     setup_requires=["cffi"],
     cffi_modules=[
-        "./libdebug/cffi/ptrace_cffi_build.py:ffibuilder",
+        # "./libdebug/cffi/ptrace_cffi_build.py:ffibuilder",
         "./libdebug/cffi/personality_cffi_build.py:ffibuilder",
         f"./libdebug/cffi/{debug_sym_cffi}.py:ffibuilder",
     ],
     cmdclass={"build": JumpstartBuildCommand},
     package_data={
         "libdebug.ptrace.jumpstart": ["jumpstart", "jumpstart.c"],
-        "libdebug.cffi": ["*.c"],
+        "libdebug.cffi": ["*.c", "*.cpp"],
         "libdebug": ["py.typed"],
     },
     include_package_data=True,

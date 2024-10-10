@@ -9,13 +9,15 @@ from __future__ import annotations
 import errno
 import os
 import pty
+import sys
 import tty
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from libdebug.architectures.register_helper import register_holder_provider
 from libdebug.architectures.call_utilities_provider import call_utilities_provider
+from libdebug.architectures.register_helper import register_holder_provider
 from libdebug.cffi import _ptrace_cffi
+from libdebug.commlink.pipe_manager import PipeManager
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.debugger.internal_debugger_instance_manager import (
     extend_internal_debugger,
@@ -27,10 +29,10 @@ from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
 from libdebug.state.thread_context import ThreadContext
 from libdebug.utils.debugging_utils import normalize_and_validate_address
 from libdebug.utils.elf_utils import get_entry_point
-from libdebug.utils.pipe_manager import PipeManager
 from libdebug.utils.process_utils import (
     disable_self_aslr,
     get_process_maps,
+    get_process_tasks,
     invalidate_process_cache,
 )
 
@@ -49,6 +51,7 @@ else:
 
 if TYPE_CHECKING:
     from libdebug.data.memory_map import MemoryMap
+    from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.data.registers import Registers
     from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
@@ -70,34 +73,24 @@ class PtraceInterface(DebuggingInterface):
     def __init__(self: PtraceInterface) -> None:
         super().__init__()
 
-        self.lib_trace = _ptrace_cffi.lib
-        self.ffi = _ptrace_cffi.ffi
+        self.lib_trace = _ptrace_cffi.libdebug_ptrace_interface()
 
         self._internal_debugger = provide_internal_debugger(self)
-
-        self._global_state = self.ffi.new("struct global_state*")
-        self._global_state.t_HEAD = self.ffi.NULL
-        self._global_state.dead_t_HEAD = self.ffi.NULL
-        self._global_state.sw_b_HEAD = self.ffi.NULL
-        self._global_state.hw_b_HEAD = self.ffi.NULL
-
         self.process_id = 0
         self.detached = False
-
         self._disabled_aslr = False
 
         self.reset()
 
     def reset(self: PtraceInterface) -> None:
         """Resets the state of the interface."""
-        self.lib_trace.free_thread_list(self._global_state)
-        self.lib_trace.free_breakpoints(self._global_state)
+        self.lib_trace.cleanup()
 
     def _set_options(self: PtraceInterface) -> None:
         """Sets the tracer options."""
-        self.lib_trace.ptrace_set_options(self.process_id)
+        self.lib_trace.set_ptrace_options()
 
-    def run(self: PtraceInterface) -> None:
+    def run(self: PtraceInterface, redirect_pipes: bool) -> None:
         """Runs the specified process."""
         if not self._disabled_aslr and not self._internal_debugger.aslr_enabled:
             disable_self_aslr()
@@ -112,15 +105,32 @@ class PtraceInterface(DebuggingInterface):
         with extend_internal_debugger(self):
             self.status_handler = PtraceStatusHandler()
 
-        # Creating pipes for stdin, stdout, stderr
-        self.stdin_read, self.stdin_write = os.pipe()
-        self.stdout_read, self.stdout_write = pty.openpty()
-        self.stderr_read, self.stderr_write = pty.openpty()
+        file_actions = []
 
-        # Setting stdout, stderr to raw mode to avoid terminal control codes interfering with the
-        # output
-        tty.setraw(self.stdout_read)
-        tty.setraw(self.stderr_read)
+        if redirect_pipes:
+            # Creating pipes for stdin, stdout, stderr
+            self.stdin_read, self.stdin_write = os.pipe()
+            self.stdout_read, self.stdout_write = pty.openpty()
+            self.stderr_read, self.stderr_write = pty.openpty()
+
+            # Setting stdout, stderr to raw mode to avoid terminal control codes interfering with the
+            # output
+            tty.setraw(self.stdout_read)
+            tty.setraw(self.stderr_read)
+
+            file_actions.extend(
+                [
+                    (POSIX_SPAWN_CLOSE, self.stdin_write),
+                    (POSIX_SPAWN_CLOSE, self.stdout_read),
+                    (POSIX_SPAWN_CLOSE, self.stderr_read),
+                    (POSIX_SPAWN_DUP2, self.stdin_read, 0),
+                    (POSIX_SPAWN_DUP2, self.stdout_write, 1),
+                    (POSIX_SPAWN_DUP2, self.stderr_write, 2),
+                    (POSIX_SPAWN_CLOSE, self.stdin_read),
+                    (POSIX_SPAWN_CLOSE, self.stdout_write),
+                    (POSIX_SPAWN_CLOSE, self.stderr_write),
+                ]
+            )
 
         # argv[1] is the length of the custom environment variables
         # argv[2:2 + env_len] is the custom environment variables
@@ -144,17 +154,7 @@ class PtraceInterface(DebuggingInterface):
             JUMPSTART_LOCATION,
             argv,
             os.environ,
-            file_actions=[
-                (POSIX_SPAWN_CLOSE, self.stdin_write),
-                (POSIX_SPAWN_CLOSE, self.stdout_read),
-                (POSIX_SPAWN_CLOSE, self.stderr_read),
-                (POSIX_SPAWN_DUP2, self.stdin_read, 0),
-                (POSIX_SPAWN_DUP2, self.stdout_write, 1),
-                (POSIX_SPAWN_DUP2, self.stderr_write, 2),
-                (POSIX_SPAWN_CLOSE, self.stdin_read),
-                (POSIX_SPAWN_CLOSE, self.stdout_write),
-                (POSIX_SPAWN_CLOSE, self.stderr_write),
-            ],
+            file_actions=file_actions,
             setpgroup=0,
         )
 
@@ -164,7 +164,19 @@ class PtraceInterface(DebuggingInterface):
         self.register_new_thread(child_pid)
         continue_to_entry_point = self._internal_debugger.autoreach_entrypoint
         self._setup_parent(continue_to_entry_point)
-        self._internal_debugger.pipe_manager = self._setup_pipe()
+
+        if redirect_pipes:
+            self._internal_debugger.pipe_manager = self._setup_pipe()
+        else:
+            self._internal_debugger.pipe_manager = None
+
+            # https://stackoverflow.com/questions/58918188/why-is-stdin-not-propagated-to-child-process-of-different-process-group
+            # We need to set the foreground process group to the child process group, otherwise the child process
+            # will not receive the input from the terminal
+            try:
+                os.tcsetpgrp(0, child_pid)
+            except OSError as e:
+                liblog.debugger("Failed to set the foreground process group: %r", e)
 
     def attach(self: PtraceInterface, pid: int) -> None:
         """Attaches to the specified process.
@@ -176,18 +188,30 @@ class PtraceInterface(DebuggingInterface):
         with extend_internal_debugger(self):
             self.status_handler = PtraceStatusHandler()
 
-        res = self.lib_trace.ptrace_attach(pid)
-        if res == -1:
-            errno_val = self.ffi.errno
-            raise OSError(errno_val, errno.errorcode[errno_val])
+        # Attach to all the tasks of the process
+        self._attach_to_all_tasks(pid)
 
         self.process_id = pid
         self.detached = False
         self._internal_debugger.process_id = pid
-        self.register_new_thread(pid)
         # If we are attaching to a process, we don't want to continue to the entry point
         # which we have probably already passed
         self._setup_parent(False)
+
+    def _attach_to_all_tasks(self: PtraceStatusHandler, pid: int) -> None:
+        """Attach to all the tasks of the process."""
+        tids = get_process_tasks(pid)
+        for tid in tids:
+            errno_val = self.lib_trace.attach(tid)
+            if errno_val == errno.EPERM:
+                raise PermissionError(
+                    errno_val,
+                    errno.errorcode[errno_val],
+                    "You don't have permission to attach to the process. Did you check the ptrace_scope?",
+                )
+            if errno_val:
+                raise OSError(errno_val, errno.errorcode[errno_val])
+            self.register_new_thread(tid)
 
     def detach(self: PtraceInterface) -> None:
         """Detaches from the process."""
@@ -196,14 +220,14 @@ class PtraceInterface(DebuggingInterface):
             if bp.enabled:
                 self.unset_breakpoint(bp, delete=True)
 
-        self.lib_trace.ptrace_detach_and_cont(self._global_state, self.process_id)
+        self.lib_trace.detach_and_cont()
 
         self.detached = True
 
     def kill(self: PtraceInterface) -> None:
         """Instantly terminates the process."""
         if not self.detached:
-            self.lib_trace.ptrace_detach_for_kill(self._global_state, self.process_id)
+            self.lib_trace.detach_for_kill()
         else:
             # If we detached from the process, there's no reason to attempt to detach again
             # We can just kill the process
@@ -233,19 +257,18 @@ class PtraceInterface(DebuggingInterface):
 
         for handler in self._internal_debugger.handled_syscalls.values():
             if handler.enabled or handler.on_enter_pprint or handler.on_exit_pprint:
-                self._global_state.handle_syscall_enabled = True
+                self.lib_trace.set_handle_syscall(True)
                 break
         else:
-            self._global_state.handle_syscall_enabled = False
+            self.lib_trace.set_handle_syscall(False)
 
-        result = self.lib_trace.cont_all_and_set_bps(
-            self._global_state,
-            self.process_id,
-        )
+        # Reset the event type
+        self._internal_debugger.resume_context.event_type = None
 
-        if result < 0:
-            errno_val = self.ffi.errno
-            raise OSError(errno_val, errno.errorcode[errno_val])
+        # Reset the breakpoint hit
+        self._internal_debugger.resume_context.breakpoint_hit.clear()
+
+        self.lib_trace.cont_all_and_set_bps()
 
     def step(self: PtraceInterface, thread: ThreadContext) -> None:
         """Executes a single instruction of the process.
@@ -257,10 +280,13 @@ class PtraceInterface(DebuggingInterface):
         for bp in self._internal_debugger.breakpoints.values():
             bp._disabled_for_step = True
 
-        result = self.lib_trace.singlestep(self._global_state, thread.thread_id)
-        if result == -1:
-            errno_val = self.ffi.errno
-            raise OSError(errno_val, errno.errorcode[errno_val])
+        # Reset the event type
+        self._internal_debugger.resume_context.event_type = None
+
+        # Reset the breakpoint hit
+        self._internal_debugger.resume_context.breakpoint_hit.clear()
+
+        self.lib_trace.step(thread.thread_id)
 
         self._internal_debugger.resume_context.is_a_step = True
 
@@ -276,15 +302,13 @@ class PtraceInterface(DebuggingInterface):
         for bp in self._internal_debugger.breakpoints.values():
             bp._disabled_for_step = True
 
-        result = self.lib_trace.step_until(
-            self._global_state,
-            thread.thread_id,
-            address,
-            max_steps,
-        )
-        if result == -1:
-            errno_val = self.ffi.errno
-            raise OSError(errno_val, errno.errorcode[errno_val])
+        # Reset the event type
+        self._internal_debugger.resume_context.event_type = None
+
+        # Reset the breakpoint hit
+        self._internal_debugger.resume_context.breakpoint_hit.clear()
+
+        self.lib_trace.step_until(thread.thread_id, address, max_steps)
 
         # As the wait is done internally, we must invalidate the cache
         invalidate_process_cache()
@@ -296,16 +320,14 @@ class PtraceInterface(DebuggingInterface):
             thread (ThreadContext): The thread to step.
             heuristic (str): The heuristic to use.
         """
+        # Reset the event type
+        self._internal_debugger.resume_context.event_type = None
+
+        # Reset the breakpoint hit
+        self._internal_debugger.resume_context.breakpoint_hit.clear()
+
         if heuristic == "step-mode":
-            result = self.lib_trace.stepping_finish(
-                self._global_state,
-                thread.thread_id,
-            )
-
-            if result == -1:
-                errno_val = self.ffi.errno
-                raise OSError(errno_val, errno.errorcode[errno_val])
-
+            self.lib_trace.stepping_finish(thread.thread_id, self._internal_debugger.arch == "i386")
             # As the wait is done internally, we must invalidate the cache
             invalidate_process_cache()
         elif heuristic == "backtrace":
@@ -329,9 +351,7 @@ class PtraceInterface(DebuggingInterface):
             if not found:
                 # Check if we have enough hardware breakpoints available
                 # Otherwise we use a software breakpoint
-                install_hw_bp = (
-                    self.lib_trace.get_remaining_hw_breakpoint_count(self._global_state, thread.thread_id) > 0
-                )
+                install_hw_bp = self.lib_trace.get_remaining_hw_breakpoint_count(thread.thread_id) > 0
 
                 ip_breakpoint = Breakpoint(last_saved_instruction_pointer, hardware=install_hw_bp)
                 self.set_breakpoint(ip_breakpoint)
@@ -353,6 +373,11 @@ class PtraceInterface(DebuggingInterface):
 
     def next(self: PtraceInterface, thread: ThreadContext) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
+        # Reset the event type
+        self._internal_debugger.resume_context.event_type = None
+
+        # Reset the breakpoint hit
+        self._internal_debugger.resume_context.breakpoint_hit.clear()
 
         opcode_window = thread.memory.read(thread.instruction_pointer, 8)
 
@@ -376,9 +401,7 @@ class PtraceInterface(DebuggingInterface):
             if not found:
                 # Check if we have enough hardware breakpoints available
                 # Otherwise we use a software breakpoint
-                install_hw_bp = (
-                    self.lib_trace.get_remaining_hw_breakpoint_count(self._global_state, thread.thread_id) > 0
-                )
+                install_hw_bp = self.lib_trace.get_remaining_hw_breakpoint_count(thread.thread_id) > 0
                 ip_breakpoint = Breakpoint(skip_address, hardware=install_hw_bp)
                 self.set_breakpoint(ip_breakpoint)
             elif not ip_breakpoint.enabled:
@@ -411,9 +434,9 @@ class PtraceInterface(DebuggingInterface):
             os.close(self.stdout_write)
             os.close(self.stderr_write)
         except Exception as e:
-            # TODO: custom exception
             raise Exception("Closing fds failed: %r", e) from e
-        return PipeManager(self.stdin_write, self.stdout_read, self.stderr_read)
+        with extend_internal_debugger(self):
+            return PipeManager(self.stdin_write, self.stdout_read, self.stderr_read)
 
     def _setup_parent(self: PtraceInterface, continue_to_entry_point: bool) -> None:
         """Sets up the parent process after the child process has been created or attached to."""
@@ -430,7 +453,7 @@ class PtraceInterface(DebuggingInterface):
             entry_point = get_entry_point(self._internal_debugger.argv[0])
 
             # For PIE binaries, the entry point is a relative address
-            entry_point = normalize_and_validate_address(entry_point, self.maps())
+            entry_point = normalize_and_validate_address(entry_point, self.get_maps())
 
             bp = Breakpoint(entry_point, hardware=True)
             self.set_breakpoint(bp)
@@ -443,47 +466,35 @@ class PtraceInterface(DebuggingInterface):
 
     def wait(self: PtraceInterface) -> None:
         """Waits for the process to stop. Returns True if the wait has to be repeated."""
-        result = self.lib_trace.wait_all_and_update_regs(
-            self._global_state,
-            self.process_id,
-        )
-
-        cursor = result
+        statuses = self.lib_trace.wait_all_and_update_regs()
 
         invalidate_process_cache()
 
-        results = []
-
-        while cursor != self.ffi.NULL:
-            results.append((cursor.tid, cursor.status))
-            cursor = cursor.next
+        results = [(status.tid, status.status) for status in statuses]
 
         # Check the result of the waitpid and handle the changes.
         self.status_handler.manage_change(results)
 
-        self.lib_trace.free_thread_status_list(result)
-
     def forward_signal(self: PtraceInterface) -> None:
         """Set the signals to forward to the threads."""
         # change the global_state
-        cursor = self._global_state.t_HEAD
-        threads = self._internal_debugger.resume_context.threads_with_signals_to_forward
+        threads_with_signals_to_forward = self._internal_debugger.resume_context.threads_with_signals_to_forward
 
-        while cursor != self.ffi.NULL:
-            if cursor.tid in threads:
-                thread = self._internal_debugger.get_thread_by_id(cursor.tid)
-                if thread is None:
-                    # The thread is dead in the meantime
-                    continue
-                if thread._signal_number != 0 and thread._signal_number not in self._internal_debugger.signals_to_block:
-                    liblog.debugger(
-                        f"Forwarding signal {thread._signal_number} to thread {cursor.tid}",
-                    )
-                    # Set the signal to forward
-                    cursor.signal_to_forward = thread._signal_number
-                    # Reset the signal to forward
-                    thread._signal_number = 0
-            cursor = cursor.next
+        signals_to_forward = []
+
+        for thread in self._internal_debugger.threads:
+            if (
+                thread.thread_id in threads_with_signals_to_forward
+                and thread._signal_number != 0
+                and thread._signal_number not in self._internal_debugger.signals_to_block
+            ):
+                liblog.debugger(
+                    f"Forwarding signal {thread.signal_number} to thread {thread.thread_id}",
+                )
+                signals_to_forward.append((thread.thread_id, thread.signal_number))
+                thread._signal_number = 0
+
+        self.lib_trace.forward_signals(signals_to_forward)
 
         # Clear the list of threads with signals to forward
         self._internal_debugger.resume_context.threads_with_signals_to_forward.clear()
@@ -514,11 +525,10 @@ class PtraceInterface(DebuggingInterface):
             if bp.hardware:
                 for thread in self._internal_debugger.threads:
                     self.lib_trace.register_hw_breakpoint(
-                        self._global_state,
                         thread.thread_id,
                         bp.address,
-                        bp.condition.encode().ljust(2, b"\x00"),
-                        chr(bp.length).encode(),
+                        int.from_bytes(bp.condition.encode(), sys.byteorder),
+                        bp.length,
                     )
 
     def register_new_thread(self: PtraceInterface, new_thread_id: int) -> None:
@@ -528,12 +538,7 @@ class PtraceInterface(DebuggingInterface):
             new_thread_id (int): The new thread ID.
         """
         # The FFI implementation returns a pointer to the register file
-        register_file = self.lib_trace.register_thread(
-            self._global_state,
-            new_thread_id,
-        )
-
-        fp_register_file = self.lib_trace.get_thread_fp_regs(self._global_state, new_thread_id)
+        register_file, fp_register_file = self.lib_trace.register_thread(new_thread_id)
 
         register_holder = register_holder_provider(self._internal_debugger.arch, register_file, fp_register_file)
 
@@ -546,11 +551,10 @@ class PtraceInterface(DebuggingInterface):
         for bp in self._internal_debugger.breakpoints.values():
             if bp.hardware:
                 self.lib_trace.register_hw_breakpoint(
-                    self._global_state,
-                    new_thread_id,
+                    thread.thread_id,
                     bp.address,
-                    bp.condition.encode().ljust(2, b"\x00"),
-                    chr(bp.length).encode(),
+                    int.from_bytes(bp.condition.encode(), sys.byteorder),
+                    bp.length,
                 )
 
     def unregister_thread(
@@ -566,7 +570,7 @@ class PtraceInterface(DebuggingInterface):
             exit_code (int): The exit code of the thread.
             exit_signal (int): The exit signal of the thread.
         """
-        self.lib_trace.unregister_thread(self._global_state, thread_id)
+        self.lib_trace.unregister_thread(thread_id)
 
         self._internal_debugger.set_thread_as_dead(thread_id, exit_code=exit_code, exit_signal=exit_signal)
 
@@ -576,11 +580,7 @@ class PtraceInterface(DebuggingInterface):
         Args:
             bp (Breakpoint): The breakpoint to set.
         """
-        self.lib_trace.register_breakpoint(
-            self._global_state,
-            self.process_id,
-            bp.address,
-        )
+        self.lib_trace.register_breakpoint(bp.address)
 
     def _unset_sw_breakpoint(self: PtraceInterface, bp: Breakpoint) -> None:
         """Unsets a software breakpoint at the specified address.
@@ -588,7 +588,7 @@ class PtraceInterface(DebuggingInterface):
         Args:
             bp (Breakpoint): The breakpoint to unset.
         """
-        self.lib_trace.unregister_breakpoint(self._global_state, bp.address)
+        self.lib_trace.unregister_breakpoint(bp.address)
 
     def _enable_breakpoint(self: PtraceInterface, bp: Breakpoint) -> None:
         """Enables a breakpoint at the specified address.
@@ -596,7 +596,7 @@ class PtraceInterface(DebuggingInterface):
         Args:
             bp (Breakpoint): The breakpoint to enable.
         """
-        self.lib_trace.enable_breakpoint(self._global_state, bp.address)
+        self.lib_trace.enable_breakpoint(bp.address)
 
     def _disable_breakpoint(self: PtraceInterface, bp: Breakpoint) -> None:
         """Disables a breakpoint at the specified address.
@@ -604,7 +604,7 @@ class PtraceInterface(DebuggingInterface):
         Args:
             bp (Breakpoint): The breakpoint to disable.
         """
-        self.lib_trace.disable_breakpoint(self._global_state, bp.address)
+        self.lib_trace.disable_breakpoint(bp.address)
 
     def set_breakpoint(self: PtraceInterface, bp: Breakpoint, insert: bool = True) -> None:
         """Sets a breakpoint at the specified address.
@@ -616,19 +616,18 @@ class PtraceInterface(DebuggingInterface):
         if bp.hardware:
             for thread in self._internal_debugger.threads:
                 if bp.condition == "x":
-                    remaining = self.lib_trace.get_remaining_hw_breakpoint_count(self._global_state, thread.thread_id)
+                    remaining = self.lib_trace.get_remaining_hw_breakpoint_count(thread.thread_id)
                 else:
-                    remaining = self.lib_trace.get_remaining_hw_watchpoint_count(self._global_state, thread.thread_id)
+                    remaining = self.lib_trace.get_remaining_hw_watchpoint_count(thread.thread_id)
 
                 if not remaining:
                     raise ValueError("No more hardware breakpoints of this type available")
 
                 self.lib_trace.register_hw_breakpoint(
-                    self._global_state,
                     thread.thread_id,
                     bp.address,
-                    bp.condition.encode().ljust(2, b"\x00"),
-                    chr(bp.length).encode(),
+                    int.from_bytes(bp.condition.encode(), sys.byteorder),
+                    bp.length,
                 )
         elif insert:
             self._set_sw_breakpoint(bp)
@@ -647,11 +646,7 @@ class PtraceInterface(DebuggingInterface):
         """
         if bp.hardware:
             for thread in self._internal_debugger.threads:
-                self.lib_trace.unregister_hw_breakpoint(
-                    self._global_state,
-                    thread.thread_id,
-                    bp.address,
-                )
+                self.lib_trace.unregister_hw_breakpoint(thread.thread_id, bp.address)
         elif delete:
             self._unset_sw_breakpoint(bp)
         else:
@@ -694,31 +689,26 @@ class PtraceInterface(DebuggingInterface):
 
     def peek_memory(self: PtraceInterface, address: int) -> int:
         """Reads the memory at the specified address."""
-        result = self.lib_trace.ptrace_peekdata(self.process_id, address)
+        try:
+            result = self.lib_trace.peek_data(address)
+        except RuntimeError as e:
+            raise OSError("Invalid memory location") from e
+
         liblog.debugger(
             "PEEKDATA at address %d returned with result %x",
             address,
             result,
         )
-
-        error = self.ffi.errno
-        if error:
-            raise OSError(error, errno.errorcode[error])
-
         return result
 
     def poke_memory(self: PtraceInterface, address: int, value: int) -> None:
         """Writes the memory at the specified address."""
-        result = self.lib_trace.ptrace_pokedata(self.process_id, address, value)
+        result = self.lib_trace.poke_data(address, value)
         liblog.debugger(
             "POKEDATA at address %d returned with result %d",
             address,
             result,
         )
-
-        if result == -1:
-            error = self.ffi.errno
-            raise OSError(error, errno.errorcode[error])
 
     def fetch_fp_registers(self: PtraceInterface, registers: Registers) -> None:
         """Fetches the floating-point registers of the specified thread.
@@ -727,7 +717,7 @@ class PtraceInterface(DebuggingInterface):
             registers (Registers): The registers instance to update.
         """
         liblog.debugger("Fetching floating-point registers for thread %d", registers._thread_id)
-        self.lib_trace.get_fp_regs(registers._thread_id, registers._fp_register_file)
+        self.lib_trace.get_fp_regs(registers._thread_id)
 
     def flush_fp_registers(self: PtraceInterface, _: Registers) -> None:
         """Flushes the floating-point registers of the specified thread.
@@ -739,15 +729,16 @@ class PtraceInterface(DebuggingInterface):
 
     def _get_event_msg(self: PtraceInterface, thread_id: int) -> int:
         """Returns the event message."""
-        return self.lib_trace.ptrace_geteventmsg(thread_id)
+        return self.lib_trace.get_event_msg(thread_id)
 
-    def maps(self: PtraceInterface) -> list[MemoryMap]:
+    def get_maps(self: PtraceInterface) -> MemoryMapList[MemoryMap]:
         """Returns the memory maps of the process."""
-        return get_process_maps(self.process_id)
+        with extend_internal_debugger(self._internal_debugger):
+            return get_process_maps(self.process_id)
 
     def get_hit_watchpoint(self: PtraceInterface, thread_id: int) -> Breakpoint:
         """Returns the watchpoint that has been hit."""
-        address = self.lib_trace.get_hit_hw_breakpoint(self._global_state, thread_id)
+        address = self.lib_trace.get_hit_hw_breakpoint(thread_id)
 
         if not address:
             return None

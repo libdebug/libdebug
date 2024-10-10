@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import sys
 from typing import TYPE_CHECKING
 
 from libdebug.architectures.stack_unwinding_manager import StackUnwindingManager
@@ -13,6 +14,7 @@ from libdebug.liblog import liblog
 
 if TYPE_CHECKING:
     from libdebug.data.memory_map import MemoryMap
+    from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.state.thread_context import ThreadContext
 
 
@@ -32,7 +34,7 @@ class Aarch64StackUnwinder(StackUnwindingManager):
 
         frame_pointer = target.regs.x29
 
-        vmaps = target._internal_debugger.debugging_interface.maps()
+        vmaps = target._internal_debugger.debugging_interface.get_maps()
         initial_link_register = None
 
         try:
@@ -47,10 +49,10 @@ class Aarch64StackUnwinder(StackUnwindingManager):
         # Follow the frame chain
         while frame_pointer:
             try:
-                link_register = int.from_bytes(target.memory[frame_pointer + 8, 8, "absolute"], byteorder="little")
-                frame_pointer = int.from_bytes(target.memory[frame_pointer, 8, "absolute"], byteorder="little")
+                link_register = int.from_bytes(target.memory[frame_pointer + 8, 8, "absolute"], sys.byteorder)
+                frame_pointer = int.from_bytes(target.memory[frame_pointer, 8, "absolute"], sys.byteorder)
 
-                if not any(vmap.start <= link_register < vmap.end for vmap in vmaps):
+                if not vmaps.filter(link_register):
                     break
 
                 # Leaf functions don't set the previous stack frame pointer
@@ -66,19 +68,23 @@ class Aarch64StackUnwinder(StackUnwindingManager):
 
         return stack_trace
 
-    def get_return_address(self: Aarch64StackUnwinder, target: ThreadContext, vmaps: list[MemoryMap]) -> int:
+    def get_return_address(
+        self: Aarch64StackUnwinder,
+        target: ThreadContext,
+        vmaps: MemoryMapList[MemoryMap],
+    ) -> int:
         """Get the return address of the current function.
 
         Args:
             target (ThreadContext): The target ThreadContext.
-            vmaps (list[MemoryMap]): The memory maps of the process.
+            vmaps (MemoryMapList[MemoryMap]): The memory maps of the process.
 
         Returns:
             int: The return address.
         """
         return_address = target.regs.x30
 
-        if not any(vmap.start <= return_address < vmap.end for vmap in vmaps):
+        if not vmaps.filter(return_address):
             raise ValueError("Return address not in any valid memory map")
 
         return return_address

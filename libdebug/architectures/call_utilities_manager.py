@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+
 class CallUtilitiesManager(ABC):
     """An architecture-independent interface for call instruction utilities."""
 

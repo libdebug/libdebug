@@ -11,9 +11,13 @@ from libdebug.architectures.amd64.amd64_call_utilities import (
     Amd64CallUtilities,
 )
 from libdebug.architectures.call_utilities_manager import CallUtilitiesManager
+from libdebug.architectures.i386.i386_call_utilities import (
+    I386CallUtilities,
+)
 
 _aarch64_call_utilities = Aarch64CallUtilities()
 _amd64_call_utilities = Amd64CallUtilities()
+_i386_call_utilities = I386CallUtilities()
 
 
 def call_utilities_provider(architecture: str) -> CallUtilitiesManager:
@@ -23,5 +27,7 @@ def call_utilities_provider(architecture: str) -> CallUtilitiesManager:
             return _amd64_call_utilities
         case "aarch64":
             return _aarch64_call_utilities
+        case "i386":
+            return _i386_call_utilities
         case _:
             raise NotImplementedError(f"Architecture {architecture} not available.")
