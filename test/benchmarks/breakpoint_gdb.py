@@ -58,7 +58,7 @@ class Debugger(gdb.Command):
         self.results = []
         
         # Load the binary
-        binary = "../binaries/math_loop_test"
+        binary = "../binaries/amd64/math_loop_test"
         gdb.execute(f"file {binary}")
         
         for _ in range(1000):

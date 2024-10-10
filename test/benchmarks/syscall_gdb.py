@@ -77,7 +77,7 @@ class Debugger(gdb.Command):
         """
 
         # Load the binary
-        binary = "../binaries/math_loop_test"
+        binary = "../binaries/amd64/math_loop_test"
         gdb.execute(f"file {binary}")
 
         gdb.execute("set confirm off")

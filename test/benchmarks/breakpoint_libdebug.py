@@ -47,7 +47,7 @@ def test():
 results = []
 
 # Initialize the debugger
-d = debugger("../binaries/math_loop_test")
+d = debugger("../binaries/amd64/math_loop_test")
 
 for _ in range(1000):
     test()
