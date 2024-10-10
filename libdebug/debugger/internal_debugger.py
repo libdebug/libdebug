@@ -73,7 +73,7 @@ if TYPE_CHECKING:
     from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.data.registers import Registers
     from libdebug.data.symbol import Symbol
-    from libdebug.data.symbol_dict import SymbolDict
+    from libdebug.data.symbol_list import SymbolList
     from libdebug.debugger import Debugger
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
@@ -1224,7 +1224,7 @@ class InternalDebugger:
         return resolve_symbol_in_maps(symbol, filtered_maps)
 
     @property
-    def symbols(self: InternalDebugger) -> SymbolDict[str, set[Symbol]]:
+    def symbols(self: InternalDebugger) -> SymbolList[Symbol]:
         """Get the symbols of the process."""
         self._ensure_process_stopped()
         backing_files = {vmap.backing_file for vmap in self.maps}
