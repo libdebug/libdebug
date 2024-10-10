@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 from libdebug.architectures.aarch64.aarch64_breakpoint_validator import validate_breakpoint_aarch64
 from libdebug.architectures.amd64.amd64_breakpoint_validator import validate_breakpoint_amd64
+from libdebug.architectures.i386.i386_breakpoint_validator import validate_breakpoint_i386
 
 if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
@@ -20,5 +21,7 @@ def validate_hardware_breakpoint(arch: str, bp: Breakpoint) -> None:
         validate_breakpoint_aarch64(bp)
     elif arch == "amd64":
         validate_breakpoint_amd64(bp)
+    elif arch == "i386":
+        validate_breakpoint_i386(bp)
     else:
         raise ValueError(f"Architecture {arch} not supported")

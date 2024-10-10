@@ -10,10 +10,14 @@ from libdebug.architectures.aarch64.aarch64_stack_unwinder import (
 from libdebug.architectures.amd64.amd64_stack_unwinder import (
     Amd64StackUnwinder,
 )
+from libdebug.architectures.i386.i386_stack_unwinder import (
+    I386StackUnwinder,
+)
 from libdebug.architectures.stack_unwinding_manager import StackUnwindingManager
 
 _aarch64_stack_unwinder = Aarch64StackUnwinder()
 _amd64_stack_unwinder = Amd64StackUnwinder()
+_i386_stack_unwinder = I386StackUnwinder()
 
 
 def stack_unwinding_provider(architecture: str) -> StackUnwindingManager:
@@ -23,5 +27,7 @@ def stack_unwinding_provider(architecture: str) -> StackUnwindingManager:
             return _amd64_stack_unwinder
         case "aarch64":
             return _aarch64_stack_unwinder
+        case "i386":
+            return _i386_stack_unwinder
         case _:
             raise NotImplementedError(f"Architecture {architecture} not available.")

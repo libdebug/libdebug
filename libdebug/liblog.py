@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 
-from libdebug.utils.print_style import PrintStyle
+from libdebug.utils.ansi_escape_codes import ANSIColors
 
 
 class LibLog:
@@ -72,7 +72,7 @@ class LibLog:
             *args: positional arguments to pass to the logger.
             **kwargs: keyword arguments to pass to the logger.
         """
-        header = f"[{PrintStyle.RED}DEBUGGER{PrintStyle.DEFAULT_COLOR}]"
+        header = f"[{ANSIColors.RED}DEBUGGER{ANSIColors.DEFAULT_COLOR}]"
         self.debugger_logger.debug(f"{header} {message}", *args, **kwargs)
 
     def pipe(self: LibLog, message: str, *args: str, **kwargs: str) -> None:
@@ -83,7 +83,7 @@ class LibLog:
             *args: positional arguments to pass to the logger.
             **kwargs: keyword arguments to pass to the logger.
         """
-        header = f"[{PrintStyle.BLUE}PIPE{PrintStyle.DEFAULT_COLOR}]"
+        header = f"[{ANSIColors.BLUE}PIPE{ANSIColors.DEFAULT_COLOR}]"
         self.pipe_logger.debug(f"{header} {message}", *args, **kwargs)
 
     def info(self: LibLog, message: str, *args: str, **kwargs: str) -> None:
@@ -94,7 +94,7 @@ class LibLog:
             *args: positional arguments to pass to the logger.
             **kwargs: keyword arguments to pass to the logger.
         """
-        header = f"[{PrintStyle.GREEN}INFO{PrintStyle.DEFAULT_COLOR}]"
+        header = f"[{ANSIColors.GREEN}INFO{ANSIColors.DEFAULT_COLOR}]"
         self.general_logger.info(f"{header} {message}", *args, **kwargs)
 
     def warning(self: LibLog, message: str, *args: str, **kwargs: str) -> None:
@@ -105,7 +105,7 @@ class LibLog:
             *args: positional arguments to pass to the logger.
             **kwargs: keyword arguments to pass to the logger.
         """
-        header = f"[{PrintStyle.BRIGHT_YELLOW}WARNING{PrintStyle.DEFAULT_COLOR}]"
+        header = f"[{ANSIColors.BRIGHT_YELLOW}WARNING{ANSIColors.DEFAULT_COLOR}]"
         self.general_logger.warning(f"{header} {message}", *args, **kwargs)
 
     def error(self: LibLog, message: str, *args: str, **kwargs: str) -> None:
@@ -116,7 +116,7 @@ class LibLog:
             *args: positional arguments to pass to the logger.
             **kwargs: keyword arguments to pass to the logger.
         """
-        header = f"[{PrintStyle.RED}ERROR{PrintStyle.DEFAULT_COLOR}]"
+        header = f"[{ANSIColors.RED}ERROR{ANSIColors.DEFAULT_COLOR}]"
         self.general_logger.error(f"{header} {message}", *args, **kwargs)
 
 

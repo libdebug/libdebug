@@ -42,7 +42,7 @@ class LibContext:
         self._pipe_logger_levels = ["DEBUG", "SILENT"]
         self._debugger_logger_levels = ["DEBUG", "SILENT"]
         self._general_logger_levels = ["DEBUG", "INFO", "WARNING", "SILENT"]
-        self._sym_lvl = 3
+        self._sym_lvl = 5
 
         self._debugger_logger = "SILENT"
         self._pipe_logger = "SILENT"
