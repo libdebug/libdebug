@@ -62,7 +62,7 @@ for _ in range(1000):
 d.terminate()
 
 # Save the result in a pickle file
-with open("breakpoint_libdebug.pkl", "wb") as f:
+with open("memory_libdebug.pkl", "wb") as f:
     pickle.dump(results, f)
 
 # print("Results:", results)

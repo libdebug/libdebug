@@ -71,7 +71,7 @@ class Debugger(gdb.Command):
             self.test()
 
         # Save the result in a pickle file
-        with open("breakpoint_gdb.pkl", "wb") as f:
+        with open("memory_gdb.pkl", "wb") as f:
             pickle.dump(self.results, f)
         # print("Results:", self.results)
                 
