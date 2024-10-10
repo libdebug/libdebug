@@ -18,32 +18,35 @@ if TYPE_CHECKING:
     from libdebug.state.thread_context import ThreadContext
 
 
-def pprint_on_enter(d: ThreadContext, syscall_number: int, **kwargs: int) -> None:
+def pprint_on_enter(t: ThreadContext, syscall_number: int, **kwargs: int) -> None:
     """Function that will be called when a syscall is entered in pretty print mode.
 
     Args:
-        d (ThreadContext): the thread context.
+        t (ThreadContext): the thread context.
         syscall_number (int): the syscall number.
         **kwargs (bool): the keyword arguments.
     """
-    syscall_name = resolve_syscall_name(d._internal_debugger.arch, syscall_number)
-    syscall_args = resolve_syscall_arguments(d._internal_debugger.arch, syscall_number)
+    syscall_name = resolve_syscall_name(t._internal_debugger.arch, syscall_number)
+    syscall_args = resolve_syscall_arguments(t._internal_debugger.arch, syscall_number)
 
     values = [
-        d.syscall_arg0,
-        d.syscall_arg1,
-        d.syscall_arg2,
-        d.syscall_arg3,
-        d.syscall_arg4,
-        d.syscall_arg5,
+        t.syscall_arg0,
+        t.syscall_arg1,
+        t.syscall_arg2,
+        t.syscall_arg3,
+        t.syscall_arg4,
+        t.syscall_arg5,
     ]
+
+    # Print the thread id
+    header = f"{ANSIColors.BOLD}{t.tid}{ANSIColors.RESET} "
 
     if "old_args" in kwargs:
         old_args = kwargs["old_args"]
         entries = [
             f"{arg} = {ANSIColors.BRIGHT_YELLOW}0x{value:x}{ANSIColors.DEFAULT_COLOR}"
             if old_value == value
-            else f"{arg} = {ANSIColors.BRIGHT_YELLOW}0x{old_value:x} -> {ANSIColors.BRIGHT_YELLOW}0x{value:x}{ANSIColors.DEFAULT_COLOR}"
+            else f"{arg} = {ANSIColors.STRIKE}{ANSIColors.BRIGHT_YELLOW}0x{old_value:x}{ANSIColors.RESET} {ANSIColors.BRIGHT_YELLOW}0x{value:x}{ANSIColors.DEFAULT_COLOR}"
             for arg, value, old_value in zip(syscall_args, values, old_args, strict=False)
             if arg is not None
         ]
@@ -58,16 +61,16 @@ def pprint_on_enter(d: ThreadContext, syscall_number: int, **kwargs: int) -> Non
     user_handled = kwargs.get("callback", False)
     if hijacked:
         print(
-            f"{ANSIColors.RED}(user hijacked) {ANSIColors.STRIKE}{ANSIColors.BLUE}{syscall_name}{ANSIColors.DEFAULT_COLOR}({', '.join(entries)}){ANSIColors.RESET}",
+            f"{header}{ANSIColors.RED}(hijacked) {ANSIColors.STRIKE}{ANSIColors.BLUE}{syscall_name}{ANSIColors.DEFAULT_COLOR}({', '.join(entries)}){ANSIColors.RESET}",
         )
     elif user_handled:
         print(
-            f"{ANSIColors.RED}(callback) {ANSIColors.BLUE}{syscall_name}{ANSIColors.DEFAULT_COLOR}({', '.join(entries)}) = ",
+            f"{header}{ANSIColors.RED}(callback) {ANSIColors.BLUE}{syscall_name}{ANSIColors.DEFAULT_COLOR}({', '.join(entries)}) = ",
             end="",
         )
     else:
         print(
-            f"{ANSIColors.BLUE}{syscall_name}{ANSIColors.DEFAULT_COLOR}({', '.join(entries)}) = ",
+            f"{header}{ANSIColors.BLUE}{syscall_name}{ANSIColors.DEFAULT_COLOR}({', '.join(entries)}) = ",
             end="",
         )
 
