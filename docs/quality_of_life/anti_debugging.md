@@ -47,9 +47,9 @@ To enable this feature, set the `escape_antidebug` property to `True` when creat
     pipe = d.run()
     
     d.cont()
-    d.wait()
-
     out = pipe.recvline(numlines=2)
+    d.wait()
+    
     print(out.decode())
     ```
     

@@ -16,9 +16,26 @@ In **libdebug**, you can detach from the debugged process and continue execution
     Remember that detaching from a process is meant to be used when the process is stopped. If the process is running, the command will wait for a [stopping event](../../stopping_events/stopping_events). To forcibly stop the process, you can use the `interrupt()` method before migrating.
 
 ## :simple-gnu: GDB Migration
-If at any time during your script you want to take a more traditional approach to debugging, you can seamlessly switch to [GDB](https://www.sourceware.org/gdb/). This will temporarily detach libdebug from the program and give you control over the program using GDB. Quitting GDB will return control to libdebug. 
+If at any time during your script you want to take a more traditional approach to debugging, you can seamlessly switch to [GDB](https://www.sourceware.org/gdb/). This will temporarily detach **libdebug** from the program and give you control over the program using GDB. Quitting GDB will return control to **libdebug**.
 
-By default, the behavior of this command is to open GDB in a new terminal window. For this to work, **libdebug** needs to know which terminal emulator you are using. By default, it will check if the `TERM` environment variable is set and, if not, will fallback to `xterm`. If you are using a different terminal emulator, such as `tmux` or `gnome-terminal`, it is highly recommended to set it in the [libcontext](../../from_pydoc/generated/utils/libcontext) parameters.
+!!! ABSTRACT "Function Signature"
+    ```python
+    d.gdb(
+        migrate_breakpoints: bool = True,
+        open_in_new_process: bool = True,
+        blocking: bool = True,
+    ) -> GdbResumeEvent:
+    ```
+
+| Parameter | Description |
+| --- | --- |
+| `migrate_breakpoints` | If set to `True`, **libdebug** will migrate the breakpoints to GDB. |
+| `open_in_new_process` | If set to `True`, **libdebug** will open GDB in a new process. |
+| `blocking` | If set to `True`, **libdebug** will wait for the user to terminate the GDB session to continue the script. |
+
+Setting the `blocking` to `False` is useful when you want to continue using the pipe interaction and other parts of your script as you take control of the debugging process. 
+
+Please consider a few requirements when opening GDB in a new process. For this mode to work, **libdebug** needs to know which terminal emulator you are using. You can set this parameter in [libcontext](../../from_pydoc/generated/utils/libcontext). If instead of opening GDB in a new terminal window you want to use the current terminal, you can simply set the `open_in_new_process` parameter to `False`.
 
 !!! ABSTRACT "Example of setting the terminal with tmux"
     ```python
@@ -26,15 +43,6 @@ By default, the behavior of this command is to open GDB in a new terminal window
 
     libcontext.terminal = ['tmux', 'splitw', '-h']
     ```
-
-Once the terminal is set, you can use the `gdb()` method to open GDB in a new terminal window.
-
-!!! ABSTRACT "Function Signature"
-    ```python
-    d.gdb(open_in_new_process = True)
-    ```
-
-If instead of opening GDB in a new terminal window you want to use the current terminal, you can simply set the `open_in_new_process` parameter to `False`.
 
 !!! WARNING "Migrating from a running process"
     Remember that GDB Migration is meant to be used when the process is stopped. If the process is running, the command will wait for a [stopping event](../../stopping_events/stopping_events). To forcibly stop the process, you can use the `interrupt()` method before migrating.

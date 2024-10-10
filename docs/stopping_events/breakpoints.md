@@ -68,15 +68,25 @@ The `breakpoint()` function in the [Debugger](../../from_pydoc/generated/debugge
 
     d.run()
 
-    bp = d.breakpoint(0x10ab) # (1)
+    bp = d.breakpoint(0x10ab, file="binary") # (1)
+    bp1 = d.breakpoint("main", file="binary") # (3)
+    bp2 = d.breakpoint("printf", file="libc") # (4)
 
     d.cont()
 
     print(f"RAX: {d.regs.rax} at the breakpoint") # (2)
+    if bp.hit_on(d):
+        print("Breakpoint at 0x10ab was hit")
+    elif bp1.hit_on(d):
+        print("Breakpoint at main was hit")
+    elif bp2.hit_on(d):
+        print("Breakpoint at printf was hit")
     ```
 
     1. Set a software breakpoint at address 0x10ab relative to the program's base address
     2. Print the value of the RAX register when the breakpoint is hit
+    3. Set a software breakpoint at the `main` symbol
+    4. Set a software breakpoint at the `printf` symbol in the `libc` library
 
 
 ### Callback Signature
@@ -105,5 +115,5 @@ If you wish to create an [asynchronous](../debugging_flow) breakpoint, you will 
             print("Hit count reached 100")
             bp.disable()
 
-    d.breakpoint(0x11f0, callback=on_breakpoint_hit)
+    d.breakpoint(0x11f0, callback=on_breakpoint_hit, file="binary")
     ```

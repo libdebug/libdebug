@@ -54,7 +54,7 @@ nav:
       - libdebug 101: basics/libdebug101.md
       - Running an Executable: basics/running_an_executable.md
       - Process Death (and afterlife): basics/kill_and_post_mortem.md
-      - Command Queue: basics/command_queue.md
+      - Default VS ASAP Mode: basics/command_queue.md
       - Register Access: basics/register_access.md
       - Memory Access: basics/memory_access.md
       - Control Flow: basics/control_flow_commands.md

@@ -42,9 +42,6 @@ Syscall handlers can be created to register [stopping events](../stopping_events
 !!! QUESTION "Do I have to handle both on enter and on exit?"
     When using [asynchronous](../debugging_flow) syscall handlers, you can choose to handle both or only one of the two events. However, when using synchronous handlers, both events will stop the process.
 
-!!! INFO "Multiple handlers for the same syscall"
-    Please note that there can be at most **one** user-defined handler or hijack for each syscall. If a new handler is defined for a syscall that is already handled or hijacked, the new handler will replace the old one, and a warning will be printed.
-
 ## **libdebug** API for Syscall Handlers
 The `handle_syscall()` function in the [Debugger](../../from_pydoc/generated/debugger/debugger/) object registers a handler for the specified syscall.
 
@@ -57,10 +54,10 @@ The `handle_syscall()` function in the [Debugger](../../from_pydoc/generated/deb
 
 | Argument | Type | Description |
 | --- | --- | --- |
-| `syscall` | `int` \| `str` | The syscall number or name to be handled. If set to `"*"` or `"all"`, all syscalls will be handled. |
+| `syscall` | `int` \| `str` | The syscall number or name to be handled. If set to `"*"` or `"all"` or `"ALL"`, all syscalls will be handled. |
 | `on_enter` |  `Callable` \| `bool` (see callback signature [here](#callback-signature)) | The callback function to be executed when the syscall is entered. |
 | `on_exit` |  `Callable` \| `bool` (see callback signature [here](#callback-signature)) | The callback function to be executed when the syscall is exited. |
-| `recursive` | `bool` | If set to `True`, the handler's callback will be executed even if the syscall was triggered by a hijack. |
+| `recursive` | `bool` | If set to `True`, the handler's callback will be executed even if the syscall was triggered by a hijack or caused by a callback. |
 
 **Returns**:
 
@@ -137,9 +134,9 @@ When hijacking a syscall, the user can provide an alternative syscall to be exec
 
 | Argument | Type | Description |
 | --- | --- | --- |
-| `original_syscall` | `int` \| `str` | The syscall number or name to be hijacked. If set to `"*"` or `"all"`, all syscalls will be hijacked. |
+| `original_syscall` | `int` \| `str` | The syscall number or name to be hijacked. If set to `"*"` or `"all"` or `"ALL"`, all syscalls will be hijacked. |
 | `new_syscall` | `int` \| `str` | The syscall number or name to be executed instead. |
-| `recursive` | `bool` | If set to `True`, the handler's callback will be executed even if the syscall was triggered by a hijack. |
+| `recursive` | `bool` | If set to `True`, the handler's callback will be executed even if the syscall was triggered by a hijack or caused by a callback. |
 | `**kwargs` | `(int, optional)` | Additional arguments to be passed to the new syscall. |
 
 **Returns**:
@@ -214,7 +211,7 @@ For your convenience, you can also easily provide the syscall parameters to be u
     d = debugger("./test_program")
     d.run()
 
-    manufacturerBuffer = [...]
+    manufacturerBuffer = ...
 
     handler = d.hijack_syscall("read", "write",
         syscall_arg0=0x1,

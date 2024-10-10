@@ -4,7 +4,7 @@ search:
     boost: 4
 ---
 # :material-hexadecimal: Register Access
-**libdebug** offers a simple register access interface for supported architectures. Registers are accessible through the `regs` attribute of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object or the [Thread Context](../../from_pydoc/generated/state/thread_context). This includes both general-purpose and special registers, as well as the flags.
+**libdebug** offers a simple register access interface for supported architectures. Registers are accessible through the `regs` attribute of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object or the [Thread Context](../../from_pydoc/generated/state/thread_context).
 
 !!! INFO "Multithreading"
     In multi-threaded debugging, the `regs` attribute of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object will return the registers of the main thread.
@@ -50,7 +50,7 @@ Note that the register values are read and written as Python integers. This is t
     | SS        | Integer        |                 | Stack segment                                     |
     | FS_BASE   | Integer        |                 | FS segment base address                           |
     | GS_BASE   | Integer        |                 | GS segment base address                           |
-    | **Floating Point Registers** |
+    | **Vector Registers** |
     | XMM0      | Integer |                 | Lower 128 bits of YMM0/ZMM0                       |
     | XMM1      | Integer |                 | Lower 128 bits of YMM1/ZMM1                       |
     | XMM2      | Integer |                 | Lower 128 bits of YMM2/ZMM2                       |
@@ -126,6 +126,7 @@ Note that the register values are read and written as Python integers. This is t
     | SS        | Integer        |                | Stack segment                                     |
     | **Floating Point Registers** |
     | ST(0)-ST(7)| Floating Point |                | x87 FPU data registers                            |
+    | **Vector Registers** |
     | XMM0      | Integer        |                | Lower 128 bits of YMM0/ZMM0                       |
     | XMM1      | Integer        |                | Lower 128 bits of YMM1/ZMM1                       |
     | XMM2      | Integer        |                | Lower 128 bits of YMM2/ZMM2                       |
@@ -182,7 +183,7 @@ Note that the register values are read and written as Python integers. This is t
     | PC        | Integer          |                  | Program counter                                  |
     | **Flags** |
     | PSTATE      | Integer          |                  | [Processor state in exception handling](https://developer.arm.com/documentation/100933/0100/Processor-state-in-exception-handling)            |
-    | **Floating Point Registers (SIMD/FP)** |
+    | **Vector Registers (SIMD/FP)** |
     | V0        | Integer   |                  | Vector or scalar register                        |
     | V1        | Integer   |                  | Vector or scalar register                        |
     | V2        | Integer   |                  | Vector or scalar register                        |
@@ -381,7 +382,7 @@ Note that the register values are read and written as Python integers. This is t
     **libdebug** only exposes registers which are available on your CPU model. For AMD64, the list of available AVX registers is determined by checking the CPU capabilities. If you believe your CPU supports AVX registers but they are not available, we encourage your to open an [:octicons-issue-opened-24: Issue](https://github.com/libdebug/libdebug/issues) with your hardware details.
 
 ## :material-filter: Filtering Registers
-The `regs` field of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object or the [Thread Context](../../from_pydoc/generated/state/thread_context) can also used to filter registers with specific values.
+The `regs` field of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object or the [Thread Context](../../from_pydoc/generated/state/thread_context) can also be used to filter registers with specific values.
 
 
 !!! ABSTRACT "Function Signature"

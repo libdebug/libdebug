@@ -47,7 +47,7 @@ The `dbg` option is the combination of the `pipe` and `debugger` options. It dis
 
 | Logger | Description | Supported Levels | Default Level |
 | --- | --- | --- | --- |
-| `general_logger` | Logger used for general **libdebug** logs, different from the `pipe` and `debugger` logs. | `DEBUG`, `INFO`, `WARNING`, `SILENT` | `DEBUG` |
+| `general_logger` | Logger used for general **libdebug** logs, different from the `pipe` and `debugger` logs. | `DEBUG`, `INFO`, `WARNING`, `SILENT` | `INFO` |
 | `pipe_logger` | Logger used for pipe logs. | `DEBUG`, `SILENT` | `SILENT` |
 | `debugger_logger` | Logger used for debugger logs. | `DEBUG`, `SILENT` | `SILENT` |
 

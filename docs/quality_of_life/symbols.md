@@ -46,12 +46,12 @@ The `symbols` attribute of the [Debugger](../../from_pydoc/generated/debugger/de
 
 !!! ABSTRACT "Function Signature"
     ```python
-    d.symbols.filter(value: int | str) -> SymbolDict[str, set[Symbol]]:
+    d.symbols.filter(value: int | str) -> SymbolList[Symbol]
     ```
 
-Given a symbol name or address, this function returns a [SymbolDict](../../from_pydoc/generated/data/symbol_dict/) dictionary with the symbol name as the key and a [set](https://docs.python.org/3/library/stdtypes.html#set-types-set-frozenset) of [Symbol](../../from_pydoc/generated/data/symbol/) objects as the value.
+Given a symbol name or address, this function returns a [SymbolList](../../from_pydoc/generated/data/symbol_list/).
 
-These are the attributes of a [Symbol](../../from_pydoc/generated/data/symbol/) object:
+[Symbol](../../from_pydoc/generated/data/symbol/) objects contain the following attributes:
 
 | Attribute | Type | Description |
 |-----------|------|-------------|

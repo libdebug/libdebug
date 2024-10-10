@@ -59,4 +59,30 @@ debugger = debugger("test", continue_to_binary_entrypoint=False)
     Please note that this feature assumes the binary is well-formed. If the ELF header is corrupt, the binary entrypoint will not be resolved correctly. As such, setting this parameter to `False` is a good practice when you don't want **libdebug** to rely on this information.
 
 ### What else can I do?
-The [Debugger](../../from_pydoc/generated/debugger/debugger/) object has many more parameters it can take. Since they are associated to other features, we will mention them later in the documentation.
+The [Debugger](../../from_pydoc/generated/debugger/debugger/) object has many more parameters it can take.
+!!! ABSTRACT "Function Signature"
+    ```python
+    debugger(
+        argv=[],
+        aslr=True,
+        env=None,
+        escape_antidebug=False,
+        continue_to_binary_entrypoint=True,
+        auto_interrupt_on_command=False,
+        fast_memory=False,
+        kill_on_exit=True
+    ) -> Debugger
+    ```
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `argv` | `str` \| `list[str]` | Path to the binary or argv list |
+| `aslr` | `bool` | Whether to enable ASLR. Defaults to True. |
+| `env` | `dict[str, str]` | The environment variables to use. Defaults to the same environment of the parent process. |
+| `escape_antidebug` | `bool` | Whether to [automatically attempt to patch antidebugger detectors](../../quality_of_life/anti_debugging) based on `ptrace`. |
+| `continue_to_binary_entrypoint` | `bool` | Whether to automatically continue to the binary entrypoint. |
+| `auto_interrupt_on_command` | `bool` | Whether to run **libdebug** in [ASAP Mode](../command_queue). |
+| `fast_memory` | `bool` | Whether to use a [faster memory reading method](../memory_access#faster-memory-access). Defaults to False. |
+| `kill_on_exit` | `bool` | Whether to [kill the debugged process when the debugger exits](../kill_and_post_mortem). Defaults to True. |
+| **Return Value** |
+|[Debugger](../../from_pydoc/generated/debugger/debugger/) | `Debugger` | The debugger object |

@@ -34,6 +34,11 @@ When a **synchronous** event is hit, the process will stop, awaiting further com
 | [Syscall](../syscalls)    | Stops the process when a syscall is made | Two events are supported: syscall start and end |
 | [Signal](../signals)     | Stops the process when a signal is received |  |
 
+!!! INFO "Multiple callbacks or hijacks"
+  Please note that there can be at most **one** user-defined callback or hijack for each instance of a stopping event (the same syscall, signal or breakpoint address). If a new stopping event is defined for the same thing, the new stopping event will replace the old one, and a warning will be printed.
+
+  Internally, hijacks are considered callbacks, so you cannot have a callback and hijack registered for the same event.
+
 ## Common APIs of Stopping Events
 All **libdebug** stopping events share some common attributes that can be employed in debugging scripts.
 
@@ -60,17 +65,17 @@ Hijacking is a powerful feature that allows you to change the flow of the proces
 For example, in the case of a signal, you can specify that a received `SIGALRM` signal should be replaced with a `SIGUSR1` signal. This can be useful when you want to prevent a process from executing a certain code path. In fact, you can even use the hijack feature to "NOP" the syscall or signal altogether, avoiding it to be executed / forwarded to the processed. More information on how to use this feature in each stopping event can be found in their respective documentation.
 
 
-!!! WARNING "Hijacking Loop Detection"
-    When carelessly hijacking stopping events, it could happen that loops are created. **libdebug** automatically performs checks to avoid these situations and raises an exception if an infinite loop is detected.
+### :fontawesome-solid-arrows-rotate: Recursion
+Mixing asynchronous callbacks and hijacking can become messy. Because of this, **libdebug** provides users with the choice of whether to execute the callback for an event that was triggered *by* a callback or hijack.
+
+This behavior is enabled by the parameter `recursive`, available when instantiating a syscall handler, a signal catcher, or their respective hijackers. By default, recursion is disabled.
+
+!!! WARNING "Recursion Loop Detection"
+    When carelessly doing recursive callbacks and hijacking, it could happen that loops are created. **libdebug** automatically performs checks to avoid these situations and raises an exception if an infinite loop is detected.
 
     For example, the following code raises a `RuntimeError`:
 
     ```python
-    handler = d.hijack_syscall("read", "write")
-    handler = d.hijack_syscall("write", "read")
+    handler = d.hijack_syscall("read", "write", recursive=True)
+    handler = d.hijack_syscall("write", "read", recursive=True)
     ```
-
-### :fontawesome-solid-arrows-rotate: Recursion
-Mixing asynchronous callbacks and hijacking can become messy. Because of this, **libdebug** provides users with the choice of whether to execute the callback for an event that was triggered *by* a hijack.
-
-This behavior is enabled by the parameter `recursive`, available when instantiating a syscall handler, a signal catcher, or their respective hijackers. By default, recursion is disabled.

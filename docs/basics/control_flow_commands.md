@@ -19,7 +19,7 @@ The `step()` command executes the instruction at the instruction pointer and sto
     ```
 
 ### :material-debug-step-over: Next
-The `next()` command executes the instruction at the instruction pointer and stops the process. If the instruction is a function call, it will execute the whole function and stop at the next instruction. In other debuggers, this command is known as "step over".
+The `next()` command executes the current instruction at the instruction pointer and stops the process. If the instruction is a function call, it will execute the whole function and stop at the instruction following the call. In other debuggers, this command is known as "step over".
 
 Please note that the `next()` command resumes the execution of the program if the instruction is a function call. This means that the debugger can encounter [stopping events](../../stopping_events/stopping_events) in the middle of the function, causing the command to return before the function finishes.
 
@@ -29,7 +29,7 @@ Please note that the `next()` command resumes the execution of the program if th
     ```
 
 !!! WARNING "Damn heuristics!"
-    The `next()` command uses heuristics to determine if the instruction is a function call and to find its end. This means that the command may not work as expected in some cases (e.g. tail-calls, non-returning calls, broken stack frame).
+    The `next()` command uses heuristics to determine if the instruction is a function call and to find the stopping point. This means that the command may not work as expected in some cases (e.g. functions called with a jump, non-returning calls).
 
 ### :material-debug-step-over::material-debug-step-over: Step Until
 
@@ -50,9 +50,6 @@ The `cont()` command continues the execution.
     ```python
     d.cont()
     ```
-
-!!! INFO "Script execution"
-    Please note that, after resuming execution of the tracee process, the script will continue to run. This means that the script will not wait for the process to stop before continuing with the rest of the script. If the next command is a **libdebug** command that requires the process to be stopped, the script will then wait for a [stopping event](../../stopping_events/stopping_events) before executing that command.
 
     For example, in the following script, **libdebug** will not wait for the process to stop before checking d.dead. To change this behavior, you can use the `wait()` command right after the `cont()`.
     ```python
@@ -113,5 +110,5 @@ The `finish()` command allows you to choose the heuristic to use. If you don't s
 
 | Heuristic | Description |
 |-----------|-------------|
-| `backtrace` | The `backtrace` heuristic uses the return address on the stack function frame to determine the end of the function. This is the default heuristic but may fail in case of broken stack, rare execution flows, and obscure compiler optimizations. |
+| `backtrace` | The `backtrace` heuristic uses the return address on the function stack frame to determine the end of the function. This is the default heuristic but may fail in case of broken stack, rare execution flows, and obscure compiler optimizations. |
 | `step-mode` | The `step-mode` heuristic uses repeated single steps to execute instructions until a `ret` instruction is reached. Nested calls are handled, when the calling convention is respected. This heuristic is slower and may fail in case of rare execution flows and obscure compiler optimizations. |

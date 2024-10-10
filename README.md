@@ -93,7 +93,7 @@ def catcher_SIGINT(t: ThreadContext, catcher: SignalCatcher) -> None:
 def catcher_SIGPIPE(t: ThreadContext, catcher: SignalCatcher) -> None:
     print(f"SIGPIPE: Signal number {catcher}")
 
-def geteuid_handler(t: ThreadContext, handler: SyscallHandler) -> None:
+def handler_geteuid(t: ThreadContext, handler: SyscallHandler) -> None:
 	t.regs.rax = 0x0
 
 # Initialize the debugger
@@ -111,7 +111,7 @@ d.hijack_signal("SIGINT", "SIGPIPE", recursive=True)
 # Define which signals to block
 d.signals_to_block = ["SIGPOLL", "SIGIO", "SIGALRM"]
 
-d.handle_syscall("geteuid", on_exit=handle_geteuid)
+d.handle_syscall("geteuid", on_exit=handler_geteuid)
 
 # Continue execution
 d.cont()
@@ -148,7 +148,7 @@ d.cont()
 value = d.regs.rax
 print(f"RAX is {hex(value)}")
 
-system_offset = d.symbols.filter("system")["system"].pop().start
+system_offset = d.symbols.filter("system")[0].start
 libc_base = d.maps.filter("libc")[0].base
 
 system_address = libc_base + system_offset

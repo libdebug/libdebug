@@ -26,7 +26,7 @@ Different architectures have slightly different ways to retrieve the return addr
     [...]
 
     current_ip = d.backtrace()[0]
-    return_addresse = d.backtrace()[1]
+    return_address = d.backtrace()[1]
     other_return_addresses = d.backtrace()[2:]
     ```
 

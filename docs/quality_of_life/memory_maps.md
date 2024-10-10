@@ -32,4 +32,4 @@ The behavior of the memory map filtering depends on the type of the `value` para
 | Queried Value | Return Value |
 |-------------| ------------|
 | Integer (memory address)     | Map that contains the address  |
-| String (symbolic map name)     | List of maps that match the symbolic name |
+| String (symbolic map name)     | List of maps with backing file matching the symbolic name |
