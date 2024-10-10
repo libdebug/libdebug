@@ -62,7 +62,8 @@ def parse_fp_regs_x86():
             struct reg_256 zmm0[16];
             // zmm1 starts at offset 1664
             struct reg_512 zmm1[16];
-            unsigned char padding4[8];
+            unsigned int pkru;
+            unsigned char padding7[60];
         };
         #pragma pack(pop)
         """
@@ -95,8 +96,13 @@ def parse_fp_regs_x86():
             unsigned char padding2[64];
             // ymm0 starts at offset 576
             struct reg_128 ymm0[16];
-            unsigned char padding3[64];
-            unsigned char padding4[192]; // mpx save area
+            unsigned char padding3[128];
+            struct reg_128 bndregs[4];
+            struct reg_128 bndcfg;
+            unsigned char padding4[48];
+            unsigned char padding6[1600];
+            unsigned int pkru;
+            unsigned char padding7[60];
         };
         #pragma pack(pop)
         """
