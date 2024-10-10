@@ -144,6 +144,7 @@ class PtraceStatusHandler:
             syscall_number_after_callback = thread.syscall_number
 
             if syscall_number_after_callback != syscall_number:
+                # The syscall number has changed
                 # Pretty print the syscall number before the callback
                 if handler.on_enter_pprint:
                     handler.on_enter_pprint(
@@ -152,7 +153,6 @@ class PtraceStatusHandler:
                         hijacked=True,
                         old_args=old_args,
                     )
-                # The syscall number has changed
                 if syscall_number_after_callback in self.internal_debugger.handled_syscalls:
                     callback_hijack = self.internal_debugger.handled_syscalls[syscall_number_after_callback]
 
@@ -175,7 +175,7 @@ class PtraceStatusHandler:
                         )
                     elif callback_hijack.on_enter_pprint:
                         # Pretty print the syscall number
-                        callback_hijack.on_enter_pprint(thread, syscall_number_after_callback)
+                        callback_hijack.on_enter_pprint(thread, syscall_number_after_callback, hijacker=True)
                         callback_hijack._has_entered = True
                         callback_hijack._skip_exit = True
                     else:
@@ -184,13 +184,13 @@ class PtraceStatusHandler:
                         callback_hijack._skip_exit = True
             elif handler.on_enter_pprint:
                 # Pretty print the syscall number
-                handler.on_enter_pprint(thread, syscall_number, callback=True)
+                handler.on_enter_pprint(thread, syscall_number, callback=True, old_args=old_args)
                 handler._has_entered = True
             else:
                 handler._has_entered = True
         elif handler.on_enter_pprint:
             # Pretty print the syscall number
-            handler.on_enter_pprint(thread, syscall_number)
+            handler.on_enter_pprint(thread, syscall_number, callback=(handler.on_exit_user is not None))
             handler._has_entered = True
         elif handler.on_exit_pprint or handler.on_exit_user:
             # The syscall has been entered but the user did not define an on_enter callback
