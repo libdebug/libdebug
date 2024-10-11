@@ -19,6 +19,7 @@ from libdebug.architectures.amd64.compat.i386_over_amd64_registers import I386Ov
 from libdebug.architectures.i386.i386_ptrace_register_holder import (
     I386_BASE_REGS,
     I386_GP_REGS,
+    I386_SPECIAL_REGS,
     I386PtraceRegisterHolder,
 )
 
@@ -71,6 +72,9 @@ class I386OverAMD64PtraceRegisterHolder(I386PtraceRegisterHolder):
             setattr(target_class, name_32, _get_property_32(name_64))
             setattr(target_class, name_16, _get_property_16(name_64))
             setattr(target_class, name_8l, _get_property_8l(name_64))
+
+        for name in I386_SPECIAL_REGS:
+            setattr(target_class, name, _get_property_32(name))
 
         # setup special registers
         target_class.eip = _get_property_32("rip")

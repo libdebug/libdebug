@@ -42,6 +42,18 @@ AMD64_REGS = [
     "rip",
 ]
 
+AMD64_SPECIAL_REGS = [
+    "eflags",
+    "cs",
+    "ss",
+    "ds",
+    "es",
+    "fs",
+    "gs",
+    "fs_base",
+    "gs_base",
+]
+
 
 def _get_property_64(name: str) -> property:
     def getter(self: Amd64Registers) -> int:
@@ -285,6 +297,10 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
         """Provide the list of vector and floating point registers."""
         return self._vector_fp_registers
 
+    def provide_special_regs(self: Amd64PtraceRegisterHolder) -> list[str]:
+        """Provide the list of special registers, which are not intended for general-purpose use."""
+        return AMD64_SPECIAL_REGS
+
     def apply_on_regs(self: Amd64PtraceRegisterHolder, target: Amd64Registers, target_class: type) -> None:
         """Apply the register accessors to the Amd64Registers class."""
         target.register_file = self.register_file
@@ -331,6 +347,9 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
             setattr(target_class, name_32, _get_property_32(name_64))
             setattr(target_class, name_16, _get_property_16(name_64))
             setattr(target_class, name_8l, _get_property_8l(name_64))
+
+        for name in AMD64_SPECIAL_REGS:
+            setattr(target_class, name, _get_property_64(name))
 
         # setup special registers
         target_class.rip = _get_property_64("rip")
