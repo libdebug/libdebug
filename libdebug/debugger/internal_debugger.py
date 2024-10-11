@@ -232,6 +232,11 @@ class InternalDebugger:
         self.pprint_syscalls = False
         self.pipe_manager = None
         self.process_id = 0
+
+        for t in self.threads:
+            del t.regs.register_file
+            del t.regs._fp_register_file
+
         self.threads.clear()
         self.instanced = False
         self.is_debugging = False
@@ -289,7 +294,8 @@ class InternalDebugger:
             self.kill()
         if self.threads:
             self.clear()
-            self.debugging_interface.reset()
+
+        self.debugging_interface.reset()
 
         self.instanced = True
         self.is_debugging = True

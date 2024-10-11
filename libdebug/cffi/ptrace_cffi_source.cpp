@@ -10,6 +10,7 @@
 #include <nanobind/stl/map.h>
 #include <nanobind/stl/pair.h>
 #include <nanobind/stl/array.h>
+#include <nanobind/stl/shared_ptr.h>
 
 
 #include <elf.h>
@@ -33,7 +34,7 @@
 #define CTRL_LEN(x) (18 + (4 * x))
 #define CTRL_LEN_VAL(x) (x == 1 ? 0 : (x == 2 ? 1 : (x == 8 ? 2 : 3)))
 
-#define INSTRUCTION_POINTER(regs) (regs.rip)
+#define INSTRUCTION_POINTER(regs) (regs->rip)
 #define INSTALL_BREAKPOINT(instruction) ((instruction & 0xFFFFFFFFFFFFFF00) | 0xCC)
 #define BREAKPOINT_SIZE 1
 #define IS_SW_BREAKPOINT(instruction) (instruction == 0xCC)
@@ -140,8 +141,8 @@ struct hardware_breakpoint
 struct thread
 {
     pid_t tid;
-    struct ptrace_regs_struct regs;
-    struct ptrace_fp_regs_struct fpregs;
+    std::shared_ptr<ptrace_regs_struct> regs;
+    std::shared_ptr<ptrace_fp_regs_struct> fpregs;
     int signal_to_forward;
 };
 #pragma pack(pop)
@@ -165,18 +166,18 @@ private:
 
     int getregs(thread &t)
     {
-        return ptrace(PTRACE_GETREGS, t.tid, NULL, &t.regs);
+        return ptrace(PTRACE_GETREGS, t.tid, NULL, t.regs.get());
     }
 
     int setregs(thread &t)
     {
-        return ptrace(PTRACE_SETREGS, t.tid, NULL, &t.regs);
+        return ptrace(PTRACE_SETREGS, t.tid, NULL, t.regs.get());
     }
 
     void getfpregs(thread &t)
     {
         iovec iov;
-        ptrace_fp_regs_struct *fpregs = &t.fpregs;
+        ptrace_fp_regs_struct *fpregs = t.fpregs.get();
 
         iov.iov_base = (unsigned char *)(fpregs) + offsetof(ptrace_fp_regs_struct, padding0);
         iov.iov_len = sizeof(ptrace_fp_regs_struct) - offsetof(ptrace_fp_regs_struct, padding0);
@@ -191,7 +192,7 @@ private:
     void setfpregs(thread &t)
     {
         iovec iov;
-        ptrace_fp_regs_struct *fpregs = &t.fpregs;
+        ptrace_fp_regs_struct *fpregs = t.fpregs.get();
 
         iov.iov_base = (unsigned char *)(fpregs) + offsetof(ptrace_fp_regs_struct, padding0);
         iov.iov_len = sizeof(ptrace_fp_regs_struct) - offsetof(ptrace_fp_regs_struct, padding0);
@@ -206,11 +207,11 @@ private:
 
     void check_and_set_fpregs(thread &t)
     {
-        if (t.fpregs.dirty) {
+        if (t.fpregs->dirty) {
             setfpregs(t);
         }
 
-        t.fpregs.fresh = 0;
+        t.fpregs->fresh = 0;
     }
 
     void step_thread(thread &t)
@@ -229,6 +230,11 @@ private:
         }
 
         t.signal_to_forward = 0;
+    }
+
+    void set_handle_syscall(bool should_handle_syscalls)
+    {
+        handle_syscall = should_handle_syscalls;
     }
 
     void install_hardware_breakpoint(hardware_breakpoint &bp)
@@ -444,13 +450,18 @@ public:
         handle_syscall = false;
     }
 
-    void set_handle_syscall(bool should_handle_syscalls)
-    {
-        handle_syscall = should_handle_syscalls;
-    }
-
     void cleanup()
     {
+        for (auto &t : threads) {
+            t.second.regs.reset();
+            t.second.fpregs.reset();
+        }
+
+        for (auto &t : dead_threads) {
+            t.second.regs.reset();
+            t.second.fpregs.reset();
+        }
+
         threads.clear();
         dead_threads.clear();
         software_breakpoints.clear();
@@ -461,11 +472,14 @@ public:
         handle_syscall = false;
     }
 
-    std::pair<ptrace_regs_struct *, ptrace_fp_regs_struct *> register_thread(const pid_t tid)
+    std::pair<std::shared_ptr<ptrace_regs_struct>, std::shared_ptr<ptrace_fp_regs_struct>> register_thread(const pid_t tid)
     {
         // Verify if the thread is already registered
         if (threads.find(tid) != threads.end()) {
-            return std::make_pair(&threads[tid].regs, &threads[tid].fpregs);
+            std::shared_ptr<ptrace_regs_struct> regs = threads[tid].regs;
+            std::shared_ptr<ptrace_fp_regs_struct> fpregs = threads[tid].fpregs;
+
+            return std::make_pair(regs, fpregs);
         }
 
         if (process_id == -1) {
@@ -476,15 +490,20 @@ public:
         thread t;
         t.tid = tid;
         t.signal_to_forward = 0;
-        t.fpregs.type = 1;
-        t.fpregs.dirty = 0;
-        t.fpregs.fresh = 0;
+        t.regs = std::make_shared<ptrace_regs_struct>();
+        t.fpregs = std::make_shared<ptrace_fp_regs_struct>();
+        t.fpregs->type = 1;
+        t.fpregs->dirty = 0;
+        t.fpregs->fresh = 0;
 
         threads[tid] = t;
 
         getregs(threads[tid]);
 
-        return std::make_pair(&threads[tid].regs, &threads[tid].fpregs);
+        std::shared_ptr<ptrace_regs_struct> regs = threads[tid].regs;
+        std::shared_ptr<ptrace_fp_regs_struct> fpregs = threads[tid].fpregs;
+
+        return std::make_pair(regs, fpregs);
     }
 
     void unregister_thread(const pid_t tid)
@@ -575,9 +594,9 @@ public:
         return data;
     }
 
-    std::vector<thread_status> wait_all_and_update_regs()
+    std::vector<std::pair<pid_t, int>> wait_all_and_update_regs()
     {
-        std::vector<thread_status> thread_statuses;
+        std::vector<std::pair<pid_t, int>> thread_statuses;
 
         int tid, status;
 
@@ -628,8 +647,11 @@ public:
         return thread_statuses;
     }
 
-    void cont_all_and_set_bps()
+    void cont_all_and_set_bps(bool handle_syscalls)
     {
+        // Set the handle_syscall flag
+        set_handle_syscall(handle_syscalls);
+
         prepare_for_run();
 
         // Continue all the threads
@@ -1001,8 +1023,7 @@ NB_MODULE(_ptrace_cffi, m) {
     nb::class_<libdebug_ptrace_interface>(m, "libdebug_ptrace_interface")
         .def(nb::init<>())
         .def("cleanup", &libdebug_ptrace_interface::cleanup)
-        .def("set_handle_syscall", &libdebug_ptrace_interface::set_handle_syscall)
-        .def("register_thread", &libdebug_ptrace_interface::register_thread, nb::rv_policy::reference)
+        .def("register_thread", &libdebug_ptrace_interface::register_thread)
         .def("unregister_thread", &libdebug_ptrace_interface::unregister_thread)
         .def("attach", &libdebug_ptrace_interface::attach)
         .def("detach_for_migration", &libdebug_ptrace_interface::detach_for_migration)
@@ -1029,5 +1050,5 @@ NB_MODULE(_ptrace_cffi, m) {
         .def("peek_data", &libdebug_ptrace_interface::peek_data)
         .def("poke_data", &libdebug_ptrace_interface::poke_data);
 
-    nb::set_leak_warnings(false);
+    nb::set_leak_warnings(true);
 }

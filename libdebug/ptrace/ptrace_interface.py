@@ -72,16 +72,13 @@ class PtraceInterface(DebuggingInterface):
     """The internal debugger instance."""
 
     def __init__(self: PtraceInterface) -> None:
-        super().__init__()
-
+        """Initializes the PtraceInterface."""
         self.lib_trace = _ptrace_cffi.libdebug_ptrace_interface()
 
         self._internal_debugger = provide_internal_debugger(self)
         self.process_id = 0
         self.detached = False
         self._disabled_aslr = False
-
-        self.reset()
 
     def reset(self: PtraceInterface) -> None:
         """Resets the state of the interface."""
@@ -136,7 +133,7 @@ class PtraceInterface(DebuggingInterface):
                     (POSIX_SPAWN_CLOSE, self.stdin_read),
                     (POSIX_SPAWN_CLOSE, self.stdout_write),
                     (POSIX_SPAWN_CLOSE, self.stderr_write),
-                ]
+                ],
             )
 
         # argv[1] is the length of the custom environment variables
@@ -205,7 +202,7 @@ class PtraceInterface(DebuggingInterface):
         # which we have probably already passed
         self._setup_parent(False)
 
-    def _attach_to_all_tasks(self: PtraceStatusHandler, pid: int) -> None:
+    def _attach_to_all_tasks(self: PtraceInterface, pid: int) -> None:
         """Attach to all the tasks of the process."""
         tids = get_process_tasks(pid)
         for tid in tids:
@@ -268,12 +265,10 @@ class PtraceInterface(DebuggingInterface):
             else:
                 self.unset_breakpoint(bp, delete=False)
 
-        for handler in self._internal_debugger.handled_syscalls.values():
-            if handler.enabled or handler.on_enter_pprint or handler.on_exit_pprint:
-                self.lib_trace.set_handle_syscall(True)
-                break
-        else:
-            self.lib_trace.set_handle_syscall(False)
+        handle_syscalls = any(
+            handler.enabled or handler.on_enter_pprint or handler.on_exit_pprint
+            for handler in self._internal_debugger.handled_syscalls.values()
+        )
 
         # Reset the event type
         self._internal_debugger.resume_context.event_type.clear()
@@ -281,7 +276,7 @@ class PtraceInterface(DebuggingInterface):
         # Reset the breakpoint hit
         self._internal_debugger.resume_context.event_hit_ref.clear()
 
-        self.lib_trace.cont_all_and_set_bps()
+        self.lib_trace.cont_all_and_set_bps(handle_syscalls)
 
     def step(self: PtraceInterface, thread: ThreadContext) -> None:
         """Executes a single instruction of the process.
@@ -483,10 +478,10 @@ class PtraceInterface(DebuggingInterface):
 
         invalidate_process_cache()
 
-        results = [(status.tid, status.status) for status in statuses]
+        # results = [(status.tid, status.status) for status in statuses]
 
         # Check the result of the waitpid and handle the changes.
-        self.status_handler.manage_change(results)
+        self.status_handler.manage_change(statuses)
 
     def forward_signal(self: PtraceInterface) -> None:
         """Set the signals to forward to the threads."""
