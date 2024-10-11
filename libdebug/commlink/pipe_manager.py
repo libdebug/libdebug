@@ -83,14 +83,18 @@ class PipeManager:
             end_time = time.time() + timeout
 
             while numb > received_numb:
-                if time.time() > end_time:
+                if (remaining_time := max(0, end_time - time.time())) == 0:
                     # Timeout reached
                     break
 
                 try:
-                    data = os.read(pipe_read, 4096)
-                    if not data:
-                        # No more data available
+                    ready, _, _ = select.select([pipe_read], [], [], remaining_time)
+                    if ready:
+                        data = os.read(pipe_read, 4096)
+                        received_numb += len(data)
+                        data_buffer.append(data)
+                    else:
+                        # No more data available in the pipe at the moment
                         break
                 except OSError as e:
                     if e.errno != EAGAIN:
@@ -98,9 +102,6 @@ class PipeManager:
                             self._stderr_is_open = False
                         else:
                             self._stdout_is_open = False
-
-                received_numb += len(data)
-                data_buffer.append(data)
         elif timeout is not None:
             try:
                 ready, _, _ = select.select([pipe_read], [], [], timeout)
