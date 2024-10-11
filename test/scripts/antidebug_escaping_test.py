@@ -32,6 +32,7 @@ class AntidebugEscapingTest(TestCase):
         msg = r.recvline()
         self.assertEqual(msg, b"Debugger detected")
         d.kill()
+        d.terminate()
 
         # validate that with the handler the binary can be debugged
         d = debugger(RESOLVE_EXE("antidebug_brute_test"), escape_antidebug=True)
