@@ -35,7 +35,7 @@ If at any time during your script you want to take a more traditional approach t
 
 Setting the `blocking` to `False` is useful when you want to continue using the pipe interaction and other parts of your script as you take control of the debugging process. 
 
-Please consider a few requirements when opening GDB in a new process. For this mode to work, **libdebug** needs to know which terminal emulator you are using. You can set this parameter in [libcontext](../../from_pydoc/generated/utils/libcontext). If instead of opening GDB in a new terminal window you want to use the current terminal, you can simply set the `open_in_new_process` parameter to `False`.
+Please consider a few requirements when opening GDB in a new process. For this mode to work, **libdebug** needs to know which terminal emulator you are using. If not set, **libdebug** will try to detect this automatically. In some cases, detection may fail. You can manually set the terminal command in [libcontext](../../from_pydoc/generated/utils/libcontext). If instead of opening GDB in a new terminal window you want to use the current terminal, you can simply set the `open_in_new_process` parameter to `False`.
 
 !!! ABSTRACT "Example of setting the terminal with tmux"
     ```python
