@@ -23,7 +23,7 @@ class TerminalTypes:
         "alacritty": ["alacritty", "-e"],
         "kitty": ["kitty", "-e"],
         "urxvt": ["urxvt", "-e"],
-        "tmux_server": ["tmux", "split-window", "-h"],
+        "tmux: server": ["tmux", "split-window", "-h"],
         "xfce4_terminal": ["xfce4-terminal", "--tab", "-e"],
         "terminator": ["terminator", "--new-tab", "-e"],
     }
