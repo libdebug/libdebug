@@ -23,8 +23,8 @@ class ResumeContext:
         self.is_startup: bool = False
         self.block_on_signal: bool = False
         self.threads_with_signals_to_forward: list[int] = []
-        self.event_type: EventType | None = None
-        self.breakpoint_hit: dict[int, Breakpoint] = {}
+        self.event_type: dict[int, EventType] = {}
+        self.event_hit_ref: dict[int, Breakpoint] = {}
 
     def clear(self: ResumeContext) -> None:
         """Clears the context."""
@@ -34,17 +34,41 @@ class ResumeContext:
         self.is_startup = False
         self.block_on_signal = False
         self.threads_with_signals_to_forward.clear()
-        self.event_type = None
-        self.breakpoint_hit.clear()
+        self.event_type.clear()
+        self.event_hit_ref.clear()
+
+    def get_event_type(self: ResumeContext) -> str:
+        """Returns the event type to be printed."""
+        event_str = ""
+        if self.event_type:
+            for tid, event in self.event_type.items():
+                if event == EventType.BREAKPOINT:
+                    hit_ref = self.event_hit_ref[tid]
+                    if hit_ref.condition != "x":
+                        event_str += (
+                            f"Watchpoint at {hit_ref.address:#x} with condition {hit_ref.condition} on thread {tid}."
+                        )
+                    else:
+                        event_str += f"Breakpoint at {hit_ref.address:#x} on thread {tid}."
+                elif event == EventType.SYSCALL:
+                    hit_ref = self.event_hit_ref[tid]
+                    event_str += f"Syscall {hit_ref.syscall_number} on thread {tid}."
+                elif event == EventType.SIGNAL:
+                    hit_ref = self.event_hit_ref[tid]
+                    event_str += f"Signal {hit_ref.signal} on thread {tid}."
+                else:
+                    event_str += f"{event} on thread {tid}."
+
+        return event_str
 
 
 class EventType:
     """A class representing the type of event that caused the resume decision."""
 
-    UNKNOWN = "unknown event"
-    BREAKPOINT = "breakpoint"
-    SYSCALL = "syscall"
-    SIGNAL = "signal"
-    USER_INTERRUPT = "user interrupt"
-    STEP = "step"
-    STARTUP = "process startup"
+    UNKNOWN = "Unknown Event"
+    BREAKPOINT = "Breakpoint"
+    SYSCALL = "Syscall"
+    SIGNAL = "Signal"
+    USER_INTERRUPT = "User Interrupt"
+    STEP = "Step"
+    STARTUP = "Process Startup"

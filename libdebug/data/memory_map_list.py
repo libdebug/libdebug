@@ -23,7 +23,7 @@ class MemoryMapList(list):
         super().__init__(memory_maps)
         self._internal_debugger = provide_internal_debugger(self)
 
-    def _search_by_address(self: MemoryMapList, address: int) -> MemoryMap:
+    def _search_by_address(self: MemoryMapList, address: int) -> list[MemoryMap]:
         for vmap in self:
             if vmap.start <= address < vmap.end:
                 return [vmap]
@@ -77,3 +77,7 @@ class MemoryMapList(list):
     def __eq__(self, other: object) -> bool:
         """Check if the memory map list is equal to another object."""
         return super().__eq__(other)
+
+    def __repr__(self) -> str:
+        """Return the string representation of the memory map list."""
+        return f"MemoryMapList({super().__repr__()})"

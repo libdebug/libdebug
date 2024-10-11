@@ -55,5 +55,9 @@ class RegisterHolder(ABC):
         """Provide the list of registers, excluding the vector and fp registers."""
 
     @abstractmethod
-    def provide_vector_fp_regs(self: RegisterHolder) -> list[str]:
+    def provide_vector_fp_regs(self: RegisterHolder) -> list[tuple[str]]:
         """Provide the list of vector and floating point registers."""
+
+    @abstractmethod
+    def provide_special_regs(self: RegisterHolder) -> list[str]:
+        """Provide the list of special registers, which are not intended for general-purpose use."""

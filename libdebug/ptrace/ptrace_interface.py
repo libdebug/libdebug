@@ -11,6 +11,7 @@ import os
 import pty
 import sys
 import tty
+from fcntl import F_GETFL, F_SETFL, fcntl
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -118,6 +119,12 @@ class PtraceInterface(DebuggingInterface):
             tty.setraw(self.stdout_read)
             tty.setraw(self.stderr_read)
 
+            flags = fcntl(self.stdout_read, F_GETFL)
+            fcntl(self.stdout_read, F_SETFL, flags | os.O_NONBLOCK)
+
+            flags = fcntl(self.stderr_read, F_GETFL)
+            fcntl(self.stderr_read, F_SETFL, flags | os.O_NONBLOCK)
+
             file_actions.extend(
                 [
                     (POSIX_SPAWN_CLOSE, self.stdin_write),
@@ -224,6 +231,12 @@ class PtraceInterface(DebuggingInterface):
 
         self.detached = True
 
+        # Reset the event type
+        self._internal_debugger.resume_context.event_type.clear()
+
+        # Reset the breakpoint hit
+        self._internal_debugger.resume_context.event_hit_ref.clear()
+
     def kill(self: PtraceInterface) -> None:
         """Instantly terminates the process."""
         if not self.detached:
@@ -263,10 +276,10 @@ class PtraceInterface(DebuggingInterface):
             self.lib_trace.set_handle_syscall(False)
 
         # Reset the event type
-        self._internal_debugger.resume_context.event_type = None
+        self._internal_debugger.resume_context.event_type.clear()
 
         # Reset the breakpoint hit
-        self._internal_debugger.resume_context.breakpoint_hit.clear()
+        self._internal_debugger.resume_context.event_hit_ref.clear()
 
         self.lib_trace.cont_all_and_set_bps()
 
@@ -281,10 +294,10 @@ class PtraceInterface(DebuggingInterface):
             bp._disabled_for_step = True
 
         # Reset the event type
-        self._internal_debugger.resume_context.event_type = None
+        self._internal_debugger.resume_context.event_type.clear()
 
         # Reset the breakpoint hit
-        self._internal_debugger.resume_context.breakpoint_hit.clear()
+        self._internal_debugger.resume_context.event_hit_ref.clear()
 
         self.lib_trace.step(thread.thread_id)
 
@@ -303,10 +316,10 @@ class PtraceInterface(DebuggingInterface):
             bp._disabled_for_step = True
 
         # Reset the event type
-        self._internal_debugger.resume_context.event_type = None
+        self._internal_debugger.resume_context.event_type.clear()
 
         # Reset the breakpoint hit
-        self._internal_debugger.resume_context.breakpoint_hit.clear()
+        self._internal_debugger.resume_context.event_hit_ref.clear()
 
         self.lib_trace.step_until(thread.thread_id, address, max_steps)
 
@@ -321,10 +334,10 @@ class PtraceInterface(DebuggingInterface):
             heuristic (str): The heuristic to use.
         """
         # Reset the event type
-        self._internal_debugger.resume_context.event_type = None
+        self._internal_debugger.resume_context.event_type.clear()
 
         # Reset the breakpoint hit
-        self._internal_debugger.resume_context.breakpoint_hit.clear()
+        self._internal_debugger.resume_context.event_hit_ref.clear()
 
         if heuristic == "step-mode":
             self.lib_trace.stepping_finish(thread.thread_id, self._internal_debugger.arch == "i386")
@@ -374,10 +387,10 @@ class PtraceInterface(DebuggingInterface):
     def next(self: PtraceInterface, thread: ThreadContext) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         # Reset the event type
-        self._internal_debugger.resume_context.event_type = None
+        self._internal_debugger.resume_context.event_type.clear()
 
         # Reset the breakpoint hit
-        self._internal_debugger.resume_context.breakpoint_hit.clear()
+        self._internal_debugger.resume_context.event_hit_ref.clear()
 
         opcode_window = thread.memory.read(thread.instruction_pointer, 8)
 

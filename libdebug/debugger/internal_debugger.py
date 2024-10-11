@@ -67,13 +67,14 @@ from libdebug.utils.syscall_utils import (
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from typing import Any
 
     from libdebug.commlink.pipe_manager import PipeManager
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.data.registers import Registers
     from libdebug.data.symbol import Symbol
-    from libdebug.data.symbol_dict import SymbolDict
+    from libdebug.data.symbol_list import SymbolList
     from libdebug.debugger import Debugger
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
@@ -152,6 +153,9 @@ class InternalDebugger:
     instanced: bool = False
     """Whether the process was started and has not been killed yet."""
 
+    is_debugging: bool = False
+    """Whether the debugger is currently debugging a process."""
+
     pprint_syscalls: bool
     """A flag that indicates if the debugger should pretty print syscalls."""
 
@@ -160,6 +164,9 @@ class InternalDebugger:
 
     debugger: Debugger
     """The debugger object."""
+
+    stdin_settings_backup: list[Any]
+    """The backup of the stdin settings. Used to restore the original settings after possible conflicts due to the pipe manager interacactive mode."""
 
     __polling_thread: Thread | None
     """The background thread used to poll the process for state change."""
@@ -201,9 +208,11 @@ class InternalDebugger:
         self.process_id = 0
         self.threads = []
         self.instanced = False
+        self.is_debugging = False
         self._is_running = False
         self._is_migrated_to_gdb = False
         self.resume_context = ResumeContext()
+        self.stdin_settings_backup = []
         self.arch = map_arch(libcontext.platform)
         self.kill_on_exit = True
         self._process_memory_manager = ProcessMemoryManager()
@@ -225,6 +234,7 @@ class InternalDebugger:
         self.process_id = 0
         self.threads.clear()
         self.instanced = False
+        self.is_debugging = False
         self._is_running = False
         self.resume_context.clear()
 
@@ -274,7 +284,7 @@ class InternalDebugger:
                 f"File {self.argv[0]} is not executable.",
             )
 
-        if self.instanced:
+        if self.is_debugging:
             liblog.debugger("Process already running, stopping it before restarting.")
             self.kill()
         if self.threads:
@@ -282,6 +292,7 @@ class InternalDebugger:
             self.debugging_interface.reset()
 
         self.instanced = True
+        self.is_debugging = True
 
         if not self.__polling_thread_command_queue.empty():
             raise RuntimeError("Polling thread command queue not empty.")
@@ -303,7 +314,7 @@ class InternalDebugger:
 
     def attach(self: InternalDebugger, pid: int) -> None:
         """Attaches to an existing process."""
-        if self.instanced:
+        if self.is_debugging:
             liblog.debugger("Process already running, stopping it before restarting.")
             self.kill()
         if self.threads:
@@ -311,6 +322,7 @@ class InternalDebugger:
             self.debugging_interface.reset()
 
         self.instanced = True
+        self.is_debugging = True
 
         if not self.__polling_thread_command_queue.empty():
             raise RuntimeError("Polling thread command queue not empty.")
@@ -323,12 +335,14 @@ class InternalDebugger:
 
     def detach(self: InternalDebugger) -> None:
         """Detaches from the process."""
-        if not self.instanced:
+        if not self.is_debugging:
             raise RuntimeError("Process not running, cannot detach.")
 
         self._ensure_process_stopped()
 
         self.__polling_thread_command_queue.put((self.__threaded_detach, ()))
+
+        self.is_debugging = False
 
         self._join_and_check_status()
 
@@ -348,6 +362,7 @@ class InternalDebugger:
         self.__polling_thread_command_queue.put((self.__threaded_kill, ()))
 
         self.instanced = False
+        self.is_debugging = False
 
         if self.pipe_manager:
             self.pipe_manager.close()
@@ -375,6 +390,7 @@ class InternalDebugger:
                 liblog.debugger("Killing process failed: already terminated")
 
         self.instanced = False
+        self.is_debugging = False
 
         if self.__polling_thread is not None:
             self.__polling_thread_command_queue.put((THREAD_TERMINATE, ()))
@@ -399,7 +415,7 @@ class InternalDebugger:
     @background_alias(_background_invalid_call)
     def interrupt(self: InternalDebugger) -> None:
         """Interrupts the process."""
-        if not self.instanced:
+        if not self.is_debugging:
             raise RuntimeError("Process not running, cannot interrupt.")
 
         # We have to ensure that at least one thread is alive before executing the method
@@ -417,7 +433,7 @@ class InternalDebugger:
     @background_alias(_background_invalid_call)
     def wait(self: InternalDebugger) -> None:
         """Waits for the process to stop."""
-        if not self.instanced:
+        if not self.is_debugging:
             raise RuntimeError("Process not running, cannot wait.")
 
         self._join_and_check_status()
@@ -1224,7 +1240,7 @@ class InternalDebugger:
         return resolve_symbol_in_maps(symbol, filtered_maps)
 
     @property
-    def symbols(self: InternalDebugger) -> SymbolDict[str, set[Symbol]]:
+    def symbols(self: InternalDebugger) -> SymbolList[Symbol]:
         """Get the symbols of the process."""
         self._ensure_process_stopped()
         backing_files = {vmap.backing_file for vmap in self.maps}
@@ -1445,7 +1461,7 @@ class InternalDebugger:
     @background_alias(__threaded_peek_memory)
     def _peek_memory(self: InternalDebugger, address: int) -> bytes:
         """Reads memory from the process."""
-        if not self.instanced:
+        if not self.is_debugging:
             raise RuntimeError("Process not running, cannot access memory.")
 
         if self.running:
@@ -1474,7 +1490,7 @@ class InternalDebugger:
 
     def _fast_read_memory(self: InternalDebugger, address: int, size: int) -> bytes:
         """Reads memory from the process."""
-        if not self.instanced:
+        if not self.is_debugging:
             raise RuntimeError("Process not running, cannot access memory.")
 
         if self.running:
@@ -1491,7 +1507,7 @@ class InternalDebugger:
     @background_alias(__threaded_poke_memory)
     def _poke_memory(self: InternalDebugger, address: int, data: bytes) -> None:
         """Writes memory to the process."""
-        if not self.instanced:
+        if not self.is_debugging:
             raise RuntimeError("Process not running, cannot access memory.")
 
         if self.running:
@@ -1511,7 +1527,7 @@ class InternalDebugger:
 
     def _fast_write_memory(self: InternalDebugger, address: int, data: bytes) -> None:
         """Writes memory to the process."""
-        if not self.instanced:
+        if not self.is_debugging:
             raise RuntimeError("Process not running, cannot access memory.")
 
         if self.running:
@@ -1528,7 +1544,7 @@ class InternalDebugger:
     @background_alias(__threaded_fetch_fp_registers)
     def _fetch_fp_registers(self: InternalDebugger, registers: Registers) -> None:
         """Fetches the floating point registers of a thread."""
-        if not self.instanced:
+        if not self.is_debugging:
             raise RuntimeError("Process not running, cannot read floating-point registers.")
 
         self._ensure_process_stopped()
@@ -1542,7 +1558,7 @@ class InternalDebugger:
     @background_alias(__threaded_flush_fp_registers)
     def _flush_fp_registers(self: InternalDebugger, registers: Registers) -> None:
         """Flushes the floating point registers of a thread."""
-        if not self.instanced:
+        if not self.is_debugging:
             raise RuntimeError("Process not running, cannot write floating-point registers.")
 
         self._ensure_process_stopped()
