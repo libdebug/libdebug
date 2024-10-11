@@ -214,13 +214,19 @@ private:
         t.fpregs->fresh = 0;
     }
 
-    void step_thread(thread &t)
+    void step_thread(thread &t, bool forward_signal = true)
     {
-        if (ptrace(PTRACE_SINGLESTEP, t.tid, NULL, t.signal_to_forward) == -1) {
-            throw std::runtime_error("ptrace singlestep failed");
-        }
+        if (forward_signal) {
+            if (ptrace(PTRACE_SINGLESTEP, t.tid, NULL, t.signal_to_forward) == -1) {
+                throw std::runtime_error("ptrace singlestep failed");
+            }
 
-        t.signal_to_forward = 0;
+            t.signal_to_forward = 0;
+        } else {
+            if (ptrace(PTRACE_SINGLESTEP, t.tid, NULL, 0) == -1) {
+                throw std::runtime_error("ptrace singlestep failed");
+            }
+        }
     }
 
     void cont_thread(thread &t)
@@ -343,7 +349,7 @@ private:
 
             if (t_hit) {
                 // Step over the breakpoint
-                step_thread(t.second);
+                step_thread(t.second, false);
 
                 // Wait for the child
                 int status;
@@ -352,7 +358,7 @@ private:
                 // status == 4991 ==> (WIFSTOPPED(status) && WSTOPSIG(status) ==
                 // SIGSTOP) this should happen only if threads are involved
                 if (status == 4991) {
-                    step_thread(t.second);
+                    step_thread(t.second, false);
                     waitpid(t.first, &status, 0);
                 }
             }
@@ -452,16 +458,6 @@ public:
 
     void cleanup()
     {
-        for (auto &t : threads) {
-            t.second.regs.reset();
-            t.second.fpregs.reset();
-        }
-
-        for (auto &t : dead_threads) {
-            t.second.regs.reset();
-            t.second.fpregs.reset();
-        }
-
         threads.clear();
         dead_threads.clear();
         software_breakpoints.clear();
