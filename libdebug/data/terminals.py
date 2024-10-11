@@ -4,22 +4,38 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+from dataclasses import dataclass
 from typing import ClassVar
 
 
+@dataclass
 class TerminalTypes:
-    """Terminal class for launching terminal emulators."""
+    """Terminal class for launching terminal emulators with predefined commands."""
 
-    gnome_terminal_server: ClassVar[list[str]] = ["gnome-terminal", "--tab", "--"]
-    konsole: ClassVar[list[str]] = ["konsole", "--new-tab", "-e"]
-    xterm: ClassVar[list[str]] = ["xterm", "-e"]
-    lxterminal: ClassVar[list[str]] = ["lxterminal", "-e"]
-    mate_terminal: ClassVar[list[str]] = ["mate-terminal", "--tab", "-e"]
-    tilix: ClassVar[list[str]] = ["tilix", "--action=app-new-session", "-e"]
-    kgx: ClassVar[list[str]] = ["kgx", "--tab", "-e"]
-    alacritty: ClassVar[list[str]] = ["alacritty", "-e"]
-    kitty: ClassVar[list[str]] = ["kitty", "-e"]
-    urxvt: ClassVar[list[str]] = ["urxvt", "-e"]
-    tmux_server: ClassVar[list[str]] = ["tmux", "split-window", "-h"]
-    xfce4_terminal: ClassVar[list[str]] = ["xfce4-terminal", "--tab", "-e"]
-    terminator: ClassVar[list[str]] = ["terminator", "--new-tab", "-e"]
+    terminals: ClassVar[dict[str, list[str]]] = {
+        "gnome_terminal_server": ["gnome-terminal", "--tab", "--"],
+        "konsole": ["konsole", "--new-tab", "-e"],
+        "xterm": ["xterm", "-e"],
+        "lxterminal": ["lxterminal", "-e"],
+        "mate_terminal": ["mate-terminal", "--tab", "-e"],
+        "tilix": ["tilix", "--action=app-new-session", "-e"],
+        "kgx": ["kgx", "--tab", "-e"],
+        "alacritty": ["alacritty", "-e"],
+        "kitty": ["kitty", "-e"],
+        "urxvt": ["urxvt", "-e"],
+        "tmux_server": ["tmux", "split-window", "-h"],
+        "xfce4_terminal": ["xfce4-terminal", "--tab", "-e"],
+        "terminator": ["terminator", "--new-tab", "-e"],
+    }
+
+    @staticmethod
+    def get_command(terminal_name: str) -> list[str]:
+        """Retrieve the command list for a given terminal emulator name.
+
+        Args:
+        terminal_name (str): the name of the terminal emulator.
+
+        Returns:
+        list[str]: the command list for the terminal emulator, or an empty list if not found.
+        """
+        return TerminalTypes.terminals.get(terminal_name, [])

@@ -850,9 +850,7 @@ class InternalDebugger:
             process = Process(self.process_id)
             while process:
                 pname = process.name().lower()
-                pname = pname.split(":")[0]
-                pname = pname.split(" ")[0]
-                if terminal_command := getattr(TerminalTypes, pname, None):
+                if terminal_command := TerminalTypes.get_command(pname):
                     libcontext.terminal = terminal_command
                     liblog.debugger(f"Auto-detected terminal: {libcontext.terminal}")
                 process = process.parent()
