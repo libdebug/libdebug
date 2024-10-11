@@ -852,8 +852,9 @@ class InternalDebugger:
             "lxterminal": ["lxterminal", "-e"],
             "mate-terminal": ["mate-terminal", "--tab", "-e"],
             "tilix": ["tilix", "--action=app-new-session", "-e"],
-            # "alacritty",
-            # "kitty",
+            "kgx": ["kgx", "--tab", "-e"],
+            "alacritty": ["alacritty", "-e"],
+            "kitty": ["kitty", "-e"],
             "urxvt": ["urxvt", "-e"],
             "tmux: server": ["tmux", "split-window", "-h"],
             "xfce4-terminal": ["xfce4-terminal", "--tab", "-e"],
@@ -999,6 +1000,8 @@ class InternalDebugger:
         # so we need to manually check if the terminal is still alive and if GDB has opened
         waiting_for_gdb = True
         terminal_alive = False
+        scan_after_terminal_death = 0
+        scan_after_terminal_death_max = 3
         while waiting_for_gdb:
             terminal_alive = False
             for proc in process_iter():
@@ -1011,7 +1014,12 @@ class InternalDebugger:
                 except ZombieProcess:
                     # This is a zombie process, which psutil tracks but we cannot interact with
                     continue
-            if not terminal_alive and waiting_for_gdb:
+            if not terminal_alive and waiting_for_gdb and scan_after_terminal_death < scan_after_terminal_death_max:
+                # If the terminal has died, we need to wait a bit before we can be sure that GDB will not open.
+                # Indeed, some terminals take different steps to open GDB. We must be sure to refresh the list
+                # of processes. One extra iteration should be enough, but we will iterate more just to be sure.
+                scan_after_terminal_death += 1
+            elif not terminal_alive and waiting_for_gdb:
                 # If the terminal has died and GDB has not opened, we are sure that GDB will not open
                 raise RuntimeError("Failed to open GDB in terminal.")
 
