@@ -13,18 +13,18 @@ class TerminalTypes:
     """Terminal class for launching terminal emulators with predefined commands."""
 
     terminals: ClassVar[dict[str, list[str]]] = {
-        "gnome_terminal_server": ["gnome-terminal", "--tab", "--"],
+        "gnome-terminal-server": ["gnome-terminal", "--tab", "--"],
         "konsole": ["konsole", "--new-tab", "-e"],
         "xterm": ["xterm", "-e"],
         "lxterminal": ["lxterminal", "-e"],
-        "mate_terminal": ["mate-terminal", "--tab", "-e"],
+        "mate-terminal": ["mate-terminal", "--tab", "-e"],
         "tilix": ["tilix", "--action=app-new-session", "-e"],
         "kgx": ["kgx", "--tab", "-e"],
         "alacritty": ["alacritty", "-e"],
         "kitty": ["kitty", "-e"],
         "urxvt": ["urxvt", "-e"],
         "tmux: server": ["tmux", "split-window", "-h"],
-        "xfce4_terminal": ["xfce4-terminal", "--tab", "-e"],
+        "xfce4-terminal": ["xfce4-terminal", "--tab", "-e"],
         "terminator": ["terminator", "--new-tab", "-e"],
     }
 
