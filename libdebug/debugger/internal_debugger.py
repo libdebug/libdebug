@@ -32,6 +32,7 @@ from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.gdb_resume_event import GdbResumeEvent
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
+from libdebug.data.terminals import TerminalTypes
 from libdebug.debugger.internal_debugger_instance_manager import (
     extend_internal_debugger,
     link_to_internal_debugger,
@@ -845,28 +846,12 @@ class InternalDebugger:
 
     def _auto_detect_terminal(self: InternalDebugger) -> None:
         """Auto-detects the terminal."""
-        terminal_emulators = {
-            "gnome-terminal-server": ["gnome-terminal", "--tab", "--"],
-            "konsole": ["konsole", "--new-tab", "-e"],
-            "xterm": ["xterm", "-e"],
-            "lxterminal": ["lxterminal", "-e"],
-            "mate-terminal": ["mate-terminal", "--tab", "-e"],
-            "tilix": ["tilix", "--action=app-new-session", "-e"],
-            "kgx": ["kgx", "--tab", "-e"],
-            "alacritty": ["alacritty", "-e"],
-            "kitty": ["kitty", "-e"],
-            "urxvt": ["urxvt", "-e"],
-            "tmux: server": ["tmux", "split-window", "-h"],
-            "xfce4-terminal": ["xfce4-terminal", "--tab", "-e"],
-            "terminator": ["terminator", "--new-tab", "-e"],
-        }
-
         try:
             process = Process(self.process_id)
             while process:
                 pname = process.name().lower()
-                if pname in terminal_emulators:
-                    libcontext.terminal = terminal_emulators[pname]
+                if terminal_command := getattr(TerminalTypes, pname, None):
+                    libcontext.terminal = terminal_command
                     liblog.debugger(f"Auto-detected terminal: {libcontext.terminal}")
                 process = process.parent()
         except Error:
