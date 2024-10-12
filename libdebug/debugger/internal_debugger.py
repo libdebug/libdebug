@@ -15,10 +15,11 @@ from pathlib import Path
 from queue import Queue
 from signal import SIGKILL, SIGSTOP, SIGTRAP
 from subprocess import Popen
+from tempfile import NamedTemporaryFile
 from threading import Thread, current_thread
 from typing import TYPE_CHECKING
 
-import psutil
+from psutil import STATUS_ZOMBIE, Error, Process, ZombieProcess, process_iter
 
 from libdebug.architectures.breakpoint_validator import validate_hardware_breakpoint
 from libdebug.architectures.syscall_hijacker import SyscallHijacker
@@ -31,6 +32,7 @@ from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.gdb_resume_event import GdbResumeEvent
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
+from libdebug.data.terminals import TerminalTypes
 from libdebug.debugger.internal_debugger_instance_manager import (
     extend_internal_debugger,
     link_to_internal_debugger,
@@ -815,16 +817,22 @@ class InternalDebugger:
 
         self._join_and_check_status()
 
-        command = self._craft_gdb_migration_command(migrate_breakpoints)
+        # Create the command file
+        command_file = self._craft_gdb_migration_file(migrate_breakpoints)
 
         if open_in_new_process and libcontext.terminal:
-            lambda_fun = self._open_gdb_in_new_process(command)
-        else:
-            if open_in_new_process:
+            lambda_fun = self._open_gdb_in_new_process(command_file)
+        elif open_in_new_process:
+            self._auto_detect_terminal()
+            if not libcontext.terminal:
                 liblog.warning(
-                    "Cannot open in a new process. Please configure the terminal in libcontext.terminal.",
+                    "Cannot auto-detect terminal. Please configure the terminal in libcontext.terminal. Opening gdb in the current shell.",
                 )
-            lambda_fun = self._open_gdb_in_shell(command)
+                lambda_fun = self._open_gdb_in_shell(command_file)
+            else:
+                lambda_fun = self._open_gdb_in_new_process(command_file)
+        else:
+            lambda_fun = self._open_gdb_in_shell(command_file)
 
         resume_event = GdbResumeEvent(self, lambda_fun)
 
@@ -836,80 +844,121 @@ class InternalDebugger:
         else:
             return resume_event
 
-    def _craft_gdb_migration_command(self: InternalDebugger, migrate_breakpoints: bool) -> list[str]:
-        """Crafts the command to migrate to GDB."""
-        gdb_command = [
-            "/bin/gdb",
-            "-q",
-            "--pid",
-            str(self.process_id),
-            "-ex",
-            "source " + GDB_GOBACK_LOCATION,
-            "-ex",
-            "ni",
-            "-ex",
-            "ni",
-        ]
+    def _auto_detect_terminal(self: InternalDebugger) -> None:
+        """Auto-detects the terminal."""
+        try:
+            process = Process(self.process_id)
+            while process:
+                pname = process.name().lower()
+                if terminal_command := TerminalTypes.get_command(pname):
+                    libcontext.terminal = terminal_command
+                    liblog.debugger(f"Auto-detected terminal: {libcontext.terminal}")
+                process = process.parent()
+        except Error:
+            pass
+
+    def _craft_gdb_migration_command(self: InternalDebugger, migrate_breakpoints: bool) -> str:
+        """Crafts the command to migrate to GDB.
+
+        Args:
+            migrate_breakpoints (bool): Whether to migrate the breakpoints.
+
+        Returns:
+            str: The command to migrate to GDB.
+        """
+        gdb_command = f'/bin/gdb -q --pid {self.process_id} -ex "source {GDB_GOBACK_LOCATION} " -ex "ni" -ex "ni"'
 
         if not migrate_breakpoints:
             return gdb_command
 
-        bp_args = []
         for bp in self.breakpoints.values():
             if bp.enabled:
-                bp_args.append("-ex")
-
                 if bp.hardware and bp.condition == "rw":
-                    bp_args.append(f"awatch *(int{bp.length * 8}_t *) {bp.address:0x}")
+                    gdb_command += f' -ex "awatch *(int{bp.length * 8}_t *) {bp.address:#x}"'
                 elif bp.hardware and bp.condition == "w":
-                    bp_args.append(f"watch *(int{bp.length * 8}_t *) {bp.address:0x}")
+                    gdb_command += f' -ex "watch *(int{bp.length * 8}_t *) {bp.address:#x}"'
                 elif bp.hardware:
-                    bp_args.append("hb *" + hex(bp.address))
+                    gdb_command += f' -ex "hb *{bp.address:#x}"'
                 else:
-                    bp_args.append("b *" + hex(bp.address))
+                    gdb_command += f' -ex "b *{bp.address:#x}"'
 
                 if self.threads[0].instruction_pointer == bp.address and not bp.hardware:
                     # We have to enqueue an additional continue
-                    bp_args.append("-ex")
-                    bp_args.append("ni")
+                    gdb_command += ' -ex "ni"'
 
-        return gdb_command + bp_args
+        return gdb_command
 
-    def _open_gdb_in_new_process(self: InternalDebugger, args: list[str]) -> None:
-        """Opens GDB in a new process following the configuration in libcontext.terminal."""
-        initial_pid = Popen(libcontext.terminal + args).pid
+    def _craft_gdb_migration_file(self: InternalDebugger, migrate_breakpoints: bool) -> str:
+        """Crafts the file to migrate to GDB.
 
-        os.waitpid(initial_pid, 0)
+        Args:
+            migrate_breakpoints (bool): Whether to migrate the breakpoints.
+
+        Returns:
+            str: The path to the file.
+        """
+        # Different terminals accept what to run in different ways. To make this work with all terminals, we need to
+        # create a temporary script that will run the command. This script will be executed by the terminal.
+        command = self._craft_gdb_migration_command(migrate_breakpoints)
+        with NamedTemporaryFile(delete=False, mode="w", suffix=".sh") as temp_file:
+            temp_file.write("#!/bin/bash\n")
+            temp_file.write(command)
+            script_path = temp_file.name
+
+        # Make the script executable
+        Path.chmod(Path(script_path), 0o755)
+        return script_path
+
+    def _open_gdb_in_new_process(self: InternalDebugger, script_path: str) -> None:
+        """Opens GDB in a new process following the configuration in libcontext.terminal.
+
+        Args:
+            script_path (str): The path to the script to run in the terminal.
+        """
+        # Create the command to open the terminal and run the script
+        command = [*libcontext.terminal, script_path]
+
+        # Open GDB in a new terminal
+        terminal_pid = Popen(command).pid
+
+        # This is the command line that we are looking for
+        cmdline_target = ["/bin/bash", script_path]
+
+        self._wait_for_gdb(terminal_pid, cmdline_target)
 
         def wait_for_termination() -> None:
             liblog.debugger("Waiting for GDB process to terminate...")
 
-            for proc in psutil.process_iter():
+            for proc in process_iter():
                 try:
                     cmdline = proc.cmdline()
-                except psutil.ZombieProcess:
+                except ZombieProcess:
                     # This is a zombie process, which psutil tracks but we cannot interact with
                     continue
 
-                if args == cmdline:
+                if cmdline_target == cmdline:
                     gdb_process = proc
                     break
             else:
                 raise RuntimeError("GDB process not found.")
 
-            while gdb_process.is_running() and gdb_process.status() != psutil.STATUS_ZOMBIE:
+            while gdb_process.is_running() and gdb_process.status() != STATUS_ZOMBIE:
                 # As the GDB process is in a different group, we do not have the authority to wait on it
                 # So we must keep polling it until it is no longer running
                 pass
 
         return wait_for_termination
 
-    def _open_gdb_in_shell(self: InternalDebugger, args: list[str]) -> None:
-        """Open GDB in the current shell."""
+    def _open_gdb_in_shell(self: InternalDebugger, script_path: str) -> None:
+        """Open GDB in the current shell.
+
+        Args:
+            script_path (str): The path to the script to run in the terminal.
+        """
         gdb_pid = os.fork()
 
         if gdb_pid == 0:  # This is the child process.
-            os.execv("/bin/gdb", args)
+            os.execv("/bin/bash", ["/bin/bash", script_path])
             raise RuntimeError("Failed to execute GDB.")
 
         # This is the parent process.
@@ -924,6 +973,40 @@ class InternalDebugger:
             signal.signal(signal.SIGINT, signal.SIG_DFL)
 
         return wait_for_termination
+
+    def _wait_for_gdb(self: InternalDebugger, terminal_pid: int, cmdline_target: list[str]) -> None:
+        """Waits for GDB to open in the terminal.
+
+        Args:
+            terminal_pid (int): The PID of the terminal process.
+            cmdline_target (list[str]): The command line that we are looking for.
+        """
+        # We need to wait for GDB to open in the terminal. However, different terminals have different behaviors
+        # so we need to manually check if the terminal is still alive and if GDB has opened
+        waiting_for_gdb = True
+        terminal_alive = False
+        scan_after_terminal_death = 0
+        scan_after_terminal_death_max = 3
+        while waiting_for_gdb:
+            terminal_alive = False
+            for proc in process_iter():
+                try:
+                    cmdline = proc.cmdline()
+                    if cmdline == cmdline_target:
+                        waiting_for_gdb = False
+                    elif proc.pid == terminal_pid:
+                        terminal_alive = True
+                except ZombieProcess:
+                    # This is a zombie process, which psutil tracks but we cannot interact with
+                    continue
+            if not terminal_alive and waiting_for_gdb and scan_after_terminal_death < scan_after_terminal_death_max:
+                # If the terminal has died, we need to wait a bit before we can be sure that GDB will not open.
+                # Indeed, some terminals take different steps to open GDB. We must be sure to refresh the list
+                # of processes. One extra iteration should be enough, but we will iterate more just to be sure.
+                scan_after_terminal_death += 1
+            elif not terminal_alive and waiting_for_gdb:
+                # If the terminal has died and GDB has not opened, we are sure that GDB will not open
+                raise RuntimeError("Failed to open GDB in terminal.")
 
     def _resume_from_gdb(self: InternalDebugger) -> None:
         """Resumes the process after migrating from GDB."""
