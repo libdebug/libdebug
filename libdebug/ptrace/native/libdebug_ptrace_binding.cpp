@@ -518,13 +518,9 @@ public:
         }
     }
 
-    int attach(pid_t pid)
+    int attach(pid_t tid)
     {
-        errno = 0;
-
-        ptrace(PTRACE_ATTACH, pid, NULL, NULL);
-
-        return errno;
+        return ptrace(PTRACE_ATTACH, tid, NULL, NULL);
     }
 
     void detach_for_migration()
@@ -971,7 +967,7 @@ public:
 
 };
 
-NB_MODULE(_ptrace_cffi, m) {
+NB_MODULE(libdebug_ptrace_binding, m) {
     nb::class_<ptrace_regs_struct>(m, "ptrace_regs_struct")
         .def_rw("r15", &ptrace_regs_struct::r15)
         .def_rw("r14", &ptrace_regs_struct::r14)
@@ -1016,35 +1012,265 @@ NB_MODULE(_ptrace_cffi, m) {
         .def_rw("tid", &thread_status::tid)
         .def_rw("status", &thread_status::status);
 
-    nb::class_<libdebug_ptrace_interface>(m, "libdebug_ptrace_interface")
-        .def(nb::init<>())
-        .def("cleanup", &libdebug_ptrace_interface::cleanup)
-        .def("register_thread", &libdebug_ptrace_interface::register_thread)
-        .def("unregister_thread", &libdebug_ptrace_interface::unregister_thread)
-        .def("attach", &libdebug_ptrace_interface::attach)
-        .def("detach_for_migration", &libdebug_ptrace_interface::detach_for_migration)
-        .def("detach_and_cont", &libdebug_ptrace_interface::detach_and_cont)
-        .def("set_ptrace_options", &libdebug_ptrace_interface::set_ptrace_options)
-        .def("get_event_msg", &libdebug_ptrace_interface::get_event_msg)
-        .def("wait_all_and_update_regs", &libdebug_ptrace_interface::wait_all_and_update_regs, nb::call_guard<nb::gil_scoped_release>())
-        .def("cont_all_and_set_bps", &libdebug_ptrace_interface::cont_all_and_set_bps)
-        .def("step", &libdebug_ptrace_interface::step)
-        .def("step_until", &libdebug_ptrace_interface::step_until)
-        .def("stepping_finish", &libdebug_ptrace_interface::stepping_finish)
-        .def("forward_signals", &libdebug_ptrace_interface::forward_signals)
-        .def("get_remaining_hw_breakpoint_count", &libdebug_ptrace_interface::get_remaining_hw_breakpoint_count)
-        .def("get_remaining_hw_watchpoint_count", &libdebug_ptrace_interface::get_remaining_hw_breakpoint_count)
-        .def("register_hw_breakpoint", &libdebug_ptrace_interface::register_hw_breakpoint)
-        .def("unregister_hw_breakpoint", &libdebug_ptrace_interface::unregister_hw_breakpoint)
-        .def("get_hit_hw_breakpoint", &libdebug_ptrace_interface::get_hit_hw_breakpoint)
-        .def("register_breakpoint", &libdebug_ptrace_interface::register_breakpoint)
-        .def("unregister_breakpoint", &libdebug_ptrace_interface::unregister_breakpoint)
-        .def("enable_breakpoint", &libdebug_ptrace_interface::enable_breakpoint)
-        .def("disable_breakpoint", &libdebug_ptrace_interface::disable_breakpoint)
-        .def("detach_for_kill", &libdebug_ptrace_interface::detach_for_kill)
-        .def("get_fp_regs", &libdebug_ptrace_interface::get_fp_regs)
-        .def("peek_data", &libdebug_ptrace_interface::peek_data)
-        .def("poke_data", &libdebug_ptrace_interface::poke_data);
+    nb::class_<libdebug_ptrace_interface>(m, "libdebug_ptrace_interface", "The native binding for ptrace on Linux.")
+        .def(
+            nb::init<>(),
+            "Initializes a new ptrace interface for debugging."
+        )
+        .def(
+            "cleanup",
+            &libdebug_ptrace_interface::cleanup,
+            "Cleans up the instance from any previous state."
+        )
+        .def(
+            "register_thread",
+            &libdebug_ptrace_interface::register_thread,
+            nb::arg("tid"),
+            "Registers a new thread that must be debugged.\n"
+            "\n"
+            "Args:\n"
+            "    tid (int): The thread id to be registered.\n"
+            "\n"
+            "Returns:\n"
+            "    tuple: A tuple containing a reference to the registers, integer and floating point."
+        )
+        .def(
+            "unregister_thread",
+            &libdebug_ptrace_interface::unregister_thread,
+            nb::arg("tid"),
+            "Unregisters a thread that was previously registered.\n"
+            "\n"
+            "Args:\n"
+            "    tid (int): The thread id to be unregistered."
+        )
+        .def(
+            "attach",
+            &libdebug_ptrace_interface::attach,
+            nb::arg("tid"),
+            "Attaches to a process for debugging.\n"
+            "\n"
+            "Args:\n"
+            "    tid (int): The thread id to be attached to.\n"
+            "\n"
+            "Returns:\n"
+            "    int: The error code of the operation, if any."
+        )
+        .def(
+            "detach_for_migration",
+            &libdebug_ptrace_interface::detach_for_migration,
+            "Detaches from the process for migration to another debugger."
+        )
+        .def(
+            "detach_and_cont",
+            &libdebug_ptrace_interface::detach_and_cont,
+            "Detaches from the process and continues its execution."
+        )
+        .def(
+            "set_ptrace_options",
+            &libdebug_ptrace_interface::set_ptrace_options,
+            "Sets the ptrace options for the process."
+        )
+        .def(
+            "get_event_msg",
+            &libdebug_ptrace_interface::get_event_msg,
+            nb::arg("tid"),
+            "Gets an event message for a thread.\n"
+            "\n"
+            "Args:\n"
+            "    tid (int): The thread id to get the event message for.\n"
+            "\n"
+            "Returns:\n"
+            "    int: The event message."
+        )
+        .def(
+            "wait_all_and_update_regs",
+            &libdebug_ptrace_interface::wait_all_and_update_regs,
+            nb::call_guard<nb::gil_scoped_release>(),
+            "Waits for any thread to stop, interrupts all the others and updates the registers.\n"
+            "\n"
+            "Returns:\n"
+            "    list: A list of tuples containing the thread id and the corresponding waitpid result."
+        )
+        .def(
+            "cont_all_and_set_bps",
+            &libdebug_ptrace_interface::cont_all_and_set_bps,
+            nb::arg("handle_syscalls"),
+            "Sets the breakpoints and continues all the threads.\n"
+            "\n"
+            "Args:\n"
+            "    handle_syscalls (bool): A flag to indicate if the debuggee should stop on syscalls."
+        )
+        .def(
+            "step",
+            &libdebug_ptrace_interface::step,
+            nb::arg("tid"),
+            "Steps a thread by one instruction.\n"
+            "\n"
+            "Args:\n"
+            "    tid (int): The thread id to step."
+        )
+        .def(
+            "step_until",
+            &libdebug_ptrace_interface::step_until,
+            nb::arg("tid"),
+            nb::arg("addr"),
+            nb::arg("max_steps"),
+            "Steps a thread until a specific address is reached, or for a maximum amount of steps.\n"
+            "\n"
+            "Args:\n"
+            "    tid (int): The thread id to step.\n"
+            "    addr (int): The address to step until.\n"
+            "    max_steps (int): The maximum amount of steps to take, or -1 if unlimited."
+        )
+        .def(
+            "stepping_finish",
+            &libdebug_ptrace_interface::stepping_finish,
+            nb::arg("tid"),
+            nb::arg("use_trampoline_heuristic"),
+            "Runs a thread until the end of the current function call, by single-stepping it.\n"
+            "\n"
+            "Args:\n"
+            "    tid (int): The thread id to step.\n"
+            "    use_trampoline_heuristic (bool): A flag to indicate if the trampoline heuristic for i386 should be used."
+        )
+        .def(
+            "forward_signals",
+            &libdebug_ptrace_interface::forward_signals,
+            nb::arg("signals"),
+            "Forwards signals to the threads.\n"
+            "\n"
+            "Args:\n"
+            "    signals (list): A list of tuples containing the thread id and the signal to forward."
+        )
+        .def(
+            "get_remaining_hw_breakpoint_count",
+            &libdebug_ptrace_interface::get_remaining_hw_breakpoint_count,
+            nb::arg("tid"),
+            "Gets the remaining hardware breakpoint count for a thread.\n"
+            "\n"
+            "Args:\n"
+            "    tid (int): The thread id to get the remaining hardware breakpoint count for.\n"
+        )
+        .def(
+            "get_remaining_hw_watchpoint_count",
+            &libdebug_ptrace_interface::get_remaining_hw_breakpoint_count,
+            nb::arg("tid"),
+            "Gets the remaining hardware watchpoint count for a thread.\n"
+            "\n"
+            "Args:\n"
+            "    tid (int): The thread id to get the remaining hardware watchpoint count for.\n"
+        )
+        .def(
+            "register_hw_breakpoint",
+            &libdebug_ptrace_interface::register_hw_breakpoint,
+            nb::arg("tid"),
+            nb::arg("address"),
+            nb::arg("type"),
+            nb::arg("len"),
+            "Registers a hardware breakpoint for a thread.\n"
+            "\n"
+            "Args:\n"
+            "    tid (int): The thread id to register the hardware breakpoint for.\n"
+            "    address (int): The address to set the hardware breakpoint at.\n"
+            "    type (int): The type of the hardware breakpoint.\n"
+            "    len (int): The length of the hardware breakpoint."
+        )
+        .def(
+            "unregister_hw_breakpoint",
+            &libdebug_ptrace_interface::unregister_hw_breakpoint,
+            nb::arg("tid"),
+            nb::arg("address"),
+            "Unregisters a hardware breakpoint for a thread.\n"
+            "\n"
+            "Args:\n"
+            "    tid (int): The thread id to unregister the hardware breakpoint for.\n"
+            "    address (int): The address to remove the hardware breakpoint from."
+        )
+        .def(
+            "get_hit_hw_breakpoint",
+            &libdebug_ptrace_interface::get_hit_hw_breakpoint,
+            nb::arg("tid"),
+            "Gets the address of the hardware breakpoint hit by a specific thread, if any.\n"
+            "\n"
+            "Args:\n"
+            "    tid (int): The thread id to get the hit hardware breakpoint for.\n"
+            "\n"
+            "Returns:\n"
+            "    int: The address of the hit hardware breakpoint."
+        )
+        .def(
+            "register_breakpoint",
+            &libdebug_ptrace_interface::register_breakpoint,
+            nb::arg("address"),
+            "Registers a software breakpoint at a specific address.\n"
+            "\n"
+            "Args:\n"
+            "    address (int): The address to set the software breakpoint at."
+        )
+        .def(
+            "unregister_breakpoint",
+            &libdebug_ptrace_interface::unregister_breakpoint,
+            nb::arg("address"),
+            "Unregisters a software breakpoint at a specific address.\n"
+            "\n"
+            "Args:\n"
+            "    address (int): The address to remove the software breakpoint from."
+        )
+        .def(
+            "enable_breakpoint",
+            &libdebug_ptrace_interface::enable_breakpoint,
+            nb::arg("address"),
+            "Enables a previously registered software breakpoint at a specific address.\n"
+            "\n"
+            "Args:\n"
+            "    address (int): The address to enable the software breakpoint at."
+        )
+        .def(
+            "disable_breakpoint",
+            &libdebug_ptrace_interface::disable_breakpoint,
+            nb::arg("address"),
+            "Disables a previously registered software breakpoint at a specific address.\n"
+            "\n"
+            "Args:\n"
+            "    address (int): The address to disable the software breakpoint at."
+        )
+        .def(
+            "detach_for_kill",
+            &libdebug_ptrace_interface::detach_for_kill,
+            "Detaches from the process and kills it."
+        )
+        .def(
+            "get_fp_regs",
+            &libdebug_ptrace_interface::get_fp_regs,
+            nb::arg("tid"),
+            "Refreshes the floating point registers for a thread.\n"
+            "\n"
+            "Args:\n"
+            "    tid (int): The thread id to refresh the floating point registers for."
+        )
+        .def(
+            "peek_data",
+            &libdebug_ptrace_interface::peek_data,
+            nb::arg("addr"),
+            "Peeks memory from a specific address.\n"
+            "\n"
+            "Args:\n"
+            "    addr (int): The address to peek memory from.\n"
+            "\n"
+            "Returns:\n"
+            "    int: The memory value at the address."
+        )
+        .def(
+            "poke_data",
+            &libdebug_ptrace_interface::poke_data,
+            nb::arg("addr"),
+            nb::arg("data"),
+            "Pokes memory at a specific address.\n"
+            "\n"
+            "Args:\n"
+            "    addr (int): The address to poke memory at.\n"
+            "    data (int): The data to poke at the address."
+        );
 
     nb::set_leak_warnings(true);
 }

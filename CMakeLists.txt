@@ -21,4 +21,16 @@ execute_process(
 list(APPEND CMAKE_PREFIX_PATH "${NB_DIR}")
 find_package(nanobind CONFIG REQUIRED)
 
-nanobind_add_module(_ptrace_cffi NOMINSIZE libdebug/cffi/ptrace_cffi_source.cpp)
+nanobind_add_module(
+  libdebug_ptrace_binding
+  NOMINSIZE
+  libdebug/ptrace/native/libdebug_ptrace_binding.cpp
+)
+
+nanobind_add_stub(
+  libdebug_ptrace_binding_stub
+  MODULE libdebug_ptrace_binding
+  DEPENDS libdebug_ptrace_binding
+  OUTPUT libdebug_ptrace_binding.pyi
+  PYTHON_PATH "."
+)

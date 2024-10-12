@@ -17,7 +17,6 @@ from typing import TYPE_CHECKING
 
 from libdebug.architectures.call_utilities_provider import call_utilities_provider
 from libdebug.architectures.register_helper import register_holder_provider
-from libdebug.cffi import _ptrace_cffi
 from libdebug.commlink.pipe_manager import PipeManager
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.debugger.internal_debugger_instance_manager import (
@@ -26,6 +25,7 @@ from libdebug.debugger.internal_debugger_instance_manager import (
 )
 from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.liblog import liblog
+from libdebug.ptrace.native import libdebug_ptrace_binding
 from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
 from libdebug.state.thread_context import ThreadContext
 from libdebug.utils.debugging_utils import normalize_and_validate_address
@@ -73,7 +73,7 @@ class PtraceInterface(DebuggingInterface):
 
     def __init__(self: PtraceInterface) -> None:
         """Initializes the PtraceInterface."""
-        self.lib_trace = _ptrace_cffi.libdebug_ptrace_interface()
+        self.lib_trace = libdebug_ptrace_binding.libdebug_ptrace_interface()
 
         self._internal_debugger = provide_internal_debugger(self)
         self.process_id = 0
@@ -477,8 +477,6 @@ class PtraceInterface(DebuggingInterface):
         statuses = self.lib_trace.wait_all_and_update_regs()
 
         invalidate_process_cache()
-
-        # results = [(status.tid, status.status) for status in statuses]
 
         # Check the result of the waitpid and handle the changes.
         self.status_handler.manage_change(statuses)
