@@ -12,7 +12,7 @@ The `maps` attribute returns a list of [MemoryMap](../../from_pydoc/generated/da
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
-| `start`   | `int` | The start address of the memory map. |
+| `start`   | `int` | The start address of the memory map. There is also an equivalent alias called `base`. |
 | `end`     | `int` | The end address of the memory map. |
 | `permissions` | `str` | The permissions of the memory map. |
 | `size` | `int` | The size of the memory map. |
