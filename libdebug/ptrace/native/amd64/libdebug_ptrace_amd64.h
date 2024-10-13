@@ -74,8 +74,13 @@ struct PtraceFPRegsStruct
     unsigned char padding2[64];
     // ymm0 starts at offset 576
     std::array<Reg128, 16> ymm0;
-    unsigned char padding3[64];
-    unsigned char padding4[192]; // mpx save area
+    unsigned char padding3[128];
+    struct reg_128 bndregs[4];
+    struct reg_128 bndcfg;
+    unsigned char padding4[48];
+    unsigned char padding6[1600];
+    unsigned int pkru;
+    unsigned char padding7[60];
 };
 #pragma pack(pop)
 

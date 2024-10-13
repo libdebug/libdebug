@@ -158,7 +158,7 @@ class PPrintSyscallsTest(TestCase):
         self.assertIn("getcwd", self.capturedOutput.getvalue())
         self.assertIn("exit_group", self.capturedOutput.getvalue())
         self.assertIn(
-            "(user hijacked) \x1b[9m\x1b[94mgetcwd\x1b[39m",
+            "(hijacked) \x1b[9m\x1b[94mgetcwd\x1b[39m",
             self.capturedOutput.getvalue(),
         )
 
