@@ -8,7 +8,6 @@
 #include <stddef.h>
 #include <sys/ptrace.h>
 #include <sys/types.h>
-#include <sys/user.h>
 #include <sys/wait.h>
 
 #include "libdebug_ptrace_base.h"
@@ -71,86 +70,6 @@ void LibdebugPtraceInterface::cont_thread(Thread &t)
     }
 
     t.signal_to_forward = 0;
-}
-
-void LibdebugPtraceInterface::install_hardware_breakpoint(const HardwareBreakpoint &bp)
-{
-    // find a free debug register
-    int i;
-    for (i = 0; i < 4; i++) {
-        unsigned long address = ptrace(PTRACE_PEEKUSER, bp.tid, DR_BASE + i * DR_SIZE);
-
-        if (!address)
-            break;
-    }
-
-    if (i == 4) {
-        throw std::runtime_error("No free hardware breakpoint register");
-    }
-
-    unsigned long ctrl = CTRL_LOCAL(i) | CTRL_COND_VAL(bp.type) << CTRL_COND(i) | CTRL_LEN_VAL(bp.len) << CTRL_LEN(i);
-
-    // read the state from DR7
-    unsigned long state = ptrace(PTRACE_PEEKUSER, bp.tid, DR_BASE + 7 * DR_SIZE);
-
-    // reset the state, for good measure
-    state &= ~(3 << CTRL_COND(i));
-    state &= ~(3 << CTRL_LEN(i));
-
-    // register the breakpoint
-    state |= ctrl;
-
-    // write the address and the state
-    ptrace(PTRACE_POKEUSER, bp.tid, DR_BASE + i * DR_SIZE, bp.addr);
-    ptrace(PTRACE_POKEUSER, bp.tid, DR_BASE + 7 * DR_SIZE, state);
-}
-
-void LibdebugPtraceInterface::remove_hardware_breakpoint(const HardwareBreakpoint &bp)
-{
-    // find the register
-    int i;
-    for (i = 0; i < 4; i++) {
-        unsigned long address = ptrace(PTRACE_PEEKUSER, bp.tid, DR_BASE + i * DR_SIZE);
-
-        if (address == bp.addr)
-            break;
-    }
-
-    if (i == 4) {
-        throw std::runtime_error("Breakpoint not found");
-    }
-
-    // read the state from DR7
-    unsigned long state = ptrace(PTRACE_PEEKUSER, bp.tid, DR_BASE + 7 * DR_SIZE);
-
-    // reset the state
-    state &= ~(3 << CTRL_COND(i));
-    state &= ~(3 << CTRL_LEN(i));
-
-    // write the state
-    ptrace(PTRACE_POKEUSER, bp.tid, DR_BASE + 7 * DR_SIZE, state);
-
-    // reset the address
-    ptrace(PTRACE_POKEUSER, bp.tid, DR_BASE + i * DR_SIZE, 0);
-}
-
-unsigned long LibdebugPtraceInterface::hit_hardware_breakpoint_address(const pid_t tid)
-{
-    unsigned long dr6 = ptrace(PTRACE_PEEKUSER, tid, DR_BASE + 6 * DR_SIZE);
-
-    int index;
-    for (index = 0; index < 4; index++) {
-        if (dr6 & (1 << index))
-            break;
-    }
-
-    if (index == 4) {
-        return 0;
-    }
-
-    unsigned long address = ptrace(PTRACE_PEEKUSER, tid, DR_BASE + index * DR_SIZE);
-
-    return address;
 }
 
 int LibdebugPtraceInterface::prepare_for_run()
@@ -481,7 +400,7 @@ void LibdebugPtraceInterface::stepping_finish(pid_t tid, bool use_trampoline_heu
             nested_call_counter--;
         }
 
-        if (use_trampoline_heuristic && check_if_dl_trampoline(current_ip)) {
+        if (IS_RET_INSTRUCTION(opcode) && use_trampoline_heuristic && check_if_dl_trampoline(current_ip)) {
             nested_call_counter++;
         }
     } while (nested_call_counter > 0);
@@ -627,18 +546,6 @@ void LibdebugPtraceInterface::disable_breakpoint(const unsigned long address)
     ptrace(PTRACE_POKETEXT, process_id, (void *) address, (void *) software_breakpoints[address].instruction);
 }
 
-int LibdebugPtraceInterface::get_remaining_hw_breakpoint_count(const pid_t tid)
-{
-    int i;
-    for (i = 0; i < 4; i++) {
-        if (ptrace(PTRACE_PEEKUSER, tid, DR_BASE + (i * DR_SIZE), NULL) == 0) {
-            break;
-        }
-    }
-
-    return 4 - i;
-}
-
 void LibdebugPtraceInterface::register_hw_breakpoint(const pid_t tid, unsigned long address, const int type, const int len)
 {
     HardwareBreakpoint bp;
@@ -720,81 +627,8 @@ void LibdebugPtraceInterface::poke_data(unsigned long addr, unsigned long data)
     }
 }
 
-bool LibdebugPtraceInterface::check_if_dl_trampoline(unsigned long instruction_pointer)
+NB_MODULE(libdebug_ptrace_binding, m)
 {
-    // https://codebrowser.dev/glibc/glibc/sysdeps/i386/dl-trampoline.S.html
-    //      0xf7fdaf80 <_dl_runtime_resolve+16>: pop    edx
-    //      0xf7fdaf81 <_dl_runtime_resolve+17>: mov    ecx,DWORD PTR [esp]
-    //      0xf7fdaf84 <_dl_runtime_resolve+20>: mov    DWORD PTR [esp],eax
-    //      0xf7fdaf87 <_dl_runtime_resolve+23>: mov    eax,DWORD PTR [esp+0x4]
-    // =>   0xf7fdaf8b <_dl_runtime_resolve+27>: ret    0xc
-    //      0xf7fdaf8e:  xchg   ax,ax
-    //      0xf7fdaf90 <_dl_runtime_profile>:    push   esp
-    //      0xf7fdaf91 <_dl_runtime_profile+1>:  add    DWORD PTR [esp],0x8
-    //      0xf7fdaf95 <_dl_runtime_profile+5>:  push   ebp
-    //      0xf7fdaf96 <_dl_runtime_profile+6>:  push   eax
-    //      0xf7fdaf97 <_dl_runtime_profile+7>:  push   ecx
-    //      0xf7fdaf98 <_dl_runtime_profile+8>:  push   edx
-
-    // https://elixir.bootlin.com/glibc/glibc-2.35/source/sysdeps/i386/dl-trampoline.S
-    //      0xf7fd9004 <_dl_runtime_resolve+20>:	pop    edx
-    //      0xf7fd9005 <_dl_runtime_resolve+21>:	mov    ecx,DWORD PTR [esp]
-    //      0xf7fd9008 <_dl_runtime_resolve+24>:	mov    DWORD PTR [esp],eax
-    //      0xf7fd900b <_dl_runtime_resolve+27>:	mov    eax,DWORD PTR [esp+0x4]
-    // =>   0xf7fd900f <_dl_runtime_resolve+31>:	ret    0xc
-    //      0xf7fd9012:	lea    esi,[esi+eiz*1+0x0]
-    //      0xf7fd9019:	lea    esi,[esi+eiz*1+0x0]
-    //      0xf7fd9020 <_dl_runtime_resolve_shstk>:	endbr32
-    //      0xf7fd9024 <_dl_runtime_resolve_shstk+4>:	push   eax
-    //      0xf7fd9025 <_dl_runtime_resolve_shstk+5>:	push   edx
-
-    unsigned long data;
-
-    // if ((instruction_pointer & 0xf) != 0xb) {
-    //     return 0;
-    // }
-    // breaks if libc is compiled with CET
-
-    instruction_pointer -= 0xb;
-
-    data = peek_data(instruction_pointer);
-    data = data & 0xFFFFFFFF; // on i386 we get 4 bytes from the ptrace call, while on amd64 we get 8 bytes
-
-    if (data != 0x240c8b5a) {
-        return false;
-    }
-
-    instruction_pointer += 0x4;
-
-    data = peek_data(instruction_pointer);
-    data = data & 0xFFFFFFFF;
-
-    if (data != 0x8b240489) {
-        return false;
-    }
-
-    instruction_pointer += 0x4;
-
-    data = peek_data(instruction_pointer);
-    data = data & 0xFFFFFFFF;
-
-    if (data != 0xc2042444) {
-        return false;
-    }
-
-    instruction_pointer += 0x4;
-
-    data = peek_data(instruction_pointer);
-    data = data & 0xFFFF;
-
-    if (data != 0x000c) {
-        return false;
-    }
-
-    return true;
-}
-
-NB_MODULE(libdebug_ptrace_binding, m) {
     init_libdebug_ptrace_amd64(m);
 
     nb::class_<Reg128>(m, "Reg128", "A 128-bit register.")

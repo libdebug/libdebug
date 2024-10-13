@@ -23,7 +23,8 @@ find_package(nanobind CONFIG REQUIRED)
 
 nanobind_add_module(
   libdebug_ptrace_binding
-  NOMINSIZE
+  NOSTRIP
+  LTO
   libdebug/ptrace/native/libdebug_ptrace_binding.cpp
   libdebug/ptrace/native/amd64/libdebug_ptrace_amd64.cpp
 )
@@ -33,5 +34,20 @@ nanobind_add_stub(
   MODULE libdebug_ptrace_binding
   DEPENDS libdebug_ptrace_binding
   OUTPUT libdebug_ptrace_binding.pyi
+  PYTHON_PATH "."
+)
+
+nanobind_add_module(
+  libdebug_linux_binding
+  NOSTRIP
+  LTO
+  libdebug/cffi/linux_interface.cpp
+)
+
+nanobind_add_stub(
+  libdebug_linux_binding_stub
+  MODULE libdebug_linux_binding
+  DEPENDS libdebug_linux_binding
+  OUTPUT libdebug_linux_binding.pyi
   PYTHON_PATH "."
 )
