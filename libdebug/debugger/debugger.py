@@ -26,12 +26,13 @@ if TYPE_CHECKING:
 
     from libdebug.commlink.pipe_manager import PipeManager
     from libdebug.data.breakpoint import Breakpoint
+    from libdebug.data.gdb_resume_event import GdbResumeEvent
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.data.registers import Registers
     from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.symbol import Symbol
-    from libdebug.data.symbol_dict import SymbolDict
+    from libdebug.data.symbol_list import SymbolList
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
@@ -44,7 +45,7 @@ class Debugger:
     _sentinel: object = object()
     """A sentinel object."""
 
-    _internal_debugger: InternalDebugger | None = None
+    _internal_debugger: InternalDebugger
     """The internal debugger object."""
 
     def __init__(self: Debugger) -> None:
@@ -117,7 +118,7 @@ class Debugger:
         return self._internal_debugger.resolve_symbol(symbol, file)
 
     @property
-    def symbols(self: Debugger) -> SymbolDict[str, set[Symbol]]:
+    def symbols(self: Debugger) -> SymbolList[Symbol]:
         """Get the symbols of the process."""
         return self._internal_debugger.symbols
 
@@ -134,15 +135,11 @@ class Debugger:
 
         Args:
             position (int | bytes): The location of the breakpoint.
-            hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software.
-            Defaults to False.
+            hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software. Defaults to False.
             condition (str, optional): The trigger condition for the breakpoint. Defaults to None.
             length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
-            callback (None | bool | Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called
-            when the breakpoint is hit. If True, an empty callback will be set. Defaults to None.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
-            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
-            the "binary" map file).
+            callback (None | bool | Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the breakpoint is hit. If True, an empty callback will be set. Defaults to None.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
         return self._internal_debugger.breakpoint(position, hardware, condition, length, callback, file)
 
@@ -158,14 +155,10 @@ class Debugger:
 
         Args:
             position (int | bytes): The location of the breakpoint.
-            condition (str, optional): The trigger condition for the watchpoint (either "w", "rw" or "x").
-            Defaults to "w".
+            condition (str, optional): The trigger condition for the watchpoint (either "w", "rw" or "x"). Defaults to "w".
             length (int, optional): The size of the word in being watched (1, 2, 4 or 8). Defaults to 1.
-            callback (None | bool | Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called
-            when the watchpoint is hit. If True, an empty callback will be set. Defaults to None.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
-            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
-            the "binary" map file).
+            callback (None | bool | Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the watchpoint is hit. If True, an empty callback will be set. Defaults to None.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
         return self._internal_debugger.breakpoint(
             position,
@@ -186,10 +179,8 @@ class Debugger:
 
         Args:
             signal (int | str): The signal to catch. If "*", "ALL", "all" or -1 is passed, all signals will be caught.
-            callback (None | bool | Callable[[ThreadContext, SignalCatcher], None], optional): A callback to be called
-            when the signal is caught. If True, an empty callback will be set. Defaults to None.
-            recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher
-            associated with the new signal should be considered as well. Defaults to False.
+            callback (None | bool | Callable[[ThreadContext, SignalCatcher], None], optional): A callback to be called when the signal is caught. If True, an empty callback will be set. Defaults to None.
+            recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher associated with the new signal should be considered as well. Defaults to False.
 
         Returns:
             SignalCatcher: The SignalCatcher object.
@@ -205,11 +196,9 @@ class Debugger:
         """Hijack a signal in the target process.
 
         Args:
-            original_signal (int | str): The signal to hijack. If "*", "ALL", "all" or -1 is passed, all signals will be
-            hijacked.
+            original_signal (int | str): The signal to hijack. If "*", "ALL", "all" or -1 is passed, all signals will be hijacked.
             new_signal (int | str): The signal to hijack the original signal with.
-            recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher
-            associated with the new signal should be considered as well. Defaults to False.
+            recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher associated with the new signal should be considered as well. Defaults to False.
 
         Returns:
             SignalCatcher: The SignalCatcher object.
@@ -226,14 +215,10 @@ class Debugger:
         """Handle a syscall in the target process.
 
         Args:
-            syscall (int | str): The syscall name or number to handle. If "*", "ALL", "all" or -1 is passed, all
-            syscalls will be handled.
-            on_enter (None | bool |Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute
-            when the syscall is entered. If True, an empty callback will be set. Defaults to None.
-            on_exit (None | bool | Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute
-            when the syscall is exited. If True, an empty callback will be set. Defaults to None.
-            recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler
-            associated with the new syscall should be considered as well. Defaults to False.
+            syscall (int | str): The syscall name or number to handle. If "*", "ALL", "all" or -1 is passed, all syscalls will be handled.
+            on_enter (None | bool |Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute when the syscall is entered. If True, an empty callback will be set. Defaults to None.
+            on_exit (None | bool | Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute when the syscall is exited. If True, an empty callback will be set. Defaults to None.
+            recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler associated with the new syscall should be considered as well. Defaults to False.
 
         Returns:
             SyscallHandler: The SyscallHandler object.
@@ -250,11 +235,9 @@ class Debugger:
         """Hijacks a syscall in the target process.
 
         Args:
-            original_syscall (int | str): The syscall name or number to hijack. If "*", "ALL", "all" or -1 is passed,
-            all syscalls will be hijacked.
+            original_syscall (int | str): The syscall name or number to hijack. If "*", "ALL", "all" or -1 is passed, all syscalls will be hijacked.
             new_syscall (int | str): The syscall name or number to hijack the original syscall with.
-            recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler
-            associated with the new syscall should be considered as well. Defaults to False.
+            recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler associated with the new syscall should be considered as well. Defaults to False.
             **kwargs: (int, optional): The arguments to pass to the new syscall.
 
         Returns:
@@ -262,9 +245,20 @@ class Debugger:
         """
         return self._internal_debugger.hijack_syscall(original_syscall, new_syscall, recursive, **kwargs)
 
-    def gdb(self: Debugger, open_in_new_process: bool = True) -> None:
-        """Migrates the current debugging session to GDB."""
-        self._internal_debugger.gdb(open_in_new_process)
+    def gdb(
+        self: Debugger,
+        migrate_breakpoints: bool = True,
+        open_in_new_process: bool = True,
+        blocking: bool = True,
+    ) -> GdbResumeEvent:
+        """Migrates the current debugging session to GDB.
+
+        Args:
+            migrate_breakpoints (bool): Whether to migrate over the breakpoints set in libdebug to GDB.
+            open_in_new_process (bool): Whether to attempt to open GDB in a new process instead of the current one.
+            blocking (bool): Whether to block the script until GDB is closed.
+        """
+        return self._internal_debugger.gdb(migrate_breakpoints, open_in_new_process, blocking)
 
     def r(self: Debugger, redirect_pipes: bool = True) -> PipeManager | None:
         """Alias for the `run` method.
@@ -310,15 +304,11 @@ class Debugger:
 
         Args:
             position (int | bytes): The location of the breakpoint.
-            hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software.
-            Defaults to False.
+            hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software. Defaults to False.
             condition (str, optional): The trigger condition for the breakpoint. Defaults to None.
             length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
-            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the
-            breakpoint is hit. Defaults to None.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
-            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
-            the "binary" map file).
+            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the breakpoint is hit. Defaults to None.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
         return self._internal_debugger.breakpoint(position, hardware, condition, length, callback, file)
 
@@ -336,14 +326,10 @@ class Debugger:
 
         Args:
             position (int | bytes): The location of the breakpoint.
-            condition (str, optional): The trigger condition for the watchpoint (either "w", "rw" or "x").
-            Defaults to "w".
+            condition (str, optional): The trigger condition for the watchpoint (either "w", "rw" or "x"). Defaults to "w".
             length (int, optional): The size of the word in being watched (1, 2, 4 or 8). Defaults to 1.
-            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the
-            watchpoint is hit. Defaults to None.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
-            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
-            the "binary" map file).
+            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the watchpoint is hit. Defaults to None.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
         return self._internal_debugger.breakpoint(
             position,
@@ -440,9 +426,6 @@ class Debugger:
 
         Args:
             value (bool): the value to set.
-
-        Yields:
-            None
         """
         old_value = self.pprint_syscalls
         self.pprint_syscalls = value
@@ -854,9 +837,7 @@ class Debugger:
         Args:
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
-            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
-            the "binary" map file).
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
         self._internal_debugger.step_until(self, position, max_steps, file)
 

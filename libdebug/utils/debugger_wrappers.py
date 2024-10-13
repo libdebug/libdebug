@@ -55,7 +55,7 @@ def change_state_function_thread(method: callable) -> callable:
 
         # We have to ensure that at least one thread is alive before executing the method
         if thread.dead:
-            raise RuntimeError("The threads is dead.")
+            raise RuntimeError("The thread is dead.")
         return method(self, thread, *args, **kwargs)
 
     return wrapper

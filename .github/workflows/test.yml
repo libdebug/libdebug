@@ -19,15 +19,17 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
-        python-version: ["3.10", "3.12"]
+        python-version: ["3.10", "3.12", "3.13"]
+        arch: ["i386", "amd64"]
 
     steps:
     - uses: actions/checkout@v4
 
     - name: Install native dependencies
       run: |
+        sudo dpkg --add-architecture i386
         sudo apt-get update
-        sudo apt-get install -y --no-install-recommends libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg
+        sudo apt-get install -y --no-install-recommends libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg libc6-dbg:i386
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
@@ -47,4 +49,4 @@ jobs:
 
     - name: Test with pytest
       run: |
-        cd test/amd64 && pytest --ignore=other_tests
+        cd test && PLATFORM=${{ matrix.arch }} python -m pytest --ignore=other_tests

@@ -228,35 +228,50 @@ class ThreadContext:
         backtrace = stack_unwinder.unwind(self)
         maps = self._internal_debugger.debugging_interface.get_maps()
         for return_address in backtrace:
-            return_address_symbol = resolve_address_in_maps(return_address, maps)
+            filtered_maps = maps.filter(return_address)
+            return_address_symbol = resolve_address_in_maps(return_address, filtered_maps)
+            permissions = filtered_maps[0].permissions
+            if "rwx" in permissions:
+                style = f"{ANSIColors.UNDERLINE}{ANSIColors.RED}"
+            elif "x" in permissions:
+                style = f"{ANSIColors.RED}"
+            elif "w" in permissions:
+                # This should not happen, but it's here for completeness
+                style = f"{ANSIColors.YELLOW}"
+            elif "r" in permissions:
+                # This should not happen, but it's here for completeness
+                style = f"{ANSIColors.GREEN}"
             if return_address_symbol[:2] == "0x":
-                print(f"{ANSIColors.RED}{return_address:#x} {ANSIColors.RESET}")
+                print(f"{style}{return_address:#x} {ANSIColors.RESET}")
             else:
-                print(f"{ANSIColors.RED}{return_address:#x} <{return_address_symbol}> {ANSIColors.RESET}")
+                print(f"{style}{return_address:#x} <{return_address_symbol}> {ANSIColors.RESET}")
+
+    def _pprint_reg(self: ThreadContext, register: str) -> None:
+        attr = getattr(self.regs, register)
+        color = ""
+        style = ""
+        formatted_attr = f"{attr:#x}"
+
+        if maps := self._internal_debugger.maps.filter(attr):
+            permissions = maps[0].permissions
+            if "rwx" in permissions:
+                color = ANSIColors.RED
+                style = ANSIColors.UNDERLINE
+            elif "x" in permissions:
+                color = ANSIColors.RED
+            elif "w" in permissions:
+                color = ANSIColors.YELLOW
+            elif "r" in permissions:
+                color = ANSIColors.GREEN
+
+        if color or style:
+            formatted_attr = f"{color}{style}{attr:#x}{ANSIColors.RESET}"
+        print(f"{ANSIColors.RED}{register}{ANSIColors.RESET}\t{formatted_attr}")
 
     def pprint_registers(self: ThreadContext) -> None:
         """Pretty prints the thread's registers."""
         for register in self._register_holder.provide_regs():
-            attr = getattr(self.regs, register)
-            color = ""
-            style = ""
-            formatted_attr = f"{attr:#x}"
-
-            if maps := self._internal_debugger.maps.filter(attr):
-                permissions = maps[0].permissions
-                if "rwx" in permissions:
-                    color = ANSIColors.RED
-                    style = ANSIColors.UNDERLINE
-                elif "x" in permissions:
-                    color = ANSIColors.RED
-                elif "w" in permissions:
-                    color = ANSIColors.YELLOW
-                elif "r" in permissions:
-                    color = ANSIColors.GREEN
-
-            if color or style:
-                formatted_attr = f"{color}{style}{attr:#x}{ANSIColors.RESET}"
-            print(f"{ANSIColors.RED}{register}{ANSIColors.RESET}\t{formatted_attr}")
+            self._pprint_reg(register)
 
     def pprint_regs(self: ThreadContext) -> None:
         """Alias for the `pprint_registers` method.
@@ -268,6 +283,9 @@ class ThreadContext:
     def pprint_registers_all(self: ThreadContext) -> None:
         """Pretty prints all the thread's registers."""
         self.pprint_registers()
+
+        for t in self._register_holder.provide_special_regs():
+            self._pprint_reg(t)
 
         for t in self._register_holder.provide_vector_fp_regs():
             print(f"{ANSIColors.BLUE}" + "{" + f"{ANSIColors.RESET}")
@@ -300,9 +318,7 @@ class ThreadContext:
         Args:
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
-            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
-            the "binary" map file).
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
         self._internal_debugger.step_until(self, position, max_steps, file)
 

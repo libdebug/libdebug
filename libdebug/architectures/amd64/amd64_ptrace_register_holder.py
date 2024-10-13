@@ -42,6 +42,18 @@ AMD64_REGS = [
     "rip",
 ]
 
+AMD64_SPECIAL_REGS = [
+    "eflags",
+    "cs",
+    "ss",
+    "ds",
+    "es",
+    "fs",
+    "gs",
+    "fs_base",
+    "gs_base",
+]
+
 
 def _get_property_64(name: str) -> property:
     def getter(self: Amd64Registers) -> int:
@@ -108,11 +120,13 @@ def _get_property_8h(name: str) -> property:
 
 def _get_property_fp_xmm0(name: str, index: int) -> property:
     def getter(self: Amd64Registers) -> int:
+        self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         return int.from_bytes(self._fp_register_file.xmm0[index].data, "little")
 
     def setter(self: Amd64Registers, value: int) -> None:
+        self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         data = value.to_bytes(16, "little")
@@ -124,6 +138,7 @@ def _get_property_fp_xmm0(name: str, index: int) -> property:
 
 def _get_property_fp_ymm0(name: str, index: int) -> property:
     def getter(self: Amd64Registers) -> int:
+        self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         xmm0 = int.from_bytes(self._fp_register_file.xmm0[index].data, "little")
@@ -131,6 +146,7 @@ def _get_property_fp_ymm0(name: str, index: int) -> property:
         return (ymm0 << 128) | xmm0
 
     def setter(self: Amd64Registers, value: int) -> None:
+        self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         new_xmm0 = value & ((1 << 128) - 1)
@@ -144,6 +160,7 @@ def _get_property_fp_ymm0(name: str, index: int) -> property:
 
 def _get_property_fp_zmm0(name: str, index: int) -> property:
     def getter(self: Amd64Registers) -> int:
+        self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         zmm0 = int.from_bytes(self._fp_register_file.zmm0[index].data, "little")
@@ -152,6 +169,7 @@ def _get_property_fp_zmm0(name: str, index: int) -> property:
         return (zmm0 << 256) | (ymm0 << 128) | xmm0
 
     def setter(self: Amd64Registers, value: int) -> None:
+        self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         new_xmm0 = value & ((1 << 128) - 1)
@@ -167,6 +185,7 @@ def _get_property_fp_zmm0(name: str, index: int) -> property:
 
 def _get_property_fp_xmm1(name: str, index: int) -> property:
     def getter(self: Amd64Registers) -> int:
+        self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         zmm1 = int.from_bytes(self._fp_register_file.zmm1[index].data, "little")
@@ -174,6 +193,7 @@ def _get_property_fp_xmm1(name: str, index: int) -> property:
 
     def setter(self: Amd64Registers, value: int) -> None:
         # We do not clear the upper 384 bits of the register
+        self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         previous_value = int.from_bytes(self._fp_register_file.zmm1[index].data, "little")
@@ -187,6 +207,7 @@ def _get_property_fp_xmm1(name: str, index: int) -> property:
 
 def _get_property_fp_ymm1(name: str, index: int) -> property:
     def getter(self: Amd64Registers) -> int:
+        self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         zmm1 = int.from_bytes(self._fp_register_file.zmm1[index].data, "little")
@@ -194,6 +215,7 @@ def _get_property_fp_ymm1(name: str, index: int) -> property:
 
     def setter(self: Amd64Registers, value: int) -> None:
         # We do not clear the upper 256 bits of the register
+        self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         previous_value = self._fp_register_file.zmm1[index]
@@ -207,11 +229,13 @@ def _get_property_fp_ymm1(name: str, index: int) -> property:
 
 def _get_property_fp_zmm1(name: str, index: int) -> property:
     def getter(self: Amd64Registers) -> int:
+        self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         return int.from_bytes(self._fp_register_file.zmm1[index].data, "little")
 
     def setter(self: Amd64Registers, value: int) -> None:
+        self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         self._fp_register_file.zmm1[index].data = value.to_bytes(64, "little")
@@ -222,11 +246,13 @@ def _get_property_fp_zmm1(name: str, index: int) -> property:
 
 def _get_property_fp_mmx(name: str, index: int) -> property:
     def getter(self: Amd64Registers) -> int:
+        self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         return int.from_bytes(self._fp_register_file.mmx[index].data, "little") & ((1 << 64) - 1)
 
     def setter(self: Amd64Registers, value: int) -> None:
+        self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         self._fp_register_file.mmx[index].data = (value & ((1 << 64) - 1)).to_bytes(16, "little")
@@ -240,11 +266,13 @@ def _get_property_fp_st(name: str, index: int) -> property:
     # But their support for long double does not actually allow for value comparison or manipulation
     # So, ctypes it is
     def getter(self: Amd64Registers) -> float:
+        self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         return c_longdouble.from_buffer_copy(bytes(self._fp_register_file.mmx[index].data)).value
 
     def setter(self: Amd64Registers, value: float) -> None:
+        self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         self._fp_register_file.mmx[index].data = bytes(c_longdouble(value))
@@ -268,6 +296,10 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
     def provide_vector_fp_regs(self: Amd64PtraceRegisterHolder) -> list[tuple[str]]:
         """Provide the list of vector and floating point registers."""
         return self._vector_fp_registers
+
+    def provide_special_regs(self: Amd64PtraceRegisterHolder) -> list[str]:
+        """Provide the list of special registers, which are not intended for general-purpose use."""
+        return AMD64_SPECIAL_REGS
 
     def apply_on_regs(self: Amd64PtraceRegisterHolder, target: Amd64Registers, target_class: type) -> None:
         """Apply the register accessors to the Amd64Registers class."""
@@ -316,6 +348,9 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
             setattr(target_class, name_16, _get_property_16(name_64))
             setattr(target_class, name_8l, _get_property_8l(name_64))
 
+        for name in AMD64_SPECIAL_REGS:
+            setattr(target_class, name, _get_property_64(name))
+
         # setup special registers
         target_class.rip = _get_property_64("rip")
 
@@ -325,11 +360,11 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
 
         match self.fp_register_file.type:
             case 0:
-                self._handle_fp_512(target_class)
+                self._handle_vector_512(target_class)
             case 1:
-                self._handle_fp_896(target_class)
+                self._handle_vector_896(target_class)
             case 2:
-                self._handle_fp_2696(target_class)
+                self._handle_vector_2696(target_class)
             case _:
                 raise NotImplementedError(
                     f"Floating-point register file type {self.fp_register_file.type} not available.",
@@ -369,14 +404,14 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
 
             self._vector_fp_registers.append((name_mm, name_st))
 
-    def _handle_fp_512(self: Amd64PtraceRegisterHolder, target_class: type) -> None:
+    def _handle_vector_512(self: Amd64PtraceRegisterHolder, target_class: type) -> None:
         """Handle the case where the xsave area is 512 bytes long, which means we just have the xmm registers."""
         for index in range(16):
             name_xmm = f"xmm{index}"
             setattr(target_class, name_xmm, _get_property_fp_xmm0(name_xmm, index))
             self._vector_fp_registers.append((name_xmm,))
 
-    def _handle_fp_896(self: Amd64PtraceRegisterHolder, target_class: type) -> None:
+    def _handle_vector_896(self: Amd64PtraceRegisterHolder, target_class: type) -> None:
         """Handle the case where the xsave area is 896 bytes long, which means we have the xmm and ymm registers."""
         for index in range(16):
             name_xmm = f"xmm{index}"
@@ -387,7 +422,7 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
 
             self._vector_fp_registers.append((name_xmm, name_ymm))
 
-    def _handle_fp_2696(self: Amd64PtraceRegisterHolder, target_class: type) -> None:
+    def _handle_vector_2696(self: Amd64PtraceRegisterHolder, target_class: type) -> None:
         """Handle the case where the xsave area is 2696 bytes long, which means we have 32 zmm registers."""
         for index in range(16):
             name_xmm = f"xmm{index}"

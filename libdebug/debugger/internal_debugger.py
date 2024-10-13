@@ -15,10 +15,11 @@ from pathlib import Path
 from queue import Queue
 from signal import SIGKILL, SIGSTOP, SIGTRAP
 from subprocess import Popen
+from tempfile import NamedTemporaryFile
 from threading import Thread, current_thread
 from typing import TYPE_CHECKING
 
-import psutil
+from psutil import STATUS_ZOMBIE, Error, Process, ZombieProcess, process_iter
 
 from libdebug.architectures.breakpoint_validator import validate_hardware_breakpoint
 from libdebug.architectures.syscall_hijacker import SyscallHijacker
@@ -28,8 +29,10 @@ from libdebug.builtin.pretty_print_syscall_handler import (
     pprint_on_exit,
 )
 from libdebug.data.breakpoint import Breakpoint
+from libdebug.data.gdb_resume_event import GdbResumeEvent
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
+from libdebug.data.terminals import TerminalTypes
 from libdebug.debugger.internal_debugger_instance_manager import (
     extend_internal_debugger,
     link_to_internal_debugger,
@@ -66,13 +69,14 @@ from libdebug.utils.syscall_utils import (
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from typing import Any
 
     from libdebug.commlink.pipe_manager import PipeManager
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.data.registers import Registers
     from libdebug.data.symbol import Symbol
-    from libdebug.data.symbol_dict import SymbolDict
+    from libdebug.data.symbol_list import SymbolList
     from libdebug.debugger import Debugger
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
@@ -110,16 +114,13 @@ class InternalDebugger:
     """A flag that indicates if the debugger should automatically interrupt the debugged process when a command is issued."""
 
     breakpoints: dict[int, Breakpoint]
-    """A dictionary of all the breakpoints set on the process.
-    Key: the address of the breakpoint."""
+    """A dictionary of all the breakpoints set on the process. Key: the address of the breakpoint."""
 
     handled_syscalls: dict[int, SyscallHandler]
-    """A dictionary of all the syscall handled in the process.
-    Key: the syscall number."""
+    """A dictionary of all the syscall handled in the process. Key: the syscall number."""
 
     caught_signals: dict[int, SignalCatcher]
-    """A dictionary of all the signals caught in the process.
-    Key: the signal number."""
+    """A dictionary of all the signals caught in the process. Key: the signal number."""
 
     signals_to_block: list[int]
     """The signals to not forward to the process."""
@@ -151,6 +152,9 @@ class InternalDebugger:
     instanced: bool = False
     """Whether the process was started and has not been killed yet."""
 
+    is_debugging: bool = False
+    """Whether the debugger is currently debugging a process."""
+
     pprint_syscalls: bool
     """A flag that indicates if the debugger should pretty print syscalls."""
 
@@ -159,6 +163,9 @@ class InternalDebugger:
 
     debugger: Debugger
     """The debugger object."""
+
+    stdin_settings_backup: list[Any]
+    """The backup of the stdin settings. Used to restore the original settings after possible conflicts due to the pipe manager interacactive mode."""
 
     __polling_thread: Thread | None
     """The background thread used to poll the process for state change."""
@@ -171,6 +178,9 @@ class InternalDebugger:
 
     _is_running: bool
     """The overall state of the debugged process. True if the process is running, False otherwise."""
+
+    _is_migrated_to_gdb: bool
+    """A flag that indicates if the debuggee was migrated to GDB."""
 
     _fast_memory: DirectMemoryView
     """The memory view of the debugged process using the fast memory access method."""
@@ -197,8 +207,11 @@ class InternalDebugger:
         self.process_id = 0
         self.threads = []
         self.instanced = False
+        self.is_debugging = False
         self._is_running = False
+        self._is_migrated_to_gdb = False
         self.resume_context = ResumeContext()
+        self.stdin_settings_backup = []
         self.arch = map_arch(libcontext.platform)
         self.kill_on_exit = True
         self._process_memory_manager = ProcessMemoryManager()
@@ -220,6 +233,7 @@ class InternalDebugger:
         self.process_id = 0
         self.threads.clear()
         self.instanced = False
+        self.is_debugging = False
         self._is_running = False
         self.resume_context.clear()
 
@@ -269,7 +283,7 @@ class InternalDebugger:
                 f"File {self.argv[0]} is not executable.",
             )
 
-        if self.instanced:
+        if self.is_debugging:
             liblog.debugger("Process already running, stopping it before restarting.")
             self.kill()
         if self.threads:
@@ -277,11 +291,12 @@ class InternalDebugger:
             self.debugging_interface.reset()
 
         self.instanced = True
+        self.is_debugging = True
 
         if not self.__polling_thread_command_queue.empty():
             raise RuntimeError("Polling thread command queue not empty.")
 
-        self.__polling_thread_command_queue.put((self.__threaded_run, (redirect_pipes, )))
+        self.__polling_thread_command_queue.put((self.__threaded_run, (redirect_pipes,)))
 
         self._join_and_check_status()
 
@@ -298,7 +313,7 @@ class InternalDebugger:
 
     def attach(self: InternalDebugger, pid: int) -> None:
         """Attaches to an existing process."""
-        if self.instanced:
+        if self.is_debugging:
             liblog.debugger("Process already running, stopping it before restarting.")
             self.kill()
         if self.threads:
@@ -306,6 +321,7 @@ class InternalDebugger:
             self.debugging_interface.reset()
 
         self.instanced = True
+        self.is_debugging = True
 
         if not self.__polling_thread_command_queue.empty():
             raise RuntimeError("Polling thread command queue not empty.")
@@ -318,12 +334,14 @@ class InternalDebugger:
 
     def detach(self: InternalDebugger) -> None:
         """Detaches from the process."""
-        if not self.instanced:
+        if not self.is_debugging:
             raise RuntimeError("Process not running, cannot detach.")
 
         self._ensure_process_stopped()
 
         self.__polling_thread_command_queue.put((self.__threaded_detach, ()))
+
+        self.is_debugging = False
 
         self._join_and_check_status()
 
@@ -343,6 +361,7 @@ class InternalDebugger:
         self.__polling_thread_command_queue.put((self.__threaded_kill, ()))
 
         self.instanced = False
+        self.is_debugging = False
 
         if self.pipe_manager:
             self.pipe_manager.close()
@@ -370,6 +389,7 @@ class InternalDebugger:
                 liblog.debugger("Killing process failed: already terminated")
 
         self.instanced = False
+        self.is_debugging = False
 
         if self.__polling_thread is not None:
             self.__polling_thread_command_queue.put((THREAD_TERMINATE, ()))
@@ -394,7 +414,7 @@ class InternalDebugger:
     @background_alias(_background_invalid_call)
     def interrupt(self: InternalDebugger) -> None:
         """Interrupts the process."""
-        if not self.instanced:
+        if not self.is_debugging:
             raise RuntimeError("Process not running, cannot interrupt.")
 
         # We have to ensure that at least one thread is alive before executing the method
@@ -412,7 +432,7 @@ class InternalDebugger:
     @background_alias(_background_invalid_call)
     def wait(self: InternalDebugger) -> None:
         """Waits for the process to stop."""
-        if not self.instanced:
+        if not self.is_debugging:
             raise RuntimeError("Process not running, cannot wait.")
 
         self._join_and_check_status()
@@ -484,15 +504,11 @@ class InternalDebugger:
 
         Args:
             position (int | bytes): The location of the breakpoint.
-            hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software.
-            Defaults to False.
+            hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software. Defaults to False.
             condition (str, optional): The trigger condition for the breakpoint. Defaults to None.
             length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
-            callback (None | bool | Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called
-            when the breakpoint is hit. If True, an empty callback will be set. Defaults to None.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
-            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
-            the "binary" map file).
+            callback (None | bool | Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the breakpoint is hit. If True, an empty callback will be set. Defaults to None.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
         if isinstance(position, str):
             address = self.resolve_symbol(position, file)
@@ -537,10 +553,8 @@ class InternalDebugger:
 
         Args:
             signal (int | str): The signal to catch. If "*", "ALL", "all" or -1 is passed, all signals will be caught.
-            callback (None | bool | Callable[[ThreadContext, SignalCatcher], None], optional): A callback to be called
-            when the signal is caught. If True, an empty callback will be set. Defaults to None.
-            recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher
-            associated with the new signal should be considered as well. Defaults to False.
+            callback (None | bool | Callable[[ThreadContext, SignalCatcher], None], optional): A callback to be called when the signal is caught. If True, an empty callback will be set. Defaults to None.
+            recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher associated with the new signal should be considered as well. Defaults to False.
 
         Returns:
             SignalCatcher: The SignalCatcher object.
@@ -600,11 +614,9 @@ class InternalDebugger:
         """Hijack a signal in the target process.
 
         Args:
-            original_signal (int | str): The signal to hijack. If "*", "ALL", "all" or -1 is passed, all signals will be
-            hijacked.
+            original_signal (int | str): The signal to hijack. If "*", "ALL", "all" or -1 is passed, all signals will be hijacked.
             new_signal (int | str): The signal to hijack the original signal with.
-            recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher
-            associated with the new signal should be considered as well. Defaults to False.
+            recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher associated with the new signal should be considered as well. Defaults to False.
 
         Returns:
             SignalCatcher: The SignalCatcher object.
@@ -642,14 +654,10 @@ class InternalDebugger:
         """Handle a syscall in the target process.
 
         Args:
-            syscall (int | str): The syscall name or number to handle. If "*", "ALL", "all", or -1 is passed, all
-            syscalls will be handled.
-            on_enter (None | bool |Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute
-            when the syscall is entered. If True, an empty callback will be set. Defaults to None.
-            on_exit (None | bool | Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute
-            when the syscall is exited. If True, an empty callback will be set. Defaults to None.
-            recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler
-            associated with the new syscall should be considered as well. Defaults to False.
+            syscall (int | str): The syscall name or number to handle. If "*", "ALL", "all", or -1 is passed, all syscalls will be handled.
+            on_enter (None | bool |Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute when the syscall is entered. If True, an empty callback will be set. Defaults to None.
+            on_exit (None | bool | Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute when the syscall is exited. If True, an empty callback will be set. Defaults to None.
+            recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler associated with the new syscall should be considered as well. Defaults to False.
 
         Returns:
             SyscallHandler: The SyscallHandler object.
@@ -712,11 +720,9 @@ class InternalDebugger:
         """Hijacks a syscall in the target process.
 
         Args:
-            original_syscall (int | str): The syscall name or number to hijack. If "*", "ALL", "all" or -1 is passed,
-            all syscalls will be hijacked.
+            original_syscall (int | str): The syscall name or number to hijack. If "*", "ALL", "all" or -1 is passed, all syscalls will be hijacked.
             new_syscall (int | str): The syscall name or number to hijack the original syscall with.
-            recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler
-            associated with the new syscall should be considered as well. Defaults to False.
+            recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler associated with the new syscall should be considered as well. Defaults to False.
             **kwargs: (int, optional): The arguments to pass to the new syscall.
 
         Returns:
@@ -780,7 +786,12 @@ class InternalDebugger:
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
-    def gdb(self: InternalDebugger, open_in_new_process: bool = True) -> None:
+    def gdb(
+        self: InternalDebugger,
+        migrate_breakpoints: bool = True,
+        open_in_new_process: bool = True,
+        blocking: bool = True,
+    ) -> GdbResumeEvent:
         """Migrates the current debugging session to GDB."""
         # TODO: not needed?
         self.interrupt()
@@ -789,98 +800,204 @@ class InternalDebugger:
 
         self._join_and_check_status()
 
+        # Create the command file
+        command_file = self._craft_gdb_migration_file(migrate_breakpoints)
+
         if open_in_new_process and libcontext.terminal:
-            self._open_gdb_in_new_process()
-        else:
-            if open_in_new_process:
+            lambda_fun = self._open_gdb_in_new_process(command_file)
+        elif open_in_new_process:
+            self._auto_detect_terminal()
+            if not libcontext.terminal:
                 liblog.warning(
-                    "Cannot open in a new process. Please configure the terminal in libcontext.terminal.",
+                    "Cannot auto-detect terminal. Please configure the terminal in libcontext.terminal. Opening gdb in the current shell.",
                 )
-            self._open_gdb_in_shell()
+                lambda_fun = self._open_gdb_in_shell(command_file)
+            else:
+                lambda_fun = self._open_gdb_in_new_process(command_file)
+        else:
+            lambda_fun = self._open_gdb_in_shell(command_file)
 
-        self.__polling_thread_command_queue.put((self.__threaded_migrate_from_gdb, ()))
+        resume_event = GdbResumeEvent(self, lambda_fun)
 
-        self._join_and_check_status()
+        self._is_migrated_to_gdb = True
 
-    def _craft_gdb_migration_command(self: InternalDebugger) -> list[str]:
-        """Crafts the command to migrate to GDB."""
-        gdb_command = [
-            "/bin/gdb",
-            "-q",
-            "--pid",
-            str(self.process_id),
-            "-ex",
-            "source " + GDB_GOBACK_LOCATION,
-            "-ex",
-            "ni",
-            "-ex",
-            "ni",
-        ]
+        if blocking:
+            resume_event.join()
+            return None
+        else:
+            return resume_event
 
-        bp_args = []
+    def _auto_detect_terminal(self: InternalDebugger) -> None:
+        """Auto-detects the terminal."""
+        try:
+            process = Process(self.process_id)
+            while process:
+                pname = process.name().lower()
+                if terminal_command := TerminalTypes.get_command(pname):
+                    libcontext.terminal = terminal_command
+                    liblog.debugger(f"Auto-detected terminal: {libcontext.terminal}")
+                process = process.parent()
+        except Error:
+            pass
+
+    def _craft_gdb_migration_command(self: InternalDebugger, migrate_breakpoints: bool) -> str:
+        """Crafts the command to migrate to GDB.
+
+        Args:
+            migrate_breakpoints (bool): Whether to migrate the breakpoints.
+
+        Returns:
+            str: The command to migrate to GDB.
+        """
+        gdb_command = f'/bin/gdb -q --pid {self.process_id} -ex "source {GDB_GOBACK_LOCATION} " -ex "ni" -ex "ni"'
+
+        if not migrate_breakpoints:
+            return gdb_command
+
         for bp in self.breakpoints.values():
             if bp.enabled:
-                bp_args.append("-ex")
-
                 if bp.hardware and bp.condition == "rw":
-                    bp_args.append(f"awatch *(int{bp.length * 8}_t *) {bp.address:0x}")
+                    gdb_command += f' -ex "awatch *(int{bp.length * 8}_t *) {bp.address:#x}"'
                 elif bp.hardware and bp.condition == "w":
-                    bp_args.append(f"watch *(int{bp.length * 8}_t *) {bp.address:0x}")
+                    gdb_command += f' -ex "watch *(int{bp.length * 8}_t *) {bp.address:#x}"'
                 elif bp.hardware:
-                    bp_args.append("hb *" + hex(bp.address))
+                    gdb_command += f' -ex "hb *{bp.address:#x}"'
                 else:
-                    bp_args.append("b *" + hex(bp.address))
+                    gdb_command += f' -ex "b *{bp.address:#x}"'
 
                 if self.threads[0].instruction_pointer == bp.address and not bp.hardware:
                     # We have to enqueue an additional continue
-                    bp_args.append("-ex")
-                    bp_args.append("ni")
+                    gdb_command += ' -ex "ni"'
 
-        return gdb_command + bp_args
+        return gdb_command
 
-    def _open_gdb_in_new_process(self: InternalDebugger) -> None:
-        """Opens GDB in a new process following the configuration in libcontext.terminal."""
-        args = self._craft_gdb_migration_command()
+    def _craft_gdb_migration_file(self: InternalDebugger, migrate_breakpoints: bool) -> str:
+        """Crafts the file to migrate to GDB.
 
-        initial_pid = Popen(libcontext.terminal + args).pid
+        Args:
+            migrate_breakpoints (bool): Whether to migrate the breakpoints.
 
-        os.waitpid(initial_pid, 0)
+        Returns:
+            str: The path to the file.
+        """
+        # Different terminals accept what to run in different ways. To make this work with all terminals, we need to
+        # create a temporary script that will run the command. This script will be executed by the terminal.
+        command = self._craft_gdb_migration_command(migrate_breakpoints)
+        with NamedTemporaryFile(delete=False, mode="w", suffix=".sh") as temp_file:
+            temp_file.write("#!/bin/bash\n")
+            temp_file.write(command)
+            script_path = temp_file.name
 
-        liblog.debugger("Waiting for GDB process to terminate...")
+        # Make the script executable
+        Path.chmod(Path(script_path), 0o755)
+        return script_path
 
-        for proc in psutil.process_iter():
-            try:
-                cmdline = proc.cmdline()
-            except psutil.ZombieProcess:
-                # This is a zombie process, which psutil tracks but we cannot interact with
-                continue
+    def _open_gdb_in_new_process(self: InternalDebugger, script_path: str) -> None:
+        """Opens GDB in a new process following the configuration in libcontext.terminal.
 
-            if args == cmdline:
-                gdb_process = proc
-                break
-        else:
-            raise RuntimeError("GDB process not found.")
+        Args:
+            script_path (str): The path to the script to run in the terminal.
+        """
+        # Create the command to open the terminal and run the script
+        command = [*libcontext.terminal, script_path]
 
-        while gdb_process.is_running() and gdb_process.status() != psutil.STATUS_ZOMBIE:
-            # As the GDB process is in a different group, we do not have the authority to wait on it
-            # So we must keep polling it until it is no longer running
-            pass
+        # Open GDB in a new terminal
+        terminal_pid = Popen(command).pid
 
-    def _open_gdb_in_shell(self: InternalDebugger) -> None:
-        """Open GDB in the current shell."""
+        # This is the command line that we are looking for
+        cmdline_target = ["/bin/bash", script_path]
+
+        self._wait_for_gdb(terminal_pid, cmdline_target)
+
+        def wait_for_termination() -> None:
+            liblog.debugger("Waiting for GDB process to terminate...")
+
+            for proc in process_iter():
+                try:
+                    cmdline = proc.cmdline()
+                except ZombieProcess:
+                    # This is a zombie process, which psutil tracks but we cannot interact with
+                    continue
+
+                if cmdline_target == cmdline:
+                    gdb_process = proc
+                    break
+            else:
+                raise RuntimeError("GDB process not found.")
+
+            while gdb_process.is_running() and gdb_process.status() != STATUS_ZOMBIE:
+                # As the GDB process is in a different group, we do not have the authority to wait on it
+                # So we must keep polling it until it is no longer running
+                pass
+
+        return wait_for_termination
+
+    def _open_gdb_in_shell(self: InternalDebugger, script_path: str) -> None:
+        """Open GDB in the current shell.
+
+        Args:
+            script_path (str): The path to the script to run in the terminal.
+        """
         gdb_pid = os.fork()
-        if gdb_pid == 0:  # This is the child process.
-            args = self._craft_gdb_migration_command()
-            os.execv("/bin/gdb", args)
-        else:  # This is the parent process.
-            # Parent ignores SIGINT, so only GDB (child) receives it
-            signal.signal(signal.SIGINT, signal.SIG_IGN)
 
+        if gdb_pid == 0:  # This is the child process.
+            os.execv("/bin/bash", ["/bin/bash", script_path])
+            raise RuntimeError("Failed to execute GDB.")
+
+        # This is the parent process.
+        # Parent ignores SIGINT, so only GDB (child) receives it
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+        def wait_for_termination() -> None:
             # Wait for the child process to finish
             os.waitpid(gdb_pid, 0)
 
             # Reset the SIGINT behavior to default handling after child exits
             signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+        return wait_for_termination
+
+    def _wait_for_gdb(self: InternalDebugger, terminal_pid: int, cmdline_target: list[str]) -> None:
+        """Waits for GDB to open in the terminal.
+
+        Args:
+            terminal_pid (int): The PID of the terminal process.
+            cmdline_target (list[str]): The command line that we are looking for.
+        """
+        # We need to wait for GDB to open in the terminal. However, different terminals have different behaviors
+        # so we need to manually check if the terminal is still alive and if GDB has opened
+        waiting_for_gdb = True
+        terminal_alive = False
+        scan_after_terminal_death = 0
+        scan_after_terminal_death_max = 3
+        while waiting_for_gdb:
+            terminal_alive = False
+            for proc in process_iter():
+                try:
+                    cmdline = proc.cmdline()
+                    if cmdline == cmdline_target:
+                        waiting_for_gdb = False
+                    elif proc.pid == terminal_pid:
+                        terminal_alive = True
+                except ZombieProcess:
+                    # This is a zombie process, which psutil tracks but we cannot interact with
+                    continue
+            if not terminal_alive and waiting_for_gdb and scan_after_terminal_death < scan_after_terminal_death_max:
+                # If the terminal has died, we need to wait a bit before we can be sure that GDB will not open.
+                # Indeed, some terminals take different steps to open GDB. We must be sure to refresh the list
+                # of processes. One extra iteration should be enough, but we will iterate more just to be sure.
+                scan_after_terminal_death += 1
+            elif not terminal_alive and waiting_for_gdb:
+                # If the terminal has died and GDB has not opened, we are sure that GDB will not open
+                raise RuntimeError("Failed to open GDB in terminal.")
+
+    def _resume_from_gdb(self: InternalDebugger) -> None:
+        """Resumes the process after migrating from GDB."""
+        self.__polling_thread_command_queue.put((self.__threaded_migrate_from_gdb, ()))
+
+        self._join_and_check_status()
+
+        self._is_migrated_to_gdb = False
 
     def _background_step(self: InternalDebugger, thread: ThreadContext) -> None:
         """Executes a single instruction of the process.
@@ -917,9 +1034,7 @@ class InternalDebugger:
             thread (ThreadContext): The thread to step. Defaults to None.
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
-            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
-            the "binary" map file).
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
         if isinstance(position, str):
             address = self.resolve_symbol(position, file)
@@ -943,9 +1058,7 @@ class InternalDebugger:
             thread (ThreadContext): The thread to step. Defaults to None.
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
-            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
-            the "binary" map file).
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
         if isinstance(position, str):
             address = self.resolve_symbol(position, file)
@@ -1189,7 +1302,7 @@ class InternalDebugger:
         return resolve_symbol_in_maps(symbol, filtered_maps)
 
     @property
-    def symbols(self: InternalDebugger) -> SymbolDict[str, set[Symbol]]:
+    def symbols(self: InternalDebugger) -> SymbolList[Symbol]:
         """Get the symbols of the process."""
         self._ensure_process_stopped()
         backing_files = {vmap.backing_file for vmap in self.maps}
@@ -1198,11 +1311,16 @@ class InternalDebugger:
 
     def _background_ensure_process_stopped(self: InternalDebugger) -> None:
         """Validates the state of the process."""
-        # In background mode, there shouldn't be anything to do here
+        # There is no case where this should ever happen, but...
+        if self._is_migrated_to_gdb:
+            raise RuntimeError("Cannot execute this command after migrating to GDB.")
 
     @background_alias(_background_ensure_process_stopped)
     def _ensure_process_stopped(self: InternalDebugger) -> None:
         """Validates the state of the process."""
+        if self._is_migrated_to_gdb:
+            raise RuntimeError("Cannot execute this command after migrating to GDB.")
+
         if not self.running:
             return
 
@@ -1405,7 +1523,7 @@ class InternalDebugger:
     @background_alias(__threaded_peek_memory)
     def _peek_memory(self: InternalDebugger, address: int) -> bytes:
         """Reads memory from the process."""
-        if not self.instanced:
+        if not self.is_debugging:
             raise RuntimeError("Process not running, cannot access memory.")
 
         if self.running:
@@ -1434,7 +1552,7 @@ class InternalDebugger:
 
     def _fast_read_memory(self: InternalDebugger, address: int, size: int) -> bytes:
         """Reads memory from the process."""
-        if not self.instanced:
+        if not self.is_debugging:
             raise RuntimeError("Process not running, cannot access memory.")
 
         if self.running:
@@ -1451,7 +1569,7 @@ class InternalDebugger:
     @background_alias(__threaded_poke_memory)
     def _poke_memory(self: InternalDebugger, address: int, data: bytes) -> None:
         """Writes memory to the process."""
-        if not self.instanced:
+        if not self.is_debugging:
             raise RuntimeError("Process not running, cannot access memory.")
 
         if self.running:
@@ -1471,7 +1589,7 @@ class InternalDebugger:
 
     def _fast_write_memory(self: InternalDebugger, address: int, data: bytes) -> None:
         """Writes memory to the process."""
-        if not self.instanced:
+        if not self.is_debugging:
             raise RuntimeError("Process not running, cannot access memory.")
 
         if self.running:
@@ -1488,7 +1606,7 @@ class InternalDebugger:
     @background_alias(__threaded_fetch_fp_registers)
     def _fetch_fp_registers(self: InternalDebugger, registers: Registers) -> None:
         """Fetches the floating point registers of a thread."""
-        if not self.instanced:
+        if not self.is_debugging:
             raise RuntimeError("Process not running, cannot read floating-point registers.")
 
         self._ensure_process_stopped()
@@ -1502,7 +1620,7 @@ class InternalDebugger:
     @background_alias(__threaded_flush_fp_registers)
     def _flush_fp_registers(self: InternalDebugger, registers: Registers) -> None:
         """Flushes the floating point registers of a thread."""
-        if not self.instanced:
+        if not self.is_debugging:
             raise RuntimeError("Process not running, cannot write floating-point registers.")
 
         self._ensure_process_stopped()

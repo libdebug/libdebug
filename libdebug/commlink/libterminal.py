@@ -9,29 +9,39 @@ from __future__ import annotations
 import sys
 import threading
 from logging import StreamHandler
+from pathlib import Path
 from queue import Queue
+from termios import TCSANOW, tcgetattr, tcsetattr
 from threading import Event
 from typing import TYPE_CHECKING
 
-from prompt_toolkit.application import Application
+from prompt_toolkit.application import Application, run_in_terminal
+from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+from prompt_toolkit.history import FileHistory
 from prompt_toolkit.key_binding import KeyBindings
-from prompt_toolkit.layout import HSplit, Layout
-from prompt_toolkit.styles import Style
+from prompt_toolkit.layout import Layout
 from prompt_toolkit.widgets import TextArea
 
-from libdebug.commlink.logging_lexer import LoggingLexer
 from libdebug.commlink.std_wrapper import StdWrapper
 from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 from libdebug.liblog import liblog
 
 if TYPE_CHECKING:
-    from prompt_toolkit.application import KeyPressEvent
+    from prompt_toolkit.application.application import KeyPressEvent
+
+PATH_HISTORY = Path.home() / ".cache" / "libdebug" / "history"
 
 
 class LibTerminal:
     """Class that represents a terminal to interact with the child process."""
 
-    def __init__(self: LibTerminal, prompt: str, sendline: callable, end_interactive_event: Event) -> None:
+    def __init__(
+        self: LibTerminal,
+        prompt: str,
+        sendline: callable,
+        end_interactive_event: Event,
+        auto_quit: bool,
+    ) -> None:
         """Initializes the LibTerminal object."""
         # Provide the internal debugger instance
         self._internal_debugger = provide_internal_debugger(self)
@@ -42,14 +52,17 @@ class LibTerminal:
         # Event to signal the end of the interactive session
         self.__end_interactive_event: Event = end_interactive_event
 
+        # Flag to indicate if the terminal should automatically quit when the debugged process stops
+        self._auto_quit: bool = auto_quit
+
         # Initialize the message queue for the prompt_toolkit application
         self._app_message_queue: Queue = Queue()
 
-        # Initialize the prompt_toolkit application reference
-        self._app: Application | None = None
-
         # Initialize the thread reference for the prompt_toolkit application
         self._app_thread: threading.Thread | None = None
+
+        # Flag to indicate if the terminal has warned the user about the stop of the debugged process
+        self._has_warned_stop: bool = False
 
         # Backup the original stdout and stderr
         self._stdout_backup: object = sys.stdout
@@ -72,17 +85,26 @@ class LibTerminal:
             if isinstance(handler, StreamHandler):
                 handler.stream = sys.stderr
 
+        # Save the original stdin settings, if needed. Just in case
+        if not self._internal_debugger.stdin_settings_backup:
+            self._internal_debugger.stdin_settings_backup = tcgetattr(sys.stdin.fileno())
+
+        # Create the history file, if it does not exist
+        if not PATH_HISTORY.exists():
+            PATH_HISTORY.parent.mkdir(parents=True, exist_ok=True)
+            PATH_HISTORY.touch()
+
         self._run_prompt(prompt)
 
     def _run_prompt(self: LibTerminal, prompt: str) -> None:
         """Run the prompt_toolkit application."""
-        output_field = TextArea(
-            style="class:output-field",
-            focusable=False,
-            scrollbar=False,
-            lexer=LoggingLexer(),
+        input_field = TextArea(
+            height=3,
+            prompt=prompt,
+            style="class:input-field",
+            history=FileHistory(str(PATH_HISTORY)),
+            auto_suggest=AutoSuggestFromHistory(),
         )
-        input_field = TextArea(height=3, prompt=prompt, style="class:input-field")
 
         kb = KeyBindings()
 
@@ -93,11 +115,10 @@ class LibTerminal:
             cmd = buffer.text
             if cmd:
                 try:
-                    self._sendline(cmd.encode("ascii"))
+                    self._sendline(cmd.encode("utf-8"))
+                    buffer.history.append_string(cmd)
                 except RuntimeError:
                     liblog.warning("The stdin pipe of the child process is not available anymore")
-                    # Flush the output field and exit the application
-                    app_exit(event)
                 finally:
                     buffer.reset()
 
@@ -114,70 +135,80 @@ class LibTerminal:
                 # stderr and stdout pipes anymore
                 pass
             event.app.exit()
-            sys.exit(0)
 
-        layout = Layout(HSplit([output_field, input_field]))
+        @kb.add("tab")
+        def accept_suggestion(event: KeyPressEvent) -> None:
+            """Accept the auto-suggestion."""
+            buffer = event.current_buffer
+            suggestion = buffer.suggestion
+            if suggestion:
+                buffer.insert_text(suggestion.text)
 
-        # Define the style for the prompt_toolkit application to correctly display the log messages
-        style = Style.from_dict(
-            {
-                "output-field": "",
-                "input-field": "",
-                "warning": "fg:orange",
-                "error": "fg:red",
-                "info": "fg:green",
-            },
-        )
+        layout = Layout(input_field)
 
-        self._app = Application(
+        # Note: The refresh_interval is set to 0.5 seconds is an arbitrary trade-off between the
+        # responsiveness of the terminal and the CPU usage. Little values also cause difficulties
+        # in the management of the copy-paste. We might consider to change the value in the future or
+        # to make it dynamic/configurable.
+        app = Application(
             layout=layout,
             key_bindings=kb,
             full_screen=False,
             refresh_interval=0.5,
-            style=style,
         )
 
         def update_output(app: Application) -> None:
             """Update the output field with the messages in the queue."""
-            to_exit = False
-            if not self._internal_debugger.running and (
-                event_type := self._internal_debugger.resume_context.event_type
+            if (
+                not self._internal_debugger.running
+                and (event_type := self._internal_debugger.resume_context.get_event_type())
+                and not self._has_warned_stop
             ):
                 liblog.warning(
-                    f"The debugged process has stopped due to a {event_type} event",
+                    f"The debugged process has stopped due to the following event(s). {event_type}",
                 )
-                # Flush the output field and exit the application
-                self.__end_interactive_event.set()
-                to_exit = True
+                self._has_warned_stop = True
+                if self._auto_quit:
+                    # Flush the output field and exit the application
+                    self.__end_interactive_event.set()
 
-                while self.__end_interactive_event.is_set():
-                    # Wait to be sure that the other thread is not polling from the child process
-                    # stderr and stdout pipes anymore
-                    pass
+                    while self.__end_interactive_event.is_set():
+                        # Wait to be sure that the other thread is not polling from the child process
+                        # stderr and stdout pipes anymore
+                        pass
 
             # Update the output field with the messages in the queue
-            msg = ""
-            while not self._app_message_queue.empty():
+            msg = b""
+            if not self._app_message_queue.empty():
                 msg += self._app_message_queue.get()
-            output_field.buffer.insert_text(msg)
 
-            if to_exit:
+            if msg:
+                if not msg.endswith(b"\n"):
+                    # Add a newline character at the end of the message
+                    # to avoid the prompt_toolkit bug that causes the last line to be
+                    # overwritten by the prompt
+                    msg += b"\n"
+                run_in_terminal(lambda: sys.stdout.buffer.write(msg))
+                run_in_terminal(lambda: sys.stdout.buffer.flush())
+
+            if self._has_warned_stop and self._auto_quit:
                 app.exit()
-                sys.exit(0)
 
         # Add the update_output function to the event loop
-        self._app.on_invalidate.add_handler(update_output)
+        app.on_invalidate.add_handler(update_output)
 
         # Run in another thread
-        self._app_thread = threading.Thread(target=self._app.run, daemon=True)
+        self._app_thread = threading.Thread(target=app.run, daemon=True)
         self._app_thread.start()
 
     def _write_manager(self, payload: bytes) -> int:
         """Put the payload in the message queue for the prompt_toolkit application."""
         if isinstance(payload, bytes):
-            self._app_message_queue.put(payload.decode("ascii", errors="backslashreplace"))
+            # We want the special characters to be displayed correctly
+            self._app_message_queue.put(payload.decode("utf-8", errors="backslashreplace").encode("utf-8"))
         else:
-            self._app_message_queue.put(payload)
+            # We need to encode the payload to bytes
+            self._app_message_queue.put(payload.encode("utf-8"))
 
     def reset(self: LibTerminal) -> None:
         """Reset the terminal to its original state."""
@@ -202,3 +233,6 @@ class LibTerminal:
         for handler in liblog.debugger_logger.handlers:
             if isinstance(handler, StreamHandler):
                 handler.stream = sys.stderr
+
+        # Restore the original stdin settings
+        tcsetattr(sys.stdin.fileno(), TCSANOW, self._internal_debugger.stdin_settings_backup)

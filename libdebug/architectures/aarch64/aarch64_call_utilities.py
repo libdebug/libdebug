@@ -19,10 +19,7 @@ class Aarch64CallUtilities(CallUtilitiesManager):
             return True
 
         # Check for BLR instruction
-        if opcode_window[3] == 0xD6 and (opcode_window[2] & 0x3F) == 0x3F:
-            return True
-
-        return False
+        return bool(opcode_window[3] == 214 and opcode_window[2] & 63 == 63)
 
     def compute_call_skip(self: Aarch64CallUtilities, opcode_window: bytes) -> int:
         """Compute the instruction size of the current call instruction."""
