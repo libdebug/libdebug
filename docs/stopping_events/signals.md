@@ -199,8 +199,6 @@ When hijacking a signal, the user can provide an alternative signal to be execut
 ## :material-filter: Signal Filtering
 Instead of setting a catcher on signals, you might want to filter which signals are not to be forwarded to the debugged process during execution.
 
-By default, all signals not related to **libdebug** internals are forwarded to the process. By contrast, `SIGSTOP` is never dispatched.
-
 !!! ABSTRACT "Example of signal filtering"
     ```python
     d.signals_to_block = [10, 15, 'SIGINT', 3, 13]
