@@ -10,7 +10,7 @@ With libdebug you have full control of the flow of your debugged executable. Wit
 - Catch and hijack signals
 - Debug multithreaded applications with ease
 - Seamlessly switch to GDB for interactive analysis
-- Multiarch: currently supports Linux AMD64 and AArch64
+- Multiarch: currently supports Linux AMD64 and AArch64 and i386 (both native and in 32-bit compatibility mode)
 
 When running the same executable multiple times, choosing efficient implementations can make the difference. For this reason, libdebug prioritizes performance.
 

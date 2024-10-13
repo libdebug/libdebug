@@ -4,7 +4,7 @@ search:
     boost: 4
 ---
 # :material-queue-first-in-last-out: Default VS ASAP Mode
-For most commands that can be issued in **libdebug**, it is necessary that the traced process stops running. When the traced process stops running as a result of a [stopping event](../../stopping_events/stopping_events), **libdebug** can inspect the state and intervene in its control flow. When one of this command is used in the script as the process is still running, **libdebug** will wait for the process to stop before executing the command.
+For most commands that can be issued in **libdebug**, it is necessary that the traced process stops running. When the traced process stops running as a result of a [stopping event](../../stopping_events/stopping_events), **libdebug** can inspect the state and intervene in its control flow. When one of these commands is used in the script as the process is still running, **libdebug** will wait for the process to stop before executing the command.
 
 In the following example, the content of the `RAX` register is printed after the program hits the breakpoint or stops for any other reason:
 
