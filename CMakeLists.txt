@@ -125,6 +125,7 @@ set(SOURCES "${SRC_DIR}/jumpstart.c")
 
 # Add the jumpstart executable
 add_executable(jumpstart ${SOURCES})
+target_link_libraries(jumpstart -static)
 
 # Install the jumpstart executable
 install(TARGETS jumpstart DESTINATION libdebug/ptrace/jumpstart)
