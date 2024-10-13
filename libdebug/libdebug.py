@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from libdebug.debugger.debugger import Debugger
 from libdebug.debugger.internal_debugger import InternalDebugger
 from libdebug.utils.elf_utils import elf_architecture
@@ -36,7 +38,9 @@ def debugger(
         Debugger: The `Debugger` object.
     """
     if isinstance(argv, str):
-        argv = [argv]
+        argv = [str(Path(argv).expanduser())]
+    elif argv:
+        argv[0] = str(Path(argv[0]).expanduser())
 
     internal_debugger = InternalDebugger()
     internal_debugger.argv = argv
