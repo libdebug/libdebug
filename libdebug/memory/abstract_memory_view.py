@@ -151,9 +151,7 @@ class AbstractMemoryView(MutableSequence, ABC):
 
         Args:
             key (int | slice | str | tuple): The key to read from memory.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
-            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
-            the "binary" map file).
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
         if isinstance(key, int):
             address = self._internal_debugger.resolve_address(key, file, skip_absolute_address_validation=True)
@@ -238,9 +236,7 @@ class AbstractMemoryView(MutableSequence, ABC):
         Args:
             key (int | slice | str | tuple): The key to read from memory.
             value (bytes): The value to write.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
-            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
-            the "binary" map file).
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
         if isinstance(key, int):
             address = self._internal_debugger.resolve_address(key, file, skip_absolute_address_validation=True)
