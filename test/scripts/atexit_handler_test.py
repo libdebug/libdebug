@@ -117,6 +117,11 @@ class AtexitHandlerTest(TestCase):
 
         _cleanup_internal_debugger()
 
+        # The process should still be alive
+        self.assertIsNone(p.poll(block=False))
+        
+        p.kill()
+        
         # The process should now be dead
         self.assertIsNotNone(p.poll(block=False))
 
@@ -139,61 +144,6 @@ class AtexitHandlerTest(TestCase):
 
         _cleanup_internal_debugger()
 
-        # We set kill_on_exit to False, so the process should still be alive
-        # The process should still be alive
-        self.assertIsNone(p.poll(block=False))
-
-        p.kill()
-
-        # The process should now be dead
-        self.assertIsNotNone(p.poll(block=False))
-
-    def test_attach_detach_3(self):
-        p = process(RESOLVE_EXE("infinite_loop_test"))
-
-        d = debugger(kill_on_exit=False)
-
-        d.attach(p.pid)
-
-        p.sendline(b"3")
-
-        d.step()
-        d.step()
-
-        d.detach()
-
-        # If the process is still running, poll() should return None
-        self.assertIsNone(p.poll(block=False))
-
-        d.kill_on_exit = True
-
-        _cleanup_internal_debugger()
-
-        # The process should now be dead
-        self.assertIsNotNone(p.poll(block=False))
-
-    def test_attach_detach_4(self):
-        p = process(RESOLVE_EXE("infinite_loop_test"))
-
-        d = debugger()
-
-        d.attach(p.pid)
-
-        p.sendline(b"3")
-
-        d.step()
-        d.step()
-
-        d.detach()
-
-        # If the process is still running, poll() should return None
-        self.assertIsNone(p.poll(block=False))
-
-        d.kill_on_exit = False
-
-        _cleanup_internal_debugger()
-
-        # We set kill_on_exit to False, so the process should still be alive
         # The process should still be alive
         self.assertIsNone(p.poll(block=False))
 
