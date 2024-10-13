@@ -70,7 +70,7 @@ class JumpstartBuildCommand(build):
 
 setup(
     name="libdebug",
-    version="0.6.0",
+    version="0.7.0",
     author="JinBlack, Io_no, MrIndeciso, Frank01001",
     description="A library to debug binary programs",
     packages=find_packages(include=["libdebug", "libdebug.*"]),
