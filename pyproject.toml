@@ -1,10 +1,9 @@
 [build-system]
 requires = [
-    "cffi>=1.15.1",
-    "setuptools>=61.0",
-    "wheel",
+    "scikit-build-core >= 0.4.3",
+    "nanobind >= 1.3.2",
 ]
-build-backend = "setuptools.build_meta"
+build-backend = "scikit_build_core.build"
 
 
 [project]
@@ -18,7 +17,7 @@ authors = [
 description = "A Python library for the debugging of binary executables."
 requires-python = ">= 3.10"
 license = {file = "LICENSE"}
-dynamic = ["version"]
+version = "0.6.0"
 readme = {file = "README.md", content-type = "text/markdown"}
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -83,3 +82,9 @@ convention = "google"
 quote-style = "double"
 indent-style = "space"
 line-ending = "auto"
+
+
+[tool.scikit-build]
+minimum-version = "0.4"
+build-dir = "build/{wheel_tag}"
+wheel.py-api = "cp312"
