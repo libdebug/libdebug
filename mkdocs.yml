@@ -1,0 +1,105 @@
+site_name: Docs / libdebug
+site_url: http://localhost:8000
+repo_url: https://github.com/libdebug/libdebug
+repo_name: libdebug
+theme:
+  name: material
+  logo: assets/libdebug_logo.webp
+  favicon: assets/favicon.ico
+  custom_dir: ./docs/overrides
+  palette: 
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      primary: green
+      accent: teal
+      toggle:
+        icon: material/lightbulb 
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: dark-green
+      toggle:
+        icon: material/lightbulb-outline
+        name: Switch to light mode
+  font:
+    text: Nunito
+    code: Hack
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.path
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+plugins:
+  - search
+  - blog
+  - mkdocstrings
+nav:
+  - index.md
+  - Code Examples:
+      - Examples Index: code_examples/examples_index.md
+      - nlinks - DEF CON Quals 2023: code_examples/example_nlinks.md
+      - CyberChallenge 24 Workshop: code_examples/example_cc24.md
+  - The Basics:
+      - libdebug 101: basics/libdebug101.md
+      - Running an Executable: basics/running_an_executable.md
+      - Process Death (and afterlife): basics/kill_and_post_mortem.md
+      - Default VS ASAP Mode: basics/command_queue.md
+      - Register Access: basics/register_access.md
+      - Memory Access: basics/memory_access.md
+      - Control Flow: basics/control_flow_commands.md
+      - Detaching and GDB Migration: basics/detach_and_gdb.md
+      - Supported Systems: basics/supported_systems.md
+  - Stopping Events:
+      - Stopping Events: stopping_events/stopping_events.md
+      - Debugging Flow of Stopping Events: stopping_events/debugging_flow.md
+      - Breakpoints: stopping_events/breakpoints.md
+      - Watchpoints: stopping_events/watchpoints.md
+      - Syscalls: stopping_events/syscalls.md
+      - Signals: stopping_events/signals.md
+  - Multithreading:
+      - Multithreaded Applications: multithreading/multithreading.md
+  - Logging:
+      - Logging: logging/liblog.md
+  - Quality of Life:
+      - Quality of Life: quality_of_life/quality_of_life.md
+      - Pretty Printing: quality_of_life/pretty_printing.md
+      - Symbol Resolution: quality_of_life/symbols.md
+      - Memory Maps: quality_of_life/memory_maps.md
+      - Stack Frame Utils: quality_of_life/stack_frame_utils.md
+      - Evasion of Anti-Debugging: quality_of_life/anti_debugging.md
+  - Blog:
+    - blog/index.md
+    
+extra:
+  version:
+    provider: mike
+markdown_extensions:
+  - admonition
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - attr_list
+  - md_in_html
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+extra_css:
+  - stylesheets/extra.css
