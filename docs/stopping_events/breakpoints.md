@@ -16,17 +16,17 @@ Software breakpoints in the Linux kernel are implemented by patching the code in
 
 When the `int3` instruction is executed, the CPU raises a `SIGTRAP` signal, which is caught by the debugger. The debugger then stops the process and restores the original instruction to its rightful place.
 
-!!! INFO "Pros and Cons of Software Breakpoints"
+!!! TIP "Pros and Cons of Software Breakpoints"
     Software breakpoints are unlimited, but they can break when the program uses self-modifying code. This is because the patched code could be overwritten by the program. On the other hand, software breakpoints are slower than their hardware counterparts on most modern CPUs.
 
 ### :octicons-cpu-24: Hardware Breakpoints
 Hardware breakpoints are a more reliable way to set breakpoints. They are made possible by the existence of special registers in the CPU that can be used to monitor memory accesses. Differently from software breakpoints, their hardware counterparts allows the debugger to monitor read and write accesses on top of code execution. This kind of hardware breakpoint is also called a [watchpoint](../watchpoints). More information on watchpoints can be found in the dedicated documentation.
 
-!!! INFO "Pros and Cons of Hardware Breakpoints"
+!!! TIP "Pros and Cons of Hardware Breakpoints"
     Hardware breakpoints are not affected by self-modifying code. They are also usually faster and more flexible. However, hardware breakpoints are limited in number and are hardware-dependent, so their support may vary across different systems.
 
 !!! INFO "Hardware Breakpoint Alignment in AArch64"
-        Hardware breakpoints have to be aligned to 4 bytes (which is the size of an ARM instruction).
+    Hardware breakpoints have to be aligned to 4 bytes (which is the size of an ARM instruction).
 
 
 ## **libdebug** API for Breakpoints
