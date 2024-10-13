@@ -63,7 +63,8 @@ class DeepDiveDivisionTest(TestCase):
                         break
 
         self.assertEqual(flag, b"kalmar{vm_in_3d_space!_cb3992b605aafe137}\n")
-        
+    
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_deep_dive_division_recv(self):
         def brutone(flag, current):
             def checkino(d, b):
