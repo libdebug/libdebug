@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 
 
-class libdebug_ptrace_interface:
+class LibdebugPtraceInterface:
     """The native binding for ptrace on Linux."""
 
     def __init__(self) -> None:
@@ -10,7 +10,7 @@ class libdebug_ptrace_interface:
     def cleanup(self) -> None:
         """Cleans up the instance from any previous state."""
 
-    def register_thread(self, tid: int) -> tuple[ptrace_regs_struct, ptrace_fp_regs_struct]:
+    def register_thread(self, tid: int) -> tuple[PtraceRegsStruct, PtraceFPRegsStruct]:
         """
         Registers a new thread that must be debugged.
 
@@ -221,7 +221,7 @@ class libdebug_ptrace_interface:
             data (int): The data to poke at the address.
         """
 
-class ptrace_fp_regs_struct:
+class PtraceFPRegsStruct:
     @property
     def type(self) -> int: ...
 
@@ -238,15 +238,15 @@ class ptrace_fp_regs_struct:
     def fresh(self, arg: bool, /) -> None: ...
 
     @property
-    def mmx(self) -> list[reg_128]: ...
+    def mmx(self) -> list[Reg128]: ...
 
     @property
-    def xmm0(self) -> list[reg_128]: ...
+    def xmm0(self) -> list[Reg128]: ...
 
     @property
-    def ymm0(self) -> list[reg_128]: ...
+    def ymm0(self) -> list[Reg128]: ...
 
-class ptrace_regs_struct:
+class PtraceRegsStruct:
     @property
     def r15(self) -> int: ...
 
@@ -409,22 +409,43 @@ class ptrace_regs_struct:
     @gs.setter
     def gs(self, arg: int, /) -> None: ...
 
-class reg_128:
+class Reg128:
+    """A 128-bit register."""
+
     @property
-    def data(self) -> list[int]: ...
+    def data(self) -> list[int]:
+        """The data of the register, as a byte array."""
 
     @data.setter
     def data(self, arg: Sequence[int], /) -> None: ...
 
-class thread_status:
-    @property
-    def tid(self) -> int: ...
-
-    @tid.setter
-    def tid(self, arg: int, /) -> None: ...
+class Reg256:
+    """A 256-bit register."""
 
     @property
-    def status(self) -> int: ...
+    def data(self) -> list[int]:
+        """The data of the register, as a byte array."""
 
-    @status.setter
-    def status(self, arg: int, /) -> None: ...
+    @data.setter
+    def data(self, arg: Sequence[int], /) -> None: ...
+
+class Reg512:
+    """A 512-bit register."""
+
+    @property
+    def data(self) -> list[int]:
+        """The data of the register, as a byte array."""
+
+    @data.setter
+    def data(self, arg: Sequence[int], /) -> None: ...
+
+class ThreadStatus:
+    """The waitpid result of a specific thread."""
+
+    @property
+    def tid(self) -> int:
+        """The thread id."""
+
+    @property
+    def status(self) -> int:
+        """The waitpid result."""

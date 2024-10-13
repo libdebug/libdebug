@@ -73,7 +73,7 @@ class PtraceInterface(DebuggingInterface):
 
     def __init__(self: PtraceInterface) -> None:
         """Initializes the PtraceInterface."""
-        self.lib_trace = libdebug_ptrace_binding.libdebug_ptrace_interface()
+        self.lib_trace = libdebug_ptrace_binding.LibdebugPtraceInterface()
 
         self._internal_debugger = provide_internal_debugger(self)
         self.process_id = 0

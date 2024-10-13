@@ -25,6 +25,7 @@ nanobind_add_module(
   libdebug_ptrace_binding
   NOMINSIZE
   libdebug/ptrace/native/libdebug_ptrace_binding.cpp
+  libdebug/ptrace/native/amd64/libdebug_ptrace_amd64.cpp
 )
 
 nanobind_add_stub(
