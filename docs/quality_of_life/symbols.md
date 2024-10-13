@@ -6,6 +6,22 @@ search:
 ## :material-alphabetical: Symbol Resolution
 As described in the [memory access](../../basics/memory_access/#absolute-and-relative-addressing) section, many functions in **libdebug** accept symbols as an alternative to actual addresses.
 
+You can list all resolved symbols in the binary and shared libraries using the `symbols` attribute of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object. This attribute returns a [SymbolList](../../from_pydoc/generated/data/symbol_list/) object.
+
+This object grants the user hybrid access to the symbols: as a dict or as a list. Tor example, the following lines of code all have a valid syntax:
+
+```python
+d.symbols['printf'] #(1)
+d.symbols[0] #(2)
+d.symbols['printf'][0] #(3)
+```
+
+1. Returns a list of symbols that match the string `printf` exactly.
+2. Returns the first symbol in the list.
+3. Returns the first symbol that matches the string `printf` exactly.
+
+Please note that the dict-like access returns exact matches with the symbol name. If you want to filter for symbols that contain a specific string, read [the dedicated section](#symbol-filtering).
+
 !!! INFO "C++ Demangling"
     Reverse-engineering of C++ binaries can be a struggle. To help out, **libdebug** automatically demangles C++ symbols.
 
@@ -49,7 +65,7 @@ The `symbols` attribute of the [Debugger](../../from_pydoc/generated/debugger/de
     d.symbols.filter(value: int | str) -> SymbolList[Symbol]
     ```
 
-Given a symbol name or address, this function returns a [SymbolList](../../from_pydoc/generated/data/symbol_list/).
+Given a symbol name or address, this function returns a [SymbolList](../../from_pydoc/generated/data/symbol_list/). The list will conta
 
 [Symbol](../../from_pydoc/generated/data/symbol/) objects contain the following attributes:
 
