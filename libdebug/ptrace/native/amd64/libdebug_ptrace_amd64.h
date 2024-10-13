@@ -75,8 +75,8 @@ struct PtraceFPRegsStruct
     // ymm0 starts at offset 576
     std::array<Reg128, 16> ymm0;
     unsigned char padding3[128];
-    struct reg_128 bndregs[4];
-    struct reg_128 bndcfg;
+    std::array<Reg128, 4> bndregs;
+    Reg128 bndcfg;
     unsigned char padding4[48];
     unsigned char padding6[1600];
     unsigned int pkru;
