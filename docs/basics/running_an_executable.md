@@ -62,9 +62,9 @@ You can interact with the process's pipe manager using the following methods:
 | `interactive`  | Enters interactive mode, allowing manual send/receive operations with the target. Read more in the [dedicated section](#interactive-io).<br><br>**Parameters**:<br>- `prompt` (str) &nbsp;&nbsp;&nbsp; \[default = "$ "\]<br>- `auto_quit` (bool) &nbsp;&nbsp;&nbsp; \[default = False\] |
 
 !!! INFO "When process is stopped"
-    When the process is stopped, the [PipeManager](../../from_pydoc/generated/commlink/pipe_manager) will not be able to receive data from the target. For this reason, the API includes a parameter called `optional`.
+    When the process is stopped, the [PipeManager](../../from_pydoc/generated/commlink/pipe_manager) will not be able to receive new (unbuffered) data from the target. For this reason, the API includes a parameter called `optional`.
     
-    When set to `True`, **libdebug** will skip the pipe receive command if the process is stopped. When set to `False`, any recv-like instruction (including `sendafter` and `sendlineafter`) will fail with an exception when the process is not running.
+    When set to `True`, **libdebug** will not necessarily expect to receive data from the process when it is stopped. When set to `False`, any recv-like instruction (including `sendafter` and `sendlineafter`) will fail with an exception when the process is not running.
     
     Operations on stdin like `send` and `sendline` are not affected by this limitation, since the kernel will buffer the data until the process is resumed.
 
