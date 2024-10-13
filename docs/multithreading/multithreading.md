@@ -29,7 +29,7 @@ Each thread has its own register set, stack, and instruction pointer. However, t
 
     - When using [asynchronous](../../stopping_events/debugging_flow) breakpoints, the breakpoint will be more intuitive to handle, as the signature of the [callback function](../../stopping_events/breakpoints#callback-signature) includes the [ThreadContext](../../from_pydoc/generated/state/thread_context/) object that triggered the breakpoint.
 
-- :octicons-cpu-24: While hardware breakpoints are thread-specific, **libdebug** mirrors them across all threads. This is done to avoid the complexity of managing hardware breakpoints on a per-thread basis. Watchpoints are hardware breakpoints, so this applies to them as well.
+- :octicons-cpu-24: While hardware breakpoints are thread-specific, **libdebug** mirrors them across all threads. This is done to avoid asymmetries with software breakpoints. Watchpoints are hardware breakpoints, so this applies to them as well.
 
 - :fontawesome-solid-terminal: For consistency, [syscall handlers](../../stopping_events/syscalls) are also enabled across all threads. The same considerations for synchronous and asynchronous breakpoints apply here as well.
 
