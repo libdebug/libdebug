@@ -35,6 +35,8 @@ If at any time during your script you want to take a more traditional approach t
 
 Setting the `blocking` to `False` is useful when you want to continue using the pipe interaction and other parts of your script as you take control of the debugging process.
 
+When `blocking` is set to `False`, the `gdb()` method will return a [GdbResumeEvent](../../from_pydoc/generated/data/gdb_resume_event/) object. This object can be used to wait for the GDB session to finish before continuing the script.
+
 !!! ABSTRACT "Example of using non-blocking GDB migration"
     ```python
     from libdebug import debugger
