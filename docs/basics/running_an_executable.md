@@ -33,7 +33,7 @@ print(pipe.recvline().decode())
 d.wait()
 ```
 
-All pipe receive-like methods have a timeout parameter that you can set. The default value, `timeout_default`, can be set globally as a parameter of the [PipeManager](../../from_pydoc/generated/commlink/pipe_manager) object.
+All pipe receive-like methods have a timeout parameter that you can set. The default value, `timeout_default`, can be set globally as a parameter of the [PipeManager](../../from_pydoc/generated/commlink/pipe_manager) object. By default, this value is set to 2 seconds.
 
 !!! TIP "Changing the global timeout"
     ```python
