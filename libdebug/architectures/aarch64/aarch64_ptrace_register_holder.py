@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
 AARCH64_REGS = [f"x{i}" for i in range(31)] + ["sp", "xzr", "pc"]
 
+AARCH64_SPECIAL_REGS = ["pstate"]
 
 def _get_property_64(name: str) -> property:
     def getter(self: Aarch64Registers) -> int:
@@ -175,6 +176,10 @@ class Aarch64PtraceRegisterHolder(PtraceRegisterHolder):
         """Provide the list of vector and floating point registers."""
         return self._vector_fp_registers
 
+    def provide_special_regs(self: Aarch64PtraceRegisterHolder) -> list[str]:
+        """Provide the list of special registers, which are not intended for general-purpose use."""
+        return AARCH64_SPECIAL_REGS
+
     def apply_on_regs(self: Aarch64PtraceRegisterHolder, target: Aarch64Registers, target_class: type) -> None:
         """Apply the register accessors to the Aarch64Registers class."""
         target.register_file = self.register_file
@@ -191,6 +196,9 @@ class Aarch64PtraceRegisterHolder(PtraceRegisterHolder):
 
             setattr(target_class, name_64, _get_property_64(name_64))
             setattr(target_class, name_32, _get_property_32(name_64))
+
+        for reg in AARCH64_SPECIAL_REGS:
+            setattr(target_class, reg, _get_property_64(reg))
 
         # setup the floating point registers
         for i in range(32):

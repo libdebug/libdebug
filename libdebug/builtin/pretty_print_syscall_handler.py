@@ -59,6 +59,7 @@ def pprint_on_enter(t: ThreadContext, syscall_number: int, **kwargs: int) -> Non
 
     hijacked = kwargs.get("hijacked", False)
     user_handled = kwargs.get("callback", False)
+    hijacker = kwargs.get("hijacker", None)
     if hijacked:
         print(
             f"{header}{ANSIColors.RED}(hijacked) {ANSIColors.STRIKE}{ANSIColors.BLUE}{syscall_name}{ANSIColors.DEFAULT_COLOR}({', '.join(entries)}){ANSIColors.RESET}",
@@ -66,6 +67,11 @@ def pprint_on_enter(t: ThreadContext, syscall_number: int, **kwargs: int) -> Non
     elif user_handled:
         print(
             f"{header}{ANSIColors.RED}(callback) {ANSIColors.BLUE}{syscall_name}{ANSIColors.DEFAULT_COLOR}({', '.join(entries)}) = ",
+            end="",
+        )
+    elif hijacker:
+        print(
+            f"{header}{ANSIColors.RED}(executed) {ANSIColors.BLUE}{syscall_name}{ANSIColors.DEFAULT_COLOR}({', '.join(entries)}) = ",
             end="",
         )
     else:

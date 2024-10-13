@@ -42,6 +42,16 @@ I386_REGS = [
     "eip",
 ]
 
+I386_SPECIAL_REGS = [
+    "eflags",
+    "cs",
+    "ss",
+    "ds",
+    "es",
+    "fs",
+    "gs",
+]
+
 
 @dataclass
 class I386PtraceRegisterHolder(PtraceRegisterHolder):
@@ -50,6 +60,18 @@ class I386PtraceRegisterHolder(PtraceRegisterHolder):
     def provide_regs_class(self: I386PtraceRegisterHolder) -> type:
         """Provide a class to hold the register accessors."""
         return I386Registers
+
+    def provide_regs(self: I386PtraceRegisterHolder) -> list[str]:
+        """Provide the list of registers, excluding the vector and fp registers."""
+        return I386_REGS
+
+    def provide_vector_fp_regs(self: I386PtraceRegisterHolder) -> list[str]:
+        """Provide the list of vector and floating point registers."""
+        return self._vector_fp_registers
+
+    def provide_special_regs(self: I386PtraceRegisterHolder) -> list[str]:
+        """Provide the list of special registers, which are not intended for general-purpose use."""
+        return I386_SPECIAL_REGS
 
     def apply_on_regs(self: I386PtraceRegisterHolder, target: I386Registers, target_class: type) -> None:
         """Apply the register accessors to the I386Registers class."""
@@ -82,6 +104,9 @@ class I386PtraceRegisterHolder(PtraceRegisterHolder):
             setattr(target_class, name_32, _get_property_32(name_32))
             setattr(target_class, name_16, _get_property_16(name_32))
             setattr(target_class, name_8l, _get_property_8l(name_32))
+
+        for name in I386_SPECIAL_REGS:
+            setattr(target_class, name, _get_property_32(name))
 
         # setup special registers
         target_class.eip = _get_property_32("eip")
@@ -122,14 +147,6 @@ class I386PtraceRegisterHolder(PtraceRegisterHolder):
         target_class.syscall_arg3 = _get_property_32("esi")
         target_class.syscall_arg4 = _get_property_32("edi")
         target_class.syscall_arg5 = _get_property_32("ebp")
-
-    def provide_regs(self: I386PtraceRegisterHolder) -> list[str]:
-        """Provide the list of registers, excluding the vector and fp registers."""
-        return I386_REGS
-
-    def provide_vector_fp_regs(self: I386PtraceRegisterHolder) -> list[str]:
-        """Provide the list of vector and floating point registers."""
-        return self._vector_fp_registers
 
     def _handle_fp_legacy(self: I386PtraceRegisterHolder, target_class: type) -> None:
         """Handle legacy mmx and st registers."""
