@@ -41,7 +41,7 @@ nanobind_add_module(
   libdebug_linux_binding
   NOSTRIP
   LTO
-  libdebug/cffi/linux_interface.cpp
+  libdebug/native/linux_interface.cpp
 )
 
 nanobind_add_stub(
