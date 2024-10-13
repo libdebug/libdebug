@@ -37,7 +37,7 @@ def debugger(
     """
     if isinstance(argv, str):
         argv = [resolve_argv_path(argv)]
-    else:
+    elif argv:
         argv[0] = resolve_argv_path(argv[0])
 
     internal_debugger = InternalDebugger()
