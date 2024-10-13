@@ -300,9 +300,7 @@ class ThreadContext:
         Args:
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
-            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
-            the "binary" map file).
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
         self._internal_debugger.step_until(self, position, max_steps, file)
 

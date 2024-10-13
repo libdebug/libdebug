@@ -25,14 +25,10 @@ def debugger(
     Args:
         argv (str | list[str], optional): The location of the binary to debug and any arguments to pass to it.
         aslr (bool, optional): Whether to enable ASLR. Defaults to True.
-        env (dict[str, str], optional): The environment variables to use. Defaults to the same environment of the
-        debugging script.
-        escape_antidebug (bool): Whether to automatically attempt to patch antidebugger detectors based on the ptrace
-        syscall.
-        continue_to_binary_entrypoint (bool, optional): Whether to automatically continue to the binary entrypoint.
-        Defaults to True.
-        auto_interrupt_on_command (bool, optional): Whether to automatically interrupt the process when a command is
-        issued. Defaults to False.
+        env (dict[str, str], optional): The environment variables to use. Defaults to the same environment of the debugging script.
+        escape_antidebug (bool): Whether to automatically attempt to patch antidebugger detectors based on the ptrace syscall.
+        continue_to_binary_entrypoint (bool, optional): Whether to automatically continue to the binary entrypoint. Defaults to True.
+        auto_interrupt_on_command (bool, optional): Whether to automatically interrupt the process when a command is issued. Defaults to False.
         fast_memory (bool, optional): Whether to use a faster memory reading method. Defaults to False.
         kill_on_exit (bool, optional): Whether to kill the debugged process when the debugger exits. Defaults to True.
 

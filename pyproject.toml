@@ -65,6 +65,7 @@ issues = "https://github.com/libdebug/libdebug/issues"
 include = ["pyproject.toml", "libdebug/**/*.py"]
 exclude = ["libdebug/cffi/*.py", "test/"]
 line-length = 120
+docstring-line-length = 300
 indent-width = 4
 target-version = "py312"
 
