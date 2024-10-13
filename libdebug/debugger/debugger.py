@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from libdebug.data.registers import Registers
     from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.symbol import Symbol
-    from libdebug.data.symbol_dict import SymbolDict
+    from libdebug.data.symbol_list import SymbolList
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
@@ -118,7 +118,7 @@ class Debugger:
         return self._internal_debugger.resolve_symbol(symbol, file)
 
     @property
-    def symbols(self: Debugger) -> SymbolDict[str, set[Symbol]]:
+    def symbols(self: Debugger) -> SymbolList[Symbol]:
         """Get the symbols of the process."""
         return self._internal_debugger.symbols
 

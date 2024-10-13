@@ -4,6 +4,8 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+import sys
+from io import StringIO
 from unittest import TestCase, skipUnless
 from utils.binary_utils import PLATFORM, RESOLVE_EXE
 
@@ -755,6 +757,27 @@ class RegisterTest(TestCase):
         self.assertIn("dh", d.regs.filter(0x45))
 
         d.cont()
+
+        d.kill()
+        d.terminate()
+
+    def test_registers_pprint(self):
+        d = debugger(RESOLVE_EXE("basic_test"))
+
+        d.run()
+
+        # Temporarily redirect stdout to suppress output
+        stdout = sys.stdout
+        sys.stdout = StringIO()
+
+        # The following calls should not terminate
+        d.pprint_registers()
+        d.pprint_registers_all()
+        d.pprint_regs()
+        d.pprint_regs_all()
+
+        # Reset stdout
+        sys.stdout = stdout
 
         d.kill()
         d.terminate()

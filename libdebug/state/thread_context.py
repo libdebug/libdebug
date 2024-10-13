@@ -234,29 +234,32 @@ class ThreadContext:
             else:
                 print(f"{ANSIColors.RED}{return_address:#x} <{return_address_symbol}> {ANSIColors.RESET}")
 
+    def _pprint_reg(self: ThreadContext, register: str) -> None:
+        attr = getattr(self.regs, register)
+        color = ""
+        style = ""
+        formatted_attr = f"{attr:#x}"
+
+        if maps := self._internal_debugger.maps.filter(attr):
+            permissions = maps[0].permissions
+            if "rwx" in permissions:
+                color = ANSIColors.RED
+                style = ANSIColors.UNDERLINE
+            elif "x" in permissions:
+                color = ANSIColors.RED
+            elif "w" in permissions:
+                color = ANSIColors.YELLOW
+            elif "r" in permissions:
+                color = ANSIColors.GREEN
+
+        if color or style:
+            formatted_attr = f"{color}{style}{attr:#x}{ANSIColors.RESET}"
+        print(f"{ANSIColors.RED}{register}{ANSIColors.RESET}\t{formatted_attr}")
+
     def pprint_registers(self: ThreadContext) -> None:
         """Pretty prints the thread's registers."""
         for register in self._register_holder.provide_regs():
-            attr = getattr(self.regs, register)
-            color = ""
-            style = ""
-            formatted_attr = f"{attr:#x}"
-
-            if maps := self._internal_debugger.maps.filter(attr):
-                permissions = maps[0].permissions
-                if "rwx" in permissions:
-                    color = ANSIColors.RED
-                    style = ANSIColors.UNDERLINE
-                elif "x" in permissions:
-                    color = ANSIColors.RED
-                elif "w" in permissions:
-                    color = ANSIColors.YELLOW
-                elif "r" in permissions:
-                    color = ANSIColors.GREEN
-
-            if color or style:
-                formatted_attr = f"{color}{style}{attr:#x}{ANSIColors.RESET}"
-            print(f"{ANSIColors.RED}{register}{ANSIColors.RESET}\t{formatted_attr}")
+            self._pprint_reg(register)
 
     def pprint_regs(self: ThreadContext) -> None:
         """Alias for the `pprint_registers` method.
@@ -268,6 +271,9 @@ class ThreadContext:
     def pprint_registers_all(self: ThreadContext) -> None:
         """Pretty prints all the thread's registers."""
         self.pprint_registers()
+
+        for t in self._register_holder.provide_special_regs():
+            self._pprint_reg(t)
 
         for t in self._register_holder.provide_vector_fp_regs():
             print(f"{ANSIColors.BLUE}" + "{" + f"{ANSIColors.RESET}")
