@@ -356,6 +356,8 @@ class InternalDebugger:
     @background_alias(_background_invalid_call)
     def kill(self: InternalDebugger) -> None:
         """Kills the process."""
+        if not self.is_debugging:
+            raise RuntimeError("No process currently debugged, cannot kill.")
         try:
             self._ensure_process_stopped()
         except (OSError, RuntimeError):
@@ -387,7 +389,7 @@ class InternalDebugger:
                 # The process has already been killed by someone or something else
                 liblog.debugger("Interrupting process failed: already terminated")
 
-        if self.instanced:
+        if self.instanced and self.is_debugging:
             try:
                 self.kill()
             except ProcessLookupError:

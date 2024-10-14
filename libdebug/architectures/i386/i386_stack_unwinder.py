@@ -109,8 +109,8 @@ class I386StackUnwinder(StackUnwindingManager):
         """
         preamble_state = 0
 
-        # push ebp
-        if b"\x55" in instruction_window:
+        # endbr32 and push ebp
+        if b"\xf3\x0f\x1e\xfb" in instruction_window or b"\x55" in instruction_window:
             preamble_state = 1
 
         # mov ebp, esp

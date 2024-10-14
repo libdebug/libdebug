@@ -14,7 +14,7 @@ class MemoryMap:
     """A memory map of the target process.
 
     Attributes:
-        start (int): The start address of the memory map.
+        start (int): The start address of the memory map. You can access it also with the 'base' attribute.
         end (int): The end address of the memory map.
         permissions (str): The permissions of the memory map.
         size (int): The size of the memory map.

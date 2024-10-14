@@ -10,6 +10,8 @@ import unittest
 import subprocess
 from pwn import process
 from utils.binary_utils import PLATFORM, RESOLVE_EXE
+import os
+import signal
 
 from libdebug import debugger
 
@@ -103,19 +105,22 @@ class AttachDetachTest(unittest.TestCase):
 
         # Run the process
         r = d.run()
+        pid = d.pid
         d.detach()
 
         # Validate that, after detaching, the process is still running
         r.recvuntil(b"name:", timeout=1)
         r.sendline(b"Io_no")
 
-        d.kill()
+        # kill the process
+        os.kill(pid, signal.SIGKILL)
         d.terminate()
 
     def test_attach_and_detach_3(self):
         d = debugger(RESOLVE_EXE("attach_test"))
 
         r = d.run()
+        pid = d.pid
 
         # We must ensure that any breakpoint is unset before detaching
         d.breakpoint(TEST_ATTACH_AND_DETACH_3_BP1_ADDRESS, file="binary")
@@ -127,7 +132,8 @@ class AttachDetachTest(unittest.TestCase):
         r.recvuntil(b"name:", timeout=1)
         r.sendline(b"Io_no")
 
-        d.kill()
+        # kill the process
+        os.kill(pid, signal.SIGKILL)
         d.terminate()
 
     def test_attach_and_detach_4(self):
@@ -136,9 +142,10 @@ class AttachDetachTest(unittest.TestCase):
         d = debugger()
         d.attach(r.pid)
         d.detach()
-        d.kill()
-
-        # Validate that, after detaching and killing, the process is effectively terminated
-        self.assertRaises(EOFError, r.sendline, b"provola")
-
+        
+        # Validate that, after detaching, the process cannot be killed
+        self.assertRaises(RuntimeError, d.kill)
+        
+        # Kill the process
+        r.kill()
         d.terminate()
