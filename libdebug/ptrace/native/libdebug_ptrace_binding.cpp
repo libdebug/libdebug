@@ -924,5 +924,5 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "    data (int): The data to poke at the address."
         );
 
-    nb::set_leak_warnings(true);
+    nb::set_leak_warnings(false);
 }
