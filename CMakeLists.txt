@@ -40,6 +40,78 @@ find_package(Python 3.10
   REQUIRED COMPONENTS Interpreter ${DEV_MODULE}
   OPTIONAL_COMPONENTS Development.SABIModule)
 
+# Look for libiberty
+find_library(IBERTY_LIBRARY NAMES iberty)
+
+# Look for libelf
+find_library(ELF_LIBRARY NAMES elf)
+
+# Look for libdwarf
+find_library(DWARF_LIBRARY NAMES dwarf)
+
+# Check if the required libraries were found
+if (NOT IBERTY_LIBRARY)
+  message(FATAL_ERROR "libiberty not found")
+else()
+  message(STATUS "libiberty found at ${IBERTY_LIBRARY}")
+endif()
+
+if (NOT ELF_LIBRARY)
+  message(FATAL_ERROR "libelf not found")
+else()
+  message(STATUS "libelf found at ${ELF_LIBRARY}")
+endif()
+
+if (NOT DWARF_LIBRARY)
+  message(FATAL_ERROR "libdwarf not found")
+else()
+  message(STATUS "libdwarf found at ${DWARF_LIBRARY}")
+endif()
+
+# Look for the demangle.h header
+# It could be under libiberty/demangle.h
+find_path(DEMANGLE_HEADER NAMES demangle.h PATHS /usr/include/libiberty)
+
+# Look for the libdwarf.h header
+# It could be under libdwarf/libdwarf.h or libdwarf-0/libdwarf.h
+# or libdwarf/libdwarf-0/libdwarf.h
+find_path(DWARF_HEADER NAMES libdwarf.h PATHS /usr/include/libdwarf /usr/include/libdwarf-0 /usr/include/libdwarf/libdwarf-0)
+
+# Check if the required header was found
+if (NOT DEMANGLE_HEADER)
+  message(FATAL_ERROR "demangle.h not found")
+else()
+  message(STATUS "demangle.h found at ${DEMANGLE_HEADER}")
+endif()
+
+if (NOT DWARF_HEADER)
+  message(FATAL_ERROR "libdwarf.h not found")
+else()
+  message(STATUS "libdwarf.h found at ${DWARF_HEADER}")
+endif()
+
+# Add the libiberty, libelf, and libdwarf libraries
+add_library(iberty UNKNOWN IMPORTED)
+set_target_properties(iberty PROPERTIES IMPORTED_LOCATION "${IBERTY_LIBRARY}")
+
+add_library(elf UNKNOWN IMPORTED)
+set_target_properties(elf PROPERTIES IMPORTED_LOCATION "${ELF_LIBRARY}")
+
+add_library(dwarf UNKNOWN IMPORTED)
+set_target_properties(dwarf PROPERTIES IMPORTED_LOCATION "${DWARF_LIBRARY}")
+
+# Add the demangle.h header
+include_directories(${DEMANGLE_HEADER})
+
+# Add the libdwarf.h header
+include_directories(${DWARF_HEADER})
+
+# Set the C++ standard
+set(CMAKE_CXX_STANDARD 17)
+
+# Set the C standard
+set(CMAKE_C_STANDARD 11)
+
 # Set compiler flags
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
@@ -93,14 +165,28 @@ nanobind_add_stub(
   PYTHON_PATH "."
 )
 
-# Add the libdebug_debug_sym_parser module
-nanobind_add_module(
-  libdebug_debug_sym_parser
-  NOMINSIZE
-  NOSTRIP
-  LTO
-  libdebug/native/debug_sym_parser.cpp
-)
+# Check if in the libdwarf include path we find the substring libwarf-0
+if (DWARF_HEADER MATCHES "libdwarf-0")
+  # Add the libdebug_debug_sym_parser module, using the new libdwarf-0
+  nanobind_add_module(
+    libdebug_debug_sym_parser
+    NOMINSIZE
+    NOSTRIP
+    LTO
+    libdebug/native/symbols/debug_sym_parser.cpp
+    libdebug/native/symbols/debug_sym_parser_new.cpp
+  )
+else()
+  # Add the libdebug_debug_sym_parser module, using the old libdwarf
+  nanobind_add_module(
+    libdebug_debug_sym_parser
+    NOMINSIZE
+    NOSTRIP
+    LTO
+    libdebug/native/symbols/debug_sym_parser.cpp
+    libdebug/native/symbols/debug_sym_parser_legacy.cpp
+  )
+endif()
 
 # Add the stub for libdebug_debug_sym_parser
 nanobind_add_stub(
@@ -125,7 +211,7 @@ set(SOURCES "${SRC_DIR}/jumpstart.c")
 
 # Add the jumpstart executable
 add_executable(jumpstart ${SOURCES})
-target_link_libraries(jumpstart -static)
+target_link_libraries(jumpstart)
 
 # Install the jumpstart executable
 install(TARGETS jumpstart DESTINATION libdebug/ptrace/jumpstart)
