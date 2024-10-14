@@ -84,9 +84,8 @@ std::pair<const std::string, const std::string> read_build_id_and_filename(Elf *
             continue;
         }
 
+        char *name = elf_strptr(elf, ehdr.e_shstrndx, shdr.sh_name);
         if (shdr.sh_type == SHT_NOTE) {
-            char *name = elf_strptr(elf, ehdr.e_shstrndx, shdr.sh_name);
-
             if (name && strcmp(name, ".note.gnu.build-id") == 0) {
                 Elf_Data *data = elf_getdata(section, NULL);
 
@@ -106,18 +105,18 @@ std::pair<const std::string, const std::string> read_build_id_and_filename(Elf *
                         }
                     }
                 }
-            } else if (name && strcmp(name, ".gnu_debuglink") == 0) {
-                Elf_Data *data = elf_getdata(section, NULL);
+            }
+        } else if (name && strcmp(name, ".gnu_debuglink") == 0) {
+            Elf_Data *data = elf_getdata(section, NULL);
 
-                if (data && data->d_buf) {
-                    debuglink = (char *)data->d_buf;
-                }
-            } else if (name && strcmp(name, ".gnu_debugaltlink") == 0) {
-                Elf_Data *data = elf_getdata(section, NULL);
+            if (data && data->d_buf) {
+                debuglink = (char *)data->d_buf;
+            }
+        } else if (name && strcmp(name, ".gnu_debugaltlink") == 0) {
+            Elf_Data *data = elf_getdata(section, NULL);
 
-                if (data && data->d_buf) {
-                    debuglink = (char *)data->d_buf;
-                }
+            if (data && data->d_buf) {
+                debuglink = (char *)data->d_buf;
             }
         }
     }
