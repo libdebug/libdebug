@@ -6,11 +6,13 @@
 
 from __future__ import annotations
 
+import sys
 from abc import ABC, abstractmethod
 from collections.abc import MutableSequence
 
 from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 from libdebug.liblog import liblog
+from libdebug.utils.search_utils import find_all_overlapping_occurrences
 
 
 class AbstractMemoryView(MutableSequence, ABC):
@@ -22,7 +24,6 @@ class AbstractMemoryView(MutableSequence, ABC):
     def __init__(self: AbstractMemoryView) -> None:
         """Initializes the MemoryView."""
         self._internal_debugger = provide_internal_debugger(self)
-        self.maps_provider = self._internal_debugger.debugging_interface.maps
 
     @abstractmethod
     def read(self: AbstractMemoryView, address: int, size: int) -> bytes:
@@ -44,6 +45,83 @@ class AbstractMemoryView(MutableSequence, ABC):
             address (int): The address to write to.
             data (bytes): The data to write.
         """
+
+    def find(
+        self: AbstractMemoryView,
+        value: bytes | str | int,
+        file: str = "all",
+        start: int | None = None,
+        end: int | None = None,
+    ) -> list[int]:
+        """Searches for the given value in the specified memory maps of the process.
+
+        The start and end addresses can be used to limit the search to a specific range.
+        If not specified, the search will be performed on the whole memory map.
+
+        Args:
+            value (bytes | str | int): The value to search for.
+            file (str): The backing file to search the value in. Defaults to "all", which means all memory.
+            start (int | None): The start address of the search. Defaults to None.
+            end (int | None): The end address of the search. Defaults to None.
+
+        Returns:
+            list[int]: A list of offset where the value was found.
+        """
+        if isinstance(value, str):
+            value = value.encode()
+        elif isinstance(value, int):
+            value = value.to_bytes(1, sys.byteorder)
+
+        occurrences = []
+        if file == "all" and start is None and end is None:
+            for vmap in self._internal_debugger.maps:
+                liblog.debugger(f"Searching in {vmap.backing_file}...")
+                try:
+                    memory_content = self.read(vmap.start, vmap.end - vmap.start)
+                except (OSError, OverflowError):
+                    # There are some memory regions that cannot be read, such as [vvar], [vdso], etc.
+                    continue
+                occurrences += find_all_overlapping_occurrences(value, memory_content, vmap.start)
+        elif file == "all" and start is not None and end is None:
+            for vmap in self._internal_debugger.maps:
+                if vmap.end > start:
+                    liblog.debugger(f"Searching in {vmap.backing_file}...")
+                    read_start = max(vmap.start, start)
+                    try:
+                        memory_content = self.read(read_start, vmap.end - read_start)
+                    except (OSError, OverflowError):
+                        # There are some memory regions that cannot be read, such as [vvar], [vdso], etc.
+                        continue
+                    occurrences += find_all_overlapping_occurrences(value, memory_content, read_start)
+        elif file == "all" and start is None and end is not None:
+            for vmap in self._internal_debugger.maps:
+                if vmap.start < end:
+                    liblog.debugger(f"Searching in {vmap.backing_file}...")
+                    read_end = min(vmap.end, end)
+                    try:
+                        memory_content = self.read(vmap.start, read_end - vmap.start)
+                    except (OSError, OverflowError):
+                        # There are some memory regions that cannot be read, such as [vvar], [vdso], etc.
+                        continue
+                    occurrences += find_all_overlapping_occurrences(value, memory_content, vmap.start)
+        elif file == "all" and start is not None and end is not None:
+            # Search in the specified range, hybrid mode
+            start = self._internal_debugger.resolve_address(start, "hybrid", True)
+            end = self._internal_debugger.resolve_address(end, "hybrid", True)
+            liblog.debugger(f"Searching in the range {start:#x}-{end:#x}...")
+            memory_content = self.read(start, end - start)
+            occurrences = find_all_overlapping_occurrences(value, memory_content, start)
+        else:
+            maps = self._internal_debugger.maps.filter(file)
+            start = self._internal_debugger.resolve_address(start, file, True) if start is not None else maps[0].start
+            end = self._internal_debugger.resolve_address(end, file, True) if end is not None else maps[-1].end - 1
+
+            liblog.debugger(f"Searching in the range {start:#x}-{end:#x}...")
+            memory_content = self.read(start, end - start)
+
+            occurrences = find_all_overlapping_occurrences(value, memory_content, start)
+
+        return occurrences
 
     def __getitem__(self: AbstractMemoryView, key: int | slice | str | tuple) -> bytes:
         """Read from memory, either a single byte or a byte string.
@@ -73,9 +151,7 @@ class AbstractMemoryView(MutableSequence, ABC):
 
         Args:
             key (int | slice | str | tuple): The key to read from memory.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
-            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
-            the "binary" map file).
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
         if isinstance(key, int):
             address = self._internal_debugger.resolve_address(key, file, skip_absolute_address_validation=True)
@@ -160,9 +236,7 @@ class AbstractMemoryView(MutableSequence, ABC):
         Args:
             key (int | slice | str | tuple): The key to read from memory.
             value (bytes): The value to write.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
-            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
-            the "binary" map file).
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
         if isinstance(key, int):
             address = self._internal_debugger.resolve_address(key, file, skip_absolute_address_validation=True)

@@ -21,6 +21,8 @@ def get_remote_definition_url(arch: str) -> str:
             return f"{SYSCALLS_REMOTE}/x86/64/x64/latest/table.json"
         case "aarch64":
             return f"{SYSCALLS_REMOTE}/arm64/64/aarch64/latest/table.json"
+        case "i386":
+            return f"{SYSCALLS_REMOTE}/x86/32/ia32/latest/table.json"
         case _:
             raise ValueError(f"Architecture {arch} not supported")
 
@@ -59,6 +61,9 @@ def resolve_syscall_number(architecture: str, name: str) -> int:
     """Resolve a syscall name to its number."""
     definitions = get_syscall_definitions(architecture)
 
+    if name in ["all", "*", "ALL", "pkm"]:
+        return -1
+
     for syscall in definitions["syscalls"]:
         if syscall["name"] == name:
             return syscall["number"]
@@ -70,6 +75,9 @@ def resolve_syscall_number(architecture: str, name: str) -> int:
 def resolve_syscall_name(architecture: str, number: int) -> str:
     """Resolve a syscall number to its name."""
     definitions = get_syscall_definitions(architecture)
+
+    if number == -1:
+        return "all"
 
     for syscall in definitions["syscalls"]:
         if syscall["number"] == number:

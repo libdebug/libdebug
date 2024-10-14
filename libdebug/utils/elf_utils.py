@@ -5,6 +5,7 @@
 #
 
 import functools
+import shutil
 from pathlib import Path
 
 import requests
@@ -12,6 +13,8 @@ from elftools.elf.elffile import ELFFile
 
 from libdebug.cffi.debug_sym_cffi import ffi
 from libdebug.cffi.debug_sym_cffi import lib as lib_sym
+from libdebug.data.symbol import Symbol
+from libdebug.data.symbol_list import SymbolList
 from libdebug.liblog import liblog
 from libdebug.utils.libcontext import libcontext
 
@@ -33,9 +36,10 @@ def _download_debuginfod(buildid: str, debuginfod_path: Path) -> None:
 
         if r.ok:
             debuginfod_path.parent.mkdir(parents=True, exist_ok=True)
-
             with debuginfod_path.open("wb") as f:
                 f.write(r.content)
+        else:
+            liblog.error(f"Failed to download debuginfo file. Error code: {r.status_code}")
     except Exception as e:
         liblog.debugger(f"Exception {e} occurred while downloading debuginfod symbols")
 
@@ -60,16 +64,16 @@ def _debuginfod(buildid: str) -> Path:
 
 
 @functools.cache
-def _collect_external_info(path: str) -> dict[str, tuple[int, int]]:
+def _collect_external_info(path: str) -> SymbolList[Symbol]:
     """Returns a dictionary containing the symbols taken from the external debuginfo file.
 
     Args:
         path (str): The path to the ELF file.
 
     Returns:
-        symbols (dict): A dictionary containing the symbols of the specified external debuginfo file.
+        SymbolList[Symbol]: A list containing the symbols taken from the external debuginfo file.
     """
-    symbols = {}
+    symbols = []
 
     c_file_path = ffi.new("char[]", path.encode("utf-8"))
     head = lib_sym.collect_external_symbols(c_file_path, libcontext.sym_lvl)
@@ -79,16 +83,16 @@ def _collect_external_info(path: str) -> dict[str, tuple[int, int]]:
 
         while cursor != ffi.NULL:
             symbol_name = ffi.string(cursor.name).decode("utf-8")
-            symbols[symbol_name] = (cursor.low_pc, cursor.high_pc)
+            symbols.append(Symbol(cursor.low_pc, cursor.high_pc, symbol_name, path))
             cursor = cursor.next
 
         lib_sym.free_symbol_info(head)
 
-    return symbols
+    return SymbolList(symbols)
 
 
 @functools.cache
-def _parse_elf_file(path: str, debug_info_level: int) -> tuple[dict[str, tuple[int, int]], str | None, str | None]:
+def _parse_elf_file(path: str, debug_info_level: int) -> tuple[SymbolList[Symbol], str | None, str | None]:
     """Returns a dictionary containing the symbols of the specified ELF file and the buildid.
 
     Args:
@@ -96,11 +100,11 @@ def _parse_elf_file(path: str, debug_info_level: int) -> tuple[dict[str, tuple[i
         debug_info_level (int): The debug info level.
 
     Returns:
-        symbols (dict): A dictionary containing the symbols of the specified ELF file.
+        symbols (SymbolList[Symbol): A list containing the symbols of the specified ELF file.
         buildid (str): The buildid of the specified ELF file.
         debug_file_path (str): The path to the external debuginfo file corresponding.
     """
-    symbols = {}
+    symbols = []
     buildid = None
     debug_file_path = None
 
@@ -112,7 +116,7 @@ def _parse_elf_file(path: str, debug_info_level: int) -> tuple[dict[str, tuple[i
 
         while cursor != ffi.NULL:
             symbol_name = ffi.string(cursor.name).decode("utf-8")
-            symbols[symbol_name] = (cursor.low_pc, cursor.high_pc)
+            symbols.append(Symbol(cursor.low_pc, cursor.high_pc, symbol_name, path))
             cursor = cursor.next
 
         lib_sym.free_symbol_info(head)
@@ -124,7 +128,7 @@ def _parse_elf_file(path: str, debug_info_level: int) -> tuple[dict[str, tuple[i
         debug_file_path = lib_sym.get_debug_file()
         debug_file_path = ffi.string(debug_file_path).decode("utf-8") if debug_file_path != ffi.NULL else None
 
-    return symbols, buildid, debug_file_path
+    return SymbolList(symbols), buildid, debug_file_path
 
 
 @functools.cache
@@ -145,27 +149,66 @@ def resolve_symbol(path: str, symbol: str) -> int:
 
     # Retrieve the symbols from the SymbolTableSection
     symbols, buildid, debug_file = _parse_elf_file(path, libcontext.sym_lvl)
-    if symbol in symbols:
-        return symbols[symbol][0]
+    symbols = [sym for sym in symbols if sym.name == symbol]
+    if symbols:
+        return symbols[0].start
 
     # Retrieve the symbols from the external debuginfo file
     if buildid and debug_file and libcontext.sym_lvl > 2:
         folder = buildid[:2]
         absolute_debug_path_str = str((LOCAL_DEBUG_PATH / folder / debug_file).resolve())
         symbols = _collect_external_info(absolute_debug_path_str)
-        if symbol in symbols:
-            return symbols[symbol][0]
+        symbols = [sym for sym in symbols if sym.name == symbol]
+        if symbols:
+            return symbols[0].start
 
     # Retrieve the symbols from debuginfod
     if buildid and libcontext.sym_lvl > 4:
         absolute_debug_path = _debuginfod(buildid)
         if absolute_debug_path.exists():
             symbols = _collect_external_info(str(absolute_debug_path))
-            if symbol in symbols:
-                return symbols[symbol][0]
+            symbols = [sym for sym in symbols if sym.name == symbol]
+            if symbols:
+                return symbols[0].start
 
     # Symbol not found
     raise ValueError(f"Symbol {symbol} not found in {path}. Please specify a valid symbol.")
+
+
+def get_all_symbols(backing_files: set[str]) -> SymbolList[Symbol]:
+    """Returns a list of all the symbols in the target process.
+
+    Args:
+        backing_files (set[str]): The set of backing files.
+
+    Returns:
+        SymbolList[Symbol]: A list of all the symbols in the target process.
+    """
+    symbols = SymbolList([])
+
+    if libcontext.sym_lvl == 0:
+        raise Exception(
+            "Symbol resolution is disabled. Please enable it by setting the sym_lvl libcontext parameter to a value greater than 0.",
+        )
+
+    for file in backing_files:
+        # Retrieve the symbols from the SymbolTableSection
+        new_symbols, buildid, debug_file = _parse_elf_file(file, libcontext.sym_lvl)
+        symbols += new_symbols
+
+        # Retrieve the symbols from the external debuginfo file
+        if buildid and debug_file and libcontext.sym_lvl > 2:
+            folder = buildid[:2]
+            absolute_debug_path_str = str((LOCAL_DEBUG_PATH / folder / debug_file).resolve())
+            symbols += _collect_external_info(absolute_debug_path_str)
+
+        # Retrieve the symbols from debuginfod
+        if buildid and libcontext.sym_lvl > 4:
+            absolute_debug_path = _debuginfod(buildid)
+            if absolute_debug_path.exists():
+                symbols += _collect_external_info(str(absolute_debug_path))
+
+    return symbols
 
 
 @functools.cache
@@ -184,27 +227,30 @@ def resolve_address(path: str, address: int) -> str:
 
     # Retrieve the symbols from the SymbolTableSection
     symbols, buildid, debug_file = _parse_elf_file(path, libcontext.sym_lvl)
-    for symbol, (symbol_start, symbol_end) in symbols.items():
-        if symbol_start <= address < symbol_end:
-            return f"{symbol}+{address-symbol_start:x}"
+    symbols = [symbol for symbol in symbols if symbol.start <= address < symbol.end]
+    if symbols:
+        symbol = symbols[0]
+        return f"{symbol.name}+{address-symbol.start:x}"
 
     # Retrieve the symbols from the external debuginfo file
     if buildid and debug_file and libcontext.sym_lvl > 2:
         folder = buildid[:2]
         absolute_debug_path_str = str((LOCAL_DEBUG_PATH / folder / debug_file).resolve())
         symbols = _collect_external_info(absolute_debug_path_str)
-        for symbol, (symbol_start, symbol_end) in symbols.items():
-            if symbol_start <= address < symbol_end:
-                return f"{symbol}+{address-symbol_start:x}"
+        symbols = [symbol for symbol in symbols if symbol.start <= address < symbol.end]
+        if symbols:
+            symbol = symbols[0]
+            return f"{symbol.name}+{address-symbol.start:x}"
 
     # Retrieve the symbols from debuginfod
     if buildid and libcontext.sym_lvl > 4:
         absolute_debug_path = _debuginfod(buildid)
         if absolute_debug_path.exists():
             symbols = _collect_external_info(str(absolute_debug_path))
-            for symbol, (symbol_start, symbol_end) in symbols.items():
-                if symbol_start <= address < symbol_end:
-                    return f"{symbol}+{address-symbol_start:x}"
+            symbols = [symbol for symbol in symbols if symbol.start <= address < symbol.end]
+            if symbols:
+                symbol = symbols[0]
+                return f"{symbol.name}+{address-symbol.start:x}"
 
     # Address not found
     raise ValueError(f"Address {hex(address)} not found in {path}. Please specify a valid address.")
@@ -264,3 +310,24 @@ def elf_architecture(path: str) -> str:
         str: The architecture of the specified ELF file.
     """
     return parse_elf_characteristics(path)[2]
+
+
+def resolve_argv_path(argv_path: str) -> str:
+    """Resolve the path of the binary to debug.
+
+    Args:
+        argv_path (str): The provided path of the binary to debug.
+
+    Returns:
+        str: The resolved path of the binary to debug.
+    """
+    argv_path_expanded = Path(argv_path).expanduser()
+
+    # Check if the path is absolute after expansion
+    if argv_path_expanded.is_absolute():
+        # It's an absolute path, return it as is
+        resolved_path = argv_path_expanded
+    else:
+        # It's a relative path, try to resolve it
+        resolved_path = abs_path if (abs_path := shutil.which(argv_path_expanded)) else argv_path_expanded
+    return str(resolved_path)

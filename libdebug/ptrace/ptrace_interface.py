@@ -10,12 +10,14 @@ import errno
 import os
 import pty
 import tty
+from fcntl import F_GETFL, F_SETFL, fcntl
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from libdebug.architectures.register_helper import register_holder_provider
 from libdebug.architectures.call_utilities_provider import call_utilities_provider
+from libdebug.architectures.register_helper import register_holder_provider
 from libdebug.cffi import _ptrace_cffi
+from libdebug.commlink.pipe_manager import PipeManager
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.debugger.internal_debugger_instance_manager import (
     extend_internal_debugger,
@@ -27,10 +29,10 @@ from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
 from libdebug.state.thread_context import ThreadContext
 from libdebug.utils.debugging_utils import normalize_and_validate_address
 from libdebug.utils.elf_utils import get_entry_point
-from libdebug.utils.pipe_manager import PipeManager
 from libdebug.utils.process_utils import (
     disable_self_aslr,
     get_process_maps,
+    get_process_tasks,
     invalidate_process_cache,
 )
 
@@ -49,6 +51,7 @@ else:
 
 if TYPE_CHECKING:
     from libdebug.data.memory_map import MemoryMap
+    from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.data.registers import Registers
     from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
@@ -97,7 +100,7 @@ class PtraceInterface(DebuggingInterface):
         """Sets the tracer options."""
         self.lib_trace.ptrace_set_options(self.process_id)
 
-    def run(self: PtraceInterface) -> None:
+    def run(self: PtraceInterface, redirect_pipes: bool) -> None:
         """Runs the specified process."""
         if not self._disabled_aslr and not self._internal_debugger.aslr_enabled:
             disable_self_aslr()
@@ -112,15 +115,38 @@ class PtraceInterface(DebuggingInterface):
         with extend_internal_debugger(self):
             self.status_handler = PtraceStatusHandler()
 
-        # Creating pipes for stdin, stdout, stderr
-        self.stdin_read, self.stdin_write = os.pipe()
-        self.stdout_read, self.stdout_write = pty.openpty()
-        self.stderr_read, self.stderr_write = pty.openpty()
+        file_actions = []
 
-        # Setting stdout, stderr to raw mode to avoid terminal control codes interfering with the
-        # output
-        tty.setraw(self.stdout_read)
-        tty.setraw(self.stderr_read)
+        if redirect_pipes:
+            # Creating pipes for stdin, stdout, stderr
+            self.stdin_read, self.stdin_write = os.pipe()
+            self.stdout_read, self.stdout_write = pty.openpty()
+            self.stderr_read, self.stderr_write = pty.openpty()
+
+            # Setting stdout, stderr to raw mode to avoid terminal control codes interfering with the
+            # output
+            tty.setraw(self.stdout_read)
+            tty.setraw(self.stderr_read)
+
+            flags = fcntl(self.stdout_read, F_GETFL)
+            fcntl(self.stdout_read, F_SETFL, flags | os.O_NONBLOCK)
+
+            flags = fcntl(self.stderr_read, F_GETFL)
+            fcntl(self.stderr_read, F_SETFL, flags | os.O_NONBLOCK)
+
+            file_actions.extend(
+                [
+                    (POSIX_SPAWN_CLOSE, self.stdin_write),
+                    (POSIX_SPAWN_CLOSE, self.stdout_read),
+                    (POSIX_SPAWN_CLOSE, self.stderr_read),
+                    (POSIX_SPAWN_DUP2, self.stdin_read, 0),
+                    (POSIX_SPAWN_DUP2, self.stdout_write, 1),
+                    (POSIX_SPAWN_DUP2, self.stderr_write, 2),
+                    (POSIX_SPAWN_CLOSE, self.stdin_read),
+                    (POSIX_SPAWN_CLOSE, self.stdout_write),
+                    (POSIX_SPAWN_CLOSE, self.stderr_write),
+                ]
+            )
 
         # argv[1] is the length of the custom environment variables
         # argv[2:2 + env_len] is the custom environment variables
@@ -144,17 +170,7 @@ class PtraceInterface(DebuggingInterface):
             JUMPSTART_LOCATION,
             argv,
             os.environ,
-            file_actions=[
-                (POSIX_SPAWN_CLOSE, self.stdin_write),
-                (POSIX_SPAWN_CLOSE, self.stdout_read),
-                (POSIX_SPAWN_CLOSE, self.stderr_read),
-                (POSIX_SPAWN_DUP2, self.stdin_read, 0),
-                (POSIX_SPAWN_DUP2, self.stdout_write, 1),
-                (POSIX_SPAWN_DUP2, self.stderr_write, 2),
-                (POSIX_SPAWN_CLOSE, self.stdin_read),
-                (POSIX_SPAWN_CLOSE, self.stdout_write),
-                (POSIX_SPAWN_CLOSE, self.stderr_write),
-            ],
+            file_actions=file_actions,
             setpgroup=0,
         )
 
@@ -164,7 +180,19 @@ class PtraceInterface(DebuggingInterface):
         self.register_new_thread(child_pid)
         continue_to_entry_point = self._internal_debugger.autoreach_entrypoint
         self._setup_parent(continue_to_entry_point)
-        self._internal_debugger.pipe_manager = self._setup_pipe()
+
+        if redirect_pipes:
+            self._internal_debugger.pipe_manager = self._setup_pipe()
+        else:
+            self._internal_debugger.pipe_manager = None
+
+            # https://stackoverflow.com/questions/58918188/why-is-stdin-not-propagated-to-child-process-of-different-process-group
+            # We need to set the foreground process group to the child process group, otherwise the child process
+            # will not receive the input from the terminal
+            try:
+                os.tcsetpgrp(0, child_pid)
+            except OSError as e:
+                liblog.debugger("Failed to set the foreground process group: %r", e)
 
     def attach(self: PtraceInterface, pid: int) -> None:
         """Attaches to the specified process.
@@ -176,18 +204,31 @@ class PtraceInterface(DebuggingInterface):
         with extend_internal_debugger(self):
             self.status_handler = PtraceStatusHandler()
 
-        res = self.lib_trace.ptrace_attach(pid)
-        if res == -1:
-            errno_val = self.ffi.errno
-            raise OSError(errno_val, errno.errorcode[errno_val])
+        # Attach to all the tasks of the process
+        self._attach_to_all_tasks(pid)
 
         self.process_id = pid
         self.detached = False
         self._internal_debugger.process_id = pid
-        self.register_new_thread(pid)
         # If we are attaching to a process, we don't want to continue to the entry point
         # which we have probably already passed
         self._setup_parent(False)
+
+    def _attach_to_all_tasks(self: PtraceStatusHandler, pid: int) -> None:
+        """Attach to all the tasks of the process."""
+        tids = get_process_tasks(pid)
+        for tid in tids:
+            res = self.lib_trace.ptrace_attach(tid)
+            if res == -1:
+                errno_val = self.ffi.errno
+                if errno_val == errno.EPERM:
+                    raise PermissionError(
+                        errno_val,
+                        errno.errorcode[errno_val],
+                        "You don't have permission to attach to the process. Did you check the ptrace_scope?",
+                    )
+                raise OSError(errno_val, errno.errorcode[errno_val])
+            self.register_new_thread(tid)
 
     def detach(self: PtraceInterface) -> None:
         """Detaches from the process."""
@@ -199,6 +240,12 @@ class PtraceInterface(DebuggingInterface):
         self.lib_trace.ptrace_detach_and_cont(self._global_state, self.process_id)
 
         self.detached = True
+
+        # Reset the event type
+        self._internal_debugger.resume_context.event_type.clear()
+
+        # Reset the breakpoint hit
+        self._internal_debugger.resume_context.event_hit_ref.clear()
 
     def kill(self: PtraceInterface) -> None:
         """Instantly terminates the process."""
@@ -238,6 +285,12 @@ class PtraceInterface(DebuggingInterface):
         else:
             self._global_state.handle_syscall_enabled = False
 
+        # Reset the event type
+        self._internal_debugger.resume_context.event_type.clear()
+
+        # Reset the breakpoint hit
+        self._internal_debugger.resume_context.event_hit_ref.clear()
+
         result = self.lib_trace.cont_all_and_set_bps(
             self._global_state,
             self.process_id,
@@ -257,6 +310,12 @@ class PtraceInterface(DebuggingInterface):
         for bp in self._internal_debugger.breakpoints.values():
             bp._disabled_for_step = True
 
+        # Reset the event type
+        self._internal_debugger.resume_context.event_type.clear()
+
+        # Reset the breakpoint hit
+        self._internal_debugger.resume_context.event_hit_ref.clear()
+
         result = self.lib_trace.singlestep(self._global_state, thread.thread_id)
         if result == -1:
             errno_val = self.ffi.errno
@@ -275,6 +334,12 @@ class PtraceInterface(DebuggingInterface):
         # Disable all breakpoints for the single step
         for bp in self._internal_debugger.breakpoints.values():
             bp._disabled_for_step = True
+
+        # Reset the event type
+        self._internal_debugger.resume_context.event_type.clear()
+
+        # Reset the breakpoint hit
+        self._internal_debugger.resume_context.event_hit_ref.clear()
 
         result = self.lib_trace.step_until(
             self._global_state,
@@ -296,10 +361,17 @@ class PtraceInterface(DebuggingInterface):
             thread (ThreadContext): The thread to step.
             heuristic (str): The heuristic to use.
         """
+        # Reset the event type
+        self._internal_debugger.resume_context.event_type.clear()
+
+        # Reset the breakpoint hit
+        self._internal_debugger.resume_context.event_hit_ref.clear()
+
         if heuristic == "step-mode":
             result = self.lib_trace.stepping_finish(
                 self._global_state,
                 thread.thread_id,
+                self._internal_debugger.arch == "i386",
             )
 
             if result == -1:
@@ -353,6 +425,11 @@ class PtraceInterface(DebuggingInterface):
 
     def next(self: PtraceInterface, thread: ThreadContext) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
+        # Reset the event type
+        self._internal_debugger.resume_context.event_type.clear()
+
+        # Reset the breakpoint hit
+        self._internal_debugger.resume_context.event_hit_ref.clear()
 
         opcode_window = thread.memory.read(thread.instruction_pointer, 8)
 
@@ -411,9 +488,9 @@ class PtraceInterface(DebuggingInterface):
             os.close(self.stdout_write)
             os.close(self.stderr_write)
         except Exception as e:
-            # TODO: custom exception
             raise Exception("Closing fds failed: %r", e) from e
-        return PipeManager(self.stdin_write, self.stdout_read, self.stderr_read)
+        with extend_internal_debugger(self):
+            return PipeManager(self.stdin_write, self.stdout_read, self.stderr_read)
 
     def _setup_parent(self: PtraceInterface, continue_to_entry_point: bool) -> None:
         """Sets up the parent process after the child process has been created or attached to."""
@@ -430,7 +507,7 @@ class PtraceInterface(DebuggingInterface):
             entry_point = get_entry_point(self._internal_debugger.argv[0])
 
             # For PIE binaries, the entry point is a relative address
-            entry_point = normalize_and_validate_address(entry_point, self.maps())
+            entry_point = normalize_and_validate_address(entry_point, self.get_maps())
 
             bp = Breakpoint(entry_point, hardware=True)
             self.set_breakpoint(bp)
@@ -741,9 +818,10 @@ class PtraceInterface(DebuggingInterface):
         """Returns the event message."""
         return self.lib_trace.ptrace_geteventmsg(thread_id)
 
-    def maps(self: PtraceInterface) -> list[MemoryMap]:
+    def get_maps(self: PtraceInterface) -> MemoryMapList[MemoryMap]:
         """Returns the memory maps of the process."""
-        return get_process_maps(self.process_id)
+        with extend_internal_debugger(self._internal_debugger):
+            return get_process_maps(self.process_id)
 
     def get_hit_watchpoint(self: PtraceInterface, thread_id: int) -> Breakpoint:
         """Returns the watchpoint that has been hit."""
