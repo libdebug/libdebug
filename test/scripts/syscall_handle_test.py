@@ -64,7 +64,7 @@ class SyscallHandleTest(TestCase):
         self.log_handler.close()
 
     def test_handles(self):
-        d = debugger(RESOLVE_EXE("handle_syscall_test"))
+        d = debugger(RESOLVE_EXE("handle_syscall_test"), continue_to_binary_entrypoint=True)
 
         r = d.run()
 
@@ -117,7 +117,7 @@ class SyscallHandleTest(TestCase):
         self.assertEqual(handler3.hit_count, 1)
 
     def test_handles_with_pprint(self):
-        d = debugger(RESOLVE_EXE("handle_syscall_test"))
+        d = debugger(RESOLVE_EXE("handle_syscall_test"), continue_to_binary_entrypoint=True)
 
         r = d.run()
 
@@ -173,7 +173,7 @@ class SyscallHandleTest(TestCase):
         self.assertEqual(handler3.hit_count, 1)
 
     def test_handle_disabling(self):
-        d = debugger(RESOLVE_EXE("handle_syscall_test"))
+        d = debugger(RESOLVE_EXE("handle_syscall_test"), continue_to_binary_entrypoint=True)
 
         r = d.run()
 
@@ -235,7 +235,7 @@ class SyscallHandleTest(TestCase):
         self.assertEqual(handler3.hit_count, 1)
 
     def test_handle_disabling_with_pprint(self):
-        d = debugger(RESOLVE_EXE("handle_syscall_test"))
+        d = debugger(RESOLVE_EXE("handle_syscall_test"), continue_to_binary_entrypoint=True)
 
         r = d.run()
 
@@ -299,7 +299,7 @@ class SyscallHandleTest(TestCase):
         self.assertEqual(handler3.hit_count, 1)
 
     def test_handle_overwrite(self):
-        d = debugger(RESOLVE_EXE("handle_syscall_test"))
+        d = debugger(RESOLVE_EXE("handle_syscall_test"), continue_to_binary_entrypoint=True)
 
         r = d.run()
 
@@ -372,7 +372,7 @@ class SyscallHandleTest(TestCase):
         )
 
     def test_handle_overwrite_with_pprint(self):
-        d = debugger(RESOLVE_EXE("handle_syscall_test"))
+        d = debugger(RESOLVE_EXE("handle_syscall_test"), continue_to_binary_entrypoint=True)
 
         r = d.run()
 
@@ -448,7 +448,7 @@ class SyscallHandleTest(TestCase):
 
 
     def test_handles_sync(self):
-        d = debugger(RESOLVE_EXE("handle_syscall_test"))
+        d = debugger(RESOLVE_EXE("handle_syscall_test"), continue_to_binary_entrypoint=True)
 
         r = d.run()
 
@@ -511,7 +511,7 @@ class SyscallHandleTest(TestCase):
         self.assertEqual(handler3.hit_count, 1)
     
     def test_handles_sync_with_pprint(self):
-        d = debugger(RESOLVE_EXE("handle_syscall_test"))
+        d = debugger(RESOLVE_EXE("handle_syscall_test"), continue_to_binary_entrypoint=True)
 
         r = d.run()
 
@@ -576,7 +576,7 @@ class SyscallHandleTest(TestCase):
         self.assertEqual(handler3.hit_count, 1)
 
     def test_handles_sync_hit_on(self):
-        d = debugger(RESOLVE_EXE("handle_syscall_test"))
+        d = debugger(RESOLVE_EXE("handle_syscall_test"), continue_to_binary_entrypoint=True)
 
         r = d.run()
 
@@ -654,7 +654,7 @@ class SyscallHandleTest(TestCase):
         self.assertEqual(handler3.hit_count, 1)
 
     def test_handles_empty_callback(self):
-        d = debugger(RESOLVE_EXE("handle_syscall_test"))
+        d = debugger(RESOLVE_EXE("handle_syscall_test"), continue_to_binary_entrypoint=True)
 
         r = d.run()
 
@@ -675,7 +675,7 @@ class SyscallHandleTest(TestCase):
         self.assertEqual(handler3.hit_count, 1)
         
     def test_handle_all_syscalls(self):
-        d = debugger(RESOLVE_EXE("handle_syscall_test"))
+        d = debugger(RESOLVE_EXE("handle_syscall_test"), continue_to_binary_entrypoint=True)
 
         for value in ["all", "*", "ALL", -1, "pkm"]:
             r = d.run()

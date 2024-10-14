@@ -38,7 +38,7 @@ class PPrintSyscallsTest(TestCase):
         sys.stdout = sys.__stdout__
 
     def test_pprint_syscalls_generic(self):
-        d = debugger(RESOLVE_EXE("handle_syscall_test"))
+        d = debugger(RESOLVE_EXE("handle_syscall_test"), continue_to_binary_entrypoint=True)
 
         r = d.run()
         d.pprint_syscalls = True
@@ -66,7 +66,7 @@ class PPrintSyscallsTest(TestCase):
         self.assertEqual(self.capturedOutput.getvalue().count("exit_group"), 1)
 
     def test_pprint_syscalls_with_statement(self):
-        d = debugger(RESOLVE_EXE("handle_syscall_test"))
+        d = debugger(RESOLVE_EXE("handle_syscall_test"), continue_to_binary_entrypoint=True)
 
         r = d.run()
         with d.pprint_syscalls_context(True):
@@ -100,7 +100,7 @@ class PPrintSyscallsTest(TestCase):
         def on_exit_read(d, sh):
             d.syscall_return = 0xDEADBEEF
 
-        d = debugger(RESOLVE_EXE("handle_syscall_test"))
+        d = debugger(RESOLVE_EXE("handle_syscall_test"), continue_to_binary_entrypoint=True)
 
         r = d.run()
         d.pprint_syscalls = True
@@ -136,7 +136,7 @@ class PPrintSyscallsTest(TestCase):
         self.assertEqual(self.capturedOutput.getvalue().count("callback"), 1)
 
     def test_pprint_hijack_syscall(self):
-        d = debugger(RESOLVE_EXE("handle_syscall_test"))
+        d = debugger(RESOLVE_EXE("handle_syscall_test"), continue_to_binary_entrypoint=True)
 
         r = d.run()
 
@@ -171,7 +171,7 @@ class PPrintSyscallsTest(TestCase):
         self.assertEqual(self.capturedOutput.getvalue().count("hijacked"), 1)
 
     def test_pprint_which_syscalls_pprint_after(self):
-        d = debugger(RESOLVE_EXE("handle_syscall_test"))
+        d = debugger(RESOLVE_EXE("handle_syscall_test"), continue_to_binary_entrypoint=True)
 
         r = d.run()
 
@@ -196,7 +196,7 @@ class PPrintSyscallsTest(TestCase):
         self.assertEqual(self.capturedOutput.getvalue().count(MMAP_NAME), 1)
 
     def test_pprint_which_syscalls_pprint_before(self):
-        d = debugger(RESOLVE_EXE("handle_syscall_test"))
+        d = debugger(RESOLVE_EXE("handle_syscall_test"), continue_to_binary_entrypoint=True)
         r = d.run()
 
         d.syscalls_to_pprint = [READ_NUM, "write", MMAP_NUM]  # before d.pprint_syscalls = True
@@ -220,7 +220,7 @@ class PPrintSyscallsTest(TestCase):
         self.assertEqual(self.capturedOutput.getvalue().count(MMAP_NAME), 1)
 
     def test_pprint_which_syscalls_pprint_after_and_before(self):
-        d = debugger(RESOLVE_EXE("handle_syscall_test"))
+        d = debugger(RESOLVE_EXE("handle_syscall_test"), continue_to_binary_entrypoint=True)
         r = d.run()
 
         d.syscalls_to_pprint = [READ_NUM, "write", MMAP_NUM]
@@ -244,7 +244,7 @@ class PPrintSyscallsTest(TestCase):
         self.assertEqual(self.capturedOutput.getvalue().count(MMAP_NAME), 1)
 
     def test_pprint_which_syscalls_not_pprint_after(self):
-        d = debugger(RESOLVE_EXE("handle_syscall_test"))
+        d = debugger(RESOLVE_EXE("handle_syscall_test"), continue_to_binary_entrypoint=True)
         r = d.run()
 
         d.pprint_syscalls = True
@@ -267,7 +267,7 @@ class PPrintSyscallsTest(TestCase):
         self.assertEqual(self.capturedOutput.getvalue().count("exit_group"), 1)
 
     def test_pprint_which_syscalls_not_pprint_before(self):
-        d = debugger(RESOLVE_EXE("handle_syscall_test"))
+        d = debugger(RESOLVE_EXE("handle_syscall_test"), continue_to_binary_entrypoint=True)
         r = d.run()
 
         d.syscalls_to_not_pprint = [READ_NUM, "write", MMAP_NUM]
@@ -290,7 +290,7 @@ class PPrintSyscallsTest(TestCase):
         self.assertEqual(self.capturedOutput.getvalue().count("exit_group"), 1)
 
     def test_pprint_which_syscalls_not_pprint_after_and_before(self):
-        d = debugger(RESOLVE_EXE("handle_syscall_test"))
+        d = debugger(RESOLVE_EXE("handle_syscall_test"), continue_to_binary_entrypoint=True)
         r = d.run()
 
         d.syscalls_to_not_pprint = [READ_NUM, "write", MMAP_NUM]
