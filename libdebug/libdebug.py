@@ -15,7 +15,7 @@ def debugger(
     aslr: bool = True,
     env: dict[str, str] | None = None,
     escape_antidebug: bool = False,
-    continue_to_binary_entrypoint: bool = True,
+    continue_to_binary_entrypoint: bool = False,
     auto_interrupt_on_command: bool = False,
     fast_memory: bool = False,
     kill_on_exit: bool = True,
