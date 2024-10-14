@@ -114,16 +114,13 @@ class InternalDebugger:
     """A flag that indicates if the debugger should automatically interrupt the debugged process when a command is issued."""
 
     breakpoints: dict[int, Breakpoint]
-    """A dictionary of all the breakpoints set on the process.
-    Key: the address of the breakpoint."""
+    """A dictionary of all the breakpoints set on the process. Key: the address of the breakpoint."""
 
     handled_syscalls: dict[int, SyscallHandler]
-    """A dictionary of all the syscall handled in the process.
-    Key: the syscall number."""
+    """A dictionary of all the syscall handled in the process. Key: the syscall number."""
 
     caught_signals: dict[int, SignalCatcher]
-    """A dictionary of all the signals caught in the process.
-    Key: the signal number."""
+    """A dictionary of all the signals caught in the process. Key: the signal number."""
 
     signals_to_block: list[int]
     """The signals to not forward to the process."""
@@ -513,15 +510,11 @@ class InternalDebugger:
 
         Args:
             position (int | bytes): The location of the breakpoint.
-            hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software.
-            Defaults to False.
+            hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software. Defaults to False.
             condition (str, optional): The trigger condition for the breakpoint. Defaults to None.
             length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
-            callback (None | bool | Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called
-            when the breakpoint is hit. If True, an empty callback will be set. Defaults to None.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
-            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
-            the "binary" map file).
+            callback (None | bool | Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the breakpoint is hit. If True, an empty callback will be set. Defaults to None.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
         if isinstance(position, str):
             address = self.resolve_symbol(position, file)
@@ -566,10 +559,8 @@ class InternalDebugger:
 
         Args:
             signal (int | str): The signal to catch. If "*", "ALL", "all" or -1 is passed, all signals will be caught.
-            callback (None | bool | Callable[[ThreadContext, SignalCatcher], None], optional): A callback to be called
-            when the signal is caught. If True, an empty callback will be set. Defaults to None.
-            recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher
-            associated with the new signal should be considered as well. Defaults to False.
+            callback (None | bool | Callable[[ThreadContext, SignalCatcher], None], optional): A callback to be called when the signal is caught. If True, an empty callback will be set. Defaults to None.
+            recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher associated with the new signal should be considered as well. Defaults to False.
 
         Returns:
             SignalCatcher: The SignalCatcher object.
@@ -629,11 +620,9 @@ class InternalDebugger:
         """Hijack a signal in the target process.
 
         Args:
-            original_signal (int | str): The signal to hijack. If "*", "ALL", "all" or -1 is passed, all signals will be
-            hijacked.
+            original_signal (int | str): The signal to hijack. If "*", "ALL", "all" or -1 is passed, all signals will be hijacked.
             new_signal (int | str): The signal to hijack the original signal with.
-            recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher
-            associated with the new signal should be considered as well. Defaults to False.
+            recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher associated with the new signal should be considered as well. Defaults to False.
 
         Returns:
             SignalCatcher: The SignalCatcher object.
@@ -671,14 +660,10 @@ class InternalDebugger:
         """Handle a syscall in the target process.
 
         Args:
-            syscall (int | str): The syscall name or number to handle. If "*", "ALL", "all", or -1 is passed, all
-            syscalls will be handled.
-            on_enter (None | bool |Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute
-            when the syscall is entered. If True, an empty callback will be set. Defaults to None.
-            on_exit (None | bool | Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute
-            when the syscall is exited. If True, an empty callback will be set. Defaults to None.
-            recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler
-            associated with the new syscall should be considered as well. Defaults to False.
+            syscall (int | str): The syscall name or number to handle. If "*", "ALL", "all", or -1 is passed, all syscalls will be handled.
+            on_enter (None | bool |Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute when the syscall is entered. If True, an empty callback will be set. Defaults to None.
+            on_exit (None | bool | Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute when the syscall is exited. If True, an empty callback will be set. Defaults to None.
+            recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler associated with the new syscall should be considered as well. Defaults to False.
 
         Returns:
             SyscallHandler: The SyscallHandler object.
@@ -741,11 +726,9 @@ class InternalDebugger:
         """Hijacks a syscall in the target process.
 
         Args:
-            original_syscall (int | str): The syscall name or number to hijack. If "*", "ALL", "all" or -1 is passed,
-            all syscalls will be hijacked.
+            original_syscall (int | str): The syscall name or number to hijack. If "*", "ALL", "all" or -1 is passed, all syscalls will be hijacked.
             new_syscall (int | str): The syscall name or number to hijack the original syscall with.
-            recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler
-            associated with the new syscall should be considered as well. Defaults to False.
+            recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler associated with the new syscall should be considered as well. Defaults to False.
             **kwargs: (int, optional): The arguments to pass to the new syscall.
 
         Returns:
@@ -1057,9 +1040,7 @@ class InternalDebugger:
             thread (ThreadContext): The thread to step. Defaults to None.
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
-            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
-            the "binary" map file).
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
         if isinstance(position, str):
             address = self.resolve_symbol(position, file)
@@ -1083,9 +1064,7 @@ class InternalDebugger:
             thread (ThreadContext): The thread to step. Defaults to None.
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid"
-            (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t.
-            the "binary" map file).
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
         if isinstance(position, str):
             address = self.resolve_symbol(position, file)

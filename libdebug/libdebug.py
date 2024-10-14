@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from libdebug.debugger.debugger import Debugger
 from libdebug.debugger.internal_debugger import InternalDebugger
-from libdebug.utils.elf_utils import elf_architecture
+from libdebug.utils.elf_utils import elf_architecture, resolve_argv_path
 
 
 def debugger(
@@ -25,14 +25,10 @@ def debugger(
     Args:
         argv (str | list[str], optional): The location of the binary to debug and any arguments to pass to it.
         aslr (bool, optional): Whether to enable ASLR. Defaults to True.
-        env (dict[str, str], optional): The environment variables to use. Defaults to the same environment of the
-        debugging script.
-        escape_antidebug (bool): Whether to automatically attempt to patch antidebugger detectors based on the ptrace
-        syscall.
-        continue_to_binary_entrypoint (bool, optional): Whether to automatically continue to the binary entrypoint.
-        Defaults to True.
-        auto_interrupt_on_command (bool, optional): Whether to automatically interrupt the process when a command is
-        issued. Defaults to False.
+        env (dict[str, str], optional): The environment variables to use. Defaults to the same environment of the debugging script.
+        escape_antidebug (bool): Whether to automatically attempt to patch antidebugger detectors based on the ptrace syscall.
+        continue_to_binary_entrypoint (bool, optional): Whether to automatically continue to the binary entrypoint. Defaults to True.
+        auto_interrupt_on_command (bool, optional): Whether to automatically interrupt the process when a command is issued. Defaults to False.
         fast_memory (bool, optional): Whether to use a faster memory reading method. Defaults to False.
         kill_on_exit (bool, optional): Whether to kill the debugged process when the debugger exits. Defaults to True.
 
@@ -40,7 +36,9 @@ def debugger(
         Debugger: The `Debugger` object.
     """
     if isinstance(argv, str):
-        argv = [argv]
+        argv = [resolve_argv_path(argv)]
+    elif argv:
+        argv[0] = resolve_argv_path(argv[0])
 
     internal_debugger = InternalDebugger()
     internal_debugger.argv = argv

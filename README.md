@@ -10,7 +10,7 @@ With libdebug you have full control of the flow of your debugged executable. Wit
 - Catch and hijack signals
 - Debug multithreaded applications with ease
 - Seamlessly switch to GDB for interactive analysis
-- Multiarch: currently supports Linux AMD64 and AArch64
+- Multiarch: currently supports Linux AMD64 and AArch64 and i386 (both native and in 32-bit compatibility mode)
 
 When running the same executable multiple times, choosing efficient implementations can make the difference. For this reason, libdebug prioritizes performance.
 
@@ -62,8 +62,11 @@ d.cont()
 # Print RAX
 print(f"RAX is {hex(d.regs.rax)}")
 
-# Kill the process
-d.kill()
+# Write to memory
+d.memory[0x10ad, 8, "binary"] = b"Hello!\x00\x00"
+
+# Continue the execution
+d.cont()
 ```
 
 The above script will run the binary `test` in the working directory and stop at the function corresponding to the symbol "function". It will then print the value of the RAX register and kill the process.
@@ -75,7 +78,9 @@ There is so much more that can be done with libdebug. Please read the [documenta
 libdebug offers many advanced features. Take a look at this script doing magic with signals:
 
 ```python
-from libdebug import debugger
+from libdebug import debugger, libcontext
+
+libcontext.terminal = ['tmux', 'splitw', '-h']
 
 # Define signal catchers
 def catcher_SIGUSR1(t: ThreadContext, catcher: SignalCatcher) -> None:
@@ -87,6 +92,9 @@ def catcher_SIGINT(t: ThreadContext, catcher: SignalCatcher) -> None:
 
 def catcher_SIGPIPE(t: ThreadContext, catcher: SignalCatcher) -> None:
     print(f"SIGPIPE: Signal number {catcher}")
+
+def handler_geteuid(t: ThreadContext, handler: SyscallHandler) -> None:
+	t.regs.rax = 0x0
 
 # Initialize the debugger
 d = debugger('/path/to/executable', continue_to_binary_entrypoint=False, aslr=False)
@@ -103,6 +111,8 @@ d.hijack_signal("SIGINT", "SIGPIPE", recursive=True)
 # Define which signals to block
 d.signals_to_block = ["SIGPOLL", "SIGIO", "SIGALRM"]
 
+d.handle_syscall("geteuid", on_exit=handler_geteuid)
+
 # Continue execution
 d.cont()
 
@@ -114,6 +124,46 @@ catcher3.disable()
 bp = d.breakpoint(0xdeadc0de, hardware=True)
 
 d.cont()
+d.wait()
+
+d.gdb()
+```
+
+## Auto Interrupt on Command
+libdebug also allows you to make all commands execute as soon as possible, without having to wait for a stopping event. To enable this mode, you can use the `auto_interrupt_on_command=True` 
+
+```python
+from libdebug import debugger
+
+d = debugger("/path/to/executable", auto_interrupt_on_command=True)
+
+pipes = d.run()
+
+bp = d.breakpoint("function")
+
+d.cont()
+
+# Read shortly after the cont is issued
+# The process is forcibly stopped to read the register
+value = d.regs.rax
+print(f"RAX is {hex(value)}")
+
+system_offset = d.symbols.filter("system")[0].start
+libc_base = d.maps.filter("libc")[0].base
+
+system_address = libc_base + system_offset
+
+d.memory[0x12ebe, 8, "libc"] = int.to_bytes(system_address, 8, "little")
+
+d.cont()
+d.wait()
+
+# Here we should be at the breakpoint
+
+# This value is read while the process is stopped at the breakpoint
+ip_value = d.regs.rip
+
+print(f"RIP is {hex(ip_value)}")
 
 d.kill()
 ```

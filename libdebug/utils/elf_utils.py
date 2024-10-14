@@ -5,6 +5,7 @@
 #
 
 import functools
+import shutil
 from pathlib import Path
 
 import requests
@@ -275,3 +276,24 @@ def elf_architecture(path: str) -> str:
         str: The architecture of the specified ELF file.
     """
     return parse_elf_characteristics(path)[2]
+
+
+def resolve_argv_path(argv_path: str) -> str:
+    """Resolve the path of the binary to debug.
+
+    Args:
+        argv_path (str): The provided path of the binary to debug.
+
+    Returns:
+        str: The resolved path of the binary to debug.
+    """
+    argv_path_expanded = Path(argv_path).expanduser()
+
+    # Check if the path is absolute after expansion
+    if argv_path_expanded.is_absolute():
+        # It's an absolute path, return it as is
+        resolved_path = argv_path_expanded
+    else:
+        # It's a relative path, try to resolve it
+        resolved_path = abs_path if (abs_path := shutil.which(argv_path_expanded)) else argv_path_expanded
+    return str(resolved_path)
