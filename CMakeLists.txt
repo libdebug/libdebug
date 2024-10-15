@@ -197,6 +197,41 @@ nanobind_add_stub(
   PYTHON_PATH "."
 )
 
+# If architecture is amd64 or i386
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "i386"
+    OR CMAKE_SYSTEM_PROCESSOR MATCHES "x86"
+    OR CMAKE_SYSTEM_PROCESSOR MATCHES "i686"
+    OR CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64"
+    OR CMAKE_SYSTEM_PROCESSOR MATCHES "amd64")
+
+    # Register the xsave layout generator executable
+    add_executable(autogenerate_xsave_layout libdebug/ptrace/native/amd64/amd64_autogenerate_xsave_layout.c)
+
+    # Define the path to the output file
+    set(XSAVE_LAYOUT_OUTPUT ${CMAKE_BINARY_DIR}/generated/libdebug_ptrace_amd64_fpregs_xsave_layout.h)
+
+    # Define the custom command that runs the generator and writes the output
+    add_custom_command(
+        OUTPUT ${XSAVE_LAYOUT_OUTPUT}
+        COMMAND autogenerate_xsave_layout > ${XSAVE_LAYOUT_OUTPUT}
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Generating fpregs_xsave_layout.h using autogenerate_xsave_layout"
+        VERBATIM
+    )
+
+    # Create a custom target to generate the xsave layout header
+    add_custom_target(generate_xsave_layout ALL DEPENDS ${XSAVE_LAYOUT_OUTPUT})
+
+    # Make sure your main target depends on the generated file
+    add_dependencies(libdebug_ptrace_binding generate_xsave_layout)
+
+    # Ensure the path to the generated file is included in the target's include directories
+    target_include_directories(libdebug_ptrace_binding PRIVATE ${CMAKE_BINARY_DIR}/generated)
+
+    # Print a message to the user
+    message(STATUS "Generated xsave layout header at ${XSAVE_LAYOUT_OUTPUT}")
+endif()
+
 # Link required libraries
 target_link_libraries(libdebug_debug_sym_parser PRIVATE elf dwarf iberty)
 

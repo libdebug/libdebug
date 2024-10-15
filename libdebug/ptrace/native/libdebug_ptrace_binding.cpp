@@ -13,6 +13,7 @@
 #include "libdebug_ptrace_base.h"
 #include "libdebug_ptrace_interface.h"
 #include "amd64/libdebug_ptrace_amd64.h"
+#include "libdebug_ptrace_amd64_fpregs_xsave_layout.h"
 
 namespace nb = nanobind;
 
@@ -162,7 +163,7 @@ std::pair<std::shared_ptr<PtraceRegsStruct>, std::shared_ptr<PtraceFPRegsStruct>
     t.signal_to_forward = 0;
     t.regs = std::make_shared<PtraceRegsStruct>();
     t.fpregs = std::make_shared<PtraceFPRegsStruct>();
-    t.fpregs->type = 1;
+    t.fpregs->type = FPREGS_TYPE;
     t.fpregs->dirty = 0;
     t.fpregs->fresh = 0;
 

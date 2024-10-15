@@ -59,29 +59,4 @@ struct PtraceRegsStruct
     unsigned long gs;
 };
 
-#pragma pack(push, 1)
-struct PtraceFPRegsStruct
-{
-    unsigned long type;
-    bool dirty; // true if the debugging script has modified the state of the registers
-    bool fresh; // true if the registers have already been fetched for this state
-    unsigned char bool_padding[6];
-    unsigned char padding0[32];
-    std::array<Reg128, 8> mmx;
-    std::array<Reg128, 16> xmm0;
-    unsigned char padding1[96];
-    // end of the 512 byte legacy region
-    unsigned char padding2[64];
-    // ymm0 starts at offset 576
-    std::array<Reg128, 16> ymm0;
-    unsigned char padding3[128];
-    std::array<Reg128, 4> bndregs;
-    Reg128 bndcfg;
-    unsigned char padding4[48];
-    unsigned char padding6[1600];
-    unsigned int pkru;
-    unsigned char padding7[60];
-};
-#pragma pack(pop)
-
 void init_libdebug_ptrace_amd64(nanobind::module_ &m);
