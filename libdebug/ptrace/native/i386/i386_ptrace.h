@@ -35,4 +35,4 @@ struct PtraceRegsStruct
     unsigned long ss;
 };
 
-void init_libdebug_ptrace_i386(nanobind::module_ &m);
+void init_libdebug_ptrace_registers(nanobind::module_ &m);

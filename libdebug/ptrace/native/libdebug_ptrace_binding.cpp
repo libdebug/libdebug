@@ -640,7 +640,7 @@ void LibdebugPtraceInterface::poke_data(unsigned long addr, unsigned long data)
 
 NB_MODULE(libdebug_ptrace_binding, m)
 {
-    init_libdebug_ptrace_amd64(m);
+    init_libdebug_ptrace_registers(m);
 
     nb::class_<Reg128>(m, "Reg128", "A 128-bit register.")
         .def_rw(

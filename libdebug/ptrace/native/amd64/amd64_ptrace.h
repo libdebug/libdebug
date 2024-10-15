@@ -45,4 +45,4 @@ struct PtraceRegsStruct
     unsigned long gs;
 };
 
-void init_libdebug_ptrace_amd64(nanobind::module_ &m);
+void init_libdebug_ptrace_registers(nanobind::module_ &m);

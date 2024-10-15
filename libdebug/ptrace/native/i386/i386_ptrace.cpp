@@ -13,7 +13,7 @@
 
 namespace nb = nanobind;
 
-void init_libdebug_ptrace_i386(nb::module_ &m) {
+void init_libdebug_ptrace_registers(nb::module_ &m) {
     nb::class_<PtraceRegsStruct>(m, "PtraceRegsStruct")
         .def_rw("ebx", &PtraceRegsStruct::ebx)
         .def_rw("ecx", &PtraceRegsStruct::ecx)
