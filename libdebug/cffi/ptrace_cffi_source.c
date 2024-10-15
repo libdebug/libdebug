@@ -939,7 +939,17 @@ struct thread_status *wait_all_and_update_regs(struct global_state *state, int p
     head->next = NULL;
 
     // The first element is the first status we get from polling with waitpid
-    head->tid = waitpid(-getpgid(pid), &head->status, 0);
+    struct thread *t = state->t_HEAD;
+
+    while (1) {
+        head->tid = waitpid(t->tid, &head->status, WNOHANG);
+        // Check if we have found a thread with tid >= 0
+        if (head->tid != 0) {
+            break;
+        }
+        // Move to the next thread, or wrap around to the head if at the end of the list
+        t = t->next ? t->next : state->t_HEAD;
+    }
 
     if (head->tid == -1) {
         free(head);
@@ -948,7 +958,7 @@ struct thread_status *wait_all_and_update_regs(struct global_state *state, int p
     }
 
     // We must interrupt all the other threads with a SIGSTOP
-    struct thread *t = state->t_HEAD;
+    t = state->t_HEAD;
     int temp_tid, temp_status;
     while (t != NULL) {
         if (t->tid != head->tid) {
@@ -972,13 +982,17 @@ struct thread_status *wait_all_and_update_regs(struct global_state *state, int p
         t = t->next;
     }
 
+    t = state->t_HEAD;
     // We keep polling but don't block, we want to get all the statuses we can
-    while ((temp_tid = waitpid(-getpgid(pid), &temp_status, WNOHANG)) > 0) {
-        struct thread_status *ts = malloc(sizeof(struct thread_status));
-        ts->tid = temp_tid;
-        ts->status = temp_status;
-        ts->next = head;
-        head = ts;
+    while (t != NULL) {
+       while((temp_tid = waitpid(t->tid, &temp_status, WNOHANG)) > 0) {
+            struct thread_status *ts = malloc(sizeof(struct thread_status));
+            ts->tid = temp_tid;
+            ts->status = temp_status;
+            ts->next = head;
+            head = ts;
+        }
+        t = t->next;
     }
 
     // Update the registers of all the threads
