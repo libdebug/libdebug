@@ -154,6 +154,13 @@ if (CMAKE_SYSTEM_PROCESSOR MATCHES "i386" OR CMAKE_SYSTEM_PROCESSOR MATCHES "i68
   add_definitions(-DARCH_X86)
 endif()
 
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+  list(APPEND LIBDEBUG_PTRACE_BINDING_SOURCES libdebug/ptrace/native/aarch64/aarch64_ptrace.cpp)
+
+  # Add a definition for the ARM architecture
+  add_definitions(-DARCH_AARCH64)
+endif()
+
 # Add the libdebug_ptrace_binding module
 nanobind_add_module(
   libdebug_ptrace_binding

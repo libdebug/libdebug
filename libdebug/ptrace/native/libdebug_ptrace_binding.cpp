@@ -25,17 +25,11 @@
 #include "x86_fpregs_xsave_layout.h"
 #endif
 
+#ifdef ARCH_AARCH64
+#include "aarch64/aarch64_ptrace.h"
+#endif
+
 namespace nb = nanobind;
-
-int LibdebugPtraceInterface::getregs(Thread &t)
-{
-    return ptrace(PTRACE_GETREGS, t.tid, NULL, t.regs.get());
-}
-
-int LibdebugPtraceInterface::setregs(Thread &t)
-{
-    return ptrace(PTRACE_SETREGS, t.tid, NULL, t.regs.get());
-}
 
 void LibdebugPtraceInterface::getfpregs(Thread &t)
 {
@@ -57,21 +51,6 @@ void LibdebugPtraceInterface::check_and_set_fpregs(Thread &t)
     }
 
     t.fpregs->fresh = 0;
-}
-
-void LibdebugPtraceInterface::step_thread(Thread &t, bool forward_signal = true)
-{
-    if (forward_signal) {
-        if (ptrace(PTRACE_SINGLESTEP, t.tid, NULL, t.signal_to_forward) == -1) {
-            throw std::runtime_error("ptrace singlestep failed");
-        }
-
-        t.signal_to_forward = 0;
-    } else {
-        if (ptrace(PTRACE_SINGLESTEP, t.tid, NULL, 0) == -1) {
-            throw std::runtime_error("ptrace singlestep failed");
-        }
-    }
 }
 
 void LibdebugPtraceInterface::cont_thread(Thread &t)
@@ -124,6 +103,8 @@ int LibdebugPtraceInterface::prepare_for_run()
         }
     }
 
+    arch_check_if_hit_and_step_over();
+
     // Restore any software breakpoints
     for (auto &bp : software_breakpoints) {
         if (bp.second.enabled) {
@@ -173,7 +154,9 @@ std::pair<std::shared_ptr<PtraceRegsStruct>, std::shared_ptr<PtraceFPRegsStruct>
     t.signal_to_forward = 0;
     t.regs = std::make_shared<PtraceRegsStruct>();
     t.fpregs = std::make_shared<PtraceFPRegsStruct>();
+#if defined ARCH_X86_64 || defined ARCH_X86
     t.fpregs->type = FPREGS_TYPE;
+#endif
     t.fpregs->dirty = 0;
     t.fpregs->fresh = 0;
 
@@ -312,7 +295,8 @@ void LibdebugPtraceInterface::step(pid_t tid)
     check_and_set_fpregs(threads[tid]);
 
     // Step the thread
-    step_thread(threads[tid]);
+    // The third parameter indicates that we must step over hardware breakpoints
+    step_thread(threads[tid], true, true);
 }
 
 void LibdebugPtraceInterface::step_until(pid_t tid, unsigned long addr, int max_steps)
@@ -396,8 +380,9 @@ void LibdebugPtraceInterface::stepping_finish(pid_t tid, bool use_trampoline_heu
         // Get value at current instruction pointer
         opcode_window = peek_data(current_ip);
 
-        // On amd64 we care only about the first byte
-        opcode = opcode_window & 0xFF;
+        // On amd64 and i386 we care only about the first byte
+        // On aarch64 we care about the first 4 bytes
+        opcode = opcode_window & 0xFFFFFFFF;
 
         // If the instruction pointer didn't change, we return
         // because we hit a hardware breakpoint
@@ -816,7 +801,7 @@ NB_MODULE(libdebug_ptrace_binding, m)
         )
         .def(
             "get_remaining_hw_watchpoint_count",
-            &LibdebugPtraceInterface::get_remaining_hw_breakpoint_count,
+            &LibdebugPtraceInterface::get_remaining_hw_watchpoint_count,
             nb::arg("tid"),
             "Gets the remaining hardware watchpoint count for a thread.\n"
             "\n"

@@ -35,6 +35,27 @@ int IS_CALL_INSTRUCTION(uint8_t* instr)
     return 0; // Not a CALL
 }
 
+void LibdebugPtraceInterface::step_thread(Thread &t, bool forward_signal, bool step_over_hardware_bp)
+{
+    // on x86, step overrides hardware breakpoints, so we do not care about them
+    if (forward_signal) {
+        if (ptrace(PTRACE_SINGLESTEP, t.tid, NULL, t.signal_to_forward) == -1) {
+            throw std::runtime_error("ptrace singlestep failed");
+        }
+
+        t.signal_to_forward = 0;
+    } else {
+        if (ptrace(PTRACE_SINGLESTEP, t.tid, NULL, 0) == -1) {
+            throw std::runtime_error("ptrace singlestep failed");
+        }
+    }
+}
+
+void LibdebugPtraceInterface::arch_check_if_hit_and_step_over()
+{
+    // on x86, we do not need to check for hardware breakpoints
+}
+
 int LibdebugPtraceInterface::get_remaining_hw_breakpoint_count(const pid_t tid)
 {
     int i;
@@ -45,6 +66,28 @@ int LibdebugPtraceInterface::get_remaining_hw_breakpoint_count(const pid_t tid)
     }
 
     return 4 - i;
+}
+
+int LibdebugPtraceInterface::get_remaining_hw_watchpoint_count(const pid_t tid)
+{
+    int i;
+    for (i = 0; i < 4; i++) {
+        if (ptrace(PTRACE_PEEKUSER, tid, DR_BASE + (i * DR_SIZE), NULL) == 0) {
+            break;
+        }
+    }
+
+    return 4 - i;
+}
+
+int LibdebugPtraceInterface::getregs(Thread &t)
+{
+    return ptrace(PTRACE_GETREGS, t.tid, NULL, t.regs.get());
+}
+
+int LibdebugPtraceInterface::setregs(Thread &t)
+{
+    return ptrace(PTRACE_SETREGS, t.tid, NULL, t.regs.get());
 }
 
 void LibdebugPtraceInterface::arch_getfpregs(Thread &t)

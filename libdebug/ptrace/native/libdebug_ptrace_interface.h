@@ -28,7 +28,7 @@ private:
     void check_and_set_fpregs(Thread &);
 
     // Control flow private methods
-    void step_thread(Thread &, bool);
+    void step_thread(Thread &,  bool forward_signal = true, bool step_over_hardware_bp = false);
     void cont_thread(Thread &);
     int prepare_for_run();
 
@@ -36,6 +36,10 @@ private:
     void install_hardware_breakpoint(const HardwareBreakpoint &);
     void remove_hardware_breakpoint(const HardwareBreakpoint &);
     unsigned long hit_hardware_breakpoint_address(const pid_t);
+
+    // On some architectures, you are not allowed to step or cont over a hardware breakpoint
+    // This method checks if the thread is on a hardware breakpoint and steps over it
+    void arch_check_if_hit_and_step_over();
 
     // Others
     bool check_if_dl_trampoline(unsigned long);
@@ -79,6 +83,7 @@ public:
     void unregister_hw_breakpoint(const pid_t, const unsigned long);
     unsigned long get_hit_hw_breakpoint(const pid_t);
     int get_remaining_hw_breakpoint_count(const pid_t);
+    int get_remaining_hw_watchpoint_count(const pid_t);
 
     // Debugger register and memory methods
     void get_fp_regs(const pid_t);
