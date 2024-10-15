@@ -42,8 +42,6 @@ classifiers = [
 ]
 keywords = ["libdebug", "debugger", "elf", "ptrace", "gdb", "debug", "ctf", "reverse-engineering", "reverse", "rev", "scriptable", "script"]
 dependencies = [
-    "capstone",
-    "nanobind",
     "psutil",
     "pyelftools",
     "requests",
