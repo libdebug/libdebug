@@ -185,7 +185,8 @@ SymbolVector collect_external_symbols(const std::string &debug_file_path, const 
 
     // Check if the debug file exists
     if (access(debug_file_path.c_str(), R_OK) == -1) {
-        throw std::invalid_argument("File not found or not readable: " + debug_file_path);
+        // The debug file does not exist on this system
+        return symbols;
     }
 
     // Open the debug file
