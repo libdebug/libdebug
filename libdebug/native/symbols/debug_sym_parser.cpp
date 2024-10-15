@@ -142,11 +142,11 @@ const ElfInfo read_elf_info(const std::string &elf_file_path, const int debug_in
     }
 
     if (access(elf_file_path.c_str(), R_OK) == -1) {
-        throw std::runtime_error("File not found or not readable: " + elf_file_path);
+        throw std::invalid_argument("File not found or not readable: " + elf_file_path);
     }
 
     if ((fd = open(elf_file_path.c_str(), O_RDONLY, 0)) < 0) {
-        throw std::runtime_error("Error opening file: " + elf_file_path);
+        throw std::invalid_argument("Error opening file: " + elf_file_path);
     }
 
     if ((elf = elf_begin(fd, ELF_C_READ, NULL)) == NULL) {
@@ -185,12 +185,12 @@ SymbolVector collect_external_symbols(const std::string &debug_file_path, const 
 
     // Check if the debug file exists
     if (access(debug_file_path.c_str(), R_OK) == -1) {
-        throw std::runtime_error("File not found or not readable: " + debug_file_path);
+        throw std::invalid_argument("File not found or not readable: " + debug_file_path);
     }
 
     // Open the debug file
     if ((fd = open(debug_file_path.c_str(), O_RDONLY, 0)) < 0) {
-        throw std::runtime_error("Error opening file: " + debug_file_path);
+        throw std::invalid_argument("Error opening file: " + debug_file_path);
     }
 
     // Read the ELF file
