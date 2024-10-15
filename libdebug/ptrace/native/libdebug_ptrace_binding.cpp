@@ -12,9 +12,18 @@
 
 #include "libdebug_ptrace_base.h"
 #include "libdebug_ptrace_interface.h"
+
+#ifdef ARCH_X86_64
 #include "shared/x86_ptrace.h"
 #include "amd64/amd64_ptrace.h"
 #include "x86_fpregs_xsave_layout.h"
+#endif
+
+#ifdef ARCH_X86
+#include "shared/x86_ptrace.h"
+#include "i386/i386_ptrace.h"
+#include "x86_fpregs_xsave_layout.h"
+#endif
 
 namespace nb = nanobind;
 
