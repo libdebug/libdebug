@@ -128,14 +128,33 @@ execute_process(
 list(APPEND CMAKE_PREFIX_PATH "${NB_DIR}")
 find_package(nanobind CONFIG REQUIRED)
 
+# Define the sources for the libdebug_ptrace_binding module
+set(LIBDEBUG_PTRACE_BINDING_SOURCES
+  libdebug/ptrace/native/libdebug_ptrace_binding.cpp
+)
+
+# Print the architecture
+message(STATUS "Detected Architecture: ${CMAKE_SYSTEM_PROCESSOR}")
+
+# Add the architecture-specific sources for amd64
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64" OR CMAKE_SYSTEM_PROCESSOR MATCHES "amd64")
+  list(APPEND LIBDEBUG_PTRACE_BINDING_SOURCES libdebug/ptrace/native/amd64/amd64_ptrace.cpp)
+  list(APPEND LIBDEBUG_PTRACE_BINDING_SOURCES libdebug/ptrace/native/shared/x86_ptrace.cpp)
+endif()
+
+# Add the architecture-specific sources for i386
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "i386" OR CMAKE_SYSTEM_PROCESSOR MATCHES "i686" OR CMAKE_SYSTEM_PROCESSOR MATCHES "x86" AND NOT CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+  list(APPEND LIBDEBUG_PTRACE_BINDING_SOURCES libdebug/ptrace/native/i386/i386_ptrace.cpp)
+  list(APPEND LIBDEBUG_PTRACE_BINDING_SOURCES libdebug/ptrace/native/shared/x86_ptrace.cpp)
+endif()
+
 # Add the libdebug_ptrace_binding module
 nanobind_add_module(
   libdebug_ptrace_binding
   NOMINSIZE
   NOSTRIP
   LTO
-  libdebug/ptrace/native/libdebug_ptrace_binding.cpp
-  libdebug/ptrace/native/amd64/libdebug_ptrace_amd64.cpp
+  ${LIBDEBUG_PTRACE_BINDING_SOURCES}
 )
 
 # Add the stub for libdebug_ptrace_binding
@@ -205,10 +224,10 @@ if (CMAKE_SYSTEM_PROCESSOR MATCHES "i386"
     OR CMAKE_SYSTEM_PROCESSOR MATCHES "amd64")
 
     # Register the xsave layout generator executable
-    add_executable(autogenerate_xsave_layout libdebug/ptrace/native/amd64/amd64_autogenerate_xsave_layout.c)
+    add_executable(autogenerate_xsave_layout libdebug/ptrace/native/shared/x86_autogenerate_xsave_layout.c)
 
     # Define the path to the output file
-    set(XSAVE_LAYOUT_OUTPUT ${CMAKE_BINARY_DIR}/generated/libdebug_ptrace_amd64_fpregs_xsave_layout.h)
+    set(XSAVE_LAYOUT_OUTPUT ${CMAKE_BINARY_DIR}/generated/x86_fpregs_xsave_layout.h)
 
     # Define the custom command that runs the generator and writes the output
     add_custom_command(

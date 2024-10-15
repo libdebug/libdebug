@@ -13,20 +13,6 @@
 
 #define INSTRUCTION_POINTER(regs) (regs->rip)
 #define INSTALL_BREAKPOINT(instruction) ((instruction & 0xFFFFFFFFFFFFFF00) | 0xCC)
-#define BREAKPOINT_SIZE 1
-#define IS_SW_BREAKPOINT(instruction) (instruction == 0xCC)
-
-#define DR_BASE offsetof(struct user, u_debugreg[0])
-#define DR_SIZE sizeof(unsigned long)
-#define CTRL_LOCAL(x) (1 << (2 * x))
-#define CTRL_COND(x) (16 + (4 * x))
-#define CTRL_COND_VAL(x) (x == 'x' ? 0 : (x == 'w' ? 1 : 3))
-#define CTRL_LEN(x) (18 + (4 * x))
-#define CTRL_LEN_VAL(x) (x == 1 ? 0 : (x == 2 ? 1 : (x == 8 ? 2 : 3)))
-
-#define IS_RET_INSTRUCTION(instruction) (instruction == 0xC3 || instruction == 0xCB || instruction == 0xC2 || instruction == 0xCA)
-
-int IS_CALL_INSTRUCTION(uint8_t* instr);
 
 struct PtraceRegsStruct
 {

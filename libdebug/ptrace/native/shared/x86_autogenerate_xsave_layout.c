@@ -34,6 +34,15 @@
 #define X86_XSTATE_TILEDATA_ID	18
 #define X86_XSTATE_APX_F_ID	19
 
+int has_xsave()
+{
+    uint32_t eax, ebx, ecx, edx;
+
+    __cpuid(0x0d, eax, ebx, ecx, edx);
+
+    return eax & 0x1;
+}
+
 int xsave_element_offset(int element)
 {
     uint32_t eax, ebx, ecx, edx;
@@ -85,6 +94,7 @@ int main(int argc, char *argv[])
     int pid = fork();
 
     int has_avx = 0, has_avx512 = 0;
+    int has_xsave = 0;
 
     if (!pid) {
         if (ptrace(PTRACE_TRACEME, 0, 0, 0) == -1) {
@@ -115,7 +125,13 @@ int main(int argc, char *argv[])
     // get the xsave area
     if (ptrace(PTRACE_GETREGSET, pid, NT_X86_XSTATE, &iov) == -1) {
         fprintf(stderr, "Failed to get xsave area\n");
-        return 1;
+
+        // this probably means that the CPU (or kernel) doesn't support xsave
+        // we can still get the fp regs through GETFPREGS
+        has_avx = has_avx512 = has_xsave = 0;
+        goto no_xsave;
+    } else {
+        has_xsave = 1;
     }
 
     // kill the child
@@ -259,6 +275,7 @@ int main(int argc, char *argv[])
         current_size = pkru_offset + pkru_size;
     }
 
+no_xsave:
     puts("};");
     puts("#pragma pack(pop)");
 
@@ -268,6 +285,12 @@ int main(int argc, char *argv[])
     printf("// Expected size of struct fp_regs_struct = %d\n", xsave_area_size());
 
     puts("");
+
+    if (has_xsave) {
+        puts("#define HAS_XSAVE 1");
+    } else {
+        puts("#define HAS_XSAVE 0");
+    }
 
     if (!has_avx && !has_avx512) {
         puts("#define FPREGS_TYPE 0");
@@ -288,7 +311,7 @@ int main(int argc, char *argv[])
     puts("");
 
     // Now we need to dump the nanobind function that will register the class definition
-    puts("void init_amd64_fpregs_struct(nanobind::module_ &m)");
+    puts("void init_fpregs_struct(nanobind::module_ &m)");
     puts("{");
     puts("    nb::class_<PtraceFPRegsStruct>(m, \"PtraceFPRegsStruct\")");
     puts("        .def_ro(\"type\", &PtraceFPRegsStruct::type)");
