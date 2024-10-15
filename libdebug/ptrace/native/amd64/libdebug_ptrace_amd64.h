@@ -9,7 +9,7 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/array.h>
 
-#include "../libdebug_ptrace_base.h"
+#include "libdebug_ptrace_base.h"
 
 #define INSTRUCTION_POINTER(regs) (regs->rip)
 #define INSTALL_BREAKPOINT(instruction) ((instruction & 0xFFFFFFFFFFFFFF00) | 0xCC)

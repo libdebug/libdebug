@@ -232,6 +232,9 @@ if (CMAKE_SYSTEM_PROCESSOR MATCHES "i386"
     message(STATUS "Generated xsave layout header at ${XSAVE_LAYOUT_OUTPUT}")
 endif()
 
+# Add libdebug/ptrace/native to the include directories
+target_include_directories(libdebug_ptrace_binding PRIVATE libdebug/ptrace/native)
+
 # Link required libraries
 target_link_libraries(libdebug_debug_sym_parser PRIVATE elf dwarf iberty)
 

@@ -10,7 +10,7 @@
 #include <sys/uio.h>
 #include <sys/user.h>
 
-#include "../libdebug_ptrace_interface.h"
+#include "libdebug_ptrace_interface.h"
 #include "libdebug_ptrace_amd64.h"
 
 #define DECLARE_NANOBIND
