@@ -7,6 +7,12 @@
 #include "libdebug_ptrace_interface.h"
 #include "aarch64_ptrace.h"
 
+#include <elf.h>
+#include <sys/ptrace.h>
+#include <sys/types.h>
+#include <sys/uio.h>
+#include <sys/user.h>
+#include <sys/wait.h>
 
 namespace nb = nanobind;
 
@@ -91,7 +97,7 @@ void LibdebugPtraceInterface::step_thread(Thread &t, bool forward_signal, bool s
                         throw std::runtime_error("ptrace singlestep failed");
                     }
                 }
-                
+
                 // re-add the breakpoint
                 install_hardware_breakpoint(bp);
 
@@ -159,7 +165,7 @@ int LibdebugPtraceInterface::getregs(Thread &t)
     iov.iov_base = t.regs.get();
     iov.iov_len = sizeof(PtraceRegsStruct);
 
-    return ptrace(PTRACE_GETREGSET, tid, NT_PRSTATUS, &iov);
+    return ptrace(PTRACE_GETREGSET, t.tid, NT_PRSTATUS, &iov);
 }
 
 int LibdebugPtraceInterface::setregs(Thread &t)
@@ -169,14 +175,14 @@ int LibdebugPtraceInterface::setregs(Thread &t)
     if (t.regs->override_syscall_number) {
         iov.iov_base = &(t.regs->x8);
         iov.iov_len = sizeof(t.regs->x8);
-        ptrace(PTRACE_SETREGSET, tid, NT_ARM_SYSTEM_CALL, &iov);
+        ptrace(PTRACE_SETREGSET, t.tid, NT_ARM_SYSTEM_CALL, &iov);
         t.regs->override_syscall_number = 0;
     }
 
     iov.iov_base = t.regs.get();
     iov.iov_len = sizeof(PtraceRegsStruct);
 
-    return ptrace(PTRACE_SETREGSET, tid, NT_PRSTATUS, &iov);
+    return ptrace(PTRACE_SETREGSET, t.tid, NT_PRSTATUS, &iov);
 }
 
 void LibdebugPtraceInterface::arch_getfpregs(Thread &t)
@@ -228,12 +234,13 @@ void LibdebugPtraceInterface::install_hardware_breakpoint(const HardwareBreakpoi
         throw std::runtime_error("No debug registers available");
     }
 
+    int len = bp.len;
     if ((bp.type & 0xff) == 'x') {
         // Hardware breakpoint can only be of length 4
-        bp.len = 4;
+        len = 4;
     }
 
-    unsigned int length = (1 << bp.len) - 1;
+    unsigned int length = (1 << len) - 1;
     unsigned int condition = get_breakpoint_type(bp.type);
     unsigned int control = (length << 5) | (condition << 3) | (2 << 1) | 1;
 
@@ -283,7 +290,7 @@ unsigned long LibdebugPtraceInterface::hit_hardware_breakpoint_address(const pid
     if (!(si.si_signo == SIGTRAP && si.si_code == 0x4)) {
         return 0;
     }
-    
+
     return (unsigned long) si.si_addr;
 }
 

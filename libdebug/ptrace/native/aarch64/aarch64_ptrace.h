@@ -72,3 +72,5 @@ struct PtraceFPRegsStruct
     unsigned long padding;
 };
 #pragma pack(pop)
+
+void init_libdebug_ptrace_registers(nanobind::module_ &);
