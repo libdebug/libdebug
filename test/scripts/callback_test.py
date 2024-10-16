@@ -166,7 +166,7 @@ class CallbackTest(TestCase):
         d.cont()
 
         d.kill()
-        d = debugger(RESOLVE_EXE("basic_test"))
+        d.terminate()
 
     def test_callback_pid_accessible(self):
         self.exceptions.clear()

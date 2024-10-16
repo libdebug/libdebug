@@ -11,11 +11,10 @@ from pathlib import Path
 import requests
 from elftools.elf.elffile import ELFFile
 
-from libdebug.cffi.debug_sym_cffi import ffi
-from libdebug.cffi.debug_sym_cffi import lib as lib_sym
 from libdebug.data.symbol import Symbol
 from libdebug.data.symbol_list import SymbolList
 from libdebug.liblog import liblog
+from libdebug.native import libdebug_debug_sym_parser
 from libdebug.utils.libcontext import libcontext
 
 DEBUGINFOD_PATH: Path = Path.home() / ".cache" / "debuginfod_client"
@@ -73,22 +72,9 @@ def _collect_external_info(path: str) -> SymbolList[Symbol]:
     Returns:
         SymbolList[Symbol]: A list containing the symbols taken from the external debuginfo file.
     """
-    symbols = []
+    ext_symbols = libdebug_debug_sym_parser.collect_external_symbols(path, libcontext.sym_lvl)
 
-    c_file_path = ffi.new("char[]", path.encode("utf-8"))
-    head = lib_sym.collect_external_symbols(c_file_path, libcontext.sym_lvl)
-
-    if head != ffi.NULL:
-        cursor = head
-
-        while cursor != ffi.NULL:
-            symbol_name = ffi.string(cursor.name).decode("utf-8")
-            symbols.append(Symbol(cursor.low_pc, cursor.high_pc, symbol_name, path))
-            cursor = cursor.next
-
-        lib_sym.free_symbol_info(head)
-
-    return SymbolList(symbols)
+    return SymbolList([Symbol(symbol.low_pc, symbol.high_pc, symbol.name, path) for symbol in ext_symbols])
 
 
 @functools.cache
@@ -104,31 +90,11 @@ def _parse_elf_file(path: str, debug_info_level: int) -> tuple[SymbolList[Symbol
         buildid (str): The buildid of the specified ELF file.
         debug_file_path (str): The path to the external debuginfo file corresponding.
     """
-    symbols = []
-    buildid = None
-    debug_file_path = None
+    elfinfo = libdebug_debug_sym_parser.read_elf_info(path, debug_info_level)
 
-    c_file_path = ffi.new("char[]", path.encode("utf-8"))
-    head = lib_sym.read_elf_info(c_file_path, debug_info_level)
+    symbols = [Symbol(symbol.low_pc, symbol.high_pc, symbol.name, path) for symbol in elfinfo.symbols]
 
-    if head != ffi.NULL:
-        cursor = head
-
-        while cursor != ffi.NULL:
-            symbol_name = ffi.string(cursor.name).decode("utf-8")
-            symbols.append(Symbol(cursor.low_pc, cursor.high_pc, symbol_name, path))
-            cursor = cursor.next
-
-        lib_sym.free_symbol_info(head)
-
-    if debug_info_level > 2:
-        buildid = lib_sym.get_build_id()
-        buildid = ffi.string(buildid).decode("utf-8") if buildid != ffi.NULL else None
-
-        debug_file_path = lib_sym.get_debug_file()
-        debug_file_path = ffi.string(debug_file_path).decode("utf-8") if debug_file_path != ffi.NULL else None
-
-    return SymbolList(symbols), buildid, debug_file_path
+    return SymbolList(symbols), elfinfo.build_id, elfinfo.debuglink
 
 
 @functools.cache
