@@ -78,6 +78,9 @@ class ThreadContext:
     _thread_id: int
     """The thread's ID."""
 
+    _snapshot_count: int = 0
+    """The number of snapshots taken."""
+
     def __init__(self: ThreadContext, thread_id: int, registers: RegisterHolder) -> None:
         """Initializes the Thread Context."""
         self._internal_debugger = provide_internal_debugger(self)

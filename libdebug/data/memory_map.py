@@ -20,6 +20,7 @@ class MemoryMap:
         size (int): The size of the memory map.
         offset (int): The relative offset of the memory map.
         backing_file (str): The backing file of the memory map, or the symbolic name of the memory map.
+        content (bytes): Used in snapshotted pages only. Holds the content of the memory map. 
     """
 
     start: int = 0
@@ -32,6 +33,9 @@ class MemoryMap:
 
     backing_file: str = ""
     """The backing file of the memory map, such as 'libc.so.6', or the symbolic name of the memory map, such as '[stack]'."""
+
+    _content: bytes = None
+    """The content of the memory map, used for snapshotted pages."""
 
     @staticmethod
     def parse(vmap: str) -> MemoryMap:
@@ -64,6 +68,33 @@ class MemoryMap:
         """Alias for the start address of the memory map."""
         return self.start
 
+    @property
+    def content(self: MemoryMap) -> bytes:
+        """The content of the memory map, used for snapshotted pages."""
+        if self._content is None:
+            raise ValueError("The content field is only available for snapshot pages.")
+
+        return self._content
+
+    def is_same_identity(self: MemoryMap, other: MemoryMap) -> bool:
+        """Check if the memory map corresponds to another memory map."""
+        return self.start == other.start and self.end == other.end and self.backing_file == other.backing_file
+
     def __repr__(self: MemoryMap) -> str:
         """Return the string representation of the memory map."""
-        return f"MemoryMap(start={hex(self.start)}, end={hex(self.end)}, permissions={self.permissions}, size={hex(self.size)}, offset={hex(self.offset)}, backing_file={self.backing_file})"
+        str_repr =  f"MemoryMap(start={hex(self.start)}, end={hex(self.end)}, permissions={self.permissions}, size={hex(self.size)}, offset={hex(self.offset)}, backing_file={self.backing_file})"
+        str_repr += f"\nContent: {self.content}" if self._content else ""
+
+        return str_repr
+
+    def __eq__(self, value: object) -> bool:
+        """Check if this MemoryMap is equal to another object."""
+        return (
+            self.start == value.start
+            and self.end == value.end
+            and self.permissions == value.permissions
+            and self.size == value.size
+            and self.offset == value.offset
+            and self.backing_file == value.backing_file
+            and self._content == value._content
+        )
