@@ -16,7 +16,6 @@ private:
     bool handle_syscall;
     std::map<pid_t, Thread> threads, dead_threads;
     std::map<unsigned long, SoftwareBreakpoint> software_breakpoints;
-    std::vector<HardwareBreakpoint> hardware_breakpoints;
 
     // Register private methods
     int getregs(Thread &);

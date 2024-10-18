@@ -52,6 +52,7 @@ struct HardwareBreakpoint
 struct Thread
 {
     pid_t tid;
+    std::map<unsigned long, HardwareBreakpoint> hardware_breakpoints;
     std::shared_ptr<PtraceRegsStruct> regs;
     std::shared_ptr<PtraceFPRegsStruct> fpregs;
     int signal_to_forward;

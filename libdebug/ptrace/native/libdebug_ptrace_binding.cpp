@@ -127,7 +127,6 @@ void LibdebugPtraceInterface::cleanup()
     threads.clear();
     dead_threads.clear();
     software_breakpoints.clear();
-    hardware_breakpoints.clear();
 
     process_id = -1;
     group_id = -1;
@@ -175,15 +174,6 @@ void LibdebugPtraceInterface::unregister_thread(const pid_t tid)
     // move the dead thread to the dead list
     dead_threads[tid] = threads[tid];
     threads.erase(tid);
-
-    // remove any hardware breakpoints
-    for (auto it = hardware_breakpoints.begin(); it != hardware_breakpoints.end();) {
-        if (it->tid == tid) {
-            hardware_breakpoints.erase(it);
-        } else {
-            ++it;
-        }
-    }
 }
 
 int LibdebugPtraceInterface::attach(pid_t tid)
@@ -211,10 +201,8 @@ void LibdebugPtraceInterface::detach_for_migration()
         check_and_set_fpregs(it->second);
 
         // remove any installed hardware breakpoints
-        for (auto &b : hardware_breakpoints) {
-            if (b.tid == it->first) {
-                remove_hardware_breakpoint(b);
-            }
+        for (auto &b : it->second.hardware_breakpoints) {
+            remove_hardware_breakpoint(b.second);
         }
 
         // be sure that the thread will not run during gdb reattachment
@@ -313,10 +301,8 @@ void LibdebugPtraceInterface::step_until(pid_t tid, unsigned long addr, int max_
     int count = 0, status = 0;
 
     // Remove any hardware breakpoints
-    for (auto &bp : hardware_breakpoints) {
-        if (bp.tid == tid) {
-            remove_hardware_breakpoint(bp);
-        }
+    for (auto &bp : t.hardware_breakpoints) {
+        remove_hardware_breakpoint(bp.second);
     }
 
     while (max_steps == -1 || count < max_steps) {
@@ -344,9 +330,9 @@ void LibdebugPtraceInterface::step_until(pid_t tid, unsigned long addr, int max_
     }
 
     // Re-add the hardware breakpoints
-    for (auto &bp : hardware_breakpoints) {
-        if (bp.tid == tid && bp.enabled) {
-            install_hardware_breakpoint(bp);
+    for (auto &bp : t.hardware_breakpoints) {
+        if (bp.second.enabled) {
+            install_hardware_breakpoint(bp.second);
         }
     }
 }
@@ -544,21 +530,21 @@ void LibdebugPtraceInterface::disable_breakpoint(const unsigned long address)
 
 void LibdebugPtraceInterface::register_hw_breakpoint(const pid_t tid, unsigned long address, const int type, const int len)
 {
-    HardwareBreakpoint bp;
+    Thread &t = threads[tid];
 
-    for (auto &b : hardware_breakpoints) {
-        if (b.addr == address && b.tid == tid) {
-            throw std::runtime_error("Breakpoint already registered");
-        }
+    if (t.hardware_breakpoints.find(address) != t.hardware_breakpoints.end()) {
+        throw std::runtime_error("Breakpoint already registered");
     }
 
+    HardwareBreakpoint bp;
     bp.addr = address;
     bp.tid = tid;
     bp.enabled = true;
     bp.type = type;
     bp.len = len;
 
-    hardware_breakpoints.push_back(bp);
+    // Insert the hardware breakpoint
+    t.hardware_breakpoints[address] = bp;
 
     // Install the hardware breakpoint
     install_hardware_breakpoint(bp);
@@ -566,17 +552,22 @@ void LibdebugPtraceInterface::register_hw_breakpoint(const pid_t tid, unsigned l
 
 void LibdebugPtraceInterface::unregister_hw_breakpoint(const pid_t tid, const unsigned long address)
 {
-    for (auto it = hardware_breakpoints.begin(); it != hardware_breakpoints.end(); ++it) {
-        if (it->addr == address && it->tid == tid) {
-            if (it->enabled) {
-                // Remove the hardware breakpoint
-                remove_hardware_breakpoint(*it);
-            }
-
-            hardware_breakpoints.erase(it);
-            break;
-        }
+    if (threads.find(tid) == threads.end()) {
+        return;
     }
+
+    Thread &t = threads[tid];
+
+    if (t.hardware_breakpoints.find(address) == t.hardware_breakpoints.end()) {
+        throw std::runtime_error("Breakpoint not found");
+    }
+
+    if (t.hardware_breakpoints[address].enabled) {
+        // Remove the hardware breakpoint
+        remove_hardware_breakpoint(t.hardware_breakpoints[address]);
+    }
+
+    t.hardware_breakpoints.erase(address);
 }
 
 unsigned long LibdebugPtraceInterface::get_hit_hw_breakpoint(const pid_t tid)
@@ -587,10 +578,8 @@ unsigned long LibdebugPtraceInterface::get_hit_hw_breakpoint(const pid_t tid)
         return 0;
     }
 
-    for (auto &bp : hardware_breakpoints) {
-        if (bp.addr == address && bp.tid == tid) {
-            return address;
-        }
+    if (threads[tid].hardware_breakpoints.find(address) != threads[tid].hardware_breakpoints.end()) {
+        return address;
     }
 
     return 0;
