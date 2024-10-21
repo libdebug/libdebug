@@ -7,8 +7,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from libdebug.snapshots.thread_snapshot_diff import ThreadSnapshotDiff
+
 if TYPE_CHECKING:
-    from libdebug.snapshots.thread_snapshot import ThreadSnapshot
+    from libdebug.snapshots.process_snapshot import ProcessSnapshot
 
 
 from libdebug.snapshots.memory_content_diff import MemoryContentDiff
@@ -16,18 +18,18 @@ from libdebug.snapshots.register_diff import RegisterDiff
 from libdebug.snapshots.register_diff_accessor import RegisterDiffAccessor
 
 
-class ThreadSnapshotDiff:
-    """This object represents a diff between thread snapshots."""
+class ProcessSnapshotDiff:
+    """This object represents a diff between process snapshots."""
 
-    def __init__(self: ThreadSnapshotDiff, snapshot1: ThreadSnapshot, snapshot2: ThreadSnapshot) -> ThreadSnapshotDiff:
-        """Returns a diff between given snapshots of the same thread.
+    def __init__(self: ProcessSnapshotDiff, snapshot1: ProcessSnapshot, snapshot2: ProcessSnapshot) -> None:
+        """Returns a diff between given snapshots of the same process.
 
         Args:
-            snapshot1 (ThreadSnapshot): A thread snapshot.
-            snapshot2 (ThreadSnapshot): A thread snapshot.
+            snapshot1 (ProcessSnapshot): A process snapshot.
+            snapshot2 (ProcessSnapshot): A process snapshot.
         """
-        if not isinstance(snapshot1, ThreadSnapshot) or not isinstance(snapshot2, ThreadSnapshot):
-            raise ValueError("Both arguments must be ThreadSnapshot objects.")
+        if not isinstance(snapshot1, ProcessSnapshot) or not isinstance(snapshot2, ProcessSnapshot):
+            raise ValueError("Both arguments must be ProcessSnapshot objects.")
 
         self.snapshot1 = snapshot1 if snapshot1.snapshot_id < snapshot2.snapshot_id else snapshot2
         self.snapshot2 = snapshot2 if snapshot1.snapshot_id >= snapshot2.snapshot_id else snapshot1
@@ -85,3 +87,36 @@ class ThreadSnapshotDiff:
                 )
 
                 self.saved_maps_diff.append(diff)
+
+        # Thread diffs
+        # - Born and dead threads are saved as snapshots
+        # - Threads that keep existing are saved as diffs and are accessed through the usual threads property
+        self.born_threads = []
+        self.dead_threads = []
+        self.threads = []
+
+        for t1 in self.snapshot1.threads:
+            t2 = None
+
+            for candidate in self.snapshot2.threads:
+                if t1.tid == candidate.tid:
+                    t2 = candidate
+                    break
+
+            if t2 is None:
+                # Append thread snapshot to dead threads
+                self.dead_threads.append(t1)
+            else:
+                diff = ThreadSnapshotDiff(t1, t2)
+                self.threads_diff.append(diff)
+        
+        for t2 in self.snapshot2.threads:
+            t1 = None
+
+            for candidate in self.snapshot1.threads:
+                if t2.tid == candidate.tid:
+                    t1 = candidate
+                    break
+
+            if t1 is None:
+                self.born_threads.append(t2)
