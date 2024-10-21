@@ -188,6 +188,9 @@ class InternalDebugger:
     _slow_memory: ChunkedMemoryView
     """The memory view of the debugged process using the slow memory access method."""
 
+    _snapshot_count: int
+    """The counter used to assign an ID to each snapshot."""
+
     def __init__(self: InternalDebugger) -> None:
         """Initialize the context."""
         # These must be reinitialized on every call to "debugger"
@@ -218,6 +221,7 @@ class InternalDebugger:
         self.fast_memory = False
         self.__polling_thread_command_queue = Queue()
         self.__polling_thread_response_queue = Queue()
+        self._snapshot_count = 0
 
     def clear(self: InternalDebugger) -> None:
         """Reinitializes the context, so it is ready for a new run."""

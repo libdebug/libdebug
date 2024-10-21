@@ -4,6 +4,8 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 
@@ -19,3 +21,7 @@ class RegisterDiff:
 
     has_changed: bool
     """Whether the register has changed."""
+
+    def __repr__(self: RegisterDiff) -> str:
+        """Return a string representation of the RegisterDiff object."""
+        return f"RegisterDiff(old_value={hex(self.old_value)}, new_value={hex(self.new_value)}, has_changed={self.has_changed})"

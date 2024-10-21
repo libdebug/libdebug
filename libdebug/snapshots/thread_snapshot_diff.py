@@ -78,7 +78,7 @@ class ThreadSnapshotDiff:
                 diff = MemoryContentDiff(
                     old_content=map1,
                     new_content=map2,
-                    has_changed=(map1 == map2),
+                    has_changed=(map1 != map2),
                 )
 
                 self.saved_maps_diff.append(diff)
