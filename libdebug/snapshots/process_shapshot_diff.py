@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from libdebug.snapshots.process_snapshot import ProcessSnapshot
 
 
-from libdebug.snapshots.memory_content_diff import MemoryContentDiff
+from libdebug.snapshots.memory_map_diff import MemoryMapDiff
 from libdebug.snapshots.register_diff import RegisterDiff
 from libdebug.snapshots.register_diff_accessor import RegisterDiffAccessor
 
@@ -80,7 +80,7 @@ class ProcessSnapshotDiff:
                 if map2 is None:
                     continue
 
-                diff = MemoryContentDiff(
+                diff = MemoryMapDiff(
                     old_content=map1,
                     new_content=map2,
                     has_changed=(map1 != map2),

@@ -20,7 +20,7 @@ class ThreadSnapshot:
 
     Snapshot levels:
     - base: Registers
-    - full: Registers, stack, writable memory
+    - full: Registers, stack, memory
     """
 
     def __init__(self: ThreadSnapshot, thread: ThreadContext, level: str = "base", name: str = None) -> None:
@@ -36,6 +36,7 @@ class ThreadSnapshot:
         thread._snapshot_count += 1
 
         # Basic snapshot info
+        self.thread_id = thread.thread_id
         self.tid = thread.tid
         self.name = name
         self.level = level
@@ -53,24 +54,25 @@ class ThreadSnapshot:
             self.regs.__setattr__(reg_name, reg_value)
 
         # Memory maps
-        self.maps = thread.debugger.maps.copy()
-
         match level:
             case "base":
-                pass
+                self.maps = thread.debugger.maps.copy()
             case "full":
-                # Save all writable pages
-                maps_to_save = [curr_map for curr_map in thread.debugger.maps if "w" in curr_map.permissions]
-
-                self.saved_memory_maps = []
-
-                for curr_map in maps_to_save:
-                    contents = thread.memory[curr_map.start:curr_map.end, "absolute"]
-                    saved_map = MemoryMap(curr_map.start, curr_map.end, curr_map.permissions, curr_map.size, curr_map.offset, curr_map.backing_file, contents)
-                    self.saved_memory_maps.append(saved_map)
+                # Save all memory pages
+                _save_memory_maps(self, thread)
             case _:
                 raise ValueError(f"Invalid snapshot level {level}")
 
         # Log the creation of the snapshot
         named_addition = " named " + self.name if name is not None else ""
         liblog.debugger(f"Created snapshot {self.snapshot_id} of level {self.level} for thread {self.tid}{named_addition}")
+
+        def _save_memory_maps(self: ThreadSnapshot, thread: ThreadContext) -> None:
+            """Saves memory maps of the thread to the snapshot."""
+
+            self.saved_memory_maps = []
+
+            for curr_map in thread.debugger.maps:
+                contents = thread.memory[curr_map.start:curr_map.end, "absolute"]
+                saved_map = MemoryMap(curr_map.start, curr_map.end, curr_map.permissions, curr_map.size, curr_map.offset, curr_map.backing_file, contents)
+                self.maps.append(saved_map)

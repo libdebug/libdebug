@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from libdebug.snapshots.thread_snapshot import ThreadSnapshot
 
 
-from libdebug.snapshots.memory_content_diff import MemoryContentDiff
+from libdebug.snapshots.memory_map_diff import MemoryMapDiff
 from libdebug.snapshots.register_diff import RegisterDiff
 from libdebug.snapshots.register_diff_accessor import RegisterDiffAccessor
 
@@ -51,37 +51,42 @@ class ThreadSnapshotDiff:
             self.regs.__setattr__(reg_name, diff)
 
         # Handle memory maps
-        self.maps_diff = []
+        self.maps = []
+        handled_map2_indices = []
 
         for map1 in self.snapshot1.maps:
-            if map1 not in self.snapshot2.maps:
-                self.maps_diff.append(map1)
 
-        for map2 in self.snapshot2.maps:
-            if map2 not in self.snapshot1.maps:
-                self.maps_diff.append(map2)
+            # Find the corresponding map in the second snapshot
+            map2 = None
 
-        # Handle saved memory maps
-        if self.level == "full":
-            self.saved_maps_diff = []
+            for map2_index, candidate in enumerate(self.snapshot2.saved_memory_maps):
+                if map1.is_same_identity(candidate):
+                    map2 = candidate
+                    handled_map2_indices.append(map2_index)
+                    break
 
-            for map1 in self.snapshot1.saved_memory_maps:
-
-                # Find the corresponding map in the second snapshot
-                map2 = None
-
-                for candidate in self.snapshot2.saved_memory_maps:
-                    if map1.is_same_identity(candidate):
-                        map2 = candidate
-                        break
-
-                if map2 is None:
-                    continue
-
-                diff = MemoryContentDiff(
-                    old_content=map1,
-                    new_content=map2,
+            if map2 is None:
+                diff = MemoryMapDiff(
+                    old_map_state=map1,
+                    new_map_state=None,
+                    has_changed=True,
+                )
+            else:
+                diff = MemoryMapDiff(
+                    old_map_state=map1,
+                    new_map_state=map2,
                     has_changed=(map1 != map2),
                 )
 
-                self.saved_maps_diff.append(diff)
+            self.maps.append(diff)
+        
+        new_pages = [self.snapshot2.maps[i] for i in range(len(self.snapshot2.maps)) if i not in handled_map2_indices]
+
+        for new_page in new_pages:
+            diff = MemoryMapDiff(
+                old_map_state=None,
+                new_map_state=new_page,
+                has_changed=True,
+            )
+
+            self.maps.append(diff)

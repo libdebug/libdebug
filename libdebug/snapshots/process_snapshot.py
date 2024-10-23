@@ -23,7 +23,7 @@ class ProcessSnapshot:
 
     Snapshot levels:
     - base: Registers
-    - full: Registers, stack, writable memory
+    - full: Registers, stack, memory
     """
 
     def __init__(self: ProcessSnapshot, d: Debugger, level: str = "base", name: str = None) -> None:
@@ -39,6 +39,7 @@ class ProcessSnapshot:
         d._internal_debugger._snapshot_count += 1
 
         # Basic snapshot info
+        self.process_id = d.pid
         self.pid = d.pid
         self.name = name
         self.level = level
@@ -56,34 +57,33 @@ class ProcessSnapshot:
             self.regs.__setattr__(reg_name, reg_value)
 
         # Memory maps
-        self.maps = d.maps.copy()
-
         match level:
             case "base":
-                pass
+                self.maps = d.maps.copy()
             case "full":
-                # Save all writable pages
-                maps_to_save = [curr_map for curr_map in d.maps if "w" in curr_map.permissions]
-
-                self.saved_memory_maps = []
-
-                for curr_map in maps_to_save:
-                    contents = d.memory[curr_map.start:curr_map.end, "absolute"]
-                    saved_map = MemoryMap(curr_map.start, curr_map.end, curr_map.permissions, curr_map.size, curr_map.offset, curr_map.backing_file, contents)
-                    self.saved_memory_maps.append(saved_map)
+                _save_memory_contents(self, d)
             case _:
                 raise ValueError(f"Invalid snapshot level {level}")
             
         self.threads = []
             
         for thread in d.threads:
-            saved_memory_maps = None if level == "base" else self.saved_memory_maps
 
             # Create a lightweight snapshot for the thread
-            lw_snapshot = LightweightThreadSnapshot(thread, level, name, self.maps, saved_memory_maps)
+            lw_snapshot = LightweightThreadSnapshot(thread, level, name, self.maps)
 
             self.threads.append(lw_snapshot)
 
         # Log the creation of the snapshot
         named_addition = " named " + self.name if name is not None else ""
         liblog.debugger(f"Created snapshot {self.snapshot_id} of level {self.level} for process {self.pid}{named_addition}")
+
+        def _save_memory_contents(self: ThreadSnapshot, debugger: Debugger) -> None:
+            """Saves memory maps of the process to the snapshot."""
+
+            self.saved_memory_maps = []
+
+            for curr_map in debugger.maps:
+                contents = debugger.memory[curr_map.start:curr_map.end, "absolute"]
+                saved_map = MemoryMap(curr_map.start, curr_map.end, curr_map.permissions, curr_map.size, curr_map.offset, curr_map.backing_file, contents)
+                self.maps.append(saved_map)

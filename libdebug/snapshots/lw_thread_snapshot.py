@@ -21,10 +21,10 @@ class LightweightThreadSnapshot(ThreadSnapshot):
 
     Snapshot levels:
     - base: Registers
-    - full: Registers, stack, writable memory
+    - full: Registers, stack, memory
     """
 
-    def __init__(self: LightweightThreadSnapshot, thread: ThreadContext, level: str = "base", name: str = None, maps: MemoryMapList = None, saved_memory_maps = None,) -> None:
+    def __init__(self: LightweightThreadSnapshot, thread: ThreadContext, level: str = "base", name: str = None, maps: MemoryMapList = None) -> None:
         """Creates a new snapshot object for the given thread.
 
         Args:
@@ -32,19 +32,18 @@ class LightweightThreadSnapshot(ThreadSnapshot):
             level (str, optional): The level of the snapshot. Defaults to "base".
             name (str, optional): A name associated to the snapshot. Defaults to None.
             maps (MemoryMapList, optional): Memory maps from ProcessSnapshot. Defaults to None.
-            saved_memory_maps (list, optional): Saved writable memory maps from ProcessSnapshot. Defaults to None.
         """
         # Set id of the snapshot and increment the counter
         self.snapshot_id = thread._snapshot_count
         thread._snapshot_count += 1
 
         # Basic snapshot info
+        self.thread_id = thread.thread_id
         self.tid = thread.tid
         self.name = name
         self.level = level
 
         # Create a register field for the snapshot
-
         self.regs = SnapshotRegisters(thread.thread_id, thread._register_holder.provide_regs())
 
         # Set all registers in the field
@@ -57,11 +56,3 @@ class LightweightThreadSnapshot(ThreadSnapshot):
 
         # Memory maps
         self.maps = maps
-
-        match level:
-            case "base":
-                pass
-            case "full":
-                self.saved_memory_maps = saved_memory_maps
-            case _:
-                raise ValueError(f"Invalid snapshot level {level}")

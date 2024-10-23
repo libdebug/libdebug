@@ -12,7 +12,7 @@ from libdebug.data.memory_map import MemoryMap
 
 
 @dataclass
-class MemoryContentDiff:
+class MemoryMapDiff:
     """This object represents a diff between memory contents in a memory map."""
 
     old_map_state: MemoryMap
