@@ -59,7 +59,7 @@ class ThreadSnapshot:
                 self.maps = thread.debugger.maps.copy()
             case "full":
                 # Save all memory pages
-                _save_memory_maps(self, thread)
+                self._save_memory_maps(self, thread)
             case _:
                 raise ValueError(f"Invalid snapshot level {level}")
 
@@ -70,7 +70,7 @@ class ThreadSnapshot:
         def _save_memory_maps(self: ThreadSnapshot, thread: ThreadContext) -> None:
             """Saves memory maps of the thread to the snapshot."""
 
-            self.saved_memory_maps = []
+            self.maps = []
 
             for curr_map in thread.debugger.maps:
                 contents = thread.memory[curr_map.start:curr_map.end, "absolute"]
