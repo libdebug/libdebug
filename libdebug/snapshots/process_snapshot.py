@@ -61,7 +61,7 @@ class ProcessSnapshot:
             case "base":
                 self.maps = d.maps.copy()
             case "full":
-                _save_memory_contents(self, d)
+                self._save_memory_maps(self, d)
             case _:
                 raise ValueError(f"Invalid snapshot level {level}")
             
@@ -78,7 +78,7 @@ class ProcessSnapshot:
         named_addition = " named " + self.name if name is not None else ""
         liblog.debugger(f"Created snapshot {self.snapshot_id} of level {self.level} for process {self.pid}{named_addition}")
 
-        def _save_memory_contents(self: ThreadSnapshot, debugger: Debugger) -> None:
+        def _save_memory_maps(self: ThreadSnapshot, debugger: Debugger) -> None:
             """Saves memory maps of the process to the snapshot."""
 
             self.saved_memory_maps = []
