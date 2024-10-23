@@ -7,10 +7,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from libdebug.snapshots.thread_snapshot import ThreadSnapshot
-
-
+from libdebug.snapshots.thread_snapshot import ThreadSnapshot
 from libdebug.snapshots.memory_map_diff import MemoryMapDiff
 from libdebug.snapshots.register_diff import RegisterDiff
 from libdebug.snapshots.register_diff_accessor import RegisterDiffAccessor
@@ -36,7 +33,11 @@ class ThreadSnapshotDiff:
         # Register diffs
         self.regs = RegisterDiffAccessor()
 
-        for reg_name in dir(snapshot1.regs):
+        all_regs = dir(snapshot1.regs)
+        all_regs = [reg for reg in all_regs if not reg.startswith("_")]
+        all_regs.remove("filter")
+
+        for reg_name in all_regs:
             old_value = self.snapshot1.regs.__getattribute__(reg_name)
             new_value = self.snapshot2.regs.__getattribute__(reg_name)
             has_changed = old_value != new_value
@@ -59,7 +60,7 @@ class ThreadSnapshotDiff:
             # Find the corresponding map in the second snapshot
             map2 = None
 
-            for map2_index, candidate in enumerate(self.snapshot2.saved_memory_maps):
+            for map2_index, candidate in enumerate(self.snapshot2.maps):
                 if map1.is_same_identity(candidate):
                     map2 = candidate
                     handled_map2_indices.append(map2_index)

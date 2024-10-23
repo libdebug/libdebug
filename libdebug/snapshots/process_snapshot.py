@@ -8,6 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from libdebug.data.memory_map import MemoryMap
+from libdebug.snapshots.memory_map_snapshot_list import MemoryMapSnapshotList
 from libdebug.liblog import liblog
 from libdebug.debugger.debugger import Debugger
 from libdebug.snapshots.thread_snapshot import ThreadSnapshot
@@ -26,7 +27,7 @@ class ProcessSnapshot:
     - full: Registers, stack, memory
     """
 
-    def __init__(self: ProcessSnapshot, d: Debugger, level: str = "base", name: str = None) -> None:
+    def __init__(self: ProcessSnapshot, debugger: Debugger, level: str = "base", name: str = None) -> None:
         """Creates a new snapshot object for the given process.
 
         Args:
@@ -35,39 +36,45 @@ class ProcessSnapshot:
             name (str, optional): A name associated to the snapshot. Defaults to None.
         """
         # Set id of the snapshot and increment the counter
-        self.snapshot_id = d._internal_debugger._snapshot_count
-        d._internal_debugger._snapshot_count += 1
+        self.snapshot_id = debugger._internal_debugger._snapshot_count
+        debugger._internal_debugger._snapshot_count += 1
 
         # Basic snapshot info
-        self.process_id = d.pid
-        self.pid = d.pid
+        self.process_id = debugger.pid
+        self.pid = debugger.pid
         self.name = name
         self.level = level
+        self._process_full_path = debugger._internal_debugger._process_full_path
+        self._process_name = debugger._internal_debugger._process_name
 
         # Create a register field for the snapshot
 
-        self.regs = SnapshotRegisters(d.thread_id, d.threads[0]._register_holder.provide_regs())
+        self.regs = SnapshotRegisters(debugger.thread_id, debugger.threads[0]._register_holder.provide_regs())
 
         # Set all registers in the field
-        all_regs = dir(d.regs)
+        all_regs = dir(debugger.regs)
         all_regs = [reg for reg in all_regs if not reg.startswith("_") and reg != "register_file"]
 
         for reg_name in all_regs:
-            reg_value = d.regs.__getattribute__(reg_name)
+            reg_value = debugger.regs.__getattribute__(reg_name)
             self.regs.__setattr__(reg_name, reg_value)
 
         # Memory maps
         match level:
             case "base":
-                self.maps = d.maps.copy()
+                map_list = debugger.maps.as_list()
+                self.maps = MemoryMapSnapshotList(map_list, self._process_name, self._process_full_path)
             case "full":
-                self._save_memory_maps(self, d)
+                if not debugger.fast_memory:
+                    liblog.warning("Memory snapshot requested but fast memory is not enabled. This will take a long time.")
+
+                self._save_memory_maps(debugger)
             case _:
                 raise ValueError(f"Invalid snapshot level {level}")
             
         self.threads = []
             
-        for thread in d.threads:
+        for thread in debugger.threads:
 
             # Create a lightweight snapshot for the thread
             lw_snapshot = LightweightThreadSnapshot(thread, level, name, self.maps)
@@ -78,12 +85,23 @@ class ProcessSnapshot:
         named_addition = " named " + self.name if name is not None else ""
         liblog.debugger(f"Created snapshot {self.snapshot_id} of level {self.level} for process {self.pid}{named_addition}")
 
-        def _save_memory_maps(self: ThreadSnapshot, debugger: Debugger) -> None:
-            """Saves memory maps of the process to the snapshot."""
+    def _save_memory_maps(self: ThreadSnapshot, debugger: Debugger) -> None:
+        """Saves memory maps of the process to the snapshot."""
 
-            self.saved_memory_maps = []
+        map_list = []
 
-            for curr_map in debugger.maps:
+        for curr_map in debugger.maps:
+            
+            if curr_map.backing_file not in ["vvar", "vsyscall"]:
+                # Save the contents of the memory map
                 contents = debugger.memory[curr_map.start:curr_map.end, "absolute"]
-                saved_map = MemoryMap(curr_map.start, curr_map.end, curr_map.permissions, curr_map.size, curr_map.offset, curr_map.backing_file, contents)
-                self.maps.append(saved_map)
+            else:
+                contents = None
+            
+            saved_map = MemoryMap(curr_map.start, curr_map.end, curr_map.permissions, curr_map.size, curr_map.offset, curr_map.backing_file, contents)
+            map_list.append(saved_map)
+
+        process_name = debugger._internal_debugger._process_name
+        full_process_path = debugger._internal_debugger._process_full_path
+
+        self.maps = MemoryMapSnapshotList(map_list, process_name, full_process_path)

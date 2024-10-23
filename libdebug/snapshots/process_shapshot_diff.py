@@ -38,7 +38,10 @@ class ProcessSnapshotDiff:
         # Register diffs
         self.regs = RegisterDiffAccessor()
 
-        for reg_name in dir(snapshot1.regs):
+        all_regs = dir(snapshot1.regs)
+        all_regs = [reg for reg in all_regs if not reg.startswith("_")]        
+
+        for reg_name in all_regs:
             old_value = self.snapshot1.regs.__getattribute__(reg_name)
             new_value = self.snapshot2.regs.__getattribute__(reg_name)
             has_changed = old_value != new_value
@@ -67,12 +70,12 @@ class ProcessSnapshotDiff:
         if self.level == "full":
             self.saved_maps_diff = []
 
-            for map1 in self.snapshot1.saved_memory_maps:
+            for map1 in self.snapshot1.maps:
 
                 # Find the corresponding map in the second snapshot
                 map2 = None
 
-                for candidate in self.snapshot2.saved_memory_maps:
+                for candidate in self.snapshot2.maps:
                     if map1.is_same_identity(candidate):
                         map2 = candidate
                         break

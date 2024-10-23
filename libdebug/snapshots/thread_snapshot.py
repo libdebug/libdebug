@@ -8,6 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from libdebug.data.memory_map import MemoryMap
+from libdebug.snapshots.memory_map_snapshot_list import MemoryMapSnapshotList
 from libdebug.liblog import liblog
 from libdebug.snapshots.snapshot_registers import SnapshotRegisters
 
@@ -40,6 +41,8 @@ class ThreadSnapshot:
         self.tid = thread.tid
         self.name = name
         self.level = level
+        self._process_full_path = thread.debugger._internal_debugger._process_full_path
+        self._process_name = thread.debugger._internal_debugger._process_name
 
         # Create a register field for the snapshot
 
@@ -56,10 +59,14 @@ class ThreadSnapshot:
         # Memory maps
         match level:
             case "base":
-                self.maps = thread.debugger.maps.copy()
+                map_list = thread.debugger.maps.as_list()
+                self.maps = MemoryMapSnapshotList(map_list, self._process_name, self._process_full_path)
             case "full":
+                if not thread.debugger.fast_memory:
+                    liblog.warning("Memory snapshot requested but fast memory is not enabled. This will take a long time.")
+
                 # Save all memory pages
-                self._save_memory_maps(self, thread)
+                self._save_memory_maps(thread)
             case _:
                 raise ValueError(f"Invalid snapshot level {level}")
 
@@ -67,12 +74,23 @@ class ThreadSnapshot:
         named_addition = " named " + self.name if name is not None else ""
         liblog.debugger(f"Created snapshot {self.snapshot_id} of level {self.level} for thread {self.tid}{named_addition}")
 
-        def _save_memory_maps(self: ThreadSnapshot, thread: ThreadContext) -> None:
-            """Saves memory maps of the thread to the snapshot."""
+    def _save_memory_maps(self: ThreadSnapshot, thread: ThreadContext) -> None:
+        """Saves memory maps of the thread to the snapshot."""
 
-            self.maps = []
+        map_list = []
 
-            for curr_map in thread.debugger.maps:
-                contents = thread.memory[curr_map.start:curr_map.end, "absolute"]
-                saved_map = MemoryMap(curr_map.start, curr_map.end, curr_map.permissions, curr_map.size, curr_map.offset, curr_map.backing_file, contents)
-                self.maps.append(saved_map)
+        for curr_map in thread.debugger.maps:
+            
+            if curr_map.backing_file not in ["[vvar]", "[vsyscall]"]:
+                # Save the contents of the memory map
+                contents = thread.debugger.memory[curr_map.start:curr_map.end, "absolute"]
+            else:
+                contents = None
+            
+            saved_map = MemoryMap(curr_map.start, curr_map.end, curr_map.permissions, curr_map.size, curr_map.offset, curr_map.backing_file, contents)
+            map_list.append(saved_map)
+
+        process_name = thread._internal_debugger._process_name
+        full_process_path = thread._internal_debugger._process_full_path
+
+        self.maps = MemoryMapSnapshotList(map_list, process_name, full_process_path)

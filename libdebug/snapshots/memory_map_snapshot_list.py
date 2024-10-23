@@ -8,30 +8,30 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from libdebug.debugger.internal_debugger_instance_manager import extend_internal_debugger, provide_internal_debugger
 from libdebug.liblog import liblog
 
 if TYPE_CHECKING:
     from libdebug.data.memory_map import MemoryMap
 
 
-class MemoryMapList(list):
-    """A list of memory maps of the target process."""
+class MemoryMapSnapshotList(list):
+    """A list of memory map snapshot from the target process."""
 
-    def __init__(self: MemoryMapList, memory_maps: list[MemoryMap]) -> None:
-        """Initializes the MemoryMapList."""
+    def __init__(self: MemoryMapSnapshotList, memory_maps: list[MemoryMap], process_name: str, full_process_path: str) -> None:
+        """Initializes the MemoryMapSnapshotList."""
         super().__init__(memory_maps)
-        self._internal_debugger = provide_internal_debugger(self)
+        self._process_full_path = full_process_path
+        self._process_name = process_name
 
-    def _search_by_address(self: MemoryMapList, address: int) -> list[MemoryMap]:
+    def _search_by_address(self: MemoryMapSnapshotList, address: int) -> list[MemoryMap]:
         for vmap in self:
             if vmap.start <= address < vmap.end:
                 return [vmap]
         return []
 
-    def _search_by_backing_file(self: MemoryMapList, backing_file: str) -> list[MemoryMap]:
-        if backing_file in ["binary", self._internal_debugger._process_name]:
-            backing_file = self._internal_debugger._process_full_path
+    def _search_by_backing_file(self: MemoryMapSnapshotList, backing_file: str) -> list[MemoryMap]:
+        if backing_file in ["binary", self._process_name]:
+            backing_file = self._process_full_path
 
         filtered_maps = []
         unique_files = set()
@@ -48,7 +48,7 @@ class MemoryMapList(list):
 
         return filtered_maps
 
-    def filter(self: MemoryMapList, value: int | str) -> MemoryMapList[MemoryMap]:
+    def filter(self: MemoryMapSnapshotList, value: int | str) -> MemoryMapSnapshotList[MemoryMap]:
         """Filters the memory maps according to the specified value.
 
         If the value is an integer, it is treated as an address.
@@ -58,7 +58,7 @@ class MemoryMapList(list):
             value (int | str): The value to search for.
 
         Returns:
-            MemoryMapList[MemoryMap]: The memory maps matching the specified value.
+            MemoryMapSnapshotList[MemoryMap]: The memory maps matching the specified value.
         """
         if isinstance(value, int):
             filtered_maps = self._search_by_address(value)
@@ -67,21 +67,5 @@ class MemoryMapList(list):
         else:
             raise TypeError("The value must be an integer or a string.")
 
-        with extend_internal_debugger(self._internal_debugger):
-            return MemoryMapList(filtered_maps)
+        return MemoryMapSnapshotList(filtered_maps, self._process_name, self._process_full_path)
 
-    def __hash__(self) -> int:
-        """Return the hash of the memory map list."""
-        return hash(id(self))
-
-    def __eq__(self, other: object) -> bool:
-        """Check if the memory map list is equal to another object."""
-        return super().__eq__(other)
-
-    def __repr__(self) -> str:
-        """Return the string representation of the memory map list."""
-        return f"MemoryMapList({super().__repr__()})"
-    
-    def as_list(self: MemoryMapList) -> list[MemoryMap]:
-        """Return a copy of the memory map list as a Python list."""
-        return [vmap for vmap in self]

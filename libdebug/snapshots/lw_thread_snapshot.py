@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from libdebug.data.memory_map_list import MemoryMapList
+from libdebug.snapshots.memory_map_snapshot_list import MemoryMapSnapshotList
 from libdebug.liblog import liblog
 from libdebug.snapshots.snapshot_registers import SnapshotRegisters
 from libdebug.snapshots.thread_snapshot import ThreadSnapshot
