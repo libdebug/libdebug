@@ -1272,7 +1272,7 @@ class InternalDebugger:
                 # we have to assume it is in the main map
                 backing_file = self._process_full_path
                 liblog.warning(
-                    f"No backing file specified and no corresponding absolute address found for {hex(address)}. Assuming {backing_file}.",
+                    f"No backing file specified and no corresponding absolute address found for {hex(address)}. Assuming `{backing_file}`.",
                 )
 
         filtered_maps = maps.filter(backing_file)
@@ -1293,10 +1293,33 @@ class InternalDebugger:
             raise ValueError("Cannot use `absolute` backing file with symbols.")
 
         if backing_file == "hybrid":
-            # If no explicit backing file is specified, we have to assume it is in the main map
-            backing_file = self._process_full_path
-            liblog.debugger(f"No backing file specified for the symbol {symbol}. Assuming {backing_file}.")
-        elif backing_file in ["binary", self._process_name]:
+            # If no explicit backing file is specified, we try resolving the symbol in the main map
+            filtered_maps = self.maps.filter("binary")
+            try:
+                return resolve_symbol_in_maps(symbol, filtered_maps)
+            except ValueError:
+                liblog.warning(
+                    f"No backing file specified for the symbol `{symbol}`. Resolving the symbol in ALL the maps (slow!)",
+                )
+
+            # Otherwise, we resolve the symbol in all the maps: as this can be slow,
+            # we issue a warning with the file containing it
+            address = resolve_symbol_in_maps(symbol, self.maps)
+
+            filtered_maps = self.maps.filter(address)
+            if len(filtered_maps) != 1:
+                # Shouldn't happen, but you never know...
+                raise RuntimeError(
+                    "The symbol address is present in zero or multiple backing files. Please specify the correct backing file.",
+                )
+            liblog.warning(
+                f"Symbol `{symbol}` found in `{filtered_maps[0].backing_file}`, "
+                f"to suppress this warning specify the backing file.",
+            )
+
+            return address
+
+        if backing_file in ["binary", self._process_name]:
             backing_file = self._process_full_path
 
         filtered_maps = self.maps.filter(backing_file)
