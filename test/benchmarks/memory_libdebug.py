@@ -11,13 +11,25 @@ from libdebug import debugger
 
 def callback(t,b):
     """ Callback function to be called at each breakpoint hit """
-    pass
-
+    global start, end
+    
+    # Start the timer
+    start = perf_counter()
+    
+    # Access to RSP register to get the address
+    address = t.regs.rsp - 0x10000
+    
+    # Read the memory
+    t.memory[address, 0x10000, "absolute"]
+    
+    # Stop the timer
+    end = perf_counter()
+        
 def test():
     """ This test includes the time to:
     - run the debugged process from the entrypoint,
     - hit the breakpoint 1000 times,
-    - each time the breakpoint is hit, execute an empty callback,
+    - each time the breakpoint is hit, retrieve the RSP register and read the memory,
     - wait the process to end.
     """    
     # Start the process (it will stop at the entrypoint)
@@ -25,18 +37,12 @@ def test():
 
     # Set the hardware breakpoint     
     d.breakpoint(0x401302, callback=callback, hardware=True, file="absolute")
-
-    # Start the timer
-    start = perf_counter()
     
     # Continue the process from the entrypoint
     d.cont()
 
     # Wait for the process to end
     d.wait()
-
-    # Stop the timer
-    end = perf_counter()
     
     # Kill for a clean exit
     d.kill()
@@ -47,7 +53,7 @@ def test():
 results = []
 
 # Initialize the debugger
-d = debugger("../binaries/amd64/math_loop_test")
+d = debugger("../binaries/amd64/math_loop_test", fast_memory=True)
 
 for _ in range(1000):
     test()
@@ -56,7 +62,7 @@ for _ in range(1000):
 d.terminate()
 
 # Save the result in a pickle file
-with open("breakpoint_libdebug.pkl", "wb") as f:
+with open("memory_libdebug.pkl", "wb") as f:
     pickle.dump(results, f)
 
-# print("Results:", results)  
+# print("Results:", results)
