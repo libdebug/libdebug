@@ -1314,7 +1314,7 @@ class InternalDebugger:
                 )
             liblog.warning(
                 f"Symbol `{symbol}` found in `{filtered_maps[0].backing_file}`, "
-                f"to suppress this warning specify the backing file.",
+                f"specify it manually as the backing file for better performance.",
             )
 
             return address
