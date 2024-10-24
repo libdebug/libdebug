@@ -77,6 +77,7 @@ class DeathTest(TestCase):
         self.assertEqual(d.threads[0].dead, True)
 
         d.kill()
+        d.terminate()
 
     def test_instr_death(self):
         d = debugger(RESOLVE_EXE("segfault_test"), aslr=False)

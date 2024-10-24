@@ -141,3 +141,6 @@ libdebug/ptrace/jumpstart/jumpstart
 
 # syscall definitions
 libdebug/utils/syscalls/
+
+# Native stubs
+*.pyi

@@ -48,6 +48,7 @@ class PPrintSyscallsTest(TestCase):
         d.cont()
 
         d.kill()
+        d.terminate()
 
         self.assertIn("write", self.capturedOutput.getvalue())
         self.assertIn("read", self.capturedOutput.getvalue())
