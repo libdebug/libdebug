@@ -17,7 +17,9 @@ if TYPE_CHECKING:
 class MemoryMapSnapshotList(list):
     """A list of memory map snapshot from the target process."""
 
-    def __init__(self: MemoryMapSnapshotList, memory_maps: list[MemoryMap], process_name: str, full_process_path: str) -> None:
+    def __init__(
+        self: MemoryMapSnapshotList, memory_maps: list[MemoryMap], process_name: str, full_process_path: str,
+    ) -> None:
         """Initializes the MemoryMapSnapshotList."""
         super().__init__(memory_maps)
         self._process_full_path = full_process_path
@@ -68,4 +70,3 @@ class MemoryMapSnapshotList(list):
             raise TypeError("The value must be an integer or a string.")
 
         return MemoryMapSnapshotList(filtered_maps, self._process_name, self._process_full_path)
-

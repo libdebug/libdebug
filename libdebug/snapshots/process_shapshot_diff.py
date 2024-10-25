@@ -5,17 +5,11 @@
 #
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-from libdebug.snapshots.thread_snapshot_diff import ThreadSnapshotDiff
-
-if TYPE_CHECKING:
-    from libdebug.snapshots.process_snapshot import ProcessSnapshot
-
-
 from libdebug.snapshots.memory_map_diff import MemoryMapDiff
+from libdebug.snapshots.process_snapshot import ProcessSnapshot
 from libdebug.snapshots.register_diff import RegisterDiff
 from libdebug.snapshots.register_diff_accessor import RegisterDiffAccessor
+from libdebug.snapshots.thread_snapshot_diff import ThreadSnapshotDiff
 
 
 class ProcessSnapshotDiff:
@@ -71,7 +65,6 @@ class ProcessSnapshotDiff:
             self.saved_maps_diff = []
 
             for map1 in self.snapshot1.maps:
-
                 # Find the corresponding map in the second snapshot
                 map2 = None
 

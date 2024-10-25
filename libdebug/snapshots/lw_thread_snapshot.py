@@ -7,12 +7,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from libdebug.snapshots.memory_map_snapshot_list import MemoryMapSnapshotList
-from libdebug.liblog import liblog
 from libdebug.snapshots.snapshot_registers import SnapshotRegisters
 from libdebug.snapshots.thread_snapshot import ThreadSnapshot
 
 if TYPE_CHECKING:
+    from libdebug.snapshots.memory_map_snapshot_list import MemoryMapSnapshotList
     from libdebug.state.thread_context import ThreadContext
 
 
@@ -24,7 +23,13 @@ class LightweightThreadSnapshot(ThreadSnapshot):
     - full: Registers, stack, memory
     """
 
-    def __init__(self: LightweightThreadSnapshot, thread: ThreadContext, level: str = "base", name: str = None, maps: MemoryMapList = None) -> None:
+    def __init__(
+        self: LightweightThreadSnapshot,
+        thread: ThreadContext,
+        level: str = "base",
+        name: str = None,
+        maps: MemoryMapSnapshotList = None,
+    ) -> None:
         """Creates a new snapshot object for the given thread.
 
         Args:

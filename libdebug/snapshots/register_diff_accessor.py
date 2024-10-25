@@ -6,8 +6,6 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from libdebug.snapshots.register_diff import RegisterDiff
 
 

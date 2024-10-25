@@ -63,7 +63,9 @@ class ThreadSnapshot:
                 self.maps = MemoryMapSnapshotList(map_list, self._process_name, self._process_full_path)
             case "full":
                 if not thread.debugger.fast_memory:
-                    liblog.warning("Memory snapshot requested but fast memory is not enabled. This will take a long time.")
+                    liblog.warning(
+                        "Memory snapshot requested but fast memory is not enabled. This will take a long time."
+                    )
 
                 # Save all memory pages
                 self._save_memory_maps(thread)
@@ -72,21 +74,30 @@ class ThreadSnapshot:
 
         # Log the creation of the snapshot
         named_addition = " named " + self.name if name is not None else ""
-        liblog.debugger(f"Created snapshot {self.snapshot_id} of level {self.level} for thread {self.tid}{named_addition}")
+        liblog.debugger(
+            f"Created snapshot {self.snapshot_id} of level {self.level} for thread {self.tid}{named_addition}"
+        )
 
     def _save_memory_maps(self: ThreadSnapshot, thread: ThreadContext) -> None:
         """Saves memory maps of the thread to the snapshot."""
         map_list = []
 
         for curr_map in thread.debugger.maps:
-
             if curr_map.backing_file not in ["[vvar]", "[vsyscall]"]:
                 # Save the contents of the memory map
-                contents = thread.debugger.memory[curr_map.start:curr_map.end, "absolute"]
+                contents = thread.debugger.memory[curr_map.start : curr_map.end, "absolute"]
             else:
                 contents = None
 
-            saved_map = MemoryMap(curr_map.start, curr_map.end, curr_map.permissions, curr_map.size, curr_map.offset, curr_map.backing_file, contents)
+            saved_map = MemoryMap(
+                curr_map.start,
+                curr_map.end,
+                curr_map.permissions,
+                curr_map.size,
+                curr_map.offset,
+                curr_map.backing_file,
+                contents,
+            )
             map_list.append(saved_map)
 
         process_name = thread._internal_debugger._process_name
