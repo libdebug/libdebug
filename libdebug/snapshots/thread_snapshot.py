@@ -8,8 +8,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from libdebug.data.memory_map import MemoryMap
-from libdebug.snapshots.memory_map_snapshot_list import MemoryMapSnapshotList
 from libdebug.liblog import liblog
+from libdebug.snapshots.memory_map_snapshot_list import MemoryMapSnapshotList
 from libdebug.snapshots.snapshot_registers import SnapshotRegisters
 
 if TYPE_CHECKING:
@@ -76,17 +76,16 @@ class ThreadSnapshot:
 
     def _save_memory_maps(self: ThreadSnapshot, thread: ThreadContext) -> None:
         """Saves memory maps of the thread to the snapshot."""
-
         map_list = []
 
         for curr_map in thread.debugger.maps:
-            
+
             if curr_map.backing_file not in ["[vvar]", "[vsyscall]"]:
                 # Save the contents of the memory map
                 contents = thread.debugger.memory[curr_map.start:curr_map.end, "absolute"]
             else:
                 contents = None
-            
+
             saved_map = MemoryMap(curr_map.start, curr_map.end, curr_map.permissions, curr_map.size, curr_map.offset, curr_map.backing_file, contents)
             map_list.append(saved_map)
 

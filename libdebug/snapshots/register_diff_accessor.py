@@ -16,7 +16,7 @@ class RegisterDiffAccessor:
 
     def __repr__(self: RegisterDiffAccessor) -> str:
         """Return a string representation of the RegisterDiffAccessor object."""
-        str_repr = f"RegisterDiffAccessor("
+        str_repr = "RegisterDiffAccessor("
 
         str_repr += "\n     old    new\n"
 

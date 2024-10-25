@@ -7,8 +7,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-from libdebug.data.memory_map import MemoryMap
+if TYPE_CHECKING:
+    from libdebug.data.memory_map import MemoryMap
 
 
 @dataclass

@@ -5,12 +5,10 @@
 #
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-from libdebug.snapshots.thread_snapshot import ThreadSnapshot
 from libdebug.snapshots.memory_map_diff import MemoryMapDiff
 from libdebug.snapshots.register_diff import RegisterDiff
 from libdebug.snapshots.register_diff_accessor import RegisterDiffAccessor
+from libdebug.snapshots.thread_snapshot import ThreadSnapshot
 
 
 class ThreadSnapshotDiff:
@@ -80,7 +78,7 @@ class ThreadSnapshotDiff:
                 )
 
             self.maps.append(diff)
-        
+
         new_pages = [self.snapshot2.maps[i] for i in range(len(self.snapshot2.maps)) if i not in handled_map2_indices]
 
         for new_page in new_pages:

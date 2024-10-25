@@ -39,7 +39,7 @@ class ProcessSnapshotDiff:
         self.regs = RegisterDiffAccessor()
 
         all_regs = dir(snapshot1.regs)
-        all_regs = [reg for reg in all_regs if not reg.startswith("_")]        
+        all_regs = [reg for reg in all_regs if not reg.startswith("_")]
 
         for reg_name in all_regs:
             old_value = self.snapshot1.regs.__getattribute__(reg_name)
@@ -112,7 +112,7 @@ class ProcessSnapshotDiff:
             else:
                 diff = ThreadSnapshotDiff(t1, t2)
                 self.threads_diff.append(diff)
-        
+
         for t2 in self.snapshot2.threads:
             t1 = None
 
