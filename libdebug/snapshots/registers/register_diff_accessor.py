@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from libdebug.snapshots.register_diff import RegisterDiff
+from libdebug.snapshots.registers.register_diff import RegisterDiff
 
 
 class RegisterDiffAccessor:
@@ -15,7 +15,7 @@ class RegisterDiffAccessor:
     def __repr__(self: RegisterDiffAccessor) -> str:
         """Return a string representation of the RegisterDiffAccessor object."""
         str_repr = "RegisterDiffAccessor(\n\n"
-        
+
         # Header with column alignment
         str_repr += "{:<15} {:<20} {:<20}\n".format("Register", "Old Value", "New Value")
         str_repr += "-" * 60 + "\n"
@@ -42,7 +42,7 @@ class RegisterDiffAccessor:
                     new_value = str(attr.new_value).rjust(18)
 
                 # Align output for consistent spacing between old and new values
-                str_repr += "{:<15} {:<20} {:<20}\n".format(attr_name, old_value, new_value)
+                str_repr += f"{attr_name:<15} {old_value:<20} {new_value:<20}\n"
 
         str_repr += ")"
 

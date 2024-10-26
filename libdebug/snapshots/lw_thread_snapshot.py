@@ -11,7 +11,7 @@ from libdebug.snapshots.memory.snapshot_memory_view import SnapshotMemoryView
 from libdebug.snapshots.thread_snapshot import ThreadSnapshot
 
 if TYPE_CHECKING:
-    from libdebug.snapshots.memory_map_snapshot_list import MemoryMapSnapshotList
+    from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
     from libdebug.state.thread_context import ThreadContext
 
 
@@ -56,4 +56,7 @@ class LightweightThreadSnapshot(ThreadSnapshot):
 
         # Check if memory property is to be exposed
         if level != "base":
-            self.memory = SnapshotMemoryView(self, thread.debugger.symbols)
+            self._memory = SnapshotMemoryView(self, thread.debugger.symbols)
+        else:
+            self._memory = None
+

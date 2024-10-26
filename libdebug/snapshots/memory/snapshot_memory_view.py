@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from libdebug import liblog
+from libdebug.liblog import liblog
 from libdebug.memory.abstract_memory_view import AbstractMemoryView
 from libdebug.utils.debugging_utils import normalize_and_validate_address
 
@@ -37,10 +37,13 @@ class SnapshotMemoryView(AbstractMemoryView):
         Returns:
             bytes: The read bytes.
         """
-        target_map = self._snap_ref.maps.filter(address)
+        print(f"Address is {hex(address)}")
+        target_maps = self._snap_ref.maps.filter(address)
 
-        if len(target_map) == 0:
+        if len(target_maps) == 0:
             raise ValueError("No mapped memory at the specified address.")
+
+        target_map = target_maps[0]
 
         # The memory of the target map cannot be retrieved
         if target_map._content is None:
@@ -55,7 +58,10 @@ class SnapshotMemoryView(AbstractMemoryView):
 
             raise ValueError(error)
 
-        return target_map._content[address : address + size]
+        start_offset = address - target_map.start
+        end_offset = start_offset + size
+
+        return target_map._content[start_offset:end_offset]
 
     def write(self: SnapshotMemoryView, address: int, data: bytes) -> None:
         """Writes memory to the target process.
@@ -282,20 +288,24 @@ class SnapshotMemoryView(AbstractMemoryView):
         Returns:
             Symbol: The resolved address.
         """
-        results = self._symbol_ref.search_by_name(symbol)
+        offset = 0
+
+        if "+" in symbol:
+            symbol, offset = symbol.split("+")
+            offset = int(offset, 16)
+
+        results = self._symbol_ref.filter(symbol)
+
+        # Get the first result that matches the backing file
+        results = [result for result in results if file in result.backing_file]
 
         if len(results) == 0:
             raise ValueError(f"Symbol {symbol} not found in snaphot memory.")
 
-        if len(results) > 1:
-            liblog.warning(f"Multiple symbols with name {symbol} found in snapshot memory. Accessing the first one.")
+        page_base = self._snap_ref.maps.filter(results[0].backing_file)[0].start
 
-        if results[0].backing_file != file:
-            liblog.warning(
-                f"Symbol {symbol} found in different backing file {results[0].backing_file}.",
-            )
+        return page_base + results[0].start + offset
 
-        return results[0]
 
     def resolve_address(
         self: SnapshotMemoryView,

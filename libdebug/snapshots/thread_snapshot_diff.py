@@ -6,8 +6,8 @@
 from __future__ import annotations
 
 from libdebug.snapshots.memory.memory_map_diff import MemoryMapDiff
-from libdebug.snapshots.register_diff import RegisterDiff
-from libdebug.snapshots.register_diff_accessor import RegisterDiffAccessor
+from libdebug.snapshots.registers.register_diff import RegisterDiff
+from libdebug.snapshots.registers.register_diff_accessor import RegisterDiffAccessor
 from libdebug.snapshots.thread_snapshot import ThreadSnapshot
 
 

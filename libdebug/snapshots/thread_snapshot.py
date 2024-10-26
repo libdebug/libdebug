@@ -53,6 +53,8 @@ class ThreadSnapshot:
             case "base":
                 map_list = thread.debugger.maps.as_list()
                 self.maps = MemoryMapSnapshotList(map_list, self._process_name, self._process_full_path)
+
+                self._memory = None
             case "writable":
                 if not thread.debugger.fast_memory:
                     liblog.warning(
@@ -62,7 +64,7 @@ class ThreadSnapshot:
                 # Save all memory pages
                 self._save_memory_maps(thread, writable_only=True)
 
-                self.memory = SnapshotMemoryView(self, thread.debugger.symbols)
+                self._memory = SnapshotMemoryView(self, thread.debugger.symbols)
             case "full":
                 if not thread.debugger.fast_memory:
                     liblog.warning(
@@ -72,7 +74,7 @@ class ThreadSnapshot:
                 # Save all memory pages
                 self._save_memory_maps(thread, writable_only=False)
 
-                self.memory = SnapshotMemoryView(self, thread.debugger.symbols)
+                self._memory = SnapshotMemoryView(self, thread.debugger.symbols)
             case _:
                 raise ValueError(f"Invalid snapshot level {level}")
 
@@ -125,3 +127,19 @@ class ThreadSnapshot:
         full_process_path = thread._internal_debugger._process_full_path
 
         self.maps = MemoryMapSnapshotList(map_list, process_name, full_process_path)
+
+    @property
+    def memory(self: ThreadSnapshot) -> SnapshotMemoryView:
+        """Returns a view of the memory of the thread."""
+        if self._memory is None:
+            if self.level != "base":
+                liblog.error("Inconsistent snapshot state: memory snapshot is not available.")
+
+            raise ValueError("Memory snapshot is not available at base level.")
+
+        return self._memory
+
+    @property
+    def mem(self: ThreadSnapshot) -> SnapshotMemoryView:
+        """Alias for memory."""
+        return self.memory
