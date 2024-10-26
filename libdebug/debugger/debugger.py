@@ -10,6 +10,7 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
 from libdebug.liblog import liblog
+from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
 from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.signal_utils import (
     get_all_signal_numbers,
@@ -912,3 +913,20 @@ class Debugger:
             repr_str += f"\n    ({thread.tid}, {'dead' if thread.dead else 'alive'}) "
             repr_str += f"ip: {thread.instruction_pointer:#x}"
         return repr_str
+
+    def create_snapshot(self: Debugger, level: str = "base", name: str = None) -> ProcessSnapshot:
+        """Create a snapshot of the current process state.
+
+        Snapshot levels:
+        - base: Registers
+        - writable: Registers, writable memory
+        - full: Registers, memory
+
+        Args:
+            level (str): The level of the snapshot.
+            name (str, optional): The name of the snapshot. Defaults to None.
+
+        Returns:
+            ProcessSnapshot: The created snapshot.
+        """
+        return ProcessSnapshot(self, level, name)

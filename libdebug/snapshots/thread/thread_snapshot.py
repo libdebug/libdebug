@@ -13,6 +13,7 @@ from libdebug.snapshots.memory.snapshot_memory_view import SnapshotMemoryView
 from libdebug.snapshots.snapshot import Snapshot
 
 if TYPE_CHECKING:
+    from libdebug.snapshots.diff import Diff
     from libdebug.state.thread_context import ThreadContext
 
 
@@ -83,3 +84,9 @@ class ThreadSnapshot(Snapshot):
         liblog.debugger(
             f"Created snapshot {self.snapshot_id} of level {self.level} for thread {self.tid}{named_addition}",
         )
+
+    def diff(self: ThreadSnapshot, other: ThreadSnapshot) -> Diff:
+        """Creates a diff object between two snapshots."""
+        from libdebug.snapshots.thread.thread_snapshot_diff import ThreadSnapshotDiff
+
+        return ThreadSnapshotDiff(self, other)

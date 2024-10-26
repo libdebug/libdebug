@@ -15,6 +15,7 @@ from libdebug.snapshots.thread.lw_thread_snapshot import LightweightThreadSnapsh
 
 if TYPE_CHECKING:
     from libdebug.debugger.debugger import Debugger
+    from libdebug.snapshots.diff import Diff
     from libdebug.snapshots.registers.snapshot_registers import SnapshotRegisters
 
 
@@ -99,3 +100,9 @@ class ProcessSnapshot(Snapshot):
     def regs(self: ProcessSnapshot) -> SnapshotRegisters:
         """Returns the registers of the process snapshot."""
         return self.threads[0].regs
+
+    def diff(self: ProcessSnapshot, other: ProcessSnapshot) -> Diff:
+        """Returns the diff between two process snapshots."""
+        from libdebug.snapshots.process.process_shapshot_diff import ProcessSnapshotDiff
+
+        return ProcessSnapshotDiff(self, other)

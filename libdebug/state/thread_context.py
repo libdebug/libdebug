@@ -12,6 +12,7 @@ from libdebug.debugger.internal_debugger_instance_manager import (
     provide_internal_debugger,
 )
 from libdebug.liblog import liblog
+from libdebug.snapshots.thread.thread_snapshot import ThreadSnapshot
 from libdebug.utils.ansi_escape_codes import ANSIColors
 from libdebug.utils.debugging_utils import resolve_address_in_maps
 from libdebug.utils.signal_utils import resolve_signal_name, resolve_signal_number
@@ -387,3 +388,21 @@ class ThreadContext:
         repr_str += f"  Instruction Pointer: {self.instruction_pointer:#x}\n"
         repr_str += f"  Dead: {self.dead}"
         return repr_str
+
+    def create_snapshot(self: ThreadContext, level: str = "base", name: str = None) -> ThreadSnapshot:
+        """Create a snapshot of the current thread state.
+
+        Snapshot levels:
+        - base: Registers
+        - writable: Registers, writable memory
+        - full: Registers, memory
+
+        Args:
+            level (str): The level of the snapshot.
+            name (str, optional): The name of the snapshot. Defaults to None.
+
+        Returns:
+            ThreadSnapshot: The created snapshot.
+        """
+        return ThreadSnapshot(self, level, name)
+

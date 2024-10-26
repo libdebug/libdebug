@@ -6,10 +6,12 @@
 
 from __future__ import annotations
 
+from abc import abstractmethod
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from libdebug.debugger.debugger import Debugger
+    from libdebug.snapshots.diff import Diff
     from libdebug.snapshots.memory.snapshot_memory_view import SnapshotMemoryView
     from libdebug.state.thread_context import ThreadContext
 
@@ -27,7 +29,6 @@ class Snapshot:
     - writable: Registers, writable memory
     - full: Registers, memory
     """
-
     def _save_regs(self: Snapshot, thread: ThreadContext) -> None:
         # Create a register field for the snapshot
         self.regs = SnapshotRegisters(thread.thread_id, thread._register_holder.provide_regs())
@@ -92,3 +93,16 @@ class Snapshot:
     def mem(self: Snapshot) -> SnapshotMemoryView:
         """Alias for memory."""
         return self.memory
+
+    @abstractmethod
+    def diff(self: Snapshot, other: Snapshot) -> Diff:
+        """Creates a diff object between two snapshots."""
+
+    @abstractmethod
+    def save(self: Snapshot, file_path: str) -> None:
+        """Saves the snapshot object to a file."""
+
+    @staticmethod
+    @abstractmethod
+    def load(file_path: str) -> Snapshot:
+        """Creates a snapshot object from a file."""
