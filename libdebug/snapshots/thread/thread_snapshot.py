@@ -5,6 +5,8 @@
 #
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from libdebug.liblog import liblog
@@ -90,3 +92,56 @@ class ThreadSnapshot(Snapshot):
         from libdebug.snapshots.thread.thread_snapshot_diff import ThreadSnapshotDiff
 
         return ThreadSnapshotDiff(self, other)
+
+
+    def save(self: ThreadSnapshot, file_path: str) -> None:
+        """Saves the snapshot object to a file."""
+        all_reg_names = dir(self.regs)
+        all_reg_names = [reg_name for reg_name in all_reg_names if isinstance(getattr(self.regs, reg_name), int | float)]
+
+        serializable_dict = {
+            "type": "thread",
+            "snapshot_id": self.snapshot_id,
+            "thread_id": self.thread_id,
+            "level": self.level,
+            "name": self.name,
+            "regs": {reg_name: getattr(self.regs, reg_name) for reg_name in all_reg_names},
+            "maps": self.maps,
+            "symbols": self._memory.symbols if self._memory is not None else None,
+            "_process_full_path": self._process_full_path,
+            "_process_name": self._process_name,
+        }
+
+        with Path(file_path).open("w") as file:
+            json.dump(serializable_dict, file)
+
+    @staticmethod
+    def load(snapshot_dict: object) -> ThreadSnapshot:
+        """Loads a snapshot object from a serialized object."""
+        loaded_snap = ThreadSnapshot.__new__(ThreadSnapshot)
+
+        loaded_snap.snapshot_id = snapshot_dict["snapshot_id"]
+
+        # Basic snapshot info
+        loaded_snap.thread_id = snapshot_dict["thread_id"]
+        loaded_snap.tid = loaded_snap.thread_id
+        loaded_snap.name = snapshot_dict["name"]
+        loaded_snap.level = snapshot_dict["level"]
+        loaded_snap._process_full_path = snapshot_dict["_process_full_path"]
+        loaded_snap._process_name = snapshot_dict["_process_name"]
+
+        # Get thread registers
+        for reg_name, reg_value in snapshot_dict["regs"].items():
+            setattr(loaded_snap.regs, reg_name, reg_value)
+
+        # Memory maps
+        loaded_snap.maps = MemoryMapSnapshotList(
+            snapshot_dict["maps"],
+            loaded_snap._process_name,
+            loaded_snap._process_full_path,
+        )
+
+        # Memory view
+        loaded_snap._memory = SnapshotMemoryView(loaded_snap, snapshot_dict["symbols"]) if snapshot_dict["symbols"] is not None else None
+
+        return loaded_snap

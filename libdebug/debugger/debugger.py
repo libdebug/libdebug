@@ -6,11 +6,14 @@
 
 from __future__ import annotations
 
+import json
 from contextlib import contextmanager
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from libdebug.liblog import liblog
 from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
+from libdebug.snapshots.thread.thread_snapshot import ThreadSnapshot
 from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.signal_utils import (
     get_all_signal_numbers,
@@ -37,6 +40,7 @@ if TYPE_CHECKING:
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
+    from libdebug.snapshots.snapshot import Snapshot
     from libdebug.state.thread_context import ThreadContext
 
 
@@ -930,3 +934,25 @@ class Debugger:
             ProcessSnapshot: The created snapshot.
         """
         return ProcessSnapshot(self, level, name)
+
+    def load_snapshot(self: Debugger, file_path: str) -> Snapshot:
+        """Load a snapshot of the thread / process state.
+
+        Args:
+            file_path (str): The path to the snapshot file.
+        """
+        with Path(file_path).open() as f:
+            snapshot = json.load(f)
+
+        if snapshot["type"] == "thread":
+            loaded_snap = ThreadSnapshot.load(snapshot)
+        elif snapshot["type"] == "process":
+            loaded_snap = ProcessSnapshot.load(snapshot)
+
+        # Log the creation of the snapshot
+        named_addition = " named " + loaded_snap.name if loaded_snap.name is not None else ""
+        liblog.debugger(
+            f"Loaded {snapshot[type]} snapshot {loaded_snap.snapshot_id} of level {loaded_snap.level} from file {file_path}{named_addition}",
+        )
+
+        return loaded_snap

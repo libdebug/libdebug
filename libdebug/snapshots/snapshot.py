@@ -104,5 +104,5 @@ class Snapshot:
 
     @staticmethod
     @abstractmethod
-    def load(file_path: str) -> Snapshot:
-        """Creates a snapshot object from a file."""
+    def load(snapshot_dict: object) -> Snapshot:
+        """Loads a snapshot object from a serialized object."""
