@@ -10,8 +10,8 @@ from typing import TYPE_CHECKING
 from libdebug.data.memory_map import MemoryMap
 from libdebug.liblog import liblog
 from libdebug.snapshots.lw_thread_snapshot import LightweightThreadSnapshot
-from libdebug.snapshots.memory_map_snapshot_list import MemoryMapSnapshotList
-from libdebug.snapshots.snapshot_registers import SnapshotRegisters
+from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
+from libdebug.snapshots.registers.snapshot_registers import SnapshotRegisters
 
 if TYPE_CHECKING:
     from libdebug.debugger.debugger import Debugger
@@ -90,10 +90,10 @@ class ProcessSnapshot:
 
         for curr_map in debugger.maps:
 
-            if curr_map.backing_file not in ["vvar", "vsyscall"]:
-                # Save the contents of the memory map
-                contents = debugger.memory[curr_map.start:curr_map.end, "absolute"]
-            else:
+            try:
+                contents = debugger.memory[curr_map.start : curr_map.end, "absolute"]
+            except (OSError, OverflowError):
+                # There are some memory regions that cannot be read, such as [vvar], [vdso], etc.
                 contents = None
 
             saved_map = MemoryMap(curr_map.start, curr_map.end, curr_map.permissions, curr_map.size, curr_map.offset, curr_map.backing_file, contents)

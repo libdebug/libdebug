@@ -5,7 +5,7 @@
 #
 from __future__ import annotations
 
-from libdebug.snapshots.memory_map_diff import MemoryMapDiff
+from libdebug.snapshots.memory.memory_map_diff import MemoryMapDiff
 from libdebug.snapshots.register_diff import RegisterDiff
 from libdebug.snapshots.register_diff_accessor import RegisterDiffAccessor
 from libdebug.snapshots.thread_snapshot import ThreadSnapshot
@@ -24,16 +24,21 @@ class ThreadSnapshotDiff:
         if not isinstance(snapshot1, ThreadSnapshot) or not isinstance(snapshot2, ThreadSnapshot):
             raise ValueError("Both arguments must be ThreadSnapshot objects.")
 
-        self.snapshot1 = snapshot1 if snapshot1.snapshot_id < snapshot2.snapshot_id else snapshot2
-        self.snapshot2 = snapshot2 if snapshot1.snapshot_id >= snapshot2.snapshot_id else snapshot1
+        if snapshot1.snapshot_id < snapshot2.snapshot_id:
+            self.snapshot1 = snapshot1
+            self.snapshot2 = snapshot2
+        else:
+            self.snapshot1 = snapshot2
+            self.snapshot2 = snapshot1
+
+        # The level of the diff is the lowest level among the two snapshots
         self.level = "full" if self.snapshot1.level == "full" and self.snapshot2.level == "full" else "base"
 
         # Register diffs
         self.regs = RegisterDiffAccessor()
 
         all_regs = dir(snapshot1.regs)
-        all_regs = [reg for reg in all_regs if not reg.startswith("_")]
-        all_regs.remove("filter")
+        all_regs = [reg for reg in all_regs if isinstance(snapshot1.regs.__getattribute__(reg), int | float)]
 
         for reg_name in all_regs:
             old_value = self.snapshot1.regs.__getattribute__(reg_name)

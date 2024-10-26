@@ -83,7 +83,9 @@ class MemoryMap:
     def __repr__(self: MemoryMap) -> str:
         """Return the string representation of the memory map."""
         str_repr =  f"MemoryMap(start={hex(self.start)}, end={hex(self.end)}, permissions={self.permissions}, size={hex(self.size)}, offset={hex(self.offset)}, backing_file={self.backing_file})"
-        str_repr += f"\nContent: {self.content}" if self._content else ""
+        
+        if self._content is not None:
+            str_repr += f"   [snapshot with content]"
 
         return str_repr
 

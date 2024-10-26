@@ -9,8 +9,9 @@ from typing import TYPE_CHECKING
 
 from libdebug.data.memory_map import MemoryMap
 from libdebug.liblog import liblog
-from libdebug.snapshots.memory_map_snapshot_list import MemoryMapSnapshotList
-from libdebug.snapshots.snapshot_registers import SnapshotRegisters
+from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
+from libdebug.snapshots.memory.snapshot_memory_view import SnapshotMemoryView
+from libdebug.snapshots.registers.snapshot_registers import SnapshotRegisters
 
 if TYPE_CHECKING:
     from libdebug.state.thread_context import ThreadContext
@@ -21,6 +22,7 @@ class ThreadSnapshot:
 
     Snapshot levels:
     - base: Registers
+    - writable: Registers, writable memory maps
     - full: Registers, stack, memory
     """
 
@@ -44,8 +46,44 @@ class ThreadSnapshot:
         self._process_full_path = thread.debugger._internal_debugger._process_full_path
         self._process_name = thread.debugger._internal_debugger._process_name
 
-        # Create a register field for the snapshot
+        self._save_regs(thread)
 
+        # Memory maps
+        match level:
+            case "base":
+                map_list = thread.debugger.maps.as_list()
+                self.maps = MemoryMapSnapshotList(map_list, self._process_name, self._process_full_path)
+            case "writable":
+                if not thread.debugger.fast_memory:
+                    liblog.warning(
+                        "Memory snapshot requested but fast memory is not enabled. This will take a long time."
+                    )
+
+                # Save all memory pages
+                self._save_memory_maps(thread, writable_only=True)
+
+                self.memory = SnapshotMemoryView(self, thread.debugger.symbols)
+            case "full":
+                if not thread.debugger.fast_memory:
+                    liblog.warning(
+                        "Memory snapshot requested but fast memory is not enabled. This will take a long time."
+                    )
+
+                # Save all memory pages
+                self._save_memory_maps(thread, writable_only=False)
+
+                self.memory = SnapshotMemoryView(self, thread.debugger.symbols)
+            case _:
+                raise ValueError(f"Invalid snapshot level {level}")
+
+        # Log the creation of the snapshot
+        named_addition = " named " + self.name if name is not None else ""
+        liblog.debugger(
+            f"Created snapshot {self.snapshot_id} of level {self.level} for thread {self.tid}{named_addition}"
+        )
+
+    def _save_regs(self: ThreadSnapshot, thread: ThreadContext) -> None:
+        # Create a register field for the snapshot
         self.regs = SnapshotRegisters(thread.thread_id, thread._register_holder.provide_regs())
 
         # Set all registers in the field
@@ -56,36 +94,19 @@ class ThreadSnapshot:
             reg_value = thread.regs.__getattribute__(reg_name)
             self.regs.__setattr__(reg_name, reg_value)
 
-        # Memory maps
-        match level:
-            case "base":
-                map_list = thread.debugger.maps.as_list()
-                self.maps = MemoryMapSnapshotList(map_list, self._process_name, self._process_full_path)
-            case "full":
-                if not thread.debugger.fast_memory:
-                    liblog.warning(
-                        "Memory snapshot requested but fast memory is not enabled. This will take a long time."
-                    )
-
-                # Save all memory pages
-                self._save_memory_maps(thread)
-            case _:
-                raise ValueError(f"Invalid snapshot level {level}")
-
-        # Log the creation of the snapshot
-        named_addition = " named " + self.name if name is not None else ""
-        liblog.debugger(
-            f"Created snapshot {self.snapshot_id} of level {self.level} for thread {self.tid}{named_addition}"
-        )
-
-    def _save_memory_maps(self: ThreadSnapshot, thread: ThreadContext) -> None:
+    def _save_memory_maps(self: ThreadSnapshot, thread: ThreadContext, writable_only: bool) -> None:
         """Saves memory maps of the thread to the snapshot."""
         map_list = []
 
         for curr_map in thread.debugger.maps:
-            if curr_map.backing_file not in ["[vvar]", "[vsyscall]"]:
-                # Save the contents of the memory map
-                contents = thread.debugger.memory[curr_map.start : curr_map.end, "absolute"]
+            # Skip non-writable maps if requested
+            # Always skip maps that fail on read
+            if not writable_only or "w" in curr_map.permissions:
+                try:
+                    contents = thread.debugger.memory[curr_map.start : curr_map.end, "absolute"]
+                except (ValueError, OSError, OverflowError):
+                    # There are some memory regions that cannot be read, such as [vvar], [vdso], etc.
+                    contents = None
             else:
                 contents = None
 

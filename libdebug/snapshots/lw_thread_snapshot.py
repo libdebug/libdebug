@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from libdebug.snapshots.snapshot_registers import SnapshotRegisters
+from libdebug.snapshots.memory.snapshot_memory_view import SnapshotMemoryView
 from libdebug.snapshots.thread_snapshot import ThreadSnapshot
 
 if TYPE_CHECKING:
@@ -20,6 +20,7 @@ class LightweightThreadSnapshot(ThreadSnapshot):
 
     Snapshot levels:
     - base: Registers
+    - writable: Registers, writable memory maps
     - full: Registers, stack, memory
     """
 
@@ -48,16 +49,11 @@ class LightweightThreadSnapshot(ThreadSnapshot):
         self.name = name
         self.level = level
 
-        # Create a register field for the snapshot
-        self.regs = SnapshotRegisters(thread.thread_id, thread._register_holder.provide_regs())
-
-        # Set all registers in the field
-        all_regs = dir(thread.regs)
-        all_regs = [reg for reg in all_regs if not reg.startswith("_") and reg != "register_file"]
-
-        for reg_name in all_regs:
-            reg_value = thread.regs.__getattribute__(reg_name)
-            self.regs.__setattr__(reg_name, reg_value)
+        self._save_regs(thread)
 
         # Memory maps
         self.maps = maps
+
+        # Check if memory property is to be exposed
+        if level != "base":
+            self.memory = SnapshotMemoryView(self, thread.debugger.symbols)
