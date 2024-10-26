@@ -7,11 +7,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from libdebug.snapshots.memory.snapshot_memory_view import SnapshotMemoryView
-from libdebug.snapshots.thread_snapshot import ThreadSnapshot
+from libdebug.snapshots.thread.thread_snapshot import ThreadSnapshot
 
 if TYPE_CHECKING:
     from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
+    from libdebug.snapshots.memory.snapshot_memory_view import SnapshotMemoryView
+    from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
     from libdebug.state.thread_context import ThreadContext
 
 
@@ -27,17 +28,13 @@ class LightweightThreadSnapshot(ThreadSnapshot):
     def __init__(
         self: LightweightThreadSnapshot,
         thread: ThreadContext,
-        level: str = "base",
-        name: str = None,
-        maps: MemoryMapSnapshotList = None,
+        process_snapshot: ProcessSnapshot,
     ) -> None:
         """Creates a new snapshot object for the given thread.
 
         Args:
             thread (ThreadContext): The thread to take a snapshot of.
-            level (str, optional): The level of the snapshot. Defaults to "base".
-            name (str, optional): A name associated to the snapshot. Defaults to None.
-            maps (MemoryMapList, optional): Memory maps from ProcessSnapshot. Defaults to None.
+            process_snapshot (ProcessSnapshot): The process snapshot to which the thread belongs.
         """
         # Set id of the snapshot and increment the counter
         self.snapshot_id = thread._snapshot_count
@@ -46,17 +43,27 @@ class LightweightThreadSnapshot(ThreadSnapshot):
         # Basic snapshot info
         self.thread_id = thread.thread_id
         self.tid = thread.tid
-        self.name = name
-        self.level = level
 
+        # If there is a name, append the thread id
+        if process_snapshot.name is None:
+            self.name = None
+        else:
+            self.name = f"{process_snapshot.name} - Thread {self.tid}"
+
+        # Inherit level
+        self.level = process_snapshot.level
+
+        # Get thread registers
         self._save_regs(thread)
 
-        # Memory maps
-        self.maps = maps
+        self._proc_snapshot = process_snapshot
 
-        # Check if memory property is to be exposed
-        if level != "base":
-            self._memory = SnapshotMemoryView(self, thread.debugger.symbols)
-        else:
-            self._memory = None
+    @property
+    def maps(self: LightweightThreadSnapshot) -> MemoryMapSnapshotList:
+        """Returns the memory map snapshot list associated with the process snapshot."""
+        return self._proc_snapshot.maps
 
+    @property
+    def _memory(self: LightweightThreadSnapshot) -> SnapshotMemoryView:
+        """Returns the memory view associated with the process snapshot."""
+        return self._proc_snapshot._memory

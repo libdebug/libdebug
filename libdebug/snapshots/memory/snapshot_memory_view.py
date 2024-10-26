@@ -6,17 +6,19 @@
 
 from __future__ import annotations
 
+import sys
 from typing import TYPE_CHECKING
 
 from libdebug.liblog import liblog
 from libdebug.memory.abstract_memory_view import AbstractMemoryView
 from libdebug.utils.debugging_utils import normalize_and_validate_address
+from libdebug.utils.search_utils import find_all_overlapping_occurrences
 
 if TYPE_CHECKING:
     from libdebug.data.symbol import Symbol
     from libdebug.data.symbol_list import SymbolList
-    from libdebug.snapshots.process_snapshot import ProcessSnapshot
-    from libdebug.snapshots.thread_snapshot import ThreadSnapshot
+    from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
+    from libdebug.snapshots.thread.thread_snapshot import ThreadSnapshot
 
 
 class SnapshotMemoryView(AbstractMemoryView):
@@ -28,7 +30,7 @@ class SnapshotMemoryView(AbstractMemoryView):
         self._symbol_ref = symbols
 
     def read(self: SnapshotMemoryView, address: int, size: int) -> bytes:
-        """Reads memory from the target process.
+        """Reads memory from the target snapshot.
 
         Args:
             address (int): The address to read from.
@@ -37,7 +39,6 @@ class SnapshotMemoryView(AbstractMemoryView):
         Returns:
             bytes: The read bytes.
         """
-        print(f"Address is {hex(address)}")
         target_maps = self._snap_ref.maps.filter(address)
 
         if len(target_maps) == 0:
@@ -64,7 +65,7 @@ class SnapshotMemoryView(AbstractMemoryView):
         return target_map._content[start_offset:end_offset]
 
     def write(self: SnapshotMemoryView, address: int, data: bytes) -> None:
-        """Writes memory to the target process.
+        """Writes memory to the target snapshot.
 
         Args:
             address (int): The address to write to.
@@ -79,7 +80,7 @@ class SnapshotMemoryView(AbstractMemoryView):
         start: int | None = None,
         end: int | None = None,
     ) -> list[int]:
-        """Searches for the given value in the specified memory maps of the process.
+        """Searches for the given value in the saved memory maps of the snapshot.
 
         The start and end addresses can be used to limit the search to a specific range.
         If not specified, the search will be performed on the whole memory map.
@@ -93,8 +94,72 @@ class SnapshotMemoryView(AbstractMemoryView):
         Returns:
             list[int]: A list of offset where the value was found.
         """
+        if self._snap_ref.level == "base":
+            raise ValueError("Memory snapshot is not available at base level.")
 
-        # TODO: Check if it can be done, if so call super
+        if self._snap_ref.level == "writable":
+            if file.lower() == "all" or file == "*":
+                candidate_pages = [vmap for vmap in self._snap_ref.maps if "w" in vmap.permissions]
+            else:
+                occurrences = self._snap_ref.maps.filter(file)
+
+                candidate_pages = [vmap for vmap in occurrences if "w" in vmap.permissions]
+
+                if len(candidate_pages) == 0:
+                    raise ValueError(f"No writable memory maps found for {file}.")
+        else:
+            candidate_pages = [vmap for vmap in self._snap_ref.maps if vmap._content is not None]
+
+        if isinstance(value, str):
+            value = value.encode()
+        elif isinstance(value, int):
+            value = value.to_bytes(1, sys.byteorder)
+
+        occurrences = []
+        if file == "all" and start is None and end is None:
+            for vmap in candidate_pages:
+                try:
+                    memory_content = self.read(vmap.start, vmap.end - vmap.start)
+                except (OSError, OverflowError):
+                    # There are some memory regions that cannot be read, such as [vvar], [vdso], etc.
+                    continue
+                occurrences += find_all_overlapping_occurrences(value, memory_content, vmap.start)
+        elif file == "all" and start is not None and end is None:
+            for vmap in candidate_pages:
+                if vmap.end > start:
+                    read_start = max(vmap.start, start)
+                    try:
+                        memory_content = self.read(read_start, vmap.end - read_start)
+                    except (OSError, OverflowError):
+                        # There are some memory regions that cannot be read, such as [vvar], [vdso], etc.
+                        continue
+                    occurrences += find_all_overlapping_occurrences(value, memory_content, read_start)
+        elif file == "all" and start is None and end is not None:
+            for vmap in candidate_pages:
+                if vmap.start < end:
+                    read_end = min(vmap.end, end)
+                    try:
+                        memory_content = self.read(vmap.start, read_end - vmap.start)
+                    except (OSError, OverflowError):
+                        # There are some memory regions that cannot be read, such as [vvar], [vdso], etc.
+                        continue
+                    occurrences += find_all_overlapping_occurrences(value, memory_content, vmap.start)
+        elif file == "all" and start is not None and end is not None:
+            # Search in the specified range, hybrid mode
+            start = self.resolve_address(start, "hybrid", True)
+            end = self.resolve_address(end, "hybrid", True)
+            memory_content = self.read(start, end - start)
+            occurrences = find_all_overlapping_occurrences(value, memory_content, start)
+        else:
+            maps = self._snap_ref.maps.filter(file)
+            start = self.resolve_address(start, file, True) if start is not None else maps[0].start
+            end = self.resolve_address(end, file, True) if end is not None else maps[-1].end - 1
+
+            memory_content = self.read(start, end - start)
+
+            occurrences = find_all_overlapping_occurrences(value, memory_content, start)
+
+        return occurrences
 
     def _manage_memory_read_type(
         self: SnapshotMemoryView,
@@ -305,7 +370,6 @@ class SnapshotMemoryView(AbstractMemoryView):
         page_base = self._snap_ref.maps.filter(results[0].backing_file)[0].start
 
         return page_base + results[0].start + offset
-
 
     def resolve_address(
         self: SnapshotMemoryView,
