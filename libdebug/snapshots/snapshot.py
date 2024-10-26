@@ -24,8 +24,8 @@ class Snapshot:
 
     Snapshot levels:
     - base: Registers
-    - writable: Registers, writable memory maps
-    - full: Registers, stack, memory
+    - writable: Registers, writable memory
+    - full: Registers, memory
     """
 
     def _save_regs(self: Snapshot, thread: ThreadContext) -> None:

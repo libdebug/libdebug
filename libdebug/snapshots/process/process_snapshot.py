@@ -10,12 +10,12 @@ from typing import TYPE_CHECKING
 from libdebug.liblog import liblog
 from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
 from libdebug.snapshots.memory.snapshot_memory_view import SnapshotMemoryView
-from libdebug.snapshots.registers.snapshot_registers import SnapshotRegisters
 from libdebug.snapshots.snapshot import Snapshot
 from libdebug.snapshots.thread.lw_thread_snapshot import LightweightThreadSnapshot
 
 if TYPE_CHECKING:
     from libdebug.debugger.debugger import Debugger
+    from libdebug.snapshots.registers.snapshot_registers import SnapshotRegisters
 
 
 class ProcessSnapshot(Snapshot):

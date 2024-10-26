@@ -21,8 +21,8 @@ class ThreadSnapshot(Snapshot):
 
     Snapshot levels:
     - base: Registers
-    - writable: Registers, writable memory maps
-    - full: Registers, stack, memory
+    - writable: Registers, writable memory
+    - full: Registers, memory
     """
 
     def __init__(self: ThreadSnapshot, thread: ThreadContext, level: str = "base", name: str = None) -> None:
