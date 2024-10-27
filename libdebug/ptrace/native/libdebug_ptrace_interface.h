@@ -7,6 +7,7 @@
 #pragma once
 
 #include "libdebug_ptrace_base.h"
+#include "libdebug_ptrace_status_handler.h"
 
 class LibdebugPtraceInterface
 {
@@ -67,7 +68,7 @@ public:
     void stepping_finish(const pid_t, const bool);
 
     // Debugger status and signal methods
-    std::vector<std::pair<pid_t, int>> wait_all_and_update_regs();
+    void wait_all_and_update_regs(LibdebugPtraceStatusHandler &status_handler);
     unsigned long get_thread_event_msg(const pid_t);
     void forward_signals(const std::vector<std::pair<pid_t, int>>);
 

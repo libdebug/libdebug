@@ -35,12 +35,11 @@ class PtraceStatusHandler:
         """Initializes the PtraceStatusHandler class."""
         self.internal_debugger = provide_internal_debugger(self)
         self.ptrace_interface: DebuggingInterface = self.internal_debugger.debugging_interface
-        self.forward_signal: bool = True
         self._assume_race_sigstop: bool = (
             True  # Assume the stop is due to a race condition with SIGSTOP sent by the debugger
         )
 
-    def _handle_clone(self: PtraceStatusHandler, thread_id: int, results: list) -> None:
+    def handle_clone(self: PtraceStatusHandler, parent_pid: int, results: list) -> None:
         # https://go.googlesource.com/debug/+/a09ead70f05c87ad67bd9a131ff8352cf39a6082/doc/ptrace-nptl.txt
         # "At this time, the new thread will exist, but will initially
         # be stopped with a SIGSTOP.  The new thread will automatically be
@@ -51,11 +50,15 @@ class PtraceStatusHandler:
         # Check if we received the SIGSTOP notification for the new thread
         # If not, we need to wait for it
         # 4991 == (WIFSTOPPED && WSTOPSIG(status) == SIGSTOP)
-        if (thread_id, 4991) not in results:
-            os.waitpid(thread_id, 0)
-        self.ptrace_interface.register_new_thread(thread_id)
+        new_thread_id = self.ptrace_interface._get_event_msg(parent_pid)
+        liblog.debugger(
+            f"Process {parent_pid} cloned, new thread_id: {new_thread_id}",
+        )
+        if (new_thread_id, 4991) not in results:
+            os.waitpid(new_thread_id, 0)
+        self.ptrace_interface.register_new_thread(new_thread_id)
 
-    def _handle_exit(
+    def handle_exit(
         self: PtraceStatusHandler,
         thread_id: int,
         exit_code: int | None,
@@ -64,7 +67,7 @@ class PtraceStatusHandler:
         if self.internal_debugger.get_thread_by_id(thread_id):
             self.ptrace_interface.unregister_thread(thread_id, exit_code=exit_code, exit_signal=exit_signal)
 
-    def _handle_breakpoints(self: PtraceStatusHandler, thread_id: int) -> bool:
+    def handle_breakpoints(self: PtraceStatusHandler, thread_id: int, forward_signal: bool) -> bool:
         thread = self.internal_debugger.get_thread_by_id(thread_id)
 
         if not hasattr(thread, "instruction_pointer"):
@@ -72,8 +75,7 @@ class PtraceStatusHandler:
             # Do not resume the process until the user decides to do so
             self.internal_debugger.resume_context.event_type[thread_id] = EventType.STARTUP
             self.internal_debugger.resume_context.resume = False
-            self.forward_signal = False
-            return
+            return False
 
         ip = thread.instruction_pointer
 
@@ -110,7 +112,7 @@ class PtraceStatusHandler:
 
         if bp:
             self.internal_debugger.resume_context.event_hit_ref[thread_id] = bp
-            self.forward_signal = False
+            forward_signal = False
             bp.hit_count += 1
 
             if bp.callback:
@@ -119,6 +121,7 @@ class PtraceStatusHandler:
                 # If the breakpoint has no callback, we need to stop the process despite the other signals
                 self.internal_debugger.resume_context.event_type[thread_id] = EventType.BREAKPOINT
                 self.internal_debugger.resume_context.resume = False
+        return forward_signal
 
     def _manage_syscall_on_enter(
         self: PtraceStatusHandler,
@@ -201,7 +204,7 @@ class PtraceStatusHandler:
             handler._has_entered = True
             self.internal_debugger.resume_context.resume = False
 
-    def _handle_syscall(self: PtraceStatusHandler, thread_id: int) -> bool:
+    def handle_syscall(self: PtraceStatusHandler, thread_id: int) -> bool:
         """Handle a syscall trap."""
         thread = self.internal_debugger.get_thread_by_id(thread_id)
         if not hasattr(thread, "syscall_number"):
@@ -322,7 +325,7 @@ class PtraceStatusHandler:
                 self.internal_debugger.resume_context.event = EventType.SIGNAL
                 self.internal_debugger.resume_context.resume = False
 
-    def _handle_signal(self: PtraceStatusHandler, thread: ThreadContext) -> bool:
+    def _handle_user_signal(self: PtraceStatusHandler, thread: ThreadContext) -> bool:
         """Handle the signal trap."""
         signal_number = thread._signal_number
 
@@ -342,128 +345,25 @@ class PtraceStatusHandler:
 
             self._manage_caught_signal(catcher, thread, signal_number, {signal_number})
 
-    def _internal_signal_handler(
-        self: PtraceStatusHandler,
-        pid: int,
-        signum: int,
-        results: list,
-        status: int,
-    ) -> None:
-        """Internal handler for signals used by the debugger."""
-        if signum == SYSCALL_SIGTRAP:
-            # We hit a syscall
-            liblog.debugger("Child thread %d stopped on syscall", pid)
-            self._handle_syscall(pid)
-            self.forward_signal = False
-        elif signum == signal.SIGSTOP and self.internal_debugger.resume_context.force_interrupt:
-            # The user has requested an interrupt, we need to stop the process despite the ohter signals
-            liblog.debugger(
-                "Child thread %d stopped with signal %s",
-                pid,
-                resolve_signal_name(signum),
-            )
-            self.internal_debugger.resume_context.event_type[pid] = EventType.USER_INTERRUPT
-            self.internal_debugger.resume_context.resume = False
-            self.internal_debugger.resume_context.force_interrupt = False
-            self.forward_signal = False
-        elif signum == signal.SIGTRAP:
-            # The trap decides if we hit a breakpoint. If so, it decides whether we should stop or
-            # continue the execution and wait for the next trap
-            self._handle_breakpoints(pid)
+    def user_signal_handler(self: PtraceStatusHandler, pid: int, signum: int, forward_signal: bool) -> None:
+        """Handle a signal received by the process and understand if it has been managed by the user.
 
-            if self.internal_debugger.resume_context.is_a_step:
-                # The process is stepping, we need to stop the execution
-                self.internal_debugger.resume_context.event_type[pid] = EventType.STEP
-                self.internal_debugger.resume_context.resume = False
-                self.internal_debugger.resume_context.is_a_step = False
-                self.forward_signal = False
+        Args:
+            pid (int): The process ID of the thread that received the signal.
+            signum (int): The signal number.
+            forward_signal (bool): If True, the signal will be forwarded to the thread.
+        """
+        thread = self.internal_debugger.get_thread_by_id(pid)
 
-            event = status >> 8
-            match event:
-                case StopEvents.CLONE_EVENT:
-                    # The process has been cloned
-                    message = self.ptrace_interface._get_event_msg(pid)
-                    liblog.debugger(
-                        f"Process {pid} cloned, new thread_id: {message}",
-                    )
-                    self._handle_clone(message, results)
-                    self.forward_signal = False
-                case StopEvents.SECCOMP_EVENT:
-                    # The process has installed a seccomp
-                    liblog.debugger(f"Process {pid} installed a seccomp")
-                    self.forward_signal = False
-                case StopEvents.EXIT_EVENT:
-                    # The tracee is still alive; it needs
-                    # to be PTRACE_CONTed or PTRACE_DETACHed to finish exiting.
-                    # so we don't call self._handle_exit(pid) here
-                    # it will be called at the next wait (hopefully)
-                    message = self.ptrace_interface._get_event_msg(pid)
-                    liblog.debugger(
-                        f"Thread {pid} exited with status: {message}",
-                    )
-                    self.forward_signal = False
-                case StopEvents.FORK_EVENT:
-                    # The process has been forked
-                    liblog.warning(
-                        f"Process {pid} forked. Continuing execution of the parent process. The child process will be stopped until the user decides to attach to it.",
-                    )
-                    self.forward_signal = False
+        if thread is not None:
+            thread._signal_number = signum
 
-    def _handle_change(self: PtraceStatusHandler, pid: int, status: int, results: list) -> None:
-        """Handle a change in the status of a traced process."""
-        # Initialize the forward_signal flag
-        self.forward_signal = True
+            # Handle the signal
+            self._handle_user_signal(thread)
 
-        if os.WIFSTOPPED(status):
-            if self.internal_debugger.resume_context.is_startup:
-                # The process has just started
-                return
-            signum = os.WSTOPSIG(status)
-
-            if signum != signal.SIGSTOP:
-                self._assume_race_sigstop = False
-
-            # Check if the debugger needs to handle the signal
-            self._internal_signal_handler(pid, signum, results, status)
-
-            thread = self.internal_debugger.get_thread_by_id(pid)
-
-            if thread is not None:
-                thread._signal_number = signum
-
-                # Handle the signal
-                self._handle_signal(thread)
-
-                if self.forward_signal and signum != signal.SIGSTOP:
-                    # We have to forward the signal to the thread
-                    self.internal_debugger.resume_context.threads_with_signals_to_forward.append(pid)
-
-        if os.WIFEXITED(status):
-            # The thread has exited normally
-            exit_code = os.WEXITSTATUS(status)
-            liblog.debugger("Child process %d exited with exit code %d", pid, exit_code)
-            self._handle_exit(pid, exit_code=exit_code, exit_signal=None)
-
-        if os.WIFSIGNALED(status):
-            # The thread has exited with a signal
-            exit_signal = os.WTERMSIG(status)
-            liblog.debugger("Child process %d exited with signal %d", pid, exit_signal)
-            self._handle_exit(pid, exit_code=None, exit_signal=exit_signal)
-
-    def manage_change(self: PtraceStatusHandler, result: list[tuple]) -> None:
-        """Manage the result of the waitpid and handle the changes."""
-        # Assume that the stop depends on SIGSTOP sent by the debugger
-        # This is a workaround for some race conditions that may happen
-        self._assume_race_sigstop = True
-
-        for pid, status in result:
-            if pid != -1:
-                # Otherwise, this is a spurious trap
-                self._handle_change(pid, status, result)
-
-        if self._assume_race_sigstop:
-            # Resume the process if the stop was due to a race condition with SIGSTOP sent by the debugger
-            return
+            if forward_signal and signum != signal.SIGSTOP:
+                # We have to forward the signal to the thread
+                self.internal_debugger.resume_context.threads_with_signals_to_forward.append(pid)
 
     def check_for_new_threads(self: PtraceStatusHandler, pid: int) -> None:
         """Check for new threads in the process and register them."""

@@ -131,6 +131,7 @@ find_package(nanobind CONFIG REQUIRED)
 # Define the sources for the libdebug_ptrace_binding module
 set(LIBDEBUG_PTRACE_BINDING_SOURCES
   libdebug/ptrace/native/libdebug_ptrace_binding.cpp
+  libdebug/ptrace/native/libdebug_ptrace_status_handler.cpp
 )
 
 # Print the architecture
@@ -194,6 +195,24 @@ nanobind_add_stub(
   MODULE libdebug_linux_binding
   DEPENDS libdebug_linux_binding
   OUTPUT libdebug_linux_binding.pyi
+  PYTHON_PATH "."
+)
+
+# Add the libdebug_ptrace_status_handler module
+nanobind_add_module(
+  libdebug_ptrace_status_handler
+  NOMINSIZE
+  NOSTRIP
+  LTO
+  libdebug/ptrace/native/libdebug_ptrace_status_handler.cpp
+)
+
+# Add the stub for libdebug_ptrace_status_handler
+nanobind_add_stub(
+  libdebug_ptrace_status_handler_stub
+  MODULE libdebug_ptrace_status_handler
+  DEPENDS libdebug_ptrace_status_handler
+  OUTPUT libdebug_ptrace_status_handler.pyi
   PYTHON_PATH "."
 )
 
@@ -274,6 +293,7 @@ target_link_libraries(libdebug_debug_sym_parser PRIVATE elf dwarf iberty)
 install(TARGETS libdebug_ptrace_binding LIBRARY DESTINATION libdebug/ptrace/native)
 install(TARGETS libdebug_linux_binding LIBRARY DESTINATION libdebug/native)
 install(TARGETS libdebug_debug_sym_parser LIBRARY DESTINATION libdebug/native)
+install(TARGETS libdebug_ptrace_status_handler LIBRARY DESTINATION libdebug/ptrace/native)
 
 # Include the jumpstart.c file and add it as an executable
 set(SRC_DIR "${CMAKE_SOURCE_DIR}/libdebug/ptrace/jumpstart")

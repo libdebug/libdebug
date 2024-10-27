@@ -25,7 +25,7 @@ from libdebug.debugger.internal_debugger_instance_manager import (
 )
 from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.liblog import liblog
-from libdebug.ptrace.native import libdebug_ptrace_binding
+from libdebug.ptrace.native import libdebug_ptrace_binding, libdebug_ptrace_status_handler
 from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
 from libdebug.state.thread_context import ThreadContext
 from libdebug.utils.debugging_utils import normalize_and_validate_address
@@ -101,7 +101,9 @@ class PtraceInterface(DebuggingInterface):
 
         # Setup ptrace wait status handler after debugging_context has been properly initialized
         with extend_internal_debugger(self):
-            self.status_handler = PtraceStatusHandler()
+            self.lib_status_handler = libdebug_ptrace_status_handler.LibdebugPtraceStatusHandler(
+                self._internal_debugger.resume_context, PtraceStatusHandler(),
+            )
 
         file_actions = []
 
@@ -190,7 +192,9 @@ class PtraceInterface(DebuggingInterface):
         """
         # Setup ptrace wait status handler after debugging_context has been properly initialized
         with extend_internal_debugger(self):
-            self.status_handler = PtraceStatusHandler()
+            self.lib_status_handler = libdebug_ptrace_status_handler.LibdebugPtraceStatusHandler(
+                self._internal_debugger.resume_context, PtraceStatusHandler(),
+            )
 
         # Attach to all the tasks of the process
         self._attach_to_all_tasks(pid)
@@ -474,12 +478,7 @@ class PtraceInterface(DebuggingInterface):
 
     def wait(self: PtraceInterface) -> None:
         """Waits for the process to stop. Returns True if the wait has to be repeated."""
-        statuses = self.lib_trace.wait_all_and_update_regs()
-
-        invalidate_process_cache()
-
-        # Check the result of the waitpid and handle the changes.
-        self.status_handler.manage_change(statuses)
+        self.lib_trace.wait_all_and_update_regs(self.lib_status_handler)
 
     def forward_signal(self: PtraceInterface) -> None:
         """Set the signals to forward to the threads."""
@@ -524,7 +523,7 @@ class PtraceInterface(DebuggingInterface):
         self.lib_trace.ptrace_reattach_from_gdb(self._global_state, self.process_id)
 
         invalidate_process_cache()
-        self.status_handler.check_for_new_threads(self.process_id)
+        self.lib_status_handler.check_for_new_threads(self.process_id)
 
         # We have to reinstall any hardware breakpoint
         for bp in self._internal_debugger.breakpoints.values():
