@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2024 Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -12,6 +12,7 @@ from libdebug.debugger.internal_debugger_instance_manager import get_global_inte
 
 if TYPE_CHECKING:
     from libdebug.data.symbol import Symbol
+    from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
 
 
 class SymbolList(list):
@@ -32,6 +33,27 @@ class SymbolList(list):
         """
         # Find the memory map that contains the address
         if maps := get_global_internal_debugger().maps.filter(address):
+            address -= maps[0].start
+        else:
+            raise ValueError(
+                f"Address {address:#x} does not belong to any memory map. You must specify an absolute address."
+            )
+        return [symbol for symbol in self if symbol.start <= address < symbol.end]
+
+    def _search_by_address_in_snapshot(
+        self: SymbolList, address: int, external_maps: MemoryMapSnapshotList
+    ) -> list[Symbol]:
+        """Searches for a symbol by address.
+
+        Args:
+            address (int): The address of the symbol to search for.
+            external_maps (MemoryMapSnapshotList): The memory maps of the snapshot.
+
+        Returns:
+            list[Symbol]: The list of symbols that match the specified address.
+        """
+        # Find the memory map that contains the address
+        if maps := external_maps.filter(address):
             address -= maps[0].start
         else:
             raise ValueError(

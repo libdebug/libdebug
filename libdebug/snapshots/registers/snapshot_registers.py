@@ -10,14 +10,18 @@ from libdebug.data.registers import Registers
 
 
 class SnapshotRegisters(Registers):
-    """Abtract class that holds the state of the architectural-dependent registers of a process."""
+    """Class that holds the state of the architectural-dependent registers of a snapshot."""
 
-    def __init__(self: SnapshotRegisters, thread_id: int, generic_regs: list[str]) -> None:
+    def __init__(self: SnapshotRegisters, thread_id: int, generic_regs: list[str], special_regs: list[str], vec_fp_regs: list[str]) -> None:
         """Initializes the Registers object.
 
         Args:
             thread_id (int): The thread ID.
             generic_regs (list[str]): The list of registers to include in the repr.
+            special_regs (list[str]): The list of special registers to include in the repr.
+            vec_fp_regs (list[str]): The list of vector and floating point registers to include in the repr
         """
         self._thread_id = thread_id
         self._generic_regs = generic_regs
+        self._special_regs = special_regs
+        self._vec_fp_regs = vec_fp_regs

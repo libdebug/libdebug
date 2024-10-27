@@ -952,7 +952,7 @@ class Debugger:
         # Log the creation of the snapshot
         named_addition = " named " + loaded_snap.name if loaded_snap.name is not None else ""
         liblog.debugger(
-            f"Loaded {snapshot[type]} snapshot {loaded_snap.snapshot_id} of level {loaded_snap.level} from file {file_path}{named_addition}",
+            f"Loaded {snapshot["type"]} snapshot {loaded_snap.snapshot_id} of level {loaded_snap.level} from file {file_path}{named_addition}"
         )
 
         return loaded_snap

@@ -57,6 +57,7 @@ from libdebug.utils.debugging_utils import (
 from libdebug.utils.elf_utils import get_all_symbols
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.platform_utils import get_platform_register_size
+from libdebug.utils.pprint_primitives import pprint_maps_util
 from libdebug.utils.signal_utils import (
     resolve_signal_name,
     resolve_signal_number,
@@ -466,34 +467,7 @@ class InternalDebugger:
     def pprint_maps(self: InternalDebugger) -> None:
         """Prints the memory maps of the process."""
         self._ensure_process_stopped()
-        header = (
-            f"{'start':>18}  "
-            f"{'end':>18}  "
-            f"{'perm':>6}  "
-            f"{'size':>8}  "
-            f"{'offset':>8}  "
-            f"{'backing_file':<20}"
-        )
-        print(header)
-        for memory_map in self.maps:
-            info = (
-                f"{memory_map.start:#18x}  "
-                f"{memory_map.end:#18x}  "
-                f"{memory_map.permissions:>6}  "
-                f"{memory_map.size:#8x}  "
-                f"{memory_map.offset:#8x}  "
-                f"{memory_map.backing_file}"
-            )
-            if "rwx" in memory_map.permissions:
-                print(f"{ANSIColors.RED}{ANSIColors.UNDERLINE}{info}{ANSIColors.RESET}")
-            elif "x" in memory_map.permissions:
-                print(f"{ANSIColors.RED}{info}{ANSIColors.RESET}")
-            elif "w" in memory_map.permissions:
-                print(f"{ANSIColors.YELLOW}{info}{ANSIColors.RESET}")
-            elif "r" in memory_map.permissions:
-                print(f"{ANSIColors.GREEN}{info}{ANSIColors.RESET}")
-            else:
-                print(info)
+        pprint_maps_util(self.maps)
 
     @background_alias(_background_invalid_call)
     @change_state_function_process

@@ -6,12 +6,17 @@
 from __future__ import annotations
 
 import json
+from base64 import b64decode, b64encode
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from libdebug.data.memory_map import MemoryMap
+from libdebug.data.symbol import Symbol
+from libdebug.data.symbol_list import SymbolList
 from libdebug.liblog import liblog
 from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
 from libdebug.snapshots.memory.snapshot_memory_view import SnapshotMemoryView
+from libdebug.snapshots.registers.snapshot_registers import SnapshotRegisters
 from libdebug.snapshots.snapshot import Snapshot
 
 if TYPE_CHECKING:
@@ -45,6 +50,7 @@ class ThreadSnapshot(Snapshot):
         self.tid = thread.tid
         self.name = name
         self.level = level
+        self.arch = thread._internal_debugger.arch
         self._process_full_path = thread.debugger._internal_debugger._process_full_path
         self._process_name = thread.debugger._internal_debugger._process_name
 
@@ -101,17 +107,54 @@ class ThreadSnapshot(Snapshot):
 
         serializable_dict = {
             "type": "thread",
+            "arch": self.arch,
             "snapshot_id": self.snapshot_id,
             "thread_id": self.thread_id,
             "level": self.level,
             "name": self.name,
             "regs": {reg_name: getattr(self.regs, reg_name) for reg_name in all_reg_names},
-            "maps": self.maps,
-            "symbols": self._memory.symbols if self._memory is not None else None,
+            "architectural_registers": {
+                "generic": self.regs._generic_regs,
+                "special": self.regs._special_regs,
+                "vector_fp": self.regs._vec_fp_regs,
+            },
             "_process_full_path": self._process_full_path,
             "_process_name": self._process_name,
         }
 
+        # Save memory maps
+        saved_maps = []
+
+        for memory_map in self.maps:
+            saved_map = {
+                "start": memory_map.start,
+                "end": memory_map.end,
+                "permissions": memory_map.permissions,
+                "size": memory_map.size,
+                "offset": memory_map.offset,
+                "backing_file": memory_map.backing_file,
+                "content": b64encode(memory_map._content).decode("utf-8") if memory_map._content is not None else None,
+            }
+            saved_maps.append(saved_map)
+
+        serializable_dict["maps"] = saved_maps
+
+        # Symbols
+        saved_symbols = None if self._memory is None else []
+
+        if saved_symbols is not None:
+            for symbol in self._memory._symbol_ref:
+                saved_symbol = {
+                    "start": symbol.start,
+                    "end": symbol.end,
+                    "name": symbol.name,
+                    "backing_file": symbol.backing_file,
+                }
+                saved_symbols.append(saved_symbol)
+
+        serializable_dict["symbols"] = saved_symbols
+
+        # Save the snapshot to a file
         with Path(file_path).open("w") as file:
             json.dump(serializable_dict, file)
 
@@ -123,6 +166,7 @@ class ThreadSnapshot(Snapshot):
         loaded_snap.snapshot_id = snapshot_dict["snapshot_id"]
 
         # Basic snapshot info
+        loaded_snap.arch = snapshot_dict["arch"]
         loaded_snap.thread_id = snapshot_dict["thread_id"]
         loaded_snap.tid = loaded_snap.thread_id
         loaded_snap.name = snapshot_dict["name"]
@@ -130,18 +174,61 @@ class ThreadSnapshot(Snapshot):
         loaded_snap._process_full_path = snapshot_dict["_process_full_path"]
         loaded_snap._process_name = snapshot_dict["_process_name"]
 
+        # Create a register field for the snapshot
+        loaded_snap.regs = SnapshotRegisters(
+            loaded_snap.thread_id,
+            snapshot_dict["architectural_registers"]["generic"],
+            snapshot_dict["architectural_registers"]["special"],
+            snapshot_dict["architectural_registers"]["vector_fp"],
+        )
+
         # Get thread registers
         for reg_name, reg_value in snapshot_dict["regs"].items():
-            setattr(loaded_snap.regs, reg_name, reg_value)
+            loaded_snap.regs.__setattr__(reg_name, reg_value)
 
-        # Memory maps
+        # Recreate memory maps
+        loaded_maps = snapshot_dict["maps"]
+
+        raw_map_list = []
+
+        for saved_map in loaded_maps:
+
+            new_map = MemoryMap(
+                saved_map["start"],
+                saved_map["end"],
+                saved_map["permissions"],
+                saved_map["size"],
+                saved_map["offset"],
+                saved_map["backing_file"],
+                b64decode(saved_map["content"]) if saved_map["content"] is not None else None,
+            )
+
+            raw_map_list.append(new_map)
+
+        # Recreate the list
         loaded_snap.maps = MemoryMapSnapshotList(
-            snapshot_dict["maps"],
+            raw_map_list,
             loaded_snap._process_name,
             loaded_snap._process_full_path,
         )
 
-        # Memory view
-        loaded_snap._memory = SnapshotMemoryView(loaded_snap, snapshot_dict["symbols"]) if snapshot_dict["symbols"] is not None else None
+        # Recreate the symbol list
+        raw_loaded_symbols = snapshot_dict["symbols"]
+
+        if raw_loaded_symbols is not None:
+            sym_list = []
+
+            for saved_symbol in raw_loaded_symbols:
+                new_symbol = Symbol(
+                    saved_symbol["start"],
+                    saved_symbol["end"],
+                    saved_symbol["name"],
+                    saved_symbol["backing_file"],
+                )
+
+                sym_list.append(new_symbol)
+
+            sym_list = SymbolList(sym_list)
+            loaded_snap._memory = SnapshotMemoryView(loaded_snap, sym_list)
 
         return loaded_snap
