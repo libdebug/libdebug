@@ -4,9 +4,7 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-import os
 import psutil
-import signal
 from unittest import TestCase
 from utils.binary_utils import RESOLVE_EXE
 from pwn import process
@@ -32,6 +30,8 @@ class AtexitHandlerTest(TestCase):
         # The process should have been killed
         self.assertNotIn(pid, psutil.pids())
 
+        d.terminate()
+
     def test_run_2(self):
         d = debugger(RESOLVE_EXE("infinite_loop_test"), kill_on_exit=False)
 
@@ -55,6 +55,8 @@ class AtexitHandlerTest(TestCase):
         # The process should now be dead
         self.assertNotIn(pid, psutil.pids())
 
+        d.terminate()
+
     def test_run_3(self):
         d = debugger(RESOLVE_EXE("infinite_loop_test"), kill_on_exit=False)
 
@@ -72,6 +74,8 @@ class AtexitHandlerTest(TestCase):
 
         # The process should have been killed
         self.assertNotIn(pid, psutil.pids())
+
+        d.terminate()
 
     def test_run_4(self):
         d = debugger(RESOLVE_EXE("infinite_loop_test"))
@@ -97,6 +101,8 @@ class AtexitHandlerTest(TestCase):
 
         # The process should now be dead
         self.assertNotIn(pid, psutil.pids())
+
+        d.terminate()
 
     def test_attach_detach_1(self):
         p = process(RESOLVE_EXE("infinite_loop_test"))
@@ -125,6 +131,8 @@ class AtexitHandlerTest(TestCase):
         # The process should now be dead
         self.assertIsNotNone(p.poll(block=False))
 
+        d.terminate()
+
     def test_attach_detach_2(self):
         p = process(RESOLVE_EXE("infinite_loop_test"))
 
@@ -152,6 +160,8 @@ class AtexitHandlerTest(TestCase):
         # The process should now be dead
         self.assertIsNotNone(p.poll(block=False))
 
+        d.terminate()
+
     def test_attach_1(self):
         p = process(RESOLVE_EXE("infinite_loop_test"))
 
@@ -172,6 +182,8 @@ class AtexitHandlerTest(TestCase):
         # The process should now be dead
         self.assertIsNotNone(p.poll(block=False))
 
+        d.terminate()
+
     def test_attach_2(self):
         p = process(RESOLVE_EXE("infinite_loop_test"))
 
@@ -191,3 +203,5 @@ class AtexitHandlerTest(TestCase):
 
         # Even if we kill the process, the next call should not raise an exception
         _cleanup_internal_debugger()
+
+        d.terminate()
