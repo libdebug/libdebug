@@ -1449,17 +1449,7 @@ class InternalDebugger:
         else:
             liblog.debugger("Waiting for process %d to stop.", self.process_id)
 
-        while True:
-            if self.threads[0].dead:
-                # All threads are dead
-                liblog.debugger("All threads dead")
-                break
-            self.resume_context.resume = True
-            self.debugging_interface.wait()
-            if self.resume_context.resume:
-                self.debugging_interface.cont()
-            else:
-                break
+        self.debugging_interface.wait()
         self.set_stopped()
 
     def __threaded_breakpoint(self: InternalDebugger, bp: Breakpoint) -> None:

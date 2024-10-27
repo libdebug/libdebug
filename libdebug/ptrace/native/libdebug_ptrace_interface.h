@@ -7,7 +7,6 @@
 #pragma once
 
 #include "libdebug_ptrace_base.h"
-#include "libdebug_ptrace_status_handler.h"
 
 class LibdebugPtraceInterface
 {
@@ -15,7 +14,6 @@ class LibdebugPtraceInterface
 private:
     pid_t process_id, group_id;
     bool handle_syscall;
-    std::map<pid_t, Thread> threads, dead_threads;
     std::map<unsigned long, SoftwareBreakpoint> software_breakpoints;
 
     // Register private methods
@@ -47,6 +45,8 @@ private:
 public:
     LibdebugPtraceInterface();
 
+    std::map<pid_t, Thread> threads, dead_threads;
+
     // Debugger utility methods
     void cleanup();
 
@@ -68,7 +68,7 @@ public:
     void stepping_finish(const pid_t, const bool);
 
     // Debugger status and signal methods
-    void wait_all_and_update_regs(LibdebugPtraceStatusHandler &status_handler);
+    std::vector<std::pair<pid_t, int>> wait_all_and_update_regs();
     unsigned long get_thread_event_msg(const pid_t);
     void forward_signals(const std::vector<std::pair<pid_t, int>>);
 

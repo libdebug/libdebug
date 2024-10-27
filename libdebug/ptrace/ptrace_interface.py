@@ -102,7 +102,7 @@ class PtraceInterface(DebuggingInterface):
         # Setup ptrace wait status handler after debugging_context has been properly initialized
         with extend_internal_debugger(self):
             self.lib_status_handler = libdebug_ptrace_status_handler.LibdebugPtraceStatusHandler(
-                self._internal_debugger.resume_context, PtraceStatusHandler(),
+                self._internal_debugger.resume_context, PtraceStatusHandler(), self.lib_trace,
             )
 
         file_actions = []
@@ -193,7 +193,7 @@ class PtraceInterface(DebuggingInterface):
         # Setup ptrace wait status handler after debugging_context has been properly initialized
         with extend_internal_debugger(self):
             self.lib_status_handler = libdebug_ptrace_status_handler.LibdebugPtraceStatusHandler(
-                self._internal_debugger.resume_context, PtraceStatusHandler(),
+                self._internal_debugger.resume_context, PtraceStatusHandler(), self.lib_trace,
             )
 
         # Attach to all the tasks of the process
@@ -250,37 +250,7 @@ class PtraceInterface(DebuggingInterface):
 
     def cont(self: PtraceInterface) -> None:
         """Continues the execution of the process."""
-        # Forward signals to the threads
-        if self._internal_debugger.resume_context.threads_with_signals_to_forward:
-            self.forward_signal()
-
-        # Enable all breakpoints if they were disabled for a single step
-        changed = []
-
-        for bp in self._internal_debugger.breakpoints.values():
-            bp._disabled_for_step = False
-            if bp._changed:
-                changed.append(bp)
-                bp._changed = False
-
-        for bp in changed:
-            if bp.enabled:
-                self.set_breakpoint(bp, insert=False)
-            else:
-                self.unset_breakpoint(bp, delete=False)
-
-        handle_syscalls = any(
-            handler.enabled or handler.on_enter_pprint or handler.on_exit_pprint
-            for handler in self._internal_debugger.handled_syscalls.values()
-        )
-
-        # Reset the event type
-        self._internal_debugger.resume_context.event_type.clear()
-
-        # Reset the breakpoint hit
-        self._internal_debugger.resume_context.event_hit_ref.clear()
-
-        self.lib_trace.cont_all_and_set_bps(handle_syscalls)
+        self.lib_status_handler.cont()
 
     def step(self: PtraceInterface, thread: ThreadContext) -> None:
         """Executes a single instruction of the process.
@@ -478,7 +448,7 @@ class PtraceInterface(DebuggingInterface):
 
     def wait(self: PtraceInterface) -> None:
         """Waits for the process to stop. Returns True if the wait has to be repeated."""
-        self.lib_trace.wait_all_and_update_regs(self.lib_status_handler)
+        self.lib_status_handler.wait_loop(self._internal_debugger.threads[0].thread_id)
 
     def forward_signal(self: PtraceInterface) -> None:
         """Set the signals to forward to the threads."""

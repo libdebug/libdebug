@@ -131,7 +131,12 @@ find_package(nanobind CONFIG REQUIRED)
 # Define the sources for the libdebug_ptrace_binding module
 set(LIBDEBUG_PTRACE_BINDING_SOURCES
   libdebug/ptrace/native/libdebug_ptrace_binding.cpp
+)
+
+# Define the sources for the libdebug_ptrace_status_handler module
+set(LIBDEBUG_PTRACE_STATUS_HANDLER_SOURCES
   libdebug/ptrace/native/libdebug_ptrace_status_handler.cpp
+  libdebug/ptrace/native/libdebug_ptrace_binding.cpp
 )
 
 # Print the architecture
@@ -141,6 +146,8 @@ message(STATUS "Detected Architecture: ${CMAKE_SYSTEM_PROCESSOR}")
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64" OR CMAKE_SYSTEM_PROCESSOR MATCHES "amd64")
   list(APPEND LIBDEBUG_PTRACE_BINDING_SOURCES libdebug/ptrace/native/amd64/amd64_ptrace.cpp)
   list(APPEND LIBDEBUG_PTRACE_BINDING_SOURCES libdebug/ptrace/native/shared/x86_ptrace.cpp)
+  list(APPEND LIBDEBUG_PTRACE_STATUS_HANDLER_SOURCES libdebug/ptrace/native/amd64/amd64_ptrace.cpp)
+  list(APPEND LIBDEBUG_PTRACE_STATUS_HANDLER_SOURCES libdebug/ptrace/native/shared/x86_ptrace.cpp)
 
   # Add a definition for the x86_64 architecture
   add_definitions(-DARCH_X86_64)
@@ -150,6 +157,8 @@ endif()
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "i386" OR CMAKE_SYSTEM_PROCESSOR MATCHES "i686" OR CMAKE_SYSTEM_PROCESSOR MATCHES "x86" AND NOT CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
   list(APPEND LIBDEBUG_PTRACE_BINDING_SOURCES libdebug/ptrace/native/i386/i386_ptrace.cpp)
   list(APPEND LIBDEBUG_PTRACE_BINDING_SOURCES libdebug/ptrace/native/shared/x86_ptrace.cpp)
+  list(APPEND LIBDEBUG_PTRACE_STATUS_HANDLER_SOURCES libdebug/ptrace/native/i386/i386_ptrace.cpp)
+  list(APPEND LIBDEBUG_PTRACE_STATUS_HANDLER_SOURCES libdebug/ptrace/native/shared/x86_ptrace.cpp)
 
   # Add a definition for the i386 architecture
   add_definitions(-DARCH_X86)
@@ -157,6 +166,7 @@ endif()
 
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
   list(APPEND LIBDEBUG_PTRACE_BINDING_SOURCES libdebug/ptrace/native/aarch64/aarch64_ptrace.cpp)
+  list(APPEND LIBDEBUG_PTRACE_STATUS_HANDLER_SOURCES libdebug/ptrace/native/aarch64/aarch64_ptrace.cpp)
 
   # Add a definition for the ARM architecture
   add_definitions(-DARCH_AARCH64)
@@ -204,7 +214,7 @@ nanobind_add_module(
   NOMINSIZE
   NOSTRIP
   LTO
-  libdebug/ptrace/native/libdebug_ptrace_status_handler.cpp
+  ${LIBDEBUG_PTRACE_STATUS_HANDLER_SOURCES}
 )
 
 # Add the stub for libdebug_ptrace_status_handler
@@ -278,6 +288,7 @@ if (CMAKE_SYSTEM_PROCESSOR MATCHES "i386"
 
     # Ensure the path to the generated file is included in the target's include directories
     target_include_directories(libdebug_ptrace_binding PRIVATE ${CMAKE_BINARY_DIR}/generated)
+    target_include_directories(libdebug_ptrace_status_handler PRIVATE ${CMAKE_BINARY_DIR}/generated)
 
     # Print a message to the user
     message(STATUS "Generated xsave layout header at ${XSAVE_LAYOUT_OUTPUT}")
@@ -285,6 +296,7 @@ endif()
 
 # Add libdebug/ptrace/native to the include directories
 target_include_directories(libdebug_ptrace_binding PRIVATE libdebug/ptrace/native)
+target_include_directories(libdebug_ptrace_status_handler PRIVATE libdebug/ptrace/native)
 
 # Link required libraries
 target_link_libraries(libdebug_debug_sym_parser PRIVATE elf dwarf iberty)

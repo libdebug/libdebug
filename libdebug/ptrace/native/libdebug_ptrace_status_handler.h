@@ -3,6 +3,7 @@
 #include <nanobind/stl/vector.h>
 #include <nanobind/stl/pair.h>
 #include <nanobind/nanobind.h>
+#include "libdebug_ptrace_interface.h"
 #include <signal.h>
 #include <sys/ptrace.h>
 #include <sys/types.h>
@@ -23,6 +24,7 @@ private:
     nb::object liblog_warning;
     nb::object resume_context_instance;
     nb::object ptrace_status_handler;
+    LibdebugPtraceInterface &libdebug_ptrace_interface;
     nb::object user_interrupt_event;
     nb::object breakpoint_event;
     nb::object step_event;
@@ -62,11 +64,14 @@ private:
 
 public:
     // Constructor accepting Python objects
-    LibdebugPtraceStatusHandler(nb::object resume_context_instance, nb::object ptrace_status_handler)
-        : resume_context_instance(resume_context_instance), ptrace_status_handler(ptrace_status_handler) {
+    LibdebugPtraceStatusHandler(nb::object resume_context_instance, nb::object ptrace_status_handler, LibdebugPtraceInterface& libdebug_ptrace_interface)
+        : resume_context_instance(resume_context_instance), ptrace_status_handler(ptrace_status_handler), libdebug_ptrace_interface(libdebug_ptrace_interface)
+        {
         initialize();
     }
     void manage_change(std::vector<std::pair<pid_t, int>>&);
     void handle_change(pid_t, int, std::vector<std::pair<int, int>>&);
     void internal_signal_handler(pid_t, int, int, std::vector<std::pair<int, int>>&);
+    void wait_loop(const pid_t);
+    void cont();
 };

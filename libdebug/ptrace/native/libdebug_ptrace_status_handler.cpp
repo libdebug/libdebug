@@ -5,7 +5,6 @@
 void LibdebugPtraceStatusHandler::manage_change(std::vector<std::pair<pid_t, int>>& statuses){
     // Assume that the stop depends on SIGSTOP sent by the debugger
     // This is a workaround for some race conditions that may happen
-
     for (auto &status : statuses) {
         if (status.first != -1) {
             // Otherwise, this is a spurious trap
@@ -24,6 +23,7 @@ void LibdebugPtraceStatusHandler::handle_change(pid_t pid, int status, std::vect
         invalidate_process_cache();
         if (nb::cast<bool>(resume_context_instance.attr("is_startup"))) {
             // The process has just started
+            resume_context_instance.attr("resume") = false;
             return;
         }
         int signum = WSTOPSIG(status);
@@ -123,10 +123,61 @@ void LibdebugPtraceStatusHandler::internal_signal_handler(pid_t pid, int signum,
     }
 }
 
+void LibdebugPtraceStatusHandler::wait_loop(const pid_t main_tid)
+{
+    // Release the GIL at the beginning of the function
+    nb::gil_scoped_release release_guard;
+
+    while (true) {
+
+        // Acquire the GIL when interacting with Python objects
+        {
+            nb::gil_scoped_acquire acquire_guard;
+
+            if (libdebug_ptrace_interface.dead_threads.find(main_tid) != libdebug_ptrace_interface.dead_threads.end()) {
+                // All threads are dead
+                liblog_debugger("All threads dead");
+                break;
+            }
+
+            resume_context_instance.attr("resume") = true;
+        }
+        // GIL is released automatically here
+
+        // Wait for the process to stop (no GIL needed)
+        std::vector<std::pair<pid_t, int>> thread_statuses = libdebug_ptrace_interface.wait_all_and_update_regs();
+
+        // Acquire the GIL again to interact with Python objects
+        {
+            nb::gil_scoped_acquire acquire_guard;
+
+            // Check if we need to handle the change
+            manage_change(thread_statuses);
+
+            if (nb::cast<bool>(resume_context_instance.attr("resume"))) {
+                cont();
+            } else {
+                break;
+            }
+        }
+        // GIL is released automatically here
+    }
+    // GIL is reacquired automatically when 'release_guard' goes out of scope
+}
+
+
+void LibdebugPtraceStatusHandler::cont(){
+    bool handle_syscalls = nb::cast<bool>(ptrace_status_handler.attr("handle_continue")());
+    libdebug_ptrace_interface.cont_all_and_set_bps(handle_syscalls);
+
+}
+
 NB_MODULE(libdebug_ptrace_status_handler, m){
     nb::class_<LibdebugPtraceStatusHandler>(m, "LibdebugPtraceStatusHandler", "A class to handle the status of a traced process.")
-        .def(nb::init<nb::object, nb::object>(), nb::arg("resume_context_instance"), nb::arg("ptrace_status_handler"))        
+        .def(nb::init<nb::object, nb::object, LibdebugPtraceInterface&>(), "Initialize the status handler.", nb::arg("resume_context_instance"), nb::arg("ptrace_status_handler"), nb::arg("libdebug_ptrace_interface"))      
         .def("manage_change", &LibdebugPtraceStatusHandler::manage_change, "Manage the change in the status of a traced process.", nb::arg("statuses"))
         .def("handle_change", &LibdebugPtraceStatusHandler::handle_change, "Handle a change in the status of a traced process.", nb::arg("pid"), nb::arg("status"), nb::arg("statuses"))
-        .def("internal_signal_handler", &LibdebugPtraceStatusHandler::internal_signal_handler, "Handle the signal internally.", nb::arg("pid"), nb::arg("signum"), nb::arg("status"), nb::arg("statuses"));
+        .def("internal_signal_handler", &LibdebugPtraceStatusHandler::internal_signal_handler, "Handle the signal internally.", nb::arg("pid"), nb::arg("signum"), nb::arg("status"), nb::arg("statuses"))
+        .def("wait_loop", &LibdebugPtraceStatusHandler::wait_loop, "Wait for the process to stop and handle the status changes.", nb::arg("main_tid"))
+        .def("cont", &LibdebugPtraceStatusHandler::cont, "Continue the execution of the process.");
 }

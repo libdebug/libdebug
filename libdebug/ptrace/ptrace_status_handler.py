@@ -58,6 +58,39 @@ class PtraceStatusHandler:
             os.waitpid(new_thread_id, 0)
         self.ptrace_interface.register_new_thread(new_thread_id)
 
+    def handle_continue(self: PtraceStatusHandler) -> bool:
+        # Forward signals to the threads
+        if self.internal_debugger.resume_context.threads_with_signals_to_forward:
+            self.ptrace_interface.forward_signal()
+
+        # Enable all breakpoints if they were disabled for a single step
+        changed = []
+
+        for bp in self.internal_debugger.breakpoints.values():
+            bp._disabled_for_step = False
+            if bp._changed:
+                changed.append(bp)
+                bp._changed = False
+
+        for bp in changed:
+            if bp.enabled:
+                self.ptrace_interface.set_breakpoint(bp, insert=False)
+            else:
+                self.ptrace_interface.unset_breakpoint(bp, delete=False)
+
+        handle_syscalls = any(
+            handler.enabled or handler.on_enter_pprint or handler.on_exit_pprint
+            for handler in self.internal_debugger.handled_syscalls.values()
+        )
+
+        # Reset the event type
+        self.internal_debugger.resume_context.event_type.clear()
+
+        # Reset the breakpoint hit
+        self.internal_debugger.resume_context.event_hit_ref.clear()
+
+        return handle_syscalls
+
     def handle_exit(
         self: PtraceStatusHandler,
         thread_id: int,

@@ -12,7 +12,6 @@
 
 #include "libdebug_ptrace_base.h"
 #include "libdebug_ptrace_interface.h"
-#include "libdebug_ptrace_status_handler.h"
 
 #ifdef ARCH_X86_64
 #include "shared/x86_ptrace.h"
@@ -416,7 +415,7 @@ unsigned long LibdebugPtraceInterface::get_thread_event_msg(const pid_t tid)
     return data;
 }
 
-void LibdebugPtraceInterface::wait_all_and_update_regs(LibdebugPtraceStatusHandler& status_handler)
+std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_regs()
 {
     std::vector<std::pair<pid_t, int>> thread_statuses;
 
@@ -466,8 +465,7 @@ void LibdebugPtraceInterface::wait_all_and_update_regs(LibdebugPtraceStatusHandl
         }
     }
 
-    // Check if we need to handle the change
-    status_handler.manage_change(thread_statuses);
+    return thread_statuses;
 }
 
 void LibdebugPtraceInterface::forward_signals(const std::vector<std::pair<pid_t, int>> signals)
