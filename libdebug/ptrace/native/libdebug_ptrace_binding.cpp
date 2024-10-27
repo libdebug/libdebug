@@ -9,6 +9,8 @@
 #include <sys/ptrace.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <cerrno>
+#include <cstring>
 
 #include "libdebug_ptrace_base.h"
 #include "libdebug_ptrace_interface.h"
@@ -120,6 +122,9 @@ LibdebugPtraceInterface::LibdebugPtraceInterface()
     process_id = -1;
     group_id = -1;
     handle_syscall = false;
+    // Initialize the synchronization pipe for SIGCHLD handler
+    SigChldHandler::instance().install_handler();
+    sync_sigchld_pipe_fd = SigChldHandler::instance().get_sync_pipe_write_fd();
 }
 
 void LibdebugPtraceInterface::cleanup()
@@ -421,7 +426,19 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_
 
     int tid, status;
 
-    tid = waitpid(-group_id, &status, 0);
+    while (tid == 0){
+        tid = waitpid(-group_id, &status, WNOHANG);
+        printf("waitpid(-group_id, &status, WNOHANG) = %d\n", tid);
+    }
+
+    // Write on the synchronization pipe to signal that we have performed waitpid
+    char buffer[1] = {0};
+    printf("write on the synchronization pipe to signal that we have performed waitpid\n");
+    printf("sync_sigchld_pipe_fd = %d\n", sync_sigchld_pipe_fd);
+    ssize_t bytes_written = write(sync_sigchld_pipe_fd, buffer, 1);
+    if (bytes_written == -1) {
+        throw std::system_error(errno, std::generic_category(), "Write on the synchronization pipe failed");
+    }
 
     if (tid == -1) {
         throw std::runtime_error("waitpid failed");

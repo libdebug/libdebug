@@ -161,6 +161,9 @@ if (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
   add_definitions(-DARCH_AARCH64)
 endif()
 
+# Add the linux_sigchld_handler sources
+list(APPEND LIBDEBUG_PTRACE_BINDING_SOURCES libdebug/native/linux_sigchld_handler.cpp)
+
 # Add the libdebug_ptrace_binding module
 nanobind_add_module(
   libdebug_ptrace_binding
@@ -229,6 +232,24 @@ nanobind_add_stub(
   PYTHON_PATH "."
 )
 
+# Add the linux_sigchld_handler module
+nanobind_add_module(
+  linux_sigchld_handler
+  NOMINSIZE
+  NOSTRIP
+  LTO
+  libdebug/native/linux_sigchld_handler.cpp
+)
+
+# Add the stub for linux_sigchld_handler
+nanobind_add_stub(
+  linux_sigchld_handler_stub
+  MODULE linux_sigchld_handler
+  DEPENDS linux_sigchld_handler
+  OUTPUT linux_sigchld_handler.pyi
+  PYTHON_PATH "."
+)
+
 # If architecture is amd64 or i386
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "i386"
     OR CMAKE_SYSTEM_PROCESSOR MATCHES "x86"
@@ -266,6 +287,10 @@ endif()
 
 # Add libdebug/ptrace/native to the include directories
 target_include_directories(libdebug_ptrace_binding PRIVATE libdebug/ptrace/native)
+target_include_directories(libdebug_ptrace_binding PRIVATE libdebug/native)
+
+# Add libdebug/native to the include directories
+target_include_directories(libdebug_debug_sym_parser PRIVATE libdebug/native)
 
 # Link required libraries
 target_link_libraries(libdebug_debug_sym_parser PRIVATE elf dwarf iberty)
@@ -274,6 +299,7 @@ target_link_libraries(libdebug_debug_sym_parser PRIVATE elf dwarf iberty)
 install(TARGETS libdebug_ptrace_binding LIBRARY DESTINATION libdebug/ptrace/native)
 install(TARGETS libdebug_linux_binding LIBRARY DESTINATION libdebug/native)
 install(TARGETS libdebug_debug_sym_parser LIBRARY DESTINATION libdebug/native)
+install(TARGETS linux_sigchld_handler LIBRARY DESTINATION libdebug/native)
 
 # Include the jumpstart.c file and add it as an executable
 set(SRC_DIR "${CMAKE_SOURCE_DIR}/libdebug/ptrace/jumpstart")

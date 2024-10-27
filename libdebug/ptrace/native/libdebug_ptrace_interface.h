@@ -7,6 +7,7 @@
 #pragma once
 
 #include "libdebug_ptrace_base.h"
+#include "linux_sigchld_handler.h"
 
 class LibdebugPtraceInterface
 {
@@ -25,6 +26,9 @@ private:
     void getfpregs(Thread &);
     void setfpregs(Thread &);
     void check_and_set_fpregs(Thread &);
+
+    // Syncronization pipe for SIGCHLD handler
+    int sync_sigchld_pipe_fd;
 
     // Control flow private methods
     void step_thread(Thread &,  bool forward_signal = true, bool step_over_hardware_bp = false);

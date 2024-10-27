@@ -80,6 +80,7 @@ if TYPE_CHECKING:
     from libdebug.debugger import Debugger
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
+    from libdebug.native import linux_sigchld_handler
     from libdebug.state.thread_context import ThreadContext
 
 THREAD_TERMINATE = -1
@@ -166,6 +167,9 @@ class InternalDebugger:
 
     stdin_settings_backup: list[Any]
     """The backup of the stdin settings. Used to restore the original settings after possible conflicts due to the pipe manager interacactive mode."""
+
+    sigchld_handler: linux_sigchld_handler.SigChldHandler
+    """The signal handler for SIGCHLD."""
 
     __polling_thread: Thread | None
     """The background thread used to poll the process for state change."""
