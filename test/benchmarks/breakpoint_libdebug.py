@@ -47,7 +47,7 @@ def test():
 results = []
 
 # Initialize the debugger
-d = debugger("../binaries/math_loop_test")
+d = debugger("../binaries/amd64/math_loop_test")
 
 for _ in range(1000):
     test()
@@ -59,4 +59,5 @@ d.terminate()
 with open("breakpoint_libdebug.pkl", "wb") as f:
     pickle.dump(results, f)
 
-# print("Results:", results)  
+print("Results:", results)  
+print("Average time:", sum(results)/len(results))
