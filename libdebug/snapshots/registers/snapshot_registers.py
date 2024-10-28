@@ -12,7 +12,13 @@ from libdebug.data.registers import Registers
 class SnapshotRegisters(Registers):
     """Class that holds the state of the architectural-dependent registers of a snapshot."""
 
-    def __init__(self: SnapshotRegisters, thread_id: int, generic_regs: list[str], special_regs: list[str], vec_fp_regs: list[str]) -> None:
+    def __init__(
+        self: SnapshotRegisters,
+        thread_id: int,
+        generic_regs: list[str],
+        special_regs: list[str],
+        vec_fp_regs: list[str],
+    ) -> None:
         """Initializes the Registers object.
 
         Args:
@@ -25,3 +31,16 @@ class SnapshotRegisters(Registers):
         self._generic_regs = generic_regs
         self._special_regs = special_regs
         self._vec_fp_regs = vec_fp_regs
+
+    def filter(self: SnapshotRegisters, value: float) -> list[str]:
+        """Filters the registers by value.
+
+        Args:
+            value (float): The value to search for.
+
+        Returns:
+            list[str]: A list of names of the registers containing the value.
+        """
+        attributes = self.__dict__
+
+        return [attr for attr in attributes if getattr(self, attr) == value]

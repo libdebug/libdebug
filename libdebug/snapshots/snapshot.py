@@ -47,7 +47,7 @@ class Snapshot:
 
         # Set all registers in the field
         all_regs = dir(thread.regs)
-        all_regs = [reg for reg in all_regs if not reg.startswith("_") and reg != "register_file"]
+        all_regs = [reg for reg in all_regs if isinstance(thread.regs.__getattribute__(reg), int | float)]
 
         for reg_name in all_regs:
             reg_value = thread.regs.__getattribute__(reg_name)

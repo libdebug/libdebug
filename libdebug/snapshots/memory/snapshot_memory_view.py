@@ -41,7 +41,7 @@ class SnapshotMemoryView(AbstractMemoryView):
         """
         target_maps = self._snap_ref.maps.filter(address)
 
-        if len(target_maps) == 0:
+        if not target_maps:
             raise ValueError("No mapped memory at the specified address.")
 
         target_map = target_maps[0]
@@ -105,7 +105,7 @@ class SnapshotMemoryView(AbstractMemoryView):
 
                 candidate_pages = [vmap for vmap in occurrences if "w" in vmap.permissions]
 
-                if len(candidate_pages) == 0:
+                if not candidate_pages:
                     raise ValueError(f"No writable memory maps found for {file}.")
         else:
             candidate_pages = [vmap for vmap in self._snap_ref.maps if vmap._content is not None]

@@ -78,7 +78,7 @@ class MemoryMap:
 
     def is_same_identity(self: MemoryMap, other: MemoryMap) -> bool:
         """Check if the memory map corresponds to another memory map."""
-        return self.start == other.start and self.end == other.end and self.backing_file == other.backing_file
+        return self.start == other.start and self.backing_file == other.backing_file
 
     def __repr__(self: MemoryMap) -> str:
         """Return the string representation of the memory map."""
