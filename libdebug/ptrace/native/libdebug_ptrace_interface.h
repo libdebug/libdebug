@@ -29,7 +29,9 @@ private:
     // Control flow private methods
     void step_thread(Thread &,  bool forward_signal = true, bool step_over_hardware_bp = false);
     void cont_thread(Thread &);
-    int prepare_for_run();
+    void prepare_single_thread(Thread &);
+    void prepare_single_thread_for_run(Thread &);
+    void prepare_process_for_run();
 
     // Hardware breakpoint private methods
     void install_hardware_breakpoint(const HardwareBreakpoint &);
@@ -38,7 +40,7 @@ private:
 
     // On some architectures, you are not allowed to step or cont over a hardware breakpoint
     // This method checks if the thread is on a hardware breakpoint and steps over it
-    void arch_check_if_hit_and_step_over();
+    void arch_check_if_hit_and_step_over(Thread &);
 
     // Others
     bool check_if_dl_trampoline(unsigned long);

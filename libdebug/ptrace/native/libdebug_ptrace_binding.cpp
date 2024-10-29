@@ -62,48 +62,48 @@ void LibdebugPtraceInterface::cont_thread(Thread &t)
     t.signal_to_forward = 0;
 }
 
-int LibdebugPtraceInterface::prepare_for_run()
-{
+void LibdebugPtraceInterface::prepare_single_thread(Thread &t){
     // Flush any register changes
-    for (auto &t : threads) {
-        if (setregs(t.second))
-            throw std::runtime_error("setregs failed");
-
-        check_and_set_fpregs(t.second);
+    if (setregs(t)) {
+        throw std::runtime_error("setregs failed");
     }
 
-    // Iterate over all the threads and check if any of them has hit a software
-    // breakpoint
-    for (auto &t : threads) {
-        bool t_hit = false;
-        unsigned long ip = INSTRUCTION_POINTER(t.second.regs);
+    check_and_set_fpregs(t);
 
-        for (auto &b : software_breakpoints) {
-            if (b.first == ip) {
-                // We hit a software breakpoint on this thread
-                t_hit = true;
-                break;
-            }
-        }
+    // Check if the thread has hit a software breakpoint
+    bool t_hit = false;
+    unsigned long ip = INSTRUCTION_POINTER(t.regs);
 
-        if (t_hit) {
-            // Step over the breakpoint
-            step_thread(t.second, false);
-
-            // Wait for the child
-            int status;
-            waitpid(t.first, &status, 0);
-
-            // status == 4991 ==> (WIFSTOPPED(status) && WSTOPSIG(status) ==
-            // SIGSTOP) this should happen only if threads are involved
-            if (status == 4991) {
-                step_thread(t.second, false);
-                waitpid(t.first, &status, 0);
-            }
+    for (auto &b : software_breakpoints) {
+        if (b.first == ip) {
+            // We hit a software breakpoint on this thread
+            t_hit = true;
+            break;
         }
     }
 
-    arch_check_if_hit_and_step_over();
+    if (t_hit) {
+        // Step over the breakpoint
+        step_thread(t, false);
+
+        // Wait for the child
+        int status;
+        waitpid(t.tid, &status, 0);
+
+        // status == 4991 ==> (WIFSTOPPED(status) && WSTOPSIG(status) ==
+        // SIGSTOP) this should happen only if threads are involved
+        if (status == 4991) {
+            step_thread(t, false);
+            waitpid(t.tid, &status, 0);
+        }
+    }
+
+    arch_check_if_hit_and_step_over(t);
+}
+
+void LibdebugPtraceInterface::prepare_single_thread_for_run(Thread &t)
+{
+    prepare_single_thread(t);
 
     // Restore any software breakpoints
     for (auto &bp : software_breakpoints) {
@@ -111,8 +111,20 @@ int LibdebugPtraceInterface::prepare_for_run()
             ptrace(PTRACE_POKETEXT, process_id, (void *) bp.first, (void *) bp.second.patched_instruction);
         }
     }
+}
 
-    return 0;
+void LibdebugPtraceInterface::prepare_process_for_run()
+{
+    for (auto &t : threads) {
+        prepare_single_thread(t.second);
+    }
+
+    // Restore any software breakpoints
+    for (auto &bp : software_breakpoints) {
+        if (bp.second.enabled) {
+            ptrace(PTRACE_POKETEXT, process_id, (void *) bp.first, (void *) bp.second.patched_instruction);
+        }
+    }
 }
 
 LibdebugPtraceInterface::LibdebugPtraceInterface()
@@ -265,7 +277,7 @@ void LibdebugPtraceInterface::cont_all_and_set_bps(bool handle_syscalls)
     // Set the handle_syscall flag
     handle_syscall = handle_syscalls;
 
-    prepare_for_run();
+    prepare_process_for_run();
 
     // Continue all the threads
     for (auto &t : threads) {
@@ -341,7 +353,7 @@ void LibdebugPtraceInterface::stepping_finish(pid_t tid, bool use_trampoline_heu
 {
     Thread &stepping_thread = threads[tid];
 
-    prepare_for_run();
+    prepare_process_for_run();
 
     unsigned long previous_ip, current_ip;
     unsigned long opcode_window, opcode;
