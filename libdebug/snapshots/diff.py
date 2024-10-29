@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from libdebug.snapshots.memory.memory_map_diff import MemoryMapDiff
+from libdebug.snapshots.memory.memory_map_diff_list import MemoryMapDiffList
 from libdebug.snapshots.registers.register_diff import RegisterDiff
 from libdebug.snapshots.registers.register_diff_accessor import RegisterDiffAccessor
 from libdebug.utils.platform_utils import get_platform_register_size
@@ -79,7 +80,7 @@ class Diff:
 
     def _resolve_maps_diff(self: Diff) -> None:
         # Handle memory maps
-        self.maps = []
+        all_maps_diffs = []
         handled_map2_indices = []
 
         for map1 in self.snapshot1.maps:
@@ -105,7 +106,7 @@ class Diff:
                     has_changed=(map1 != map2),
                 )
 
-            self.maps.append(diff)
+            all_maps_diffs.append(diff)
 
         new_pages = [self.snapshot2.maps[i] for i in range(len(self.snapshot2.maps)) if i not in handled_map2_indices]
 
@@ -116,7 +117,14 @@ class Diff:
                 has_changed=True,
             )
 
-            self.maps.append(diff)
+            all_maps_diffs.append(diff)
+
+        # Convert the list to a MemoryMapDiffList
+        self.maps = MemoryMapDiffList(
+            all_maps_diffs,
+            self.snapshot1._process_name,
+            self.snapshot1._process_full_path,
+        )
 
     @property
     def registers(self: Snapshot) -> SnapshotRegisters:
@@ -128,35 +136,56 @@ class Diff:
         has_prev_changed = False
 
         for diff in self.maps:
-            if has_prev_changed:
-                print("  [...]")
-                has_prev_changed = False
 
             # If is added
             if diff.old_map_state is None:
+
                 pprint_diff_line(f"{diff.new_map_state}", is_added=True)
+
                 has_prev_changed = True
             # If is removed
             elif diff.new_map_state is None:
+
                 pprint_diff_line(f"{diff.old_map_state}", is_added=False)
+
                 has_prev_changed = True
             elif diff.has_changed:
                 printed_line = f"{diff.old_map_state} [content]"
                 color_start = len(printed_line[:-10])
 
                 pprint_diff_substring(printed_line, color_start, color_start + 10)
-                has_prev_changed = True
 
-    def pprint_memory(self: Diff, start: int, end: int, file: str = "hybrid", override_word_size: int = None) -> None:
+                has_prev_changed = True
+            else:
+                if has_prev_changed:
+                    print("  [...]")
+
+                has_prev_changed = False
+
+    def pprint_memory(
+        self: Diff,
+        start: int,
+        end: int,
+        file: str = "hybrid",
+        override_word_size: int = None,
+        endianness_mode: bool = False,
+    ) -> None:
         """Pretty print the memory diff.
 
         Args:
             start (int): The start address of the memory diff.
             end (int): The end address of the memory diff.
             file (str, optional): The backing file for relative / absolute addressing. Defaults to "hybrid".
+            override_word_size (int, optional): The word size to use for the diff in place of the ISA word size. Defaults to None.
+            endianness_mode (bool, optional): If True, the diff will be printed with the correct system endianness. Defaults to False.
         """
         if self.level == "base":
             raise ValueError("Memory diff is not available at base snapshot level.")
+
+        if start > end:
+            tmp = start
+            start = end
+            end = tmp
 
         word_size = (
             get_platform_register_size(self.snapshot1.arch) if override_word_size is None else override_word_size
@@ -189,6 +218,7 @@ class Diff:
             extract_after,
             word_size,
             address_width=get_platform_register_size(self.snapshot1.arch),
+            endianness_mode=endianness_mode,
         )
 
     def pprint_regs(self: Diff) -> None:

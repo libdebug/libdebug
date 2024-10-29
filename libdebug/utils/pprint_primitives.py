@@ -211,7 +211,14 @@ def pprint_diff_substring(content: str, start: int, end: int) -> None:
 
     print(f"{content[:start]}{color}{content[start:end]}{ANSIColors.RESET}{content[end:]}")
 
-def pprint_memory_diff_util(address_start:int, extract_before: bytes, extract_after: bytes, word_size: int, address_width: int) -> None:
+def pprint_memory_diff_util(
+    address_start: int,
+    extract_before: bytes,
+    extract_after: bytes,
+    word_size: int,
+    address_width: int,
+    endianness_mode: bool = False,
+) -> None:
     """Pretty prints the memory diff."""
     # Loop through each word-sized chunk
     for i in range(0, len(extract_before), word_size):
@@ -235,8 +242,14 @@ def pprint_memory_diff_util(address_start:int, extract_before: bytes, extract_af
                 formatted_after.append(f"{ANSIColors.RESET}{byte_after:02x}{ANSIColors.RESET}")
 
         # Join the formatted bytes into a string for each column
-        before_str = " ".join(formatted_before)
-        after_str = " ".join(formatted_after)
+        if not endianness_mode:
+            before_str = " ".join(formatted_before)
+            after_str = " ".join(formatted_after)
+        else:
+            # Right now libdebug only considers little-endian systems, if this changes,
+            # this code should be passed the endianness of the system and format the bytes accordingly
+            before_str = "0x" + "".join(formatted_before[::-1])
+            after_str = "0x" + "".join(formatted_after[::-1])
 
         # Print the memory diff with the address for this word
         print(f"{current_address:0{address_width}x}:  {before_str}    {after_str}")
