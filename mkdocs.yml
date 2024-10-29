@@ -81,6 +81,7 @@ nav:
   - Save States:
       - Save States: save_states/save_states.md
       - Snapshots: save_states/snapshots.md
+      - Snapshot Diffs: save_states/snapshot_diffs.md
   - Blog:
     - blog/index.md
     

@@ -49,7 +49,7 @@ You can create snapshots of [single threads](../../from_pydoc/generated/snapshot
 
     [:octicons-arrow-right-24: API Reference](../../quality_of_life/memory_maps)
 
--   :octicons-stack-24:{ .lg .middle } __Backtrace__
+-   :octicons-stack-24:{ .lg .middle } __Stack Trace__
 
     ---
 
@@ -109,8 +109,37 @@ You can load a snapshot from disk using the [`load_snapshot()`](../../from_pydoc
 The snapshot type will be inferred from the json file, so you can easily load both thread and process snapshots from the same method.
 
 ### :octicons-diff-24: Resolving Diffs
+Thanks to their static nature, snapshots can be easily compared to find differences in saved properties.
+
+You can diff a snapshot against another _of the same type_ using the [`diff()`](../../from_pydoc/generated/snapshots/snapshot#libdebug.snapshots.snapshot.Snapshot.diff) method. The method will return a [Diff](../../from_pydoc/generated/snapshots/diff) object that represents the differences between the two snapshots.
+
+!!! ABSTRACT "Example usage"
+    ```python
+    ts1 = d.threads[1].create_snapshot(level="full")
+    [...] # (1)
+    ts2 = d.threads[1].create_snapshot(level="full")
+
+    ts_diff = ts1.diff(ts2) # (2)
+    ```
+
+    1. Do some operations that change the state of the process.
+    2. Compute the diff between the two snapshots
+
+Diffs have a rich and detailed API that allows you to inspect the differences in registers, memory, and other properties. Read more in the [dedicated section](../snapshot_diffs).
 
 ### :material-flower-tulip-outline: Pretty Printing
+
+[Pretty Printing](../../quality_of_life/pretty_printing) is a feature of some **libdebug** objects that allows you to print the contents of a snapshot in a colorful and eye-catching format. This is useful when you want to inspect the state of the process at a glance.
+
+Pretty printing utilities of snapshots are "mirrors" of pretty pretting functions available for the [Debugger](../../from_pydoc/generated/debugger/debugger/) and [ThreadContext](../../from_pydoc/generated/state/thread_context). Here is a list of available pretty printing functions and their equivalent for the running process:
+
+| Function | Description | Reference |
+| -------- | ----------- | --------- |
+| `pprint_registers()` | Prints the general-purpose registers of the snapshot. | [:octicons-arrow-right-24: API Reference](../../quality_of_life/pretty_printing#registers-pretty-printing) |
+| `pprint_registers_all()` | Prints all registers of the snapshot. | [:octicons-arrow-right-24: API Reference](../../quality_of_life/pretty_printing#registers-pretty-printing) |
+| `pprint_maps()` | Prints the memory of the snapshot. | [:octicons-arrow-right-24: API Reference](../../quality_of_life/pretty_printing#memory-maps-pretty-printing) |
+| `pprint_backtrace()` | Prints the backtrace of the snapshot. | [:octicons-arrow-right-24: API Reference](../../quality_of_life/pretty_printing#stack-trace-pretty-printing) |
+
 
 ## :material-code-json: Attributes
 
