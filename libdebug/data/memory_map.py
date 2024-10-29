@@ -91,6 +91,13 @@ class MemoryMap:
 
     def __eq__(self, value: object) -> bool:
         """Check if this MemoryMap is equal to another object."""
+        if not isinstance(value, MemoryMap):
+            return False
+
+        # Check if the content is available and if it is the same
+        should_compare_content = self._content is not None and value._content is not None
+        same_content = not should_compare_content or self._content == value._content
+
         return (
             self.start == value.start
             and self.end == value.end
@@ -98,5 +105,5 @@ class MemoryMap:
             and self.size == value.size
             and self.offset == value.offset
             and self.backing_file == value.backing_file
-            and self._content == value._content
+            and same_content
         )

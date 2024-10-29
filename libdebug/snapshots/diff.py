@@ -11,6 +11,14 @@ from typing import TYPE_CHECKING
 from libdebug.snapshots.memory.memory_map_diff import MemoryMapDiff
 from libdebug.snapshots.registers.register_diff import RegisterDiff
 from libdebug.snapshots.registers.register_diff_accessor import RegisterDiffAccessor
+from libdebug.utils.platform_utils import get_platform_register_size
+from libdebug.utils.pprint_primitives import (
+    pprint_diff_line,
+    pprint_diff_substring,
+    pprint_memory_diff_util,
+    pprint_reg_diff_large_util,
+    pprint_reg_diff_util,
+)
 
 if TYPE_CHECKING:
     from libdebug.snapshots.registers.snapshot_registers import SnapshotRegisters
@@ -42,8 +50,15 @@ class Diff:
         else:
             self.level = "full"
 
+        if self.snapshot1.arch != self.snapshot2.arch:
+            raise ValueError("Snapshots have different architectures. Automatic diff is not supported.")
+
     def _save_reg_diffs(self: Snapshot) -> None:
-        self.regs = RegisterDiffAccessor()
+        self.regs = RegisterDiffAccessor(
+            self.snapshot1.regs._generic_regs,
+            self.snapshot1.regs._special_regs,
+            self.snapshot1.regs._vec_fp_regs,
+        )
 
         all_regs = dir(self.snapshot1.regs)
         all_regs = [reg for reg in all_regs if isinstance(self.snapshot1.regs.__getattribute__(reg), int | float)]
@@ -62,14 +77,12 @@ class Diff:
             # Create diff object
             self.regs.__setattr__(reg_name, diff)
 
-
     def _resolve_maps_diff(self: Diff) -> None:
         # Handle memory maps
         self.maps = []
         handled_map2_indices = []
 
         for map1 in self.snapshot1.maps:
-
             # Find the corresponding map in the second snapshot
             map2 = None
 
@@ -109,3 +122,110 @@ class Diff:
     def registers(self: Snapshot) -> SnapshotRegisters:
         """Alias for regs."""
         return self.regs
+
+    def pprint_maps(self: Diff) -> None:
+        """Pretty print the memory maps diff."""
+        has_prev_changed = False
+
+        for diff in self.maps:
+            if has_prev_changed:
+                print("  [...]")
+                has_prev_changed = False
+
+            # If is added
+            if diff.old_map_state is None:
+                pprint_diff_line(f"{diff.new_map_state}", is_added=True)
+                has_prev_changed = True
+            # If is removed
+            elif diff.new_map_state is None:
+                pprint_diff_line(f"{diff.old_map_state}", is_added=False)
+                has_prev_changed = True
+            elif diff.has_changed:
+                printed_line = f"{diff.old_map_state} [content]"
+                color_start = len(printed_line[:-10])
+
+                pprint_diff_substring(printed_line, color_start, color_start + 10)
+                has_prev_changed = True
+
+    def pprint_memory(self: Diff, start: int, end: int, file: str = "hybrid", override_word_size: int = None) -> None:
+        """Pretty print the memory diff.
+
+        Args:
+            start (int): The start address of the memory diff.
+            end (int): The end address of the memory diff.
+            file (str, optional): The backing file for relative / absolute addressing. Defaults to "hybrid".
+        """
+        if self.level == "base":
+            raise ValueError("Memory diff is not available at base snapshot level.")
+
+        word_size = (
+            get_platform_register_size(self.snapshot1.arch) if override_word_size is None else override_word_size
+        )
+
+        extract_before = self.snapshot1.memory[start:end, file]
+        extract_after = self.snapshot2.memory[start:end, file]
+
+        file_info = f" (file: {file})" if file not in ("absolute", "hybrid") else ""
+
+        print(f"Memory diff from {start:#x} to {end:#x}{file_info}:")
+
+        # Resolve the address
+        if file == "absolute":
+            address_start = start
+        elif file == "hybrid":
+            try:
+                # Try to resolve the address as absolute
+                self.snapshot1.maps.filter(start)
+                address_start = start
+            except ValueError:
+                # If the address is not in the maps, we use the binary file
+                address_start = start + self.snapshot1.maps[0].base
+        else:
+            address_start = start + self.snapshot1.maps.filter(file)[0].base
+
+        pprint_memory_diff_util(
+            address_start,
+            extract_before,
+            extract_after,
+            word_size,
+            address_width=get_platform_register_size(self.snapshot1.arch),
+        )
+
+    def pprint_regs(self: Diff) -> None:
+        """Pretty print the registers diffs (including special and vector registers)."""
+        # Header with column alignment
+        print("{:<15} {:<20} {:<20}\n".format("Register", "Old Value", "New Value"))
+        print("-" * 52 + "")
+
+        # Log all integer changes
+        for attr_name in self.regs._generic_regs + self.regs._special_regs:
+            attr = self.regs.__getattribute__(attr_name)
+
+            if attr.has_changed:
+                pprint_reg_diff_util(
+                    attr_name,
+                    self.snapshot1.maps,
+                    self.snapshot2.maps,
+                    attr.old_value,
+                    attr.new_value,
+                )
+
+        print()
+
+        # Log all vector changes
+        for attr1_name, attr2_name in self.regs._vec_fp_regs:
+            attr1 = self.regs.__getattribute__(attr1_name)
+            attr2 = self.regs.__getattribute__(attr2_name)
+
+            if attr1.has_changed or attr2.has_changed:
+                pprint_reg_diff_large_util(
+                    (attr1_name, attr2_name),
+                    self.snapshot1.maps,
+                    self.snapshot2.maps,
+                    (attr1.old_value, attr2.old_value),
+                    (attr1.new_value, attr2.new_value),
+                )
+
+    def pprint_registers(self: Diff) -> None:
+        """Alias afor pprint_regs."""
+        self.pprint_regs()

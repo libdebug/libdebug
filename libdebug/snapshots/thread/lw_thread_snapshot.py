@@ -50,13 +50,20 @@ class LightweightThreadSnapshot(ThreadSnapshot):
         else:
             self.name = f"{process_snapshot.name} - Thread {self.tid}"
 
-        # Inherit level
-        self.level = process_snapshot.level
-
         # Get thread registers
         self._save_regs(thread)
 
         self._proc_snapshot = process_snapshot
+
+    @property
+    def level(self: LightweightThreadSnapshot) -> str:
+        """Returns the snapshot level."""
+        return self._proc_snapshot.level
+
+    @property
+    def arch(self: LightweightThreadSnapshot) -> str:
+        """Returns the architecture of the thread snapshot."""
+        return self._proc_snapshot.arch
 
     @property
     def maps(self: LightweightThreadSnapshot) -> MemoryMapSnapshotList:

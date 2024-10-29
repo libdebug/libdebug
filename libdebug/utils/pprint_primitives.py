@@ -40,7 +40,9 @@ def pprint_maps_util(maps: MemoryMapList | MemoryMapSnapshotList) -> None:
             print(info)
 
 
-def pprint_backtrace_util(backtrace: list, maps: MemoryMapList | MemoryMapSnapshotList, external_symbols: SymbolList = None) -> None:
+def pprint_backtrace_util(
+    backtrace: list, maps: MemoryMapList | MemoryMapSnapshotList, external_symbols: SymbolList = None
+) -> None:
     """Pretty prints the current backtrace of the thread."""
     for return_address in backtrace:
         filtered_maps = maps.filter(return_address)
@@ -85,6 +87,26 @@ def _pprint_reg(registers: Registers, maps: MemoryMapList, register: str) -> Non
     print(f"{ANSIColors.RED}{register}{ANSIColors.RESET}\t{formatted_attr}")
 
 
+def _get_colored_address_string(address: int, maps: MemoryMapList):
+    if maps := maps.filter(address):
+        permissions = maps[0].permissions
+        if "rwx" in permissions:
+            color = ANSIColors.RED
+            style = ANSIColors.UNDERLINE
+        elif "x" in permissions:
+            color = ANSIColors.RED
+            style = ""
+        elif "w" in permissions:
+            color = ANSIColors.YELLOW
+            style = ""
+        elif "r" in permissions:
+            color = ANSIColors.GREEN
+            style = ""
+        return f"{color}{style}{address:#x}{ANSIColors.RESET}"
+    else:
+        return f"{address:#x}{ANSIColors.RESET}"
+
+
 def pprint_registers_util(registers: Registers, maps: MemoryMapList, gen_regs: list[str]) -> None:
     """Pretty prints the thread's registers."""
     for curr_reg in gen_regs:
@@ -92,7 +114,11 @@ def pprint_registers_util(registers: Registers, maps: MemoryMapList, gen_regs: l
 
 
 def pprint_registers_all_util(
-    registers: Registers, maps: MemoryMapList, gen_regs: list[str], spec_regs: list[str], vec_fp_regs: list[str],
+    registers: Registers,
+    maps: MemoryMapList,
+    gen_regs: list[str],
+    spec_regs: list[str],
+    vec_fp_regs: list[str],
 ) -> None:
     """Pretty prints all the thread's registers."""
     pprint_registers_util(registers, maps, gen_regs)
@@ -110,8 +136,46 @@ def pprint_registers_all_util(
         print(f"{ANSIColors.BLUE}" + "}" + f"{ANSIColors.RESET}")
 
 
+def pprint_reg_diff_util(
+    curr_reg: str, maps_before: MemoryMapList, maps_after: MemoryMapList, before: int, after: int,
+) -> None:
+    """Pretty prints a register diff."""
+    before_str = _get_colored_address_string(before, maps_before).rjust(18)
+    after_str = _get_colored_address_string(after, maps_after).rjust(18)
+
+    print(f"{ANSIColors.RED}{curr_reg.ljust(12)}{ANSIColors.RESET}\t{before_str}\t{after_str}")
+
+def pprint_reg_diff_large_util(
+        curr_reg_tuple: (str, str), maps_before: MemoryMapList, maps_after: MemoryMapList, reg_tuple_before: (int,int), reg_tuple_after: (int,int),
+) -> None:
+    """Pretty prints a register diff."""
+    print(f"{ANSIColors.BLUE}" + "{" + f"{ANSIColors.RESET}")
+    for reg_name, value_before, value_after in zip(curr_reg_tuple, reg_tuple_before, reg_tuple_after, strict=False):
+        has_changed = value_before != value_after
+
+        # Print the old and new values
+        if has_changed:
+            formatted_value_before = f"{ANSIColors.RED}{ANSIColors.STRIKE}" + \
+                (f"{value_before:#x}" if isinstance(value_before, int) else str(value_before)) + \
+                f"{ANSIColors.RESET}"
+
+            formatted_value_after = f"{ANSIColors.GREEN}" + \
+                (f"{value_after:#x}" if isinstance(value_after, int) else str(value_after)) + \
+                f"{ANSIColors.RESET}"
+
+            print(f"  {ANSIColors.RED}{reg_name}{ANSIColors.RESET}\t{formatted_value_before}\t->\t{formatted_value_after}")
+        else:
+            formatted_value = f"{value_before:#x}" if isinstance(value_before, int) else str(value_before)
+
+            print(f"  {ANSIColors.RED}{reg_name}{ANSIColors.RESET}\t{formatted_value}")
+
+    print(f"{ANSIColors.BLUE}" + "}" + f"{ANSIColors.RESET}")
+
+
 def resolve_address_in_maps_util(
-    address: int, maps: MemoryMapList | MemoryMapSnapshotList, external_symbols: SymbolList = None,
+    address: int,
+    maps: MemoryMapList | MemoryMapSnapshotList,
+    external_symbols: SymbolList = None,
 ) -> str:
     """Resolves the address in the specified memory maps."""
     is_snapshot = isinstance(maps, MemoryMapSnapshotList)
@@ -130,3 +194,49 @@ def resolve_address_in_maps_util(
             liblog.warning(f"Multiple symbols found for address {address:#x}. Taking the first one.")
 
         return matching_symbols[0].name
+
+
+def pprint_diff_line(content: str, is_added: bool) -> None:
+    """Prints a line of a diff."""
+    color = ANSIColors.GREEN if is_added else ANSIColors.RED
+
+    prefix = ">>>" if is_added else "<<<"
+
+    print(f"{prefix} {color}{content}{ANSIColors.RESET}")
+
+
+def pprint_diff_substring(content: str, start: int, end: int) -> None:
+    """Prints a diff with only a substring highlighted."""
+    color = ANSIColors.ORANGE
+
+    print(f"{content[:start]}{color}{content[start:end]}{ANSIColors.RESET}{content[end:]}")
+
+def pprint_memory_diff_util(address_start:int, extract_before: bytes, extract_after: bytes, word_size: int, address_width: int) -> None:
+    """Pretty prints the memory diff."""
+    # Loop through each word-sized chunk
+    for i in range(0, len(extract_before), word_size):
+        # Calculate the current address
+        current_address = address_start + i
+
+        # Extract word-sized chunks from both extracts
+        word_before = extract_before[i:i + word_size]
+        word_after = extract_after[i:i + word_size]
+
+        # Convert each byte in the chunks to hex and compare
+        formatted_before = []
+        formatted_after = []
+        for byte_before, byte_after in zip(word_before, word_after, strict=False):
+            # Check for changes and apply color
+            if byte_before != byte_after:
+                formatted_before.append(f"{ANSIColors.RED}{byte_before:02x}{ANSIColors.RESET}")
+                formatted_after.append(f"{ANSIColors.GREEN}{byte_after:02x}{ANSIColors.RESET}")
+            else:
+                formatted_before.append(f"{ANSIColors.RESET}{byte_before:02x}{ANSIColors.RESET}")
+                formatted_after.append(f"{ANSIColors.RESET}{byte_after:02x}{ANSIColors.RESET}")
+
+        # Join the formatted bytes into a string for each column
+        before_str = " ".join(formatted_before)
+        after_str = " ".join(formatted_after)
+
+        # Print the memory diff with the address for this word
+        print(f"{current_address:0{address_width}x}:  {before_str}    {after_str}")
