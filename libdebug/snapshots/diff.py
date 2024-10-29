@@ -16,6 +16,7 @@ from libdebug.utils.platform_utils import get_platform_register_size
 from libdebug.utils.pprint_primitives import (
     pprint_diff_line,
     pprint_diff_substring,
+    pprint_inline_diff,
     pprint_memory_diff_util,
     pprint_reg_diff_large_util,
     pprint_reg_diff_util,
@@ -136,29 +137,50 @@ class Diff:
         has_prev_changed = False
 
         for diff in self.maps:
+            ref = diff.old_map_state if diff.old_map_state is not None else diff.new_map_state
+
+            map_state_str = ""
+            map_state_str += "Memory Map:\n"
+            map_state_str += f"    start: {ref.start:#x}\n"
+            map_state_str += f"    end: {ref.end:#x}\n"
+            map_state_str += f"    permissions: {ref.permissions}\n"
+            map_state_str += f"    size: {ref.size:#x}\n"
+            map_state_str += f"    offset: {ref.offset:#x}\n"
+            map_state_str += f"    backing_file: {ref.backing_file}\n"
 
             # If is added
             if diff.old_map_state is None:
 
-                pprint_diff_line(f"{diff.new_map_state}", is_added=True)
+                pprint_diff_line(map_state_str, is_added=True)
 
                 has_prev_changed = True
             # If is removed
             elif diff.new_map_state is None:
 
-                pprint_diff_line(f"{diff.old_map_state}", is_added=False)
+                pprint_diff_line(map_state_str, is_added=False)
+
+                has_prev_changed = True
+            elif diff.old_map_state.end != diff.new_map_state.end:
+                printed_line = map_state_str
+
+                new_map_end = diff.new_map_state.end
+
+                start_strike = printed_line.find("end=") + 4
+                end_strike = printed_line.find(", perm")
+
+                pprint_inline_diff(printed_line, start_strike, end_strike, f"{hex(new_map_end)}")
 
                 has_prev_changed = True
             elif diff.has_changed:
-                printed_line = f"{diff.old_map_state} [content]"
-                color_start = len(printed_line[:-10])
+                printed_line = map_state_str + "    [content changed]\n"
+                color_start = printed_line.find("[content changed]")
 
-                pprint_diff_substring(printed_line, color_start, color_start + 10)
+                pprint_diff_substring(printed_line, color_start, color_start + len("[content changed]"))
 
                 has_prev_changed = True
             else:
                 if has_prev_changed:
-                    print("  [...]")
+                    print("\n[...]\n")
 
                 has_prev_changed = False
 
@@ -224,8 +246,8 @@ class Diff:
     def pprint_regs(self: Diff) -> None:
         """Pretty print the registers diffs (including special and vector registers)."""
         # Header with column alignment
-        print("{:<15} {:<20} {:<20}\n".format("Register", "Old Value", "New Value"))
-        print("-" * 52 + "")
+        print("{:<19} {:<24} {:<20}\n".format("Register", "Old Value", "New Value"))
+        print("-" * 58 + "")
 
         # Log all integer changes
         for attr_name in self.regs._generic_regs + self.regs._special_regs:

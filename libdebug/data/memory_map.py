@@ -85,7 +85,7 @@ class MemoryMap:
         str_repr =  f"MemoryMap(start={hex(self.start)}, end={hex(self.end)}, permissions={self.permissions}, size={hex(self.size)}, offset={hex(self.offset)}, backing_file={self.backing_file})"
 
         if self._content is not None:
-            str_repr += "   [snapshot with content]"
+            str_repr = str_repr[:-1] + ", content=...)"
 
         return str_repr
 

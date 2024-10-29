@@ -39,9 +39,14 @@ class MemoryMapDiffList(list):
         unique_files = set()
 
         for vmap_diff in self:
-            if backing_file in vmap_diff.old_map_state.backing_file:
+            compare_with_old = hasattr(vmap_diff.old_map_state, "backing_file")
+
+            if compare_with_old and backing_file in vmap_diff.old_map_state.backing_file:
                 filtered_maps.append(vmap_diff)
                 unique_files.add(vmap_diff.old_map_state.backing_file)
+            elif backing_file in vmap_diff.new_map_state.backing_file:
+                filtered_maps.append(vmap_diff)
+                unique_files.add(vmap_diff.new_map_state.backing_file)
 
         if len(unique_files) > 1:
             liblog.warning(

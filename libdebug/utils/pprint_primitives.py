@@ -88,6 +88,8 @@ def _pprint_reg(registers: Registers, maps: MemoryMapList, register: str) -> Non
 
 
 def _get_colored_address_string(address: int, maps: MemoryMapList):
+    address_fixed = f"{address:#x}".rjust(18)
+
     if maps := maps.filter(address):
         permissions = maps[0].permissions
         if "rwx" in permissions:
@@ -102,9 +104,9 @@ def _get_colored_address_string(address: int, maps: MemoryMapList):
         elif "r" in permissions:
             color = ANSIColors.GREEN
             style = ""
-        return f"{color}{style}{address:#x}{ANSIColors.RESET}"
+        return f"{color}{style}{address_fixed}{ANSIColors.RESET}"
     else:
-        return f"{address:#x}{ANSIColors.RESET}"
+        return f"{address_fixed}{ANSIColors.RESET}"
 
 
 def pprint_registers_util(registers: Registers, maps: MemoryMapList, gen_regs: list[str]) -> None:
@@ -140,8 +142,8 @@ def pprint_reg_diff_util(
     curr_reg: str, maps_before: MemoryMapList, maps_after: MemoryMapList, before: int, after: int,
 ) -> None:
     """Pretty prints a register diff."""
-    before_str = _get_colored_address_string(before, maps_before).rjust(18)
-    after_str = _get_colored_address_string(after, maps_after).rjust(18)
+    before_str = _get_colored_address_string(before, maps_before)
+    after_str = _get_colored_address_string(after, maps_after)
 
     print(f"{ANSIColors.RED}{curr_reg.ljust(12)}{ANSIColors.RESET}\t{before_str}\t{after_str}")
 
@@ -253,3 +255,7 @@ def pprint_memory_diff_util(
 
         # Print the memory diff with the address for this word
         print(f"{current_address:0{address_width}x}:  {before_str}    {after_str}")
+
+def pprint_inline_diff(content: str, start: int, end:int, correction: str) -> None:
+    """Prints a diff with inline changes."""
+    print(f"{content[:start]}{ANSIColors.RED}{ANSIColors.STRIKE}{content[start:end]}{ANSIColors.RESET}{ANSIColors.GREEN}{correction}{ANSIColors.RESET}{content[start:]}")
