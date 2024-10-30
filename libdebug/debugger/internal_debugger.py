@@ -1453,6 +1453,8 @@ class InternalDebugger:
             liblog.debugger("Waiting for %d to stop.", self.process_id if thread is None else thread.thread_id)
 
         while True:
+            self.resume_context.resume = True
+            self.debugging_interface.wait()
             if self.threads[0].dead:
                 # All threads are dead
                 liblog.debugger("All threads dead")
@@ -1461,8 +1463,6 @@ class InternalDebugger:
                 # The thread is dead
                 liblog.debugger("Thread %d dead", thread.thread_id)
                 break
-            self.resume_context.resume = True
-            self.debugging_interface.wait()
             if self.resume_context.resume:
                 self.debugging_interface.cont(thread)
             else:

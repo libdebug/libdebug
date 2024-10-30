@@ -327,7 +327,6 @@ class PtraceInterface(DebuggingInterface):
         # Reset the breakpoint hit
         self._internal_debugger.resume_context.event_hit_ref.clear()
 
-        print(f"Continuing thread {thread.thread_id}")
         self.lib_trace.cont_thread_and_set_bps(thread.thread_id, handle_syscalls)
 
     def step(self: PtraceInterface, thread: ThreadContext) -> None:

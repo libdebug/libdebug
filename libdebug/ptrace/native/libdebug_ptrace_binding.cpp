@@ -278,9 +278,7 @@ void LibdebugPtraceInterface::cont_thread_and_set_bps(pid_t tid, bool handle_sys
     handle_syscall = handle_syscalls;
 
     // Get the thread
-    printf("tid: %d\n", tid);
     Thread &t = threads[tid];
-    printf("t.tid: %d\n", t.tid);
 
     // Prepare the thread
     prepare_thread_for_run(t);
