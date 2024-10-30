@@ -244,11 +244,22 @@ class PtraceInterface(DebuggingInterface):
             os.kill(self.process_id, 9)
             os.waitpid(self.process_id, 0)
 
-    def cont(self: PtraceInterface) -> None:
+    def cont(self: PtraceInterface, thread: ThreadContext = None) -> None:
+        """Continues the execution. If a thread is not specified, the whole process is continued.
+
+        Args:
+            thread (ThreadContext, optional): The thread to continue. Defaults to None.
+        """
+        if thread is None:
+            self._cont_process()
+        else:
+            self._cont_thread(thread)
+
+    def _cont_process(self: PtraceInterface) -> None:
         """Continues the execution of the process."""
         # Forward signals to the threads
         if self._internal_debugger.resume_context.threads_with_signals_to_forward:
-            self.forward_signal()
+            self.forward_signals_to_all_threads()
 
         # Enable all breakpoints if they were disabled for a single step
         changed = []
@@ -276,7 +287,48 @@ class PtraceInterface(DebuggingInterface):
         # Reset the breakpoint hit
         self._internal_debugger.resume_context.event_hit_ref.clear()
 
-        self.lib_trace.cont_all_and_set_bps(handle_syscalls)
+        self.lib_trace.cont_process_and_set_bps(handle_syscalls)
+
+    def _cont_thread(self: PtraceInterface, thread: ThreadContext) -> None:
+        """Continues the execution of the specified thread.
+
+        Args:
+            thread (ThreadContext): The thread to continue.
+        """
+        # Forward signals to the threads
+        if thread.thread_id in self._internal_debugger.resume_context.threads_with_signals_to_forward:
+            self.forward_signal_to_thread(thread)
+
+        # Enable all breakpoints if they were disabled for a single step
+        # TODO: The follolwing code is duplicated in cont() and cont_thread() methods. We will refactor it in the
+        # future, when we will have better per-thread events (e.g., breakpoints, signals, syscalls).
+        changed = []
+
+        for bp in self._internal_debugger.breakpoints.values():
+            bp._disabled_for_step = False
+            if bp._changed:
+                changed.append(bp)
+                bp._changed = False
+
+        for bp in changed:
+            if bp.enabled:
+                self.set_breakpoint(bp, insert=False)
+            else:
+                self.unset_breakpoint(bp, delete=False)
+
+        handle_syscalls = any(
+            handler.enabled or handler.on_enter_pprint or handler.on_exit_pprint
+            for handler in self._internal_debugger.handled_syscalls.values()
+        )
+
+        # Reset the event type
+        self._internal_debugger.resume_context.event_type.clear()
+
+        # Reset the breakpoint hit
+        self._internal_debugger.resume_context.event_hit_ref.clear()
+
+        print(f"Continuing thread {thread.thread_id}")
+        self.lib_trace.cont_thread_and_set_bps(thread.thread_id, handle_syscalls)
 
     def step(self: PtraceInterface, thread: ThreadContext) -> None:
         """Executes a single instruction of the process.
@@ -367,7 +419,7 @@ class PtraceInterface(DebuggingInterface):
                 self._enable_breakpoint(ip_breakpoint)
                 should_disable = True
 
-            self.cont()
+            self._cont_process()
             self.wait()
 
             # Remove the breakpoint if it was set by us
@@ -416,7 +468,7 @@ class PtraceInterface(DebuggingInterface):
                 self._enable_breakpoint(ip_breakpoint)
                 should_disable = True
 
-            self.cont()
+            self._cont_process()
             self.wait()
 
             # Remove the breakpoint if it was set by us
@@ -465,7 +517,7 @@ class PtraceInterface(DebuggingInterface):
 
             bp = Breakpoint(entry_point, hardware=True)
             self.set_breakpoint(bp)
-            self.cont()
+            self._cont_process()
             self.wait()
 
             self.unset_breakpoint(bp)
@@ -481,9 +533,8 @@ class PtraceInterface(DebuggingInterface):
         # Check the result of the waitpid and handle the changes.
         self.status_handler.manage_change(statuses)
 
-    def forward_signal(self: PtraceInterface) -> None:
+    def forward_signals_to_all_threads(self: PtraceInterface) -> None:
         """Set the signals to forward to the threads."""
-        # change the global_state
         threads_with_signals_to_forward = self._internal_debugger.resume_context.threads_with_signals_to_forward
 
         signals_to_forward = []
@@ -504,6 +555,20 @@ class PtraceInterface(DebuggingInterface):
 
         # Clear the list of threads with signals to forward
         self._internal_debugger.resume_context.threads_with_signals_to_forward.clear()
+
+    def forward_signal_to_thread(self: PtraceInterface, thread: ThreadContext) -> None:
+        """Forwards the signal to the specified thread."""
+        if (
+            thread.thread_id in self._internal_debugger.resume_context.threads_with_signals_to_forward
+            and thread._signal_number != 0
+            and thread._signal_number not in self._internal_debugger.signals_to_block
+        ):
+            liblog.debugger(f"Forwarding signal {thread.signal_number} to thread {thread.thread_id}")
+            self.lib_trace.forward_signals([(thread.thread_id, thread.signal_number)])
+            thread._signal_number = 0
+
+        # Clear the thread from the list of threads with signals to forward
+        self._internal_debugger.resume_context.threads_with_signals_to_forward.remove(thread.thread_id)
 
     def migrate_to_gdb(self: PtraceInterface) -> None:
         """Migrates the current process to GDB."""

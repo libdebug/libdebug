@@ -55,8 +55,8 @@ class DebuggingInterface(ABC):
         """Instantly terminates the process."""
 
     @abstractmethod
-    def cont(self: DebuggingInterface) -> None:
-        """Continues the execution of the process."""
+    def cont(self: DebuggingInterface, thread: ThreadContext) -> None:
+        """Continues the execution."""
 
     @abstractmethod
     def wait(self: DebuggingInterface) -> None:

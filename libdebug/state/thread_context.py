@@ -207,6 +207,17 @@ class ThreadContext:
         """The signal number to forward to the thread."""
         return self._signal_number
 
+    def cont(self: ThreadContext) -> None:
+        """Continues the execution of the thread."""
+        self._internal_debugger.cont(self)
+
+    def c(self: ThreadContext) -> None:
+        """Alias for the `cont` method.
+
+        Continues the execution of the thread.
+        """
+        self._internal_debugger.cont(self)
+
     def backtrace(self: ThreadContext, as_symbols: bool = False) -> list:
         """Returns the current backtrace of the thread.
 

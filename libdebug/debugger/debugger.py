@@ -85,7 +85,7 @@ class Debugger:
         self._internal_debugger.terminate()
 
     def cont(self: Debugger) -> None:
-        """Continues the process."""
+        """Continues the execution of the entire process."""
         self._internal_debugger.cont()
 
     def interrupt(self: Debugger) -> None:
@@ -273,7 +273,7 @@ class Debugger:
     def c(self: Debugger) -> None:
         """Alias for the `cont` method.
 
-        Continues the process.
+        Continues the execution of the entire process.
         """
         self._internal_debugger.cont()
 

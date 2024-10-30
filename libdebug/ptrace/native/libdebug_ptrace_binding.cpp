@@ -62,7 +62,7 @@ void LibdebugPtraceInterface::cont_thread(Thread &t)
     t.signal_to_forward = 0;
 }
 
-void LibdebugPtraceInterface::prepare_single_thread(Thread &t){
+void LibdebugPtraceInterface::prepare_thread(Thread &t){
     // Flush any register changes
     if (setregs(t)) {
         throw std::runtime_error("setregs failed");
@@ -101,9 +101,9 @@ void LibdebugPtraceInterface::prepare_single_thread(Thread &t){
     arch_check_if_hit_and_step_over(t);
 }
 
-void LibdebugPtraceInterface::prepare_single_thread_for_run(Thread &t)
+void LibdebugPtraceInterface::prepare_thread_for_run(Thread &t)
 {
-    prepare_single_thread(t);
+    prepare_thread(t);
 
     // Restore any software breakpoints
     for (auto &bp : software_breakpoints) {
@@ -116,7 +116,7 @@ void LibdebugPtraceInterface::prepare_single_thread_for_run(Thread &t)
 void LibdebugPtraceInterface::prepare_process_for_run()
 {
     for (auto &t : threads) {
-        prepare_single_thread(t.second);
+        prepare_thread(t.second);
     }
 
     // Restore any software breakpoints
@@ -272,7 +272,24 @@ void LibdebugPtraceInterface::set_tracing_options()
     }
 }
 
-void LibdebugPtraceInterface::cont_all_and_set_bps(bool handle_syscalls)
+void LibdebugPtraceInterface::cont_thread_and_set_bps(pid_t tid, bool handle_syscalls)
+{
+    // Set the handle_syscall flag
+    handle_syscall = handle_syscalls;
+
+    // Get the thread
+    printf("tid: %d\n", tid);
+    Thread &t = threads[tid];
+    printf("t.tid: %d\n", t.tid);
+
+    // Prepare the thread
+    prepare_thread_for_run(t);
+
+    // Continue the thread
+    cont_thread(t);
+}
+
+void LibdebugPtraceInterface::cont_process_and_set_bps(bool handle_syscalls)
 {
     // Set the handle_syscall flag
     handle_syscall = handle_syscalls;
@@ -741,8 +758,19 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "    list: A list of tuples containing the thread id and the corresponding waitpid result."
         )
         .def(
-            "cont_all_and_set_bps",
-            &LibdebugPtraceInterface::cont_all_and_set_bps,
+            "cont_thread_and_set_bps",
+            &LibdebugPtraceInterface::cont_thread_and_set_bps,
+            nb::arg("tid"),
+            nb::arg("handle_syscalls"),
+            "Continues a thread and sets the breakpoints.\n"
+            "\n"
+            "Args:\n"
+            "    tid (int): The thread id to continue.\n"
+            "    handle_syscalls (bool): A flag to indicate if the debuggee should stop on syscalls."
+        )
+        .def(
+            "cont_process_and_set_bps",
+            &LibdebugPtraceInterface::cont_process_and_set_bps,
             nb::arg("handle_syscalls"),
             "Sets the breakpoints and continues all the threads.\n"
             "\n"

@@ -407,17 +407,18 @@ class InternalDebugger:
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
-    def cont(self: InternalDebugger) -> None:
+    def cont(self: InternalDebugger, thread: ThreadContext = None) -> None:
         """Continues the process.
 
         Args:
             auto_wait (bool, optional): Whether to automatically wait for the process to stop after continuing. Defaults to True.
+            thread (ThreadContext, optional): The thread to continue. Defaults to None.
         """
-        self.__polling_thread_command_queue.put((self.__threaded_cont, ()))
+        self.__polling_thread_command_queue.put((self.__threaded_cont, (thread,)))
 
         self._join_and_check_status()
 
-        self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
+        self.__polling_thread_command_queue.put((self.__threaded_wait, (thread,)))
 
     @background_alias(_background_invalid_call)
     def interrupt(self: InternalDebugger) -> None:
@@ -1426,38 +1427,44 @@ class InternalDebugger:
             liblog.debugger("Killing process %d.", self.process_id)
         self.debugging_interface.kill()
 
-    def __threaded_cont(self: InternalDebugger) -> None:
+    def __threaded_cont(self: InternalDebugger, thread: ThreadContext) -> None:
         if self.argv:
             liblog.debugger(
-                "Continuing process %s (%d).",
+                "Continuing %s (%s: %d).",
                 self.argv[0],
-                self.process_id,
+                "pid" if thread is None else "tid",
+                self.process_id if thread is None else thread.thread_id,
             )
         else:
-            liblog.debugger("Continuing process %d.", self.process_id)
+            liblog.debugger("Continuing %d.", self.process_id if thread is None else thread.thread_id)
 
         self.set_running()
-        self.debugging_interface.cont()
+        self.debugging_interface.cont(thread)
 
-    def __threaded_wait(self: InternalDebugger) -> None:
+    def __threaded_wait(self: InternalDebugger, thread: ThreadContext = None) -> None:
         if self.argv:
             liblog.debugger(
-                "Waiting for process %s (%d) to stop.",
+                "Waiting for %s (%s: %d) to stop.",
                 self.argv[0],
-                self.process_id,
+                "pid" if thread is None else "tid",
+                self.process_id if thread is None else thread.thread_id,
             )
         else:
-            liblog.debugger("Waiting for process %d to stop.", self.process_id)
+            liblog.debugger("Waiting for %d to stop.", self.process_id if thread is None else thread.thread_id)
 
         while True:
             if self.threads[0].dead:
                 # All threads are dead
                 liblog.debugger("All threads dead")
                 break
+            if thread is not None and thread.dead:
+                # The thread is dead
+                liblog.debugger("Thread %d dead", thread.thread_id)
+                break
             self.resume_context.resume = True
             self.debugging_interface.wait()
             if self.resume_context.resume:
-                self.debugging_interface.cont()
+                self.debugging_interface.cont(thread)
             else:
                 break
         self.set_stopped()

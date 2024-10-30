@@ -29,8 +29,8 @@ private:
     // Control flow private methods
     void step_thread(Thread &,  bool forward_signal = true, bool step_over_hardware_bp = false);
     void cont_thread(Thread &);
-    void prepare_single_thread(Thread &);
-    void prepare_single_thread_for_run(Thread &);
+    void prepare_thread(Thread &);
+    void prepare_thread_for_run(Thread &);
     void prepare_process_for_run();
 
     // Hardware breakpoint private methods
@@ -63,7 +63,8 @@ public:
     void set_tracing_options();
 
     // Debugger control flow methods
-    void cont_all_and_set_bps(const bool);
+    void cont_process_and_set_bps(const bool);
+    void cont_thread_and_set_bps(pid_t, const bool);
     void step(const pid_t);
     void step_until(const pid_t, const unsigned long, const int);
     void stepping_finish(const pid_t, const bool);
