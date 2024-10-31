@@ -43,7 +43,6 @@ from libdebug.memory.chunked_memory_view import ChunkedMemoryView
 from libdebug.memory.direct_memory_view import DirectMemoryView
 from libdebug.memory.process_memory_manager import ProcessMemoryManager
 from libdebug.state.resume_context import ResumeContext
-from libdebug.utils.ansi_escape_codes import ANSIColors
 from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.debugger_wrappers import (
     background_alias,

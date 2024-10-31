@@ -13,7 +13,6 @@ from libdebug.debugger.internal_debugger_instance_manager import (
 )
 from libdebug.liblog import liblog
 from libdebug.snapshots.thread.thread_snapshot import ThreadSnapshot
-from libdebug.utils.ansi_escape_codes import ANSIColors
 from libdebug.utils.debugging_utils import resolve_address_in_maps
 from libdebug.utils.pprint_primitives import pprint_backtrace_util, pprint_registers_all_util, pprint_registers_util
 from libdebug.utils.signal_utils import resolve_signal_name, resolve_signal_number
