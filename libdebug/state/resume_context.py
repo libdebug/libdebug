@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
+    from libdebug.data.signal_catcher import SignalCatcher
+    from libdebug.data.syscall_handler import SyscallHandler
 
 
 class ResumeContext:
@@ -24,7 +26,7 @@ class ResumeContext:
         self.block_on_signal: bool = False
         self.threads_with_signals_to_forward: list[int] = []
         self.event_type: dict[int, EventType] = {}
-        self.event_hit_ref: dict[int, Breakpoint] = {}
+        self.event_hit_ref: dict[int, Breakpoint | SignalCatcher | SyscallHandler] = {}
 
     def clear(self: ResumeContext) -> None:
         """Clears the context."""
