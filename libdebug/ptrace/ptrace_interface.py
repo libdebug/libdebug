@@ -634,6 +634,9 @@ class PtraceInterface(DebuggingInterface):
                     bp.length,
                 )
 
+        # Set the resume context for the new thread
+        self._internal_debugger.resume_context.new_threads.append(thread)
+
     def unregister_thread(
         self: PtraceInterface,
         thread_id: int,

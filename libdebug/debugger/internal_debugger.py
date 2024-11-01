@@ -416,8 +416,12 @@ class InternalDebugger:
         self.__polling_thread_command_queue.put((self.__threaded_wait, (thread,)))
 
     @background_alias(_background_invalid_call)
-    def interrupt(self: InternalDebugger) -> None:
-        """Interrupts the process."""
+    def interrupt(self: InternalDebugger, thread: ThreadContext = None) -> None:
+        """Interrupts the process or a specific thread.
+
+        Args:
+            thread (ThreadContext, optional): The thread to interrupt. Defaults to None.
+        """
         if not self.is_debugging:
             raise RuntimeError("Process not running, cannot interrupt.")
 
@@ -425,13 +429,42 @@ class InternalDebugger:
         if self.threads[0].dead:
             raise RuntimeError("All threads are dead.")
 
-        if not self.running:
-            return
+        if thread is not None and thread.dead:
+            raise RuntimeError("The thread is dead.")
 
-        self.resume_context.force_interrupt = True
-        os.kill(self.process_id, SIGSTOP)
+        if thread is None:
+            if not self.running:
+                return
 
-        self.wait()
+            self.resume_context.force_interrupt = True
+            os.kill(self.process_id, SIGSTOP)
+
+            self.wait()
+        else:
+            if not thread.running:
+                return
+
+            self.resume_context.force_interrupt = True
+
+            # Set the thread as stopped
+            thread.set_stopped()
+
+            # Get the running threads
+            running_threads = [t for t in self.threads if t.running]
+
+            # Stop the entire process to avoid inconsistencies
+            os.kill(self.process_id, SIGSTOP)
+
+            # At this point all threads should be stopped and with the running flag set to False
+            self.wait()
+
+            # Resume the threads we do not want to interrupt
+            for t in running_threads:
+                self.__polling_thread_command_queue.put((self.__threaded_cont, (t,)))
+                self._join_and_check_status()
+
+            # We need to push a wait in the background thread to ensure that the running threads are correcyly managed
+            self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
 
     @background_alias(_background_invalid_call)
     def wait(self: InternalDebugger, thread: ThreadContext = None) -> None:
@@ -1466,7 +1499,20 @@ class InternalDebugger:
                 liblog.debugger("Thread %d dead", thread.thread_id)
                 break
             if self.resume_context.resume:
-                self.debugging_interface.cont(thread)
+                running_statuses = [t.running for t in self.threads if not t.dead]
+                if all(running_statuses):
+                    # The entire process is running, we can continue
+                    self.debugging_interface.cont()
+                else:
+                    # We need only to continue the already running threads or the new threads
+                    for t in self.threads:
+                        if t.running and not t.dead:
+                            self.debugging_interface.cont(t)
+                        elif t in self.resume_context.new_threads:
+                            # This is a new thread. It is stopped, so we need to continue it
+                            self.debugging_interface.cont(t)
+                            t.set_running()
+                    self.resume_context.new_threads.clear()
             else:
                 break
         if thread is None:

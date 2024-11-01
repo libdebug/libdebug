@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
     from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
+    from libdebug.state.thread_context import ThreadContext
 
 
 class ResumeContext:
@@ -27,6 +28,7 @@ class ResumeContext:
         self.threads_with_signals_to_forward: list[int] = []
         self.event_type: dict[int, EventType] = {}
         self.event_hit_ref: dict[int, Breakpoint | SignalCatcher | SyscallHandler] = {}
+        self.new_threads: list[ThreadContext] = []
 
     def clear(self: ResumeContext) -> None:
         """Clears the context."""
@@ -38,6 +40,7 @@ class ResumeContext:
         self.threads_with_signals_to_forward.clear()
         self.event_type.clear()
         self.event_hit_ref.clear()
+        self.new_threads.clear()
 
     def get_event_type(self: ResumeContext) -> str:
         """Returns the event type to be printed."""

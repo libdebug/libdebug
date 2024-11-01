@@ -227,6 +227,10 @@ class ThreadContext:
         """Continues the execution of the thread."""
         self._internal_debugger.cont(self)
 
+    def interrupt(self: ThreadContext) -> None:
+        """Interrupts the execution of the thread."""
+        self._internal_debugger.interrupt(self)
+
     def wait(self: ThreadContext) -> None:
         """Waits for the thread to stop."""
         self._internal_debugger.wait(self)
@@ -237,6 +241,13 @@ class ThreadContext:
         Continues the execution of the thread.
         """
         self._internal_debugger.cont(self)
+
+    def int(self: ThreadContext) -> None:
+        """Alias for the `interrupt` method.
+
+        Interrupts the execution of the thread.
+        """
+        self._internal_debugger.interrupt(self)
 
     def w(self: ThreadContext) -> None:
         """Alias for the `wait` method.
