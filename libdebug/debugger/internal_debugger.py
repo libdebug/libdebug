@@ -1675,3 +1675,32 @@ class InternalDebugger:
     def set_stopped(self: InternalDebugger) -> None:
         """Set the state of the process to stopped."""
         self._is_running = False
+
+    def invoke_syscall(
+        self: InternalDebugger,
+        thread: ThreadContext,
+        syscall_identifier: str | int,
+        *args: int,
+    ) -> int:
+        """Invoke a syscall in the target process.
+
+        Args:
+            thread (ThreadContext): The thread to invoke the syscall in.
+            syscall_identifier (str | int): The syscall identifier.
+            *args (int): The arguments to pass to the syscall.
+
+        Returns:
+            int: The return value of the syscall.
+        """
+        if isinstance(syscall_identifier, str):
+            syscall_number = resolve_syscall_number(self.arch, syscall_identifier)
+        else:
+            syscall_number = syscall_identifier
+
+        self._ensure_process_stopped()
+
+        return self.debugging_interface.invoke_syscall(
+            thread.thread_id,
+            syscall_number,
+            *args,
+        )

@@ -14,6 +14,19 @@
 #define INSTRUCTION_POINTER(regs) (regs->rip)
 #define INSTALL_BREAKPOINT(instruction) ((instruction & 0xFFFFFFFFFFFFFF00) | 0xCC)
 
+#define SET_SYSCALL_NUMBER(regs, value) regs->rax = value
+
+#define SET_SYSCALL_ARG0(regs, value) regs->rdi = value
+#define SET_SYSCALL_ARG1(regs, value) regs->rsi = value
+#define SET_SYSCALL_ARG2(regs, value) regs->rdx = value
+#define SET_SYSCALL_ARG3(regs, value) regs->r10 = value
+#define SET_SYSCALL_ARG4(regs, value) regs->r8 = value
+#define SET_SYSCALL_ARG5(regs, value) regs->r9 = value
+
+#define GET_SYSCALL_RESULT(regs) regs->rax
+
+#define SYSCALL_INSTRUCTION 0x050F
+
 struct PtraceRegsStruct
 {
     unsigned long r15;

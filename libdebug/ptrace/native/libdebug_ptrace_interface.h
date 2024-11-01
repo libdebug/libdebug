@@ -89,4 +89,7 @@ public:
     unsigned long peek_data(const unsigned long);
     void poke_data(const unsigned long, const unsigned long);
 
+    // Arbitrary invocation methods
+    unsigned long invoke_syscall(pid_t tid, unsigned long syscall_number, unsigned int actual_syscall_argcount, unsigned long arg0, unsigned long arg1, unsigned long arg2, unsigned long arg3, unsigned long arg4, unsigned long arg5);
+
 };

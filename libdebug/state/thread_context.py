@@ -376,6 +376,15 @@ class ThreadContext:
         """Alias for the `next` method. Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._internal_debugger.next(self)
 
+    def invoke_syscall(self: ThreadContext, syscall_identifier: str | int, *args: int) -> int:
+        """Invokes a syscall with the specified arguments.
+
+        Args:
+            syscall_identifier (str | int): The syscall identifier.
+            *args (int): The syscall arguments.
+        """
+        self._internal_debugger.invoke_syscall(self, syscall_identifier, *args)
+
     def __repr__(self: ThreadContext) -> str:
         """Returns a string representation of the object."""
         repr_str = "ThreadContext()\n"

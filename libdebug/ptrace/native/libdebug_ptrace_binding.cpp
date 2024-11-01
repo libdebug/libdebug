@@ -612,6 +612,80 @@ void LibdebugPtraceInterface::poke_data(unsigned long addr, unsigned long data)
     }
 }
 
+unsigned long LibdebugPtraceInterface::invoke_syscall(pid_t tid, unsigned long syscall_number, unsigned int actual_syscall_argcount, unsigned long arg0, unsigned long arg1, unsigned long arg2, unsigned long arg3, unsigned long arg4, unsigned long arg5)
+{
+    Thread &t = threads[tid];
+    PtraceRegsStruct backup_regs = *t.regs;
+
+    // Set the syscall number
+    SET_SYSCALL_NUMBER(t.regs, syscall_number);
+
+    // Set the syscall arguments
+    switch (actual_syscall_argcount)
+    {
+    case 6:
+        SET_SYSCALL_ARG5(t.regs, arg5);
+        [[fallthrough]];
+    case 5:
+        SET_SYSCALL_ARG4(t.regs, arg4);
+        [[fallthrough]];
+    case 4:
+        SET_SYSCALL_ARG3(t.regs, arg3);
+        [[fallthrough]];
+    case 3:
+        SET_SYSCALL_ARG2(t.regs, arg2);
+        [[fallthrough]];
+    case 2:
+        SET_SYSCALL_ARG1(t.regs, arg1);
+        [[fallthrough]];
+    case 1:
+        SET_SYSCALL_ARG0(t.regs, arg0);
+        break;
+    
+    default:
+        break;
+    }
+
+    // Flush the registers
+    if (setregs(t)) {
+        throw std::runtime_error("first setregs failed");
+    }
+
+    unsigned long ip = INSTRUCTION_POINTER(t.regs);
+
+    // Backup the current instruction window
+    unsigned long instruction = ptrace(PTRACE_PEEKTEXT, process_id, (void *) ip, NULL);
+
+    // Set the syscall instruction
+    ptrace(PTRACE_POKETEXT, process_id, (void *) ip, (void *) SYSCALL_INSTRUCTION);
+
+    // Single step the thread
+    step_thread(t);
+
+    // Wait for the syscall to complete
+    int status;
+    waitpid(tid, &status, 0);
+
+    // Update the registers
+    getregs(t);
+
+    // Return the syscall result
+    unsigned long return_value = GET_SYSCALL_RESULT(t.regs);
+
+    // Restore the text
+    ptrace(PTRACE_POKETEXT, process_id, (void *) ip, (void *) instruction);
+
+    // Restore the registers
+    *t.regs = backup_regs;
+
+    // Flush the registers
+    if (setregs(t)) {
+        throw std::runtime_error("second setregs failed");
+    }
+
+    return return_value;
+}
+
 NB_MODULE(libdebug_ptrace_binding, m)
 {
     init_libdebug_ptrace_registers(m);
@@ -907,6 +981,34 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "Args:\n"
             "    addr (int): The address to poke memory at.\n"
             "    data (int): The data to poke at the address."
+        )
+        .def(
+            "invoke_syscall",
+            &LibdebugPtraceInterface::invoke_syscall,
+            nb::arg("tid"),
+            nb::arg("syscall_number"),
+            nb::arg("actual_syscall_argcount"),
+            nb::arg("arg0"),
+            nb::arg("arg1"),
+            nb::arg("arg2"),
+            nb::arg("arg3"),
+            nb::arg("arg4"),
+            nb::arg("arg5"),
+            "Invokes a syscall on a thread.\n"
+            "\n"
+            "Args:\n"
+            "    tid (int): The thread id to invoke the syscall on.\n"
+            "    syscall_number (int): The syscall number to invoke.\n"
+            "    actual_syscall_argcount (int): The actual number of arguments for the syscall.\n"
+            "    arg0 (int): The first argument for the syscall.\n"
+            "    arg1 (int): The second argument for the syscall.\n"
+            "    arg2 (int): The third argument for the syscall.\n"
+            "    arg3 (int): The fourth argument for the syscall.\n"
+            "    arg4 (int): The fifth argument for the syscall.\n"
+            "    arg5 (int): The sixth argument for the syscall.\n"
+            "\n"
+            "Returns:\n"
+            "    int: The result of the syscall."
         );
 
     nb::set_leak_warnings(false);
