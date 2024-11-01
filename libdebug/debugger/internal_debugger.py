@@ -176,9 +176,6 @@ class InternalDebugger:
     __polling_thread_response_queue: Queue | None
     """The queue used to receive responses from the background thread."""
 
-    _is_running: bool
-    """The overall state of the debugged process. True if the process is running, False otherwise."""
-
     _is_migrated_to_gdb: bool
     """A flag that indicates if the debuggee was migrated to GDB."""
 
@@ -208,7 +205,6 @@ class InternalDebugger:
         self.threads = []
         self.instanced = False
         self.is_debugging = False
-        self._is_running = False
         self._is_migrated_to_gdb = False
         self.resume_context = ResumeContext()
         self.stdin_settings_backup = []
@@ -239,7 +235,6 @@ class InternalDebugger:
         self.threads.clear()
         self.instanced = False
         self.is_debugging = False
-        self._is_running = False
         self.resume_context.clear()
 
     def start_up(self: InternalDebugger) -> None:
@@ -1673,12 +1668,14 @@ class InternalDebugger:
         Returns:
             bool: True if the process is running, False otherwise.
         """
-        return self._is_running
+        return any(thread.running for thread in self.threads)
 
     def set_running(self: InternalDebugger) -> None:
         """Set the state of the process to running."""
-        self._is_running = True
+        for thread in self.threads:
+            thread.set_running()
 
     def set_stopped(self: InternalDebugger) -> None:
         """Set the state of the process to stopped."""
-        self._is_running = False
+        for thread in self.threads:
+            thread.set_stopped()

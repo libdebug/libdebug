@@ -57,6 +57,9 @@ class ThreadContext:
     regs: Registers
     """The thread's registers."""
 
+    _is_running: bool = False
+    """Whether the thread is running."""
+
     _internal_debugger: InternalDebugger | None = None
     """The debugging context this thread belongs to."""
 
@@ -139,11 +142,6 @@ class ThreadContext:
         return self._thread_id
 
     @property
-    def running(self: ThreadContext) -> bool:
-        """Whether the process is running."""
-        return self._internal_debugger.running
-
-    @property
     def saved_ip(self: ThreadContext) -> int:
         """The return address of the current function."""
         self._internal_debugger._ensure_process_stopped()
@@ -206,6 +204,23 @@ class ThreadContext:
     def signal_number(self: ThreadContext) -> int:
         """The signal number to forward to the thread."""
         return self._signal_number
+
+    @property
+    def running(self: ThreadContext) -> bool:
+        """Get the state of the thread.
+
+        Returns:
+            bool: True if the thread is running, False otherwise.
+        """
+        return self._is_running
+
+    def set_running(self: ThreadContext) -> None:
+        """Set the state of the process to running."""
+        self._is_running = True
+
+    def set_stopped(self: ThreadContext) -> None:
+        """Set the state of the process to stopped."""
+        self._is_running = False
 
     def cont(self: ThreadContext) -> None:
         """Continues the execution of the thread."""
