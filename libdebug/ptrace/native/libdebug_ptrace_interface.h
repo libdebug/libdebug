@@ -70,7 +70,8 @@ public:
     void stepping_finish(const pid_t, const bool);
 
     // Debugger status and signal methods
-    std::vector<std::pair<pid_t, int>> wait_all_and_update_regs();
+    std::vector<std::pair<pid_t, int>> wait_thread_and_update_regs(pid_t);
+    std::vector<std::pair<pid_t, int>> wait_process_and_update_regs();
     unsigned long get_thread_event_msg(const pid_t);
     void forward_signals(const std::vector<std::pair<pid_t, int>>);
 

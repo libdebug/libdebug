@@ -59,6 +59,7 @@ void LibdebugPtraceInterface::cont_thread(Thread &t)
         throw std::runtime_error("ptrace cont failed");
     }
 
+    t.is_running = true;
     t.signal_to_forward = 0;
 }
 
@@ -170,6 +171,7 @@ std::pair<std::shared_ptr<PtraceRegsStruct>, std::shared_ptr<PtraceFPRegsStruct>
 #endif
     t.fpregs->dirty = 0;
     t.fpregs->fresh = 0;
+    t.is_running = false;
 
     threads[tid] = t;
 
@@ -442,7 +444,44 @@ unsigned long LibdebugPtraceInterface::get_thread_event_msg(const pid_t tid)
     return data;
 }
 
-std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_regs()
+std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_thread_and_update_regs(pid_t tid)
+{   
+    std::vector<std::pair<pid_t, int>> thread_statuses;
+    int status, temp_tid;
+
+    temp_tid = waitpid(tid, &status, 0);
+
+    if (temp_tid == -1) {
+        throw std::runtime_error("waitpid failed");
+    }
+
+    thread_statuses.push_back({temp_tid, status});
+
+    // We keep polling but don't block, we want to get all the statuses we can
+    while ((temp_tid = waitpid(tid, &status, WNOHANG)) > 0) {
+        thread_statuses.push_back({temp_tid, status});
+    }
+
+    // Update the registers of the thread
+    getregs(threads[tid]);
+
+    for (auto &thread : threads) {
+        if (thread.second.is_running) {
+            return thread_statuses;
+        }
+    }
+
+    // Restore any software breakpoints (only if no thread is running)
+    for (auto &bp : software_breakpoints) {
+        if (bp.second.enabled) {
+            ptrace(PTRACE_POKETEXT, process_id, (void *) bp.first, (void *) bp.second.instruction);
+        }
+    }
+
+    return thread_statuses;
+}
+
+std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_process_and_update_regs()
 {
     std::vector<std::pair<pid_t, int>> thread_statuses;
 
@@ -462,6 +501,9 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_
         if (t.first != tid) {
             // If GETREGS succeeds, the thread is already stopped, so we must
             // not "stop" it again
+            if (!t.second.is_running){
+                continue;
+            }
             if (getregs(t.second) == -1) {
                 // Stop the thread with a SIGSTOP
                 tgkill(process_id, t.first, SIGSTOP);
@@ -472,6 +514,8 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_
                 // information
                 thread_statuses.push_back({temp_tid, temp_status});
             }
+            // Set the thread as not running
+            t.second.is_running = false;
         }
     }
 
@@ -746,9 +790,21 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "Returns:\n"
             "    int: The event message."
         )
+        .def (
+            "wait_thread_and_update_regs",
+            &LibdebugPtraceInterface::wait_thread_and_update_regs,
+            nb::arg("tid"),
+            "Waits for a specific thread to stop and updates the registers if no other thread is running.\n"
+            "\n"
+            "Args:\n"
+            "    tid (int): The thread id to wait for.\n"
+            "\n"
+            "Returns:\n"
+            "    list: A list of tuples containing the thread id and the corresponding waitpid result."
+        )
         .def(
-            "wait_all_and_update_regs",
-            &LibdebugPtraceInterface::wait_all_and_update_regs,
+            "wait_process_and_update_regs",
+            &LibdebugPtraceInterface::wait_process_and_update_regs,
             nb::call_guard<nb::gil_scoped_release>(),
             "Waits for any thread to stop, interrupts all the others and updates the registers.\n"
             "\n"

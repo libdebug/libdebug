@@ -227,6 +227,10 @@ class ThreadContext:
         """Continues the execution of the thread."""
         self._internal_debugger.cont(self)
 
+    def wait(self: ThreadContext) -> None:
+        """Waits for the thread to stop."""
+        self._internal_debugger.wait(self)
+
     def c(self: ThreadContext) -> None:
         """Alias for the `cont` method.
 

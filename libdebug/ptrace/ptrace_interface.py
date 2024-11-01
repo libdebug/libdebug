@@ -523,9 +523,16 @@ class PtraceInterface(DebuggingInterface):
 
         invalidate_process_cache()
 
-    def wait(self: PtraceInterface) -> None:
-        """Waits for the process to stop. Returns True if the wait has to be repeated."""
-        statuses = self.lib_trace.wait_all_and_update_regs()
+    def wait(self: PtraceInterface, thread: ThreadContext = None) -> None:
+        """Waits forthe process or the specified thread to stop.
+
+        Args:
+            thread (ThreadContext, optional): The thread to wait for. Defaults to None.
+        """
+        if thread is not None:
+            statuses = self.lib_trace.wait_thread_and_update_regs(thread.thread_id)
+        else:
+            statuses = self.lib_trace.wait_process_and_update_regs()
 
         invalidate_process_cache()
 
