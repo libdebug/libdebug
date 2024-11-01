@@ -37,12 +37,12 @@ class SignalCatcher:
 
     def enable(self: SignalCatcher) -> None:
         """Enable the signal catcher."""
-        provide_internal_debugger(self)._ensure_process_stopped()
+        provide_internal_debugger(self).ensure_process_stopped()
         self.enabled = True
 
     def disable(self: SignalCatcher) -> None:
         """Disable the signal catcher."""
-        provide_internal_debugger(self)._ensure_process_stopped()
+        provide_internal_debugger(self).ensure_process_stopped()
         self.enabled = False
 
     def hit_on(self: SignalCatcher, thread_context: ThreadContext) -> bool:

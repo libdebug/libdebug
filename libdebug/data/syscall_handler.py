@@ -46,13 +46,13 @@ class SyscallHandler:
 
     def enable(self: SyscallHandler) -> None:
         """Handle the syscall."""
-        provide_internal_debugger(self)._ensure_process_stopped()
+        provide_internal_debugger(self).ensure_process_stopped()
         self.enabled = True
         self._has_entered = False
 
     def disable(self: SyscallHandler) -> None:
         """Unhandle the syscall."""
-        provide_internal_debugger(self)._ensure_process_stopped()
+        provide_internal_debugger(self).ensure_process_stopped()
         self.enabled = False
         self._has_entered = False
 

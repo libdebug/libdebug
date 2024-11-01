@@ -145,7 +145,7 @@ class ThreadContext:
     @property
     def saved_ip(self: ThreadContext) -> int:
         """The return address of the current function."""
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger.ensure_process_stopped()
         stack_unwinder = stack_unwinding_provider(self._internal_debugger.arch)
 
         try:
@@ -160,7 +160,7 @@ class ThreadContext:
     @property
     def exit_code(self: ThreadContext) -> int | None:
         """The thread's exit code."""
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger.ensure_process_stopped()
         if not self.dead:
             liblog.warning("Thread is not dead. No exit code available.")
         elif self._exit_code is None and self._exit_signal is not None:
@@ -173,7 +173,7 @@ class ThreadContext:
     @property
     def exit_signal(self: ThreadContext) -> str | None:
         """The thread's exit signal."""
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger.ensure_process_stopped()
         if not self.dead:
             liblog.warning("Thread is not dead. No exit signal available.")
             return None
@@ -185,13 +185,13 @@ class ThreadContext:
     @property
     def signal(self: ThreadContext) -> str | None:
         """The signal will be forwarded to the thread."""
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger.ensure_process_stopped()
         return None if self._signal_number == 0 else resolve_signal_name(self._signal_number)
 
     @signal.setter
     def signal(self: ThreadContext, signal: str | int) -> None:
         """Set the signal to forward to the thread."""
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger.ensure_process_stopped()
         if self._signal_number != 0:
             liblog.debugger(
                 f"Overwriting signal {resolve_signal_name(self._signal_number)} with {resolve_signal_name(signal) if isinstance(signal, int) else signal}.",
@@ -251,7 +251,7 @@ class ThreadContext:
         Args:
             as_symbols (bool, optional): Whether to return the backtrace as symbols
         """
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger.ensure_process_stopped()
         stack_unwinder = stack_unwinding_provider(self._internal_debugger.arch)
         backtrace = stack_unwinder.unwind(self)
         if as_symbols:
@@ -261,7 +261,7 @@ class ThreadContext:
 
     def pprint_backtrace(self: ThreadContext) -> None:
         """Pretty prints the current backtrace of the thread."""
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger.ensure_process_stopped()
         stack_unwinder = stack_unwinding_provider(self._internal_debugger.arch)
         backtrace = stack_unwinder.unwind(self)
         maps = self._internal_debugger.debugging_interface.get_maps()

@@ -338,7 +338,7 @@ class InternalDebugger:
         if not self.is_debugging:
             raise RuntimeError("Process not running, cannot detach.")
 
-        self._ensure_process_stopped()
+        self.ensure_process_stopped()
 
         self.__polling_thread_command_queue.put((self.__threaded_detach, ()))
 
@@ -354,7 +354,7 @@ class InternalDebugger:
         if not self.is_debugging:
             raise RuntimeError("No process currently debugged, cannot kill.")
         try:
-            self._ensure_process_stopped()
+            self.ensure_process_stopped()
         except (OSError, RuntimeError):
             # This exception might occur if the process has already died
             liblog.debugger("OSError raised during kill")
@@ -457,7 +457,7 @@ class InternalDebugger:
     @property
     def maps(self: InternalDebugger) -> MemoryMapList[MemoryMap]:
         """Returns the memory maps of the process."""
-        self._ensure_process_stopped()
+        self.ensure_process_stopped()
         return self.debugging_interface.get_maps()
 
     @property
@@ -467,7 +467,7 @@ class InternalDebugger:
 
     def pprint_maps(self: InternalDebugger) -> None:
         """Prints the memory maps of the process."""
-        self._ensure_process_stopped()
+        self.ensure_process_stopped()
         header = (
             f"{'start':>18}  "
             f"{'end':>18}  "
@@ -1024,7 +1024,7 @@ class InternalDebugger:
         Args:
             thread (ThreadContext): The thread to step. Defaults to None.
         """
-        self._ensure_process_stopped()
+        self.ensure_process_stopped()
         self.__polling_thread_command_queue.put((self.__threaded_step, (thread,)))
         self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
         self._join_and_check_status()
@@ -1130,7 +1130,7 @@ class InternalDebugger:
     @change_state_function_thread
     def next(self: InternalDebugger, thread: ThreadContext) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
-        self._ensure_process_stopped()
+        self.ensure_process_stopped()
         self.__polling_thread_command_queue.put((self.__threaded_next, (thread,)))
         self._join_and_check_status()
 
@@ -1138,7 +1138,7 @@ class InternalDebugger:
         self: InternalDebugger,
     ) -> SyscallHandler:
         """Handles a syscall in the target process to pretty prints its arguments and return value."""
-        self._ensure_process_stopped()
+        self.ensure_process_stopped()
 
         syscall_numbers = get_all_syscall_numbers(self.arch)
 
@@ -1179,7 +1179,7 @@ class InternalDebugger:
 
     def disable_pretty_print(self: InternalDebugger) -> None:
         """Disable the handler for all the syscalls that are pretty printed."""
-        self._ensure_process_stopped()
+        self.ensure_process_stopped()
 
         installed_handlers = list(self.handled_syscalls.values())
         for handler in installed_handlers:
@@ -1312,7 +1312,7 @@ class InternalDebugger:
     @property
     def symbols(self: InternalDebugger) -> SymbolList[Symbol]:
         """Get the symbols of the process."""
-        self._ensure_process_stopped()
+        self.ensure_process_stopped()
         backing_files = {vmap.backing_file for vmap in self.maps}
         with extend_internal_debugger(self):
             return get_all_symbols(backing_files)
@@ -1324,7 +1324,7 @@ class InternalDebugger:
             raise RuntimeError("Cannot execute this command after migrating to GDB.")
 
     @background_alias(_background_ensure_process_stopped)
-    def _ensure_process_stopped(self: InternalDebugger) -> None:
+    def ensure_process_stopped(self: InternalDebugger) -> None:
         """Validates the state of the process."""
         if self._is_migrated_to_gdb:
             raise RuntimeError("Cannot execute this command after migrating to GDB.")
@@ -1553,7 +1553,7 @@ class InternalDebugger:
                 "Process is running. Waiting for it to stop before reading memory.",
             )
 
-        self._ensure_process_stopped()
+        self.ensure_process_stopped()
 
         self.__polling_thread_command_queue.put(
             (self.__threaded_peek_memory, (address,)),
@@ -1582,7 +1582,7 @@ class InternalDebugger:
                 "Process is running. Waiting for it to stop before reading memory.",
             )
 
-        self._ensure_process_stopped()
+        self.ensure_process_stopped()
 
         return self._process_memory_manager.read(address, size)
 
@@ -1599,7 +1599,7 @@ class InternalDebugger:
                 "Process is running. Waiting for it to stop before writing to memory.",
             )
 
-        self._ensure_process_stopped()
+        self.ensure_process_stopped()
 
         self.__polling_thread_command_queue.put(
             (self.__threaded_poke_memory, (address, data)),
@@ -1619,7 +1619,7 @@ class InternalDebugger:
                 "Process is running. Waiting for it to stop before writing to memory.",
             )
 
-        self._ensure_process_stopped()
+        self.ensure_process_stopped()
 
         self._process_memory_manager.write(address, data)
 
@@ -1629,7 +1629,7 @@ class InternalDebugger:
         if not self.is_debugging:
             raise RuntimeError("Process not running, cannot read floating-point registers.")
 
-        self._ensure_process_stopped()
+        self.ensure_process_stopped()
 
         self.__polling_thread_command_queue.put(
             (self.__threaded_fetch_fp_registers, (registers,)),
@@ -1643,7 +1643,7 @@ class InternalDebugger:
         if not self.is_debugging:
             raise RuntimeError("Process not running, cannot write floating-point registers.")
 
-        self._ensure_process_stopped()
+        self.ensure_process_stopped()
 
         self.__polling_thread_command_queue.put(
             (self.__threaded_flush_fp_registers, (registers,)),

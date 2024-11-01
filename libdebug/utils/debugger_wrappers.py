@@ -25,7 +25,7 @@ def change_state_function_process(method: callable) -> callable:
             )
 
         # We have to ensure that the process is stopped before executing the method
-        self._ensure_process_stopped()
+        self.ensure_process_stopped()
 
         # We have to ensure that at least one thread is alive before executing the method
         if self.threads[0].dead:
@@ -51,7 +51,7 @@ def change_state_function_thread(method: callable) -> callable:
             )
 
         # We have to ensure that the process is stopped before executing the method
-        self._ensure_process_stopped()
+        self.ensure_process_stopped()
 
         # We have to ensure that at least one thread is alive before executing the method
         if thread.dead:
