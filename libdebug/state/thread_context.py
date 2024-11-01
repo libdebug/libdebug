@@ -90,6 +90,7 @@ class ThreadContext:
         self.regs = regs_class(thread_id, self._register_holder.provide_regs())
         self._register_holder.apply_on_regs(self.regs, regs_class)
         self._register_holder.apply_on_thread(self, ThreadContext)
+        self._is_running = False
 
     def set_as_dead(self: ThreadContext) -> None:
         """Set the thread as dead."""
