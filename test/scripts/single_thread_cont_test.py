@@ -70,3 +70,55 @@ class SingleThreadContTest(TestCase):
 
         self.d.kill()
         self.d.terminate()
+    
+    def test_single_thread_continue_wait(self):
+        # this function checks that both the single-thread cont and wait work correctly. 
+        # The other two threads are supposed to be running.
+
+        self.d.run()
+
+        def callback(_, __):
+            pass
+
+        self.d.bp("do_nothing", callback=callback)
+        do_nothing_target = self.d.bp("do_nothing_target")
+
+        # This is a process-scoped continue
+        self.d.cont()
+
+        thread = None
+
+        for t in self.d.threads:
+            if do_nothing_target.hit_on(t):
+                # t is our target
+                thread = t
+                break
+
+        assert thread is not None
+
+        other_threads = self.d.threads.copy()
+        other_threads.remove(thread)
+
+        other_threads_state = [save_thread_state(x) for x in other_threads]
+
+        # sanity check
+        new_other_threads_state = [save_thread_state(x) for x in other_threads]
+        assert all(x == y for x, y in zip(other_threads_state, new_other_threads_state))
+
+        target_state = save_thread_state(thread)
+
+        # calling finish on our target thread should not affect the state of other threads
+        thread.cont()
+        thread.wait()
+        
+        assert not thread.running
+
+        new_other_threads_state = [save_thread_state(x) for x in other_threads]
+        assert all(x == y for x, y in zip(other_threads_state, new_other_threads_state))
+
+        new_target_state = save_thread_state(thread)
+        
+        assert target_state != new_target_state
+
+        self.d.kill()
+        self.d.terminate()
