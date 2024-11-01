@@ -434,19 +434,23 @@ class InternalDebugger:
         self.wait()
 
     @background_alias(_background_invalid_call)
-    def wait(self: InternalDebugger) -> None:
-        """Waits for the process to stop."""
+    def wait(self: InternalDebugger, thread: ThreadContext = None) -> None:
+        """Waits for the process or a specific thread to stop.
+
+        Args:
+            thread (ThreadContext, optional): The thread to wait for. Defaults to None.
+        """
         if not self.is_debugging:
             raise RuntimeError("Process not running, cannot wait.")
 
         self._join_and_check_status()
 
-        if self.threads[0].dead or not self.running:
+        if self.threads[0].dead or not self.running or thread is not None and (thread.dead or not thread.running):
             # Most of the time the function returns here, as there was a wait already
             # queued by the previous command
             return
 
-        self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
+        self.__polling_thread_command_queue.put((self.__threaded_wait, (thread,)))
 
         self._join_and_check_status()
 
