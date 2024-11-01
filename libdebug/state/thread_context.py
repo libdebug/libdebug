@@ -238,6 +238,13 @@ class ThreadContext:
         """
         self._internal_debugger.cont(self)
 
+    def w(self: ThreadContext) -> None:
+        """Alias for the `wait` method.
+
+        Waits for the thread to stop.
+        """
+        self._internal_debugger.wait(self)
+
     def backtrace(self: ThreadContext, as_symbols: bool = False) -> list:
         """Returns the current backtrace of the thread.
 
