@@ -56,7 +56,6 @@ struct Thread
     std::shared_ptr<PtraceRegsStruct> regs;
     std::shared_ptr<PtraceFPRegsStruct> fpregs;
     int signal_to_forward;
-    bool is_running;
 };
 
 struct ThreadStatus

@@ -54,12 +54,11 @@ void LibdebugPtraceInterface::check_and_set_fpregs(Thread &t)
 }
 
 void LibdebugPtraceInterface::cont_thread(Thread &t)
-{
+{   
     if (ptrace(handle_syscall ? PTRACE_SYSCALL : PTRACE_CONT, t.tid, NULL, t.signal_to_forward) == -1) {
         throw std::runtime_error("ptrace cont failed");
     }
 
-    t.is_running = true;
     t.signal_to_forward = 0;
 }
 
@@ -171,7 +170,6 @@ std::pair<std::shared_ptr<PtraceRegsStruct>, std::shared_ptr<PtraceFPRegsStruct>
 #endif
     t.fpregs->dirty = 0;
     t.fpregs->fresh = 0;
-    t.is_running = false;
 
     threads[tid] = t;
 
@@ -466,9 +464,7 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_thread_and_upda
     getregs(threads[tid]);
 
     for (auto &thread : threads) {
-        if (thread.second.is_running) {
-            return thread_statuses;
-        }
+        return thread_statuses;
     }
 
     // Restore any software breakpoints (only if no thread is running)
@@ -501,9 +497,6 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_process_and_upd
         if (t.first != tid) {
             // If GETREGS succeeds, the thread is already stopped, so we must
             // not "stop" it again
-            if (!t.second.is_running){
-                continue;
-            }
             if (getregs(t.second) == -1) {
                 // Stop the thread with a SIGSTOP
                 tgkill(process_id, t.first, SIGSTOP);
@@ -514,8 +507,6 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_process_and_upd
                 // information
                 thread_statuses.push_back({temp_tid, temp_status});
             }
-            // Set the thread as not running
-            t.second.is_running = false;
         }
     }
 
