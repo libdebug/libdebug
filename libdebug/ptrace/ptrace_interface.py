@@ -762,8 +762,6 @@ class PtraceInterface(DebuggingInterface):
         arglen = len(args)
 
         args = list(args[:arglen]) + [0] * (6 - len(args))  # Ensure args has exactly 6 elements, padding with 0 if needed
-        #TODO: Remove this assert in production
-        assert len(args) == 6
         arg0, arg1, arg2, arg3, arg4, arg5 = args
 
         return self.lib_trace.invoke_syscall(thread_id, syscall_number, arglen, arg0, arg1, arg2, arg3, arg4, arg5)

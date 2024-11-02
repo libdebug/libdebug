@@ -614,7 +614,21 @@ void LibdebugPtraceInterface::poke_data(unsigned long addr, unsigned long data)
 
 unsigned long LibdebugPtraceInterface::invoke_syscall(pid_t tid, unsigned long syscall_number, unsigned int actual_syscall_argcount, unsigned long arg0, unsigned long arg1, unsigned long arg2, unsigned long arg3, unsigned long arg4, unsigned long arg5)
 {
+
     Thread &t = threads[tid];
+
+    printf("DEBUG: RIP at %p", t.regs->rip);
+
+    errno = 0;  // Clear errno before calling ptrace
+    if (ptrace(PTRACE_PEEKUSER, tid, 0, NULL) == -1 && errno == ESRCH) {
+        throw std::runtime_error("Thread is dead: " + std::string(strerror(errno)));
+    }
+    
+    // Backup the registers
+    if(getregs(t)) {
+        throw std::runtime_error("first getregs failed");
+    }
+
     PtraceRegsStruct backup_regs = *t.regs;
 
     // Set the syscall number
