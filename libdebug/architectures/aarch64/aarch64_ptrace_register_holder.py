@@ -14,7 +14,7 @@ from libdebug.architectures.aarch64.aarch64_registers import Aarch64Registers
 from libdebug.ptrace.ptrace_register_holder import PtraceRegisterHolder
 
 if TYPE_CHECKING:
-    from libdebug.state.thread_context import ThreadContext
+    from libdebug.state.internal_thread_context import InternalThreadContext
 
 AARCH64_REGS = [f"x{i}" for i in range(31)] + ["sp", "xzr", "pc"]
 
@@ -254,7 +254,7 @@ class Aarch64PtraceRegisterHolder(PtraceRegisterHolder):
 
         Aarch64PtraceRegisterHolder._vector_fp_registers = self._vector_fp_registers
 
-    def apply_on_thread(self: Aarch64PtraceRegisterHolder, target: ThreadContext, target_class: type) -> None:
+    def apply_on_thread(self: Aarch64PtraceRegisterHolder, target: InternalThreadContext, target_class: type) -> None:
         """Apply the register accessors to the thread class."""
         target.register_file = self.register_file
 

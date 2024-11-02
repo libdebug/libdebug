@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from libdebug.data.registers import Registers
     from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
-    from libdebug.state.thread_context import ThreadContext
+    from libdebug.state.internal_thread_context import InternalThreadContext
 
 
 class DebuggingInterface(ABC):
@@ -55,7 +55,7 @@ class DebuggingInterface(ABC):
         """Instantly terminates the process."""
 
     @abstractmethod
-    def cont(self: DebuggingInterface, thread: ThreadContext) -> None:
+    def cont(self: DebuggingInterface, thread: InternalThreadContext) -> None:
         """Continues the execution."""
 
     @abstractmethod
@@ -71,25 +71,25 @@ class DebuggingInterface(ABC):
         """Migrates the current process from GDB."""
 
     @abstractmethod
-    def step(self: DebuggingInterface, thread: ThreadContext) -> None:
+    def step(self: DebuggingInterface, thread: InternalThreadContext) -> None:
         """Executes a single instruction of the specified thread.
 
         Args:
-            thread (ThreadContext): The thread to step.
+            thread (InternalThreadContext): The thread to step.
         """
 
     @abstractmethod
-    def step_until(self: DebuggingInterface, thread: ThreadContext, address: int, max_steps: int) -> None:
+    def step_until(self: DebuggingInterface, thread: InternalThreadContext, address: int, max_steps: int) -> None:
         """Executes instructions of the specified thread until the specified address is reached.
 
         Args:
-            thread (ThreadContext): The thread to step.
+            thread (TInternalhreadContext): The thread to step.
             address (int): The address to reach.
             max_steps (int): The maximum number of steps to execute.
         """
 
     @abstractmethod
-    def finish(self: DebuggingInterface, thread: ThreadContext, heuristic: str) -> None:
+    def finish(self: DebuggingInterface, thread: InternalThreadContext, heuristic: str) -> None:
         """Continues execution until the current function returns or the process stops.
 
         The command requires a heuristic to determine the end of the function. The available heuristics are:
@@ -97,12 +97,12 @@ class DebuggingInterface(ABC):
         - `step-mode`: The debugger will step on the specified thread until the current function returns. This will be slower.
 
         Args:
-            thread (ThreadContext): The thread to finish.
+            thread (InternalThreadContext): The thread to finish.
             heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
         """
 
     @abstractmethod
-    def next(self: DebuggingInterface, thread: ThreadContext) -> None:
+    def next(self: DebuggingInterface, thread: InternalThreadContext) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
 
     @abstractmethod

@@ -12,7 +12,6 @@ if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
     from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
-    from libdebug.state.thread_context import ThreadContext
 
 
 class ResumeContext:

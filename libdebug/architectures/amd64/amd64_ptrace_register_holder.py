@@ -14,7 +14,7 @@ from libdebug.architectures.amd64.amd64_registers import Amd64Registers
 from libdebug.ptrace.ptrace_register_holder import PtraceRegisterHolder
 
 if TYPE_CHECKING:
-    from libdebug.state.thread_context import ThreadContext
+    from libdebug.state.internal_thread_context import InternalThreadContext
 
 AMD64_GP_REGS = ["a", "b", "c", "d"]
 
@@ -372,7 +372,7 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
 
         Amd64PtraceRegisterHolder._vector_fp_registers = self._vector_fp_registers
 
-    def apply_on_thread(self: Amd64PtraceRegisterHolder, target: ThreadContext, target_class: type) -> None:
+    def apply_on_thread(self: Amd64PtraceRegisterHolder, target: InternalThreadContext, target_class: type) -> None:
         """Apply the register accessors to the thread class."""
         target.register_file = self.register_file
 

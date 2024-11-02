@@ -49,7 +49,7 @@ class Debugger:
     """The internal debugger object."""
 
     def __init__(self: Debugger) -> None:
-        pass
+        """Do not use this constructor directly. Use the `debugger` function instead."""
 
     def post_init_(self: Debugger, internal_debugger: InternalDebugger) -> None:
         """Do not use this constructor directly. Use the `debugger` function instead."""
@@ -365,7 +365,7 @@ class Debugger:
     @property
     def threads(self: Debugger) -> list[ThreadContext]:
         """Get the list of threads in the process."""
-        return self._internal_debugger.threads
+        return self._internal_debugger.public_threads
 
     @property
     def breakpoints(self: Debugger) -> dict[int, Breakpoint]:
@@ -778,7 +778,7 @@ class Debugger:
         """The signal number to be forwarded to the main thread."""
         if not self.threads:
             raise ValueError("No threads available.")
-        return self.threads[0].thread_state.signal_number
+        return self.threads[0].signal_number
 
     def backtrace(self: Debugger, as_symbols: bool = False) -> list:
         """Returns the current backtrace of the main thread.

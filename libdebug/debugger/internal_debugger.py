@@ -43,6 +43,7 @@ from libdebug.memory.chunked_memory_view import ChunkedMemoryView
 from libdebug.memory.direct_memory_view import DirectMemoryView
 from libdebug.memory.process_memory_manager import ProcessMemoryManager
 from libdebug.state.resume_context import ResumeContext
+from libdebug.state.thread_context import ThreadContext
 from libdebug.utils.ansi_escape_codes import ANSIColors
 from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.debugger_wrappers import (
@@ -80,7 +81,7 @@ if TYPE_CHECKING:
     from libdebug.debugger import Debugger
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
-    from libdebug.state.thread_context import ThreadContext
+    from libdebug.state.internal_thread_context import InternalThreadContext
 
 THREAD_TERMINATE = -1
 GDB_GOBACK_LOCATION = str((Path(__file__).parent.parent / "utils" / "gdb.py").resolve())
@@ -134,8 +135,11 @@ class InternalDebugger:
     kill_on_exit: bool
     """A flag that indicates if the debugger should kill the debugged process when it exits."""
 
-    threads: list[ThreadContext]
-    """A list of all the threads of the debugged process."""
+    internal_threads: list[InternalThreadContext]
+    """A list of all the internal thread contexts of the debugged process."""
+
+    public_threads: list[ThreadContext]
+    """A list of all the public thread contexts of the debugged process."""
 
     process_id: int
     """The PID of the debugged process."""
@@ -202,7 +206,8 @@ class InternalDebugger:
         self.pprint_syscalls = False
         self.pipe_manager = None
         self.process_id = 0
-        self.threads = []
+        self.internal_threads = []
+        self.public_threads = []
         self.instanced = False
         self.is_debugging = False
         self._is_migrated_to_gdb = False
@@ -228,11 +233,12 @@ class InternalDebugger:
         self.pipe_manager = None
         self.process_id = 0
 
-        for t in self.threads:
+        for t in self.internal_threads:
             del t.regs.register_file
             del t.regs._fp_register_file
 
-        self.threads.clear()
+        self.internal_threads.clear()
+        self.public_threads.clear()
         self.instanced = False
         self.is_debugging = False
         self.resume_context.clear()
@@ -286,7 +292,7 @@ class InternalDebugger:
         if self.is_debugging:
             liblog.debugger("Process already running, stopping it before restarting.")
             self.kill()
-        if self.threads:
+        if self.internal_threads:
             self.clear()
 
         self.debugging_interface.reset()
@@ -317,7 +323,7 @@ class InternalDebugger:
         if self.is_debugging:
             liblog.debugger("Process already running, stopping it before restarting.")
             self.kill()
-        if self.threads:
+        if self.internal_threads:
             self.clear()
             self.debugging_interface.reset()
 
@@ -402,12 +408,12 @@ class InternalDebugger:
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
-    def cont(self: InternalDebugger, thread: ThreadContext = None) -> None:
+    def cont(self: InternalDebugger, thread: InternalThreadContext = None) -> None:
         """Continues the process.
 
         Args:
             auto_wait (bool, optional): Whether to automatically wait for the process to stop after continuing. Defaults to True.
-            thread (ThreadContext, optional): The thread to continue. Defaults to None.
+            thread (InternalThreadContext, optional): The thread to continue. Defaults to None.
         """
         self.__polling_thread_command_queue.put((self.__threaded_cont, (thread,)))
 
@@ -416,17 +422,17 @@ class InternalDebugger:
         self.__polling_thread_command_queue.put((self.__threaded_wait, (thread,)))
 
     @background_alias(_background_invalid_call)
-    def interrupt(self: InternalDebugger, thread: ThreadContext = None) -> None:
+    def interrupt(self: InternalDebugger, thread: InternalThreadContext = None) -> None:
         """Interrupts the process or a specific thread.
 
         Args:
-            thread (ThreadContext, optional): The thread to interrupt. Defaults to None.
+            thread (InternalThreadContext, optional): The thread to interrupt. Defaults to None.
         """
         if not self.is_debugging:
             raise RuntimeError("Process not running, cannot interrupt.")
 
         # We have to ensure that at least one thread is alive before executing the method
-        if self.threads[0].dead:
+        if self.internal_threads[0].dead:
             raise RuntimeError("All threads are dead.")
 
         if thread is not None and thread.dead:
@@ -447,7 +453,7 @@ class InternalDebugger:
             self.resume_context.force_interrupt = True
 
             # The thread will not be scheduled anymore
-            thread.thread_state.scheduled = False
+            thread.scheduled = False
 
             # Stop the entire process to avoid inconsistencies
             os.kill(self.process_id, SIGSTOP)
@@ -456,7 +462,7 @@ class InternalDebugger:
             self.wait()
 
             # Get the scheduled threads
-            scheduled_threads = [t for t in self.threads if t.thread_state.scheduled]
+            scheduled_threads = [t for t in self.internal_threads if t.scheduled]
 
             # Resume the threads we do not want to interrupt
             for t in scheduled_threads:
@@ -467,11 +473,11 @@ class InternalDebugger:
             self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
 
     @background_alias(_background_invalid_call)
-    def wait(self: InternalDebugger, thread: ThreadContext = None) -> None:
+    def wait(self: InternalDebugger, thread: InternalThreadContext = None) -> None:
         """Waits for the process or a specific thread to stop.
 
         Args:
-            thread (ThreadContext, optional): The thread to wait for. Defaults to None.
+            thread (InternalThreadContext, optional): The thread to wait for. Defaults to None.
         """
         if not self.is_debugging:
             raise RuntimeError("Process not running, cannot wait.")
@@ -479,7 +485,7 @@ class InternalDebugger:
         self._join_and_check_status()
 
         if (
-            self.threads[0].dead
+            self.internal_threads[0].dead
             or not self.any_thread_running
             or thread is not None
             and (thread.dead or not thread.running)
@@ -911,7 +917,7 @@ class InternalDebugger:
                 else:
                     gdb_command += f' -ex "b *{bp.address:#x}"'
 
-                if self.threads[0].instruction_pointer == bp.address and not bp.hardware:
+                if self.internal_threads[0].instruction_pointer == bp.address and not bp.hardware:
                     # We have to enqueue an additional continue
                     gdb_command += ' -ex "ni"'
 
@@ -1045,22 +1051,22 @@ class InternalDebugger:
 
         self._is_migrated_to_gdb = False
 
-    def _background_step(self: InternalDebugger, thread: ThreadContext) -> None:
+    def _background_step(self: InternalDebugger, thread: InternalThreadContext) -> None:
         """Executes a single instruction of the process.
 
         Args:
-            thread (ThreadContext): The thread to step. Defaults to None.
+            thread (InternalThreadContext): The thread to step. Defaults to None.
         """
         self.__threaded_step(thread)
         self.__threaded_wait()
 
     @background_alias(_background_step)
     @change_state_function_thread
-    def step(self: InternalDebugger, thread: ThreadContext) -> None:
+    def step(self: InternalDebugger, thread: InternalThreadContext) -> None:
         """Executes a single instruction of the process.
 
         Args:
-            thread (ThreadContext): The thread to step. Defaults to None.
+            thread (InternalThreadContext): The thread to step. Defaults to None.
         """
         self.ensure_process_stopped()
         self.__polling_thread_command_queue.put((self.__threaded_step, (thread,)))
@@ -1069,7 +1075,7 @@ class InternalDebugger:
 
     def _background_step_until(
         self: InternalDebugger,
-        thread: ThreadContext,
+        thread: InternalThreadContext,
         position: int | str,
         max_steps: int = -1,
         file: str = "hybrid",
@@ -1077,7 +1083,7 @@ class InternalDebugger:
         """Executes instructions of the process until the specified location is reached.
 
         Args:
-            thread (ThreadContext): The thread to step. Defaults to None.
+            thread (InternalThreadContext): The thread to step. Defaults to None.
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
             file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
@@ -1093,7 +1099,7 @@ class InternalDebugger:
     @change_state_function_thread
     def step_until(
         self: InternalDebugger,
-        thread: ThreadContext,
+        thread: InternalThreadContext,
         position: int | str,
         max_steps: int = -1,
         file: str = "hybrid",
@@ -1101,7 +1107,7 @@ class InternalDebugger:
         """Executes instructions of the process until the specified location is reached.
 
         Args:
-            thread (ThreadContext): The thread to step. Defaults to None.
+            thread (InternalThreadContext): The thread to step. Defaults to None.
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
             file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
@@ -1123,7 +1129,7 @@ class InternalDebugger:
 
     def _background_finish(
         self: InternalDebugger,
-        thread: ThreadContext,
+        thread: InternalThreadContext,
         heuristic: str = "backtrace",
     ) -> None:
         """Continues execution until the current function returns or the process stops.
@@ -1133,14 +1139,14 @@ class InternalDebugger:
         - `step-mode`: The debugger will step on the specified thread until the current function returns. This will be slower.
 
         Args:
-            thread (ThreadContext): The thread to finish.
+            thread (InternalThreadContext): The thread to finish.
             heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
         """
         self.__threaded_finish(thread, heuristic)
 
     @background_alias(_background_finish)
     @change_state_function_thread
-    def finish(self: InternalDebugger, thread: ThreadContext, heuristic: str = "backtrace") -> None:
+    def finish(self: InternalDebugger, thread: InternalThreadContext, heuristic: str = "backtrace") -> None:
         """Continues execution until the current function returns or the process stops.
 
         The command requires a heuristic to determine the end of the function. The available heuristics are:
@@ -1148,7 +1154,7 @@ class InternalDebugger:
         - `step-mode`: The debugger will step on the specified thread until the current function returns. This will be slower.
 
         Args:
-            thread (ThreadContext): The thread to finish.
+            thread (InternalThreadContext): The thread to finish.
             heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
         """
         self.__polling_thread_command_queue.put(
@@ -1159,14 +1165,14 @@ class InternalDebugger:
 
     def _background_next(
         self: InternalDebugger,
-        thread: ThreadContext,
+        thread: InternalThreadContext,
     ) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self.__threaded_next(thread)
 
     @background_alias(_background_next)
     @change_state_function_thread
-    def next(self: InternalDebugger, thread: ThreadContext) -> None:
+    def next(self: InternalDebugger, thread: InternalThreadContext) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self.ensure_process_stopped()
         self.__polling_thread_command_queue.put((self.__threaded_next, (thread,)))
@@ -1232,16 +1238,19 @@ class InternalDebugger:
 
         self._join_and_check_status()
 
-    def insert_new_thread(self: InternalDebugger, thread: ThreadContext) -> None:
+    def insert_new_thread(self: InternalDebugger, thread: InternalThreadContext) -> None:
         """Insert a new thread in the context.
 
         Args:
-            thread (ThreadContext): the thread to insert.
+            thread (InternalThreadContext): the thread to insert.
         """
-        if thread in self.threads:
+        if thread in self.internal_threads:
             raise RuntimeError("Thread already registered.")
 
-        self.threads.append(thread)
+        self.internal_threads.append(thread)
+        public_thread = ThreadContext(thread)
+        self.public_threads.append(ThreadContext(thread))
+        thread.public_thread_context = public_thread
 
     def set_thread_as_dead(
         self: InternalDebugger,
@@ -1257,23 +1266,22 @@ class InternalDebugger:
             exit_signal (int, optional): the exit signal of the thread.
         """
         thread = self.get_thread_by_id(thread_id)
-        thread_state = thread.thread_state
-        thread_state.running = False
-        thread_state.scheduled = False
-        thread_state.dead = True
-        thread_state.exit_code = exit_code
-        thread_state.exit_signal = exit_signal
+        thread.running = False
+        thread.scheduled = False
+        thread.dead = True
+        thread.exit_code = exit_code
+        thread.exit_signal = exit_signal
 
-    def get_thread_by_id(self: InternalDebugger, thread_id: int) -> ThreadContext:
+    def get_thread_by_id(self: InternalDebugger, thread_id: int) -> InternalThreadContext:
         """Get a thread by its ID.
 
         Args:
             thread_id (int): the ID of the thread to get.
 
         Returns:
-            ThreadContext: the thread with the specified ID.
+            InternalThreadContext: the thread with the specified ID.
         """
-        for thread in self.threads:
+        for thread in self.internal_threads:
             if thread.thread_id == thread_id and not thread.dead:
                 return thread
 
@@ -1459,7 +1467,7 @@ class InternalDebugger:
             liblog.debugger("Killing process %d.", self.process_id)
         self.debugging_interface.kill()
 
-    def __threaded_cont(self: InternalDebugger, thread: ThreadContext) -> None:
+    def __threaded_cont(self: InternalDebugger, thread: InternalThreadContext) -> None:
         if self.argv:
             liblog.debugger(
                 "Continuing %s (%s: %d).",
@@ -1473,10 +1481,10 @@ class InternalDebugger:
         if thread is None:
             self.set_all_threads_running()
         else:
-            thread.thread_state.running = True
+            thread.running = True
         self.debugging_interface.cont(thread)
 
-    def __threaded_wait(self: InternalDebugger, thread: ThreadContext = None) -> None:
+    def __threaded_wait(self: InternalDebugger, thread: InternalThreadContext = None) -> None:
         if self.argv:
             liblog.debugger(
                 "Waiting for %s (%s: %d) to stop.",
@@ -1490,7 +1498,7 @@ class InternalDebugger:
         while True:
             self.resume_context.resume = True
             self.debugging_interface.wait(thread)
-            if self.threads[0].dead:
+            if self.internal_threads[0].dead:
                 # All threads are dead
                 liblog.debugger("All threads dead")
                 break
@@ -1507,7 +1515,7 @@ class InternalDebugger:
                     self.debugging_interface.cont()
                 else:
                     # We need to continue only the scheduled threads, we need to call cont for each thread
-                    for t in self.threads:
+                    for t in self.internal_threads:
                         if t.scheduled:
                             self.debugging_interface.cont(t)
             else:
@@ -1515,7 +1523,7 @@ class InternalDebugger:
         if thread is None:
             self.set_all_threads_stopped()
         else:
-            thread.thread_state.running = False
+            thread.running = False
 
     def __threaded_breakpoint(self: InternalDebugger, bp: Breakpoint) -> None:
         liblog.debugger("Setting breakpoint at 0x%x.", bp.address)
@@ -1535,14 +1543,14 @@ class InternalDebugger:
         liblog.debugger(f"Unsetting the handler for syscall {handler.syscall_number}.")
         self.debugging_interface.unset_syscall_handler(handler)
 
-    def __threaded_step(self: InternalDebugger, thread: ThreadContext) -> None:
+    def __threaded_step(self: InternalDebugger, thread: InternalThreadContext) -> None:
         liblog.debugger("Stepping thread %s.", thread.thread_id)
         self.debugging_interface.step(thread)
         self.set_all_threads_running()
 
     def __threaded_step_until(
         self: InternalDebugger,
-        thread: ThreadContext,
+        thread: InternalThreadContext,
         address: int,
         max_steps: int,
     ) -> None:
@@ -1550,7 +1558,7 @@ class InternalDebugger:
         self.debugging_interface.step_until(thread, address, max_steps)
         self.set_all_threads_stopped()
 
-    def __threaded_finish(self: InternalDebugger, thread: ThreadContext, heuristic: str) -> None:
+    def __threaded_finish(self: InternalDebugger, thread: InternalThreadContext, heuristic: str) -> None:
         prefix = heuristic.capitalize()
 
         liblog.debugger(f"{prefix} finish on thread %s", thread.thread_id)
@@ -1558,7 +1566,7 @@ class InternalDebugger:
 
         self.set_all_threads_stopped()
 
-    def __threaded_next(self: InternalDebugger, thread: ThreadContext) -> None:
+    def __threaded_next(self: InternalDebugger, thread: InternalThreadContext) -> None:
         liblog.debugger("Next on thread %s.", thread.thread_id)
         self.debugging_interface.next(thread)
         self.set_all_threads_stopped()
@@ -1721,7 +1729,7 @@ class InternalDebugger:
         Returns:
             bool: True if any thread is running, False otherwise.
         """
-        return any(thread.thread_state.running for thread in self.threads)
+        return any(thread.running for thread in self.internal_threads)
 
     @property
     def all_threads_running(self: InternalDebugger) -> bool:
@@ -1730,7 +1738,7 @@ class InternalDebugger:
         Returns:
             bool: True if all threads are running, False otherwise.
         """
-        return all(thread.thread_state.running for thread in self.threads)
+        return all(thread.running for thread in self.internal_threads)
 
     @property
     def any_thread_scheduled(self: InternalDebugger) -> bool:
@@ -1739,7 +1747,7 @@ class InternalDebugger:
         Returns:
             bool: True if any thread is scheduled, False otherwise.
         """
-        return any(thread.thread_state.scheduled for thread in self.threads)
+        return any(thread.scheduled for thread in self.internal_threads)
 
     @property
     def all_threads_scheduled(self: InternalDebugger) -> bool:
@@ -1748,14 +1756,14 @@ class InternalDebugger:
         Returns:
             bool: True if all threads are scheduled, False otherwise.
         """
-        return all(thread.thread_state.scheduled for thread in self.threads)
+        return all(thread.scheduled for thread in self.internal_threads)
 
     def set_all_threads_running(self: InternalDebugger) -> None:
         """Set the state of all threads to running."""
-        for thread in self.threads:
-            thread.thread_state.running = True
+        for thread in self.internal_threads:
+            thread.running = True
 
     def set_all_threads_stopped(self: InternalDebugger) -> None:
         """Set the state of all threads to stopped."""
-        for thread in self.threads:
-            thread.thread_state.running = False
+        for thread in self.internal_threads:
+            thread.running = False

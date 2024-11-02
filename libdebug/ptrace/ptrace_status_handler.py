@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.interfaces.debugging_interface import DebuggingInterface
-    from libdebug.state.thread_context import ThreadContext
+    from libdebug.state.internal_thread_context import InternalThreadContext
 
 
 class PtraceStatusHandler:
@@ -114,7 +114,7 @@ class PtraceStatusHandler:
             bp.hit_count += 1
 
             if bp.callback:
-                bp.callback(thread, bp)
+                bp.callback(thread.public_thread_context, bp)
             else:
                 # If the breakpoint has no callback, we need to stop the process despite the other signals
                 self.internal_debugger.resume_context.event_type[thread_id] = EventType.BREAKPOINT
@@ -123,7 +123,7 @@ class PtraceStatusHandler:
     def _manage_syscall_on_enter(
         self: PtraceStatusHandler,
         handler: SyscallHandler,
-        thread: ThreadContext,
+        thread: InternalThreadContext,
         syscall_number: int,
         hijacked_set: set[int],
     ) -> None:
@@ -138,7 +138,7 @@ class PtraceStatusHandler:
                 thread.syscall_arg4,
                 thread.syscall_arg5,
             ]
-            handler.on_enter_user(thread, handler)
+            handler.on_enter_user(thread.public_thread_context, handler)
 
             # Check if the syscall number has changed
             syscall_number_after_callback = thread.syscall_number
@@ -148,7 +148,7 @@ class PtraceStatusHandler:
                 # Pretty print the syscall number before the callback
                 if handler.on_enter_pprint:
                     handler.on_enter_pprint(
-                        thread,
+                        thread.public_thread_context,
                         syscall_number,
                         hijacked=True,
                         old_args=old_args,
@@ -175,7 +175,7 @@ class PtraceStatusHandler:
                         )
                     elif callback_hijack.on_enter_pprint:
                         # Pretty print the syscall number
-                        callback_hijack.on_enter_pprint(thread, syscall_number_after_callback, hijacker=True)
+                        callback_hijack.on_enter_pprint(thread.public_thread_context, syscall_number_after_callback, hijacker=True)
                         callback_hijack._has_entered = True
                         callback_hijack._skip_exit = True
                     else:
@@ -184,13 +184,13 @@ class PtraceStatusHandler:
                         callback_hijack._skip_exit = True
             elif handler.on_enter_pprint:
                 # Pretty print the syscall number
-                handler.on_enter_pprint(thread, syscall_number, callback=True, old_args=old_args)
+                handler.on_enter_pprint(thread.public_thread_context, syscall_number, callback=True, old_args=old_args)
                 handler._has_entered = True
             else:
                 handler._has_entered = True
         elif handler.on_enter_pprint:
             # Pretty print the syscall number
-            handler.on_enter_pprint(thread, syscall_number, callback=(handler.on_exit_user is not None))
+            handler.on_enter_pprint(thread.public_thread_context, syscall_number, callback=(handler.on_exit_user is not None))
             handler._has_entered = True
         elif handler.on_exit_pprint or handler.on_exit_user:
             # The syscall has been entered but the user did not define an on_enter callback
@@ -250,7 +250,7 @@ class PtraceStatusHandler:
                 # Pretty print the return value before the callback
                 if handler.on_exit_pprint:
                     return_value_before_callback = thread.syscall_return
-                handler.on_exit_user(thread, handler)
+                handler.on_exit_user(thread.public_thread_context, handler)
                 if handler.on_exit_pprint:
                     return_value_after_callback = thread.syscall_return
                     if return_value_after_callback != return_value_before_callback:
@@ -273,7 +273,7 @@ class PtraceStatusHandler:
     def _manage_caught_signal(
         self: PtraceStatusHandler,
         catcher: SignalCatcher,
-        thread: ThreadContext,
+        thread: InternalThreadContext,
         signal_number: int,
         hijacked_set: set[int],
     ) -> None:
@@ -287,7 +287,7 @@ class PtraceStatusHandler:
             )
             if catcher.callback:
                 # Execute the user-defined callback
-                catcher.callback(thread, catcher)
+                catcher.callback(thread.public_thread_context, catcher)
 
                 new_signal_number = thread.signal_number
 
@@ -322,7 +322,7 @@ class PtraceStatusHandler:
                 self.internal_debugger.resume_context.event = EventType.SIGNAL
                 self.internal_debugger.resume_context.resume = False
 
-    def _handle_signal(self: PtraceStatusHandler, thread: ThreadContext) -> bool:
+    def _handle_signal(self: PtraceStatusHandler, thread: InternalThreadContext) -> bool:
         """Handle the signal trap."""
         signal_number = thread.signal_number
 
@@ -429,7 +429,7 @@ class PtraceStatusHandler:
             thread = self.internal_debugger.get_thread_by_id(pid)
 
             if thread is not None:
-                thread.thread_state.signal_number = signum
+                thread.signal_number = signum
 
                 # Handle the signal
                 self._handle_signal(thread)

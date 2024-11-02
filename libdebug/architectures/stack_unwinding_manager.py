@@ -11,16 +11,16 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from libdebug.data.memory_map import MemoryMap
-    from libdebug.state.thread_context import ThreadContext
+    from libdebug.state.internal_thread_context import InternalThreadContext
 
 
 class StackUnwindingManager(ABC):
     """An architecture-independent interface for stack unwinding."""
 
     @abstractmethod
-    def unwind(self: StackUnwindingManager, target: ThreadContext) -> list:
+    def unwind(self: StackUnwindingManager, target: InternalThreadContext) -> list:
         """Unwind the stack of the target process."""
 
     @abstractmethod
-    def get_return_address(self: StackUnwindingManager, target: ThreadContext, vmaps: list[MemoryMap]) -> int:
+    def get_return_address(self: StackUnwindingManager, target: InternalThreadContext, vmaps: list[MemoryMap]) -> int:
         """Get the return address of the current function."""

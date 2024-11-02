@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from libdebug.debugger.internal_debugger import InternalDebugger
-    from libdebug.state.thread_context import ThreadContext
+    from libdebug.state.internal_thread_context import InternalThreadContext
 
 
 def change_state_function_process(method: callable) -> callable:
@@ -28,7 +28,7 @@ def change_state_function_process(method: callable) -> callable:
         self.ensure_process_stopped()
 
         # We have to ensure that at least one thread is alive before executing the method
-        if self.threads[0].dead:
+        if self.internal_threads[0].dead:
             raise RuntimeError("All threads are dead.")
         return method(self, *args, **kwargs)
 
@@ -41,7 +41,7 @@ def change_state_function_thread(method: callable) -> callable:
     @wraps(method)
     def wrapper(
         self: InternalDebugger,
-        thread: ThreadContext,
+        thread: InternalThreadContext,
         *args: ...,
         **kwargs: ...,
     ) -> ...:
@@ -53,7 +53,7 @@ def change_state_function_thread(method: callable) -> callable:
         # We have to ensure that the process is stopped before executing the method
         self.ensure_process_stopped()
 
-        # We have to ensure that at least one thread is alive before executing the method
+        # We have to ensure that the thread is alive before executing the method
         if thread.dead:
             raise RuntimeError("The thread is dead.")
         return method(self, thread, *args, **kwargs)
