@@ -546,16 +546,17 @@ class PtraceInterface(DebuggingInterface):
         signals_to_forward = []
 
         for thread in self._internal_debugger.threads:
+            thread_state = thread.thread_state
             if (
                 thread.thread_id in threads_with_signals_to_forward
-                and thread._signal_number != 0
-                and thread._signal_number not in self._internal_debugger.signals_to_block
+                and thread_state.signal_number != 0
+                and thread_state.signal_number not in self._internal_debugger.signals_to_block
             ):
                 liblog.debugger(
-                    f"Forwarding signal {thread.signal_number} to thread {thread.thread_id}",
+                    f"Forwarding signal {thread_state.signal_number} to thread {thread.thread_id}",
                 )
-                signals_to_forward.append((thread.thread_id, thread.signal_number))
-                thread._signal_number = 0
+                signals_to_forward.append((thread.thread_id, thread_state.signal_number))
+                thread_state.signal_number = 0
 
         self.lib_trace.forward_signals(signals_to_forward)
 
@@ -564,14 +565,15 @@ class PtraceInterface(DebuggingInterface):
 
     def forward_signal_to_thread(self: PtraceInterface, thread: ThreadContext) -> None:
         """Forwards the signal to the specified thread."""
+        thread_state = thread.thread_state
         if (
             thread.thread_id in self._internal_debugger.resume_context.threads_with_signals_to_forward
-            and thread._signal_number != 0
-            and thread._signal_number not in self._internal_debugger.signals_to_block
+            and thread_state.signal_number != 0
+            and thread_state.signal_number not in self._internal_debugger.signals_to_block
         ):
-            liblog.debugger(f"Forwarding signal {thread.signal_number} to thread {thread.thread_id}")
-            self.lib_trace.forward_signals([(thread.thread_id, thread.signal_number)])
-            thread._signal_number = 0
+            liblog.debugger(f"Forwarding signal {thread_state.signal_number} to thread {thread.thread_id}")
+            self.lib_trace.forward_signals([(thread.thread_id, thread_state.signal_number)])
+            thread_state.signal_number = 0
 
         # Clear the thread from the list of threads with signals to forward
         self._internal_debugger.resume_context.threads_with_signals_to_forward.remove(thread.thread_id)
@@ -634,8 +636,8 @@ class PtraceInterface(DebuggingInterface):
                     bp.length,
                 )
 
-        # Set the resume context for the new thread
-        self._internal_debugger.resume_context.new_threads.append(thread)
+        # Schedule the thread to be resumed
+        thread.thread_state.scheduled = True
 
     def unregister_thread(
         self: PtraceInterface,

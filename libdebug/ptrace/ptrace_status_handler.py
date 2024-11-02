@@ -289,7 +289,7 @@ class PtraceStatusHandler:
                 # Execute the user-defined callback
                 catcher.callback(thread, catcher)
 
-                new_signal_number = thread._signal_number
+                new_signal_number = thread.signal_number
 
                 if new_signal_number != signal_number:
                     # The signal number has changed
@@ -324,7 +324,7 @@ class PtraceStatusHandler:
 
     def _handle_signal(self: PtraceStatusHandler, thread: ThreadContext) -> bool:
         """Handle the signal trap."""
-        signal_number = thread._signal_number
+        signal_number = thread.signal_number
 
         if signal_number in self.internal_debugger.caught_signals:
             catcher = self.internal_debugger.caught_signals[signal_number]
@@ -429,7 +429,7 @@ class PtraceStatusHandler:
             thread = self.internal_debugger.get_thread_by_id(pid)
 
             if thread is not None:
-                thread._signal_number = signum
+                thread.thread_state.signal_number = signum
 
                 # Handle the signal
                 self._handle_signal(thread)

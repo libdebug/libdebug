@@ -3,6 +3,7 @@
 # Copyright (c) 2024 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -12,6 +13,7 @@ from libdebug.debugger.internal_debugger_instance_manager import (
     provide_internal_debugger,
 )
 from libdebug.liblog import liblog
+from libdebug.state.thread_state import ThreadState
 from libdebug.utils.ansi_escape_codes import ANSIColors
 from libdebug.utils.debugging_utils import resolve_address_in_maps
 from libdebug.utils.signal_utils import resolve_signal_name, resolve_signal_number
@@ -57,29 +59,17 @@ class ThreadContext:
     regs: Registers
     """The thread's registers."""
 
-    _is_running: bool = False
-    """Whether the thread is running."""
-
     _internal_debugger: InternalDebugger | None = None
     """The debugging context this thread belongs to."""
 
     _register_holder: RegisterHolder | None = None
     """The register holder object."""
 
-    _dead: bool = False
-    """Whether the thread is dead."""
-
-    _exit_code: int | None = None
-    """The thread's exit code."""
-
-    _exit_signal: int | None = None
-    """The thread's exit signal."""
-
-    _signal_number: int = 0
-    """The signal to forward to the thread."""
-
     _thread_id: int
     """The thread's ID."""
+
+    thread_state: ThreadState
+    """The thread's state."""
 
     def __init__(self: ThreadContext, thread_id: int, registers: RegisterHolder) -> None:
         """Initializes the Thread Context."""
@@ -90,21 +80,12 @@ class ThreadContext:
         self.regs = regs_class(thread_id, self._register_holder.provide_regs())
         self._register_holder.apply_on_regs(self.regs, regs_class)
         self._register_holder.apply_on_thread(self, ThreadContext)
-        self._is_running = False
-
-    def set_as_dead(self: ThreadContext) -> None:
-        """Set the thread as dead."""
-        self._dead = True
+        self.thread_state = ThreadState()
 
     @property
     def debugger(self: ThreadContext) -> Debugger:
         """The debugging context this thread belongs to."""
         return self._internal_debugger.debugger
-
-    @property
-    def dead(self: ThreadContext) -> bool:
-        """Whether the thread is dead."""
-        return self._dead
 
     @property
     def memory(self: ThreadContext) -> AbstractMemoryView:
@@ -158,70 +139,76 @@ class ThreadContext:
         return return_address
 
     @property
-    def exit_code(self: ThreadContext) -> int | None:
-        """The thread's exit code."""
-        self._internal_debugger.ensure_process_stopped()
-        if not self.dead:
-            liblog.warning("Thread is not dead. No exit code available.")
-        elif self._exit_code is None and self._exit_signal is not None:
-            liblog.warning(
-                "Thread exited with signal %s. No exit code available.",
-                resolve_signal_name(self._exit_signal),
-            )
-        return self._exit_code
-
-    @property
-    def exit_signal(self: ThreadContext) -> str | None:
-        """The thread's exit signal."""
-        self._internal_debugger.ensure_process_stopped()
-        if not self.dead:
-            liblog.warning("Thread is not dead. No exit signal available.")
-            return None
-        elif self._exit_signal is None and self._exit_code is not None:
-            liblog.warning("Thread exited with code %d. No exit signal available.", self._exit_code)
-            return None
-        return resolve_signal_name(self._exit_signal)
-
-    @property
-    def signal(self: ThreadContext) -> str | None:
-        """The signal will be forwarded to the thread."""
-        self._internal_debugger.ensure_process_stopped()
-        return None if self._signal_number == 0 else resolve_signal_name(self._signal_number)
-
-    @signal.setter
-    def signal(self: ThreadContext, signal: str | int) -> None:
-        """Set the signal to forward to the thread."""
-        self._internal_debugger.ensure_process_stopped()
-        if self._signal_number != 0:
-            liblog.debugger(
-                f"Overwriting signal {resolve_signal_name(self._signal_number)} with {resolve_signal_name(signal) if isinstance(signal, int) else signal}.",
-            )
-        if isinstance(signal, str):
-            signal = resolve_signal_number(signal)
-        self._signal_number = signal
-        self._internal_debugger.resume_context.threads_with_signals_to_forward.append(self.thread_id)
-
-    @property
-    def signal_number(self: ThreadContext) -> int:
-        """The signal number to forward to the thread."""
-        return self._signal_number
-
-    @property
     def running(self: ThreadContext) -> bool:
         """Get the state of the thread.
 
         Returns:
             bool: True if the thread is running, False otherwise.
         """
-        return self._is_running
+        return self.thread_state.running
 
-    def set_running(self: ThreadContext) -> None:
-        """Set the state of the process to running."""
-        self._is_running = True
+    @property
+    def scheduled(self: ThreadContext) -> bool:
+        """If the thread is scheduled to run."""
+        return self.thread_state.scheduled
 
-    def set_stopped(self: ThreadContext) -> None:
-        """Set the state of the process to stopped."""
-        self._is_running = False
+    @property
+    def dead(self: ThreadContext) -> bool:
+        """Whether the thread is dead."""
+        return self.thread_state.dead
+
+    @property
+    def exit_code(self: ThreadContext) -> int | None:
+        """The thread's exit code."""
+        self._internal_debugger.ensure_process_stopped()
+        thread_state = self.thread_state
+        if not self.dead:
+            liblog.warning("Thread is not dead. No exit code available.")
+        elif thread_state.exit_code is None and thread_state.exit_signal is not None:
+            liblog.warning(
+                "Thread exited with signal %s. No exit code available.",
+                resolve_signal_name(thread_state.exit_signal),
+            )
+        return thread_state.exit_code
+
+    @property
+    def exit_signal(self: ThreadContext) -> str | None:
+        """The thread's exit signal."""
+        self._internal_debugger.ensure_process_stopped()
+        thread_state = self.thread_state
+        if not self.dead:
+            liblog.warning("Thread is not dead. No exit signal available.")
+            return None
+        elif thread_state.exit_signal is None and thread_state.exit_code is not None:
+            liblog.warning("Thread exited with code %d. No exit signal available.", thread_state.exit_code)
+            return None
+        return resolve_signal_name(thread_state.exit_signal)
+
+    @property
+    def signal(self: ThreadContext) -> str | None:
+        """The signal will be forwarded to the thread."""
+        self._internal_debugger.ensure_process_stopped()
+        thread_state = self.thread_state
+        return None if thread_state.signal_number == 0 else resolve_signal_name(thread_state.signal_number)
+
+    @signal.setter
+    def signal(self: ThreadContext, signal: str | int) -> None:
+        """Set the signal to forward to the thread."""
+        self._internal_debugger.ensure_process_stopped()
+        thread_state = self.thread_state
+        if thread_state.signal_number != 0:
+            liblog.debugger(
+                f"Overwriting signal {resolve_signal_name(thread_state.signal_number)} with {resolve_signal_name(signal) if isinstance(signal, int) else signal}.",
+            )
+        if isinstance(signal, str):
+            signal = resolve_signal_number(signal)
+        thread_state.signal_number = signal
+        self._internal_debugger.resume_context.threads_with_signals_to_forward.append(self.thread_id)
+
+    @property
+    def signal_number(self: ThreadContext) -> int:
+        """The signal number to forward to the thread."""
+        return self.thread_state.signal_number
 
     def cont(self: ThreadContext) -> None:
         """Continues the execution of the thread."""
@@ -233,27 +220,6 @@ class ThreadContext:
 
     def wait(self: ThreadContext) -> None:
         """Waits for the thread to stop."""
-        self._internal_debugger.wait(self)
-
-    def c(self: ThreadContext) -> None:
-        """Alias for the `cont` method.
-
-        Continues the execution of the thread.
-        """
-        self._internal_debugger.cont(self)
-
-    def int(self: ThreadContext) -> None:
-        """Alias for the `interrupt` method.
-
-        Interrupts the execution of the thread.
-        """
-        self._internal_debugger.interrupt(self)
-
-    def w(self: ThreadContext) -> None:
-        """Alias for the `wait` method.
-
-        Waits for the thread to stop.
-        """
         self._internal_debugger.wait(self)
 
     def backtrace(self: ThreadContext, as_symbols: bool = False) -> list:
@@ -269,88 +235,6 @@ class ThreadContext:
             maps = self._internal_debugger.debugging_interface.get_maps()
             backtrace = [resolve_address_in_maps(x, maps) for x in backtrace]
         return backtrace
-
-    def pprint_backtrace(self: ThreadContext) -> None:
-        """Pretty prints the current backtrace of the thread."""
-        self._internal_debugger.ensure_process_stopped()
-        stack_unwinder = stack_unwinding_provider(self._internal_debugger.arch)
-        backtrace = stack_unwinder.unwind(self)
-        maps = self._internal_debugger.debugging_interface.get_maps()
-        for return_address in backtrace:
-            filtered_maps = maps.filter(return_address)
-            return_address_symbol = resolve_address_in_maps(return_address, filtered_maps)
-            permissions = filtered_maps[0].permissions
-            if "rwx" in permissions:
-                style = f"{ANSIColors.UNDERLINE}{ANSIColors.RED}"
-            elif "x" in permissions:
-                style = f"{ANSIColors.RED}"
-            elif "w" in permissions:
-                # This should not happen, but it's here for completeness
-                style = f"{ANSIColors.YELLOW}"
-            elif "r" in permissions:
-                # This should not happen, but it's here for completeness
-                style = f"{ANSIColors.GREEN}"
-            if return_address_symbol[:2] == "0x":
-                print(f"{style}{return_address:#x} {ANSIColors.RESET}")
-            else:
-                print(f"{style}{return_address:#x} <{return_address_symbol}> {ANSIColors.RESET}")
-
-    def _pprint_reg(self: ThreadContext, register: str) -> None:
-        attr = getattr(self.regs, register)
-        color = ""
-        style = ""
-        formatted_attr = f"{attr:#x}"
-
-        if maps := self._internal_debugger.maps.filter(attr):
-            permissions = maps[0].permissions
-            if "rwx" in permissions:
-                color = ANSIColors.RED
-                style = ANSIColors.UNDERLINE
-            elif "x" in permissions:
-                color = ANSIColors.RED
-            elif "w" in permissions:
-                color = ANSIColors.YELLOW
-            elif "r" in permissions:
-                color = ANSIColors.GREEN
-
-        if color or style:
-            formatted_attr = f"{color}{style}{attr:#x}{ANSIColors.RESET}"
-        print(f"{ANSIColors.RED}{register}{ANSIColors.RESET}\t{formatted_attr}")
-
-    def pprint_registers(self: ThreadContext) -> None:
-        """Pretty prints the thread's registers."""
-        for register in self._register_holder.provide_regs():
-            self._pprint_reg(register)
-
-    def pprint_regs(self: ThreadContext) -> None:
-        """Alias for the `pprint_registers` method.
-
-        Pretty prints the thread's registers.
-        """
-        self.pprint_registers()
-
-    def pprint_registers_all(self: ThreadContext) -> None:
-        """Pretty prints all the thread's registers."""
-        self.pprint_registers()
-
-        for t in self._register_holder.provide_special_regs():
-            self._pprint_reg(t)
-
-        for t in self._register_holder.provide_vector_fp_regs():
-            print(f"{ANSIColors.BLUE}" + "{" + f"{ANSIColors.RESET}")
-            for register in t:
-                value = getattr(self.regs, register)
-                formatted_value = f"{value:#x}" if isinstance(value, int) else str(value)
-                print(f"  {ANSIColors.RED}{register}{ANSIColors.RESET}\t{formatted_value}")
-
-            print(f"{ANSIColors.BLUE}" + "}" + f"{ANSIColors.RESET}")
-
-    def pprint_regs_all(self: ThreadContext) -> None:
-        """Alias for the `pprint_registers_all` method.
-
-        Pretty prints all the thread's registers.
-        """
-        self.pprint_registers_all()
 
     def step(self: ThreadContext) -> None:
         """Executes a single instruction of the process."""
@@ -386,6 +270,27 @@ class ThreadContext:
     def next(self: ThreadContext) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._internal_debugger.next(self)
+
+    def c(self: ThreadContext) -> None:
+        """Alias for the `cont` method.
+
+        Continues the execution of the thread.
+        """
+        self._internal_debugger.cont(self)
+
+    def int(self: ThreadContext) -> None:
+        """Alias for the `interrupt` method.
+
+        Interrupts the execution of the thread.
+        """
+        self._internal_debugger.interrupt(self)
+
+    def w(self: ThreadContext) -> None:
+        """Alias for the `wait` method.
+
+        Waits for the thread to stop.
+        """
+        self._internal_debugger.wait(self)
 
     def si(self: ThreadContext) -> None:
         """Alias for the `step` method.
@@ -425,11 +330,93 @@ class ThreadContext:
         """Alias for the `next` method. Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._internal_debugger.next(self)
 
+    def pprint_backtrace(self: ThreadContext) -> None:
+        """Pretty prints the current backtrace of the thread."""
+        self._internal_debugger.ensure_process_stopped()
+        stack_unwinder = stack_unwinding_provider(self._internal_debugger.arch)
+        backtrace = stack_unwinder.unwind(self)
+        maps = self._internal_debugger.debugging_interface.get_maps()
+        for return_address in backtrace:
+            filtered_maps = maps.filter(return_address)
+            return_address_symbol = resolve_address_in_maps(return_address, filtered_maps)
+            permissions = filtered_maps[0].permissions
+            if "rwx" in permissions:
+                style = f"{ANSIColors.UNDERLINE}{ANSIColors.RED}"
+            elif "x" in permissions:
+                style = f"{ANSIColors.RED}"
+            elif "w" in permissions:
+                # This should not happen, but it's here for completeness
+                style = f"{ANSIColors.YELLOW}"
+            elif "r" in permissions:
+                # This should not happen, but it's here for completeness
+                style = f"{ANSIColors.GREEN}"
+            if return_address_symbol[:2] == "0x":
+                print(f"{style}{return_address:#x} {ANSIColors.RESET}")
+            else:
+                print(f"{style}{return_address:#x} <{return_address_symbol}> {ANSIColors.RESET}")
+
+    def pprint_registers(self: ThreadContext) -> None:
+        """Pretty prints the thread's registers."""
+        for register in self._register_holder.provide_regs():
+            self._pprint_reg(register)
+
+    def pprint_regs(self: ThreadContext) -> None:
+        """Alias for the `pprint_registers` method.
+
+        Pretty prints the thread's registers.
+        """
+        self.pprint_registers()
+
+    def pprint_registers_all(self: ThreadContext) -> None:
+        """Pretty prints all the thread's registers."""
+        self.pprint_registers()
+
+        for t in self._register_holder.provide_special_regs():
+            self._pprint_reg(t)
+
+        for t in self._register_holder.provide_vector_fp_regs():
+            print(f"{ANSIColors.BLUE}" + "{" + f"{ANSIColors.RESET}")
+            for register in t:
+                value = getattr(self.regs, register)
+                formatted_value = f"{value:#x}" if isinstance(value, int) else str(value)
+                print(f"  {ANSIColors.RED}{register}{ANSIColors.RESET}\t{formatted_value}")
+
+            print(f"{ANSIColors.BLUE}" + "}" + f"{ANSIColors.RESET}")
+
+    def pprint_regs_all(self: ThreadContext) -> None:
+        """Alias for the `pprint_registers_all` method.
+
+        Pretty prints all the thread's registers.
+        """
+        self.pprint_registers_all()
+
+    def _pprint_reg(self: ThreadContext, register: str) -> None:
+        attr = getattr(self.regs, register)
+        color = ""
+        style = ""
+        formatted_attr = f"{attr:#x}"
+
+        if maps := self._internal_debugger.maps.filter(attr):
+            permissions = maps[0].permissions
+            if "rwx" in permissions:
+                color = ANSIColors.RED
+                style = ANSIColors.UNDERLINE
+            elif "x" in permissions:
+                color = ANSIColors.RED
+            elif "w" in permissions:
+                color = ANSIColors.YELLOW
+            elif "r" in permissions:
+                color = ANSIColors.GREEN
+
+        if color or style:
+            formatted_attr = f"{color}{style}{attr:#x}{ANSIColors.RESET}"
+        print(f"{ANSIColors.RED}{register}{ANSIColors.RESET}\t{formatted_attr}")
+
     def __repr__(self: ThreadContext) -> str:
         """Returns a string representation of the object."""
         repr_str = "ThreadContext()\n"
         repr_str += f"  Thread ID: {self.thread_id}\n"
         repr_str += f"  Process ID: {self.process_id}\n"
         repr_str += f"  Instruction Pointer: {self.instruction_pointer:#x}\n"
-        repr_str += f"  Dead: {self.dead}"
+        repr_str += f"  Dead: {self.thread_state.dead}\n"
         return repr_str

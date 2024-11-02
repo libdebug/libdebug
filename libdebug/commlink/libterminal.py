@@ -160,7 +160,7 @@ class LibTerminal:
         def update_output(app: Application) -> None:
             """Update the output field with the messages in the queue."""
             if (
-                not self._internal_debugger.running
+                not self._internal_debugger.any_thread_running
                 and (event_type := self._internal_debugger.resume_context.get_event_type())
                 and not self._has_warned_stop
             ):

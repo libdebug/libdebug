@@ -735,8 +735,8 @@ class Debugger:
 
     @property
     def running(self: Debugger) -> bool:
-        """Whether the process is running."""
-        return self._internal_debugger.running
+        """Whether any thread of the process is running."""
+        return self._internal_debugger.any_thread_running
 
     @property
     def saved_ip(self: Debugger) -> int:
@@ -778,7 +778,7 @@ class Debugger:
         """The signal number to be forwarded to the main thread."""
         if not self.threads:
             raise ValueError("No threads available.")
-        return self.threads[0].signal_number
+        return self.threads[0].thread_state.signal_number
 
     def backtrace(self: Debugger, as_symbols: bool = False) -> list:
         """Returns the current backtrace of the main thread.
