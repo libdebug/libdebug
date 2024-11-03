@@ -19,7 +19,7 @@ def save_thread_state(thread):
 
 class ThreadContTest(TestCase):        
     def test_continue_thread_scoped(self):
-        # This function checks that the single-thread cont works correctly. 
+        # This function checks that the thread-scoped cont works correctly. 
         # The other two threads are supposed to be either dead or in a wait.
         d = debugger(RESOLVE_EXE("single_thread_cont_test"))
         d.run()
@@ -65,7 +65,7 @@ class ThreadContTest(TestCase):
         d.terminate()
     
     # def test_continue_thread_scoped_double(self):
-    #     # This function checks that the single-thread cont works correctly when called twice on different threads. 
+    #     # This function checks that the thread-scoped cont works correctly when called twice on different threads. 
     #     # The other two threads are supposed to be either dead or in a wait.
     #     d = debugger(RESOLVE_EXE("single_thread_cont_test"))
     #     d.run()
@@ -127,7 +127,7 @@ class ThreadContTest(TestCase):
     #     d.terminate()
     
     def test_continue_wait_thread_scoped(self):
-        # This function checks that both the single-thread cont and wait work correctly. 
+        # This function checks that both the thread-scoped cont and wait work correctly. 
         # The other two threads are supposed to be running.
         d = debugger(RESOLVE_EXE("single_thread_cont_test"))
         d.run()
@@ -175,7 +175,7 @@ class ThreadContTest(TestCase):
         d.terminate()
         
     def test_interrupt_thread_scoped(self):
-        # This function checks that the single-thread interrupt works correctly. 
+        # This function checks that the thread-scoped interrupt works correctly. 
         # The other two threads are supposed to be still running.
         d = debugger(RESOLVE_EXE("io_thread_cont_test"))
         r = d.run()
@@ -257,9 +257,8 @@ class ThreadContTest(TestCase):
         
     
     def test_finish_thread_scoped(self):
-        # This function checks that the single-thread cont works correctly
-        # when used for a finish. The other two threads are supposed to be
-        # either dead or in a wait.
+        # This function checks that the thread-scoped finish works correctly.
+        # The other two threads are supposed to be either dead or in a wait.
 
         d = debugger(RESOLVE_EXE("single_thread_cont_test"))
 
@@ -308,7 +307,7 @@ class ThreadContTest(TestCase):
         d.terminate()
         
     def test_step_thread_scoped(self):
-        # This function checks that the single-thread step works correctly. 
+        # This function checks that the thread-scoped step works correctly. 
         # The other two threads are supposed to be either dead or stopped.
 
         d = debugger(RESOLVE_EXE("single_thread_cont_test"))
@@ -357,4 +356,66 @@ class ThreadContTest(TestCase):
         d.kill()
         d.terminate()
 
-   
+    def test_finish_step_thread_scoped(self):
+        # This function checks that the thread-scoped finish and step work correctly.
+        # One of the other threads should be stopped at a software breakpoint when finish is called.
+
+        d = debugger(RESOLVE_EXE("single_thread_cont_test"))
+
+        d.run()
+
+        do_nothing_target = d.bp("do_nothing_target")
+        do_nothing_other = d.bp("do_nothing_other")
+
+        d.cont()
+        d.wait()
+
+        target, other = None, None
+
+        for t in d.threads:
+            if do_nothing_target.hit_on(t):
+                assert target is None
+                target = t
+                break
+
+            if do_nothing_other.hit_on(t):
+                assert other is None
+                other = t
+                break
+
+        while len(d.threads) < 3:
+            d.threads[0].step()
+
+        if not target:
+            target = d.threads[2] if d.threads[1] == other else d.threads[1]
+
+        if not other:
+            other = d.threads[2] if d.threads[1] == target else d.threads[1]
+
+        if not do_nothing_target.hit_on(target):
+            target.step_until(do_nothing_target.address)
+
+        if not do_nothing_other.hit_on(other):
+            other.step_until(do_nothing_other.address)
+
+        # At this point, both the target threads and the other thread are stuck on a breakpoint.
+        # Aave the states
+
+        main_state = save_thread_state(d.threads[0])
+        target_state = save_thread_state(target)
+        other_state = save_thread_state(other)
+
+        # Call finish on the target
+        target.finish(heuristic="backtrace")
+
+        assert main_state == save_thread_state(d.threads[0])
+        assert other_state == save_thread_state(other)
+        assert target_state != save_thread_state(target)
+
+        # Sanity check
+        other.step()
+
+        assert other_state != save_thread_state(other)
+
+        d.kill()
+        d.terminate()
