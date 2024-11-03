@@ -686,29 +686,54 @@ class PtraceInterface(DebuggingInterface):
         """
         self.lib_trace.disable_breakpoint(bp.address)
 
-    def set_breakpoint(self: PtraceInterface, bp: Breakpoint, insert: bool = True) -> None:
+    def _set_hw_breakpoint_on_thread(self: PtraceInterface, bp: Breakpoint, thread_id: int) -> None:
+        """Sets a breakpoint at the specified address for the specified thread.
+
+        Args:
+            bp (Breakpoint): The breakpoint to set.
+            thread_id (int): The thread ID of the thread for which the breakpoint should be set.
+        """
+        if bp.condition == "x":
+            remaining = self.lib_trace.get_remaining_hw_breakpoint_count(thread_id)
+        else:
+            remaining = self.lib_trace.get_remaining_hw_watchpoint_count(thread_id)
+
+        if not remaining:
+            raise ValueError("No more hardware breakpoints of this type available")
+
+        self.lib_trace.register_hw_breakpoint(
+            thread_id,
+            bp.address,
+            int.from_bytes(bp.condition.encode(), sys.byteorder),
+            bp.length,
+        )
+
+    def set_breakpoint(self: PtraceInterface, bp: Breakpoint, insert: bool = True, thread_id: int = -1) -> None:
         """Sets a breakpoint at the specified address.
 
         Args:
             bp (Breakpoint): The breakpoint to set.
             insert (bool): Whether the breakpoint has to be inserted or just enabled.
+            thread_id (int): The thread ID of the thread for which the breakpoint should be set. Defaults to -1, which means all threads.
         """
-        if bp.hardware:
+        if (
+            insert
+            and bp.hardware
+            and (old_bp := self._internal_debugger.breakpoints.get(bp.address))
+            and old_bp.hardware
+            and old_bp.enabled
+        ):
+            # We need to delete PPthe existing breakpoint before setting a new one, for consistency
+            # TODO: This will be relaxed in next versions of the libdebug
+            self.unset_breakpoint(old_bp, delete=True)
+
+        if bp.hardware and thread_id == -1:
+            # If the breakpoint is hardware and no thread ID is specified, we set the breakpoint for all threads
             for thread in self._internal_debugger.internal_threads:
-                if bp.condition == "x":
-                    remaining = self.lib_trace.get_remaining_hw_breakpoint_count(thread.thread_id)
-                else:
-                    remaining = self.lib_trace.get_remaining_hw_watchpoint_count(thread.thread_id)
-
-                if not remaining:
-                    raise ValueError("No more hardware breakpoints of this type available")
-
-                self.lib_trace.register_hw_breakpoint(
-                    thread.thread_id,
-                    bp.address,
-                    int.from_bytes(bp.condition.encode(), sys.byteorder),
-                    bp.length,
-                )
+                self._set_hw_breakpoint_on_thread(bp, thread.thread_id)
+        elif bp.hardware:
+            # If the breakpoint is hardware and a thread ID is specified, we set the breakpoint only for that thread
+            self._set_hw_breakpoint_on_thread(bp, thread_id)
         elif insert:
             self._set_sw_breakpoint(bp)
         else:
@@ -724,9 +749,13 @@ class PtraceInterface(DebuggingInterface):
             bp (Breakpoint): The breakpoint to unset.
             delete (bool): Whether the breakpoint has to be deleted or just disabled.
         """
-        if bp.hardware:
+        if bp.hardware and bp.thread_id == -1:
+            # If the breakpoint is hardware and no thread ID is specified, we unset the breakpoint for all threads
             for thread in self._internal_debugger.internal_threads:
                 self.lib_trace.unregister_hw_breakpoint(thread.thread_id, bp.address)
+        elif bp.hardware:
+            # If the breakpoint is hardware and a thread ID is specified, we unset the breakpoint only for that thread
+            self.lib_trace.unregister_hw_breakpoint(bp.thread_id, bp.address)
         elif delete:
             self._unset_sw_breakpoint(bp)
         else:

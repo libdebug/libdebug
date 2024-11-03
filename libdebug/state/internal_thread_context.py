@@ -18,6 +18,7 @@ from libdebug.utils.debugging_utils import resolve_address_in_maps
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from libdebug.data.breakpoint import Breakpoint
     from libdebug.data.register_holder import RegisterHolder
     from libdebug.data.registers import Registers
     from libdebug.data.signal_catcher import SignalCatcher
@@ -202,6 +203,54 @@ class InternalThreadContext:
     def next(self: InternalThreadContext) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._internal_debugger.next(self)
+
+    def breakpoint(
+        self: InternalThreadContext,
+        position: int | str,
+        hardware: bool = False,
+        condition: str = "x",
+        length: int = 1,
+        callback: None | bool | Callable[[ThreadContext, Breakpoint], None] = None,
+        file: str = "hybrid",
+    ) -> Breakpoint:
+        """Sets a breakpoint at the specified location, per-thread scoped.
+
+        Args:
+            position (int | bytes): The location of the breakpoint.
+            hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software. Defaults to False.
+            condition (str, optional): The trigger condition for the breakpoint. Defaults to None.
+            length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
+            callback (None | bool | Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the breakpoint is hit. If True, an empty callback will be set. Defaults to None.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
+        """
+        return self._internal_debugger.breakpoint(position, hardware, condition, length, callback, file, self.thread_id)
+
+    def watchpoint(
+        self: InternalThreadContext,
+        position: int | str,
+        condition: str = "w",
+        length: int = 1,
+        callback: None | bool | Callable[[ThreadContext, Breakpoint], None] = None,
+        file: str = "hybrid",
+    ) -> Breakpoint:
+        """Sets a watchpoint at the specified location, per-thread scoped. Internally, watchpoints are implemented as breakpoints.
+
+        Args:
+            position (int | bytes): The location of the breakpoint.
+            condition (str, optional): The trigger condition for the watchpoint (either "w", "rw" or "x"). Defaults to "w".
+            length (int, optional): The size of the word in being watched (1, 2, 4 or 8). Defaults to 1.
+            callback (None | bool | Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the watchpoint is hit. If True, an empty callback will be set. Defaults to None.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
+        """
+        return self._internal_debugger.breakpoint(
+            position,
+            hardware=True,
+            condition=condition,
+            length=length,
+            callback=callback,
+            file=file,
+            thread_id=self.thread_id,
+        )
 
     def handle_syscall(
         self: InternalThreadContext,

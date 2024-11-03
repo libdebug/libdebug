@@ -24,6 +24,7 @@ class Breakpoint:
     Attributes:
         address (int): The address of the breakpoint in the target process.
         symbol (str): The symbol, if available, of the breakpoint in the target process.
+        thread_id (int): The thread ID of the thread for which the breakpoint should be set. Defaults to -1, which means all threads.
         hit_count (int): The number of times this specific breakpoint has been hit.
         hardware (bool): Whether the breakpoint is a hardware breakpoint or not.
         callback (Callable[[ThreadContext, Breakpoint], None]): The callback defined by the user to execute when the breakpoint is hit.
@@ -34,6 +35,7 @@ class Breakpoint:
 
     address: int = 0
     symbol: str = ""
+    thread_id: int = -1
     hit_count: int = 0
     hardware: bool = False
     callback: None | Callable[[ThreadContext, Breakpoint], None] = None

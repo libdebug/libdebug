@@ -118,11 +118,12 @@ class DebuggingInterface(ABC):
         """
 
     @abstractmethod
-    def unset_breakpoint(self: DebuggingInterface, bp: Breakpoint) -> None:
-        """Restores the original instruction flow at the specified address.
+    def unset_breakpoint(self: DebuggingInterface, bp: Breakpoint, delete: bool) -> None:
+        """Restores the breakpoint at the specified address.
 
         Args:
-            bp (Breakpoint): The breakpoint to restore.
+            bp (Breakpoint): The breakpoint to unset.
+            delete (bool): Whether the breakpoint has to be deleted or just disabled.
         """
 
     @abstractmethod

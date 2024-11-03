@@ -80,6 +80,11 @@ class PtraceStatusHandler:
         bp: None | Breakpoint
 
         bp = self.internal_debugger.breakpoints.get(ip)
+
+        if bp and bp.thread_id not in (-1, thread_id):
+            # The breakpoint is not set on this thread
+            bp = None
+
         if bp and bp.enabled and not bp._disabled_for_step:
             # Hardware breakpoint hit
             liblog.debugger("Hardware breakpoint hit at 0x%x", ip)
@@ -89,6 +94,11 @@ class PtraceStatusHandler:
             ip -= software_breakpoint_byte_size(self.internal_debugger.arch)
 
             bp = self.internal_debugger.breakpoints.get(ip)
+
+            if bp and bp.thread_id not in (-1, thread_id):
+                # The breakpoint is not set on this thread
+                bp = None
+
             if bp and bp.enabled and not bp._disabled_for_step:
                 # Software breakpoint hit
                 liblog.debugger("Software breakpoint hit at 0x%x", ip)
