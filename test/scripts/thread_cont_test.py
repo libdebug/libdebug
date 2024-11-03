@@ -18,7 +18,7 @@ def save_thread_state(thread):
     return state
 
 class ThreadContTest(TestCase):        
-    def test_single_thread_continue(self):
+    def test_continue_thread_scoped(self):
         # This function checks that the single-thread cont works correctly. 
         # The other two threads are supposed to be either dead or in a wait.
         d = debugger(RESOLVE_EXE("single_thread_cont_test"))
@@ -50,7 +50,7 @@ class ThreadContTest(TestCase):
 
         target_state = save_thread_state(thread)
 
-        # calling finish on our target thread should not affect the state of other threads
+        # Calling cont on our target thread should not affect the state of other threads
         thread.cont()
         d.wait()
 
@@ -64,7 +64,69 @@ class ThreadContTest(TestCase):
         d.kill()
         d.terminate()
     
-    def test_single_thread_continue_wait(self):
+    # def test_continue_thread_scoped_double(self):
+    #     # This function checks that the single-thread cont works correctly when called twice on different threads. 
+    #     # The other two threads are supposed to be either dead or in a wait.
+    #     d = debugger(RESOLVE_EXE("single_thread_cont_test"))
+    #     d.run()
+        
+    #     do_nothing_target = d.bp("do_nothing_target")
+
+    #     # This is a process-scoped continue
+    #     d.cont()
+
+    #     thread = None
+
+    #     for t in d.threads:
+    #         if do_nothing_target.hit_on(t):
+    #             # t is our target
+    #             thread = t
+    #             break
+
+    #     self.assertIsNotNone(thread)
+
+    #     other_threads = d.threads.copy()
+    #     other_threads.remove(thread)
+    #     thread2 = other_threads[0]
+    #     other_threads.remove(thread2)
+
+    #     other_threads_state = [save_thread_state(x) for x in other_threads]
+
+    #     # sanity check
+    #     new_other_threads_state = [save_thread_state(x) for x in other_threads]
+    #     self.assertTrue(all(x == y for x, y in zip(other_threads_state, new_other_threads_state)))
+
+    #     target_state = save_thread_state(thread)
+    #     target2_state = save_thread_state(thread2)
+
+    #     # Calling cont on our target thread should not affect the state of other threads
+    #     thread.cont()
+    #     thread2.cont()
+        
+    #     self.assertTrue(thread.running)
+    #     self.assertTrue(thread2.running)
+    #     self.assertTrue(thread.scheduled)
+    #     self.assertTrue(thread2.scheduled)
+        
+    #     for t in other_threads:
+    #         self.assertFalse(t.running)
+    #         self.assertFalse(t.scheduled)
+        
+    #     d.wait()
+
+    #     new_other_threads_state = [save_thread_state(x) for x in other_threads]
+    #     self.assertTrue(all(x == y for x, y in zip(other_threads_state, new_other_threads_state)))
+
+    #     new_target_state = save_thread_state(thread)
+    #     new_target_state2 = save_thread_state(thread2)
+        
+    #     self.assertNotEqual(target_state, new_target_state)
+    #     self.assertNotEqual(target2_state, new_target_state2)
+
+    #     d.kill()
+    #     d.terminate()
+    
+    def test_continue_wait_thread_scoped(self):
         # This function checks that both the single-thread cont and wait work correctly. 
         # The other two threads are supposed to be running.
         d = debugger(RESOLVE_EXE("single_thread_cont_test"))
@@ -96,7 +158,7 @@ class ThreadContTest(TestCase):
 
         target_state = save_thread_state(thread)
 
-        # calling finish on our target thread should not affect the state of other threads
+        # Calling cont on our target thread should not affect the state of other threads
         thread.cont()
         thread.wait()
         
@@ -112,7 +174,7 @@ class ThreadContTest(TestCase):
         d.kill()
         d.terminate()
         
-    def test_single_thread_interrupt(self):
+    def test_interrupt_thread_scoped(self):
         # This function checks that the single-thread interrupt works correctly. 
         # The other two threads are supposed to be still running.
         d = debugger(RESOLVE_EXE("io_thread_cont_test"))
@@ -183,6 +245,66 @@ class ThreadContTest(TestCase):
         assert b"Thread 4 finished." in messages
         assert b"Thread 5 finished." in messages
         
+        # Interrupt the other threads
         d.interrupt()
+        
+        # Continue all the threads
+        d.cont()
+        
+        d.wait()
         d.kill()
         d.terminate()
+        
+    
+    def test_single_thread_finish_in_other_thread_1(self):
+        # This function checks that the single-thread cont works correctly
+        # when used for a finish. The other two threads are supposed to be
+        # either dead or in a wait.
+
+        d = debugger(RESOLVE_EXE("single_thread_cont_test"))
+
+        d.run()
+
+        def callback(_, __):
+            pass
+
+        d.bp("do_nothing", callback=callback)
+        do_nothing_target = d.bp("do_nothing_target")
+
+        d.cont()
+
+        thread = None
+
+        for t in d.threads:
+            if do_nothing_target.hit_on(t):
+                # t is our target
+                thread = t
+                break
+
+        assert thread is not None
+
+        other_threads = d.threads.copy()
+        other_threads.remove(thread)
+
+        other_threads_state = [save_thread_state(x) for x in other_threads]
+
+        # sanity check
+        new_other_threads_state = [save_thread_state(x) for x in other_threads]
+        assert all(x == y for x, y in zip(other_threads_state, new_other_threads_state))
+
+        target_state = save_thread_state(thread)
+
+        # calling finish on our target thread should not affect the state of other threads
+        thread.finish(heuristic="backtrace")
+
+        new_other_threads_state = [save_thread_state(x) for x in other_threads]
+        assert all(x == y for x, y in zip(other_threads_state, new_other_threads_state))
+
+        new_target_state = save_thread_state(thread)
+
+        assert target_state != new_target_state
+
+        d.kill()
+        d.terminate()
+
+   
