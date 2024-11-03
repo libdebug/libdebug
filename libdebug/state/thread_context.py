@@ -287,7 +287,7 @@ class ThreadContext:
         max_steps: int = -1,
         file: str = "hybrid",
     ) -> None:
-        """Executes instructions of the process until the specified location is reached.
+        """Executes instructions of the specififed thread until the specified location is reached.
 
         Args:
             position (int | bytes): The location to reach.
@@ -519,7 +519,7 @@ class ThreadContext:
     ) -> None:
         """Alias for the `step_until` method.
 
-        Executes instructions of the process until the specified location is reached.
+        Executes instructions of the specified thread until the specified location is reached.
 
         Args:
             position (int | bytes): The location to reach.

@@ -376,11 +376,15 @@ class PtraceInterface(DebuggingInterface):
     def step_until(self: PtraceInterface, thread: InternalThreadContext, address: int, max_steps: int) -> None:
         """Executes instructions of the specified thread until the specified address is reached.
 
+        If the thread is not specified, the command will be executed on all threads.
+
         Args:
             thread (InternalThreadContext): The thread to step.
             address (int): The address to reach.
             max_steps (int): The maximum number of steps to execute.
         """
+        # TODO: implement the compatibility with the already set breakpoints
+        # TODO: implement event status, when the previous todo is done
         # Disable all breakpoints for the single step
         for bp in self._internal_debugger.breakpoints.values():
             bp._disabled_for_step = True
@@ -391,7 +395,15 @@ class PtraceInterface(DebuggingInterface):
         # Reset the breakpoint hit
         self._internal_debugger.resume_context.event_hit_ref.clear()
 
-        self.lib_trace.step_until(thread.thread_id, address, max_steps)
+        if thread is not None:
+            # We step only the specified thread
+            self.lib_trace.step_until(thread.thread_id, address, max_steps)
+        else:
+            # We step all threads
+            # TODO: it is not effcient, since each call to step_until will deactivate and reactivate all hw breakpoints
+            #      for each thread. This is related to the other todos.
+            for t in self._internal_debugger.internal_threads:
+                self.lib_trace.step_until(t.thread_id, address, max_steps)
 
         # As the wait is done internally, we must invalidate the cache
         invalidate_process_cache()
@@ -471,6 +483,8 @@ class PtraceInterface(DebuggingInterface):
     def _finish_backtrace_mode(self: PtraceInterface, thread: InternalThreadContext) -> None:
         """Continues execution until the current function returns or the process stops.
 
+        If the thread is not specified, the command will be executed on all threads.
+
         The command requires a heuristic to determine the end of the function. The available heuristics are:
         - `backtrace`: The debugger will place a breakpoint on the saved return address found on the stack and continue execution on all threads.
         - `step-mode`: The debugger will step on the specified thread until the current function returns. This will be slower.
@@ -491,6 +505,8 @@ class PtraceInterface(DebuggingInterface):
 
     def finish(self: PtraceInterface, thread: InternalThreadContext, heuristic: str) -> None:
         """Continues execution until the current function returns.
+
+        If the thread is not specified, the command will be executed on all threads.
 
         Args:
             thread (InternalThreadContext): The thread to step.

@@ -74,13 +74,17 @@ class DebuggingInterface(ABC):
     def step(self: DebuggingInterface, thread: InternalThreadContext) -> None:
         """Executes a single instruction of the specified thread or all threads.
 
+        If the thread is not specified, the command will be executed on all threads.
+
         Args:
             thread (InternalThreadContext): The thread to step. If None, all threads are stepped.
         """
 
     @abstractmethod
     def step_until(self: DebuggingInterface, thread: InternalThreadContext, address: int, max_steps: int) -> None:
-        """Executes instructions of the specified thread until the specified address is reached.
+        """Executes instructions of the process until the specified location is reached.
+
+        If the thread is not specified, the command will be executed on all threads.
 
         Args:
             thread (InternalhreadContext): The thread to step.
@@ -91,6 +95,8 @@ class DebuggingInterface(ABC):
     @abstractmethod
     def finish(self: DebuggingInterface, thread: InternalThreadContext, heuristic: str) -> None:
         """Continues execution until the current function returns or the process stops.
+
+        If the thread is not specified, the command will be executed on all threads.
 
         The command requires a heuristic to determine the end of the function. The available heuristics are:
         - `backtrace`: The debugger will place a breakpoint on the saved return address found on the stack and continue execution on all threads.

@@ -1112,6 +1112,8 @@ class InternalDebugger:
     def step(self: InternalDebugger, thread: InternalThreadContext = None) -> None:
         """Executes a single instruction of the specified thread or all threads.
 
+        If the thread is not specified, the command will be executed on all threads.
+
         Args:
             thread (InternalThreadContext, optional): The thread to step. Defaults to None, which means all threads.
         """
@@ -1143,18 +1145,20 @@ class InternalDebugger:
         self.__threaded_step_until(thread, address, max_steps)
 
     @background_alias(_background_step_until)
-    @change_state_function_thread
+    @change_state_function_process
     def step_until(
         self: InternalDebugger,
-        thread: InternalThreadContext,
         position: int | str,
         max_steps: int = -1,
         file: str = "hybrid",
+        thread: InternalThreadContext = None,
     ) -> None:
         """Executes instructions of the process until the specified location is reached.
 
+        If the thread is not specified, the command will be executed on all threads.
+
         Args:
-            thread (InternalThreadContext): The thread to step. Defaults to None.
+            thread (InternalThreadContext): The thread to step. Defaults to None, which means all threads.
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
             file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
@@ -1198,13 +1202,15 @@ class InternalDebugger:
     def finish(self: InternalDebugger, heuristic: str = "backtrace", thread: InternalThreadContext = None) -> None:
         """Continues execution until the current function returns or the process stops.
 
+        If the thread is not specified, the command will be executed on all threads.
+
         The command requires a heuristic to determine the end of the function. The available heuristics are:
         - `backtrace`: The debugger will place a breakpoint on the saved return address found on the stack and continue execution on all threads.
         - `step-mode`: The debugger will step on the specified thread until the current function returns. This will be slower.
 
         Args:
-            thread (InternalThreadContext, optional): The thread to finish. Defaults to None, which means all threads.
             heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
+            thread (InternalThreadContext, optional): The thread to finish. Defaults to None, which means all threads.
         """
         # TODO: it should not be always a state_function_process, we should change the decorator
         self.__polling_thread_command_queue.put(
@@ -1626,7 +1632,7 @@ class InternalDebugger:
     ) -> None:
         # TODO: better manage the running flag while stepping
         # TODO: what if I need to continue N threads with N != len(internal_threads)?
-        liblog.debugger("Stepping thread %s until 0x%x.", thread.thread_id, address)
+        liblog.debugger("Stepping " + (f"thread {thread.thread_id}." if thread is not None else "all threads."))
         self.debugging_interface.step_until(thread, address, max_steps)
         self.set_all_threads_stopped()
 

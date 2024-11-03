@@ -837,12 +837,15 @@ class Debugger:
     ) -> None:
         """Executes instructions of the process until the specified location is reached.
 
+        Called on the `debugger` object, this method will perform the action on all threads.
+        It is equivalent to calling `thread.step_until()` on each thread.
+
         Args:
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
             file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
-        self._internal_debugger.step_until(self, position, max_steps, file)
+        self._internal_debugger.step_until(position, max_steps, file)
 
     def finish(self: Debugger, heuristic: str = "backtrace") -> None:
         """Continues execution until the current function returns or the process stops.
@@ -885,7 +888,7 @@ class Debugger:
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
         """
-        self._internal_debugger.step_until(self, position, max_steps)
+        self._internal_debugger.step_until(position, max_steps)
 
     def fin(self: Debugger, heuristic: str = "backtrace") -> None:
         """Alias for the `finish` method. Continues execution until the current function returns or the process stops.

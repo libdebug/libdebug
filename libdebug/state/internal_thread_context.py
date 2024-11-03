@@ -179,14 +179,14 @@ class InternalThreadContext:
         max_steps: int = -1,
         file: str = "hybrid",
     ) -> None:
-        """Executes instructions of the process until the specified location is reached.
+        """Executes instructions of the specified thread until the specified location is reached.
 
         Args:
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
             file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
-        self._internal_debugger.step_until(self, position, max_steps, file)
+        self._internal_debugger.step_until(position, max_steps, file, self)
 
     def finish(self: InternalThreadContext, heuristic: str = "backtrace") -> None:
         """Continues execution until the current function returns or the process stops.
