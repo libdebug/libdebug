@@ -372,6 +372,26 @@ class PtraceInterface(DebuggingInterface):
         # As the wait is done internally, we must invalidate the cache
         invalidate_process_cache()
 
+    def _finish_step_mode(self: PtraceInterface, thread: InternalThreadContext) -> None:
+        """Finishes the step mode for the specified thread.
+
+        Args:
+            thread (InternalThreadContext): The thread to finish the step mode.
+        """
+        statuses = []
+        if thread is not None:
+            state = self.lib_trace.stepping_finish_thread(thread.thread_id, self._internal_debugger.arch == "i386")
+            statuses.append(state)
+        else:
+            for t in self._internal_debugger.internal_threads:
+                state = self.lib_trace.stepping_finish_thread(t.thread_id, self._internal_debugger.arch == "i386")
+                statuses.append(state)
+
+        # As the wait is done internally, we must invalidate the cache
+        invalidate_process_cache()
+        self._internal_debugger.resume_context.is_a_step_finish = True
+        self.status_handler.manage_change(statuses)
+
     def finish(self: PtraceInterface, thread: InternalThreadContext, heuristic: str) -> None:
         """Continues execution until the current function returns.
 
@@ -386,9 +406,7 @@ class PtraceInterface(DebuggingInterface):
         self._internal_debugger.resume_context.event_hit_ref.clear()
 
         if heuristic == "step-mode":
-            self.lib_trace.stepping_finish(thread.thread_id, self._internal_debugger.arch == "i386")
-            # As the wait is done internally, we must invalidate the cache
-            invalidate_process_cache()
+            self._finish_step_mode(thread)
         elif heuristic == "backtrace":
             # Breakpoint to return address
             last_saved_instruction_pointer = thread.saved_ip

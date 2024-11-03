@@ -23,6 +23,7 @@ class ResumeContext:
         self.force_interrupt: bool = False
         self.is_a_step: bool = False
         self.is_startup: bool = False
+        self.is_a_step_finish: bool = False
         self.block_on_signal: bool = False
         self.threads_with_signals_to_forward: list[int] = []
         self.event_type: dict[int, EventType] = {}
@@ -34,6 +35,7 @@ class ResumeContext:
         self.force_interrupt = False
         self.is_a_step = False
         self.is_startup = False
+        self.is_a_step_finish = False
         self.block_on_signal = False
         self.threads_with_signals_to_forward.clear()
         self.event_type.clear()
@@ -74,3 +76,4 @@ class EventType:
     USER_INTERRUPT = "User Interrupt"
     STEP = "Step"
     STARTUP = "Process Startup"
+    FINISH = "Finish"

@@ -492,7 +492,12 @@ class PtraceStatusHandler:
             if pid != -1:
                 # Otherwise, this is a spurious trap
                 self._handle_change(pid, status, result)
-
+                if (
+                    self.internal_debugger.resume_context.is_a_step_finish
+                    and not self.internal_debugger.resume_context.event_type.get(pid)
+                ):
+                    self.internal_debugger.resume_context.event_type[pid] = EventType.FINISH
+                    self.internal_debugger.resume_context.resume = False
         if self._assume_race_sigstop:
             # Resume the process if the stop was due to a race condition with SIGSTOP sent by the debugger
             return
