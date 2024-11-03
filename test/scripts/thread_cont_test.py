@@ -419,3 +419,67 @@ class ThreadContTest(TestCase):
 
         d.kill()
         d.terminate()
+        
+    def test_finish_step_step_until_thread_scoped(self):
+        # This function checks that the thread-scoped finish, step, and step_until work correctly.
+        # One of the other threads should be stopped at a hardware breakpoint when finish is called.
+
+        d = debugger(RESOLVE_EXE("single_thread_cont_test"))
+
+        d.run()
+
+        do_nothing_target = d.bp("do_nothing_target")
+        do_nothing_other = d.bp("do_nothing_other", hardware=True)
+
+        d.cont()
+        d.wait()
+
+        target, other = None, None
+
+        for t in d.threads:
+            if do_nothing_target.hit_on(t):
+                assert target is None
+                target = t
+                break
+
+            if do_nothing_other.hit_on(t):
+                assert other is None
+                other = t
+                break
+
+        while len(d.threads) < 3:
+            d.threads[0].step()
+
+        if not target:
+            target = d.threads[2] if d.threads[1] == other else d.threads[1]
+
+        if not other:
+            other = d.threads[2] if d.threads[1] == target else d.threads[1]
+
+        if not do_nothing_target.hit_on(target):
+            target.step_until(do_nothing_target.address)
+
+        if not do_nothing_other.hit_on(other):
+            other.step_until(do_nothing_other.address)
+
+        # at this point, both the target thread and the other thread are stuck on a breakpoint
+        # save the states
+
+        main_state = save_thread_state(d.threads[0])
+        target_state = save_thread_state(target)
+        other_state = save_thread_state(other)
+
+        # call finish on the target
+        target.finish(heuristic="backtrace")
+
+        assert main_state == save_thread_state(d.threads[0])
+        assert other_state == save_thread_state(other)
+        assert target_state != save_thread_state(target)
+
+        # sanity check
+        other.step()
+
+        assert other_state != save_thread_state(other)
+
+        d.kill()
+        d.terminate()
