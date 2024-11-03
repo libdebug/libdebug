@@ -823,8 +823,11 @@ class Debugger:
         self.pprint_registers_all()
 
     def step(self: Debugger) -> None:
-        """Executes a single instruction of the process."""
-        self._internal_debugger.step(self)
+        """Executes a single instruction of all threads.
+
+        It is equivalent to calling `thread.step()` on each thread.
+        """
+        self._internal_debugger.step()
 
     def step_until(
         self: Debugger,
@@ -844,6 +847,9 @@ class Debugger:
     def finish(self: Debugger, heuristic: str = "backtrace") -> None:
         """Continues execution until the current function returns or the process stops.
 
+        Called on the `debugger` object, this method will perform the action on all threads.
+        It is equivalent to calling `thread.finish(heuristic)` on each thread.
+
         The command requires a heuristic to determine the end of the function. The available heuristics are:
         - `backtrace`: The debugger will place a breakpoint on the saved return address found on the stack and continue execution on all threads.
         - `step-mode`: The debugger will step on the specified thread until the current function returns. This will be slower.
@@ -860,9 +866,11 @@ class Debugger:
     def si(self: Debugger) -> None:
         """Alias for the `step` method.
 
-        Executes a single instruction of the process.
+        Executes a single instruction of all threads.
+
+        It is equivalent to calling `thread.si()` on each thread.
         """
-        self._internal_debugger.step(self)
+        self._internal_debugger.step()
 
     def su(
         self: Debugger,

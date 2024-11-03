@@ -329,11 +329,24 @@ class PtraceInterface(DebuggingInterface):
 
         self.lib_trace.cont_thread_and_set_bps(thread.thread_id, handle_syscalls)
 
-    def step(self: PtraceInterface, thread: InternalThreadContext) -> None:
-        """Executes a single instruction of the process.
+    def _step_thread(self: PtraceInterface, thread: InternalThreadContext) -> list[tuple[int, int]]:
+        """Executes a single instruction of the specified thread.
 
         Args:
             thread (InternalThreadContext): The thread to step.
+
+        Returns:
+            list[tuple[int, int]]: The statuses of the threads.
+        """
+        self.lib_trace.step(thread.thread_id)
+
+        return self.lib_trace.wait_thread_and_update_regs(thread.thread_id)
+
+    def step(self: PtraceInterface, thread: InternalThreadContext) -> None:
+        """Executes a single instruction of the specified thread or all threads.
+
+        Args:
+            thread (InternalThreadContext): The thread to step. If None, all threads are stepped.
         """
         # Disable all breakpoints for the single step
         for bp in self._internal_debugger.breakpoints.values():
@@ -345,9 +358,20 @@ class PtraceInterface(DebuggingInterface):
         # Reset the breakpoint hit
         self._internal_debugger.resume_context.event_hit_ref.clear()
 
-        self.lib_trace.step(thread.thread_id)
+        if thread is not None:
+            # We step only the specified thread
+            statuses = self._step_thread(thread)
+        else:
+            # We step all threads
+            statuses = []
+            for t in self._internal_debugger.internal_threads:
+                sts = self._step_thread(t)
+                statuses.extend(sts)
 
+        # As the wait is done internally, we must invalidate the cache
+        invalidate_process_cache()
         self._internal_debugger.resume_context.is_a_step = True
+        self.status_handler.manage_change(statuses)
 
     def step_until(self: PtraceInterface, thread: InternalThreadContext, address: int, max_steps: int) -> None:
         """Executes instructions of the specified thread until the specified address is reached.
@@ -445,10 +469,15 @@ class PtraceInterface(DebuggingInterface):
         return statuses
 
     def _finish_backtrace_mode(self: PtraceInterface, thread: InternalThreadContext) -> None:
-        """Finishes the backtrace mode for the specified thread or all threads.
+        """Continues execution until the current function returns or the process stops.
+
+        The command requires a heuristic to determine the end of the function. The available heuristics are:
+        - `backtrace`: The debugger will place a breakpoint on the saved return address found on the stack and continue execution on all threads.
+        - `step-mode`: The debugger will step on the specified thread until the current function returns. This will be slower.
 
         Args:
-            thread (InternalThreadContext): The thread to finish the backtrace mode.
+            thread (InternalThreadContext): The thread to finish. If None, the finish command will be executed on all threads.
+            heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
         """
         if thread is not None:
             statuses = self._finish_backtrace_mode_thread(thread)

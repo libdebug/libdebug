@@ -72,10 +72,10 @@ class DebuggingInterface(ABC):
 
     @abstractmethod
     def step(self: DebuggingInterface, thread: InternalThreadContext) -> None:
-        """Executes a single instruction of the specified thread.
+        """Executes a single instruction of the specified thread or all threads.
 
         Args:
-            thread (InternalThreadContext): The thread to step.
+            thread (InternalThreadContext): The thread to step. If None, all threads are stepped.
         """
 
     @abstractmethod
@@ -83,7 +83,7 @@ class DebuggingInterface(ABC):
         """Executes instructions of the specified thread until the specified address is reached.
 
         Args:
-            thread (TInternalhreadContext): The thread to step.
+            thread (InternalhreadContext): The thread to step.
             address (int): The address to reach.
             max_steps (int): The maximum number of steps to execute.
         """
@@ -97,7 +97,7 @@ class DebuggingInterface(ABC):
         - `step-mode`: The debugger will step on the specified thread until the current function returns. This will be slower.
 
         Args:
-            thread (InternalThreadContext): The thread to finish.
+            thread (InternalThreadContext): The thread to finish. If None, the finish command will be executed on all threads.
             heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
         """
 

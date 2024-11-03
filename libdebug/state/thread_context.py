@@ -278,7 +278,7 @@ class ThreadContext:
         return self._internal_thread_context.backtrace(as_symbols)
 
     def step(self: ThreadContext) -> None:
-        """Executes a single instruction of the process."""
+        """Executes a single instruction of the specified thread."""
         self._internal_thread_context.step()
 
     def step_until(

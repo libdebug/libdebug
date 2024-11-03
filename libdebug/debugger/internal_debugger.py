@@ -1100,16 +1100,14 @@ class InternalDebugger:
         self.__threaded_wait()
 
     @background_alias(_background_step)
-    @change_state_function_thread
-    def step(self: InternalDebugger, thread: InternalThreadContext) -> None:
-        """Executes a single instruction of the process.
+    @change_state_function_process
+    def step(self: InternalDebugger, thread: InternalThreadContext = None) -> None:
+        """Executes a single instruction of the specified thread or all threads.
 
         Args:
-            thread (InternalThreadContext): The thread to step. Defaults to None.
+            thread (InternalThreadContext, optional): The thread to step. Defaults to None, which means all threads.
         """
-        self.ensure_process_stopped()
         self.__polling_thread_command_queue.put((self.__threaded_step, (thread,)))
-        self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
         self._join_and_check_status()
 
     def _background_step_until(
@@ -1595,7 +1593,7 @@ class InternalDebugger:
         self.debugging_interface.unset_syscall_handler(handler)
 
     def __threaded_step(self: InternalDebugger, thread: InternalThreadContext) -> None:
-        liblog.debugger("Stepping thread %s.", thread.thread_id)
+        liblog.debugger("Stepping thread " + (f"{thread.thread_id}." if thread is not None else "all threads."))
         self.debugging_interface.step(thread)
         self.set_all_threads_running()
 

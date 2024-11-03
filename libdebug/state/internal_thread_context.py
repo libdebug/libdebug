@@ -170,7 +170,7 @@ class InternalThreadContext:
         return backtrace
 
     def step(self: InternalThreadContext) -> None:
-        """Executes a single instruction of the process."""
+        """Executes a single instruction of the thread."""
         self._internal_debugger.step(self)
 
     def step_until(
