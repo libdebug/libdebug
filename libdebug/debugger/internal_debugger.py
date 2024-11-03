@@ -1098,14 +1098,13 @@ class InternalDebugger:
 
         self._is_migrated_to_gdb = False
 
-    def _background_step(self: InternalDebugger, thread: InternalThreadContext) -> None:
+    def _background_step(self: InternalDebugger, thread: InternalThreadContext = None) -> None:
         """Executes a single instruction of the process.
 
         Args:
             thread (InternalThreadContext): The thread to step. Defaults to None.
         """
         self.__threaded_step(thread)
-        self.__threaded_wait()
 
     @background_alias(_background_step)
     @change_state_function_process
@@ -1124,18 +1123,18 @@ class InternalDebugger:
 
     def _background_step_until(
         self: InternalDebugger,
-        thread: InternalThreadContext,
         position: int | str,
         max_steps: int = -1,
         file: str = "hybrid",
+        thread: InternalThreadContext = None,
     ) -> None:
         """Executes instructions of the process until the specified location is reached.
 
         Args:
-            thread (InternalThreadContext): The thread to step. Defaults to None.
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
             file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
+            thread (InternalThreadContext): The thread to step. Defaults to None.
         """
         if isinstance(position, str):
             address = self.resolve_symbol(position, file)
@@ -1158,10 +1157,10 @@ class InternalDebugger:
         If the thread is not specified, the command will be executed on all threads.
 
         Args:
-            thread (InternalThreadContext): The thread to step. Defaults to None, which means all threads.
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
             file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
+            thread (InternalThreadContext): The thread to step. Defaults to None, which means all threads.
         """
         # TODO: it should not be always a state_function_process, we should change the decorator
         if isinstance(position, str):
@@ -1182,8 +1181,8 @@ class InternalDebugger:
 
     def _background_finish(
         self: InternalDebugger,
-        thread: InternalThreadContext,
         heuristic: str = "backtrace",
+        thread: InternalThreadContext = None,
     ) -> None:
         """Continues execution until the current function returns or the process stops.
 
@@ -1222,15 +1221,31 @@ class InternalDebugger:
 
     def _background_next(
         self: InternalDebugger,
-        thread: InternalThreadContext,
+        thread: InternalThreadContext = None,
     ) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
+        """Executes the next instruction of the process.
+
+        If the thread is not specified, the command will be executed on all threads.
+
+        If the instruction is a call, the debugger will continue until the called function returns.
+
+        Args:
+            thread (InternalThreadContext, optional): The thread to step. Defaults to None, which means all threads.
+        """
         self.__threaded_next(thread)
 
     @background_alias(_background_next)
-    @change_state_function_thread
-    def next(self: InternalDebugger, thread: InternalThreadContext) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
+    @change_state_function_process
+    def next(self: InternalDebugger, thread: InternalThreadContext = None) -> None:
+        """Executes the next instruction of the process.
+
+        If the thread is not specified, the command will be executed on all threads.
+
+        If the instruction is a call, the debugger will continue until the called function returns.
+
+        Args:
+            thread (InternalThreadContext, optional): The thread to step. Defaults to None, which means all threads.
+        """
         # TODO: it should not be always a state_function_process, we should change the decorator
         self.ensure_process_stopped()
         self.__polling_thread_command_queue.put((self.__threaded_next, (thread,)))
@@ -1651,7 +1666,7 @@ class InternalDebugger:
     def __threaded_next(self: InternalDebugger, thread: InternalThreadContext) -> None:
         # TODO: better manage the running flag while executing next
         # TODO: what if I need to call next on N threads with N != len(internal_threads)?
-        liblog.debugger("Next on thread %s.", thread.thread_id)
+        liblog.debugger("Next on" + (f" thread {thread.thread_id}." if thread is not None else " all threads."))
         self.debugging_interface.next(thread)
         self.set_all_threads_stopped()
 
