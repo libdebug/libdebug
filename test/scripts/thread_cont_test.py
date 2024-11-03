@@ -483,3 +483,53 @@ class ThreadContTest(TestCase):
 
         d.kill()
         d.terminate()
+    
+    def test_next_thread_scoped(self):
+        # This function checks that the thread-scoped next works correctly. 
+        # The other two threads are supposed to be either dead or stopped.
+
+        d = debugger(RESOLVE_EXE("single_thread_cont_test"))
+
+        d.run()
+
+        def callback(_, __):
+            pass
+
+        d.bp("do_nothing", callback=callback)
+        do_nothing_target = d.bp("do_nothing_target")
+
+        d.cont()
+
+        thread = None
+
+        for t in d.threads:
+            if do_nothing_target.hit_on(t):
+                # t is our target
+                thread = t
+                break
+
+        assert thread is not None
+
+        other_threads = d.threads.copy()
+        other_threads.remove(thread)
+
+        other_threads_state = [save_thread_state(x) for x in other_threads]
+
+        # Sanity check
+        new_other_threads_state = [save_thread_state(x) for x in other_threads]
+        assert all(x == y for x, y in zip(other_threads_state, new_other_threads_state))
+
+        target_state = save_thread_state(thread)
+
+        # Calling step on our target thread should not affect the state of other threads
+        thread.next()
+
+        new_other_threads_state = [save_thread_state(x) for x in other_threads]
+        assert all(x == y for x, y in zip(other_threads_state, new_other_threads_state))
+
+        new_target_state = save_thread_state(thread)
+
+        assert target_state != new_target_state
+
+        d.kill()
+        d.terminate()
