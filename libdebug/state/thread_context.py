@@ -20,16 +20,16 @@ if TYPE_CHECKING:
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.debugger.debugger import Debugger
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
-    from libdebug.state.internal_thread_context import InternalDebugger
+    from libdebug.state.internal_thread_context import InternalThreadContext
 
 
 class ThreadContext:
     """This object represents a thread in the context of the target process. It holds information about the thread's state, registers and stack."""
 
-    _internal_thread_context: InternalDebugger | None = None
+    _internal_thread_context: InternalThreadContext | None = None
     """The debugging context this thread belongs to."""
 
-    def __init__(self: ThreadContext, internal_thread_context: InternalDebugger) -> None:
+    def __init__(self: ThreadContext, internal_thread_context: InternalThreadContext) -> None:
         """Initializes the Thread Context."""
         self._internal_thread_context = internal_thread_context
 
