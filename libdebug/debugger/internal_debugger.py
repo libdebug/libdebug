@@ -579,6 +579,7 @@ class InternalDebugger:
                 pass
 
         if bp := self.breakpoints.get(address):
+            # TODO: we should allow multiple breakpoints at the same address (e.g., for different threads)
             liblog.warning(f"Breakpoint at {position} already set. Overriding it.")
 
         bp = Breakpoint(address, position, thread_id, 0, hardware, callback, condition.lower(), length)
@@ -640,6 +641,7 @@ class InternalDebugger:
                 )
 
         if signal_number in self.caught_signals:
+            # TODO: we should allow multiple catchers at the same signal (e.g., for different threads)
             liblog.warning(
                 f"Signal {resolve_signal_name(signal_number)} ({signal_number}) has already been caught. Overriding it.",
             )
@@ -744,16 +746,19 @@ class InternalDebugger:
         if syscall_number in self.handled_syscalls:
             handler = self.handled_syscalls[syscall_number]
             if handler.on_enter_user or handler.on_exit_user:
+                # TODO: we should allow multiple handlers at the same syscall (e.g., for different threads)
                 liblog.warning(
                     f"Syscall {resolve_syscall_name(self.arch, syscall_number)} is already handled by a user-defined "
                     "handler. Overriding it.",
                 )
             if thread_id != -1 and (handler.on_enter_pprint or handler.on_exit_pprint):
+                # TODO: we should remove this limitation ASAP
                 liblog.warning(
                     f"Syscall {resolve_syscall_name(self.arch, syscall_number)} is already handled by the pretty print "
                     "handler. The handler will be process scoped. This will be solved in future releases.",
                 )
             elif thread_id != handler.thread_id:
+                # TODO: we should allow multiple handlers at the same syscall (e.g., for different threads)
                 handler.thread_id = thread_id
                 liblog.warning(
                     f"Syscall {resolve_syscall_name(self.arch, syscall_number)} is already handled by another thread. "
@@ -836,15 +841,18 @@ class InternalDebugger:
         if original_syscall_number in self.handled_syscalls:
             handler = self.handled_syscalls[original_syscall_number]
             if handler.on_enter_user or handler.on_exit_user:
+                # TODO: we should allow multiple handlers at the same syscall (e.g., for different threads)
                 liblog.warning(
                     f"Syscall {original_syscall_number} is already handled by a user-defined handler. Overriding it. ",
                 )
             if thread_id != -1 and (handler.on_enter_pprint or handler.on_exit_pprint):
+                # TODO: we should remove this limitation ASAP
                 liblog.warning(
                     f"Syscall {resolve_syscall_name(self.arch, original_syscall_number)} is already handled by the "
                     "pretty print handler. The handler will be process scoped. This will be solved in future releases.",
                 )
             elif thread_id != handler.thread_id:
+                # TODO: we should allow multiple handlers at the same syscall (e.g., for different threads)
                 handler.thread_id = thread_id
                 liblog.warning(
                     f"Syscall {resolve_syscall_name(self.arch, original_syscall_number)} is already handled by another "
@@ -1107,7 +1115,9 @@ class InternalDebugger:
         Args:
             thread (InternalThreadContext, optional): The thread to step. Defaults to None, which means all threads.
         """
+        # TODO: it should not be always a state_function_process, we should change the decorator
         self.__polling_thread_command_queue.put((self.__threaded_step, (thread,)))
+        # TODO: this function should not be blocking
         self._join_and_check_status()
 
     def _background_step_until(
@@ -1149,6 +1159,7 @@ class InternalDebugger:
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
             file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
+        # TODO: it should not be always a state_function_process, we should change the decorator
         if isinstance(position, str):
             address = self.resolve_symbol(position, file)
         else:
@@ -1162,6 +1173,7 @@ class InternalDebugger:
 
         self.__polling_thread_command_queue.put((self.__threaded_step_until, arguments))
 
+        # TODO: this function should not be blocking
         self._join_and_check_status()
 
     def _background_finish(
@@ -1194,10 +1206,12 @@ class InternalDebugger:
             thread (InternalThreadContext, optional): The thread to finish. Defaults to None, which means all threads.
             heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
         """
+        # TODO: it should not be always a state_function_process, we should change the decorator
         self.__polling_thread_command_queue.put(
             (self.__threaded_finish, (thread, heuristic)),
         )
 
+        # TODO: this function should not be blocking
         self._join_and_check_status()
 
     def _background_next(
@@ -1211,8 +1225,10 @@ class InternalDebugger:
     @change_state_function_thread
     def next(self: InternalDebugger, thread: InternalThreadContext) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
+        # TODO: it should not be always a state_function_process, we should change the decorator
         self.ensure_process_stopped()
         self.__polling_thread_command_queue.put((self.__threaded_next, (thread,)))
+        # TODO: this function should not be blocking
         self._join_and_check_status()
 
     def enable_pretty_print(
@@ -1418,6 +1434,7 @@ class InternalDebugger:
     @background_alias(_background_ensure_process_stopped)
     def ensure_process_stopped(self: InternalDebugger) -> None:
         """Validates the state of the process."""
+        # TODO: for thread-safe resources we should use a lock that is thread-based, not process-based
         if self._is_migrated_to_gdb:
             raise RuntimeError("Cannot execute this command after migrating to GDB.")
 
@@ -1513,6 +1530,7 @@ class InternalDebugger:
         self.debugging_interface.kill()
 
     def __threaded_cont(self: InternalDebugger, thread: InternalThreadContext) -> None:
+        # TODO: what if I need to continue N threads with N != len(internal_threads)?
         if self.argv:
             liblog.debugger(
                 "Continuing %s (%s: %d).",
@@ -1532,6 +1550,7 @@ class InternalDebugger:
         self.debugging_interface.cont(thread)
 
     def __threaded_wait(self: InternalDebugger, thread: InternalThreadContext = None) -> None:
+        # TODO: what if I need to wait N threads with N != len(internal_threads)?
         if self.argv:
             liblog.debugger(
                 "Waiting for %s (%s: %d) to stop.",
@@ -1593,9 +1612,11 @@ class InternalDebugger:
         self.debugging_interface.unset_syscall_handler(handler)
 
     def __threaded_step(self: InternalDebugger, thread: InternalThreadContext) -> None:
+        # TODO: what if I need to step N threads with N != len(internal_threads)?
+        # TODO: better manage the running flag while stepping
         liblog.debugger("Stepping thread " + (f"{thread.thread_id}." if thread is not None else "all threads."))
         self.debugging_interface.step(thread)
-        self.set_all_threads_running()
+        self.set_all_threads_stopped()
 
     def __threaded_step_until(
         self: InternalDebugger,
@@ -1603,11 +1624,15 @@ class InternalDebugger:
         address: int,
         max_steps: int,
     ) -> None:
+        # TODO: better manage the running flag while stepping
+        # TODO: what if I need to continue N threads with N != len(internal_threads)?
         liblog.debugger("Stepping thread %s until 0x%x.", thread.thread_id, address)
         self.debugging_interface.step_until(thread, address, max_steps)
         self.set_all_threads_stopped()
 
     def __threaded_finish(self: InternalDebugger, thread: InternalThreadContext, heuristic: str) -> None:
+        # TODO: better manage the running flag while finishing
+        # TODO: what if I need to call finish on N threads with N != len(internal_threads)?
         prefix = heuristic.capitalize()
 
         liblog.debugger(
@@ -1618,6 +1643,8 @@ class InternalDebugger:
         self.set_all_threads_stopped()
 
     def __threaded_next(self: InternalDebugger, thread: InternalThreadContext) -> None:
+        # TODO: better manage the running flag while executing next
+        # TODO: what if I need to call next on N threads with N != len(internal_threads)?
         liblog.debugger("Next on thread %s.", thread.thread_id)
         self.debugging_interface.next(thread)
         self.set_all_threads_stopped()

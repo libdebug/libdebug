@@ -51,6 +51,7 @@ def change_state_function_thread(method: callable) -> callable:
             )
 
         # We have to ensure that the process is stopped before executing the method
+        # TODO: for thread-safe resources we should use a lock that is thread-based, not process-based
         self.ensure_process_stopped()
 
         # We have to ensure that the thread is alive before executing the method
