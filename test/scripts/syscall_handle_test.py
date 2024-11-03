@@ -710,3 +710,133 @@ class SyscallHandleTest(TestCase):
             self.assertEqual(exit_count, 5)
 
         d.terminate()
+
+    def test_handle_sync_single_thread(self):
+        d = debugger(RESOLVE_EXE("io_thread_cont_test"))
+
+        r = d.run()
+        
+        d.cont()
+        
+        messages = []
+        for _ in range(5):
+            messages.append(r.recvline())
+            
+        self.assertIn(b"Thread 1 is running...", messages)
+        self.assertIn(b"Thread 2 is running...", messages)
+        self.assertIn(b"Thread 3 is running...", messages)
+        self.assertIn(b"Thread 4 is running...", messages)
+        self.assertIn(b"Thread 5 is running...", messages)
+        
+        d.interrupt()
+        
+        # Install a handler for the write syscall on a specific thread
+        target = d.threads[2]
+        other_threads = d.threads.copy()
+        other_threads.remove(target)
+        handler = target.handle_syscall("write")
+                
+        # Wait for the target thread to hit the write syscall
+        d.cont()
+        
+        r.sendline(b"provola")
+        
+        d.wait()
+        
+        # On enter
+        self.assertTrue(handler.hit_on(target))
+        self.assertTrue(handler.hit_on_enter(target))
+        self.assertFalse(handler.hit_on_exit(target))
+        
+        for t in other_threads:
+            self.assertFalse(handler.hit_on(t))
+            self.assertFalse(handler.hit_on_enter(t))
+            self.assertFalse(handler.hit_on_exit(t))
+        
+        # Continue the process and wait for the target thread to exit the syscall
+        d.cont()
+        d.wait()
+        
+        # On exit
+        self.assertTrue(handler.hit_on(target))
+        self.assertTrue(handler.hit_on_exit(target))
+        self.assertFalse(handler.hit_on_enter(target))
+        
+        for t in other_threads:
+            self.assertFalse(handler.hit_on(t))
+            self.assertFalse(handler.hit_on_exit(t))
+            self.assertFalse(handler.hit_on_enter(t))
+        
+        # We can disable the handler
+        handler.disable()
+        
+        # Continue the process
+        d.cont()
+        
+        messages = []
+        for _ in range(5):
+            messages.append(r.recvline())
+            
+        self.assertIn(b"Thread 1 finished.", messages)
+        self.assertIn(b"Thread 2 finished.", messages)
+        self.assertIn(b"Thread 3 finished.", messages)
+        self.assertIn(b"Thread 4 finished.", messages)
+        self.assertIn(b"Thread 5 finished.", messages)
+        
+        d.wait()
+        d.kill()
+        
+        self.assertEqual(handler.hit_count, 1)
+        
+        d.terminate()
+        
+    def test_handle_async_single_thread(self):
+        def callback(t, hs):
+            self.assertTrue(t.thread_id == target.tid)
+        
+        d = debugger(RESOLVE_EXE("io_thread_cont_test"))
+
+        r = d.run()
+        
+        d.cont()
+        
+        messages = []
+        for _ in range(5):
+            messages.append(r.recvline())
+            
+        self.assertIn(b"Thread 1 is running...", messages)
+        self.assertIn(b"Thread 2 is running...", messages)
+        self.assertIn(b"Thread 3 is running...", messages)
+        self.assertIn(b"Thread 4 is running...", messages)
+        self.assertIn(b"Thread 5 is running...", messages)
+        
+        d.interrupt()
+        
+        # Install a handler for the write syscall on a specific thread
+        target = d.threads[2]
+        handler = target.handle_syscall("write", on_enter=callback, on_exit=callback)
+                
+        # Wait for the target thread to hit the write syscalls
+        d.cont()
+        
+        r.sendline(b"provola")
+        
+        d.wait()
+        
+        messages = []
+        for _ in range(5):
+            messages.append(r.recvline())
+            
+        self.assertIn(b"Thread 1 finished.", messages)
+        self.assertIn(b"Thread 2 finished.", messages)
+        self.assertIn(b"Thread 3 finished.", messages)
+        self.assertIn(b"Thread 4 finished.", messages)
+        self.assertIn(b"Thread 5 finished.", messages)
+        
+        d.wait()
+        d.kill()
+        
+        # We expect two write syscalls in the target thread
+        self.assertEqual(handler.hit_count, 2)
+        
+        d.terminate()
