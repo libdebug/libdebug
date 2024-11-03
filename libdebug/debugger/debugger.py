@@ -192,7 +192,7 @@ class Debugger:
         original_signal: int | str,
         new_signal: int | str,
         recursive: bool = False,
-    ) -> SyscallHandler:
+    ) -> SignalCatcher:
         """Hijack a signal in the target process.
 
         Args:

@@ -23,7 +23,7 @@ class SyscallHandler:
 
     Attributes:
         syscall_number (int): The syscall number to handle.
-        thread_id (int): The thread id to handle the syscall. If -1, the syscall will be handled on all threads.
+        thread_id (int): The thread id of the thread for which the syscall will be handled. If -1, the syscall will be handled on all threads.
         on_enter_user (Callable[[ThreadContext, int], None]): The callback defined by the user to execute when the syscall is entered.
         on_exit_user (Callable[[ThreadContext, int], None]): The callback defined by the user to execute when the syscall is exited.
         on_enter_pprint (Callable[[ThreadContext, int], None]): The callback defined by the pretty print to execute when the syscall is entered.

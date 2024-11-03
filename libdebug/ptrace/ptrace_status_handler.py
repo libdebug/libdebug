@@ -289,6 +289,10 @@ class PtraceStatusHandler:
         signal_number: int,
         hijacked_set: set[int],
     ) -> None:
+        if catcher.thread_id not in (-1, thread.thread_id):
+            # The signal is not caught on this thread
+            return
+
         if catcher.enabled:
             catcher.hit_count += 1
             liblog.debugger(

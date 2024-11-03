@@ -600,6 +600,7 @@ class InternalDebugger:
         signal: int | str,
         callback: None | bool | Callable[[ThreadContext, SignalCatcher], None] = None,
         recursive: bool = False,
+        thread_id: int = -1,
     ) -> SignalCatcher:
         """Catch a signal in the target process.
 
@@ -607,6 +608,7 @@ class InternalDebugger:
             signal (int | str): The signal to catch. If "*", "ALL", "all" or -1 is passed, all signals will be caught.
             callback (None | bool | Callable[[ThreadContext, SignalCatcher], None], optional): A callback to be called when the signal is caught. If True, an empty callback will be set. Defaults to None.
             recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher associated with the new signal should be considered as well. Defaults to False.
+            thread_id (int, optional): The thread ID of the thread for which the signal should be caught. Defaults to -1, which means all threads.
 
         Returns:
             SignalCatcher: The SignalCatcher object.
@@ -645,7 +647,7 @@ class InternalDebugger:
             def callback(_: ThreadContext, __: SignalCatcher) -> None:
                 pass
 
-        catcher = SignalCatcher(signal_number, callback, recursive)
+        catcher = SignalCatcher(signal_number, thread_id, callback, recursive)
 
         link_to_internal_debugger(catcher, self)
 
@@ -662,6 +664,7 @@ class InternalDebugger:
         original_signal: int | str,
         new_signal: int | str,
         recursive: bool = False,
+        thread_id: int = -1,
     ) -> SignalCatcher:
         """Hijack a signal in the target process.
 
@@ -669,6 +672,7 @@ class InternalDebugger:
             original_signal (int | str): The signal to hijack. If "*", "ALL", "all" or -1 is passed, all signals will be hijacked.
             new_signal (int | str): The signal to hijack the original signal with.
             recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher associated with the new signal should be considered as well. Defaults to False.
+            thread_id (int, optional): The thread ID of the thread for which the signal should be hijacked. Defaults to -1, which means all threads.
 
         Returns:
             SignalCatcher: The SignalCatcher object.
@@ -692,7 +696,7 @@ class InternalDebugger:
             """The callback to execute when the signal is received."""
             thread.signal = new_signal_number
 
-        return self.catch_signal(original_signal_number, callback, recursive)
+        return self.catch_signal(original_signal_number, callback, recursive, thread_id)
 
     @background_alias(_background_invalid_call)
     @change_state_function_process

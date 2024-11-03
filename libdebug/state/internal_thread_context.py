@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 
     from libdebug.data.register_holder import RegisterHolder
     from libdebug.data.registers import Registers
+    from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.debugger.debugger import Debugger
     from libdebug.debugger.internal_debugger import InternalDebugger
@@ -247,6 +248,42 @@ class InternalThreadContext:
             self.thread_id,
             **kwargs,
         )
+
+    def catch_signal(
+        self: InternalThreadContext,
+        signal: int | str,
+        callback: None | bool | Callable[[ThreadContext, SignalCatcher], None] = None,
+        recursive: bool = False,
+    ) -> SignalCatcher:
+        """Catch a signal in the target thread.
+
+        Args:
+            signal (int | str): The signal to catch. If "*", "ALL", "all" or -1 is passed, all signals will be caught.
+            callback (None | bool | Callable[[ThreadContext, SignalCatcher], None], optional): A callback to be called when the signal is caught. If True, an empty callback will be set. Defaults to None.
+            recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher associated with the new signal should be considered as well. Defaults to False.
+
+        Returns:
+            SignalCatcher: The SignalCatcher object.
+        """
+        return self._internal_debugger.catch_signal(signal, callback, recursive, self.thread_id)
+
+    def hijack_signal(
+        self: InternalThreadContext,
+        original_signal: int | str,
+        new_signal: int | str,
+        recursive: bool = False,
+    ) -> SignalCatcher:
+        """Hijack a signal in the target thread.
+
+        Args:
+            original_signal (int | str): The signal to hijack. If "*", "ALL", "all" or -1 is passed, all signals will be hijacked.
+            new_signal (int | str): The signal to hijack the original signal with.
+            recursive (bool, optional): Whether, when the signal is hijacked with another one, the signal catcher associated with the new signal should be considered as well. Defaults to False.
+
+        Returns:
+            SignalCatcher: The SignalCatcher object.
+        """
+        return self._internal_debugger.hijack_signal(original_signal, new_signal, recursive, self.thread_id)
 
     def c(self: InternalThreadContext) -> None:
         """Alias for the `cont` method.
