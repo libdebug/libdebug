@@ -482,6 +482,15 @@ class PtraceStatusHandler:
             liblog.debugger("Child process %d exited with signal %d", pid, exit_signal)
             self._handle_exit(pid, exit_code=None, exit_signal=exit_signal)
 
+        # Clean up the internal state from false positives
+        if (
+            self.internal_debugger.resume_context.is_a_step_finish
+            or self.internal_debugger.resume_context.backtrace_finish_bps.get(pid)
+        ) and not self.internal_debugger.resume_context.event_type.get(pid):
+            self.internal_debugger.resume_context.event_type[pid] = EventType.FINISH
+            self.internal_debugger.resume_context.resume = False
+            self.internal_debugger.resume_context.threads_with_signals_to_forward.remove(pid)
+
     def manage_change(self: PtraceStatusHandler, result: list[tuple]) -> None:
         """Manage the result of the waitpid and handle the changes."""
         # Assume that the stop depends on SIGSTOP sent by the debugger
@@ -492,16 +501,7 @@ class PtraceStatusHandler:
             if pid != -1:
                 # Otherwise, this is a spurious trap
                 self._handle_change(pid, status, result)
-                if (
-                    self.internal_debugger.resume_context.is_a_step_finish
-                    and not self.internal_debugger.resume_context.event_type.get(pid)
-                ):
-                    self.internal_debugger.resume_context.event_type[pid] = EventType.FINISH
-                    self.internal_debugger.resume_context.resume = False
-                elif self.internal_debugger.resume_context.backtrace_finish_bps.get(
-                    pid,
-                ) and not self.internal_debugger.resume_context.event_type.get(pid):
-                    self.internal_debugger.resume_context.event_type[pid] = EventType.FINISH
+
         if self._assume_race_sigstop:
             # Resume the process if the stop was due to a race condition with SIGSTOP sent by the debugger
             return
