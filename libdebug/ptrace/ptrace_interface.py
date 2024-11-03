@@ -373,7 +373,7 @@ class PtraceInterface(DebuggingInterface):
         invalidate_process_cache()
 
     def _finish_step_mode(self: PtraceInterface, thread: InternalThreadContext) -> None:
-        """Finishes the step mode for the specified thread.
+        """Finishes the step mode for the specified thread or all threads.
 
         Args:
             thread (InternalThreadContext): The thread to finish the step mode.
@@ -392,6 +392,74 @@ class PtraceInterface(DebuggingInterface):
         self._internal_debugger.resume_context.is_a_step_finish = True
         self.status_handler.manage_change(statuses)
 
+    def _finish_backtrace_mode_thread(self: PtraceInterface, thread: InternalThreadContext) -> list[tuple[int, int]]:
+        """Finishes the backtrace mode for the specified thread.
+
+        Args:
+            thread (InternalThreadContext): The thread to finish the backtrace mode.
+
+        Returns:
+            list[tuple[int, int]]: The statuses of the threads.
+        """
+        # Breakpoint to return address
+        last_saved_instruction_pointer = thread.saved_ip
+
+        # If a breakpoint already exists at the return address, we don't need to set a new one
+        found = False
+        ip_breakpoint = None
+
+        for bp in self._internal_debugger.breakpoints.values():
+            if bp.address == last_saved_instruction_pointer:
+                found = True
+                ip_breakpoint = bp
+                break
+
+        # If we find an existing breakpoint that is disabled, we enable it
+        # but we need to disable it back after the command
+        should_disable = False
+
+        if not found:
+            # Check if we have enough hardware breakpoints available
+            # Otherwise we use a software breakpoint
+            install_hw_bp = self.lib_trace.get_remaining_hw_breakpoint_count(thread.thread_id) > 0
+
+            ip_breakpoint = Breakpoint(
+                last_saved_instruction_pointer, hardware=install_hw_bp, thread_id=thread.thread_id
+            )
+            self.set_breakpoint(ip_breakpoint)
+        elif not ip_breakpoint.enabled:
+            self._enable_breakpoint(ip_breakpoint)
+            should_disable = True
+
+        self._cont_thread(thread)
+        self._internal_debugger.resume_context.backtrace_finish_bps[thread.thread_id] = ip_breakpoint.address
+        statuses = self.lib_trace.wait_thread_and_update_regs(thread.thread_id)
+
+        # Remove the breakpoint if it was set by us
+        if not found:
+            self.unset_breakpoint(ip_breakpoint)
+        # Disable the breakpoint if it was just enabled by us
+        elif should_disable:
+            self._disable_breakpoint(ip_breakpoint)
+
+        return statuses
+
+    def _finish_backtrace_mode(self: PtraceInterface, thread: InternalThreadContext) -> None:
+        """Finishes the backtrace mode for the specified thread or all threads.
+
+        Args:
+            thread (InternalThreadContext): The thread to finish the backtrace mode.
+        """
+        if thread is not None:
+            statuses = self._finish_backtrace_mode_thread(thread)
+        else:
+            statuses = []
+            for t in self._internal_debugger.internal_threads:
+                sts = self._finish_backtrace_mode_thread(t)
+                statuses.extend(sts)
+        invalidate_process_cache()
+        self.status_handler.manage_change(statuses)
+
     def finish(self: PtraceInterface, thread: InternalThreadContext, heuristic: str) -> None:
         """Continues execution until the current function returns.
 
@@ -408,43 +476,7 @@ class PtraceInterface(DebuggingInterface):
         if heuristic == "step-mode":
             self._finish_step_mode(thread)
         elif heuristic == "backtrace":
-            # Breakpoint to return address
-            last_saved_instruction_pointer = thread.saved_ip
-
-            # If a breakpoint already exists at the return address, we don't need to set a new one
-            found = False
-            ip_breakpoint = None
-
-            for bp in self._internal_debugger.breakpoints.values():
-                if bp.address == last_saved_instruction_pointer:
-                    found = True
-                    ip_breakpoint = bp
-                    break
-
-            # If we find an existing breakpoint that is disabled, we enable it
-            # but we need to disable it back after the command
-            should_disable = False
-
-            if not found:
-                # Check if we have enough hardware breakpoints available
-                # Otherwise we use a software breakpoint
-                install_hw_bp = self.lib_trace.get_remaining_hw_breakpoint_count(thread.thread_id) > 0
-
-                ip_breakpoint = Breakpoint(last_saved_instruction_pointer, hardware=install_hw_bp)
-                self.set_breakpoint(ip_breakpoint)
-            elif not ip_breakpoint.enabled:
-                self._enable_breakpoint(ip_breakpoint)
-                should_disable = True
-
-            self._cont_process()
-            self.wait()
-
-            # Remove the breakpoint if it was set by us
-            if not found:
-                self.unset_breakpoint(ip_breakpoint)
-            # Disable the breakpoint if it was just enabled by us
-            elif should_disable:
-                self._disable_breakpoint(ip_breakpoint)
+            self._finish_backtrace_mode(thread)
         else:
             raise ValueError(f"Unimplemented heuristic {heuristic}")
 

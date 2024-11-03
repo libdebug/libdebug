@@ -498,6 +498,10 @@ class PtraceStatusHandler:
                 ):
                     self.internal_debugger.resume_context.event_type[pid] = EventType.FINISH
                     self.internal_debugger.resume_context.resume = False
+                elif self.internal_debugger.resume_context.backtrace_finish_bps.get(
+                    pid,
+                ) and not self.internal_debugger.resume_context.event_type.get(pid):
+                    self.internal_debugger.resume_context.event_type[pid] = EventType.FINISH
         if self._assume_race_sigstop:
             # Resume the process if the stop was due to a race condition with SIGSTOP sent by the debugger
             return
