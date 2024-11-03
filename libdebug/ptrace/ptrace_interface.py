@@ -525,14 +525,15 @@ class PtraceInterface(DebuggingInterface):
         else:
             raise ValueError(f"Unimplemented heuristic {heuristic}")
 
-    def next(self: PtraceInterface, thread: InternalThreadContext) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
-        # Reset the event type
-        self._internal_debugger.resume_context.event_type.clear()
+    def _next_thread(self: PtraceInterface, thread: InternalThreadContext) -> list[tuple[int, int]]:
+        """Executes the next instruction of the specified thread.
 
-        # Reset the breakpoint hit
-        self._internal_debugger.resume_context.event_hit_ref.clear()
+        Args:
+            thread (InternalThreadContext): The thread to step.
 
+        Returns:
+            list[tuple[int, int]]: The statuses of the threads.
+        """
         opcode_window = thread.memory.read(thread.instruction_pointer, 8)
 
         # Check if the current instruction is a call and its skip amount
@@ -562,8 +563,8 @@ class PtraceInterface(DebuggingInterface):
                 self._enable_breakpoint(ip_breakpoint)
                 should_disable = True
 
-            self._cont_process()
-            self.wait()
+            self._cont_thread(thread)
+            statuses = self.lib_trace.wait_thread_and_update_regs(thread.thread_id)
 
             # Remove the breakpoint if it was set by us
             if not found:
@@ -572,9 +573,43 @@ class PtraceInterface(DebuggingInterface):
             elif should_disable:
                 self._disable_breakpoint(ip_breakpoint)
         else:
-            # Step forward
-            self.step(thread)
-            self.wait()
+            # Step forward, the wait is done internally to _step_thread
+            statuses = self._step_thread(thread)
+
+        return statuses
+
+    def next(self: PtraceInterface, thread: InternalThreadContext) -> None:
+        """Executes the next instruction of the specified thread or the process.
+
+        Called on the `debugger` object, this method will perform the action on all threads.
+        It is equivalent to calling `thread.next()` on each thread.
+
+        If the instruction is a call, the debugger will continue until the called function returns.
+
+        Args:
+            thread (InternalThreadContext): The thread to execute the next instruction. If None, the command will be executed on all threads.
+        """
+        # Reset the event type
+        self._internal_debugger.resume_context.event_type.clear()
+
+        # Reset the breakpoint hit
+        self._internal_debugger.resume_context.event_hit_ref.clear()
+
+        if thread is not None:
+            # We step only the specified thread
+            statuses = self._next_thread(thread)
+            self._internal_debugger.resume_context.is_a_next.append(thread.thread_id)
+        else:
+            # We step all threads
+            statuses = []
+            for t in self._internal_debugger.internal_threads:
+                sts = self._next_thread(t)
+                statuses.extend(sts)
+                self._internal_debugger.resume_context.is_a_next.append(t.thread_id)
+
+        # As the wait is done internally, we must invalidate the cache
+        invalidate_process_cache()
+        self.status_handler.manage_change(statuses)
 
     def _setup_pipe(self: PtraceInterface) -> None:
         """Sets up the pipe manager for the child process.

@@ -309,7 +309,10 @@ class ThreadContext:
         self._internal_thread_context.finish(heuristic)
 
     def next(self: ThreadContext) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
+        """Executes the next instruction of the specified thread.
+
+        If the instruction is a call, the debugger will continue until the called function returns.
+        """
         self._internal_thread_context.next()
 
     def breakpoint(

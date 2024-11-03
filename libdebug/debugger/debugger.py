@@ -863,8 +863,14 @@ class Debugger:
         self._internal_debugger.finish(heuristic)
 
     def next(self: Debugger) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
-        self._internal_debugger.next(self)
+        """Executes the next instruction of the process.
+
+        Called on the `debugger` object, this method will perform the action on all threads.
+        It is equivalent to calling `thread.next()` on each thread.
+
+        If the instruction is a call, the debugger will continue until the called function returns.
+        """
+        self._internal_debugger.next()
 
     def si(self: Debugger) -> None:
         """Alias for the `step` method.
@@ -913,8 +919,16 @@ class Debugger:
         self._internal_debugger.finish(heuristic)
 
     def ni(self: Debugger) -> None:
-        """Alias for the `next` method. Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
-        self._internal_debugger.next(self)
+        """Alias for the `next` method.
+
+        Executes the next instruction of the process.
+
+        Called on the `debugger` object, this method will perform the action on all threads.
+        It is equivalent to calling `thread.next()` on each thread.
+
+        If the instruction is a call, the debugger will continue until the called function returns.
+        """
+        self._internal_debugger.next()
 
     def __repr__(self: Debugger) -> str:
         """Return the string representation of the `Debugger` object."""

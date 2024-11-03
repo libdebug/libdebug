@@ -490,6 +490,13 @@ class PtraceStatusHandler:
             self.internal_debugger.resume_context.event_type[pid] = EventType.FINISH
             self.internal_debugger.resume_context.resume = False
             self.internal_debugger.resume_context.threads_with_signals_to_forward.remove(pid)
+        elif (
+            pid in self.internal_debugger.resume_context.is_a_next
+            and not self.internal_debugger.resume_context.event_type.get(pid)
+        ):
+            self.internal_debugger.resume_context.event_type[pid] = EventType.NEXT
+            self.internal_debugger.resume_context.resume = False
+            self.internal_debugger.resume_context.threads_with_signals_to_forward.remove(pid)
 
     def manage_change(self: PtraceStatusHandler, result: list[tuple]) -> None:
         """Manage the result of the waitpid and handle the changes."""

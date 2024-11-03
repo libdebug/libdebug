@@ -22,6 +22,7 @@ class ResumeContext:
         self.resume: bool = True
         self.force_interrupt: bool = False
         self.is_a_step: bool = False
+        self.is_a_next: list[int] = []
         self.is_startup: bool = False
         self.is_a_step_finish: bool = False
         self.backtrace_finish_bps: dict[int, int] = {}
@@ -35,6 +36,7 @@ class ResumeContext:
         self.resume = True
         self.force_interrupt = False
         self.is_a_step = False
+        self.is_a_next.clear()
         self.is_startup = False
         self.is_a_step_finish = False
         self.backtrace_finish_bps.clear()
@@ -79,3 +81,4 @@ class EventType:
     STEP = "Step"
     STARTUP = "Process Startup"
     FINISH = "Finish"
+    NEXT = "Next"

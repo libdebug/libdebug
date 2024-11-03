@@ -109,7 +109,16 @@ class DebuggingInterface(ABC):
 
     @abstractmethod
     def next(self: DebuggingInterface, thread: InternalThreadContext) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
+        """Executes the next instruction of the specified thread or the process.
+
+        Called on the `debugger` object, this method will perform the action on all threads.
+        It is equivalent to calling `thread.next()` on each thread.
+
+        If the instruction is a call, the debugger will continue until the called function returns.
+
+        Args:
+            thread (InternalThreadContext): The thread to execute the next instruction. If None, the command will be executed on all threads.
+        """
 
     @abstractmethod
     def get_maps(self: DebuggingInterface) -> MemoryMapList[MemoryMap]:
