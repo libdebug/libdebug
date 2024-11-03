@@ -851,7 +851,7 @@ class Debugger:
         Args:
             heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
         """
-        self._internal_debugger.finish(self, heuristic=heuristic)
+        self._internal_debugger.finish(heuristic)
 
     def next(self: Debugger) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
@@ -889,7 +889,7 @@ class Debugger:
         Args:
             heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
         """
-        self._internal_debugger.finish(self, heuristic)
+        self._internal_debugger.finish(heuristic)
 
     def ni(self: Debugger) -> None:
         """Alias for the `next` method. Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""

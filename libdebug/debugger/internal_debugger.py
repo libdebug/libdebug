@@ -1184,8 +1184,8 @@ class InternalDebugger:
         self.__threaded_finish(thread, heuristic)
 
     @background_alias(_background_finish)
-    @change_state_function_thread
-    def finish(self: InternalDebugger, thread: InternalThreadContext, heuristic: str = "backtrace") -> None:
+    @change_state_function_process
+    def finish(self: InternalDebugger, heuristic: str = "backtrace", thread: InternalThreadContext = None) -> None:
         """Continues execution until the current function returns or the process stops.
 
         The command requires a heuristic to determine the end of the function. The available heuristics are:
@@ -1193,7 +1193,7 @@ class InternalDebugger:
         - `step-mode`: The debugger will step on the specified thread until the current function returns. This will be slower.
 
         Args:
-            thread (InternalThreadContext): The thread to finish.
+            thread (InternalThreadContext, optional): The thread to finish. Defaults to None, which means all threads.
             heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
         """
         self.__polling_thread_command_queue.put(
@@ -1612,7 +1612,9 @@ class InternalDebugger:
     def __threaded_finish(self: InternalDebugger, thread: InternalThreadContext, heuristic: str) -> None:
         prefix = heuristic.capitalize()
 
-        liblog.debugger(f"{prefix} finish on thread %s", thread.thread_id)
+        liblog.debugger(
+            f"{prefix} finish on" + (f" thread {thread.thread_id}." if thread is not None else " all threads."),
+        )
         self.debugging_interface.finish(thread, heuristic=heuristic)
 
         self.set_all_threads_stopped()

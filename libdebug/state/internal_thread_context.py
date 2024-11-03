@@ -198,7 +198,7 @@ class InternalThreadContext:
         Args:
             heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
         """
-        self._internal_debugger.finish(self, heuristic=heuristic)
+        self._internal_debugger.finish(heuristic=heuristic, thread=self)
 
     def next(self: InternalThreadContext) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
