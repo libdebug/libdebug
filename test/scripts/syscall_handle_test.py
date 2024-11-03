@@ -790,7 +790,7 @@ class SyscallHandleTest(TestCase):
         
         d.terminate()
         
-    def test_handle_async_single_thread(self):
+    def test_handle_async_thread_scoped(self):
         def callback(t, hs):
             self.assertTrue(t.thread_id == target.tid)
         
