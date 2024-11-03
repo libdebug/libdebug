@@ -364,11 +364,13 @@ void LibdebugPtraceInterface::step_until(pid_t tid, unsigned long addr, int max_
     }
 }
 
-void LibdebugPtraceInterface::stepping_finish(pid_t tid, bool use_trampoline_heuristic)
+std::pair<pid_t, int> LibdebugPtraceInterface::stepping_finish_thread(pid_t tid, bool use_trampoline_heuristic)
 {
+    std::pair<pid_t, int> thread_status;
+
     Thread &stepping_thread = threads[tid];
 
-    prepare_process_for_run();
+    prepare_thread_for_run(stepping_thread);
 
     unsigned long previous_ip, current_ip;
     unsigned long opcode_window, opcode;
@@ -431,6 +433,9 @@ cleanup:
             poke_data(b.first, b.second.instruction);
         }
     }
+    thread_status.first = tid;
+    thread_status.second = status;
+    return thread_status;
 }
 
 unsigned long LibdebugPtraceInterface::get_thread_event_msg(const pid_t tid)
@@ -845,8 +850,8 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "    max_steps (int): The maximum amount of steps to take, or -1 if unlimited."
         )
         .def(
-            "stepping_finish",
-            &LibdebugPtraceInterface::stepping_finish,
+            "stepping_finish_thread",
+            &LibdebugPtraceInterface::stepping_finish_thread,
             nb::arg("tid"),
             nb::arg("use_trampoline_heuristic"),
             "Runs a thread until the end of the current function call, by single-stepping it.\n"
@@ -854,6 +859,9 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "Args:\n"
             "    tid (int): The thread id to step.\n"
             "    use_trampoline_heuristic (bool): A flag to indicate if the trampoline heuristic for i386 should be used."
+            "\n"
+            "Returns:\n"
+            "    tuple: A tuple containing the thread id and the waitpid result."
         )
         .def(
             "forward_signals",
