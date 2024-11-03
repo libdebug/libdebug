@@ -702,14 +702,16 @@ class InternalDebugger:
         on_enter: Callable[[ThreadContext, SyscallHandler], None] | None = None,
         on_exit: Callable[[ThreadContext, SyscallHandler], None] | None = None,
         recursive: bool = False,
+        thread_id: int = -1,
     ) -> SyscallHandler:
-        """Handle a syscall in the target process.
+        """Handle a syscall in the target process or the specified thread.
 
         Args:
             syscall (int | str): The syscall name or number to handle. If "*", "ALL", "all", or -1 is passed, all syscalls will be handled.
             on_enter (None | bool |Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute when the syscall is entered. If True, an empty callback will be set. Defaults to None.
             on_exit (None | bool | Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute when the syscall is exited. If True, an empty callback will be set. Defaults to None.
             recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler associated with the new syscall should be considered as well. Defaults to False.
+            thread_id (int, optional): The thread ID of the thread for which the syscall should be handled. Defaults to -1, which means all threads.
 
         Returns:
             SyscallHandler: The SyscallHandler object.
@@ -734,8 +736,21 @@ class InternalDebugger:
             handler = self.handled_syscalls[syscall_number]
             if handler.on_enter_user or handler.on_exit_user:
                 liblog.warning(
-                    f"Syscall {resolve_syscall_name(self.arch, syscall_number)} is already handled by a user-defined handler. Overriding it.",
+                    f"Syscall {resolve_syscall_name(self.arch, syscall_number)} is already handled by a user-defined "
+                    "handler. Overriding it.",
                 )
+            if thread_id != -1 and (handler.on_enter_pprint or handler.on_exit_pprint):
+                liblog.warning(
+                    f"Syscall {resolve_syscall_name(self.arch, syscall_number)} is already handled by the pretty print "
+                    "handler. The handler will be process scoped. This will be solved in future releases.",
+                )
+            elif thread_id != handler.thread_id:
+                handler.thread_id = thread_id
+                liblog.warning(
+                    f"Syscall {resolve_syscall_name(self.arch, syscall_number)} is already handled by another thread. "
+                    "Overriding it.",
+                )
+
             handler.on_enter_user = on_enter
             handler.on_exit_user = on_exit
             handler.recursive = recursive
@@ -743,6 +758,7 @@ class InternalDebugger:
         else:
             handler = SyscallHandler(
                 syscall_number,
+                thread_id,
                 on_enter,
                 on_exit,
                 None,
@@ -767,14 +783,16 @@ class InternalDebugger:
         original_syscall: int | str,
         new_syscall: int | str,
         recursive: bool = True,
+        thread_id: int = -1,
         **kwargs: int,
     ) -> SyscallHandler:
-        """Hijacks a syscall in the target process.
+        """Hijacks a syscall in the target process or the specified thread.
 
         Args:
             original_syscall (int | str): The syscall name or number to hijack. If "*", "ALL", "all" or -1 is passed, all syscalls will be hijacked.
             new_syscall (int | str): The syscall name or number to hijack the original syscall with.
             recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler associated with the new syscall should be considered as well. Defaults to False.
+            thread_id (int, optional): The thread ID of the thread for which the syscall should be hijacked. Defaults to -1, which means all threads.
             **kwargs: (int, optional): The arguments to pass to the new syscall.
 
         Returns:
@@ -810,7 +828,18 @@ class InternalDebugger:
             handler = self.handled_syscalls[original_syscall_number]
             if handler.on_enter_user or handler.on_exit_user:
                 liblog.warning(
-                    f"Syscall {original_syscall_number} is already handled by a user-defined handler. Overriding it.",
+                    f"Syscall {original_syscall_number} is already handled by a user-defined handler. Overriding it. ",
+                )
+            if thread_id != -1 and (handler.on_enter_pprint or handler.on_exit_pprint):
+                liblog.warning(
+                    f"Syscall {resolve_syscall_name(self.arch, original_syscall_number)} is already handled by the "
+                    "pretty print handler. The handler will be process scoped. This will be solved in future releases.",
+                )
+            elif thread_id != handler.thread_id:
+                handler.thread_id = thread_id
+                liblog.warning(
+                    f"Syscall {resolve_syscall_name(self.arch, original_syscall_number)} is already handled by another "
+                    "thread. Overriding it.",
                 )
             handler.on_enter_user = on_enter
             handler.on_exit_user = None
@@ -819,6 +848,7 @@ class InternalDebugger:
         else:
             handler = SyscallHandler(
                 original_syscall_number,
+                thread_id,
                 on_enter,
                 None,
                 None,
@@ -1195,15 +1225,23 @@ class InternalDebugger:
                 ):
                     handler.on_enter_pprint = pprint_on_enter
                     handler.on_exit_pprint = pprint_on_exit
+                    if handler.thread_id != -1:
+                        handler.thread_id = -1
+                        liblog.warning(
+                            "A pretty printed syscall is already handled for a specific thread."
+                            "The existing handler will become process-wide. This will be solved in future releases.",
+                        )
                 else:
                     # Remove the pretty print handler from previous pretty print calls
                     handler.on_enter_pprint = None
                     handler.on_exit_pprint = None
+
             elif syscall_number not in (self.syscalls_to_not_pprint or []) and syscall_number in (
                 self.syscalls_to_pprint or syscall_numbers
             ):
                 handler = SyscallHandler(
                     syscall_number,
+                    -1,
                     None,
                     None,
                     pprint_on_enter,
@@ -1706,6 +1744,7 @@ class InternalDebugger:
         """Enables the anti-debugging escape mechanism."""
         handler = SyscallHandler(
             resolve_syscall_number(self.arch, "ptrace"),
+            -1,
             on_enter_ptrace,
             on_exit_ptrace,
             None,

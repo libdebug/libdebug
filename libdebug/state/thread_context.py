@@ -12,7 +12,10 @@ from libdebug.liblog import liblog
 from libdebug.utils.signal_utils import resolve_signal_name, resolve_signal_number
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from libdebug.data.registers import Registers
+    from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.debugger.debugger import Debugger
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
     from libdebug.state.internal_thread_context import InternalDebugger
@@ -306,6 +309,46 @@ class ThreadContext:
     def next(self: ThreadContext) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._internal_thread_context.next()
+
+    def handle_syscall(
+        self: ThreadContext,
+        syscall: int | str,
+        on_enter: None | bool | Callable[[ThreadContext, SyscallHandler], None] = None,
+        on_exit: None | bool | Callable[[ThreadContext, SyscallHandler], None] = None,
+        recursive: bool = False,
+    ) -> SyscallHandler:
+        """Handle a syscall in the target thread.
+
+        Args:
+            syscall (int | str): The syscall name or number to handle. If "*", "ALL", "all" or -1 is passed, all syscalls will be handled.
+            on_enter (None | bool |Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute when the syscall is entered. If True, an empty callback will be set. Defaults to None.
+            on_exit (None | bool | Callable[[ThreadContext, SyscallHandler], None], optional): The callback to execute when the syscall is exited. If True, an empty callback will be set. Defaults to None.
+            recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler associated with the new syscall should be considered as well. Defaults to False.
+
+        Returns:
+            SyscallHandler: The SyscallHandler object.
+        """
+        return self._internal_thread_context.handle_syscall(syscall, on_enter, on_exit, recursive)
+
+    def hijack_syscall(
+        self: ThreadContext,
+        original_syscall: int | str,
+        new_syscall: int | str,
+        recursive: bool = False,
+        **kwargs: int,
+    ) -> SyscallHandler:
+        """Hijacks a syscall in the target thread.
+
+        Args:
+            original_syscall (int | str): The syscall name or number to hijack. If "*", "ALL", "all" or -1 is passed, all syscalls will be hijacked.
+            new_syscall (int | str): The syscall name or number to hijack the original syscall with.
+            recursive (bool, optional): Whether, when the syscall is hijacked with another one, the syscall handler associated with the new syscall should be considered as well. Defaults to False.
+            **kwargs: (int, optional): The arguments to pass to the new syscall.
+
+        Returns:
+            SyscallHandler: The SyscallHandler object.
+        """
+        return self._internal_thread_context.hijack_syscall(original_syscall, new_syscall, recursive, **kwargs)
 
     def c(self: ThreadContext) -> None:
         """Alias for the `cont` method.

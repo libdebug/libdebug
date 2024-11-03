@@ -175,7 +175,11 @@ class PtraceStatusHandler:
                         )
                     elif callback_hijack.on_enter_pprint:
                         # Pretty print the syscall number
-                        callback_hijack.on_enter_pprint(thread.public_thread_context, syscall_number_after_callback, hijacker=True)
+                        callback_hijack.on_enter_pprint(
+                            thread.public_thread_context,
+                            syscall_number_after_callback,
+                            hijacker=True,
+                        )
                         callback_hijack._has_entered = True
                         callback_hijack._skip_exit = True
                     else:
@@ -190,7 +194,11 @@ class PtraceStatusHandler:
                 handler._has_entered = True
         elif handler.on_enter_pprint:
             # Pretty print the syscall number
-            handler.on_enter_pprint(thread.public_thread_context, syscall_number, callback=(handler.on_exit_user is not None))
+            handler.on_enter_pprint(
+                thread.public_thread_context,
+                syscall_number,
+                callback=(handler.on_exit_user is not None),
+            )
             handler._has_entered = True
         elif handler.on_exit_pprint or handler.on_exit_user:
             # The syscall has been entered but the user did not define an on_enter callback
@@ -218,6 +226,10 @@ class PtraceStatusHandler:
         else:
             # This is a syscall we don't care about
             # Resume the execution
+            return
+
+        if handler.thread_id not in (-1, thread_id):
+            # The syscall is not handled on this thread
             return
 
         self.internal_debugger.resume_context.event_hit_ref[thread_id] = handler
