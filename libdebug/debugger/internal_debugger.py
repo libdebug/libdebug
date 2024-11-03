@@ -1527,8 +1527,10 @@ class InternalDebugger:
 
         if thread is None:
             self.set_all_threads_running()
+            self.set_all_threads_scheduled()
         else:
             thread.running = True
+            thread.scheduled = True
         self.debugging_interface.cont(thread)
 
     def __threaded_wait(self: InternalDebugger, thread: InternalThreadContext = None) -> None:
@@ -1812,6 +1814,11 @@ class InternalDebugger:
         """Set the state of all threads to running."""
         for thread in self.internal_threads:
             thread.running = True
+
+    def set_all_threads_scheduled(self: InternalDebugger) -> None:
+        """Set the state of all threads to scheduled."""
+        for thread in self.internal_threads:
+            thread.scheduled = True
 
     def set_all_threads_stopped(self: InternalDebugger) -> None:
         """Set the state of all threads to stopped."""
