@@ -83,9 +83,10 @@ class PtraceStatusHandler:
 
         if bp and bp.thread_id not in (-1, thread_id):
             # The breakpoint is not set on this thread
-            bp = None
+            self.forward_signal = False
+            return
 
-        if bp and bp.enabled and not bp._disabled_for_step:
+        if bp:
             # Hardware breakpoint hit
             liblog.debugger("Hardware breakpoint hit at 0x%x", ip)
         else:
@@ -95,19 +96,20 @@ class PtraceStatusHandler:
 
             bp = self.internal_debugger.breakpoints.get(ip)
 
-            if bp and bp.thread_id not in (-1, thread_id):
-                # The breakpoint is not set on this thread
-                bp = None
-
             if bp and bp.enabled and not bp._disabled_for_step:
-                # Software breakpoint hit
-                liblog.debugger("Software breakpoint hit at 0x%x", ip)
-
                 # Set the instruction pointer to the previous instruction
                 thread.instruction_pointer = ip
 
                 # Link the breakpoint to the thread, so that we can step over it
                 bp._linked_thread_ids.append(thread_id)
+
+                if bp.thread_id not in (-1, thread_id):
+                    # The breakpoint is not set on this thread
+                    self.forward_signal = False
+                    return
+
+                # Software breakpoint hit
+                liblog.debugger("Software breakpoint hit at 0x%x", ip)
             else:
                 # If the breakpoint has been hit but is not enabled, we need to reset the bp variable
                 bp = None
@@ -115,7 +117,11 @@ class PtraceStatusHandler:
         # Manage watchpoints
         if not bp:
             bp = self.ptrace_interface.get_hit_watchpoint(thread_id)
-            if bp:
+            if bp and bp.thread_id not in (-1, thread_id):
+                # The watchpoint is not set on this thread
+                self.forward_signal = False
+                return
+            elif bp:
                 liblog.debugger("Watchpoint hit at 0x%x", bp.address)
 
         if bp:
