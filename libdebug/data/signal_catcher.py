@@ -23,6 +23,7 @@ class SignalCatcher:
 
     Attributes:
         signal_number (int): The signal number to catch.
+        thread_id (int): The thread id of the thread for which the signal will be caught. If -1, the signal will be caught on all threads.
         callback (Callable[[ThreadContext, CaughtSignal], None]): The callback defined by the user to execute when the signal is caught.
         recursive (bool): Whether, when the signal is hijacked with another one, the signal catcher associated with the new signal should be considered as well. Defaults to False.
         enabled (bool): Whether the signal will be caught or not.
@@ -30,6 +31,7 @@ class SignalCatcher:
     """
 
     signal_number: int
+    thread_id: int
     callback: Callable[[ThreadContext, SignalCatcher], None]
     recursive: bool = True
     enabled: bool = True
@@ -37,12 +39,12 @@ class SignalCatcher:
 
     def enable(self: SignalCatcher) -> None:
         """Enable the signal catcher."""
-        provide_internal_debugger(self)._ensure_process_stopped()
+        provide_internal_debugger(self).ensure_process_stopped()
         self.enabled = True
 
     def disable(self: SignalCatcher) -> None:
         """Disable the signal catcher."""
-        provide_internal_debugger(self)._ensure_process_stopped()
+        provide_internal_debugger(self).ensure_process_stopped()
         self.enabled = False
 
     def hit_on(self: SignalCatcher, thread_context: ThreadContext) -> bool:

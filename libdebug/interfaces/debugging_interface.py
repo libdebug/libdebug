@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from libdebug.data.registers import Registers
     from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
-    from libdebug.state.thread_context import ThreadContext
+    from libdebug.state.internal_thread_context import InternalThreadContext
 
 
 class DebuggingInterface(ABC):
@@ -55,8 +55,8 @@ class DebuggingInterface(ABC):
         """Instantly terminates the process."""
 
     @abstractmethod
-    def cont(self: DebuggingInterface) -> None:
-        """Continues the execution of the process."""
+    def cont(self: DebuggingInterface, thread: InternalThreadContext) -> None:
+        """Continues the execution."""
 
     @abstractmethod
     def wait(self: DebuggingInterface) -> None:
@@ -71,39 +71,54 @@ class DebuggingInterface(ABC):
         """Migrates the current process from GDB."""
 
     @abstractmethod
-    def step(self: DebuggingInterface, thread: ThreadContext) -> None:
-        """Executes a single instruction of the specified thread.
+    def step(self: DebuggingInterface, thread: InternalThreadContext) -> None:
+        """Executes a single instruction of the specified thread or all threads.
+
+        If the thread is not specified, the command will be executed on all threads.
 
         Args:
-            thread (ThreadContext): The thread to step.
+            thread (InternalThreadContext): The thread to step. If None, all threads are stepped.
         """
 
     @abstractmethod
-    def step_until(self: DebuggingInterface, thread: ThreadContext, address: int, max_steps: int) -> None:
-        """Executes instructions of the specified thread until the specified address is reached.
+    def step_until(self: DebuggingInterface, thread: InternalThreadContext, address: int, max_steps: int) -> None:
+        """Executes instructions of the process until the specified location is reached.
+
+        If the thread is not specified, the command will be executed on all threads.
 
         Args:
-            thread (ThreadContext): The thread to step.
+            thread (InternalhreadContext): The thread to step.
             address (int): The address to reach.
             max_steps (int): The maximum number of steps to execute.
         """
 
     @abstractmethod
-    def finish(self: DebuggingInterface, thread: ThreadContext, heuristic: str) -> None:
+    def finish(self: DebuggingInterface, thread: InternalThreadContext, heuristic: str) -> None:
         """Continues execution until the current function returns or the process stops.
+
+        If the thread is not specified, the command will be executed on all threads.
 
         The command requires a heuristic to determine the end of the function. The available heuristics are:
         - `backtrace`: The debugger will place a breakpoint on the saved return address found on the stack and continue execution on all threads.
         - `step-mode`: The debugger will step on the specified thread until the current function returns. This will be slower.
 
         Args:
-            thread (ThreadContext): The thread to finish.
+            thread (InternalThreadContext): The thread to finish. If None, the finish command will be executed on all threads.
             heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
         """
 
     @abstractmethod
-    def next(self: DebuggingInterface, thread: ThreadContext) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
+    def next(self: DebuggingInterface, thread: InternalThreadContext) -> None:
+        """Executes the next instruction of the specified thread or the process.
+
+        Called on the `debugger` object, this method will perform the action on all threads.
+        It is equivalent to calling `thread.next()` on each thread.
+
+        If the instruction is a call, the debugger will continue until the called function returns.
+
+        Args:
+            thread (InternalThreadContext): The thread to execute the next instruction. If None, the command will be executed on all threads.
+        """
 
     @abstractmethod
     def get_maps(self: DebuggingInterface) -> MemoryMapList[MemoryMap]:
@@ -118,11 +133,12 @@ class DebuggingInterface(ABC):
         """
 
     @abstractmethod
-    def unset_breakpoint(self: DebuggingInterface, bp: Breakpoint) -> None:
-        """Restores the original instruction flow at the specified address.
+    def unset_breakpoint(self: DebuggingInterface, bp: Breakpoint, delete: bool) -> None:
+        """Restores the breakpoint at the specified address.
 
         Args:
-            bp (Breakpoint): The breakpoint to restore.
+            bp (Breakpoint): The breakpoint to unset.
+            delete (bool): Whether the breakpoint has to be deleted or just disabled.
         """
 
     @abstractmethod

@@ -1345,3 +1345,39 @@ class SignalCatchTest(TestCase):
             self.assertEqual(12, counter)
 
         d.terminate()
+    
+    def test_hijack_signal_with_api_thread_scoped(self):
+        d = debugger(RESOLVE_EXE("catch_signal_test"))
+
+        r = d.run()
+
+        # Hijack to SIGTERM
+        catcher1 = d.threads[0].hijack_signal("SIGUSR1", 15)
+
+        d.cont()
+
+        SIGUSR1 = r.recvline()
+        SIGTERM = r.recvline()
+        SIGINT = r.recvline()
+        SIGQUIT = r.recvline()
+        SIGPIPE = r.recvline()
+
+        SIGUSR1 += r.recvline()
+        SIGTERM += r.recvline()
+        SIGINT += r.recvline()
+        SIGQUIT += r.recvline()
+        SIGPIPE += r.recvline()
+
+        SIGQUIT += r.recvline()
+        SIGPIPE += r.recvline()
+
+        d.kill()
+        d.terminate()
+
+        self.assertEqual(catcher1.hit_count, 2)
+
+        self.assertEqual(SIGUSR1, b"Received signal 15" * 2)  # hijacked signal
+        self.assertEqual(SIGTERM, b"Received signal 15" * 2)
+        self.assertEqual(SIGINT, b"Received signal 2" * 2)
+        self.assertEqual(SIGQUIT, b"Received signal 3" * 3)
+        self.assertEqual(SIGPIPE, b"Received signal 13" * 3)

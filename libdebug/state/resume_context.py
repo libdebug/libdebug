@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
+    from libdebug.data.signal_catcher import SignalCatcher
+    from libdebug.data.syscall_handler import SyscallHandler
 
 
 class ResumeContext:
@@ -20,18 +22,24 @@ class ResumeContext:
         self.resume: bool = True
         self.force_interrupt: bool = False
         self.is_a_step: bool = False
+        self.is_a_next: list[int] = []
         self.is_startup: bool = False
+        self.is_a_step_finish: bool = False
+        self.backtrace_finish_bps: dict[int, int] = {}
         self.block_on_signal: bool = False
         self.threads_with_signals_to_forward: list[int] = []
         self.event_type: dict[int, EventType] = {}
-        self.event_hit_ref: dict[int, Breakpoint] = {}
+        self.event_hit_ref: dict[int, Breakpoint | SignalCatcher | SyscallHandler] = {}
 
     def clear(self: ResumeContext) -> None:
         """Clears the context."""
         self.resume = True
         self.force_interrupt = False
         self.is_a_step = False
+        self.is_a_next.clear()
         self.is_startup = False
+        self.is_a_step_finish = False
+        self.backtrace_finish_bps.clear()
         self.block_on_signal = False
         self.threads_with_signals_to_forward.clear()
         self.event_type.clear()
@@ -72,3 +80,5 @@ class EventType:
     USER_INTERRUPT = "User Interrupt"
     STEP = "Step"
     STARTUP = "Process Startup"
+    FINISH = "Finish"
+    NEXT = "Next"

@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 from libdebug.data.register_holder import RegisterHolder
 
 if TYPE_CHECKING:
-    from libdebug.state.thread_context import ThreadContext
+    from libdebug.state.internal_thread_context import InternalThreadContext
 
 
 @dataclass
@@ -28,10 +28,10 @@ class PtraceRegisterHolder(RegisterHolder):
     fp_register_file: object
     """The floating-point register file of the target process, as returned by ptrace."""
 
-    def poll(self: PtraceRegisterHolder, target: ThreadContext) -> None:
+    def poll(self: PtraceRegisterHolder, target: InternalThreadContext) -> None:
         """Poll the register values from the specified target."""
         raise NotImplementedError("Do not call this method.")
 
-    def flush(self: PtraceRegisterHolder, source: ThreadContext) -> None:
+    def flush(self: PtraceRegisterHolder, source: InternalThreadContext) -> None:
         """Flush the register values from the specified source."""
         raise NotImplementedError("Do not call this method.")

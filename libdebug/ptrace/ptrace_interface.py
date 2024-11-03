@@ -27,7 +27,7 @@ from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.liblog import liblog
 from libdebug.ptrace.native import libdebug_ptrace_binding
 from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
-from libdebug.state.thread_context import ThreadContext
+from libdebug.state.internal_thread_context import InternalThreadContext
 from libdebug.utils.debugging_utils import normalize_and_validate_address
 from libdebug.utils.elf_utils import get_entry_point
 from libdebug.utils.process_utils import (
@@ -244,11 +244,22 @@ class PtraceInterface(DebuggingInterface):
             os.kill(self.process_id, 9)
             os.waitpid(self.process_id, 0)
 
-    def cont(self: PtraceInterface) -> None:
+    def cont(self: PtraceInterface, thread: InternalThreadContext = None) -> None:
+        """Continues the execution. If a thread is not specified, the whole process is continued.
+
+        Args:
+            thread (InternalThreadContext, optional): The thread to continue. Defaults to None.
+        """
+        if thread is None:
+            self._cont_process()
+        else:
+            self._cont_thread(thread)
+
+    def _cont_process(self: PtraceInterface) -> None:
         """Continues the execution of the process."""
         # Forward signals to the threads
         if self._internal_debugger.resume_context.threads_with_signals_to_forward:
-            self.forward_signal()
+            self.forward_signals_to_all_threads()
 
         # Enable all breakpoints if they were disabled for a single step
         changed = []
@@ -276,13 +287,66 @@ class PtraceInterface(DebuggingInterface):
         # Reset the breakpoint hit
         self._internal_debugger.resume_context.event_hit_ref.clear()
 
-        self.lib_trace.cont_all_and_set_bps(handle_syscalls)
+        self.lib_trace.cont_process_and_set_bps(handle_syscalls)
 
-    def step(self: PtraceInterface, thread: ThreadContext) -> None:
-        """Executes a single instruction of the process.
+    def _cont_thread(self: PtraceInterface, thread: InternalThreadContext) -> None:
+        """Continues the execution of the specified thread.
 
         Args:
-            thread (ThreadContext): The thread to step.
+            thread (InternalThreadContext): The thread to continue.
+        """
+        # Forward signals to the threads
+        if thread.thread_id in self._internal_debugger.resume_context.threads_with_signals_to_forward:
+            self.forward_signal_to_thread(thread)
+
+        # Enable all breakpoints if they were disabled for a single step
+        # TODO: The follolwing code is duplicated in cont() and cont_thread() methods. We will refactor it in the
+        # future, when we will have better per-thread events (e.g., breakpoints, signals, syscalls).
+        changed = []
+
+        for bp in self._internal_debugger.breakpoints.values():
+            bp._disabled_for_step = False
+            if bp._changed:
+                changed.append(bp)
+                bp._changed = False
+
+        for bp in changed:
+            if bp.enabled:
+                self.set_breakpoint(bp, insert=False)
+            else:
+                self.unset_breakpoint(bp, delete=False)
+
+        handle_syscalls = any(
+            handler.enabled or handler.on_enter_pprint or handler.on_exit_pprint
+            for handler in self._internal_debugger.handled_syscalls.values()
+        )
+
+        # Reset the event type
+        self._internal_debugger.resume_context.event_type.clear()
+
+        # Reset the breakpoint hit
+        self._internal_debugger.resume_context.event_hit_ref.clear()
+
+        self.lib_trace.cont_thread_and_set_bps(thread.thread_id, handle_syscalls)
+
+    def _step_thread(self: PtraceInterface, thread: InternalThreadContext) -> list[tuple[int, int]]:
+        """Executes a single instruction of the specified thread.
+
+        Args:
+            thread (InternalThreadContext): The thread to step.
+
+        Returns:
+            list[tuple[int, int]]: The statuses of the threads.
+        """
+        self.lib_trace.step(thread.thread_id)
+
+        return self.lib_trace.wait_thread_and_update_regs(thread.thread_id)
+
+    def step(self: PtraceInterface, thread: InternalThreadContext) -> None:
+        """Executes a single instruction of the specified thread or all threads.
+
+        Args:
+            thread (InternalThreadContext): The thread to step. If None, all threads are stepped.
         """
         # Disable all breakpoints for the single step
         for bp in self._internal_debugger.breakpoints.values():
@@ -294,18 +358,33 @@ class PtraceInterface(DebuggingInterface):
         # Reset the breakpoint hit
         self._internal_debugger.resume_context.event_hit_ref.clear()
 
-        self.lib_trace.step(thread.thread_id)
+        if thread is not None:
+            # We step only the specified thread
+            statuses = self._step_thread(thread)
+        else:
+            # We step all threads
+            statuses = []
+            for t in self._internal_debugger.internal_threads:
+                sts = self._step_thread(t)
+                statuses.extend(sts)
 
+        # As the wait is done internally, we must invalidate the cache
+        invalidate_process_cache()
         self._internal_debugger.resume_context.is_a_step = True
+        self.status_handler.manage_change(statuses)
 
-    def step_until(self: PtraceInterface, thread: ThreadContext, address: int, max_steps: int) -> None:
+    def step_until(self: PtraceInterface, thread: InternalThreadContext, address: int, max_steps: int) -> None:
         """Executes instructions of the specified thread until the specified address is reached.
 
+        If the thread is not specified, the command will be executed on all threads.
+
         Args:
-            thread (ThreadContext): The thread to step.
+            thread (InternalThreadContext): The thread to step.
             address (int): The address to reach.
             max_steps (int): The maximum number of steps to execute.
         """
+        # TODO: implement the compatibility with the already set breakpoints
+        # TODO: implement event status, when the previous todo is done
         # Disable all breakpoints for the single step
         for bp in self._internal_debugger.breakpoints.values():
             bp._disabled_for_step = True
@@ -316,16 +395,121 @@ class PtraceInterface(DebuggingInterface):
         # Reset the breakpoint hit
         self._internal_debugger.resume_context.event_hit_ref.clear()
 
-        self.lib_trace.step_until(thread.thread_id, address, max_steps)
+        if thread is not None:
+            # We step only the specified thread
+            self.lib_trace.step_until(thread.thread_id, address, max_steps)
+        else:
+            # We step all threads
+            # TODO: it is not effcient, since each call to step_until will deactivate and reactivate all hw breakpoints
+            #      for each thread. This is related to the other todos.
+            for t in self._internal_debugger.internal_threads:
+                self.lib_trace.step_until(t.thread_id, address, max_steps)
 
         # As the wait is done internally, we must invalidate the cache
         invalidate_process_cache()
 
-    def finish(self: PtraceInterface, thread: ThreadContext, heuristic: str) -> None:
-        """Continues execution until the current function returns.
+    def _finish_step_mode(self: PtraceInterface, thread: InternalThreadContext) -> None:
+        """Finishes the step mode for the specified thread or all threads.
 
         Args:
-            thread (ThreadContext): The thread to step.
+            thread (InternalThreadContext): The thread to finish the step mode.
+        """
+        statuses = []
+        if thread is not None:
+            state = self.lib_trace.stepping_finish_thread(thread.thread_id, self._internal_debugger.arch == "i386")
+            statuses.append(state)
+        else:
+            for t in self._internal_debugger.internal_threads:
+                state = self.lib_trace.stepping_finish_thread(t.thread_id, self._internal_debugger.arch == "i386")
+                statuses.append(state)
+
+        # As the wait is done internally, we must invalidate the cache
+        invalidate_process_cache()
+        self._internal_debugger.resume_context.is_a_step_finish = True
+        self.status_handler.manage_change(statuses)
+
+    def _finish_backtrace_mode_thread(self: PtraceInterface, thread: InternalThreadContext) -> list[tuple[int, int]]:
+        """Finishes the backtrace mode for the specified thread.
+
+        Args:
+            thread (InternalThreadContext): The thread to finish the backtrace mode.
+
+        Returns:
+            list[tuple[int, int]]: The statuses of the threads.
+        """
+        # Breakpoint to return address
+        last_saved_instruction_pointer = thread.saved_ip
+
+        # If a breakpoint already exists at the return address, we don't need to set a new one
+        found = False
+        ip_breakpoint = None
+
+        for bp in self._internal_debugger.breakpoints.values():
+            if bp.address == last_saved_instruction_pointer:
+                found = True
+                ip_breakpoint = bp
+                break
+
+        # If we find an existing breakpoint that is disabled, we enable it
+        # but we need to disable it back after the command
+        should_disable = False
+
+        if not found:
+            # Check if we have enough hardware breakpoints available
+            # Otherwise we use a software breakpoint
+            install_hw_bp = self.lib_trace.get_remaining_hw_breakpoint_count(thread.thread_id) > 0
+
+            ip_breakpoint = Breakpoint(
+                last_saved_instruction_pointer, hardware=install_hw_bp, thread_id=thread.thread_id
+            )
+            self.set_breakpoint(ip_breakpoint)
+        elif not ip_breakpoint.enabled:
+            self._enable_breakpoint(ip_breakpoint)
+            should_disable = True
+
+        self._cont_thread(thread)
+        self._internal_debugger.resume_context.backtrace_finish_bps[thread.thread_id] = ip_breakpoint.address
+        statuses = self.lib_trace.wait_thread_and_update_regs(thread.thread_id)
+
+        # Remove the breakpoint if it was set by us
+        if not found:
+            self.unset_breakpoint(ip_breakpoint)
+        # Disable the breakpoint if it was just enabled by us
+        elif should_disable:
+            self._disable_breakpoint(ip_breakpoint)
+
+        return statuses
+
+    def _finish_backtrace_mode(self: PtraceInterface, thread: InternalThreadContext) -> None:
+        """Continues execution until the current function returns or the process stops.
+
+        If the thread is not specified, the command will be executed on all threads.
+
+        The command requires a heuristic to determine the end of the function. The available heuristics are:
+        - `backtrace`: The debugger will place a breakpoint on the saved return address found on the stack and continue execution on all threads.
+        - `step-mode`: The debugger will step on the specified thread until the current function returns. This will be slower.
+
+        Args:
+            thread (InternalThreadContext): The thread to finish. If None, the finish command will be executed on all threads.
+            heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
+        """
+        if thread is not None:
+            statuses = self._finish_backtrace_mode_thread(thread)
+        else:
+            statuses = []
+            for t in self._internal_debugger.internal_threads:
+                sts = self._finish_backtrace_mode_thread(t)
+                statuses.extend(sts)
+        invalidate_process_cache()
+        self.status_handler.manage_change(statuses)
+
+    def finish(self: PtraceInterface, thread: InternalThreadContext, heuristic: str) -> None:
+        """Continues execution until the current function returns.
+
+        If the thread is not specified, the command will be executed on all threads.
+
+        Args:
+            thread (InternalThreadContext): The thread to step.
             heuristic (str): The heuristic to use.
         """
         # Reset the event type
@@ -335,58 +519,21 @@ class PtraceInterface(DebuggingInterface):
         self._internal_debugger.resume_context.event_hit_ref.clear()
 
         if heuristic == "step-mode":
-            self.lib_trace.stepping_finish(thread.thread_id, self._internal_debugger.arch == "i386")
-            # As the wait is done internally, we must invalidate the cache
-            invalidate_process_cache()
+            self._finish_step_mode(thread)
         elif heuristic == "backtrace":
-            # Breakpoint to return address
-            last_saved_instruction_pointer = thread.saved_ip
-
-            # If a breakpoint already exists at the return address, we don't need to set a new one
-            found = False
-            ip_breakpoint = None
-
-            for bp in self._internal_debugger.breakpoints.values():
-                if bp.address == last_saved_instruction_pointer:
-                    found = True
-                    ip_breakpoint = bp
-                    break
-
-            # If we find an existing breakpoint that is disabled, we enable it
-            # but we need to disable it back after the command
-            should_disable = False
-
-            if not found:
-                # Check if we have enough hardware breakpoints available
-                # Otherwise we use a software breakpoint
-                install_hw_bp = self.lib_trace.get_remaining_hw_breakpoint_count(thread.thread_id) > 0
-
-                ip_breakpoint = Breakpoint(last_saved_instruction_pointer, hardware=install_hw_bp)
-                self.set_breakpoint(ip_breakpoint)
-            elif not ip_breakpoint.enabled:
-                self._enable_breakpoint(ip_breakpoint)
-                should_disable = True
-
-            self.cont()
-            self.wait()
-
-            # Remove the breakpoint if it was set by us
-            if not found:
-                self.unset_breakpoint(ip_breakpoint)
-            # Disable the breakpoint if it was just enabled by us
-            elif should_disable:
-                self._disable_breakpoint(ip_breakpoint)
+            self._finish_backtrace_mode(thread)
         else:
             raise ValueError(f"Unimplemented heuristic {heuristic}")
 
-    def next(self: PtraceInterface, thread: ThreadContext) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
-        # Reset the event type
-        self._internal_debugger.resume_context.event_type.clear()
+    def _next_thread(self: PtraceInterface, thread: InternalThreadContext) -> list[tuple[int, int]]:
+        """Executes the next instruction of the specified thread.
 
-        # Reset the breakpoint hit
-        self._internal_debugger.resume_context.event_hit_ref.clear()
+        Args:
+            thread (InternalThreadContext): The thread to step.
 
+        Returns:
+            list[tuple[int, int]]: The statuses of the threads.
+        """
         opcode_window = thread.memory.read(thread.instruction_pointer, 8)
 
         # Check if the current instruction is a call and its skip amount
@@ -416,8 +563,8 @@ class PtraceInterface(DebuggingInterface):
                 self._enable_breakpoint(ip_breakpoint)
                 should_disable = True
 
-            self.cont()
-            self.wait()
+            self._cont_thread(thread)
+            statuses = self.lib_trace.wait_thread_and_update_regs(thread.thread_id)
 
             # Remove the breakpoint if it was set by us
             if not found:
@@ -426,9 +573,43 @@ class PtraceInterface(DebuggingInterface):
             elif should_disable:
                 self._disable_breakpoint(ip_breakpoint)
         else:
-            # Step forward
-            self.step(thread)
-            self.wait()
+            # Step forward, the wait is done internally to _step_thread
+            statuses = self._step_thread(thread)
+
+        return statuses
+
+    def next(self: PtraceInterface, thread: InternalThreadContext) -> None:
+        """Executes the next instruction of the specified thread or the process.
+
+        Called on the `debugger` object, this method will perform the action on all threads.
+        It is equivalent to calling `thread.next()` on each thread.
+
+        If the instruction is a call, the debugger will continue until the called function returns.
+
+        Args:
+            thread (InternalThreadContext): The thread to execute the next instruction. If None, the command will be executed on all threads.
+        """
+        # Reset the event type
+        self._internal_debugger.resume_context.event_type.clear()
+
+        # Reset the breakpoint hit
+        self._internal_debugger.resume_context.event_hit_ref.clear()
+
+        if thread is not None:
+            # We step only the specified thread
+            statuses = self._next_thread(thread)
+            self._internal_debugger.resume_context.is_a_next.append(thread.thread_id)
+        else:
+            # We step all threads
+            statuses = []
+            for t in self._internal_debugger.internal_threads:
+                sts = self._next_thread(t)
+                statuses.extend(sts)
+                self._internal_debugger.resume_context.is_a_next.append(t.thread_id)
+
+        # As the wait is done internally, we must invalidate the cache
+        invalidate_process_cache()
+        self.status_handler.manage_change(statuses)
 
     def _setup_pipe(self: PtraceInterface) -> None:
         """Sets up the pipe manager for the child process.
@@ -465,52 +646,72 @@ class PtraceInterface(DebuggingInterface):
 
             bp = Breakpoint(entry_point, hardware=True)
             self.set_breakpoint(bp)
-            self.cont()
+            self._cont_process()
             self.wait()
 
             self.unset_breakpoint(bp)
 
         invalidate_process_cache()
 
-    def wait(self: PtraceInterface) -> None:
-        """Waits for the process to stop. Returns True if the wait has to be repeated."""
-        statuses = self.lib_trace.wait_all_and_update_regs()
+    def wait(self: PtraceInterface, thread: InternalThreadContext = None) -> None:
+        """Waits forthe process or the specified thread to stop.
+
+        Args:
+            thread (InternalThreadContext, optional): The thread to wait for. Defaults to None.
+        """
+        if thread is not None:
+            statuses = self.lib_trace.wait_thread_and_update_regs(thread.thread_id)
+        else:
+            statuses = self.lib_trace.wait_process_and_update_regs()
 
         invalidate_process_cache()
 
         # Check the result of the waitpid and handle the changes.
         self.status_handler.manage_change(statuses)
 
-    def forward_signal(self: PtraceInterface) -> None:
+    def forward_signals_to_all_threads(self: PtraceInterface) -> None:
         """Set the signals to forward to the threads."""
-        # change the global_state
         threads_with_signals_to_forward = self._internal_debugger.resume_context.threads_with_signals_to_forward
 
         signals_to_forward = []
 
-        for thread in self._internal_debugger.threads:
+        for thread in self._internal_debugger.internal_threads:
             if (
                 thread.thread_id in threads_with_signals_to_forward
-                and thread._signal_number != 0
-                and thread._signal_number not in self._internal_debugger.signals_to_block
+                and thread.signal_number != 0
+                and thread.signal_number not in self._internal_debugger.signals_to_block
             ):
                 liblog.debugger(
                     f"Forwarding signal {thread.signal_number} to thread {thread.thread_id}",
                 )
                 signals_to_forward.append((thread.thread_id, thread.signal_number))
-                thread._signal_number = 0
+                thread.signal_number = 0
 
         self.lib_trace.forward_signals(signals_to_forward)
 
         # Clear the list of threads with signals to forward
         self._internal_debugger.resume_context.threads_with_signals_to_forward.clear()
 
+    def forward_signal_to_thread(self: PtraceInterface, thread: InternalThreadContext) -> None:
+        """Forwards the signal to the specified thread."""
+        if (
+            thread.thread_id in self._internal_debugger.resume_context.threads_with_signals_to_forward
+            and thread.signal_number != 0
+            and thread.signal_number not in self._internal_debugger.signals_to_block
+        ):
+            liblog.debugger(f"Forwarding signal {thread.signal_number} to thread {thread.thread_id}")
+            self.lib_trace.forward_signals([(thread.thread_id, thread.signal_number)])
+            thread.signal_number = 0
+
+        # Clear the thread from the list of threads with signals to forward
+        self._internal_debugger.resume_context.threads_with_signals_to_forward.remove(thread.thread_id)
+
     def migrate_to_gdb(self: PtraceInterface) -> None:
         """Migrates the current process to GDB."""
         # Delete any hardware breakpoint
         for bp in self._internal_debugger.breakpoints.values():
             if bp.hardware:
-                for thread in self._internal_debugger.threads:
+                for thread in self._internal_debugger.internal_threads:
                     self.lib_trace.unregister_hw_breakpoint(
                         self._global_state,
                         thread.thread_id,
@@ -529,7 +730,7 @@ class PtraceInterface(DebuggingInterface):
         # We have to reinstall any hardware breakpoint
         for bp in self._internal_debugger.breakpoints.values():
             if bp.hardware:
-                for thread in self._internal_debugger.threads:
+                for thread in self._internal_debugger.internal_threads:
                     self.lib_trace.register_hw_breakpoint(
                         thread.thread_id,
                         bp.address,
@@ -549,7 +750,7 @@ class PtraceInterface(DebuggingInterface):
         register_holder = register_holder_provider(self._internal_debugger.arch, register_file, fp_register_file)
 
         with extend_internal_debugger(self._internal_debugger):
-            thread = ThreadContext(new_thread_id, register_holder)
+            thread = InternalThreadContext(new_thread_id, register_holder)
 
         self._internal_debugger.insert_new_thread(thread)
 
@@ -562,6 +763,9 @@ class PtraceInterface(DebuggingInterface):
                     int.from_bytes(bp.condition.encode(), sys.byteorder),
                     bp.length,
                 )
+
+        # Schedule the thread to be resumed
+        thread.scheduled = True
 
     def unregister_thread(
         self: PtraceInterface,
@@ -612,29 +816,54 @@ class PtraceInterface(DebuggingInterface):
         """
         self.lib_trace.disable_breakpoint(bp.address)
 
-    def set_breakpoint(self: PtraceInterface, bp: Breakpoint, insert: bool = True) -> None:
+    def _set_hw_breakpoint_on_thread(self: PtraceInterface, bp: Breakpoint, thread_id: int) -> None:
+        """Sets a breakpoint at the specified address for the specified thread.
+
+        Args:
+            bp (Breakpoint): The breakpoint to set.
+            thread_id (int): The thread ID of the thread for which the breakpoint should be set.
+        """
+        if bp.condition == "x":
+            remaining = self.lib_trace.get_remaining_hw_breakpoint_count(thread_id)
+        else:
+            remaining = self.lib_trace.get_remaining_hw_watchpoint_count(thread_id)
+
+        if not remaining:
+            raise ValueError("No more hardware breakpoints of this type available")
+
+        self.lib_trace.register_hw_breakpoint(
+            thread_id,
+            bp.address,
+            int.from_bytes(bp.condition.encode(), sys.byteorder),
+            bp.length,
+        )
+
+    def set_breakpoint(self: PtraceInterface, bp: Breakpoint, insert: bool = True, thread_id: int = -1) -> None:
         """Sets a breakpoint at the specified address.
 
         Args:
             bp (Breakpoint): The breakpoint to set.
             insert (bool): Whether the breakpoint has to be inserted or just enabled.
+            thread_id (int): The thread ID of the thread for which the breakpoint should be set. Defaults to -1, which means all threads.
         """
-        if bp.hardware:
-            for thread in self._internal_debugger.threads:
-                if bp.condition == "x":
-                    remaining = self.lib_trace.get_remaining_hw_breakpoint_count(thread.thread_id)
-                else:
-                    remaining = self.lib_trace.get_remaining_hw_watchpoint_count(thread.thread_id)
+        if (
+            insert
+            and bp.hardware
+            and (old_bp := self._internal_debugger.breakpoints.get(bp.address))
+            and old_bp.hardware
+            and old_bp.enabled
+        ):
+            # We need to delete PPthe existing breakpoint before setting a new one, for consistency
+            # TODO: This will be relaxed in next versions of the libdebug
+            self.unset_breakpoint(old_bp, delete=True)
 
-                if not remaining:
-                    raise ValueError("No more hardware breakpoints of this type available")
-
-                self.lib_trace.register_hw_breakpoint(
-                    thread.thread_id,
-                    bp.address,
-                    int.from_bytes(bp.condition.encode(), sys.byteorder),
-                    bp.length,
-                )
+        if bp.hardware and thread_id == -1:
+            # If the breakpoint is hardware and no thread ID is specified, we set the breakpoint for all threads
+            for thread in self._internal_debugger.internal_threads:
+                self._set_hw_breakpoint_on_thread(bp, thread.thread_id)
+        elif bp.hardware:
+            # If the breakpoint is hardware and a thread ID is specified, we set the breakpoint only for that thread
+            self._set_hw_breakpoint_on_thread(bp, thread_id)
         elif insert:
             self._set_sw_breakpoint(bp)
         else:
@@ -650,9 +879,13 @@ class PtraceInterface(DebuggingInterface):
             bp (Breakpoint): The breakpoint to unset.
             delete (bool): Whether the breakpoint has to be deleted or just disabled.
         """
-        if bp.hardware:
-            for thread in self._internal_debugger.threads:
+        if bp.hardware and bp.thread_id == -1:
+            # If the breakpoint is hardware and no thread ID is specified, we unset the breakpoint for all threads
+            for thread in self._internal_debugger.internal_threads:
                 self.lib_trace.unregister_hw_breakpoint(thread.thread_id, bp.address)
+        elif bp.hardware:
+            # If the breakpoint is hardware and a thread ID is specified, we unset the breakpoint only for that thread
+            self.lib_trace.unregister_hw_breakpoint(bp.thread_id, bp.address)
         elif delete:
             self._unset_sw_breakpoint(bp)
         else:

@@ -437,3 +437,80 @@ class SignalMultithreadTest(TestCase):
         set_tids = set(tids)
         self.assertEqual(len(set_tids), 1)
         self.assertEqual(set_tids.pop(), receiver)
+
+    
+    def test_signal_async_det_thread_scoped(self):
+        SIGUSR1_count = 0
+        SIGINT_count = 0
+        SIGQUIT_count = 0
+        SIGTERM_count = 0
+        SIGPIPE_count = 0
+        
+        def catcher_SIGUSR1(t, sc):
+            nonlocal SIGUSR1_count
+
+            SIGUSR1_count += 1
+            self.assertEqual(t.thread_id, target.tid)
+
+        def catcher_SIGTERM(t, sc):
+            nonlocal SIGTERM_count
+
+            SIGTERM_count += 1
+            self.assertEqual(t.thread_id, target.tid)
+
+        def catcher_SIGINT(t, sc):
+            nonlocal SIGINT_count
+
+            SIGINT_count += 1
+            self.assertEqual(t.thread_id, target.tid)
+
+        def catcher_SIGQUIT(t, sc):
+            nonlocal SIGQUIT_count
+
+            SIGQUIT_count += 1
+            self.assertEqual(t.thread_id, target.tid)
+
+        def catcher_SIGPIPE(t, sc):
+            nonlocal SIGPIPE_count
+
+            SIGPIPE_count += 1
+            self.assertEqual(t.thread_id, target.tid)
+
+        d = debugger(RESOLVE_EXE("signals_multithread_undet_test"))
+
+        r = d.run()
+        
+        # Set a breakpoint to stop the program when the first thread is created
+        bp = d.breakpoint("do_stuf", hardware=True, file="binary")
+
+        d.cont()
+        d.wait()
+        
+        for t in d.threads:
+            if bp.hit_on(t):
+                target = t
+                break
+    
+        bp.disable()
+        catcher1 = t.catch_signal(10, callback=catcher_SIGUSR1)
+        catcher2 = t.catch_signal("SIGTERM", callback=catcher_SIGTERM)
+        catcher3 = t.catch_signal(2, callback=catcher_SIGINT)
+        catcher4 = t.catch_signal("SIGQUIT", callback=catcher_SIGQUIT)
+        catcher5 = t.catch_signal("SIGPIPE", callback=catcher_SIGPIPE)
+
+        d.cont()
+
+        r.sendline(b"sync")
+        r.sendline(b"sync")
+
+        # Receive the exit message
+        r.recvline(2)
+
+        d.kill()
+        d.terminate()
+
+        self.assertEqual(SIGUSR1_count, catcher1.hit_count)
+        self.assertEqual(SIGTERM_count, catcher2.hit_count)
+        self.assertEqual(SIGINT_count, catcher3.hit_count)
+        self.assertEqual(SIGQUIT_count, catcher4.hit_count)
+        self.assertEqual(SIGPIPE_count, catcher5.hit_count)

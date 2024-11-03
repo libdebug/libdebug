@@ -29,7 +29,9 @@ private:
     // Control flow private methods
     void step_thread(Thread &,  bool forward_signal = true, bool step_over_hardware_bp = false);
     void cont_thread(Thread &);
-    int prepare_for_run();
+    void prepare_thread(Thread &);
+    void prepare_thread_for_run(Thread &);
+    void prepare_process_for_run();
 
     // Hardware breakpoint private methods
     void install_hardware_breakpoint(const HardwareBreakpoint &);
@@ -38,7 +40,7 @@ private:
 
     // On some architectures, you are not allowed to step or cont over a hardware breakpoint
     // This method checks if the thread is on a hardware breakpoint and steps over it
-    void arch_check_if_hit_and_step_over();
+    void arch_check_if_hit_and_step_over(Thread &);
 
     // Others
     bool check_if_dl_trampoline(unsigned long);
@@ -61,13 +63,15 @@ public:
     void set_tracing_options();
 
     // Debugger control flow methods
-    void cont_all_and_set_bps(const bool);
+    void cont_process_and_set_bps(const bool);
+    void cont_thread_and_set_bps(pid_t, const bool);
     void step(const pid_t);
     void step_until(const pid_t, const unsigned long, const int);
-    void stepping_finish(const pid_t, const bool);
+    std::pair<pid_t, int> stepping_finish_thread(const pid_t, const bool);
 
     // Debugger status and signal methods
-    std::vector<std::pair<pid_t, int>> wait_all_and_update_regs();
+    std::vector<std::pair<pid_t, int>> wait_thread_and_update_regs(pid_t);
+    std::vector<std::pair<pid_t, int>> wait_process_and_update_regs();
     unsigned long get_thread_event_msg(const pid_t);
     void forward_signals(const std::vector<std::pair<pid_t, int>>);
 

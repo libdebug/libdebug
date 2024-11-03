@@ -10,18 +10,18 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from libdebug.state.thread_context import ThreadContext
+    from libdebug.state.internal_thread_context import InternalThreadContext
 
 
 class RegisterHolder(ABC):
     """An abstract class that holds the state of the registers of a process, providing setters and getters for them."""
 
     @abstractmethod
-    def apply_on_thread(self: RegisterHolder, target: ThreadContext, target_class: type) -> None:
+    def apply_on_thread(self: RegisterHolder, target: InternalThreadContext, target_class: type) -> None:
         """Applies the current register values to the specified thread target.
 
         Args:
-            target (ThreadContext): The object to which the register values should be applied.
+            target (InternalThreadContext): The object to which the register values should be applied.
             target_class (type): The class of the target object, needed to set the attributes.
         """
 
@@ -35,19 +35,19 @@ class RegisterHolder(ABC):
         """
 
     @abstractmethod
-    def poll(self: RegisterHolder, target: ThreadContext) -> None:
+    def poll(self: RegisterHolder, target: InternalThreadContext) -> None:
         """Polls the register values from the specified target.
 
         Args:
-            target (ThreadContext): The object from which the register values should be polled.
+            target (InternalThreadContext): The object from which the register values should be polled.
         """
 
     @abstractmethod
-    def flush(self: RegisterHolder, source: ThreadContext) -> None:
+    def flush(self: RegisterHolder, source: InternalThreadContext) -> None:
         """Flushes the register values from the specified source.
 
         Args:
-            source (ThreadContext): The object from which the register values should be flushed.
+            source (InternalThreadContext): The object from which the register values should be flushed.
         """
 
     @abstractmethod

@@ -24,7 +24,7 @@ from libdebug.architectures.i386.i386_registers import I386Registers
 from libdebug.ptrace.ptrace_register_holder import PtraceRegisterHolder
 
 if TYPE_CHECKING:
-    from libdebug.state.thread_context import ThreadContext
+    from libdebug.state.internal_thread_context import InternalThreadContext
 
 I386_GP_REGS = ["a", "b", "c", "d"]
 
@@ -61,13 +61,13 @@ def _get_property_fp_st(name: str, index: int) -> property:
     # But their support for long double does not actually allow for value comparison or manipulation
     # So, ctypes it is
     def getter(self: I386Registers) -> float:
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger.ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         return c_longdouble.from_buffer_copy(bytes(self._fp_register_file.mmx[index].data)).value
 
     def setter(self: I386Registers, value: float) -> None:
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger.ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         # Only difference from the amd64 version is the padding to 16 bytes
@@ -151,7 +151,7 @@ class I386PtraceRegisterHolder(PtraceRegisterHolder):
 
         I386PtraceRegisterHolder._vector_fp_registers = self._vector_fp_registers
 
-    def apply_on_thread(self: I386PtraceRegisterHolder, target: ThreadContext, target_class: type) -> None:
+    def apply_on_thread(self: I386PtraceRegisterHolder, target: InternalThreadContext, target_class: type) -> None:
         """Apply the register accessors to the thread class."""
         target.register_file = self.register_file
 

@@ -15,17 +15,17 @@ from libdebug.liblog import liblog
 if TYPE_CHECKING:
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.memory_map_list import MemoryMapList
-    from libdebug.state.thread_context import ThreadContext
+    from libdebug.state.internal_thread_context import InternalThreadContext
 
 
 class Amd64StackUnwinder(StackUnwindingManager):
     """Class that provides stack unwinding for the x86_64 architecture."""
 
-    def unwind(self: Amd64StackUnwinder, target: ThreadContext) -> list:
+    def unwind(self: Amd64StackUnwinder, target: InternalThreadContext) -> list:
         """Unwind the stack of a process.
 
         Args:
-            target (ThreadContext): The target ThreadContext.
+            target (InternalThreadContext): The target InternalThreadContext.
 
         Returns:
             list: A list of return addresses.
@@ -70,11 +70,11 @@ class Amd64StackUnwinder(StackUnwindingManager):
 
         return stack_trace
 
-    def get_return_address(self: Amd64StackUnwinder, target: ThreadContext, vmaps: MemoryMapList[MemoryMap]) -> int:
+    def get_return_address(self: Amd64StackUnwinder, target: InternalThreadContext, vmaps: MemoryMapList[MemoryMap]) -> int:
         """Get the return address of the current function.
 
         Args:
-            target (ThreadContext): The target ThreadContext.
+            target (InternalThreadContext): The target InternalThreadContext.
             vmaps (MemoryMapList[MemoryMap]): The memory maps of the process.
 
         Returns:

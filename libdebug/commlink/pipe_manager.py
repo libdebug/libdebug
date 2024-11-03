@@ -251,7 +251,7 @@ class PipeManager:
 
             if (
                 received_numb == 0
-                and not self._internal_debugger.running
+                and not self._internal_debugger.any_thread_running
                 and self._internal_debugger.is_debugging
                 and (event := self._internal_debugger.resume_context.get_event_type())
             ):

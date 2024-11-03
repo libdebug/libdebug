@@ -14,13 +14,13 @@ from libdebug.liblog import liblog
 if TYPE_CHECKING:
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.memory_map_list import MemoryMapList
-    from libdebug.state.thread_context import ThreadContext
+    from libdebug.state.internal_thread_context import InternalThreadContext
 
 
 class I386StackUnwinder(StackUnwindingManager):
     """Class that provides stack unwinding for the i386 architecture."""
 
-    def unwind(self: I386StackUnwinder, target: ThreadContext) -> list:
+    def unwind(self: I386StackUnwinder, target: InternalThreadContext) -> list:
         """Unwind the stack of a process.
 
         Args:
@@ -69,7 +69,7 @@ class I386StackUnwinder(StackUnwindingManager):
 
         return stack_trace
 
-    def get_return_address(self: I386StackUnwinder, target: ThreadContext, vmaps: MemoryMapList[MemoryMap]) -> int:
+    def get_return_address(self: I386StackUnwinder, target: InternalThreadContext, vmaps: MemoryMapList[MemoryMap]) -> int:
         """Get the return address of the current function.
 
         Args:

@@ -23,6 +23,7 @@ class SyscallHandler:
 
     Attributes:
         syscall_number (int): The syscall number to handle.
+        thread_id (int): The thread id of the thread for which the syscall will be handled. If -1, the syscall will be handled on all threads.
         on_enter_user (Callable[[ThreadContext, int], None]): The callback defined by the user to execute when the syscall is entered.
         on_exit_user (Callable[[ThreadContext, int], None]): The callback defined by the user to execute when the syscall is exited.
         on_enter_pprint (Callable[[ThreadContext, int], None]): The callback defined by the pretty print to execute when the syscall is entered.
@@ -33,6 +34,7 @@ class SyscallHandler:
     """
 
     syscall_number: int
+    thread_id: int
     on_enter_user: Callable[[ThreadContext, int], None]
     on_exit_user: Callable[[ThreadContext, int], None]
     on_enter_pprint: Callable[[ThreadContext, int, Any], None]
@@ -46,13 +48,13 @@ class SyscallHandler:
 
     def enable(self: SyscallHandler) -> None:
         """Handle the syscall."""
-        provide_internal_debugger(self)._ensure_process_stopped()
+        provide_internal_debugger(self).ensure_process_stopped()
         self.enabled = True
         self._has_entered = False
 
     def disable(self: SyscallHandler) -> None:
         """Unhandle the syscall."""
-        provide_internal_debugger(self)._ensure_process_stopped()
+        provide_internal_debugger(self).ensure_process_stopped()
         self.enabled = False
         self._has_entered = False
 

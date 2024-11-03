@@ -359,3 +359,46 @@ class SyscallHijackTest(TestCase):
 
         d.kill()
         d.terminate()
+
+    def test_hijack_syscall_thread_scoped(self):
+        def on_enter_write(d, sh):
+            nonlocal write_count
+
+            write_count += 1
+
+        d = debugger(RESOLVE_EXE("handle_syscall_test"))
+
+        write_count = 0
+        r = d.run()
+
+        d.threads[0].hijack_syscall("getcwd", "write", recursive=True)
+
+        # recursive is on, we expect the write handler to be called three times
+        handler = d.threads[0].handle_syscall("write", on_enter=on_enter_write, recursive=True)
+
+        r.sendline(b"provola")
+
+        d.cont()
+
+        d.kill()
+
+        self.assertEqual(write_count, handler.hit_count)
+        self.assertEqual(handler.hit_count, 3)
+
+        write_count = 0
+        r = d.run()
+
+        d.threads[0].hijack_syscall("getcwd", "write", recursive=False)
+
+        # recursive is off, we expect the write handler to be called only twice
+        handler = d.threads[0].handle_syscall("write", on_enter=on_enter_write)
+
+        r.sendline(b"provola")
+
+        d.cont()
+
+        d.kill()
+        d.terminate()
+
+        self.assertEqual(write_count, handler.hit_count)
+        self.assertEqual(handler.hit_count, 2)

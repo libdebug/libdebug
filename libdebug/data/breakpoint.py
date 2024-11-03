@@ -24,6 +24,7 @@ class Breakpoint:
     Attributes:
         address (int): The address of the breakpoint in the target process.
         symbol (str): The symbol, if available, of the breakpoint in the target process.
+        thread_id (int): The thread ID of the thread for which the breakpoint should be set. Defaults to -1, which means all threads.
         hit_count (int): The number of times this specific breakpoint has been hit.
         hardware (bool): Whether the breakpoint is a hardware breakpoint or not.
         callback (Callable[[ThreadContext, Breakpoint], None]): The callback defined by the user to execute when the breakpoint is hit.
@@ -34,6 +35,7 @@ class Breakpoint:
 
     address: int = 0
     symbol: str = ""
+    thread_id: int = -1
     hit_count: int = 0
     hardware: bool = False
     callback: None | Callable[[ThreadContext, Breakpoint], None] = None
@@ -49,13 +51,13 @@ class Breakpoint:
 
     def enable(self: Breakpoint) -> None:
         """Enable the breakpoint."""
-        provide_internal_debugger(self)._ensure_process_stopped()
+        provide_internal_debugger(self).ensure_process_stopped()
         self.enabled = True
         self._changed = True
 
     def disable(self: Breakpoint) -> None:
         """Disable the breakpoint."""
-        provide_internal_debugger(self)._ensure_process_stopped()
+        provide_internal_debugger(self).ensure_process_stopped()
         self.enabled = False
         self._changed = True
 
@@ -65,7 +67,7 @@ class Breakpoint:
             return False
 
         internal_debugger = provide_internal_debugger(self)
-        internal_debugger._ensure_process_stopped()
+        internal_debugger.ensure_process_stopped()
         return internal_debugger.resume_context.event_hit_ref.get(thread_context.thread_id) == self
 
     def __hash__(self: Breakpoint) -> int:

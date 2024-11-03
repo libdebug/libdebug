@@ -14,7 +14,7 @@ from libdebug.architectures.aarch64.aarch64_registers import Aarch64Registers
 from libdebug.ptrace.ptrace_register_holder import PtraceRegisterHolder
 
 if TYPE_CHECKING:
-    from libdebug.state.thread_context import ThreadContext
+    from libdebug.state.internal_thread_context import InternalThreadContext
 
 AARCH64_REGS = [f"x{i}" for i in range(31)] + ["sp", "xzr", "pc"]
 
@@ -22,11 +22,11 @@ AARCH64_SPECIAL_REGS = ["pstate"]
 
 def _get_property_64(name: str) -> property:
     def getter(self: Aarch64Registers) -> int:
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger.ensure_process_stopped()
         return getattr(self.register_file, name)
 
     def setter(self: Aarch64Registers, value: int) -> None:
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger.ensure_process_stopped()
         setattr(self.register_file, name, value)
 
     return property(getter, setter, None, name)
@@ -34,13 +34,13 @@ def _get_property_64(name: str) -> property:
 
 def _get_property_32(name: str) -> property:
     def getter(self: Aarch64Registers) -> int:
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger.ensure_process_stopped()
         return getattr(self.register_file, name) & 0xFFFFFFFF
 
     # https://developer.arm.com/documentation/102374/0101/Registers-in-AArch64---general-purpose-registers
     # When a W register is written the top 32 bits of the 64-bit register are zeroed.
     def setter(self: Aarch64Registers, value: int) -> None:
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger.ensure_process_stopped()
         return setattr(self.register_file, name, value & 0xFFFFFFFF)
 
     return property(getter, setter, None, name)
@@ -48,24 +48,24 @@ def _get_property_32(name: str) -> property:
 
 def _get_property_zr(name: str) -> property:
     def getter(self: Aarch64Registers) -> int:
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger.ensure_process_stopped()
         return 0
 
     def setter(self: Aarch64Registers, _: int) -> None:
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger.ensure_process_stopped()
 
     return property(getter, setter, None, name)
 
 
 def _get_property_fp_8(name: str, index: int) -> property:
     def getter(self: Aarch64Registers) -> int:
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger.ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         return int.from_bytes(self._fp_register_file.vregs[index].data, sys.byteorder) & 0xFF
 
     def setter(self: Aarch64Registers, value: int) -> None:
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger.ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
 
@@ -84,13 +84,13 @@ def _get_property_fp_8(name: str, index: int) -> property:
 
 def _get_property_fp_16(name: str, index: int) -> property:
     def getter(self: Aarch64Registers) -> int:
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger.ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         return int.from_bytes(self._fp_register_file.vregs[index].data, sys.byteorder) & 0xFFFF
 
     def setter(self: Aarch64Registers, value: int) -> None:
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger.ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
 
@@ -109,13 +109,13 @@ def _get_property_fp_16(name: str, index: int) -> property:
 
 def _get_property_fp_32(name: str, index: int) -> property:
     def getter(self: Aarch64Registers) -> int:
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger.ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         return int.from_bytes(self._fp_register_file.vregs[index].data, sys.byteorder) & 0xFFFFFFFF
 
     def setter(self: Aarch64Registers, value: int) -> None:
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger.ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
 
@@ -134,13 +134,13 @@ def _get_property_fp_32(name: str, index: int) -> property:
 
 def _get_property_fp_64(name: str, index: int) -> property:
     def getter(self: Aarch64Registers) -> int:
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger.ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         return int.from_bytes(self._fp_register_file.vregs[index].data, sys.byteorder) & 0xFFFFFFFFFFFFFFFF
 
     def setter(self: Aarch64Registers, value: int) -> None:
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger.ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
 
@@ -159,13 +159,13 @@ def _get_property_fp_64(name: str, index: int) -> property:
 
 def _get_property_fp_128(name: str, index: int) -> property:
     def getter(self: Aarch64Registers) -> int:
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger.ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         return int.from_bytes(self._fp_register_file.vregs[index].data, sys.byteorder)
 
     def setter(self: Aarch64Registers, value: int) -> None:
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger.ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         data = value.to_bytes(16, sys.byteorder)
@@ -177,11 +177,11 @@ def _get_property_fp_128(name: str, index: int) -> property:
 
 def _get_property_syscall_num() -> property:
     def getter(self: Aarch64Registers) -> int:
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger.ensure_process_stopped()
         return self.register_file.x8
 
     def setter(self: Aarch64Registers, value: int) -> None:
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger.ensure_process_stopped()
         self.register_file.x8 = value
         self.register_file.override_syscall_number = True
 
@@ -254,7 +254,7 @@ class Aarch64PtraceRegisterHolder(PtraceRegisterHolder):
 
         Aarch64PtraceRegisterHolder._vector_fp_registers = self._vector_fp_registers
 
-    def apply_on_thread(self: Aarch64PtraceRegisterHolder, target: ThreadContext, target_class: type) -> None:
+    def apply_on_thread(self: Aarch64PtraceRegisterHolder, target: InternalThreadContext, target_class: type) -> None:
         """Apply the register accessors to the thread class."""
         target.register_file = self.register_file
 

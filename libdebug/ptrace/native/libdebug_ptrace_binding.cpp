@@ -54,7 +54,7 @@ void LibdebugPtraceInterface::check_and_set_fpregs(Thread &t)
 }
 
 void LibdebugPtraceInterface::cont_thread(Thread &t)
-{
+{   
     if (ptrace(handle_syscall ? PTRACE_SYSCALL : PTRACE_CONT, t.tid, NULL, t.signal_to_forward) == -1) {
         throw std::runtime_error("ptrace cont failed");
     }
@@ -62,48 +62,48 @@ void LibdebugPtraceInterface::cont_thread(Thread &t)
     t.signal_to_forward = 0;
 }
 
-int LibdebugPtraceInterface::prepare_for_run()
-{
+void LibdebugPtraceInterface::prepare_thread(Thread &t){
     // Flush any register changes
-    for (auto &t : threads) {
-        if (setregs(t.second))
-            throw std::runtime_error("setregs failed");
-
-        check_and_set_fpregs(t.second);
+    if (setregs(t)) {
+        throw std::runtime_error("setregs failed");
     }
 
-    // Iterate over all the threads and check if any of them has hit a software
-    // breakpoint
-    for (auto &t : threads) {
-        bool t_hit = false;
-        unsigned long ip = INSTRUCTION_POINTER(t.second.regs);
+    check_and_set_fpregs(t);
 
-        for (auto &b : software_breakpoints) {
-            if (b.first == ip) {
-                // We hit a software breakpoint on this thread
-                t_hit = true;
-                break;
-            }
-        }
+    // Check if the thread has hit a software breakpoint
+    bool t_hit = false;
+    unsigned long ip = INSTRUCTION_POINTER(t.regs);
 
-        if (t_hit) {
-            // Step over the breakpoint
-            step_thread(t.second, false);
-
-            // Wait for the child
-            int status;
-            waitpid(t.first, &status, 0);
-
-            // status == 4991 ==> (WIFSTOPPED(status) && WSTOPSIG(status) ==
-            // SIGSTOP) this should happen only if threads are involved
-            if (status == 4991) {
-                step_thread(t.second, false);
-                waitpid(t.first, &status, 0);
-            }
+    for (auto &b : software_breakpoints) {
+        if (b.first == ip) {
+            // We hit a software breakpoint on this thread
+            t_hit = true;
+            break;
         }
     }
 
-    arch_check_if_hit_and_step_over();
+    if (t_hit) {
+        // Step over the breakpoint
+        step_thread(t, false);
+
+        // Wait for the child
+        int status;
+        waitpid(t.tid, &status, 0);
+
+        // status == 4991 ==> (WIFSTOPPED(status) && WSTOPSIG(status) ==
+        // SIGSTOP) this should happen only if threads are involved
+        if (status == 4991) {
+            step_thread(t, false);
+            waitpid(t.tid, &status, 0);
+        }
+    }
+
+    arch_check_if_hit_and_step_over(t);
+}
+
+void LibdebugPtraceInterface::prepare_thread_for_run(Thread &t)
+{
+    prepare_thread(t);
 
     // Restore any software breakpoints
     for (auto &bp : software_breakpoints) {
@@ -111,8 +111,20 @@ int LibdebugPtraceInterface::prepare_for_run()
             ptrace(PTRACE_POKETEXT, process_id, (void *) bp.first, (void *) bp.second.patched_instruction);
         }
     }
+}
 
-    return 0;
+void LibdebugPtraceInterface::prepare_process_for_run()
+{
+    for (auto &t : threads) {
+        prepare_thread(t.second);
+    }
+
+    // Restore any software breakpoints
+    for (auto &bp : software_breakpoints) {
+        if (bp.second.enabled) {
+            ptrace(PTRACE_POKETEXT, process_id, (void *) bp.first, (void *) bp.second.patched_instruction);
+        }
+    }
 }
 
 LibdebugPtraceInterface::LibdebugPtraceInterface()
@@ -260,12 +272,27 @@ void LibdebugPtraceInterface::set_tracing_options()
     }
 }
 
-void LibdebugPtraceInterface::cont_all_and_set_bps(bool handle_syscalls)
+void LibdebugPtraceInterface::cont_thread_and_set_bps(pid_t tid, bool handle_syscalls)
 {
     // Set the handle_syscall flag
     handle_syscall = handle_syscalls;
 
-    prepare_for_run();
+    // Get the thread
+    Thread &t = threads[tid];
+
+    // Prepare the thread
+    prepare_thread_for_run(t);
+
+    // Continue the thread
+    cont_thread(t);
+}
+
+void LibdebugPtraceInterface::cont_process_and_set_bps(bool handle_syscalls)
+{
+    // Set the handle_syscall flag
+    handle_syscall = handle_syscalls;
+
+    prepare_process_for_run();
 
     // Continue all the threads
     for (auto &t : threads) {
@@ -337,11 +364,13 @@ void LibdebugPtraceInterface::step_until(pid_t tid, unsigned long addr, int max_
     }
 }
 
-void LibdebugPtraceInterface::stepping_finish(pid_t tid, bool use_trampoline_heuristic)
+std::pair<pid_t, int> LibdebugPtraceInterface::stepping_finish_thread(pid_t tid, bool use_trampoline_heuristic)
 {
+    std::pair<pid_t, int> thread_status;
+
     Thread &stepping_thread = threads[tid];
 
-    prepare_for_run();
+    prepare_thread_for_run(stepping_thread);
 
     unsigned long previous_ip, current_ip;
     unsigned long opcode_window, opcode;
@@ -404,6 +433,9 @@ cleanup:
             poke_data(b.first, b.second.instruction);
         }
     }
+    thread_status.first = tid;
+    thread_status.second = status;
+    return thread_status;
 }
 
 unsigned long LibdebugPtraceInterface::get_thread_event_msg(const pid_t tid)
@@ -415,7 +447,42 @@ unsigned long LibdebugPtraceInterface::get_thread_event_msg(const pid_t tid)
     return data;
 }
 
-std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_regs()
+std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_thread_and_update_regs(pid_t tid)
+{   
+    std::vector<std::pair<pid_t, int>> thread_statuses;
+    int status, temp_tid;
+
+    temp_tid = waitpid(tid, &status, 0);
+
+    if (temp_tid == -1) {
+        throw std::runtime_error("waitpid failed");
+    }
+
+    thread_statuses.push_back({temp_tid, status});
+
+    // We keep polling but don't block, we want to get all the statuses we can
+    while ((temp_tid = waitpid(tid, &status, WNOHANG)) > 0) {
+        thread_statuses.push_back({temp_tid, status});
+    }
+
+    // Update the registers of the thread
+    getregs(threads[tid]);
+
+    for (auto &thread : threads) {
+        return thread_statuses;
+    }
+
+    // Restore any software breakpoints (only if no thread is running)
+    for (auto &bp : software_breakpoints) {
+        if (bp.second.enabled) {
+            ptrace(PTRACE_POKETEXT, process_id, (void *) bp.first, (void *) bp.second.instruction);
+        }
+    }
+
+    return thread_statuses;
+}
+
+std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_process_and_update_regs()
 {
     std::vector<std::pair<pid_t, int>> thread_statuses;
 
@@ -719,9 +786,21 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "Returns:\n"
             "    int: The event message."
         )
+        .def (
+            "wait_thread_and_update_regs",
+            &LibdebugPtraceInterface::wait_thread_and_update_regs,
+            nb::arg("tid"),
+            "Waits for a specific thread to stop and updates the registers if no other thread is running.\n"
+            "\n"
+            "Args:\n"
+            "    tid (int): The thread id to wait for.\n"
+            "\n"
+            "Returns:\n"
+            "    list: A list of tuples containing the thread id and the corresponding waitpid result."
+        )
         .def(
-            "wait_all_and_update_regs",
-            &LibdebugPtraceInterface::wait_all_and_update_regs,
+            "wait_process_and_update_regs",
+            &LibdebugPtraceInterface::wait_process_and_update_regs,
             nb::call_guard<nb::gil_scoped_release>(),
             "Waits for any thread to stop, interrupts all the others and updates the registers.\n"
             "\n"
@@ -729,8 +808,19 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "    list: A list of tuples containing the thread id and the corresponding waitpid result."
         )
         .def(
-            "cont_all_and_set_bps",
-            &LibdebugPtraceInterface::cont_all_and_set_bps,
+            "cont_thread_and_set_bps",
+            &LibdebugPtraceInterface::cont_thread_and_set_bps,
+            nb::arg("tid"),
+            nb::arg("handle_syscalls"),
+            "Continues a thread and sets the breakpoints.\n"
+            "\n"
+            "Args:\n"
+            "    tid (int): The thread id to continue.\n"
+            "    handle_syscalls (bool): A flag to indicate if the debuggee should stop on syscalls."
+        )
+        .def(
+            "cont_process_and_set_bps",
+            &LibdebugPtraceInterface::cont_process_and_set_bps,
             nb::arg("handle_syscalls"),
             "Sets the breakpoints and continues all the threads.\n"
             "\n"
@@ -760,8 +850,8 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "    max_steps (int): The maximum amount of steps to take, or -1 if unlimited."
         )
         .def(
-            "stepping_finish",
-            &LibdebugPtraceInterface::stepping_finish,
+            "stepping_finish_thread",
+            &LibdebugPtraceInterface::stepping_finish_thread,
             nb::arg("tid"),
             nb::arg("use_trampoline_heuristic"),
             "Runs a thread until the end of the current function call, by single-stepping it.\n"
@@ -769,6 +859,9 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "Args:\n"
             "    tid (int): The thread id to step.\n"
             "    use_trampoline_heuristic (bool): A flag to indicate if the trampoline heuristic for i386 should be used."
+            "\n"
+            "Returns:\n"
+            "    tuple: A tuple containing the thread id and the waitpid result."
         )
         .def(
             "forward_signals",

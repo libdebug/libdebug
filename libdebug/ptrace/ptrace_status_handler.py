@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.interfaces.debugging_interface import DebuggingInterface
-    from libdebug.state.thread_context import ThreadContext
+    from libdebug.state.internal_thread_context import InternalThreadContext
 
 
 class PtraceStatusHandler:
@@ -80,7 +80,13 @@ class PtraceStatusHandler:
         bp: None | Breakpoint
 
         bp = self.internal_debugger.breakpoints.get(ip)
-        if bp and bp.enabled and not bp._disabled_for_step:
+
+        if bp and bp.thread_id not in (-1, thread_id):
+            # The breakpoint is not set on this thread
+            self.forward_signal = False
+            return
+
+        if bp:
             # Hardware breakpoint hit
             liblog.debugger("Hardware breakpoint hit at 0x%x", ip)
         else:
@@ -89,15 +95,21 @@ class PtraceStatusHandler:
             ip -= software_breakpoint_byte_size(self.internal_debugger.arch)
 
             bp = self.internal_debugger.breakpoints.get(ip)
-            if bp and bp.enabled and not bp._disabled_for_step:
-                # Software breakpoint hit
-                liblog.debugger("Software breakpoint hit at 0x%x", ip)
 
+            if bp and bp.enabled and not bp._disabled_for_step:
                 # Set the instruction pointer to the previous instruction
                 thread.instruction_pointer = ip
 
                 # Link the breakpoint to the thread, so that we can step over it
                 bp._linked_thread_ids.append(thread_id)
+
+                if bp.thread_id not in (-1, thread_id):
+                    # The breakpoint is not set on this thread
+                    self.forward_signal = False
+                    return
+
+                # Software breakpoint hit
+                liblog.debugger("Software breakpoint hit at 0x%x", ip)
             else:
                 # If the breakpoint has been hit but is not enabled, we need to reset the bp variable
                 bp = None
@@ -105,7 +117,11 @@ class PtraceStatusHandler:
         # Manage watchpoints
         if not bp:
             bp = self.ptrace_interface.get_hit_watchpoint(thread_id)
-            if bp:
+            if bp and bp.thread_id not in (-1, thread_id):
+                # The watchpoint is not set on this thread
+                self.forward_signal = False
+                return
+            elif bp:
                 liblog.debugger("Watchpoint hit at 0x%x", bp.address)
 
         if bp:
@@ -114,7 +130,7 @@ class PtraceStatusHandler:
             bp.hit_count += 1
 
             if bp.callback:
-                bp.callback(thread, bp)
+                bp.callback(thread.public_thread_context, bp)
             else:
                 # If the breakpoint has no callback, we need to stop the process despite the other signals
                 self.internal_debugger.resume_context.event_type[thread_id] = EventType.BREAKPOINT
@@ -123,7 +139,7 @@ class PtraceStatusHandler:
     def _manage_syscall_on_enter(
         self: PtraceStatusHandler,
         handler: SyscallHandler,
-        thread: ThreadContext,
+        thread: InternalThreadContext,
         syscall_number: int,
         hijacked_set: set[int],
     ) -> None:
@@ -138,7 +154,7 @@ class PtraceStatusHandler:
                 thread.syscall_arg4,
                 thread.syscall_arg5,
             ]
-            handler.on_enter_user(thread, handler)
+            handler.on_enter_user(thread.public_thread_context, handler)
 
             # Check if the syscall number has changed
             syscall_number_after_callback = thread.syscall_number
@@ -148,7 +164,7 @@ class PtraceStatusHandler:
                 # Pretty print the syscall number before the callback
                 if handler.on_enter_pprint:
                     handler.on_enter_pprint(
-                        thread,
+                        thread.public_thread_context,
                         syscall_number,
                         hijacked=True,
                         old_args=old_args,
@@ -175,7 +191,11 @@ class PtraceStatusHandler:
                         )
                     elif callback_hijack.on_enter_pprint:
                         # Pretty print the syscall number
-                        callback_hijack.on_enter_pprint(thread, syscall_number_after_callback, hijacker=True)
+                        callback_hijack.on_enter_pprint(
+                            thread.public_thread_context,
+                            syscall_number_after_callback,
+                            hijacker=True,
+                        )
                         callback_hijack._has_entered = True
                         callback_hijack._skip_exit = True
                     else:
@@ -184,13 +204,17 @@ class PtraceStatusHandler:
                         callback_hijack._skip_exit = True
             elif handler.on_enter_pprint:
                 # Pretty print the syscall number
-                handler.on_enter_pprint(thread, syscall_number, callback=True, old_args=old_args)
+                handler.on_enter_pprint(thread.public_thread_context, syscall_number, callback=True, old_args=old_args)
                 handler._has_entered = True
             else:
                 handler._has_entered = True
         elif handler.on_enter_pprint:
             # Pretty print the syscall number
-            handler.on_enter_pprint(thread, syscall_number, callback=(handler.on_exit_user is not None))
+            handler.on_enter_pprint(
+                thread.public_thread_context,
+                syscall_number,
+                callback=(handler.on_exit_user is not None),
+            )
             handler._has_entered = True
         elif handler.on_exit_pprint or handler.on_exit_user:
             # The syscall has been entered but the user did not define an on_enter callback
@@ -218,6 +242,10 @@ class PtraceStatusHandler:
         else:
             # This is a syscall we don't care about
             # Resume the execution
+            return
+
+        if handler.thread_id not in (-1, thread_id):
+            # The syscall is not handled on this thread
             return
 
         self.internal_debugger.resume_context.event_hit_ref[thread_id] = handler
@@ -250,7 +278,7 @@ class PtraceStatusHandler:
                 # Pretty print the return value before the callback
                 if handler.on_exit_pprint:
                     return_value_before_callback = thread.syscall_return
-                handler.on_exit_user(thread, handler)
+                handler.on_exit_user(thread.public_thread_context, handler)
                 if handler.on_exit_pprint:
                     return_value_after_callback = thread.syscall_return
                     if return_value_after_callback != return_value_before_callback:
@@ -273,10 +301,14 @@ class PtraceStatusHandler:
     def _manage_caught_signal(
         self: PtraceStatusHandler,
         catcher: SignalCatcher,
-        thread: ThreadContext,
+        thread: InternalThreadContext,
         signal_number: int,
         hijacked_set: set[int],
     ) -> None:
+        if catcher.thread_id not in (-1, thread.thread_id):
+            # The signal is not caught on this thread
+            return
+
         if catcher.enabled:
             catcher.hit_count += 1
             liblog.debugger(
@@ -287,9 +319,9 @@ class PtraceStatusHandler:
             )
             if catcher.callback:
                 # Execute the user-defined callback
-                catcher.callback(thread, catcher)
+                catcher.callback(thread.public_thread_context, catcher)
 
-                new_signal_number = thread._signal_number
+                new_signal_number = thread.signal_number
 
                 if new_signal_number != signal_number:
                     # The signal number has changed
@@ -322,9 +354,9 @@ class PtraceStatusHandler:
                 self.internal_debugger.resume_context.event = EventType.SIGNAL
                 self.internal_debugger.resume_context.resume = False
 
-    def _handle_signal(self: PtraceStatusHandler, thread: ThreadContext) -> bool:
+    def _handle_signal(self: PtraceStatusHandler, thread: InternalThreadContext) -> bool:
         """Handle the signal trap."""
-        signal_number = thread._signal_number
+        signal_number = thread.signal_number
 
         if signal_number in self.internal_debugger.caught_signals:
             catcher = self.internal_debugger.caught_signals[signal_number]
@@ -429,7 +461,7 @@ class PtraceStatusHandler:
             thread = self.internal_debugger.get_thread_by_id(pid)
 
             if thread is not None:
-                thread._signal_number = signum
+                thread.signal_number = signum
 
                 # Handle the signal
                 self._handle_signal(thread)
@@ -449,6 +481,22 @@ class PtraceStatusHandler:
             exit_signal = os.WTERMSIG(status)
             liblog.debugger("Child process %d exited with signal %d", pid, exit_signal)
             self._handle_exit(pid, exit_code=None, exit_signal=exit_signal)
+
+        # Clean up the internal state from false positives
+        if (
+            self.internal_debugger.resume_context.is_a_step_finish
+            or self.internal_debugger.resume_context.backtrace_finish_bps.get(pid)
+        ) and not self.internal_debugger.resume_context.event_type.get(pid):
+            self.internal_debugger.resume_context.event_type[pid] = EventType.FINISH
+            self.internal_debugger.resume_context.resume = False
+            self.internal_debugger.resume_context.threads_with_signals_to_forward.remove(pid)
+        elif (
+            pid in self.internal_debugger.resume_context.is_a_next
+            and not self.internal_debugger.resume_context.event_type.get(pid)
+        ):
+            self.internal_debugger.resume_context.event_type[pid] = EventType.NEXT
+            self.internal_debugger.resume_context.resume = False
+            self.internal_debugger.resume_context.threads_with_signals_to_forward.remove(pid)
 
     def manage_change(self: PtraceStatusHandler, result: list[tuple]) -> None:
         """Manage the result of the waitpid and handle the changes."""

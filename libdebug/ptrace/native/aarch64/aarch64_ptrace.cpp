@@ -120,29 +120,27 @@ void LibdebugPtraceInterface::step_thread(Thread &t, bool forward_signal, bool s
     }
 }
 
-void LibdebugPtraceInterface::arch_check_if_hit_and_step_over()
+void LibdebugPtraceInterface::arch_check_if_hit_and_step_over(Thread &t)
 {
-    // iterate over all the threads and check if any of them has hit a hardware breakpoint
-    for (auto &t : threads) {
-        for (auto &bp : hardware_breakpoints) {
-            if (bp.tid == t.first && bp.enabled && hit_hardware_breakpoint_address(t.first) == bp.addr) {
-                // remove the breakpoint
-                remove_hardware_breakpoint(bp);
+    // Check if the thread is on a hardware breakpoint
+    for (auto &bp : hardware_breakpoints) {
+        if (bp.tid == t.tid && bp.enabled && hit_hardware_breakpoint_address(t.tid) == bp.addr) {
+            // remove the breakpoint
+            remove_hardware_breakpoint(bp);
 
-                // step over the breakpoint
-                if (ptrace(PTRACE_SINGLESTEP, t.first, NULL, NULL)) {
-                    throw std::runtime_error("ptrace singlestep failed");
-                }
-
-                // wait for the child
-                int status;
-                waitpid(t.first, &status, 0);
-
-                // re-add the breakpoint
-                install_hardware_breakpoint(bp);
-
-                break;
+            // step over the breakpoint
+            if (ptrace(PTRACE_SINGLESTEP, t.tid, NULL, NULL)) {
+                throw std::runtime_error("ptrace singlestep failed");
             }
+
+            // wait for the child
+            int status;
+            waitpid(t.tid, &status, 0);
+
+            // re-add the breakpoint
+            install_hardware_breakpoint(bp);
+
+            break;
         }
     }
 }

@@ -49,7 +49,7 @@ class Debugger:
     """The internal debugger object."""
 
     def __init__(self: Debugger) -> None:
-        pass
+        """Do not use this constructor directly. Use the `debugger` function instead."""
 
     def post_init_(self: Debugger, internal_debugger: InternalDebugger) -> None:
         """Do not use this constructor directly. Use the `debugger` function instead."""
@@ -85,7 +85,7 @@ class Debugger:
         self._internal_debugger.terminate()
 
     def cont(self: Debugger) -> None:
-        """Continues the process."""
+        """Continues the execution of the entire process."""
         self._internal_debugger.cont()
 
     def interrupt(self: Debugger) -> None:
@@ -192,7 +192,7 @@ class Debugger:
         original_signal: int | str,
         new_signal: int | str,
         recursive: bool = False,
-    ) -> SyscallHandler:
+    ) -> SignalCatcher:
         """Hijack a signal in the target process.
 
         Args:
@@ -273,7 +273,7 @@ class Debugger:
     def c(self: Debugger) -> None:
         """Alias for the `cont` method.
 
-        Continues the process.
+        Continues the execution of the entire process.
         """
         self._internal_debugger.cont()
 
@@ -365,7 +365,7 @@ class Debugger:
     @property
     def threads(self: Debugger) -> list[ThreadContext]:
         """Get the list of threads in the process."""
-        return self._internal_debugger.threads
+        return self._internal_debugger.public_threads
 
     @property
     def breakpoints(self: Debugger) -> dict[int, Breakpoint]:
@@ -735,8 +735,8 @@ class Debugger:
 
     @property
     def running(self: Debugger) -> bool:
-        """Whether the process is running."""
-        return self._internal_debugger.running
+        """Whether any thread of the process is running."""
+        return self._internal_debugger.any_thread_running
 
     @property
     def saved_ip(self: Debugger) -> int:
@@ -823,8 +823,11 @@ class Debugger:
         self.pprint_registers_all()
 
     def step(self: Debugger) -> None:
-        """Executes a single instruction of the process."""
-        self._internal_debugger.step(self)
+        """Executes a single instruction of all threads.
+
+        It is equivalent to calling `thread.step()` on each thread.
+        """
+        self._internal_debugger.step()
 
     def step_until(
         self: Debugger,
@@ -834,15 +837,21 @@ class Debugger:
     ) -> None:
         """Executes instructions of the process until the specified location is reached.
 
+        Called on the `debugger` object, this method will perform the action on all threads.
+        It is equivalent to calling `thread.step_until()` on each thread.
+
         Args:
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
             file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
-        self._internal_debugger.step_until(self, position, max_steps, file)
+        self._internal_debugger.step_until(position, max_steps, file)
 
     def finish(self: Debugger, heuristic: str = "backtrace") -> None:
         """Continues execution until the current function returns or the process stops.
+
+        Called on the `debugger` object, this method will perform the action on all threads.
+        It is equivalent to calling `thread.finish(heuristic)` on each thread.
 
         The command requires a heuristic to determine the end of the function. The available heuristics are:
         - `backtrace`: The debugger will place a breakpoint on the saved return address found on the stack and continue execution on all threads.
@@ -851,36 +860,54 @@ class Debugger:
         Args:
             heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
         """
-        self._internal_debugger.finish(self, heuristic=heuristic)
+        self._internal_debugger.finish(heuristic)
 
     def next(self: Debugger) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
-        self._internal_debugger.next(self)
+        """Executes the next instruction of the process.
+
+        Called on the `debugger` object, this method will perform the action on all threads.
+        It is equivalent to calling `thread.next()` on each thread.
+
+        If the instruction is a call, the debugger will continue until the called function returns.
+        """
+        self._internal_debugger.next()
 
     def si(self: Debugger) -> None:
         """Alias for the `step` method.
 
-        Executes a single instruction of the process.
+        Executes a single instruction of all threads.
+
+        It is equivalent to calling `thread.si()` on each thread.
         """
-        self._internal_debugger.step(self)
+        self._internal_debugger.step()
 
     def su(
         self: Debugger,
         position: int | str,
         max_steps: int = -1,
+        file: str = "hybrid",
     ) -> None:
         """Alias for the `step_until` method.
 
         Executes instructions of the process until the specified location is reached.
 
+        Called on the `debugger` object, this method will perform the action on all threads.
+        It is equivalent to calling `thread.step_until()` on each thread.
+
         Args:
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
-        self._internal_debugger.step_until(self, position, max_steps)
+        self._internal_debugger.step_until(position, max_steps, file)
 
     def fin(self: Debugger, heuristic: str = "backtrace") -> None:
         """Alias for the `finish` method. Continues execution until the current function returns or the process stops.
+
+        Continues execution until the current function returns or the process stops.
+
+        Called on the `debugger` object, this method will perform the action on all threads.
+        It is equivalent to calling `thread.finish(heuristic)` on each thread.
 
         The command requires a heuristic to determine the end of the function. The available heuristics are:
         - `backtrace`: The debugger will place a breakpoint on the saved return address found on the stack and continue execution on all threads.
@@ -889,11 +916,19 @@ class Debugger:
         Args:
             heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
         """
-        self._internal_debugger.finish(self, heuristic)
+        self._internal_debugger.finish(heuristic)
 
     def ni(self: Debugger) -> None:
-        """Alias for the `next` method. Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
-        self._internal_debugger.next(self)
+        """Alias for the `next` method.
+
+        Executes the next instruction of the process.
+
+        Called on the `debugger` object, this method will perform the action on all threads.
+        It is equivalent to calling `thread.next()` on each thread.
+
+        If the instruction is a call, the debugger will continue until the called function returns.
+        """
+        self._internal_debugger.next()
 
     def __repr__(self: Debugger) -> str:
         """Return the string representation of the `Debugger` object."""

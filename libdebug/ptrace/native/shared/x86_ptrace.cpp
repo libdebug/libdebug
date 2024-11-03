@@ -51,7 +51,7 @@ void LibdebugPtraceInterface::step_thread(Thread &t, bool forward_signal, bool s
     }
 }
 
-void LibdebugPtraceInterface::arch_check_if_hit_and_step_over()
+void LibdebugPtraceInterface::arch_check_if_hit_and_step_over(Thread &t)
 {
     // on x86, we do not need to check for hardware breakpoints
 }
