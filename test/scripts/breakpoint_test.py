@@ -25,6 +25,8 @@ match PLATFORM:
             harness.assertEqual(d.regs.esi, 45)
             harness.assertEqual(d.regs.si, 45)
             harness.assertEqual(d.regs.sil, 45)
+            
+        TEST_THREAD_SCOPED_END_THREAD = 0x128a
     case "aarch64":
         TEST_BPS_ADDRESS_1 = 0x7fc
         TEST_BPS_ADDRESS_2 = 0x820
@@ -35,6 +37,8 @@ match PLATFORM:
         def CHECK_REGISTERS(harness, d):
             harness.assertEqual(d.regs.x1, 45)
             harness.assertEqual(d.regs.w1, 45)
+        
+        TEST_THREAD_SCOPED_END_THREAD = 0xaec
     case "i386":
         TEST_BPS_ADDRESS_1 = 0x11d0
         TEST_BPS_ADDRESS_2 = 0x11ea
@@ -45,6 +49,7 @@ match PLATFORM:
         def CHECK_REGISTERS(harness, d):
             value = int.from_bytes(d.memory[d.regs.esp + 4, 4], "little")
             harness.assertEqual(value, 45)
+        TEST_THREAD_SCOPED_END_THREAD = 0x1243
     case _:
         raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
 
@@ -686,3 +691,118 @@ class BreakpointTest(TestCase):
 
         d.kill()
         d.terminate()
+        
+    def test_bp_sync_sw_thread_scoped(self):
+        d = debugger(RESOLVE_EXE("multithread_input"))
+        
+        r = d.run()
+        
+        d.cont()
+        
+        # Let wait all threads to be created
+        r.recvuntil(b"All threads have been created.")
+        
+        # Interrupt the process
+        d.interrupt()
+        
+        # Choice a target
+        target = d.threads[2]
+        other_threads = d.threads.copy()
+        other_threads.remove(target)
+        
+        # Set a breakpoint on the target thread
+        bp = target.bp(TEST_THREAD_SCOPED_END_THREAD, file="binary")
+        
+        for _ in range(5):
+            # Process will ask for input. Let put some input in the buffer
+            r.sendline(b"Io_no")
+        
+        # Process scoped continue and wait
+        d.cont()
+        d.wait()
+        
+        self.assertTrue(bp.hit_on(target))
+        
+        for thread in other_threads:
+            self.assertFalse(bp.hit_on(thread))
+        
+        d.kill()
+        d.terminate()
+    
+    def test_bp_sync_hw_thread_scoped(self):
+        d = debugger(RESOLVE_EXE("multithread_input"))
+        
+        r = d.run()
+        
+        d.cont()
+        
+        # Let wait all threads to be created
+        r.recvuntil(b"All threads have been created.")
+        
+        # Interrupt the process
+        d.interrupt()
+        
+        # Choice a target
+        target = d.threads[2]
+        other_threads = d.threads.copy()
+        other_threads.remove(target)
+        
+        # Set a breakpoint on the target thread
+        bp = target.bp(TEST_THREAD_SCOPED_END_THREAD, file="binary", hardware=True)
+        
+        for _ in range(5):
+            # Process will ask for input. Let put some input in the buffer
+            r.sendline(b"Io_no")
+        
+        # Process scoped continue and wait
+        d.cont()
+        d.wait()
+        
+        self.assertTrue(bp.hit_on(target))
+        
+        for thread in other_threads:
+            self.assertFalse(bp.hit_on(thread))
+        
+        d.kill()
+        d.terminate()
+    
+    def test_bp_async_sw_thread_scoped(self):
+        def callback(t, bp):
+            # self.assertEqual(t.thread_id, target.thread_id)
+            pass
+        
+        d = debugger(RESOLVE_EXE("multithread_input"))
+        
+        r = d.run()
+        
+        d.cont()
+        
+        # Let wait all threads to be created
+        r.recvuntil(b"All threads have been created.")
+        
+        # Interrupt the process
+        d.interrupt()
+        
+        # Choice a target
+        target = d.threads[2]
+        other_threads = d.threads.copy()
+        other_threads.remove(target)
+        
+        # Set a breakpoint on the target thread
+        bp = target.bp(TEST_THREAD_SCOPED_END_THREAD, file="binary", callback=callback)
+        
+        # Process scoped continue and wait
+        d.cont()
+        for _ in range(5):
+            # Process will ask for input
+            r.sendline(b"Io_no")
+        
+        d.wait()
+        
+        d.kill()
+        
+        # The callback should have been called only once, from the target thread only
+        self.assertEqual(bp.hit_count, 1)
+        
+        d.terminate()
+        
