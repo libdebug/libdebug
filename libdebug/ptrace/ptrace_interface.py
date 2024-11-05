@@ -497,7 +497,9 @@ class PtraceInterface(DebuggingInterface):
                 liblog.debugger(
                     f"Forwarding signal {thread.signal_number} to thread {thread.thread_id}",
                 )
+                # Add the signal to the list of signals to forward
                 signals_to_forward.append((thread.thread_id, thread.signal_number))
+                # Reset the signal number
                 thread._signal_number = 0
 
         self.lib_trace.forward_signals(signals_to_forward)
