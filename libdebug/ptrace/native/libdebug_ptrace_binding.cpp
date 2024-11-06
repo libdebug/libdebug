@@ -115,7 +115,7 @@ int LibdebugPtraceInterface::prepare_for_run()
     return 0;
 }
 
-Thread& LibdebugPtraceInterface::get_or_raise_exception(const pid_t tid)
+Thread& LibdebugPtraceInterface::get_thread_or_raise_exception(const pid_t tid)
 {
     auto it = threads.find(tid);
 
@@ -286,7 +286,7 @@ void LibdebugPtraceInterface::cont_all_and_set_bps(bool handle_syscalls)
 
 void LibdebugPtraceInterface::step(const pid_t tid)
 {
-    Thread &t = get_or_raise_exception(tid);
+    Thread &t = get_thread_or_raise_exception(tid);
 
     // Flush any register changes
     if (setregs(t)) {
@@ -302,7 +302,7 @@ void LibdebugPtraceInterface::step(const pid_t tid)
 
 void LibdebugPtraceInterface::step_until(const pid_t tid, const unsigned long addr, const int max_steps)
 {
-    Thread &t = get_or_raise_exception(tid);
+    Thread &t = get_thread_or_raise_exception(tid);
 
     // Flush any register changes
     if (setregs(t)) {
@@ -352,7 +352,7 @@ void LibdebugPtraceInterface::step_until(const pid_t tid, const unsigned long ad
 
 void LibdebugPtraceInterface::stepping_finish(const pid_t tid, const bool use_trampoline_heuristic)
 {
-    Thread &stepping_thread = get_or_raise_exception(tid);
+    Thread &stepping_thread = get_thread_or_raise_exception(tid);
 
     prepare_for_run();
 
@@ -543,7 +543,7 @@ void LibdebugPtraceInterface::disable_breakpoint(const unsigned long address)
 
 void LibdebugPtraceInterface::register_hw_breakpoint(const pid_t tid, unsigned long address, const int type, const int len)
 {
-    Thread &t = get_or_raise_exception(tid);
+    Thread &t = get_thread_or_raise_exception(tid);
 
     if (t.hardware_breakpoints.find(address) != t.hardware_breakpoints.end()) {
         throw std::runtime_error("Breakpoint already registered");
@@ -565,7 +565,7 @@ void LibdebugPtraceInterface::register_hw_breakpoint(const pid_t tid, unsigned l
 
 void LibdebugPtraceInterface::unregister_hw_breakpoint(const pid_t tid, const unsigned long address)
 {
-    Thread &t = get_or_raise_exception(tid);
+    Thread &t = get_thread_or_raise_exception(tid);
 
     if (t.hardware_breakpoints.find(address) == t.hardware_breakpoints.end()) {
         throw std::runtime_error("Breakpoint not found");
@@ -581,7 +581,7 @@ void LibdebugPtraceInterface::unregister_hw_breakpoint(const pid_t tid, const un
 
 unsigned long LibdebugPtraceInterface::get_hit_hw_breakpoint(const pid_t tid)
 {
-    Thread &t = get_or_raise_exception(tid);
+    Thread &t = get_thread_or_raise_exception(tid);
 
     unsigned long address = hit_hardware_breakpoint_address(tid);
 
@@ -598,7 +598,7 @@ unsigned long LibdebugPtraceInterface::get_hit_hw_breakpoint(const pid_t tid)
 
 void LibdebugPtraceInterface::get_fp_regs(pid_t tid)
 {
-    Thread &t = get_or_raise_exception(tid);
+    Thread &t = get_thread_or_raise_exception(tid);
 
     getfpregs(t);
 }
