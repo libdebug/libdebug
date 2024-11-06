@@ -222,7 +222,10 @@ class PtraceInterface(DebuggingInterface):
         # We must disable all breakpoints before detaching
         for bp in list(self._internal_debugger.breakpoints.values()):
             if bp.enabled:
-                self.unset_breakpoint(bp, delete=True)
+                try:
+                    self.unset_breakpoint(bp, delete=True)
+                except RuntimeError as e:
+                    liblog.debugger("Error unsetting breakpoint %r", e)
 
         self.lib_trace.detach_and_cont()
 
