@@ -76,6 +76,21 @@ static int _get_remaining_count(const int tid, const int command)
     return dbg_state.dbg_info & 0xff;
 }
 
+static void _step_thread(Thread &t, bool forward_signal)
+{
+    if (forward_signal) {
+        if (ptrace(PTRACE_SINGLESTEP, t.tid, NULL, t.signal_to_forward) == -1) {
+            throw std::runtime_error("ptrace singlestep failed");
+        }
+
+        t.signal_to_forward = 0;
+    } else {
+        if (ptrace(PTRACE_SINGLESTEP, t.tid, NULL, 0) == -1) {
+            throw std::runtime_error("ptrace singlestep failed");
+        }
+    }
+}
+
 void LibdebugPtraceInterface::step_thread(Thread &t, bool forward_signal, bool step_over_hardware_bp)
 {
     // on aarch64, step doesn't override hardware breakpoints
@@ -86,17 +101,7 @@ void LibdebugPtraceInterface::step_thread(Thread &t, bool forward_signal, bool s
                 // remove the breakpoint
                 remove_hardware_breakpoint(bp.second);
 
-                if (forward_signal) {
-                    if (ptrace(PTRACE_SINGLESTEP, t.tid, NULL, t.signal_to_forward) == -1) {
-                        throw std::runtime_error("ptrace singlestep failed");
-                    }
-
-                    t.signal_to_forward = 0;
-                } else {
-                    if (ptrace(PTRACE_SINGLESTEP, t.tid, NULL, 0) == -1) {
-                        throw std::runtime_error("ptrace singlestep failed");
-                    }
-                }
+                _step_thread(t, forward_signal);
 
                 // re-add the breakpoint
                 install_hardware_breakpoint(bp.second);
@@ -104,20 +109,10 @@ void LibdebugPtraceInterface::step_thread(Thread &t, bool forward_signal, bool s
                 return;
             }
         }
-    } else {
-        // either step_over_hardware_bp is false or the thread is not on a hardware breakpoint
-        if (forward_signal) {
-            if (ptrace(PTRACE_SINGLESTEP, t.tid, NULL, t.signal_to_forward) == -1) {
-                throw std::runtime_error("ptrace singlestep failed");
-            }
-
-            t.signal_to_forward = 0;
-        } else {
-            if (ptrace(PTRACE_SINGLESTEP, t.tid, NULL, 0) == -1) {
-                throw std::runtime_error("ptrace singlestep failed");
-            }
-        }
     }
+
+    // either step_over_hardware_bp is false or the thread is not on a hardware breakpoint
+    _step_thread(t, forward_signal);
 }
 
 void LibdebugPtraceInterface::arch_check_if_hit_and_step_over()
