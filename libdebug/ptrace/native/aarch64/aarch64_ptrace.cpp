@@ -119,19 +119,29 @@ void LibdebugPtraceInterface::arch_check_if_hit_and_step_over()
 {
     // iterate over all the threads and check if any of them has hit a hardware breakpoint
     for (auto &t : threads) {
-        for (auto &bp : t.second.hardware_breakpoints) {
-            if (bp.second.enabled && hit_hardware_breakpoint_address(t.first) == bp.first) {
+        unsigned long address = hit_hardware_breakpoint_address(t.second.tid);
+
+        if (!address) {
+            continue;
+        }
+
+        for (auto &bp: t.second.hardware_breakpoints) {
+            if (bp.second.enabled && address == bp.first) {
                 // remove the breakpoint
                 remove_hardware_breakpoint(bp.second);
 
-                // step over the breakpoint
-                if (ptrace(PTRACE_SINGLESTEP, t.first, NULL, NULL)) {
-                    throw std::runtime_error("ptrace singlestep failed");
-                }
+                // step the thread
+                _step_thread(t.second, false);
 
-                // wait for the child
                 int status;
                 waitpid(t.first, &status, 0);
+
+                // status == 4991 ==> (WIFSTOPPED(status) && WSTOPSIG(status) ==
+                // SIGSTOP) this should happen only if threads are involved
+                if (status == 4991) {
+                    step_thread(t.second, false);
+                    waitpid(t.first, &status, 0);
+                }
 
                 // re-add the breakpoint
                 install_hardware_breakpoint(bp.second);
