@@ -65,7 +65,7 @@ int IS_CALL_INSTRUCTION(uint8_t* instr)
 
 static int _get_remaining_count(const int tid, const int command)
 {
-    struct user_hwdebug_state dbg_state = {0};
+    struct user_hwdebug_state dbg_state = {};
 
     struct iovec iov;
     iov.iov_base = &dbg_state;
@@ -214,7 +214,7 @@ void LibdebugPtraceInterface::arch_setfpregs(Thread &t)
 void LibdebugPtraceInterface::install_hardware_breakpoint(const HardwareBreakpoint &bp)
 {
     // find a free debug register
-    struct user_hwdebug_state state = {0};
+    struct user_hwdebug_state state = {};
 
     struct iovec iov;
     iov.iov_base = &state;
@@ -252,7 +252,7 @@ void LibdebugPtraceInterface::install_hardware_breakpoint(const HardwareBreakpoi
 
 void LibdebugPtraceInterface::remove_hardware_breakpoint(const HardwareBreakpoint &bp)
 {
-    struct user_hwdebug_state state = {0};
+    struct user_hwdebug_state state = {};
 
     struct iovec iov;
     iov.iov_base = &state;
@@ -296,6 +296,8 @@ unsigned long LibdebugPtraceInterface::hit_hardware_breakpoint_address(const pid
 
 bool LibdebugPtraceInterface::check_if_dl_trampoline(unsigned long instruction_pointer)
 {
+    (void) instruction_pointer;
+
     // Does not apply to AArch64
     return false;
 }
