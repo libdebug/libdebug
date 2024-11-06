@@ -43,6 +43,9 @@ private:
     // Others
     bool check_if_dl_trampoline(unsigned long);
 
+    // Utility methods
+    Thread &get_or_raise_exception(const pid_t);
+
 public:
     LibdebugPtraceInterface();
 
