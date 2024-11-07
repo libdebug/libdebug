@@ -97,3 +97,13 @@ The process will stop upon attachment, waiting for your commands.
 
 !!! WARNING "Ptrace Scope"
     **libdebug** uses the `ptrace` system call to interact with the process. For security reasons, this system call is limited by the kernel according to a [`ptrace_scope`](https://www.kernel.org/doc/Documentation/security/Yama.txt) parameter. Different systems have different default values for this parameter. If the `ptrace` system call is not allowed, the `attach()` method will raise an exception notifying you of this issue.
+
+## :material-pipe-leak: Disabling Pipe Redirection
+By default, **libdebug** redirects the standard input, output, and error of the process to pipes. This is how you can interact with these file descriptors using [I/O commands](#interactive-io). If you want to disable this behavior, you can set the `redirect_pipes` parameter of the `run()` method to `False`.
+
+!!! ABSTRACT "Usage"
+    ```python
+    d.run(redirect_pipes=False)
+    ```
+
+When set to `False`, the standard input, output, and error of the process will not be redirected to pipes. This means that you will not be able to interact with the process using the [PipeManager](../../from_pydoc/generated/commlink/pipe_manager) object, and **libdebug** will act as a transparent proxy between the executable and its standard I/O.
