@@ -347,7 +347,7 @@ class ThreadContext:
         repr_str += f"  Dead: {self.dead}"
         return repr_str
 
-    def create_snapshot(self: ThreadContext, level: str = "base", name: str = None) -> ThreadSnapshot:
+    def create_snapshot(self: ThreadContext, level: str = "base", name: str | None = None) -> ThreadSnapshot:
         """Create a snapshot of the current thread state.
 
         Snapshot levels:

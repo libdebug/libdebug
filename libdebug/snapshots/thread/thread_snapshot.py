@@ -34,7 +34,7 @@ class ThreadSnapshot(Snapshot):
     - full: Registers, all readable memory contents
     """
 
-    def __init__(self: ThreadSnapshot, thread: ThreadContext, level: str = "base", name: str = None) -> None:
+    def __init__(self: ThreadSnapshot, thread: ThreadContext, level: str = "base", name: str | None = None) -> None:
         """Creates a new snapshot object for the given thread.
 
         Args:

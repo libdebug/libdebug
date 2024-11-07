@@ -5,9 +5,13 @@
 #
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from libdebug.snapshots.diff import Diff
-from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
 from libdebug.snapshots.thread.lw_thread_snapshot_diff import LightweightThreadSnapshotDiff
+
+if TYPE_CHECKING:
+    from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
 
 
 class ProcessSnapshotDiff(Diff):
@@ -20,9 +24,6 @@ class ProcessSnapshotDiff(Diff):
             snapshot1 (ProcessSnapshot): A process snapshot.
             snapshot2 (ProcessSnapshot): A process snapshot.
         """
-        if not isinstance(snapshot1, ProcessSnapshot) or not isinstance(snapshot2, ProcessSnapshot):
-            raise TypeError("Both arguments must be ProcessSnapshot objects.")
-
         super().__init__(snapshot1, snapshot2)
 
         # Register diffs

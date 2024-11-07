@@ -35,7 +35,7 @@ class ProcessSnapshot(Snapshot):
     - full: Registers, stack, all readable memory contents
     """
 
-    def __init__(self: ProcessSnapshot, debugger: Debugger, level: str = "base", name: str = None) -> None:
+    def __init__(self: ProcessSnapshot, debugger: Debugger, level: str = "base", name: str | None = None) -> None:
         """Creates a new snapshot object for the given process.
 
         Args:

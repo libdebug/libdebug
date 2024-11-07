@@ -7,11 +7,9 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from libdebug.liblog import liblog
-from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
 from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.signal_utils import (
     get_all_signal_numbers,
@@ -38,6 +36,7 @@ if TYPE_CHECKING:
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
+    from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
     from libdebug.snapshots.snapshot import Snapshot
     from libdebug.state.thread_context import ThreadContext
 
