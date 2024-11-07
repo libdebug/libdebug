@@ -106,4 +106,4 @@ By default, **libdebug** redirects the standard input, output, and error of the 
     d.run(redirect_pipes=False)
     ```
 
-When set to `False`, the standard input, output, and error of the process will not be redirected to pipes. This means that you will not be able to interact with the process using the [PipeManager](../../from_pydoc/generated/commlink/pipe_manager) object.
+When set to `False`, the standard input, output, and error of the process will not be redirected to pipes. This means that you will not be able to interact with the process using the [PipeManager](../../from_pydoc/generated/commlink/pipe_manager) object, and **libdebug** will act as a transparent proxy between the executable and its standard I/O.
