@@ -84,8 +84,8 @@ If the diff is of `full` or `writable` level, the [MemoryMapDiff](../../from_pyd
     ```python
     stack_page_diff = ts_diff.maps.filter("stack")[0]
 
-    for curr_slice in stack_page_diff.content_diff:
-        print(f"Memory diff slice: {hex(curr_slice.start)}:{hex(curr_slice.stop)}")
+    for current_slice in stack_page_diff.content_diff:
+        print(f"Memory diff slice: {hex(current_slice.start)}:{hex(current_slice.stop)}")
     ```
     Output:
     ```plaintext

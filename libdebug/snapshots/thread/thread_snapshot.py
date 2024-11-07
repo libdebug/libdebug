@@ -18,6 +18,7 @@ from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshot
 from libdebug.snapshots.memory.snapshot_memory_view import SnapshotMemoryView
 from libdebug.snapshots.registers.snapshot_registers import SnapshotRegisters
 from libdebug.snapshots.snapshot import Snapshot
+from libdebug.snapshots.thread.thread_snapshot_diff import ThreadSnapshotDiff
 
 if TYPE_CHECKING:
     from libdebug.snapshots.diff import Diff
@@ -29,8 +30,8 @@ class ThreadSnapshot(Snapshot):
 
     Snapshot levels:
     - base: Registers
-    - writable: Registers, writable memory
-    - full: Registers, memory
+    - writable: Registers, writable memory contents
+    - full: Registers, all readable memory contents
     """
 
     def __init__(self: ThreadSnapshot, thread: ThreadContext, level: str = "base", name: str = None) -> None:
@@ -70,7 +71,7 @@ class ThreadSnapshot(Snapshot):
                         "Memory snapshot requested but fast memory is not enabled. This will take a long time.",
                     )
 
-                # Save all memory pages
+                # Save all writable memory pages
                 self._save_memory_maps(thread.debugger, writable_only=True)
 
                 self._memory = SnapshotMemoryView(self, thread.debugger.symbols)
@@ -95,15 +96,17 @@ class ThreadSnapshot(Snapshot):
 
     def diff(self: ThreadSnapshot, other: ThreadSnapshot) -> Diff:
         """Creates a diff object between two snapshots."""
-        from libdebug.snapshots.thread.thread_snapshot_diff import ThreadSnapshotDiff
+        if not isinstance(other, ThreadSnapshot):
+            raise TypeError("Both arguments must be ThreadSnapshot objects.")
 
         return ThreadSnapshotDiff(self, other)
-
 
     def save(self: ThreadSnapshot, file_path: str) -> None:
         """Saves the snapshot object to a file."""
         all_reg_names = dir(self.regs)
-        all_reg_names = [reg_name for reg_name in all_reg_names if isinstance(getattr(self.regs, reg_name), int | float)]
+        all_reg_names = [
+            reg_name for reg_name in all_reg_names if isinstance(getattr(self.regs, reg_name), int | float)
+        ]
 
         serializable_dict = {
             "type": "thread",
@@ -133,7 +136,7 @@ class ThreadSnapshot(Snapshot):
                 "size": memory_map.size,
                 "offset": memory_map.offset,
                 "backing_file": memory_map.backing_file,
-                "content": b64encode(memory_map._content).decode("utf-8") if memory_map._content is not None else None,
+                "content": b64encode(memory_map.content).decode("utf-8") if memory_map.content is not None else None,
             }
             saved_maps.append(saved_map)
 
@@ -192,7 +195,6 @@ class ThreadSnapshot(Snapshot):
         raw_map_list = []
 
         for saved_map in loaded_maps:
-
             new_map = MemoryMap(
                 saved_map["start"],
                 saved_map["end"],
@@ -228,7 +230,7 @@ class ThreadSnapshot(Snapshot):
 
                 sym_list.append(new_symbol)
 
-            sym_list = SymbolList(sym_list)
+            sym_list = SymbolList(sym_list, loaded_snap)
             loaded_snap._memory = SnapshotMemoryView(loaded_snap, sym_list)
 
         return loaded_snap

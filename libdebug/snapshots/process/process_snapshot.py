@@ -16,6 +16,7 @@ from libdebug.data.symbol_list import SymbolList
 from libdebug.liblog import liblog
 from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
 from libdebug.snapshots.memory.snapshot_memory_view import SnapshotMemoryView
+from libdebug.snapshots.process.process_shapshot_diff import ProcessSnapshotDiff
 from libdebug.snapshots.registers.snapshot_registers import SnapshotRegisters
 from libdebug.snapshots.snapshot import Snapshot
 from libdebug.snapshots.thread.lw_thread_snapshot import LightweightThreadSnapshot
@@ -30,8 +31,8 @@ class ProcessSnapshot(Snapshot):
 
     Snapshot levels:
     - base: Registers
-    - writable: Registers, writable memory maps
-    - full: Registers, stack, memory
+    - writable: Registers, writable memory contents
+    - full: Registers, stack, all readable memory contents
     """
 
     def __init__(self: ProcessSnapshot, debugger: Debugger, level: str = "base", name: str = None) -> None:
@@ -110,14 +111,17 @@ class ProcessSnapshot(Snapshot):
 
     def diff(self: ProcessSnapshot, other: ProcessSnapshot) -> Diff:
         """Returns the diff between two process snapshots."""
-        from libdebug.snapshots.process.process_shapshot_diff import ProcessSnapshotDiff
+        if not isinstance(other, ProcessSnapshot):
+            raise TypeError("Both arguments must be ProcessSnapshot objects.")
 
         return ProcessSnapshotDiff(self, other)
 
     def save(self: ProcessSnapshot, file_path: str) -> None:
         """Saves the snapshot object to a file."""
         all_reg_names = dir(self.regs)
-        all_reg_names = [reg_name for reg_name in all_reg_names if isinstance(getattr(self.regs, reg_name), int | float)]
+        all_reg_names = [
+            reg_name for reg_name in all_reg_names if isinstance(getattr(self.regs, reg_name), int | float)
+        ]
 
         thread_snapshots = []
 
@@ -158,7 +162,7 @@ class ProcessSnapshot(Snapshot):
                 "size": memory_map.size,
                 "offset": memory_map.offset,
                 "backing_file": memory_map.backing_file,
-                "content": b64encode(memory_map._content).decode("utf-8") if memory_map._content is not None else None,
+                "content": b64encode(memory_map.content).decode("utf-8") if memory_map.content is not None else None,
             }
             saved_maps.append(saved_map)
 
@@ -220,7 +224,6 @@ class ProcessSnapshot(Snapshot):
             for reg_name, reg_value in thread_dict["regs"].items():
                 thread_snap.regs.__setattr__(reg_name, reg_value)
 
-
             loaded_snap.threads.append(thread_snap)
 
         # Recreate memory maps
@@ -229,7 +232,6 @@ class ProcessSnapshot(Snapshot):
         raw_map_list = []
 
         for saved_map in loaded_maps:
-
             new_map = MemoryMap(
                 saved_map["start"],
                 saved_map["end"],
@@ -251,9 +253,7 @@ class ProcessSnapshot(Snapshot):
 
         # Memory view
         loaded_snap._memory = (
-            SnapshotMemoryView(loaded_snap, snapshot_dict["symbols"])
-            if loaded_snap.level != "base"
-            else None
+            SnapshotMemoryView(loaded_snap, snapshot_dict["symbols"]) if loaded_snap.level != "base" else None
         )
 
         # Recreate the symbol list
@@ -272,7 +272,7 @@ class ProcessSnapshot(Snapshot):
 
                 sym_list.append(new_symbol)
 
-            sym_list = SymbolList(sym_list)
+            sym_list = SymbolList(sym_list, loaded_snap)
             loaded_snap._memory = SnapshotMemoryView(loaded_snap, sym_list)
 
         return loaded_snap

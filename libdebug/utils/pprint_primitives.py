@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Gabriele Digregorio,  Francesco Panebianco. All rights reserved.
+# Copyright (c) 2024 Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -219,7 +219,7 @@ def pprint_memory_diff_util(
     extract_after: bytes,
     word_size: int,
     address_width: int,
-    endianness_mode: bool = False,
+    integer_mode: bool = False,
 ) -> None:
     """Pretty prints the memory diff."""
     # Loop through each word-sized chunk
@@ -244,7 +244,7 @@ def pprint_memory_diff_util(
                 formatted_after.append(f"{ANSIColors.RESET}{byte_after:02x}{ANSIColors.RESET}")
 
         # Join the formatted bytes into a string for each column
-        if not endianness_mode:
+        if not integer_mode:
             before_str = " ".join(formatted_before)
             after_str = " ".join(formatted_after)
         else:

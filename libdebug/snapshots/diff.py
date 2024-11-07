@@ -190,7 +190,7 @@ class Diff:
         end: int,
         file: str = "hybrid",
         override_word_size: int = None,
-        endianness_mode: bool = False,
+        integer_mode: bool = False,
     ) -> None:
         """Pretty print the memory diff.
 
@@ -199,7 +199,7 @@ class Diff:
             end (int): The end address of the memory diff.
             file (str, optional): The backing file for relative / absolute addressing. Defaults to "hybrid".
             override_word_size (int, optional): The word size to use for the diff in place of the ISA word size. Defaults to None.
-            endianness_mode (bool, optional): If True, the diff will be printed with the correct system endianness. Defaults to False.
+            integer_mode (bool, optional): If True, the diff will be printed as hex integers (system endianness applies). Defaults to False.
         """
         if self.level == "base":
             raise ValueError("Memory diff is not available at base snapshot level.")
@@ -240,7 +240,7 @@ class Diff:
             extract_after,
             word_size,
             address_width=get_platform_register_size(self.snapshot1.arch),
-            endianness_mode=endianness_mode,
+            integer_mode=integer_mode,
         )
 
     def pprint_regs(self: Diff) -> None:

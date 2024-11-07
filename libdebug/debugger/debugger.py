@@ -6,14 +6,12 @@
 
 from __future__ import annotations
 
-import json
 from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from libdebug.liblog import liblog
 from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
-from libdebug.snapshots.thread.thread_snapshot import ThreadSnapshot
 from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.signal_utils import (
     get_all_signal_numbers,
@@ -918,13 +916,13 @@ class Debugger:
             repr_str += f"ip: {thread.instruction_pointer:#x}"
         return repr_str
 
-    def create_snapshot(self: Debugger, level: str = "base", name: str = None) -> ProcessSnapshot:
+    def create_snapshot(self: Debugger, level: str = "base", name: str | None = None) -> ProcessSnapshot:
         """Create a snapshot of the current process state.
 
         Snapshot levels:
         - base: Registers
-        - writable: Registers, writable memory
-        - full: Registers, memory
+        - writable: Registers, writable memory contents
+        - full: Registers, all memory contents
 
         Args:
             level (str): The level of the snapshot.
@@ -933,7 +931,7 @@ class Debugger:
         Returns:
             ProcessSnapshot: The created snapshot.
         """
-        return ProcessSnapshot(self, level, name)
+        return self._internal_debugger.create_snapshot(level, name)
 
     def load_snapshot(self: Debugger, file_path: str) -> Snapshot:
         """Load a snapshot of the thread / process state.
@@ -941,18 +939,4 @@ class Debugger:
         Args:
             file_path (str): The path to the snapshot file.
         """
-        with Path(file_path).open() as f:
-            snapshot = json.load(f)
-
-        if snapshot["type"] == "thread":
-            loaded_snap = ThreadSnapshot.load(snapshot)
-        elif snapshot["type"] == "process":
-            loaded_snap = ProcessSnapshot.load(snapshot)
-
-        # Log the creation of the snapshot
-        named_addition = " named " + loaded_snap.name if loaded_snap.name is not None else ""
-        liblog.debugger(
-            f"Loaded {snapshot['type']} snapshot {loaded_snap.snapshot_id} of level {loaded_snap.level} from file {file_path}{named_addition}"
-        )
-
-        return loaded_snap
+        return self._internal_debugger.load_snapshot(file_path)

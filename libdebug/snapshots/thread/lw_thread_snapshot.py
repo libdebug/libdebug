@@ -21,8 +21,8 @@ class LightweightThreadSnapshot(ThreadSnapshot):
 
     Snapshot levels:
     - base: Registers
-    - writable: Registers, writable memory
-    - full: Registers, memory
+    - writable: Registers, writable memory contents
+    - full: Registers, all readable memory contents
     """
 
     def __init__(

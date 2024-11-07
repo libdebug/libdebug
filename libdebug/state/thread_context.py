@@ -352,8 +352,8 @@ class ThreadContext:
 
         Snapshot levels:
         - base: Registers
-        - writable: Registers, writable memory
-        - full: Registers, memory
+        - writable: Registers, writable memory contents
+        - full: Registers, all readable memory contents
 
         Args:
             level (str): The level of the snapshot.

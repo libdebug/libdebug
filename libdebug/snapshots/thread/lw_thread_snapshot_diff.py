@@ -8,12 +8,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from libdebug.snapshots.diff import Diff
-from libdebug.snapshots.thread.thread_snapshot import ThreadSnapshot
 from libdebug.snapshots.thread.thread_snapshot_diff import ThreadSnapshotDiff
 
 if TYPE_CHECKING:
     from libdebug.snapshots.memory.memory_map_diff import MemoryMapDiff
     from libdebug.snapshots.process.process_shapshot_diff import ProcessSnapshotDiff
+    from libdebug.snapshots.thread.thread_snapshot import ThreadSnapshot
 
 
 class LightweightThreadSnapshotDiff(ThreadSnapshotDiff):
@@ -32,9 +32,6 @@ class LightweightThreadSnapshotDiff(ThreadSnapshotDiff):
             snapshot2 (ThreadSnapshot): A thread snapshot.
             process_diff (ProcessSnapshotDiff): The diff of the process to which the thread belongs.
         """
-        if not isinstance(snapshot1, ThreadSnapshot) or not isinstance(snapshot2, ThreadSnapshot):
-            raise TypeError("Both arguments must be ThreadSnapshot objects.")
-
         # Generic diff initialization
         Diff.__init__(self, snapshot1, snapshot2)
 

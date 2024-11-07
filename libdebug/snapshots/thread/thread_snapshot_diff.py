@@ -5,8 +5,12 @@
 #
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from libdebug.snapshots.diff import Diff
-from libdebug.snapshots.thread.thread_snapshot import ThreadSnapshot
+
+if TYPE_CHECKING:
+    from libdebug.snapshots.thread.thread_snapshot import ThreadSnapshot
 
 
 class ThreadSnapshotDiff(Diff):
@@ -19,9 +23,6 @@ class ThreadSnapshotDiff(Diff):
             snapshot1 (ThreadSnapshot): A thread snapshot.
             snapshot2 (ThreadSnapshot): A thread snapshot.
         """
-        if not isinstance(snapshot1, ThreadSnapshot) or not isinstance(snapshot2, ThreadSnapshot):
-            raise TypeError("Both arguments must be ThreadSnapshot objects.")
-
         super().__init__(snapshot1, snapshot2)
 
         # Register diffs
@@ -29,4 +30,3 @@ class ThreadSnapshotDiff(Diff):
 
         # Memory map diffs
         self._resolve_maps_diff()
-

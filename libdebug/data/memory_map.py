@@ -20,7 +20,7 @@ class MemoryMap:
         size (int): The size of the memory map.
         offset (int): The relative offset of the memory map.
         backing_file (str): The backing file of the memory map, or the symbolic name of the memory map.
-        content (bytes): Used in snapshotted pages only. Holds the content of the memory map. 
+        content (bytes): The content of the memory map, used for snapshotted pages.
     """
 
     start: int = 0
@@ -34,7 +34,7 @@ class MemoryMap:
     backing_file: str = ""
     """The backing file of the memory map, such as 'libc.so.6', or the symbolic name of the memory map, such as '[stack]'."""
 
-    _content: bytes = None
+    content: bytes = None
     """The content of the memory map, used for snapshotted pages."""
 
     @staticmethod
@@ -68,14 +68,6 @@ class MemoryMap:
         """Alias for the start address of the memory map."""
         return self.start
 
-    @property
-    def content(self: MemoryMap) -> bytes:
-        """The content of the memory map, used for snapshotted pages."""
-        if self._content is None:
-            raise ValueError("The content field is only available for snapshot pages.")
-
-        return self._content
-
     def is_same_identity(self: MemoryMap, other: MemoryMap) -> bool:
         """Check if the memory map corresponds to another memory map."""
         return self.start == other.start and self.backing_file == other.backing_file
@@ -84,7 +76,7 @@ class MemoryMap:
         """Return the string representation of the memory map."""
         str_repr =  f"MemoryMap(start={hex(self.start)}, end={hex(self.end)}, permissions={self.permissions}, size={hex(self.size)}, offset={hex(self.offset)}, backing_file={self.backing_file})"
 
-        if self._content is not None:
+        if self.content is not None:
             str_repr = str_repr[:-1] + ", content=...)"
 
         return str_repr
@@ -95,8 +87,8 @@ class MemoryMap:
             return False
 
         # Check if the content is available and if it is the same
-        should_compare_content = self._content is not None and value._content is not None
-        same_content = not should_compare_content or self._content == value._content
+        should_compare_content = self.content is not None and value.content is not None
+        same_content = not should_compare_content or self.content == value.content
 
         return (
             self.start == value.start

@@ -11,16 +11,21 @@ from typing import TYPE_CHECKING
 from libdebug.debugger.internal_debugger_instance_manager import get_global_internal_debugger
 
 if TYPE_CHECKING:
+    from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.data.symbol import Symbol
-    from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
+    from libdebug.debugger.debugger import Debugger
+    from libdebug.snapshots.snapshot import Snapshot
 
 
 class SymbolList(list):
     """A list of symbols in the target process."""
 
-    def __init__(self: SymbolList, symbols: list[Symbol]) -> None:
+    def __init__(self: SymbolList, symbols: list[Symbol], maps_source: Debugger | Snapshot = None) -> None:
         """Initializes the SymbolDict."""
         super().__init__(symbols)
+
+        if maps_source is None:
+            self._maps_source = get_global_internal_debugger()
 
     def _search_by_address(self: SymbolList, address: int) -> list[Symbol]:
         """Searches for a symbol by address.
@@ -32,28 +37,7 @@ class SymbolList(list):
             list[Symbol]: The list of symbols that match the specified address.
         """
         # Find the memory map that contains the address
-        if maps := get_global_internal_debugger().maps.filter(address):
-            address -= maps[0].start
-        else:
-            raise ValueError(
-                f"Address {address:#x} does not belong to any memory map. You must specify an absolute address."
-            )
-        return [symbol for symbol in self if symbol.start <= address < symbol.end]
-
-    def _search_by_address_in_snapshot(
-        self: SymbolList, address: int, external_maps: MemoryMapSnapshotList
-    ) -> list[Symbol]:
-        """Searches for a symbol by address.
-
-        Args:
-            address (int): The address of the symbol to search for.
-            external_maps (MemoryMapSnapshotList): The memory maps of the snapshot.
-
-        Returns:
-            list[Symbol]: The list of symbols that match the specified address.
-        """
-        # Find the memory map that contains the address
-        if maps := external_maps.filter(address):
+        if maps := self._maps_source.maps.filter(address):
             address -= maps[0].start
         else:
             raise ValueError(

@@ -43,13 +43,13 @@ class MemoryMapDiff:
         if self._cached_diffs is not None:
             return self._cached_diffs
 
-        if self.old_map_state._content is None or self.new_map_state._content is None:
-            raise ValueError("Memory contents not available for this memory page.")
-
         if self.old_map_state is None:
             raise ValueError("Cannot resolve content diff for a new memory map.")
         if self.new_map_state is None:
             raise ValueError("Cannot resolve content diff for a removed memory map.")
+
+        if self.old_map_state.content is None or self.new_map_state.content is None:
+            raise ValueError("Memory contents not available for this memory page.")
 
         old_content = self.old_map_state.content
         new_content = self.new_map_state.content

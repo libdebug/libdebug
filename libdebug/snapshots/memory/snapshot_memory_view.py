@@ -6,17 +6,16 @@
 
 from __future__ import annotations
 
-import sys
 from typing import TYPE_CHECKING
 
 from libdebug.liblog import liblog
 from libdebug.memory.abstract_memory_view import AbstractMemoryView
 from libdebug.utils.debugging_utils import normalize_and_validate_address
-from libdebug.utils.search_utils import find_all_overlapping_occurrences
 
 if TYPE_CHECKING:
     from libdebug.data.symbol import Symbol
     from libdebug.data.symbol_list import SymbolList
+    from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
     from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
     from libdebug.snapshots.thread.thread_snapshot import ThreadSnapshot
 
@@ -47,7 +46,7 @@ class SnapshotMemoryView(AbstractMemoryView):
         target_map = target_maps[0]
 
         # The memory of the target map cannot be retrieved
-        if target_map._content is None:
+        if target_map.content is None:
             error = "Corresponding memory map was not snapshotted"
 
             if self._snap_ref.level == "base":
@@ -62,7 +61,7 @@ class SnapshotMemoryView(AbstractMemoryView):
         start_offset = address - target_map.start
         end_offset = start_offset + size
 
-        return target_map._content[start_offset:end_offset]
+        return target_map.content[start_offset:end_offset]
 
     def write(self: SnapshotMemoryView, address: int, data: bytes) -> None:
         """Writes memory to the target snapshot.
@@ -97,251 +96,7 @@ class SnapshotMemoryView(AbstractMemoryView):
         if self._snap_ref.level == "base":
             raise ValueError("Memory snapshot is not available at base level.")
 
-        if self._snap_ref.level == "writable":
-            if file.lower() == "all" or file == "*":
-                candidate_pages = [vmap for vmap in self._snap_ref.maps if "w" in vmap.permissions]
-            else:
-                occurrences = self._snap_ref.maps.filter(file)
-
-                candidate_pages = [vmap for vmap in occurrences if "w" in vmap.permissions]
-
-                if not candidate_pages:
-                    raise ValueError(f"No writable memory maps found for {file}.")
-        else:
-            candidate_pages = [vmap for vmap in self._snap_ref.maps if vmap._content is not None]
-
-        if isinstance(value, str):
-            value = value.encode()
-        elif isinstance(value, int):
-            value = value.to_bytes(1, sys.byteorder)
-
-        occurrences = []
-        if file == "all" and start is None and end is None:
-            for vmap in candidate_pages:
-                try:
-                    memory_content = self.read(vmap.start, vmap.end - vmap.start)
-                except (OSError, OverflowError):
-                    # There are some memory regions that cannot be read, such as [vvar], [vdso], etc.
-                    continue
-                occurrences += find_all_overlapping_occurrences(value, memory_content, vmap.start)
-        elif file == "all" and start is not None and end is None:
-            for vmap in candidate_pages:
-                if vmap.end > start:
-                    read_start = max(vmap.start, start)
-                    try:
-                        memory_content = self.read(read_start, vmap.end - read_start)
-                    except (OSError, OverflowError):
-                        # There are some memory regions that cannot be read, such as [vvar], [vdso], etc.
-                        continue
-                    occurrences += find_all_overlapping_occurrences(value, memory_content, read_start)
-        elif file == "all" and start is None and end is not None:
-            for vmap in candidate_pages:
-                if vmap.start < end:
-                    read_end = min(vmap.end, end)
-                    try:
-                        memory_content = self.read(vmap.start, read_end - vmap.start)
-                    except (OSError, OverflowError):
-                        # There are some memory regions that cannot be read, such as [vvar], [vdso], etc.
-                        continue
-                    occurrences += find_all_overlapping_occurrences(value, memory_content, vmap.start)
-        elif file == "all" and start is not None and end is not None:
-            # Search in the specified range, hybrid mode
-            start = self.resolve_address(start, "hybrid", True)
-            end = self.resolve_address(end, "hybrid", True)
-            memory_content = self.read(start, end - start)
-            occurrences = find_all_overlapping_occurrences(value, memory_content, start)
-        else:
-            maps = self._snap_ref.maps.filter(file)
-            start = self.resolve_address(start, file, True) if start is not None else maps[0].start
-            end = self.resolve_address(end, file, True) if end is not None else maps[-1].end - 1
-
-            memory_content = self.read(start, end - start)
-
-            occurrences = find_all_overlapping_occurrences(value, memory_content, start)
-
-        return occurrences
-
-    def _manage_memory_read_type(
-        self: SnapshotMemoryView,
-        key: int | slice | str | tuple,
-        file: str = "hybrid",
-    ) -> bytes:
-        """Manage the read from memory, according to the typing.
-
-        Args:
-            key (int | slice | str | tuple): The key to read from memory.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
-        """
-        if isinstance(key, int):
-            address = self.resolve_address(key, file, skip_absolute_address_validation=True)
-            try:
-                return self.read(address, 1)
-            except OSError as e:
-                raise ValueError("Invalid address.") from e
-        elif isinstance(key, slice):
-            if isinstance(key.start, str):
-                start = self.resolve_symbol(key.start, file)
-            else:
-                start = self.resolve_address(key.start, file, skip_absolute_address_validation=True)
-
-            if isinstance(key.stop, str):
-                stop = self.resolve_symbol(key.stop, file)
-            else:
-                stop = self.resolve_address(key.stop, file, skip_absolute_address_validation=True)
-
-            if stop < start:
-                raise ValueError("Invalid slice range.")
-
-            try:
-                return self.read(start, stop - start)
-            except OSError as e:
-                raise ValueError("Invalid address.") from e
-        elif isinstance(key, str):
-            address = self.resolve_symbol(key, file)
-
-            return self.read(address, 1)
-        elif isinstance(key, tuple):
-            return self._manage_memory_read_tuple(key)
-        else:
-            raise TypeError("Invalid key type.")
-
-    def _manage_memory_read_tuple(self: SnapshotMemoryView, key: tuple) -> bytes:
-        """Manage the read from memory, when the access is through a tuple.
-
-        Args:
-            key (tuple): The key to read from memory.
-        """
-        if len(key) == 3:
-            # It can only be a tuple of the type (address, size, file)
-            address, size, file = key
-            if not isinstance(file, str):
-                raise TypeError("Invalid type for the backing file. Expected string.")
-        elif len(key) == 2:
-            left, right = key
-            if isinstance(right, str):
-                # The right element can only be the backing file
-                return self._manage_memory_read_type(left, right)
-            elif isinstance(right, int):
-                # The right element must be the size
-                address = left
-                size = right
-                file = "hybrid"
-        else:
-            raise TypeError("Tuple must have 2 or 3 elements.")
-
-        if not isinstance(size, int):
-            raise TypeError("Invalid type for the size. Expected int.")
-
-        if isinstance(address, str):
-            address = self.resolve_symbol(address, file)
-        elif isinstance(address, int):
-            address = self.resolve_address(address, file, skip_absolute_address_validation=True)
-        else:
-            raise TypeError("Invalid type for the address. Expected int or string.")
-
-        try:
-            return self.read(address, size)
-        except OSError as e:
-            raise ValueError("Invalid address.") from e
-
-    def _manage_memory_write_type(
-        self: SnapshotMemoryView,
-        key: int | slice | str | tuple,
-        value: bytes,
-        file: str = "hybrid",
-    ) -> None:
-        """Manage the write to memory, according to the typing.
-
-        Args:
-            key (int | slice | str | tuple): The key to read from memory.
-            value (bytes): The value to write.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
-        """
-        if isinstance(key, int):
-            address = self.resolve_address(key, file, skip_absolute_address_validation=True)
-            try:
-                self.write(address, value)
-            except OSError as e:
-                raise ValueError("Invalid address.") from e
-        elif isinstance(key, slice):
-            if isinstance(key.start, str):
-                start = self.resolve_symbol(key.start, file)
-            else:
-                start = self.resolve_address(key.start, file, skip_absolute_address_validation=True)
-
-            if key.stop is not None:
-                if isinstance(key.stop, str):
-                    stop = self.resolve_symbol(key.stop, file)
-                else:
-                    stop = self.resolve_address(
-                        key.stop,
-                        file,
-                        skip_absolute_address_validation=True,
-                    )
-
-                if stop < start:
-                    raise ValueError("Invalid slice range")
-
-                if len(value) != stop - start:
-                    liblog.warning(f"Mismatch between slice width and value size, writing {len(value)} bytes.")
-
-            try:
-                self.write(start, value)
-            except OSError as e:
-                raise ValueError("Invalid address.") from e
-
-        elif isinstance(key, str):
-            address = self.resolve_symbol(key, file)
-
-            self.write(address, value)
-        elif isinstance(key, tuple):
-            self._manage_memory_write_tuple(key, value)
-        else:
-            raise TypeError("Invalid key type.")
-
-    def _manage_memory_write_tuple(self: SnapshotMemoryView, key: tuple, value: bytes) -> None:
-        """Manage the write to memory, when the access is through a tuple.
-
-        Args:
-            key (tuple): The key to read from memory.
-            value (bytes): The value to write.
-        """
-        if len(key) == 3:
-            # It can only be a tuple of the type (address, size, file)
-            address, size, file = key
-            if not isinstance(file, str):
-                raise TypeError("Invalid type for the backing file. Expected string.")
-        elif len(key) == 2:
-            left, right = key
-            if isinstance(right, str):
-                # The right element can only be the backing file
-                self._manage_memory_write_type(left, value, right)
-                return
-            elif isinstance(right, int):
-                # The right element must be the size
-                address = left
-                size = right
-                file = "hybrid"
-        else:
-            raise TypeError("Tuple must have 2 or 3 elements.")
-
-        if not isinstance(size, int):
-            raise TypeError("Invalid type for the size. Expected int.")
-
-        if isinstance(address, str):
-            address = self.resolve_symbol(address, file)
-        elif isinstance(address, int):
-            address = self.resolve_address(address, file, skip_absolute_address_validation=True)
-        else:
-            raise TypeError("Invalid type for the address. Expected int or string.")
-
-        if len(value) != size:
-            liblog.warning(f"Mismatch between specified size and actual value size, writing {len(value)} bytes.")
-
-        try:
-            self.write(address, value)
-        except OSError as e:
-            raise ValueError("Invalid address.") from e
+        return super().find(value, file, start, end)
 
     def resolve_symbol(self: SnapshotMemoryView, symbol: str, file: str) -> Symbol:
         """Resolve a symbol from the symbol list.
@@ -415,3 +170,12 @@ class SnapshotMemoryView(AbstractMemoryView):
         filtered_maps = maps.filter(backing_file)
 
         return normalize_and_validate_address(address, filtered_maps)
+
+    @property
+    def maps(self: SnapshotMemoryView) -> MemoryMapSnapshotList:
+        """Returns a list of memory maps in the target process.
+
+        Returns:
+            MemoryMapList: The memory maps.
+        """
+        return self._snap_ref.maps
