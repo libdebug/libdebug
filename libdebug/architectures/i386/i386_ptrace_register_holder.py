@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from ctypes import c_longdouble
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -15,7 +16,6 @@ from libdebug.architectures.amd64.amd64_ptrace_register_holder import (
     _get_property_16,
     _get_property_32,
     _get_property_fp_mmx,
-    _get_property_fp_st,
     _get_property_fp_xmm0,
     _get_property_fp_ymm0,
     _get_property_fp_zmm0,
@@ -51,6 +51,30 @@ I386_SPECIAL_REGS = [
     "fs",
     "gs",
 ]
+
+
+# We cannot recycle this function from the amd64 version because the c_longdouble returns a 12-byte array
+# instead of a 16-byte array, which the nanobind binding does not expect.
+# We need to reimplement it here.
+def _get_property_fp_st(name: str, index: int) -> property:
+    # We should be able to expose the long double member from nanobind directly
+    # But their support for long double does not actually allow for value comparison or manipulation
+    # So, ctypes it is
+    def getter(self: I386Registers) -> float:
+        self._internal_debugger._ensure_process_stopped()
+        if not self._fp_register_file.fresh:
+            self._internal_debugger._fetch_fp_registers(self)
+        return c_longdouble.from_buffer_copy(bytes(self._fp_register_file.mmx[index].data)).value
+
+    def setter(self: I386Registers, value: float) -> None:
+        self._internal_debugger._ensure_process_stopped()
+        if not self._fp_register_file.fresh:
+            self._internal_debugger._fetch_fp_registers(self)
+        # Only difference from the amd64 version is the padding to 16 bytes
+        self._fp_register_file.mmx[index].data = bytes(c_longdouble(value)).ljust(16, b"\x00")
+        self._fp_register_file.dirty = True
+
+    return property(getter, setter, None, name)
 
 
 @dataclass

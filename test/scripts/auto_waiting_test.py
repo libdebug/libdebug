@@ -51,4 +51,4 @@ class AutoWaitingTest(TestCase):
             d.cont()
 
         d.kill()
-
+        d.terminate()

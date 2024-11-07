@@ -1,10 +1,10 @@
 [build-system]
 requires = [
-    "cffi>=1.15.1",
-    "setuptools>=61.0",
-    "wheel",
+    "scikit-build-core >= 0.4.3",
+    "nanobind >= 1.3.2",
+    "typing_extensions",
 ]
-build-backend = "setuptools.build_meta"
+build-backend = "scikit_build_core.build"
 
 
 [project]
@@ -18,7 +18,7 @@ authors = [
 description = "A Python library for the debugging of binary executables."
 requires-python = ">= 3.10"
 license = {file = "LICENSE"}
-dynamic = ["version"]
+version = "0.7.0"
 readme = {file = "README.md", content-type = "text/markdown"}
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -42,8 +42,6 @@ classifiers = [
 ]
 keywords = ["libdebug", "debugger", "elf", "ptrace", "gdb", "debug", "ctf", "reverse-engineering", "reverse", "rev", "scriptable", "script"]
 dependencies = [
-    "capstone",
-    "cffi",
     "psutil",
     "pyelftools",
     "requests",
@@ -63,14 +61,14 @@ issues = "https://github.com/libdebug/libdebug/issues"
 
 [tool.ruff]
 include = ["pyproject.toml", "libdebug/**/*.py"]
-exclude = ["libdebug/cffi/*.py", "test/"]
+exclude = ["test/"]
 line-length = 120
 indent-width = 4
 target-version = "py312"
 
 [tool.ruff.lint]
 select = ["ALL"]
-ignore = ["D100", "EM", "FBT", "G", "TD", "TRY002", "TRY003", "RET505", "SLF001", "S603", "S606"]
+ignore = ["D100", "EM", "FBT", "G", "TD", "TRY002", "TRY003", "RET505", "SLF001", "S603", "S606", "PYI021", "D212"]
 
 [tool.ruff.lint.per-file-ignores]
 "libdebug/builtin/pretty_print_syscall_handler.py" = ["T201"]
@@ -83,3 +81,9 @@ convention = "google"
 quote-style = "double"
 indent-style = "space"
 line-ending = "auto"
+
+
+[tool.scikit-build]
+minimum-version = "0.4"
+build-dir = "build/{wheel_tag}"
+wheel.py-api = "cp312"

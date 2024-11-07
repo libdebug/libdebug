@@ -262,7 +262,7 @@ def _get_property_fp_mmx(name: str, index: int) -> property:
 
 
 def _get_property_fp_st(name: str, index: int) -> property:
-    # We should be able to expose the long double member from CFFI directly
+    # We should be able to expose the long double member from nanobind directly
     # But their support for long double does not actually allow for value comparison or manipulation
     # So, ctypes it is
     def getter(self: Amd64Registers) -> float:
