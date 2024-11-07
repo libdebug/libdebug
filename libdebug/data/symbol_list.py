@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING
 from libdebug.debugger.internal_debugger_instance_manager import get_global_internal_debugger
 
 if TYPE_CHECKING:
-    from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.data.symbol import Symbol
     from libdebug.debugger.debugger import Debugger
     from libdebug.snapshots.snapshot import Snapshot
@@ -24,8 +23,7 @@ class SymbolList(list):
         """Initializes the SymbolDict."""
         super().__init__(symbols)
 
-        if maps_source is None:
-            self._maps_source = get_global_internal_debugger()
+        self._maps_source = maps_source
 
     def _search_by_address(self: SymbolList, address: int) -> list[Symbol]:
         """Searches for a symbol by address.
@@ -76,6 +74,9 @@ class SymbolList(list):
         Returns:
             SymbolList[Symbol]: The symbols matching the specified value.
         """
+        if self._maps_source is None:
+            self._maps_source = get_global_internal_debugger()
+
         if isinstance(value, int):
             filtered_symbols = self._search_by_address(value)
         elif isinstance(value, str):
