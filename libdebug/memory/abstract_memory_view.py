@@ -336,10 +336,10 @@ class AbstractMemoryView(MutableSequence, ABC):
         """MemoryView doesn't support insertion."""
         raise NotImplementedError("MemoryView doesn't support insertion")
 
-    @abstractmethod
     @property
     def maps(self: AbstractMemoryView) -> list:
         """Returns the list of memory maps of the target process."""
+        raise NotImplementedError("The maps property must be implemented in the subclass.")
 
     @abstractmethod
     def resolve_address(
