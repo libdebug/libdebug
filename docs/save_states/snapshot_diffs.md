@@ -4,7 +4,7 @@ search:
     boost: 4
 ---
 # :octicons-diff-24: Snapshot Diffs
-[Snapshot](../snapshots) diffs are objects that represent what changed between two snapshots. They are created through the [`diff()`](../snapshot#resolving-diffs) method of a snapshot.
+[Snapshot](../snapshots) diffs are objects that represent what changed between two snapshots. They are created through the [`diff()`](../../from_pydoc/generated/snapshots/snapshot/?h=#libdebug.snapshots.snapshot.Snapshot.diff) method of a snapshot.
 
 The level of a diff is resolved as the lowest level of the two snapshots being compared. For example, if a diff is created between a `full` snapshot and a `base` snapshot, their diff will be of `base` level. For more information on the different levels of snapshots, see the [Snapshots](../snapshots) page.
 
