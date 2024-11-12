@@ -13,6 +13,8 @@ from libdebug.memory.abstract_memory_view import AbstractMemoryView
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from libdebug.data.memory_map_list import MemoryMapList
+
 
 class DirectMemoryView(AbstractMemoryView):
     """A memory interface for the target process, intended for direct memory access.
@@ -72,3 +74,49 @@ class DirectMemoryView(AbstractMemoryView):
             prefix_data = self.getter(base_address, new_size)
             new_data = prefix_data[:prefix] + data + prefix_data[prefix + size :]
             self.setter(base_address, new_data)
+
+    @property
+    def maps(self: DirectMemoryView) -> MemoryMapList:
+        """Returns a list of memory maps in the target process.
+
+        Returns:
+            MemoryMapList: The memory maps.
+        """
+        return self._internal_debugger.maps
+
+    def resolve_address(
+        self: DirectMemoryView,
+        address: int,
+        backing_file: str,
+        skip_absolute_address_validation: bool = False,
+    ) -> int:
+        """Normalizes and validates the specified address.
+
+        Args:
+            address (int): The address to normalize and validate.
+            backing_file (str): The backing file to resolve the address in.
+            skip_absolute_address_validation (bool, optional): Whether to skip bounds checking for absolute addresses. Defaults to False.
+
+        Returns:
+            int: The normalized and validated address.
+
+        Raises:
+            ValueError: If the substring `backing_file` is present in multiple backing files.
+        """
+        return self._internal_debugger.resolve_address(
+            address,
+            backing_file,
+            skip_absolute_address_validation,
+        )
+
+    def resolve_symbol(self: DirectMemoryView, symbol: str, backing_file: str) -> int:
+        """Resolves the address of the specified symbol.
+
+        Args:
+            symbol (str): The symbol to resolve.
+            backing_file (str): The backing file to resolve the symbol in.
+
+        Returns:
+            int: The address of the symbol.
+        """
+        return self._internal_debugger.resolve_symbol(symbol, backing_file)

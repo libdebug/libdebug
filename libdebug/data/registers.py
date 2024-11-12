@@ -6,12 +6,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from libdebug.debugger.internal_debugger_instance_manager import get_global_internal_debugger
 
 
-@dataclass
 class Registers:
     """Abtract class that holds the state of the architectural-dependent registers of a process."""
 

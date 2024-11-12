@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2024 Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -12,14 +12,18 @@ from libdebug.debugger.internal_debugger_instance_manager import get_global_inte
 
 if TYPE_CHECKING:
     from libdebug.data.symbol import Symbol
+    from libdebug.debugger.debugger import Debugger
+    from libdebug.snapshots.snapshot import Snapshot
 
 
 class SymbolList(list):
     """A list of symbols in the target process."""
 
-    def __init__(self: SymbolList, symbols: list[Symbol]) -> None:
+    def __init__(self: SymbolList, symbols: list[Symbol], maps_source: Debugger | Snapshot = None) -> None:
         """Initializes the SymbolDict."""
         super().__init__(symbols)
+
+        self._maps_source = maps_source
 
     def _search_by_address(self: SymbolList, address: int) -> list[Symbol]:
         """Searches for a symbol by address.
@@ -31,7 +35,7 @@ class SymbolList(list):
             list[Symbol]: The list of symbols that match the specified address.
         """
         # Find the memory map that contains the address
-        if maps := get_global_internal_debugger().maps.filter(address):
+        if maps := self._maps_source.maps.filter(address):
             address -= maps[0].start
         else:
             raise ValueError(
@@ -70,6 +74,9 @@ class SymbolList(list):
         Returns:
             SymbolList[Symbol]: The symbols matching the specified value.
         """
+        if self._maps_source is None:
+            self._maps_source = get_global_internal_debugger()
+
         if isinstance(value, int):
             filtered_symbols = self._search_by_address(value)
         elif isinstance(value, str):

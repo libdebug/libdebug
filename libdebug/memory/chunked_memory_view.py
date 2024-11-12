@@ -12,6 +12,7 @@ from libdebug.memory.abstract_memory_view import AbstractMemoryView
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from libdebug.data.memory_map_list import MemoryMapList
 
 
 class ChunkedMemoryView(AbstractMemoryView):
@@ -112,3 +113,47 @@ class ChunkedMemoryView(AbstractMemoryView):
                 address + size - remainder,
                 data[size - remainder :] + prev_data[remainder:],
             )
+
+    @property
+    def maps(self: ChunkedMemoryView) -> MemoryMapList:
+        """Returns a list of memory maps in the target process.
+
+        Returns:
+            MemoryMapList: The memory maps.
+        """
+        return self._internal_debugger.maps
+
+    def resolve_address(
+        self: AbstractMemoryView,
+        address: int,
+        backing_file: str,
+        skip_absolute_address_validation: bool = False,
+    ) -> int:
+        """Normalizes and validates the specified address.
+
+        Args:
+            address (int): The address to normalize and validate.
+            backing_file (str): The backing file to resolve the address in.
+            skip_absolute_address_validation (bool, optional): Whether to skip bounds checking for absolute addresses. Defaults to False.
+
+        Returns:
+            int: The normalized and validated address.
+
+        Raises:
+            ValueError: If the substring `backing_file` is present in multiple backing files.
+        """
+        return self._internal_debugger.resolve_address(
+            address, backing_file, skip_absolute_address_validation,
+        )
+
+    def resolve_symbol(self: AbstractMemoryView, symbol: str, backing_file: str) -> int:
+        """Resolves the address of the specified symbol.
+
+        Args:
+            symbol (str): The symbol to resolve.
+            backing_file (str): The backing file to resolve the symbol in.
+
+        Returns:
+            int: The address of the symbol.
+        """
+        return self._internal_debugger.resolve_symbol(symbol, backing_file)

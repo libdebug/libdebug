@@ -36,6 +36,8 @@ if TYPE_CHECKING:
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
+    from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
+    from libdebug.snapshots.snapshot import Snapshot
     from libdebug.state.thread_context import ThreadContext
 
 
@@ -912,3 +914,28 @@ class Debugger:
             repr_str += f"\n    ({thread.tid}, {'dead' if thread.dead else 'alive'}) "
             repr_str += f"ip: {thread.instruction_pointer:#x}"
         return repr_str
+
+    def create_snapshot(self: Debugger, level: str = "base", name: str | None = None) -> ProcessSnapshot:
+        """Create a snapshot of the current process state.
+
+        Snapshot levels:
+        - base: Registers
+        - writable: Registers, writable memory contents
+        - full: Registers, all memory contents
+
+        Args:
+            level (str): The level of the snapshot.
+            name (str, optional): The name of the snapshot. Defaults to None.
+
+        Returns:
+            ProcessSnapshot: The created snapshot.
+        """
+        return self._internal_debugger.create_snapshot(level, name)
+
+    def load_snapshot(self: Debugger, file_path: str) -> Snapshot:
+        """Load a snapshot of the thread / process state.
+
+        Args:
+            file_path (str): The path to the snapshot file.
+        """
+        return self._internal_debugger.load_snapshot(file_path)
