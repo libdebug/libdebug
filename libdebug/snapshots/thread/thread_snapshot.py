@@ -72,7 +72,7 @@ class ThreadSnapshot(Snapshot):
                     )
 
                 # Save all writable memory pages
-                self._save_memory_maps(thread.debugger, writable_only=True)
+                self._save_memory_maps(thread.debugger._internal_debugger, writable_only=True)
 
                 self._memory = SnapshotMemoryView(self, thread.debugger.symbols)
             case "full":
@@ -82,7 +82,7 @@ class ThreadSnapshot(Snapshot):
                     )
 
                 # Save all memory pages
-                self._save_memory_maps(thread.debugger, writable_only=False)
+                self._save_memory_maps(thread._internal_debugger, writable_only=False)
 
                 self._memory = SnapshotMemoryView(self, thread.debugger.symbols)
             case _:
@@ -232,5 +232,9 @@ class ThreadSnapshot(Snapshot):
 
             sym_list = SymbolList(sym_list, loaded_snap)
             loaded_snap._memory = SnapshotMemoryView(loaded_snap, sym_list)
+        elif loaded_snap.level != "base":
+            raise ValueError("Memory snapshot loading requested but no symbols were saved.")
+        else:
+            loaded_snap._memory = None
 
         return loaded_snap

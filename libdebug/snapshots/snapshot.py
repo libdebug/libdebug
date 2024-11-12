@@ -10,7 +10,7 @@ from abc import abstractmethod
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from libdebug.debugger.debugger import Debugger
+    from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.snapshots.diff import Diff
     from libdebug.snapshots.memory.snapshot_memory_view import SnapshotMemoryView
     from libdebug.state.thread_context import ThreadContext
@@ -53,7 +53,7 @@ class Snapshot:
             reg_value = thread.regs.__getattribute__(reg_name)
             self.regs.__setattr__(reg_name, reg_value)
 
-    def _save_memory_maps(self: Snapshot, debugger: Debugger, writable_only: bool) -> None:
+    def _save_memory_maps(self: Snapshot, debugger: InternalDebugger, writable_only: bool) -> None:
         """Saves memory maps of the process to the snapshot."""
         map_list = []
 
@@ -80,8 +80,8 @@ class Snapshot:
             )
             map_list.append(saved_map)
 
-        process_name = debugger._internal_debugger._process_name
-        full_process_path = debugger._internal_debugger._process_full_path
+        process_name = debugger._process_name
+        full_process_path = debugger._process_full_path
 
         self.maps = MemoryMapSnapshotList(map_list, process_name, full_process_path)
 
@@ -121,6 +121,9 @@ class Snapshot:
 
     def backtrace(self: Snapshot) -> list[int]:
         """Returns the current backtrace of the thread."""
+        if self.level == "base":
+            raise ValueError("Backtrace is not available at base level. Stack is not available.")
+
         stack_unwinder = stack_unwinding_provider(self.arch)
         return stack_unwinder.unwind(self)
 

@@ -22,7 +22,7 @@ from libdebug.snapshots.snapshot import Snapshot
 from libdebug.snapshots.thread.lw_thread_snapshot import LightweightThreadSnapshot
 
 if TYPE_CHECKING:
-    from libdebug.debugger.debugger import Debugger
+    from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.snapshots.diff import Diff
 
 
@@ -35,7 +35,9 @@ class ProcessSnapshot(Snapshot):
     - full: Registers, stack, all readable memory contents
     """
 
-    def __init__(self: ProcessSnapshot, debugger: Debugger, level: str = "base", name: str | None = None) -> None:
+    def __init__(
+        self: ProcessSnapshot, debugger: InternalDebugger, level: str = "base", name: str | None = None
+    ) -> None:
         """Creates a new snapshot object for the given process.
 
         Args:
@@ -44,17 +46,17 @@ class ProcessSnapshot(Snapshot):
             name (str, optional): A name associated to the snapshot. Defaults to None.
         """
         # Set id of the snapshot and increment the counter
-        self.snapshot_id = debugger._internal_debugger._snapshot_count
-        debugger._internal_debugger._snapshot_count += 1
+        self.snapshot_id = debugger._snapshot_count
+        debugger._snapshot_count += 1
 
         # Basic snapshot info
-        self.process_id = debugger.pid
-        self.pid = debugger.pid
+        self.process_id = debugger.process_id
+        self.pid = self.process_id
         self.name = name
         self.level = level
-        self.arch = debugger._internal_debugger.arch
-        self._process_full_path = debugger._internal_debugger._process_full_path
-        self._process_name = debugger._internal_debugger._process_name
+        self.arch = debugger.arch
+        self._process_full_path = debugger._process_full_path
+        self._process_name = debugger._process_name
 
         # Memory maps
         match level:
@@ -95,7 +97,7 @@ class ProcessSnapshot(Snapshot):
             f"Created snapshot {self.snapshot_id} of level {self.level} for process {self.pid}{named_addition}"
         )
 
-    def _save_threads(self: ProcessSnapshot, debugger: Debugger) -> None:
+    def _save_threads(self: ProcessSnapshot, debugger: InternalDebugger) -> None:
         self.threads = []
 
         for thread in debugger.threads:
@@ -274,5 +276,9 @@ class ProcessSnapshot(Snapshot):
 
             sym_list = SymbolList(sym_list, loaded_snap)
             loaded_snap._memory = SnapshotMemoryView(loaded_snap, sym_list)
+        elif loaded_snap.level != "base":
+            raise ValueError("Memory snapshot loading requested but no symbols were saved.")
+        else:
+            loaded_snap._memory = None
 
         return loaded_snap
