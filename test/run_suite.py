@@ -51,6 +51,7 @@ def full_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.BruteTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.DeepDiveDivisionTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.JumpoutTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SnapshotsTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SpeedTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.Vmwhere1Test))
 
