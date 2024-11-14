@@ -6,6 +6,7 @@
 
 #include <nanobind/nanobind.h>
 #include <stddef.h>
+#include <sstream>
 #include <sys/ptrace.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -51,6 +52,18 @@ void LibdebugPtraceInterface::check_and_set_fpregs(Thread &t)
     }
 
     t.fpregs->fresh = 0;
+}
+
+Thread &LibdebugPtraceInterface::get_thread(const pid_t tid)
+{
+    auto it = threads.find(tid);
+    if (it == threads.end()) {
+        std::ostringstream msg;
+        msg << "Thread not found with ID: " << tid << ". Maybe it was already unregistered or not yet registered.";
+        throw std::runtime_error(msg.str());
+    }
+
+    return it->second;
 }
 
 void LibdebugPtraceInterface::cont_thread(Thread &t)
@@ -146,7 +159,7 @@ void LibdebugPtraceInterface::cleanup()
 }
 
 std::pair<std::shared_ptr<PtraceRegsStruct>, std::shared_ptr<PtraceFPRegsStruct>> LibdebugPtraceInterface::register_thread(const pid_t tid)
-{
+{   
     // Verify if the thread is already registered
     if (threads.find(tid) != threads.end()) {
         std::shared_ptr<PtraceRegsStruct> regs = threads[tid].regs;
@@ -182,9 +195,12 @@ std::pair<std::shared_ptr<PtraceRegsStruct>, std::shared_ptr<PtraceFPRegsStruct>
 }
 
 void LibdebugPtraceInterface::unregister_thread(const pid_t tid)
-{
+{   
+    // Get the thread
+    Thread &t = get_thread(tid);
+
     // move the dead thread to the dead list
-    dead_threads[tid] = threads[tid];
+    dead_threads[tid] = t;
     threads.erase(tid);
 }
 
@@ -278,7 +294,7 @@ void LibdebugPtraceInterface::cont_thread_and_set_bps(pid_t tid, bool handle_sys
     handle_syscall = handle_syscalls;
 
     // Get the thread
-    Thread &t = threads[tid];
+    Thread &t = get_thread(tid);
 
     // Prepare the thread
     prepare_thread_for_run(t);
@@ -301,22 +317,26 @@ void LibdebugPtraceInterface::cont_process_and_set_bps(bool handle_syscalls)
 }
 
 void LibdebugPtraceInterface::step(pid_t tid)
-{
+{   
+    // Get the thread
+    Thread &t = get_thread(tid);
+
     // Flush any register changes
-    if (setregs(threads[tid])) {
+    if (setregs(t)) {
         throw std::runtime_error("setregs failed");
     }
 
-    check_and_set_fpregs(threads[tid]);
+    check_and_set_fpregs(t);
 
     // Step the thread
     // The third parameter indicates that we must step over hardware breakpoints
-    step_thread(threads[tid], true, true);
+    step_thread(t, true, true);
 }
 
 void LibdebugPtraceInterface::step_until(pid_t tid, unsigned long addr, int max_steps)
 {
-    Thread &t = threads[tid];
+    // Get the thread
+    Thread &t = get_thread(tid);
 
     // Flush any register changes
     if (setregs(t)) {
@@ -368,7 +388,8 @@ std::pair<pid_t, int> LibdebugPtraceInterface::stepping_finish_thread(pid_t tid,
 {
     std::pair<pid_t, int> thread_status;
 
-    Thread &stepping_thread = threads[tid];
+    // Get the thread
+    Thread &stepping_thread = get_thread(tid);
 
     prepare_thread_for_run(stepping_thread);
 
@@ -465,11 +486,21 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_thread_and_upda
         thread_statuses.push_back({temp_tid, status});
     }
 
+    // Get the thread
+    Thread &t = get_thread(tid);
+
     // Update the registers of the thread
-    getregs(threads[tid]);
+    getregs(t);
 
     for (auto &thread : threads) {
-        return thread_statuses;
+        // Check if all the threads are stopped
+        if (thread.first != tid) {
+            // If GETREGS succeeds, the thread is stopped
+            if (getregs(thread.second) != -1) {
+                // The thread is not stopped, nothing to do
+                return thread_statuses;
+            }
+        }
     }
 
     // Restore any software breakpoints (only if no thread is running)
@@ -597,7 +628,7 @@ void LibdebugPtraceInterface::disable_breakpoint(const unsigned long address)
 
 void LibdebugPtraceInterface::register_hw_breakpoint(const pid_t tid, unsigned long address, const int type, const int len)
 {
-    Thread &t = threads[tid];
+    Thread &t = get_thread(tid);
 
     if (t.hardware_breakpoints.find(address) != t.hardware_breakpoints.end()) {
         throw std::runtime_error("Breakpoint already registered");
@@ -645,7 +676,10 @@ unsigned long LibdebugPtraceInterface::get_hit_hw_breakpoint(const pid_t tid)
         return 0;
     }
 
-    if (threads[tid].hardware_breakpoints.find(address) != threads[tid].hardware_breakpoints.end()) {
+    // Get the thread
+    Thread &t = get_thread(tid);
+
+    if (t.hardware_breakpoints.find(address) != t.hardware_breakpoints.end()) {
         return address;
     }
 
@@ -654,7 +688,9 @@ unsigned long LibdebugPtraceInterface::get_hit_hw_breakpoint(const pid_t tid)
 
 void LibdebugPtraceInterface::get_fp_regs(pid_t tid)
 {
-    Thread &t = threads[tid];
+    
+    // Get the thread
+    Thread &t = get_thread(tid);
 
     getfpregs(t);
 }

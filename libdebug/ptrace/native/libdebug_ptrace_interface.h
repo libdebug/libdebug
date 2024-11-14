@@ -25,6 +25,7 @@ private:
     void getfpregs(Thread &);
     void setfpregs(Thread &);
     void check_and_set_fpregs(Thread &);
+    Thread &get_thread(const pid_t);
 
     // Control flow private methods
     void step_thread(Thread &,  bool forward_signal = true, bool step_over_hardware_bp = false);
