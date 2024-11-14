@@ -361,9 +361,9 @@ class InternalDebugger:
             raise RuntimeError("No process currently debugged, cannot kill.")
         try:
             self.ensure_process_stopped()
-        except (OSError, RuntimeError):
+        except (OSError, RuntimeError) as e:
             # This exception might occur if the process has already died
-            liblog.debugger("OSError raised during kill")
+            liblog.debugger("Error raised during kill: %s", e)
 
         self._process_memory_manager.close()
 
@@ -1866,7 +1866,8 @@ class InternalDebugger:
     def set_all_threads_scheduled(self: InternalDebugger) -> None:
         """Set the state of all threads to scheduled."""
         for thread in self.internal_threads:
-            thread.scheduled = True
+            if not thread.dead:
+                thread.scheduled = True
 
     def set_all_threads_stopped(self: InternalDebugger) -> None:
         """Set the state of all threads to stopped."""
