@@ -7,6 +7,7 @@
 #include <nanobind/nanobind.h>
 #include <stddef.h>
 #include <sys/ptrace.h>
+#include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <algorithm>
@@ -30,6 +31,11 @@
 #ifdef ARCH_AARCH64
 #include "aarch64/aarch64_ptrace.h"
 #endif
+
+static void tgkill(pid_t tgid, pid_t tid, int sig)
+{
+    syscall(SYS_tgkill, tgid, tid, sig);
+}
 
 namespace nb = nanobind;
 
