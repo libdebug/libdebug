@@ -29,7 +29,7 @@ class ResumeContext:
         self.block_on_signal: bool = False
         self.threads_with_signals_to_forward: list[int] = []
         self.event_type: dict[int, EventType] = {}
-        self.event_hit_ref: dict[int, Breakpoint | SignalCatcher | SyscallHandler] = {}
+        self.event_hit_ref: dict[int, list[Breakpoint | SignalCatcher | SyscallHandler]] = {}
 
     def clear(self: ResumeContext) -> None:
         """Clears the context."""

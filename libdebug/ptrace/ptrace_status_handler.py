@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 from libdebug.architectures.ptrace_software_breakpoint_patcher import (
     software_breakpoint_byte_size,
 )
+from libdebug.data.breakpoint_list import BreakpointList
 from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_constants import SYSCALL_SIGTRAP, StopEvents
@@ -21,7 +22,6 @@ from libdebug.utils.process_utils import get_process_tasks
 from libdebug.utils.signal_utils import resolve_signal_name
 
 if TYPE_CHECKING:
-    from libdebug.data.breakpoint import Breakpoint
     from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.interfaces.debugging_interface import DebuggingInterface
@@ -77,58 +77,47 @@ class PtraceStatusHandler:
 
         ip = thread.instruction_pointer
 
-        bp: None | Breakpoint
+        bp_list = self.internal_debugger.breakpoints.get(ip, BreakpointList([], ip, ""))
+        bp_list = bp_list.filter(thread_id=thread_id, enabled=True)
 
-        bp = self.internal_debugger.breakpoints.get(ip)
-
-        if bp and bp.thread_id not in (-1, thread_id):
-            # The breakpoint is not set on this thread
-            self.forward_signal = False
-            return
-
-        if bp:
+        if bp_list:
             # Hardware breakpoint hit
-            liblog.debugger("Hardware breakpoint hit at 0x%x", ip)
+            liblog.debugger("Hardware breakpoint hit on thread %d at %#x", thread_id, ip)
         else:
             # If the trap was caused by a software breakpoint, we need to restore the original instruction
             # and set the instruction pointer to the previous instruction.
             ip -= software_breakpoint_byte_size(self.internal_debugger.arch)
 
-            bp = self.internal_debugger.breakpoints.get(ip)
+            bp_list_process = self.internal_debugger.breakpoints.get(ip, BreakpointList([], ip, hex(ip)))
+            bp_list_process = bp_list_process.filter(enabled=True, _disabled_for_step=False)
 
-            if bp and bp.enabled and not bp._disabled_for_step:
+            if bp_list_process:
                 # Set the instruction pointer to the previous instruction
                 thread.instruction_pointer = ip
 
-                # Link the breakpoint to the thread, so that we can step over it
-                bp._linked_thread_ids.append(thread_id)
-
-                if bp.thread_id not in (-1, thread_id):
-                    # The breakpoint is not set on this thread
+                if not (bp_list := bp_list_process.filter(thread_id=thread_id)):
+                    # We hit a software breakpoint in the wrong thread
+                    liblog.debugger("Software breakpoint hit on the wrong thread %d at %#x. Skipping", thread_id, ip)
                     self.forward_signal = False
                     return
 
-                # Software breakpoint hit
-                liblog.debugger("Software breakpoint hit at 0x%x", ip)
+                # Software breakpoint hit on the right thread
+                liblog.debugger("Software breakpoint hit on thread %d at %#x", thread_id, ip)
             else:
-                # If the breakpoint has been hit but is not enabled, we need to reset the bp variable
-                bp = None
+                bp_list = BreakpointList([], ip, hex(ip))
 
         # Manage watchpoints
-        if not bp:
-            bp = self.ptrace_interface.get_hit_watchpoint(thread_id)
-            if bp and bp.thread_id not in (-1, thread_id):
-                # The watchpoint is not set on this thread
-                self.forward_signal = False
-                return
-            elif bp:
-                liblog.debugger("Watchpoint hit at 0x%x", bp.address)
+        bp_list_wp = self.ptrace_interface.get_hit_watchpoint(thread_id)
+        if bp_list_wp:
+            # Watchpoint hit
+            liblog.debugger("Watchpoint hit at %#x", bp_list_wp.address)
+            bp_list += bp_list_wp
 
-        if bp:
-            self.internal_debugger.resume_context.event_hit_ref[thread_id] = bp
+        for bp in bp_list:
             self.forward_signal = False
             bp.hit_count += 1
 
+            self.internal_debugger.resume_context.event_hit_ref.setdefault(thread_id, []).append(bp)
             if bp.callback:
                 bp.callback(thread.public_thread_context, bp)
             else:

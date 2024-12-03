@@ -29,6 +29,7 @@ from libdebug.builtin.pretty_print_syscall_handler import (
     pprint_on_exit,
 )
 from libdebug.data.breakpoint import Breakpoint
+from libdebug.data.breakpoint_list import BreakpointList
 from libdebug.data.gdb_resume_event import GdbResumeEvent
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
@@ -578,9 +579,9 @@ class InternalDebugger:
             def callback(_: ThreadContext, __: Breakpoint) -> None:
                 pass
 
-        if bp := self.breakpoints.get(address):
-            # TODO: we should allow multiple breakpoints at the same address (e.g., for different threads)
-            liblog.warning(f"Breakpoint at {position} already set. Overriding it.")
+        if self.breakpoints.get(address) is None:
+            # There are no breakpoints at the specified address. We need to initialize a new BreakpointList.
+            self.breakpoints[address] = BreakpointList([], address, position)
 
         bp = Breakpoint(address, position, thread_id, 0, hardware, callback, condition.lower(), length)
 
@@ -593,8 +594,8 @@ class InternalDebugger:
 
         self._join_and_check_status()
 
-        # the breakpoint should have been set by interface
-        if address not in self.breakpoints:
+        # The breakpoint should have been set by interface
+        if bp not in self.breakpoints[address]:
             raise RuntimeError("Something went wrong while inserting the breakpoint.")
 
         return bp
