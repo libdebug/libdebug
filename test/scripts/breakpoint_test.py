@@ -806,3 +806,237 @@ class BreakpointTest(TestCase):
         
         d.terminate()
         
+        
+    def test_multiple_bps_sync(self):
+        d = debugger(RESOLVE_EXE("breakpoint_test"))
+
+        d.run()
+
+        bp1_1 = d.breakpoint("random_function")
+        bp1_2 = d.breakpoint("random_function")
+        bp2_1 = d.breakpoint(TEST_BPS_ADDRESS_1)
+        bp2_2 = d.breakpoint(TEST_BPS_ADDRESS_1)
+        bp3_1 = d.breakpoint(TEST_BPS_ADDRESS_2)
+        bp3_2 = d.breakpoint(TEST_BPS_ADDRESS_2)
+
+        counter = 1
+
+        d.cont()
+
+        while True:
+            if d.instruction_pointer == bp1_1.address:
+                self.assertTrue(bp1_1.hit_count == 1)
+                self.assertTrue(bp1_2.hit_count == 1)
+                
+                self.assertTrue(bp1_1.hit_on(d))
+                self.assertTrue(bp1_2.hit_on(d))
+                
+                self.assertFalse(bp2_1.hit_on(d))
+                self.assertFalse(bp2_2.hit_on(d))
+                
+                self.assertFalse(bp3_1.hit_on(d))
+                self.assertFalse(bp3_2.hit_on(d))
+            elif d.instruction_pointer == bp2_1.address:
+                self.assertTrue(bp2_1.hit_count == counter)
+                self.assertTrue(bp2_2.hit_count == counter)
+                
+                self.assertTrue(bp2_1.hit_on(d))
+                self.assertTrue(bp2_2.hit_on(d))
+                
+                self.assertFalse(bp1_1.hit_on(d))
+                self.assertFalse(bp1_2.hit_on(d))
+                
+                self.assertFalse(bp3_1.hit_on(d))
+                self.assertFalse(bp3_2.hit_on(d))
+                counter += 1
+            elif d.instruction_pointer == bp3_1.address:
+                self.assertTrue(bp3_1.hit_count == 1)
+                self.assertTrue(bp3_2.hit_count == 1)
+                                
+                CHECK_REGISTERS(self, d)
+                
+                self.assertTrue(bp3_1.hit_on(d))
+                self.assertTrue(bp3_2.hit_on(d))
+                
+                self.assertFalse(bp1_1.hit_on(d))
+                self.assertFalse(bp1_2.hit_on(d))
+                break
+
+            d.cont()
+
+        self.assertEqual(bp2_1.hit_count, 10)
+        self.assertEqual(bp2_2.hit_count, 10)
+        
+        self.assertEqual(d.breakpoints[bp1_1.address].hit_count, 2)
+        self.assertEqual(d.breakpoints[TEST_BPS_ADDRESS_1].hit_count, 20)
+        self.assertEqual(d.breakpoints[TEST_BPS_ADDRESS_2].hit_count, 2)
+
+        d.kill()
+        d.terminate()
+        
+    def test_multiple_bps_async(self):
+        counter_1_1, counter_1_2 = 0, 0
+        counter_2_1, counter_2_2 = 0, 0
+        counter_3_1, counter_3_2 = 0, 0
+        
+        def first_first(t, bp):
+            nonlocal counter_1_1
+            counter_1_1 += 1
+            self.assertEqual(counter_1_1, bp.hit_count)
+            
+            # This callback should be called before the second one
+            self.assertGreater(counter_1_1, counter_1_2)
+            
+        def first_second(t, bp):
+            nonlocal counter_1_2
+            counter_1_2 += 1
+            self.assertEqual(counter_1_2, bp.hit_count)
+            
+            # This callback should be called after the first one
+            self.assertEqual(counter_1_2, counter_1_1)
+            
+        def second_first(t, bp):
+            nonlocal counter_2_1
+            counter_2_1 += 1
+            self.assertEqual(counter_2_1, bp.hit_count)
+            
+            # This callback should be called before the second one
+            self.assertGreater(counter_2_1, counter_2_2)
+            
+        def second_second(t, bp):
+            nonlocal counter_2_2
+            counter_2_2 += 1
+            self.assertEqual(counter_2_2, bp.hit_count)
+            
+            # This callback should be called after the first one
+            self.assertEqual(counter_2_2, counter_2_1)
+            
+        def third_first(t, bp):
+            nonlocal counter_3_1
+            counter_3_1 += 1
+            self.assertEqual(counter_3_1, bp.hit_count)
+            
+            # This callback should be called before the second one
+            self.assertGreater(counter_3_1, counter_3_2)
+            
+        def third_second(t, bp):
+            nonlocal counter_3_2
+            counter_3_2 += 1
+            self.assertEqual(counter_3_2, bp.hit_count)
+            
+            # This callback should be called after the first one
+            self.assertEqual(counter_3_2, counter_3_1)
+    
+        d = debugger(RESOLVE_EXE("breakpoint_test"))
+
+        d.run()
+
+        bp1_1 = d.breakpoint("random_function", callback=first_first)
+        bp1_2 = d.breakpoint("random_function", callback=first_second)
+        bp2_1 = d.breakpoint(TEST_BPS_ADDRESS_1, callback=second_first)
+        bp2_2 = d.breakpoint(TEST_BPS_ADDRESS_1, callback=second_second)
+        bp3_1 = d.breakpoint(TEST_BPS_ADDRESS_2, callback=third_first)
+        bp3_2 = d.breakpoint(TEST_BPS_ADDRESS_2, callback=third_second)
+
+        d.cont()
+        
+        d.wait()
+
+        self.assertEqual(counter_1_1, 1)
+        self.assertEqual(counter_1_2, 1)
+        self.assertEqual(bp2_1.hit_count, 10)
+        self.assertEqual(bp2_2.hit_count, 10)
+        self.assertEqual(counter_3_1, 1)
+        self.assertEqual(counter_3_2, 1)
+        
+        
+        self.assertEqual(d.breakpoints[bp1_1.address].hit_count, 2)
+        self.assertEqual(d.breakpoints[TEST_BPS_ADDRESS_1].hit_count, 20)
+        self.assertEqual(d.breakpoints[TEST_BPS_ADDRESS_2].hit_count, 2)
+
+        d.kill()
+        d.terminate()
+    
+    
+    def test_multiple_bps_disable(self):
+        counter_1_1, counter_1_2 = 0, 0
+        counter_2_1, counter_2_2 = 0, 0
+        counter_3_1, counter_3_2 = 0, 0
+        
+        def first_first(t, bp):
+            nonlocal counter_1_1
+            counter_1_1 += 1
+            self.assertEqual(counter_1_1, bp.hit_count)
+            
+            # This callback should be called before the second one
+            self.assertGreater(counter_1_1, counter_1_2)
+            
+        def first_second(t, bp):
+            nonlocal counter_1_2
+            counter_1_2 += 1
+            self.assertEqual(counter_1_2, bp.hit_count)
+            
+            # This callback should be called after the first one
+            self.assertEqual(counter_1_2, counter_1_1)
+            
+        def second_first(t, bp):
+            nonlocal counter_2_1
+            counter_2_1 += 1
+            self.assertEqual(counter_2_1, bp.hit_count)
+            
+            # This callback should be called before the second one
+            self.assertGreater(counter_2_1, counter_2_2)
+            
+        def second_second(t, bp):
+            nonlocal counter_2_2
+            counter_2_2 += 1
+            self.assertEqual(counter_2_2, bp.hit_count)
+                        
+            # Disable the breakpoint
+            bp.disable()
+            
+        def third_first(t, bp):
+            nonlocal counter_3_1
+            counter_3_1 += 1
+            self.assertEqual(counter_3_1, bp.hit_count)
+            
+            # This callback should be called before the second one
+            self.assertGreater(counter_3_1, counter_3_2)
+            
+        def third_second(t, bp):
+            nonlocal counter_3_2
+            counter_3_2 += 1
+            self.assertEqual(counter_3_2, bp.hit_count)
+            
+            # This callback should be called after the first one
+            self.assertEqual(counter_3_2, counter_3_1)
+    
+        d = debugger(RESOLVE_EXE("breakpoint_test"))
+
+        d.run()
+
+        bp1_1 = d.breakpoint("random_function", callback=first_first)
+        bp1_2 = d.breakpoint("random_function", callback=first_second)
+        bp2_1 = d.breakpoint(TEST_BPS_ADDRESS_1, callback=second_first)
+        bp2_2 = d.breakpoint(TEST_BPS_ADDRESS_1, callback=second_second)
+        bp3_1 = d.breakpoint(TEST_BPS_ADDRESS_2, callback=third_first)
+        bp3_2 = d.breakpoint(TEST_BPS_ADDRESS_2, callback=third_second)
+
+        d.cont()
+        
+        d.wait()
+        
+        self.assertEqual(counter_1_1, 1)
+        self.assertEqual(counter_1_2, 1)
+        self.assertEqual(bp2_1.hit_count, 10)
+        self.assertEqual(bp2_2.hit_count, 1)
+        self.assertEqual(counter_3_1, 1)
+        self.assertEqual(counter_3_2, 1)
+        
+        
+        self.assertEqual(d.breakpoints[bp1_1.address].hit_count, 2)
+        self.assertEqual(d.breakpoints[TEST_BPS_ADDRESS_1].hit_count, 11)
+        self.assertEqual(d.breakpoints[TEST_BPS_ADDRESS_2].hit_count, 2)
+
+        d.kill()
+        d.terminate()
