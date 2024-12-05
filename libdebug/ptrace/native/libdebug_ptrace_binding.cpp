@@ -573,7 +573,7 @@ void LibdebugPtraceInterface::forward_signals(const std::vector<std::pair<pid_t,
     }
 }
 
-void LibdebugPtraceInterface::register_breakpoint(const unsigned long address)
+void LibdebugPtraceInterface::install_breakpoint(const unsigned long address)
 {
     unsigned long instruction = ptrace(PTRACE_PEEKTEXT, process_id, (void *) address, NULL);
 
@@ -595,7 +595,7 @@ void LibdebugPtraceInterface::register_breakpoint(const unsigned long address)
     software_breakpoints[address] = bp;
 }
 
-void LibdebugPtraceInterface::unregister_breakpoint(const unsigned long address)
+void LibdebugPtraceInterface::uninstall_breakpoint(const unsigned long address)
 {
     if (software_breakpoints.find(address) == software_breakpoints.end()) {
         throw std::runtime_error("Breakpoint not found");
@@ -626,7 +626,7 @@ void LibdebugPtraceInterface::disable_breakpoint(const unsigned long address)
     ptrace(PTRACE_POKETEXT, process_id, (void *) address, (void *) software_breakpoints[address].instruction);
 }
 
-void LibdebugPtraceInterface::register_hw_breakpoint(const pid_t tid, unsigned long address, const int type, const int len)
+void LibdebugPtraceInterface::install_hw_breakpoint(const pid_t tid, unsigned long address, const int type, const int len)
 {
     Thread &t = get_thread(tid);
 
@@ -648,7 +648,7 @@ void LibdebugPtraceInterface::register_hw_breakpoint(const pid_t tid, unsigned l
     install_hardware_breakpoint(bp);
 }
 
-void LibdebugPtraceInterface::unregister_hw_breakpoint(const pid_t tid, const unsigned long address)
+void LibdebugPtraceInterface::uninstall_hw_breakpoint(const pid_t tid, const unsigned long address)
 {
     if (threads.find(tid) == threads.end()) {
         return;
@@ -927,13 +927,13 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "    tid (int): The thread id to get the remaining hardware watchpoint count for.\n"
         )
         .def(
-            "register_hw_breakpoint",
-            &LibdebugPtraceInterface::register_hw_breakpoint,
+            "install_hw_breakpoint",
+            &LibdebugPtraceInterface::install_hw_breakpoint,
             nb::arg("tid"),
             nb::arg("address"),
             nb::arg("type"),
             nb::arg("len"),
-            "Registers a hardware breakpoint for a thread.\n"
+            "Install a hardware breakpoint for a thread.\n"
             "\n"
             "Args:\n"
             "    tid (int): The thread id to register the hardware breakpoint for.\n"
@@ -942,11 +942,11 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "    len (int): The length of the hardware breakpoint."
         )
         .def(
-            "unregister_hw_breakpoint",
-            &LibdebugPtraceInterface::unregister_hw_breakpoint,
+            "uninstall_hw_breakpoint",
+            &LibdebugPtraceInterface::uninstall_hw_breakpoint,
             nb::arg("tid"),
             nb::arg("address"),
-            "Unregisters a hardware breakpoint for a thread.\n"
+            "Uninstall a hardware breakpoint for a thread.\n"
             "\n"
             "Args:\n"
             "    tid (int): The thread id to unregister the hardware breakpoint for.\n"
@@ -965,19 +965,19 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "    int: The address of the hit hardware breakpoint."
         )
         .def(
-            "register_breakpoint",
-            &LibdebugPtraceInterface::register_breakpoint,
+            "install_breakpoint",
+            &LibdebugPtraceInterface::install_breakpoint,
             nb::arg("address"),
-            "Registers a software breakpoint at a specific address.\n"
+            "Install a software breakpoint at a specific address.\n"
             "\n"
             "Args:\n"
             "    address (int): The address to set the software breakpoint at."
         )
         .def(
-            "unregister_breakpoint",
-            &LibdebugPtraceInterface::unregister_breakpoint,
+            "uninstall_breakpoint",
+            &LibdebugPtraceInterface::uninstall_breakpoint,
             nb::arg("address"),
-            "Unregisters a software breakpoint at a specific address.\n"
+            "Uninstall a software breakpoint at a specific address.\n"
             "\n"
             "Args:\n"
             "    address (int): The address to remove the software breakpoint from."
