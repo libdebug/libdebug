@@ -912,6 +912,11 @@ class PtraceInterface(DebuggingInterface):
             bp (Breakpoint): The breakpoint to unset.
             delete (bool): Whether the breakpoint has to be deleted or just disabled.
         """
+        bp_list = self._internal_debugger.breakpoints.get(bp.address)
+        if bp_list.enabled:
+            # There is still an enabled bp to that location. We don't want to unset it.
+            return
+
         if bp.hardware and bp.thread_id == -1:
             # If the breakpoint is hardware and no thread ID is specified, we unset the breakpoint for all threads
             for thread in self._internal_debugger.internal_threads:
