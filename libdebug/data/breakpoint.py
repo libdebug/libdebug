@@ -52,13 +52,11 @@ class Breakpoint:
     def enable(self: Breakpoint) -> None:
         """Enable the breakpoint."""
         provide_internal_debugger(self).ensure_process_stopped()
-        self.enabled = True
         self._changed = True
 
     def disable(self: Breakpoint) -> None:
         """Disable the breakpoint."""
         provide_internal_debugger(self).ensure_process_stopped()
-        self.enabled = False
         self._changed = True
 
     def hit_on(self: Breakpoint, thread_context: ThreadContext) -> bool:
