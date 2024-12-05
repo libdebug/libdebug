@@ -870,6 +870,26 @@ class PtraceInterface(DebuggingInterface):
             bp.length,
         )
 
+    def _check_colliding_breakpoints(self: PtraceInterface, bp: Breakpoint) -> bool:
+        """Checks if there are any colliding breakpoints at the specified address and with the same type.
+
+        Args:
+            bp (Breakpoint): The breakpoint to check.
+        """
+        if (bp_list := self._internal_debugger.breakpoints.get(bp.address)) is None:
+            # There are no breakpoints at the specified address
+            return False
+
+        # Filter by type (software or hardware)
+        bp_list = bp_list.filter(hardware=bp.hardware)
+
+        if bp.hardware:
+            # The breakpoint is hardware, we need to check if there are other breakpoints at the same address only for
+            # the same thread. We also need to check if the condition and the length are the same
+            bp_list = bp_list.filter(thread_id=bp.thread_id, condition=bp.condition, length=bp.length)
+
+        return bp_list.enabled
+
     def set_breakpoint(self: PtraceInterface, bp: Breakpoint, insert: bool = True) -> None:
         """Sets a breakpoint at the specified address.
 
@@ -877,19 +897,14 @@ class PtraceInterface(DebuggingInterface):
             bp (Breakpoint): The breakpoint to set.
             insert (bool): Whether the breakpoint has to be inserted or just enabled.
         """
-        if self._internal_debugger.breakpoints.get(bp.address) is None:
-            # There are no breakpoints at the specified address. We need to initialize a new BreakpointList.
-            self._internal_debugger.breakpoints[bp.address] = BreakpointList([], address=bp.address, symbol=bp.symbol)
+        if not self._check_colliding_breakpoints(bp):
+            if self._internal_debugger.breakpoints.get(bp.address) is None:
+                # There are no breakpoints at the specified address. We need to initialize a new BreakpointList
+                self._internal_debugger.breakpoints[bp.address] = BreakpointList(
+                    [], address=bp.address, symbol=bp.symbol
+                )
 
-        # We need to check if there are other breakpoints of the same type already set at the same address
-        bp_list = self._internal_debugger.breakpoints[bp.address]
-        bp_list = bp_list.filter(hardware=bp.hardware)
-        if bp.hardware:
-            # The breakpoint is hardware, we need to check if there are other breakpoints at the same address only for
-            # the same thread
-            bp_list = bp_list.filter(thread_id=bp.thread_id)
-        if not bp_list.enabled:
-            # There are no other breakpoints at the address. We can set the breakpoint.
+            # There are no other breakpoints at the address. We can set the breakpoint
             if bp.hardware and bp.thread_id == -1:
                 # If the breakpoint is hardware and no thread ID is specified, we set the breakpoint for all threads
                 for thread in self._internal_debugger.internal_threads:
@@ -919,37 +934,25 @@ class PtraceInterface(DebuggingInterface):
         # If the breakpoint is still enabled, we need to set the flag to False
         bp.enabled = False
 
-        # We need to check if there are other breakpoints at the same address
-        bp_list = self._internal_debugger.breakpoints.get(bp.address)
-        bp_list = bp_list.filter(hardware=bp.hardware)
+        if not self._check_colliding_breakpoints(bp):
+            if bp.hardware and bp.thread_id == -1:
+                # If the breakpoint is hardware and no thread ID is specified, we unset the breakpoint for all threads
+                for thread in self._internal_debugger.internal_threads:
+                    self.lib_trace.uninstall_hw_breakpoint(thread.thread_id, bp.address)
+            elif bp.hardware:
+                # If the breakpoint is hardware and a thread ID is specified, we unset the breakpoint only for that thread
+                self.lib_trace.uninstall_hw_breakpoint(bp.thread_id, bp.address)
+            elif delete:
+                self._unset_sw_breakpoint(bp)
+            else:
+                self._disable_breakpoint(bp)
 
-        if bp.hardware:
-            # The breakpoint is hardware, we need to check if there are other breakpoints at the same address only for
-            # the same thread
-            bp_list = bp_list.filter(thread_id=bp.thread_id)
-
-        if bp_list.enabled:
-            # There is still an enabled bp to that location. We don't want to unset it.
-            return
-
-        if bp.hardware and bp.thread_id == -1:
-            # If the breakpoint is hardware and no thread ID is specified, we unset the breakpoint for all threads
-            for thread in self._internal_debugger.internal_threads:
-                self.lib_trace.uninstall_hw_breakpoint(thread.thread_id, bp.address)
-        elif bp.hardware:
-            # If the breakpoint is hardware and a thread ID is specified, we unset the breakpoint only for that thread
-            self.lib_trace.uninstall_hw_breakpoint(bp.thread_id, bp.address)
-        elif delete:
-            self._unset_sw_breakpoint(bp)
-        else:
-            self._disable_breakpoint(bp)
-
-        if delete:
-            # Remove the breakpoint from the BreakpointList
-            self._internal_debugger.breakpoints[bp.address].remove(bp)
-            if not self._internal_debugger.breakpoints[bp.address]:
-                # If there are no more breakpoints at the address, we delete the BreakpointList
-                del self._internal_debugger.breakpoints[bp.address]
+            if delete:
+                # Remove the breakpoint from the BreakpointList
+                self._internal_debugger.breakpoints[bp.address].remove(bp)
+                if not self._internal_debugger.breakpoints[bp.address]:
+                    # If there are no more breakpoints at the address, we delete the BreakpointList
+                    del self._internal_debugger.breakpoints[bp.address]
 
     def set_syscall_handler(self: PtraceInterface, handler: SyscallHandler) -> None:
         """Sets a handler for a syscall.
