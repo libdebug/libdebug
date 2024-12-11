@@ -143,6 +143,16 @@ class InternalThreadContext:
 
         return return_address
 
+    @property
+    def breakpoints(self: InternalThreadContext) -> dict[int, Breakpoint]:
+        """Get the breakpoints set on the thread."""
+        thread_breakpoints = {}
+
+        for breakpoint_list in self._internal_debugger.breakpoints.values():
+            if breakpoint_list_filtered := breakpoint_list.filter(thread_id=self.thread_id):
+                thread_breakpoints[breakpoint_list.address] = breakpoint_list_filtered
+        return thread_breakpoints
+
     def cont(self: InternalThreadContext) -> None:
         """Continues the execution of the thread."""
         self._internal_debugger.cont(self)
