@@ -29,7 +29,6 @@ from libdebug.builtin.pretty_print_syscall_handler import (
     pprint_on_exit,
 )
 from libdebug.data.breakpoint import Breakpoint
-from libdebug.data.breakpoint_list import BreakpointList
 from libdebug.data.gdb_resume_event import GdbResumeEvent
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
@@ -50,10 +49,10 @@ from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.debugger_wrappers import (
     background_alias,
     change_state_function_process,
-    change_state_function_thread,
 )
 from libdebug.utils.debugging_utils import (
     normalize_and_validate_address,
+    resolve_address_in_maps,
     resolve_symbol_in_maps,
 )
 from libdebug.utils.elf_utils import get_all_symbols
@@ -586,7 +585,7 @@ class InternalDebugger:
 
         link_to_internal_debugger(bp, self)
 
-        self.__polling_thread_command_queue.put((self.__threaded_breakpoint, (bp, )))
+        self.__polling_thread_command_queue.put((self.__threaded_breakpoint, (bp,)))
 
         self._join_and_check_status()
 
