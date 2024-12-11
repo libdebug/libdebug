@@ -957,6 +957,7 @@ class BreakpointTest(TestCase):
         d.kill()
         d.terminate()
         
+        
     def test_multiple_bps_async_both_sw_hw(self):
         counter_1_1, counter_1_2 = 0, 0
         counter_2_1, counter_2_2 = 0, 0
@@ -1139,10 +1140,6 @@ class BreakpointTest(TestCase):
         d.terminate()
     
     def test_max_number_hw_bp_scoped(self):
-        def callback(t, bp):
-            self.assertEqual(t.thread_id, target.thread_id)
-            pass
-        
         d = debugger(RESOLVE_EXE("multithread_input"))
         
         r = d.run()
@@ -1164,17 +1161,115 @@ class BreakpointTest(TestCase):
         offset = 0
         while True:
             try:
-                bp = target.bp(TEST_THREAD_SCOPED_END_THREAD + offset, file="binary", callback=callback, hardware=True)
+                target.bp(TEST_THREAD_SCOPED_END_THREAD + offset, file="binary", callback=True, hardware=True)
             except ValueError:
                 break
             offset += 0x10
             
         # At this point we should be able to set sw breakpoints on the same thread
-        bp = target.bp(TEST_THREAD_SCOPED_END_THREAD + offset, file="binary", callback=callback)
+        target.bp(TEST_THREAD_SCOPED_END_THREAD + offset, file="binary", callback=True)
         
         # We should also be able to set hw breakpoints on other threads
         for thread in other_threads:
             thread.bp(TEST_THREAD_SCOPED_END_THREAD, file="binary", hardware=True)
         
+        d.kill()        
+        d.terminate()
+        
+    def test_breakpoints_list_thread_scoped(self):        
+        d = debugger(RESOLVE_EXE("multithread_input"))
+        
+        r = d.run()
+        
+        d.cont()
+        
+        # Let wait all threads to be created
+        r.recvuntil(b"All threads have been created.")
+        
+        # Interrupt the process
+        d.interrupt()
+        
+        # Choice a target
+        target = d.threads[2]
+        other_threads = d.threads.copy()
+        other_threads.remove(target)
+        
+        # Set 10 bps on the target thread
+        offset = 0
+        for _ in range(10):
+            target.bp(TEST_THREAD_SCOPED_END_THREAD + offset, file="binary", callback=True)
+            offset += 0x10
+            
+        # 10 different bp locations on the target thread
+        self.assertEqual(len(target.breakpoints), 10)
+        
+        # No breakpoints on other threads
+        for thread in other_threads:
+            self.assertEqual(len(thread.breakpoints), 0)
+        
+        # 10 different bp locations on the whole process
+        self.assertEqual(len(d.breakpoints), 10)
+        
+        # 1 installed breakpoint for each location
+        for breakpoint_list in target.breakpoints.values():
+            self.assertEqual(len(breakpoint_list), 1)
+            
+        # Set again 10 bps on the target thread. These bps should be appended to the previous ones
+        offset = 0
+        for _ in range(10):
+            target.bp(TEST_THREAD_SCOPED_END_THREAD + offset, file="binary", callback=True)
+            offset += 0x10
+            
+        # 10 different bp locations on the target thread
+        self.assertEqual(len(target.breakpoints), 10)
+        
+        # No breakpoints on other threads
+        for thread in other_threads:
+            self.assertEqual(len(thread.breakpoints), 0)
+            
+        # 10 different bp locations on the whole process
+        self.assertEqual(len(d.breakpoints), 10)
+        
+        # 2 installed breakpoints for each location
+        for breakpoint_list in target.breakpoints.values():
+            self.assertEqual(len(breakpoint_list), 2)
+            
+        # Set again 4 hw bps on the target thread. These bps should be appended to the previous ones
+        offset = 0
+        for _ in range(4):
+            target.bp(TEST_THREAD_SCOPED_END_THREAD + offset, file="binary", callback=True, hardware=True)
+            offset += 0x10
+            
+        # 10 different bp locations on the target thread
+        self.assertEqual(len(target.breakpoints), 10)
+        
+        # No breakpoints on other threads
+        for thread in other_threads:
+            self.assertEqual(len(thread.breakpoints), 0)
+            
+        # 10 different bp locations on the whole process
+        self.assertEqual(len(d.breakpoints), 10)
+        
+        # 3 installed breakpoints for the first 4 locations, 2 for the rest
+        for i, breakpoint_list in enumerate(target.breakpoints.values()):
+            if i < 4:
+                self.assertEqual(len(breakpoint_list), 3)
+            else:
+                self.assertEqual(len(breakpoint_list), 2)
+        
+        # We should also be able to set hw breakpoints on other threads
+        for thread in other_threads:
+            thread.bp(TEST_THREAD_SCOPED_END_THREAD, file="binary", hardware=True)
+            
+        # Still 10 different bp locations on the target thread
+        self.assertEqual(len(target.breakpoints), 10)
+        
+        # 1 breakpoint location on other threads
+        for thread in other_threads:
+            self.assertEqual(len(thread.breakpoints), 1)
+            
+        # 10 different bp locations on the whole process
+        self.assertEqual(len(d.breakpoints), 10)
+                
         d.kill()        
         d.terminate()
