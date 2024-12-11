@@ -19,6 +19,7 @@ from libdebug.architectures.call_utilities_provider import call_utilities_provid
 from libdebug.architectures.register_helper import register_holder_provider
 from libdebug.commlink.pipe_manager import PipeManager
 from libdebug.data.breakpoint import Breakpoint
+from libdebug.data.breakpoint_list import BreakpointList
 from libdebug.debugger.internal_debugger_instance_manager import (
     extend_internal_debugger,
     provide_internal_debugger,
@@ -220,9 +221,10 @@ class PtraceInterface(DebuggingInterface):
     def detach(self: PtraceInterface) -> None:
         """Detaches from the process."""
         # We must disable all breakpoints before detaching
-        for bp in list(self._internal_debugger.breakpoints.values()):
-            if bp.enabled:
-                self.unset_breakpoint(bp, delete=True)
+        for bp_list in list(self._internal_debugger.breakpoints.values()):
+            for bp in bp_list:
+                if bp.enabled:
+                    self.unset_breakpoint(bp, delete=True)
 
         self.lib_trace.detach_and_cont()
 
@@ -264,14 +266,15 @@ class PtraceInterface(DebuggingInterface):
         # Enable all breakpoints if they were disabled for a single step
         changed = []
 
-        for bp in self._internal_debugger.breakpoints.values():
-            bp._disabled_for_step = False
-            if bp._changed:
-                changed.append(bp)
-                bp._changed = False
+        for bp_list in self._internal_debugger.breakpoints.values():
+            for bp in bp_list:
+                bp._disabled_for_step = False
+                if bp._changed:
+                    changed.append(bp)
+                    bp._changed = False
 
         for bp in changed:
-            if bp.enabled:
+            if not bp.enabled:
                 self.set_breakpoint(bp, insert=False)
             else:
                 self.unset_breakpoint(bp, delete=False)
@@ -304,11 +307,13 @@ class PtraceInterface(DebuggingInterface):
         # future, when we will have better per-thread events (e.g., breakpoints, signals, syscalls).
         changed = []
 
-        for bp in self._internal_debugger.breakpoints.values():
-            bp._disabled_for_step = False
-            if bp._changed:
-                changed.append(bp)
-                bp._changed = False
+        for bp_list in self._internal_debugger.breakpoints.values():
+            # TODO: only the breakpoints of the thread should be enabled
+            for bp in bp_list:
+                bp._disabled_for_step = False
+                if bp._changed:
+                    changed.append(bp)
+                    bp._changed = False
 
         for bp in changed:
             if bp.enabled:
@@ -349,8 +354,9 @@ class PtraceInterface(DebuggingInterface):
             thread (InternalThreadContext): The thread to step. If None, all threads are stepped.
         """
         # Disable all breakpoints for the single step
-        for bp in self._internal_debugger.breakpoints.values():
-            bp._disabled_for_step = True
+        for bp_list in self._internal_debugger.breakpoints.values():
+            for bp in bp_list:
+                bp._disabled_for_step = True
 
         # Reset the event type
         self._internal_debugger.resume_context.event_type.clear()
@@ -386,8 +392,9 @@ class PtraceInterface(DebuggingInterface):
         # TODO: implement the compatibility with the already set breakpoints
         # TODO: implement event status, when the previous todo is done
         # Disable all breakpoints for the single step
-        for bp in self._internal_debugger.breakpoints.values():
-            bp._disabled_for_step = True
+        for bp_list in self._internal_debugger.breakpoints.values():
+            for bp in bp_list:
+                bp._disabled_for_step = True
 
         # Reset the event type
         self._internal_debugger.resume_context.event_type.clear()
@@ -444,11 +451,13 @@ class PtraceInterface(DebuggingInterface):
         found = False
         ip_breakpoint = None
 
-        for bp in self._internal_debugger.breakpoints.values():
-            if bp.address == last_saved_instruction_pointer:
-                found = True
-                ip_breakpoint = bp
-                break
+        for bp_list in self._internal_debugger.breakpoints.values():
+            # TODO: only the breakpoints of the thread should be enabled
+            for bp in bp_list:
+                if bp.address == last_saved_instruction_pointer:
+                    found = True
+                    ip_breakpoint = bp
+                    break
 
         # If we find an existing breakpoint that is disabled, we enable it
         # but we need to disable it back after the command
@@ -460,8 +469,16 @@ class PtraceInterface(DebuggingInterface):
             install_hw_bp = self.lib_trace.get_remaining_hw_breakpoint_count(thread.thread_id) > 0
 
             ip_breakpoint = Breakpoint(
-                last_saved_instruction_pointer, hardware=install_hw_bp, thread_id=thread.thread_id
+                last_saved_instruction_pointer,
+                hardware=install_hw_bp,
+                thread_id=thread.thread_id,
             )
+            if self._internal_debugger.breakpoints.get(last_saved_instruction_pointer) is None:
+                self._internal_debugger.breakpoints[last_saved_instruction_pointer] = BreakpointList(
+                    [],
+                    address=last_saved_instruction_pointer,
+                    symbol=hex(last_saved_instruction_pointer),
+                )
             self.set_breakpoint(ip_breakpoint)
         elif not ip_breakpoint.enabled:
             self._enable_breakpoint(ip_breakpoint)
@@ -558,6 +575,12 @@ class PtraceInterface(DebuggingInterface):
                 # Otherwise we use a software breakpoint
                 install_hw_bp = self.lib_trace.get_remaining_hw_breakpoint_count(thread.thread_id) > 0
                 ip_breakpoint = Breakpoint(skip_address, hardware=install_hw_bp)
+                if self._internal_debugger.breakpoints.get(skip_address) is None:
+                    self._internal_debugger.breakpoints[skip_address] = BreakpointList(
+                        [],
+                        address=skip_address,
+                        symbol=hex(skip_address),
+                    )
                 self.set_breakpoint(ip_breakpoint)
             elif not ip_breakpoint.enabled:
                 self._enable_breakpoint(ip_breakpoint)
@@ -644,7 +667,13 @@ class PtraceInterface(DebuggingInterface):
             # For PIE binaries, the entry point is a relative address
             entry_point = normalize_and_validate_address(entry_point, self.get_maps())
 
+            # TODO: when bp will be available into callbacks, we will refactor this code
             bp = Breakpoint(entry_point, hardware=True)
+            self._internal_debugger.breakpoints[entry_point] = BreakpointList(
+                [],
+                address=entry_point,
+                symbol="entry_point",
+            )
             self.set_breakpoint(bp)
             self._cont_process()
             self.wait()
@@ -709,14 +738,15 @@ class PtraceInterface(DebuggingInterface):
     def migrate_to_gdb(self: PtraceInterface) -> None:
         """Migrates the current process to GDB."""
         # Delete any hardware breakpoint
-        for bp in self._internal_debugger.breakpoints.values():
-            if bp.hardware:
-                for thread in self._internal_debugger.internal_threads:
-                    self.lib_trace.unregister_hw_breakpoint(
-                        self._global_state,
-                        thread.thread_id,
-                        bp.address,
-                    )
+        for bp_list in self._internal_debugger.breakpoints.values():
+            for bp in bp_list:
+                if bp.hardware:
+                    for thread in self._internal_debugger.internal_threads:
+                        self.lib_trace.uninstall_hw_breakpoint(
+                            self._global_state,
+                            thread.thread_id,
+                            bp.address,
+                        )
 
         self.lib_trace.ptrace_detach_for_migration(self._global_state, self.process_id)
 
@@ -728,15 +758,16 @@ class PtraceInterface(DebuggingInterface):
         self.status_handler.check_for_new_threads(self.process_id)
 
         # We have to reinstall any hardware breakpoint
-        for bp in self._internal_debugger.breakpoints.values():
-            if bp.hardware:
-                for thread in self._internal_debugger.internal_threads:
-                    self.lib_trace.register_hw_breakpoint(
-                        thread.thread_id,
-                        bp.address,
-                        int.from_bytes(bp.condition.encode(), sys.byteorder),
-                        bp.length,
-                    )
+        for bp_list in self._internal_debugger.breakpoints.values():
+            for bp in bp_list:
+                if bp.hardware:
+                    for thread in self._internal_debugger.internal_threads:
+                        self.lib_trace.install_hw_breakpoint(
+                            thread.thread_id,
+                            bp.address,
+                            int.from_bytes(bp.condition.encode(), sys.byteorder),
+                            bp.length,
+                        )
 
     def register_new_thread(self: PtraceInterface, new_thread_id: int) -> None:
         """Registers a new thread.
@@ -755,14 +786,15 @@ class PtraceInterface(DebuggingInterface):
         self._internal_debugger.insert_new_thread(thread)
 
         # For any hardware breakpoints, we need to reapply them to the new thread
-        for bp in self._internal_debugger.breakpoints.values():
-            if bp.hardware:
-                self.lib_trace.register_hw_breakpoint(
-                    thread.thread_id,
-                    bp.address,
-                    int.from_bytes(bp.condition.encode(), sys.byteorder),
-                    bp.length,
-                )
+        for bp_list in self._internal_debugger.breakpoints.values():
+            for bp in bp_list:
+                if bp.hardware:
+                    self.lib_trace.install_hw_breakpoint(
+                        thread.thread_id,
+                        bp.address,
+                        int.from_bytes(bp.condition.encode(), sys.byteorder),
+                        bp.length,
+                    )
 
         # Schedule the thread to be resumed
         thread.scheduled = True
@@ -790,7 +822,7 @@ class PtraceInterface(DebuggingInterface):
         Args:
             bp (Breakpoint): The breakpoint to set.
         """
-        self.lib_trace.register_breakpoint(bp.address)
+        self.lib_trace.install_breakpoint(bp.address)
 
     def _unset_sw_breakpoint(self: PtraceInterface, bp: Breakpoint) -> None:
         """Unsets a software breakpoint at the specified address.
@@ -798,7 +830,7 @@ class PtraceInterface(DebuggingInterface):
         Args:
             bp (Breakpoint): The breakpoint to unset.
         """
-        self.lib_trace.unregister_breakpoint(bp.address)
+        self.lib_trace.uninstall_breakpoint(bp.address)
 
     def _enable_breakpoint(self: PtraceInterface, bp: Breakpoint) -> None:
         """Enables a breakpoint at the specified address.
@@ -831,46 +863,66 @@ class PtraceInterface(DebuggingInterface):
         if not remaining:
             raise ValueError("No more hardware breakpoints of this type available")
 
-        self.lib_trace.register_hw_breakpoint(
+        self.lib_trace.install_hw_breakpoint(
             thread_id,
             bp.address,
             int.from_bytes(bp.condition.encode(), sys.byteorder),
             bp.length,
         )
 
-    def set_breakpoint(self: PtraceInterface, bp: Breakpoint, insert: bool = True, thread_id: int = -1) -> None:
+    def _check_colliding_breakpoints(self: PtraceInterface, bp: Breakpoint) -> bool:
+        """Checks if there are any colliding breakpoints at the specified address and with the same type.
+
+        Args:
+            bp (Breakpoint): The breakpoint to check.
+        """
+        if (bp_list := self._internal_debugger.breakpoints.get(bp.address)) is None:
+            # There are no breakpoints at the specified address
+            return False
+
+        # Filter by type (software or hardware)
+        bp_list = bp_list.filter(hardware=bp.hardware)
+
+        if bp.hardware:
+            # The breakpoint is hardware, we need to check if there are other breakpoints at the same address only for
+            # the same thread. We also need to check if the condition and the length are the same
+            bp_list = bp_list.filter(thread_id=bp.thread_id, condition=bp.condition, length=bp.length)
+
+        return bp_list.enabled
+
+    def set_breakpoint(self: PtraceInterface, bp: Breakpoint, insert: bool = True) -> None:
         """Sets a breakpoint at the specified address.
 
         Args:
             bp (Breakpoint): The breakpoint to set.
             insert (bool): Whether the breakpoint has to be inserted or just enabled.
-            thread_id (int): The thread ID of the thread for which the breakpoint should be set. Defaults to -1, which means all threads.
         """
-        if (
-            insert
-            and bp.hardware
-            and (old_bp := self._internal_debugger.breakpoints.get(bp.address))
-            and old_bp.hardware
-            and old_bp.enabled
-        ):
-            # We need to delete PPthe existing breakpoint before setting a new one, for consistency
-            # TODO: This will be relaxed in next versions of the libdebug
-            self.unset_breakpoint(old_bp, delete=True)
+        if not self._check_colliding_breakpoints(bp):
+            if self._internal_debugger.breakpoints.get(bp.address) is None:
+                # There are no breakpoints at the specified address. We need to initialize a new BreakpointList
+                self._internal_debugger.breakpoints[bp.address] = BreakpointList(
+                    [], address=bp.address, symbol=bp.symbol
+                )
 
-        if bp.hardware and thread_id == -1:
-            # If the breakpoint is hardware and no thread ID is specified, we set the breakpoint for all threads
-            for thread in self._internal_debugger.internal_threads:
-                self._set_hw_breakpoint_on_thread(bp, thread.thread_id)
-        elif bp.hardware:
-            # If the breakpoint is hardware and a thread ID is specified, we set the breakpoint only for that thread
-            self._set_hw_breakpoint_on_thread(bp, thread_id)
-        elif insert:
-            self._set_sw_breakpoint(bp)
-        else:
-            self._enable_breakpoint(bp)
+            # There are no other breakpoints at the address. We can set the breakpoint
+            if bp.hardware and bp.thread_id == -1:
+                # If the breakpoint is hardware and no thread ID is specified, we set the breakpoint for all threads
+                for thread in self._internal_debugger.internal_threads:
+                    self._set_hw_breakpoint_on_thread(bp, thread.thread_id)
+            elif bp.hardware:
+                # If the breakpoint is hardware and a thread ID is specified, we set the breakpoint only for that thread
+                self._set_hw_breakpoint_on_thread(bp, bp.thread_id)
+            elif insert:
+                self._set_sw_breakpoint(bp)
+            else:
+                self._enable_breakpoint(bp)
 
         if insert:
-            self._internal_debugger.breakpoints[bp.address] = bp
+            # Append the breakpoint to the BreakpointList
+            self._internal_debugger.breakpoints[bp.address].append(bp)
+
+        # Force the flag to be True
+        bp.enabled = True
 
     def unset_breakpoint(self: PtraceInterface, bp: Breakpoint, delete: bool = True) -> None:
         """Restores the breakpoint at the specified address.
@@ -879,20 +931,28 @@ class PtraceInterface(DebuggingInterface):
             bp (Breakpoint): The breakpoint to unset.
             delete (bool): Whether the breakpoint has to be deleted or just disabled.
         """
-        if bp.hardware and bp.thread_id == -1:
-            # If the breakpoint is hardware and no thread ID is specified, we unset the breakpoint for all threads
-            for thread in self._internal_debugger.internal_threads:
-                self.lib_trace.unregister_hw_breakpoint(thread.thread_id, bp.address)
-        elif bp.hardware:
-            # If the breakpoint is hardware and a thread ID is specified, we unset the breakpoint only for that thread
-            self.lib_trace.unregister_hw_breakpoint(bp.thread_id, bp.address)
-        elif delete:
-            self._unset_sw_breakpoint(bp)
-        else:
-            self._disable_breakpoint(bp)
+        # If the breakpoint is still enabled, we need to set the flag to False
+        bp.enabled = False
 
-        if delete:
-            del self._internal_debugger.breakpoints[bp.address]
+        if not self._check_colliding_breakpoints(bp):
+            if bp.hardware and bp.thread_id == -1:
+                # If the breakpoint is hardware and no thread ID is specified, we unset the breakpoint for all threads
+                for thread in self._internal_debugger.internal_threads:
+                    self.lib_trace.uninstall_hw_breakpoint(thread.thread_id, bp.address)
+            elif bp.hardware:
+                # If the breakpoint is hardware and a thread ID is specified, we unset the breakpoint only for that thread
+                self.lib_trace.uninstall_hw_breakpoint(bp.thread_id, bp.address)
+            elif delete:
+                self._unset_sw_breakpoint(bp)
+            else:
+                self._disable_breakpoint(bp)
+
+            if delete:
+                # Remove the breakpoint from the BreakpointList
+                self._internal_debugger.breakpoints[bp.address].remove(bp)
+                if not self._internal_debugger.breakpoints[bp.address]:
+                    # If there are no more breakpoints at the address, we delete the BreakpointList
+                    del self._internal_debugger.breakpoints[bp.address]
 
     def set_syscall_handler(self: PtraceInterface, handler: SyscallHandler) -> None:
         """Sets a handler for a syscall.
@@ -975,16 +1035,17 @@ class PtraceInterface(DebuggingInterface):
         with extend_internal_debugger(self._internal_debugger):
             return get_process_maps(self.process_id)
 
-    def get_hit_watchpoint(self: PtraceInterface, thread_id: int) -> Breakpoint:
-        """Returns the watchpoint that has been hit."""
+    def get_hit_watchpoint(self: PtraceInterface, thread_id: int) -> BreakpointList:
+        """Returns the BreakpointList of the wathpoints hit by the specified thread."""
         address = self.lib_trace.get_hit_hw_breakpoint(thread_id)
 
         if not address:
-            return None
+            bp_list = BreakpointList([], address=address, symbol="")
+        else:
+            bp_list_unfiltred = self._internal_debugger.breakpoints[address]
+            bp_list = bp_list_unfiltred.filter(thread_id=thread_id, condition="r")
+            bp_list.extend(bp_list_unfiltred.filter(thread_id=thread_id, condition="w"))
+            bp_list.extend(bp_list_unfiltred.filter(thread_id=thread_id, condition="rw"))
+            bp_list.extend(bp_list_unfiltred.filter(thread_id=thread_id, condition="wr"))
 
-        bp = self._internal_debugger.breakpoints[address]
-
-        if bp.condition != "x":
-            return bp
-
-        return None
+        return bp_list

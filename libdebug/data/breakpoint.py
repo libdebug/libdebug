@@ -52,13 +52,11 @@ class Breakpoint:
     def enable(self: Breakpoint) -> None:
         """Enable the breakpoint."""
         provide_internal_debugger(self).ensure_process_stopped()
-        self.enabled = True
         self._changed = True
 
     def disable(self: Breakpoint) -> None:
         """Disable the breakpoint."""
         provide_internal_debugger(self).ensure_process_stopped()
-        self.enabled = False
         self._changed = True
 
     def hit_on(self: Breakpoint, thread_context: ThreadContext) -> bool:
@@ -68,7 +66,8 @@ class Breakpoint:
 
         internal_debugger = provide_internal_debugger(self)
         internal_debugger.ensure_process_stopped()
-        return internal_debugger.resume_context.event_hit_ref.get(thread_context.thread_id) == self
+        events = internal_debugger.resume_context.event_hit_ref.get(thread_context.thread_id, [])
+        return self in events
 
     def __hash__(self: Breakpoint) -> int:
         """Hash the breakpoint by its address, so that it can be used in sets and maps correctly."""

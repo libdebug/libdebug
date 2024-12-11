@@ -257,6 +257,11 @@ class ThreadContext:
         self._internal_thread_context._internal_debugger.ensure_process_stopped()
         return self._internal_thread_context.signal_number
 
+    @property
+    def breakpoints(self: ThreadContext) -> dict[int, Breakpoint]:
+        """Get the breakpoints set on the thread."""
+        return self._internal_thread_context.breakpoints
+
     def cont(self: ThreadContext) -> None:
         """Continues the execution of the thread."""
         self._internal_thread_context.cont()

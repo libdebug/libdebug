@@ -49,10 +49,10 @@ from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.debugger_wrappers import (
     background_alias,
     change_state_function_process,
-    change_state_function_thread,
 )
 from libdebug.utils.debugging_utils import (
     normalize_and_validate_address,
+    resolve_address_in_maps,
     resolve_symbol_in_maps,
 )
 from libdebug.utils.elf_utils import get_all_symbols
@@ -578,10 +578,6 @@ class InternalDebugger:
             def callback(_: ThreadContext, __: Breakpoint) -> None:
                 pass
 
-        if bp := self.breakpoints.get(address):
-            # TODO: we should allow multiple breakpoints at the same address (e.g., for different threads)
-            liblog.warning(f"Breakpoint at {position} already set. Overriding it.")
-
         bp = Breakpoint(address, position, thread_id, 0, hardware, callback, condition.lower(), length)
 
         if hardware:
@@ -589,12 +585,12 @@ class InternalDebugger:
 
         link_to_internal_debugger(bp, self)
 
-        self.__polling_thread_command_queue.put((self.__threaded_breakpoint, (bp, thread_id)))
+        self.__polling_thread_command_queue.put((self.__threaded_breakpoint, (bp,)))
 
         self._join_and_check_status()
 
-        # the breakpoint should have been set by interface
-        if address not in self.breakpoints:
+        # The breakpoint should have been set by interface
+        if self.breakpoints.get(address) is None or bp not in self.breakpoints[address]:
             raise RuntimeError("Something went wrong while inserting the breakpoint.")
 
         return bp
@@ -1612,11 +1608,11 @@ class InternalDebugger:
         else:
             thread.running = False
 
-    def __threaded_breakpoint(self: InternalDebugger, bp: Breakpoint, thread_id: int) -> None:
+    def __threaded_breakpoint(self: InternalDebugger, bp: Breakpoint) -> None:
         liblog.debugger(
-            f"Setting breakpoint at {bp.address:x}" + (f" for thread {thread_id}" if thread_id != -1 else "."),
+            f"Setting breakpoint at {bp.address:x}" + (f" for thread {bp.thread_id}" if bp.thread_id != -1 else "."),
         )
-        self.debugging_interface.set_breakpoint(bp, thread_id)
+        self.debugging_interface.set_breakpoint(bp)
 
     def __threaded_catch_signal(self: InternalDebugger, catcher: SignalCatcher) -> None:
         liblog.debugger(

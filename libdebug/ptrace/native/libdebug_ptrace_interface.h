@@ -77,14 +77,14 @@ public:
     void forward_signals(const std::vector<std::pair<pid_t, int>>);
 
     // Debugger software breakpoint methods
-    void register_breakpoint(const unsigned long);
-    void unregister_breakpoint(const unsigned long);
+    void install_breakpoint(const unsigned long);
+    void uninstall_breakpoint(const unsigned long);
     void enable_breakpoint(const unsigned long);
     void disable_breakpoint(const unsigned long);
 
     // Debugger hardware breakpoint methods
-    void register_hw_breakpoint(const pid_t, unsigned long address, const int type, const int len);
-    void unregister_hw_breakpoint(const pid_t, const unsigned long);
+    void install_hw_breakpoint(const pid_t, unsigned long address, const int type, const int len);
+    void uninstall_hw_breakpoint(const pid_t, const unsigned long);
     unsigned long get_hit_hw_breakpoint(const pid_t);
     int get_remaining_hw_breakpoint_count(const pid_t);
     int get_remaining_hw_watchpoint_count(const pid_t);

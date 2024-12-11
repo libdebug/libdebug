@@ -18,7 +18,7 @@ class SymbolList(list):
     """A list of symbols in the target process."""
 
     def __init__(self: SymbolList, symbols: list[Symbol]) -> None:
-        """Initializes the SymbolDict."""
+        """Initializes the SymbolList."""
         super().__init__(symbols)
 
     def _search_by_address(self: SymbolList, address: int) -> list[Symbol]:
@@ -95,5 +95,5 @@ class SymbolList(list):
         return super().__eq__(other)
 
     def __repr__(self: SymbolList) -> str:
-        """Returns the string representation of the SymbolDict without the default factory."""
+        """Returns the string representation of the SymbolList without the default factory."""
         return f"SymbolList({super().__repr__()})"
