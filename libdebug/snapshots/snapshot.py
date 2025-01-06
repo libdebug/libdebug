@@ -36,6 +36,7 @@ class Snapshot:
     - writable: Registers, writable memory contents
     - full: Registers, all readable memory contents
     """
+
     def _save_regs(self: Snapshot, thread: ThreadContext) -> None:
         # Create a register field for the snapshot
         self.regs = SnapshotRegisters(
@@ -110,14 +111,9 @@ class Snapshot:
     def diff(self: Snapshot, other: Snapshot) -> Diff:
         """Creates a diff object between two snapshots."""
 
-    @abstractmethod
     def save(self: Snapshot, file_path: str) -> None:
         """Saves the snapshot object to a file."""
-
-    @staticmethod
-    @abstractmethod
-    def load(snapshot_dict: object) -> Snapshot:
-        """Loads a snapshot object from a serialized object."""
+        self._serialization_helper.save(self, file_path)
 
     def backtrace(self: Snapshot) -> list[int]:
         """Returns the current backtrace of the thread."""
@@ -129,11 +125,7 @@ class Snapshot:
 
     def pprint_registers(self: Snapshot) -> None:
         """Pretty prints the thread's registers."""
-        pprint_registers_util(
-            self.regs,
-            self.maps,
-            self.regs._generic_regs
-        )
+        pprint_registers_util(self.regs, self.maps, self.regs._generic_regs)
 
     def pprint_regs(self: Snapshot) -> None:
         """Alias for the `pprint_registers` method.

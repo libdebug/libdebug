@@ -364,3 +364,6 @@ class ThreadContext:
         """
         return ThreadSnapshot(self, level, name)
 
+    def notify_snapshot_taken(self: ThreadContext) -> None:
+        """Notify the thread that a snapshot has been taken."""
+        self._snapshot_count += 1

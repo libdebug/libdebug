@@ -38,7 +38,7 @@ class LightweightThreadSnapshot(ThreadSnapshot):
         """
         # Set id of the snapshot and increment the counter
         self.snapshot_id = thread._snapshot_count
-        thread._snapshot_count += 1
+        thread.notify_snapshot_taken()
 
         # Basic snapshot info
         self.thread_id = thread.thread_id

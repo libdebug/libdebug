@@ -128,7 +128,7 @@ The `pprint_memory()` function of a diff object will print the content diffs wit
         end: int,
         file: str = "hybrid",
         override_word_size: int = None,
-        endianness_mode: bool = False,
+        integer_mode: bool = False,
     ) -> None:
     ```
 
@@ -138,20 +138,20 @@ The `pprint_memory()` function of a diff object will print the content diffs wit
 | `end` | `int` | The end address of the memory range to print. |
 | `file` | `str` (optional) | The file to use for the memory content. Defaults to `hybrid` mode (see [memory access](../../basics/memory_access/)). |
 | `override_word_size` | `int` (optional) | The word size to use to align memory contents. By default, it uses the ISA register size. |
-| `endianness_mode` | `bool` (optional) | Whether to print the memory content in endianness mode. Defaults to False |
+| `integer_mode` | `bool` (optional) | Whether to print the memory content in integer mode. Defaults to False |
 
 !!! TIP "Start after End"
     For your convenience, if the `start` address is greater than the `end` address, the function will **swap** the values.
 
-Here is a visual example of the memory content diff pretty printing (with and without endianness mode):
+Here is a visual example of the memory content diff pretty printing (with and without integer mode):
 
-=== "Endianness mode disabled"
+=== "Integer mode disabled"
 
     ![Memory Content Diff](../../assets/pprint_memory_base.jpeg)
 
-=== "Endianness mode enabled"
+=== "Integer mode enabled"
 
-    ![Memory Content Diff Endianness](../../assets/pprint_memory_endianness.jpeg)
+    ![Memory Content Diff Integer](../../assets/pprint_memory_endianness.jpeg)
 
 ## :material-code-json: Attributes
 

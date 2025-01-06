@@ -341,7 +341,6 @@ class AbstractMemoryView(MutableSequence, ABC):
         """Returns the list of memory maps of the target process."""
         raise NotImplementedError("The maps property must be implemented in the subclass.")
 
-    @abstractmethod
     def resolve_address(
         self: AbstractMemoryView,
         address: int,
@@ -361,8 +360,10 @@ class AbstractMemoryView(MutableSequence, ABC):
         Raises:
             ValueError: If the substring `backing_file` is present in multiple backing files.
         """
+        return self._internal_debugger.resolve_address(
+            address, backing_file, skip_absolute_address_validation,
+        )
 
-    @abstractmethod
     def resolve_symbol(self: AbstractMemoryView, symbol: str, backing_file: str) -> int:
         """Resolves the address of the specified symbol.
 
@@ -373,3 +374,4 @@ class AbstractMemoryView(MutableSequence, ABC):
         Returns:
             int: The address of the symbol.
         """
+        return self._internal_debugger.resolve_symbol(symbol, backing_file)

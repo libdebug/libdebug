@@ -6,10 +6,13 @@
 
 from libdebug.data.memory_map import MemoryMap
 from libdebug.data.memory_map_list import MemoryMapList
+from libdebug.data.symbol_list import SymbolList
 from libdebug.liblog import liblog
+from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
 from libdebug.utils.elf_utils import is_pie, resolve_address, resolve_symbol
 
 
+@staticmethod
 def normalize_and_validate_address(address: int, maps: MemoryMapList[MemoryMap]) -> int:
     """Normalizes and validates the specified address.
 
@@ -34,6 +37,7 @@ def normalize_and_validate_address(address: int, maps: MemoryMapList[MemoryMap])
     raise ValueError(f"Address {hex(address)} does not belong to any memory map.")
 
 
+@staticmethod
 def resolve_symbol_in_maps(symbol: str, maps: MemoryMapList[MemoryMap]) -> int:
     """Returns the address of the specified symbol in the specified memory maps.
 
@@ -75,6 +79,7 @@ def resolve_symbol_in_maps(symbol: str, maps: MemoryMapList[MemoryMap]) -> int:
     raise ValueError(f"Symbol {symbol} not found in the specified mapped file. Please specify a valid symbol.")
 
 
+@staticmethod
 def resolve_address_in_maps(address: int, maps: MemoryMapList[MemoryMap]) -> str:
     """Returns the symbol corresponding to the specified address in the specified memory maps.
 
@@ -113,3 +118,28 @@ def resolve_address_in_maps(address: int, maps: MemoryMapList[MemoryMap]) -> str
             pass
 
     return hex(address)
+
+
+@staticmethod
+def resolve_symbol_name_in_maps_util(
+    address: int,
+    maps: MemoryMapList | MemoryMapSnapshotList,
+    external_symbols: SymbolList = None,
+) -> str:
+    """Resolves the address in the specified memory maps."""
+    is_snapshot = isinstance(maps, MemoryMapSnapshotList)
+
+    if not is_snapshot:
+        return resolve_address_in_maps(address, maps)
+    else:
+        if external_symbols is None:
+            raise ValueError("External symbols must be provided when resolving an address in a snapshot.")
+
+        matching_symbols = external_symbols._search_by_address_in_snapshot(address, maps)
+
+        if len(matching_symbols) == 0:
+            return f"0x{address:x}"
+        elif len(matching_symbols) > 1:
+            liblog.warning(f"Multiple symbols found for address {address:#x}. Taking the first one.")
+
+        return matching_symbols[0].name

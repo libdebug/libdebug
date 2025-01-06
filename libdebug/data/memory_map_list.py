@@ -81,7 +81,3 @@ class MemoryMapList(list):
     def __repr__(self) -> str:
         """Return the string representation of the memory map list."""
         return f"MemoryMapList({super().__repr__()})"
-
-    def as_list(self: MemoryMapList) -> list[MemoryMap]:
-        """Return a copy of the memory map list as a Python list."""
-        return list(self)

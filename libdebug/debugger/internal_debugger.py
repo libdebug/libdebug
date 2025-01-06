@@ -44,7 +44,7 @@ from libdebug.memory.chunked_memory_view import ChunkedMemoryView
 from libdebug.memory.direct_memory_view import DirectMemoryView
 from libdebug.memory.process_memory_manager import ProcessMemoryManager
 from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
-from libdebug.snapshots.thread.thread_snapshot import ThreadSnapshot
+from libdebug.snapshots.serialization.serialization_helper import SerializationHelper
 from libdebug.state.resume_context import ResumeContext
 from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.debugger_wrappers import (
@@ -226,6 +226,7 @@ class InternalDebugger:
         self.__polling_thread_command_queue = Queue()
         self.__polling_thread_response_queue = Queue()
         self._snapshot_count = 0
+        self.serialization_helper = SerializationHelper()
 
     def clear(self: InternalDebugger) -> None:
         """Reinitializes the context, so it is ready for a new run."""
@@ -1674,18 +1675,16 @@ class InternalDebugger:
         Args:
             file_path (str): The path to the snapshot file.
         """
-        with Path(file_path).open() as f:
-            snapshot = json.load(f)
-
-        if snapshot["type"] == "thread":
-            loaded_snap = ThreadSnapshot.load(snapshot)
-        elif snapshot["type"] == "process":
-            loaded_snap = ProcessSnapshot.load(snapshot)
+        loaded_snap = self.serialization_helper.load(file_path)
 
         # Log the creation of the snapshot
         named_addition = " named " + loaded_snap.name if loaded_snap.name is not None else ""
         liblog.debugger(
-            f"Loaded {snapshot['type']} snapshot {loaded_snap.snapshot_id} of level {loaded_snap.level} from file {file_path}{named_addition}"
+            f"Loaded {type(loaded_snap)} snapshot {loaded_snap.snapshot_id} of level {loaded_snap.level} from file {file_path}{named_addition}"
         )
 
         return loaded_snap
+
+    def notify_snaphot_taken(self: InternalDebugger) -> None:
+        """Notify the debugger that a snapshot has been taken."""
+        self._snapshot_count += 1

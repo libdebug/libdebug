@@ -10,7 +10,7 @@ from libdebug.data.symbol_list import SymbolList
 from libdebug.liblog import liblog
 from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
 from libdebug.utils.ansi_escape_codes import ANSIColors
-from libdebug.utils.debugging_utils import resolve_address_in_maps
+from libdebug.utils.debugging_utils import resolve_symbol_name_in_maps_util
 
 
 def pprint_maps_util(maps: MemoryMapList | MemoryMapSnapshotList) -> None:
@@ -46,7 +46,7 @@ def pprint_backtrace_util(
     """Pretty prints the current backtrace of the thread."""
     for return_address in backtrace:
         filtered_maps = maps.filter(return_address)
-        return_address_symbol = resolve_address_in_maps_util(return_address, filtered_maps, external_symbols)
+        return_address_symbol = resolve_symbol_name_in_maps_util(return_address, filtered_maps, external_symbols)
         permissions = filtered_maps[0].permissions
         if "rwx" in permissions:
             style = f"{ANSIColors.UNDERLINE}{ANSIColors.RED}"
@@ -139,7 +139,11 @@ def pprint_registers_all_util(
 
 
 def pprint_reg_diff_util(
-    curr_reg: str, maps_before: MemoryMapList, maps_after: MemoryMapList, before: int, after: int,
+    curr_reg: str,
+    maps_before: MemoryMapList,
+    maps_after: MemoryMapList,
+    before: int,
+    after: int,
 ) -> None:
     """Pretty prints a register diff."""
     before_str = _get_colored_address_string(before, maps_before)
@@ -147,8 +151,13 @@ def pprint_reg_diff_util(
 
     print(f"{ANSIColors.RED}{curr_reg.ljust(12)}{ANSIColors.RESET}\t{before_str}\t{after_str}")
 
+
 def pprint_reg_diff_large_util(
-        curr_reg_tuple: (str, str), maps_before: MemoryMapList, maps_after: MemoryMapList, reg_tuple_before: (int,int), reg_tuple_after: (int,int),
+    curr_reg_tuple: (str, str),
+    maps_before: MemoryMapList,
+    maps_after: MemoryMapList,
+    reg_tuple_before: (int, int),
+    reg_tuple_after: (int, int),
 ) -> None:
     """Pretty prints a register diff."""
     print(f"{ANSIColors.BLUE}" + "{" + f"{ANSIColors.RESET}")
@@ -157,45 +166,27 @@ def pprint_reg_diff_large_util(
 
         # Print the old and new values
         if has_changed:
-            formatted_value_before = f"{ANSIColors.RED}{ANSIColors.STRIKE}" + \
-                (f"{value_before:#x}" if isinstance(value_before, int) else str(value_before)) + \
-                f"{ANSIColors.RESET}"
+            formatted_value_before = (
+                f"{ANSIColors.RED}{ANSIColors.STRIKE}"
+                + (f"{value_before:#x}" if isinstance(value_before, int) else str(value_before))
+                + f"{ANSIColors.RESET}"
+            )
 
-            formatted_value_after = f"{ANSIColors.GREEN}" + \
-                (f"{value_after:#x}" if isinstance(value_after, int) else str(value_after)) + \
-                f"{ANSIColors.RESET}"
+            formatted_value_after = (
+                f"{ANSIColors.GREEN}"
+                + (f"{value_after:#x}" if isinstance(value_after, int) else str(value_after))
+                + f"{ANSIColors.RESET}"
+            )
 
-            print(f"  {ANSIColors.RED}{reg_name}{ANSIColors.RESET}\t{formatted_value_before}\t->\t{formatted_value_after}")
+            print(
+                f"  {ANSIColors.RED}{reg_name}{ANSIColors.RESET}\t{formatted_value_before}\t->\t{formatted_value_after}"
+            )
         else:
             formatted_value = f"{value_before:#x}" if isinstance(value_before, int) else str(value_before)
 
             print(f"  {ANSIColors.RED}{reg_name}{ANSIColors.RESET}\t{formatted_value}")
 
     print(f"{ANSIColors.BLUE}" + "}" + f"{ANSIColors.RESET}")
-
-
-def resolve_address_in_maps_util(
-    address: int,
-    maps: MemoryMapList | MemoryMapSnapshotList,
-    external_symbols: SymbolList = None,
-) -> str:
-    """Resolves the address in the specified memory maps."""
-    is_snapshot = isinstance(maps, MemoryMapSnapshotList)
-
-    if not is_snapshot:
-        return resolve_address_in_maps(address, maps)
-    else:
-        if external_symbols is None:
-            raise ValueError("External symbols must be provided when resolving an address in a snapshot.")
-
-        matching_symbols = external_symbols._search_by_address_in_snapshot(address, maps)
-
-        if len(matching_symbols) == 0:
-            return f"0x{address:x}"
-        elif len(matching_symbols) > 1:
-            liblog.warning(f"Multiple symbols found for address {address:#x}. Taking the first one.")
-
-        return matching_symbols[0].name
 
 
 def pprint_diff_line(content: str, is_added: bool) -> None:
@@ -213,6 +204,7 @@ def pprint_diff_substring(content: str, start: int, end: int) -> None:
 
     print(f"{content[:start]}{color}{content[start:end]}{ANSIColors.RESET}{content[end:]}")
 
+
 def pprint_memory_diff_util(
     address_start: int,
     extract_before: bytes,
@@ -228,8 +220,8 @@ def pprint_memory_diff_util(
         current_address = address_start + i
 
         # Extract word-sized chunks from both extracts
-        word_before = extract_before[i:i + word_size]
-        word_after = extract_after[i:i + word_size]
+        word_before = extract_before[i : i + word_size]
+        word_after = extract_after[i : i + word_size]
 
         # Convert each byte in the chunks to hex and compare
         formatted_before = []
@@ -256,6 +248,9 @@ def pprint_memory_diff_util(
         # Print the memory diff with the address for this word
         print(f"{current_address:0{address_width}x}:  {before_str}    {after_str}")
 
-def pprint_inline_diff(content: str, start: int, end:int, correction: str) -> None:
+
+def pprint_inline_diff(content: str, start: int, end: int, correction: str) -> None:
     """Prints a diff with inline changes."""
-    print(f"{content[:start]}{ANSIColors.RED}{ANSIColors.STRIKE}{content[start:end]}{ANSIColors.RESET}{ANSIColors.GREEN}{correction}{ANSIColors.RESET}{content[start:]}")
+    print(
+        f"{content[:start]}{ANSIColors.RED}{ANSIColors.STRIKE}{content[start:end]}{ANSIColors.RESET}{ANSIColors.GREEN}{correction}{ANSIColors.RESET}{content[start:]}"
+    )
