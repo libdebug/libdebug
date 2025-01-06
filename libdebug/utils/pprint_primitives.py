@@ -7,7 +7,6 @@
 from libdebug.data.memory_map_list import MemoryMapList
 from libdebug.data.registers import Registers
 from libdebug.data.symbol_list import SymbolList
-from libdebug.liblog import liblog
 from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
 from libdebug.utils.ansi_escape_codes import ANSIColors
 from libdebug.utils.debugging_utils import resolve_symbol_name_in_maps_util
