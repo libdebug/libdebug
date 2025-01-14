@@ -26,10 +26,10 @@ class SnapshotsTest(TestCase):
         ts1 = thread.create_snapshot(level='base', name='_start_snapshot')
         
         # Check for properties
-        self.assertTrue(ts1.name == '_start_snapshot')
-        self.assertTrue(ts1.level == 'base')
-        self.assertTrue(ts1.thread_id == thread.tid)
-        self.assertTrue(ts1.arch == d.arch)
+        self.assertEqual(ts1.name, '_start_snapshot')
+        self.assertEqual(ts1.level, 'base')
+        self.assertEqual(ts1.thread_id, thread.tid)
+        self.assertEqual(ts1.arch, d.arch)
 
         # Check for registers
         for reg_name in dir(d.regs):
@@ -42,7 +42,7 @@ class SnapshotsTest(TestCase):
 
         # Check equality of maps
         for i, current_map in enumerate(d.maps):
-            self.assertTrue(ts1.maps[i] == current_map)
+            self.assertEqual(ts1.maps[i], current_map)
 
         # Check exception on backtrace
         with self.assertRaises(Exception):
@@ -61,10 +61,10 @@ class SnapshotsTest(TestCase):
         #########################################################################
 
         # Check for properties
-        self.assertTrue(ts1_restored.name == ts1.name)
-        self.assertTrue(ts1_restored.level == ts1.level)
-        self.assertTrue(ts1_restored.thread_id == ts1.thread_id)
-        self.assertTrue(ts1_restored.arch == ts1.arch)
+        self.assertEqual(ts1_restored.name, ts1.name)
+        self.assertEqual(ts1_restored.level, ts1.level)
+        self.assertEqual(ts1_restored.thread_id, ts1.thread_id)
+        self.assertEqual(ts1_restored.arch, ts1.arch)
 
         # Check for registers
         for reg_name in dir(d.regs):
@@ -77,7 +77,7 @@ class SnapshotsTest(TestCase):
 
         # Check equality of maps
         for i, current_map in enumerate(d.maps):
-            self.assertTrue(ts1_restored.maps[i] == current_map)
+            self.assertEqual(ts1_restored.maps[i], current_map)
 
         # Check exception on backtrace
         with self.assertRaises(Exception):
@@ -97,10 +97,10 @@ class SnapshotsTest(TestCase):
         ts1 = thread.create_snapshot(level='writable', name='_start_snapshot')
         
         # Check for properties
-        self.assertTrue(ts1.name == '_start_snapshot')
-        self.assertTrue(ts1.level == 'writable')
-        self.assertTrue(ts1.thread_id == thread.tid)
-        self.assertTrue(ts1.arch == d.arch)
+        self.assertEqual(ts1.name, '_start_snapshot')
+        self.assertEqual(ts1.level, 'writable')
+        self.assertEqual(ts1.thread_id, thread.tid)
+        self.assertEqual(ts1.arch, d.arch)
 
         # Check for registers
         for reg_name in dir(d.regs):
@@ -109,7 +109,7 @@ class SnapshotsTest(TestCase):
 
         # Check equality of maps
         for i, current_map in enumerate(d.maps):
-            self.assertTrue(ts1.maps[i] == current_map)
+            self.assertEqual(ts1.maps[i], current_map)
 
         # Check for correct memory access
         for map in d.maps: 
@@ -125,7 +125,7 @@ class SnapshotsTest(TestCase):
                 if not is_protected:
                     a = ts1.memory[map.start, map.end, map.backing_file]
                     b = d.memory[map.start, map.end, map.backing_file]
-                    self.assertTrue(a == b)
+                    self.assertEqual(a, b)
             else:
                 with self.assertRaises(Exception):
                     a = ts1.memory[map.start, map.end, map.backing_file]
@@ -135,7 +135,7 @@ class SnapshotsTest(TestCase):
         saved_backtrace = ts1.backtrace()
 
         for i, spc in enumerate(current_backtrace):
-            self.assertTrue(spc == saved_backtrace[i])
+            self.assertEqual(spc, saved_backtrace[i])
 
         # Try saving
         save_path = "/tmp/libdebug-tests/snapshots/writable1.json"
@@ -150,10 +150,10 @@ class SnapshotsTest(TestCase):
         #########################################################################
 
         # Check for properties
-        self.assertTrue(ts1_restored.name == ts1.name)
-        self.assertTrue(ts1_restored.level == ts1.level)
-        self.assertTrue(ts1_restored.thread_id == ts1.thread_id)
-        self.assertTrue(ts1_restored.arch == ts1.arch)
+        self.assertEqual(ts1_restored.name, ts1.name)
+        self.assertEqual(ts1_restored.level, ts1.level)
+        self.assertEqual(ts1_restored.thread_id, ts1.thread_id)
+        self.assertEqual(ts1_restored.arch, ts1.arch)
 
         # Check for registers
         for reg_name in dir(d.regs):
@@ -174,20 +174,20 @@ class SnapshotsTest(TestCase):
                 if not is_protected:
                     a = ts1.memory[map.start, map.end, map.backing_file]
                     b = d.memory[map.start, map.end, map.backing_file]
-                    self.assertTrue(a == b)
+                    self.assertEqual(a, b)
             else:
                 with self.assertRaises(Exception):
                     a = ts1_restored.memory[map.start, map.end, map.backing_file]
 
         # Check equality of maps
         for i, current_map in enumerate(d.maps):
-            self.assertTrue(ts1_restored.maps[i] == current_map)
+            self.assertEqual(ts1_restored.maps[i], current_map)
 
         # Check equality of stack trace
         current_backtrace = d.backtrace()
 
         for i, spc in enumerate(current_backtrace):
-            self.assertTrue(spc == ts1_restored.backtrace()[i])
+            self.assertEqual(spc, ts1_restored.backtrace()[i])
 
         d.kill()
         d.terminate()
@@ -205,10 +205,10 @@ class SnapshotsTest(TestCase):
         ts1 = thread.create_snapshot(level='full', name='_start_snapshot')
         
         # Check for properties
-        self.assertTrue(ts1.name == '_start_snapshot')
-        self.assertTrue(ts1.level == 'full')
-        self.assertTrue(ts1.thread_id == thread.tid)
-        self.assertTrue(ts1.arch == d.arch)
+        self.assertEqual(ts1.name, '_start_snapshot')
+        self.assertEqual(ts1.level, 'full')
+        self.assertEqual(ts1.thread_id, thread.tid)
+        self.assertEqual(ts1.arch, d.arch)
 
         # Check for registers
         for reg_name in dir(d.regs):
@@ -217,7 +217,7 @@ class SnapshotsTest(TestCase):
 
         # Check equality of maps
         for i, current_map in enumerate(d.maps):
-            self.assertTrue(ts1.maps[i] == current_map)
+            self.assertEqual(ts1.maps[i], current_map)
 
         # Check correct memory access
         for map in d.maps:
@@ -232,14 +232,14 @@ class SnapshotsTest(TestCase):
             if not is_protected:
                 a = ts1.memory[map.start, map.end, map.backing_file]
                 b = d.memory[map.start, map.end, map.backing_file]
-                self.assertTrue(a == b)
+                self.assertEqual(a, b)
 
         # Check equality of stack trace
         current_backtrace = d.backtrace()
         saved_backtrace = ts1.backtrace()
 
         for i, spc in enumerate(current_backtrace):
-            self.assertTrue(spc == saved_backtrace[i])
+            self.assertEqual(spc, saved_backtrace[i])
 
         # Try saving
         save_path = "/tmp/libdebug-tests/snapshots/full1.json"
@@ -254,10 +254,10 @@ class SnapshotsTest(TestCase):
         #########################################################################
 
         # Check for properties
-        self.assertTrue(ts1_restored.name == ts1.name)
-        self.assertTrue(ts1_restored.level == ts1.level)
-        self.assertTrue(ts1_restored.thread_id == ts1.thread_id)
-        self.assertTrue(ts1_restored.arch == ts1.arch)
+        self.assertEqual(ts1_restored.name, ts1.name)
+        self.assertEqual(ts1_restored.level, ts1.level)
+        self.assertEqual(ts1_restored.thread_id, ts1.thread_id)
+        self.assertEqual(ts1_restored.arch, ts1.arch)
 
         # Check for registers
         for reg_name in dir(d.regs):
@@ -277,17 +277,17 @@ class SnapshotsTest(TestCase):
             if not is_protected:
                 a = ts1_restored.memory[map.start, map.end, map.backing_file]
                 b = d.memory[map.start, map.end, map.backing_file]
-                self.assertTrue(a == b)
+                self.assertEqual(a, b)
 
         # Check equality of maps
         for i, current_map in enumerate(d.maps):
-            self.assertTrue(ts1_restored.maps[i] == current_map)
+            self.assertEqual(ts1_restored.maps[i], current_map)
 
         # Check equality of stack trace
         current_backtrace = d.backtrace()
 
         for i, spc in enumerate(current_backtrace):
-            self.assertTrue(spc == ts1_restored.backtrace()[i])
+            self.assertEqual(spc, ts1_restored.backtrace()[i])
 
         d.kill()
         d.terminate()
@@ -302,21 +302,21 @@ class SnapshotsTest(TestCase):
         d.cont()
         d.wait()
 
-        self.assertTrue(len(d.threads) == 4)
+        self.assertEqual(len(d.threads), 4)
 
         # Create initial snapshot
         ps1 = d.create_snapshot(level='base', name='_start_snapshot')
 
         # Check for properties
-        self.assertTrue(ps1.name == '_start_snapshot')
-        self.assertTrue(ps1.level == 'base')
-        self.assertTrue(ps1.arch == d.arch)
-        self.assertTrue(ps1.process_id == d.pid)
-        self.assertTrue(len(ps1.threads) == len(d.threads))
+        self.assertEqual(ps1.name, '_start_snapshot')
+        self.assertEqual(ps1.level, 'base')
+        self.assertEqual(ps1.arch, d.arch)
+        self.assertEqual(ps1.process_id, d.pid)
+        self.assertEqual(len(ps1.threads), len(d.threads))
 
         # Check for thread ids
         for i, thread in enumerate(d.threads):
-            self.assertTrue(ps1.threads[i].tid == thread.tid)
+            self.assertEqual(ps1.threads[i].tid, thread.tid)
 
         # Check for registers
         for reg_name in dir(d.regs):
@@ -329,7 +329,7 @@ class SnapshotsTest(TestCase):
 
         # Check equality of maps
         for i, current_map in enumerate(d.maps):
-            self.assertTrue(ps1.maps[i] == current_map)
+            self.assertEqual(ps1.maps[i], current_map)
         
         # Check exception on backtrace
         with self.assertRaises(Exception):
@@ -341,7 +341,7 @@ class SnapshotsTest(TestCase):
                 if isinstance(getattr(thread.regs, reg_name), int | float):
                     self.assertTrue(
                         hasattr(ps1.threads[i].regs, reg_name) and 
-                        ps1.threads[i].regs.__getattribute__(reg_name) == \
+                        ps1.threads[i].regs.__getattribute__(reg_name) ==\
                         thread.regs.__getattribute__(reg_name)
                     )
 
@@ -358,15 +358,15 @@ class SnapshotsTest(TestCase):
         #########################################################################
 
         # Check for properties
-        self.assertTrue(ps1_restored.name == ps1.name)
-        self.assertTrue(ps1_restored.level == ps1.level)
-        self.assertTrue(ps1_restored.arch == ps1.arch)
-        self.assertTrue(ps1_restored.process_id == ps1.process_id)
-        self.assertTrue(len(ps1_restored.threads) == len(ps1.threads))
+        self.assertEqual(ps1_restored.name, ps1.name)
+        self.assertEqual(ps1_restored.level, ps1.level)
+        self.assertEqual(ps1_restored.arch, ps1.arch)
+        self.assertEqual(ps1_restored.process_id, ps1.process_id)
+        self.assertEqual(len(ps1_restored.threads), len(ps1.threads))
 
         # Check for thread ids
         for i, thread in enumerate(d.threads):
-            self.assertTrue(ps1_restored.threads[i].tid == thread.tid)
+            self.assertEqual(ps1_restored.threads[i].tid, thread.tid)
 
         # Check for registers
         for reg_name in dir(d.regs):
@@ -379,7 +379,7 @@ class SnapshotsTest(TestCase):
 
         # Check equality of maps
         for i, current_map in enumerate(d.maps):
-            self.assertTrue(ps1_restored.maps[i] == current_map)
+            self.assertEqual(ps1_restored.maps[i], current_map)
 
         # Check exception on backtrace
         with self.assertRaises(Exception):
@@ -391,7 +391,7 @@ class SnapshotsTest(TestCase):
                 if isinstance(getattr(thread.regs, reg_name), int | float):
                     self.assertTrue(
                         hasattr(ps1_restored.threads[i].regs, reg_name) and 
-                        ps1_restored.threads[i].regs.__getattribute__(reg_name) == \
+                        ps1_restored.threads[i].regs.__getattribute__(reg_name) ==\
                         thread.regs.__getattribute__(reg_name)
                     )
 
@@ -407,21 +407,21 @@ class SnapshotsTest(TestCase):
         d.cont()
         d.wait()
 
-        self.assertTrue(len(d.threads) == 4)
+        self.assertEqual(len(d.threads), 4)
 
         # Create initial snapshot
         ps1 = d.create_snapshot(level='full', name='_start_snapshot')
 
         # Check for properties
-        self.assertTrue(ps1.name == '_start_snapshot')
-        self.assertTrue(ps1.level == 'full')
-        self.assertTrue(ps1.arch == d.arch)
-        self.assertTrue(ps1.process_id == d.pid)
-        self.assertTrue(len(ps1.threads) == len(d.threads))
+        self.assertEqual(ps1.name, '_start_snapshot')
+        self.assertEqual(ps1.level, 'full')
+        self.assertEqual(ps1.arch, d.arch)
+        self.assertEqual(ps1.process_id, d.pid)
+        self.assertEqual(len(ps1.threads), len(d.threads))
 
         # Check for thread ids
         for i, thread in enumerate(d.threads):
-            self.assertTrue(ps1.threads[i].tid == thread.tid)
+            self.assertEqual(ps1.threads[i].tid, thread.tid)
 
         # Check for registers
         for reg_name in dir(d.regs):
@@ -441,18 +441,18 @@ class SnapshotsTest(TestCase):
             if not is_protected:
                 a = ps1.memory[map.start, map.end, map.backing_file]
                 b = d.memory[map.start, map.end, map.backing_file]
-                self.assertTrue(a == b)
+                self.assertEqual(a, b)
 
         # Check equality of maps
         for i, current_map in enumerate(d.maps):
-            self.assertTrue(ps1.maps[i] == current_map)
+            self.assertEqual(ps1.maps[i], current_map)
         
         # Check equality of stack trace
         current_backtrace = d.backtrace()
         saved_backtrace = ps1.backtrace()
 
         for i, spc in enumerate(current_backtrace):
-            self.assertTrue(spc == saved_backtrace[i])
+            self.assertEqual(spc, saved_backtrace[i])
 
         # Check for correct thread registers
         for i, thread in enumerate(d.threads):
@@ -460,7 +460,7 @@ class SnapshotsTest(TestCase):
                 if isinstance(getattr(thread.regs, reg_name), int | float):
                     self.assertTrue(
                         hasattr(ps1.threads[i].regs, reg_name) and 
-                        ps1.threads[i].regs.__getattribute__(reg_name) == \
+                        ps1.threads[i].regs.__getattribute__(reg_name) ==\
                         thread.regs.__getattribute__(reg_name)
                     )
 
@@ -477,15 +477,15 @@ class SnapshotsTest(TestCase):
         #########################################################################
 
         # Check for properties
-        self.assertTrue(ps1_restored.name == ps1.name)
-        self.assertTrue(ps1_restored.level == ps1.level)
-        self.assertTrue(ps1_restored.arch == ps1.arch)
-        self.assertTrue(ps1_restored.process_id == ps1.process_id)
-        self.assertTrue(len(ps1_restored.threads) == len(ps1.threads))
+        self.assertEqual(ps1_restored.name, ps1.name)
+        self.assertEqual(ps1_restored.level, ps1.level)
+        self.assertEqual(ps1_restored.arch, ps1.arch)
+        self.assertEqual(ps1_restored.process_id, ps1.process_id)
+        self.assertEqual(len(ps1_restored.threads), len(ps1.threads))
 
         # Check for thread ids
         for i, thread in enumerate(d.threads):
-            self.assertTrue(ps1_restored.threads[i].tid == thread.tid)
+            self.assertEqual(ps1_restored.threads[i].tid, thread.tid)
 
         # Check for registers
         for reg_name in dir(d.regs):
@@ -505,17 +505,17 @@ class SnapshotsTest(TestCase):
             if not is_protected:
                 a = ps1_restored.memory[map.start, map.end, map.backing_file]
                 b = d.memory[map.start, map.end, map.backing_file]
-                self.assertTrue(a == b)
+                self.assertEqual(a, b)
 
         # Check equality of maps
         for i, current_map in enumerate(d.maps):
-            self.assertTrue(ps1_restored.maps[i] == current_map)
+            self.assertEqual(ps1_restored.maps[i], current_map)
 
         # Check equality of stack trace
         current_backtrace = d.backtrace()
 
         for i, spc in enumerate(current_backtrace):
-            self.assertTrue(spc == ps1_restored.backtrace()[i])
+            self.assertEqual(spc, ps1_restored.backtrace()[i])
 
         # Check for correct thread registers
         for i, thread in enumerate(d.threads):
@@ -523,7 +523,7 @@ class SnapshotsTest(TestCase):
                 if isinstance(getattr(thread.regs, reg_name), int | float):
                     self.assertTrue(
                         hasattr(ps1_restored.threads[i].regs, reg_name) and 
-                        ps1_restored.threads[i].regs.__getattribute__(reg_name) == \
+                        ps1_restored.threads[i].regs.__getattribute__(reg_name) ==\
                         thread.regs.__getattribute__(reg_name)
                     )
 
@@ -549,9 +549,9 @@ class SnapshotsTest(TestCase):
         diff = ts2.diff(ts1)
 
         # Check for properties
-        self.assertTrue(diff.snapshot1 == ts1)
-        self.assertTrue(diff.snapshot2 == ts2)
-        self.assertTrue(diff.level == 'base')
+        self.assertEqual(diff.snapshot1, ts1)
+        self.assertEqual(diff.snapshot2, ts2)
+        self.assertEqual(diff.level, 'base')
 
         # Check for register diff correctness
         for reg_name in dir(d.regs):
@@ -564,6 +564,6 @@ class SnapshotsTest(TestCase):
                 new_val = ts2.regs.__getattribute__(reg_name)
                 has_changed = old_val != new_val
 
-                self.assertTrue(reg_diff.old_value == old_val)
-                self.assertTrue(reg_diff.new_value == new_val)
-                self.assertTrue(reg_diff.has_changed == has_changed)
+                self.assertEqual(reg_diff.old_value, old_val)
+                self.assertEqual(reg_diff.new_value, new_val)
+                self.assertEqual(reg_diff.has_changed, has_changed)
