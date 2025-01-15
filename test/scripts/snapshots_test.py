@@ -37,7 +37,7 @@ class SnapshotsTest(TestCase):
                 self.assertTrue(hasattr(ts1.regs, reg_name) and ts1.regs.__getattribute__(reg_name) == d.regs.__getattribute__(reg_name))
 
         # Check that the snapshot correctly throws an exception if we try to access memory
-        with self.assertRaises(Exception):
+        with self.assertRaises((OSError, OverflowError, ValueError)):
             a = ts1.memory[0x0000, 0x1000, 'binary']
 
         # Check equality of maps
@@ -45,7 +45,7 @@ class SnapshotsTest(TestCase):
             self.assertEqual(ts1.maps[i], current_map)
 
         # Check exception on backtrace
-        with self.assertRaises(Exception):
+        with self.assertRaises((OSError, OverflowError, ValueError)):
             saved_backtrace = ts1.backtrace()
 
         # Try saving
@@ -72,7 +72,7 @@ class SnapshotsTest(TestCase):
                 self.assertTrue(hasattr(ts1_restored.regs, reg_name) and ts1_restored.regs.__getattribute__(reg_name) == d.regs.__getattribute__(reg_name))
 
         # Check that the snapshot correctly throws an exception if we try to access memory
-        with self.assertRaises(Exception):
+        with self.assertRaises((OSError, OverflowError, ValueError)):
             a = ts1_restored.memory[0x0000, 0x1000, 'binary']
 
         # Check equality of maps
@@ -80,7 +80,7 @@ class SnapshotsTest(TestCase):
             self.assertEqual(ts1_restored.maps[i], current_map)
 
         # Check exception on backtrace
-        with self.assertRaises(Exception):
+        with self.assertRaises((OSError, OverflowError, ValueError)):
             saved_backtrace = ts1_restored.backtrace()
 
         d.kill()
@@ -117,18 +117,18 @@ class SnapshotsTest(TestCase):
                 is_protected = False
 
                 try:
-                    _ = d.memory[map.start, map.end, map.backing_file]
+                    _ = d.memory[map.start:map.end, "absolute"]
                 # There are some memory regions that cannot be read, such as [vvar], [vdso], etc.
-                except Exception:
+                except (OSError, OverflowError, ValueError):
                     is_protected = True
 
                 if not is_protected:
-                    a = ts1.memory[map.start, map.end, map.backing_file]
-                    b = d.memory[map.start, map.end, map.backing_file]
+                    a = ts1.memory[map.start:map.end, "absolute"]
+                    b = d.memory[map.start:map.end, "absolute"]
                     self.assertEqual(a, b)
             else:
-                with self.assertRaises(Exception):
-                    a = ts1.memory[map.start, map.end, map.backing_file]
+                with self.assertRaises((OSError, OverflowError, ValueError)):
+                    a = ts1.memory[map.start:map.end, "absolute"]
 
         # Check equality of stack trace
         current_backtrace = d.backtrace()
@@ -166,18 +166,18 @@ class SnapshotsTest(TestCase):
                 is_protected = False
 
                 try:
-                    _ = d.memory[map.start, map.end, map.backing_file]
+                    _ = d.memory[map.start:map.end, "absolute"]
                 # There are some memory regions that cannot be read, such as [vvar], [vdso], etc.
-                except Exception:
+                except (OSError, OverflowError, ValueError):
                     is_protected = True
 
                 if not is_protected:
-                    a = ts1.memory[map.start, map.end, map.backing_file]
-                    b = d.memory[map.start, map.end, map.backing_file]
+                    a = ts1.memory[map.start:map.end, "absolute"]
+                    b = d.memory[map.start:map.end, "absolute"]
                     self.assertEqual(a, b)
             else:
-                with self.assertRaises(Exception):
-                    a = ts1_restored.memory[map.start, map.end, map.backing_file]
+                with self.assertRaises((OSError, OverflowError, ValueError)):
+                    a = ts1_restored.memory[map.start:map.end, "absolute"]
 
         # Check equality of maps
         for i, current_map in enumerate(d.maps):
@@ -224,14 +224,14 @@ class SnapshotsTest(TestCase):
             is_protected = False
 
             try:
-                _ = d.memory[map.start, map.end, map.backing_file]
+                _ = d.memory[map.start:map.end, "absolute"]
             # There are some memory regions that cannot be read, such as [vvar], [vdso], etc.
-            except Exception:
+            except (OSError, OverflowError, ValueError):
                 is_protected = True
 
             if not is_protected:
-                a = ts1.memory[map.start, map.end, map.backing_file]
-                b = d.memory[map.start, map.end, map.backing_file]
+                a = ts1.memory[map.start:map.end, "absolute"]
+                b = d.memory[map.start:map.end, "absolute"]
                 self.assertEqual(a, b)
 
         # Check equality of stack trace
@@ -269,14 +269,14 @@ class SnapshotsTest(TestCase):
             is_protected = False
 
             try:
-                _ = d.memory[map.start, map.end, map.backing_file]
+                _ = d.memory[map.start:map.end, "absolute"]
             # There are some memory regions that cannot be read, such as [vvar], [vdso], etc.
-            except Exception:
+            except (OSError, OverflowError, ValueError):
                 is_protected = True
 
             if not is_protected:
-                a = ts1_restored.memory[map.start, map.end, map.backing_file]
-                b = d.memory[map.start, map.end, map.backing_file]
+                a = ts1_restored.memory[map.start:map.end, "absolute"]
+                b = d.memory[map.start:map.end, "absolute"]
                 self.assertEqual(a, b)
 
         # Check equality of maps
@@ -324,7 +324,7 @@ class SnapshotsTest(TestCase):
                 self.assertTrue(hasattr(ps1.regs, reg_name) and ps1.regs.__getattribute__(reg_name) == d.regs.__getattribute__(reg_name))
 
         # Check that the snapshot correctly throws an exception if we try to access memory
-        with self.assertRaises(Exception):
+        with self.assertRaises((OSError, OverflowError, ValueError)):
             a = ps1.memory[0x0000, 0x1000, 'binary']
 
         # Check equality of maps
@@ -332,7 +332,7 @@ class SnapshotsTest(TestCase):
             self.assertEqual(ps1.maps[i], current_map)
         
         # Check exception on backtrace
-        with self.assertRaises(Exception):
+        with self.assertRaises((OSError, OverflowError, ValueError)):
             saved_backtrace = ps1.backtrace()
 
         # Check for correct thread registers
@@ -374,7 +374,7 @@ class SnapshotsTest(TestCase):
                 self.assertTrue(hasattr(ps1_restored.regs, reg_name) and ps1_restored.regs.__getattribute__(reg_name) == d.regs.__getattribute__(reg_name))
 
         # Check that the snapshot correctly throws an exception if we try to access memory
-        with self.assertRaises(Exception):
+        with self.assertRaises((OSError, OverflowError, ValueError)):
             a = ps1_restored.memory[0x0000, 0x1000, 'binary']
 
         # Check equality of maps
@@ -382,7 +382,7 @@ class SnapshotsTest(TestCase):
             self.assertEqual(ps1_restored.maps[i], current_map)
 
         # Check exception on backtrace
-        with self.assertRaises(Exception):
+        with self.assertRaises((OSError, OverflowError, ValueError)):
             saved_backtrace = ps1_restored.backtrace()
 
         # Check for correct thread registers
@@ -433,14 +433,14 @@ class SnapshotsTest(TestCase):
             is_protected = False
 
             try:
-                _ = d.memory[map.start, map.end, map.backing_file]
+                _ = d.memory[map.start:map.end, "absolute"]
             # There are some memory regions that cannot be read, such as [vvar], [vdso], etc.
-            except Exception:
+            except (OSError, OverflowError, ValueError):
                 is_protected = True
 
             if not is_protected:
-                a = ps1.memory[map.start, map.end, map.backing_file]
-                b = d.memory[map.start, map.end, map.backing_file]
+                a = ps1.memory[map.start:map.end, "absolute"]
+                b = d.memory[map.start:map.end, "absolute"]
                 self.assertEqual(a, b)
 
         # Check equality of maps
@@ -497,14 +497,14 @@ class SnapshotsTest(TestCase):
             is_protected = False
 
             try:
-                _ = d.memory[map.start, map.end, map.backing_file]
+                _ = d.memory[map.start:map.end, "absolute"]
             # There are some memory regions that cannot be read, such as [vvar], [vdso], etc.
-            except Exception:
+            except (OSError, OverflowError, ValueError):
                 is_protected = True
 
             if not is_protected:
-                a = ps1_restored.memory[map.start, map.end, map.backing_file]
-                b = d.memory[map.start, map.end, map.backing_file]
+                a = ps1_restored.memory[map.start:map.end, "absolute"]
+                b = d.memory[map.start:map.end, "absolute"]
                 self.assertEqual(a, b)
 
         # Check equality of maps
