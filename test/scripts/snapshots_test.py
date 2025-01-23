@@ -23,11 +23,11 @@ class SnapshotsTest(TestCase):
         thread = d.threads[0]
 
         # Create initial snapshot
-        ts1 = thread.create_snapshot(level='base', name='_start_snapshot')
+        ts1 = thread.create_snapshot(level="base", name="_start_snapshot")
         
         # Check for properties
-        self.assertEqual(ts1.name, '_start_snapshot')
-        self.assertEqual(ts1.level, 'base')
+        self.assertEqual(ts1.name, "_start_snapshot")
+        self.assertEqual(ts1.level, "base")
         self.assertEqual(ts1.thread_id, thread.tid)
         self.assertEqual(ts1.arch, d.arch)
 
@@ -38,7 +38,7 @@ class SnapshotsTest(TestCase):
 
         # Check that the snapshot correctly throws an exception if we try to access memory
         with self.assertRaises((OSError, OverflowError, ValueError)):
-            a = ts1.memory[0x0000, 0x1000, 'binary']
+            a = ts1.memory[0x0000, 0x1000, "binary"]
 
         # Check equality of maps
         for i, current_map in enumerate(d.maps):
@@ -73,7 +73,7 @@ class SnapshotsTest(TestCase):
 
         # Check that the snapshot correctly throws an exception if we try to access memory
         with self.assertRaises((OSError, OverflowError, ValueError)):
-            a = ts1_restored.memory[0x0000, 0x1000, 'binary']
+            a = ts1_restored.memory[0x0000, 0x1000, "binary"]
 
         # Check equality of maps
         for i, current_map in enumerate(d.maps):
@@ -94,11 +94,11 @@ class SnapshotsTest(TestCase):
         thread = d.threads[0]
 
         # Create initial snapshot
-        ts1 = thread.create_snapshot(level='writable', name='_start_snapshot')
+        ts1 = thread.create_snapshot(level="writable", name="_start_snapshot")
         
         # Check for properties
-        self.assertEqual(ts1.name, '_start_snapshot')
-        self.assertEqual(ts1.level, 'writable')
+        self.assertEqual(ts1.name, "_start_snapshot")
+        self.assertEqual(ts1.level, "writable")
         self.assertEqual(ts1.thread_id, thread.tid)
         self.assertEqual(ts1.arch, d.arch)
 
@@ -202,11 +202,11 @@ class SnapshotsTest(TestCase):
         thread = d.threads[0]
 
         # Create initial snapshot
-        ts1 = thread.create_snapshot(level='full', name='_start_snapshot')
+        ts1 = thread.create_snapshot(level="full", name="_start_snapshot")
         
         # Check for properties
-        self.assertEqual(ts1.name, '_start_snapshot')
-        self.assertEqual(ts1.level, 'full')
+        self.assertEqual(ts1.name, "_start_snapshot")
+        self.assertEqual(ts1.level, "full")
         self.assertEqual(ts1.thread_id, thread.tid)
         self.assertEqual(ts1.arch, d.arch)
 
@@ -305,11 +305,11 @@ class SnapshotsTest(TestCase):
         self.assertEqual(len(d.threads), 4)
 
         # Create initial snapshot
-        ps1 = d.create_snapshot(level='base', name='_start_snapshot')
+        ps1 = d.create_snapshot(level="base", name="_start_snapshot")
 
         # Check for properties
-        self.assertEqual(ps1.name, '_start_snapshot')
-        self.assertEqual(ps1.level, 'base')
+        self.assertEqual(ps1.name, "_start_snapshot")
+        self.assertEqual(ps1.level, "base")
         self.assertEqual(ps1.arch, d.arch)
         self.assertEqual(ps1.process_id, d.pid)
         self.assertEqual(len(ps1.threads), len(d.threads))
@@ -325,7 +325,7 @@ class SnapshotsTest(TestCase):
 
         # Check that the snapshot correctly throws an exception if we try to access memory
         with self.assertRaises((OSError, OverflowError, ValueError)):
-            a = ps1.memory[0x0000, 0x1000, 'binary']
+            a = ps1.memory[0x0000, 0x1000, "binary"]
 
         # Check equality of maps
         for i, current_map in enumerate(d.maps):
@@ -375,7 +375,7 @@ class SnapshotsTest(TestCase):
 
         # Check that the snapshot correctly throws an exception if we try to access memory
         with self.assertRaises((OSError, OverflowError, ValueError)):
-            a = ps1_restored.memory[0x0000, 0x1000, 'binary']
+            a = ps1_restored.memory[0x0000, 0x1000, "binary"]
 
         # Check equality of maps
         for i, current_map in enumerate(d.maps):
@@ -410,11 +410,11 @@ class SnapshotsTest(TestCase):
         self.assertEqual(len(d.threads), 4)
 
         # Create initial snapshot
-        ps1 = d.create_snapshot(level='full', name='_start_snapshot')
+        ps1 = d.create_snapshot(level="full", name="_start_snapshot")
 
         # Check for properties
-        self.assertEqual(ps1.name, '_start_snapshot')
-        self.assertEqual(ps1.level, 'full')
+        self.assertEqual(ps1.name, "_start_snapshot")
+        self.assertEqual(ps1.level, "full")
         self.assertEqual(ps1.arch, d.arch)
         self.assertEqual(ps1.process_id, d.pid)
         self.assertEqual(len(ps1.threads), len(d.threads))
@@ -535,7 +535,7 @@ class SnapshotsTest(TestCase):
         d = debugger(RESOLVE_EXE("process_snapshot_test"), auto_interrupt_on_command=False, aslr=False, fast_memory=True)
         d.run()
 
-        ts1 = d.threads[0].create_snapshot(level='base', name='_start_snapshot')
+        ts1 = d.threads[0].create_snapshot(level="base", name="_start_snapshot")
 
         # Move forward
         d.breakpoint("main", file="binary")
@@ -543,7 +543,7 @@ class SnapshotsTest(TestCase):
         d.wait()
 
         # Create a new snapshot
-        ts2 = d.threads[0].create_snapshot(level='full', name='main_snapshot')
+        ts2 = d.threads[0].create_snapshot(level="full", name="main_snapshot")
 
         # Diff it
         diff = ts2.diff(ts1)
@@ -551,7 +551,7 @@ class SnapshotsTest(TestCase):
         # Check for properties
         self.assertEqual(diff.snapshot1, ts1)
         self.assertEqual(diff.snapshot2, ts2)
-        self.assertEqual(diff.level, 'base')
+        self.assertEqual(diff.level, "base")
 
         # Check for register diff correctness
         for reg_name in dir(d.regs):
