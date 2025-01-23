@@ -65,7 +65,7 @@ class I386StackUnwinder(StackUnwindingManager):
             else:
                 stack_trace.append(first_return_address)
         except (OSError, ValueError):
-            liblog.WARNING(
+            liblog.warning(
                 "Failed to get the return address from the stack. Check stack frame registers (e.g., base pointer). The stack trace may be incomplete.",
             )
 
