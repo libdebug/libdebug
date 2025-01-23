@@ -17,7 +17,7 @@ def create_if_not_exists(path):
 class SnapshotsTest(TestCase):
     def test_thread_base_snapshot(self):
         # Create a debugger and start execution
-        d = debugger("/bin/ls", auto_interrupt_on_command=False, aslr=False)
+        d = debugger(RESOLVE_EXE("process_snapshot_test"), auto_interrupt_on_command=False, aslr=False)
         d.run()
 
         thread = d.threads[0]
@@ -88,7 +88,7 @@ class SnapshotsTest(TestCase):
 
     def test_thread_writable_snapshot(self):
         # Create a debugger and start execution
-        d = debugger("/bin/ls", auto_interrupt_on_command=False, aslr=False, fast_memory=True)
+        d = debugger(RESOLVE_EXE("process_snapshot_test"), auto_interrupt_on_command=False, aslr=False, fast_memory=True)
         d.run()
 
         thread = d.threads[0]
@@ -194,7 +194,7 @@ class SnapshotsTest(TestCase):
 
     def test_thread_full_snapshot(self):
         # Create a debugger and start execution
-        d = debugger("/bin/ls", auto_interrupt_on_command=False, aslr=False, fast_memory=True)
+        d = debugger(RESOLVE_EXE("process_snapshot_test"), auto_interrupt_on_command=False, aslr=False, fast_memory=True)
         d.run()
 
         d.breakpoint
@@ -532,7 +532,7 @@ class SnapshotsTest(TestCase):
 
     def test_diff_thread_base_full(self):
         # Create a debugger and start
-        d = debugger("/bin/ls", auto_interrupt_on_command=False, aslr=False, fast_memory=True)
+        d = debugger(RESOLVE_EXE("process_snapshot_test"), auto_interrupt_on_command=False, aslr=False, fast_memory=True)
         d.run()
 
         ts1 = d.threads[0].create_snapshot(level='base', name='_start_snapshot')
