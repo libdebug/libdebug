@@ -226,6 +226,21 @@ void LibdebugPtraceInterface::detach_for_migration()
     }
 }
 
+void LibdebugPtraceInterface::reattach_from_migration(){
+    for (auto it = threads.begin(); it != threads.end(); ++it) {
+        // reattach to the process
+        if (ptrace(PTRACE_ATTACH, it->first, NULL, NULL)) {
+            throw std::runtime_error("ptrace attach failed");
+        }
+
+        if (getregs(it->second)) {
+            // if we can't read the registers, the attach failed
+            throw std::runtime_error("ptrace attach failed");
+        }
+    }
+
+}
+
 void LibdebugPtraceInterface::detach_and_cont()
 {
     detach_for_migration();
@@ -249,7 +264,7 @@ void LibdebugPtraceInterface::detach_for_kill()
         }
 
         // detach from it
-        if (ptrace(PTRACE_DETACH, it->first, NULL, NULL)) {
+        if (ptrace(PTRACE_DETACH, it->first, NULL, NULL) && errno != ESRCH) {
             throw std::runtime_error("ptrace detach failed");
         }
 
@@ -707,6 +722,11 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "detach_for_migration",
             &LibdebugPtraceInterface::detach_for_migration,
             "Detaches from the process for migration to another debugger."
+        )
+        .def(
+            "reattach_from_migration",
+            &LibdebugPtraceInterface::reattach_from_migration,
+            "Reattaches to the process after migration from another debugger."
         )
         .def(
             "detach_and_cont",
