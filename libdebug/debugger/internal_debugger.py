@@ -77,7 +77,7 @@ if TYPE_CHECKING:
     from libdebug.data.registers import Registers
     from libdebug.data.symbol import Symbol
     from libdebug.data.symbol_list import SymbolList
-    from libdebug.debugger import Debugger
+    from libdebug.debugger.debugger import Debugger
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
     from libdebug.state.thread_context import ThreadContext
@@ -155,6 +155,9 @@ class InternalDebugger:
     is_debugging: bool = False
     """Whether the debugger is currently debugging a process."""
 
+    children: list[Debugger]
+    """The list of child debuggers."""
+
     pprint_syscalls: bool
     """A flag that indicates if the debugger should pretty print syscalls."""
 
@@ -218,6 +221,7 @@ class InternalDebugger:
         self.fast_memory = False
         self.__polling_thread_command_queue = Queue()
         self.__polling_thread_response_queue = Queue()
+        self.children = []
 
     def clear(self: InternalDebugger) -> None:
         """Reinitializes the context, so it is ready for a new run."""
@@ -241,6 +245,7 @@ class InternalDebugger:
         self.is_debugging = False
         self._is_running = False
         self.resume_context.clear()
+        self.children.clear()
 
     def start_up(self: InternalDebugger) -> None:
         """Starts up the context."""

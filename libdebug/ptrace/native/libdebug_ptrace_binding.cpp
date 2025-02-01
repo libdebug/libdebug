@@ -188,8 +188,11 @@ void LibdebugPtraceInterface::unregister_thread(const pid_t tid)
 }
 
 int LibdebugPtraceInterface::attach(pid_t tid)
-{
-    return ptrace(PTRACE_ATTACH, tid, NULL, NULL);
+{   
+    if(ptrace(PTRACE_ATTACH, tid, NULL, NULL) == -1) {
+        return errno;
+    }
+    return 0;
 }
 
 void LibdebugPtraceInterface::detach_for_migration()
@@ -247,6 +250,16 @@ void LibdebugPtraceInterface::detach_and_cont()
 
     // continue the execution of the process
     kill(process_id, SIGCONT);
+}
+
+void LibdebugPtraceInterface::detach_from_child(pid_t pid)
+{  
+    // send a SIGSTOP to the process to avoid the process to run after the detach
+    kill(pid, SIGSTOP);
+
+    if (ptrace(PTRACE_DETACH, pid, NULL, 0) == -1) {
+        throw std::runtime_error("ptrace detach failed");
+    }
 }
 
 void LibdebugPtraceInterface::detach_for_kill()
@@ -732,6 +745,15 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "detach_and_cont",
             &LibdebugPtraceInterface::detach_and_cont,
             "Detaches from the process and continues its execution."
+        )
+        .def(
+            "detach_from_child",
+            &LibdebugPtraceInterface::detach_from_child,
+            nb::arg("pid"),
+            "Detaches from a specific child process.\n"
+            "\n"
+            "Args:\n"
+            "    pid (int): The process id to detach from."
         )
         .def(
             "set_ptrace_options",

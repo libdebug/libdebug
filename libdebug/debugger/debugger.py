@@ -373,6 +373,11 @@ class Debugger:
         return self._internal_debugger.breakpoints
 
     @property
+    def children(self: Debugger) -> list[Debugger]:
+        """Get the list of child debuggers."""
+        return self._internal_debugger.children
+
+    @property
     def handled_syscalls(self: InternalDebugger) -> dict[int, SyscallHandler]:
         """Get the handled syscalls dictionary.
 

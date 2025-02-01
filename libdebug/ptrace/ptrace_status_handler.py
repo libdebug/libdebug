@@ -55,6 +55,32 @@ class PtraceStatusHandler:
             os.waitpid(thread_id, 0)
         self.ptrace_interface.register_new_thread(thread_id)
 
+    def _handle_fork(self: PtraceStatusHandler, child_pid: int) -> None:
+        # We need to detach from the child process and attach to it again with a new debugger
+        self.ptrace_interface.lib_trace.detach_from_child(child_pid)
+
+        from libdebug import debugger
+
+        # Create the new debugger instance
+        new_debugger = debugger(
+            self.internal_debugger.argv,
+            self.internal_debugger.aslr_enabled,
+            self.internal_debugger.env,
+            self.internal_debugger.escape_antidebug,
+            self.internal_debugger.autoreach_entrypoint,
+            self.internal_debugger.auto_interrupt_on_command,
+            self.internal_debugger.fast_memory,
+            self.internal_debugger.kill_on_exit,
+        )
+
+        # Attach to the child process with the new debugger
+        new_debugger.attach(child_pid)
+        self.internal_debugger.children.append(new_debugger)
+        liblog.debugger(
+            "Child process with pid %d registered to the parent debugger (pid %d)",
+            child_pid, self.internal_debugger.process_id,
+        )
+
     def _handle_exit(
         self: PtraceStatusHandler,
         thread_id: int,
@@ -404,9 +430,11 @@ class PtraceStatusHandler:
                     self.forward_signal = False
                 case StopEvents.FORK_EVENT:
                     # The process has been forked
-                    liblog.warning(
-                        f"Process {pid} forked. Continuing execution of the parent process. The child process will be stopped until the user decides to attach to it.",
+                    message = self.ptrace_interface._get_event_msg(pid)
+                    liblog.debugger(
+                        f"Process {pid} forked with new pid: {message}",
                     )
+                    self._handle_fork(message)
                     self.forward_signal = False
 
     def _handle_change(self: PtraceStatusHandler, pid: int, status: int, results: list) -> None:
