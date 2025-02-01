@@ -253,10 +253,15 @@ void LibdebugPtraceInterface::detach_and_cont()
 
 void LibdebugPtraceInterface::detach_from_child(pid_t pid)
 {  
+    // the child will be in trace stop, we need to sync with it
+    int status;
+    waitpid(pid, &status, 0);
+
     // send a SIGSTOP to the process to avoid the process to run after the detach
     kill(pid, SIGSTOP);
 
     if (ptrace(PTRACE_DETACH, pid, NULL, 0) == -1) {
+        printf("ptrace detach failed\n");
         throw std::runtime_error("ptrace detach failed");
     }
 }
