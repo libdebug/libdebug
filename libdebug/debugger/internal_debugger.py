@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 from queue import Queue
 from signal import SIGKILL, SIGSTOP, SIGTRAP
-from subprocess import Popen
+from subprocess import DEVNULL, CalledProcessError, Popen, check_call
 from tempfile import NamedTemporaryFile
 from threading import Thread, current_thread
 from typing import TYPE_CHECKING
@@ -468,14 +468,7 @@ class InternalDebugger:
     def pprint_maps(self: InternalDebugger) -> None:
         """Prints the memory maps of the process."""
         self._ensure_process_stopped()
-        header = (
-            f"{'start':>18}  "
-            f"{'end':>18}  "
-            f"{'perm':>6}  "
-            f"{'size':>8}  "
-            f"{'offset':>8}  "
-            f"{'backing_file':<20}"
-        )
+        header = f"{'start':>18}  {'end':>18}  {'perm':>6}  {'size':>8}  {'offset':>8}  {'backing_file':<20}"
         print(header)
         for memory_map in self.maps:
             info = (
@@ -908,6 +901,13 @@ class InternalDebugger:
         """
         # Create the command to open the terminal and run the script
         command = [*libcontext.terminal, script_path]
+
+        try:
+            check_call(libcontext.terminal, stderr=DEVNULL)
+        except CalledProcessError as err:
+            raise RuntimeError(
+                "Failed to open GDB in terminal. Check the terminal configuration in libcontext.terminal.",
+            ) from err
 
         # Open GDB in a new terminal
         terminal_pid = Popen(command).pid
