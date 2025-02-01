@@ -13,7 +13,7 @@ from libdebug.data.symbol import Symbol
 from libdebug import debugger
 
 class SymbolTest(TestCase):
-    def symbol_access_test(self):
+    def test_symbol_access(self):
         d = debugger(RESOLVE_EXE("breakpoint_test"))
 
         d.run()
