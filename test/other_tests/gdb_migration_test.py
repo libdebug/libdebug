@@ -11,7 +11,7 @@ Single thread test
 """
 d = debugger("../binaries/amd64/basic_test")
 
-libcontext.terminal = ["tmux", "splitw", "-h"]
+# libcontext.terminal = ["tmux", "splitw", "-h"]
 # libcontext.terminal = ["gnome-terminal", "--tab", "--"]
 
 d.run()

@@ -797,10 +797,6 @@ class InternalDebugger:
         # TODO: not needed?
         self.interrupt()
 
-        self.__polling_thread_command_queue.put((self.__threaded_gdb, ()))
-
-        self._join_and_check_status()
-
         # Create the command file
         command_file = self._craft_gdb_migration_file(migrate_breakpoints)
 
@@ -899,15 +895,19 @@ class InternalDebugger:
         Args:
             script_path (str): The path to the script to run in the terminal.
         """
-        # Create the command to open the terminal and run the script
-        command = [*libcontext.terminal, script_path]
-
+        # Check if the terminal has been configured correctly
         try:
             check_call(libcontext.terminal, stderr=DEVNULL)
         except CalledProcessError as err:
             raise RuntimeError(
                 "Failed to open GDB in terminal. Check the terminal configuration in libcontext.terminal.",
             ) from err
+
+        self.__polling_thread_command_queue.put((self.__threaded_gdb, ()))
+        self._join_and_check_status()
+
+        # Create the command to open the terminal and run the script
+        command = [*libcontext.terminal, script_path]
 
         # Open GDB in a new terminal
         terminal_pid = Popen(command).pid
@@ -946,6 +946,9 @@ class InternalDebugger:
         Args:
             script_path (str): The path to the script to run in the terminal.
         """
+        self.__polling_thread_command_queue.put((self.__threaded_gdb, ()))
+        self._join_and_check_status()
+
         gdb_pid = os.fork()
 
         if gdb_pid == 0:  # This is the child process.
