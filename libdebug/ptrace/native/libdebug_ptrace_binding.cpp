@@ -9,6 +9,8 @@
 #include <sys/ptrace.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <algorithm>
+
 
 #include "libdebug_ptrace_base.h"
 #include "libdebug_ptrace_interface.h"
@@ -129,7 +131,6 @@ Thread& LibdebugPtraceInterface::try_get_thread(const pid_t tid)
 LibdebugPtraceInterface::LibdebugPtraceInterface()
 {
     process_id = -1;
-    group_id = -1;
     handle_syscall = false;
 }
 
@@ -140,7 +141,6 @@ void LibdebugPtraceInterface::cleanup()
     software_breakpoints.clear();
 
     process_id = -1;
-    group_id = -1;
     handle_syscall = false;
 }
 
@@ -156,7 +156,6 @@ std::pair<std::shared_ptr<PtraceRegsStruct>, std::shared_ptr<PtraceFPRegsStruct>
 
     if (process_id == -1) {
         process_id = tid;
-        group_id = getpgid(tid);
     }
 
     Thread t;
@@ -449,10 +448,16 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_
 
     int tid, status;
 
-    tid = waitpid(-group_id, &status, 0);
+    while (true) {
+        // Check if any thread has finished
+        bool anyFinished = std::any_of(threads.begin(), threads.end(), [&](auto &t) {
+            tid = waitpid(t.first, &status, WNOHANG);
+            return (tid != 0);
+        });
 
-    if (tid == -1) {
-        throw std::runtime_error("waitpid failed");
+        if (anyFinished) {
+            break;
+        }
     }
 
     thread_statuses.push_back({tid, status});
@@ -477,8 +482,22 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_
     }
 
     // We keep polling but don't block, we want to get all the statuses we can
-    while ((temp_tid = waitpid(-group_id, &temp_status, WNOHANG)) > 0) {
-        thread_statuses.push_back({temp_tid, temp_status});
+    while (true) {
+        bool eventRetrieved = false;
+
+        for (auto &t : threads) {
+            tid = waitpid(t.first, &status, WNOHANG);
+            if (tid > 0) {
+                // Record the PID and its status
+                thread_statuses.push_back({tid, status});
+                eventRetrieved = true;
+            }
+        }
+
+        // If we didn't retrieve any new events, we're done
+        if (!eventRetrieved) {
+            break;
+        }
     }
 
     // Update the registers of all the threads
