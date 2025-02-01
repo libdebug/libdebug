@@ -33,6 +33,7 @@ from libdebug.data.gdb_resume_event import GdbResumeEvent
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
 from libdebug.data.terminals import TerminalTypes
+from libdebug.debugger.debugger import Debugger
 from libdebug.debugger.internal_debugger_instance_manager import (
     extend_internal_debugger,
     link_to_internal_debugger,
@@ -77,7 +78,6 @@ if TYPE_CHECKING:
     from libdebug.data.registers import Registers
     from libdebug.data.symbol import Symbol
     from libdebug.data.symbol_list import SymbolList
-    from libdebug.debugger.debugger import Debugger
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
     from libdebug.state.thread_context import ThreadContext
@@ -357,6 +357,39 @@ class InternalDebugger:
         self._join_and_check_status()
 
         self._process_memory_manager.close()
+
+    def set_child_debugger(self: InternalDebugger, child_pid: int) -> None:
+        """Sets the child debugger after a fork.
+
+        Args:
+            child_pid (int): The PID of the child process.
+        """
+        # Create a new InternalDebugger instance for the child process with the same configuration
+        # of the parent debugger
+        child_internal_debugger = InternalDebugger()
+        child_internal_debugger.argv = self.argv
+        child_internal_debugger.env = self.env
+        child_internal_debugger.aslr_enabled = self.aslr_enabled
+        child_internal_debugger.autoreach_entrypoint = self.autoreach_entrypoint
+        child_internal_debugger.auto_interrupt_on_command = self.auto_interrupt_on_command
+        child_internal_debugger.escape_antidebug = self.escape_antidebug
+        child_internal_debugger.fast_memory = self.fast_memory
+        child_internal_debugger.kill_on_exit = self.kill_on_exit
+
+        # Create the new Debugger instance for the child process
+        child_debugger = Debugger()
+        child_debugger.post_init_(child_internal_debugger)
+        child_internal_debugger.debugger = child_debugger
+        child_debugger.arch = self.arch
+
+        # Attach to the child process with the new debugger
+        child_debugger.attach(child_pid)
+        self.children.append(child_debugger)
+        liblog.debugger(
+            "Child process with pid %d registered to the parent debugger (pid %d)",
+            child_pid,
+            self.process_id,
+        )
 
     @background_alias(_background_invalid_call)
     def kill(self: InternalDebugger) -> None:
