@@ -330,4 +330,45 @@ class MultiprocessingTest(TestCase):
         dddd.kill()
         ddddd.kill()
         dddddd.kill()
-       
+        
+    def test_multiprocessing_no_follow(self):
+        d = debugger(RESOLVE_EXE("multiprocessing_input"), follow_children=False)
+        
+        r = d.run()
+
+        # Breakpoint after the fork
+        bp = d.bp(AFTER_FORK_BASIC, file="binary", hardware=True)
+
+        d.cont()
+        
+        self.assertTrue(bp.hit_on(d))
+        self.assertEqual(len(d.children), 0)
+
+        d.cont()
+
+        r.sendline(b"Io_no")
+        self.assertEqual(r.recvline(), b"Enter your input: You entered: Io_no")
+
+        d.wait()
+        d.kill()
+        
+    def test_multiprocessing_stress_no_follow(self):
+        d = debugger(RESOLVE_EXE("multiprocessing_stress_input"), follow_children=False)
+        
+        r = d.run()
+
+        # Breakpoint after the fork in the parent
+        bp_parent = d.bp(AFTER_FORK_STRESS, file="binary", hardware=True)
+
+        d.cont()
+        
+        self.assertTrue(bp_parent.hit_on(d))
+        self.assertEqual(len(d.children), 0)
+        
+        d.cont()
+
+        r.sendline(b"Io_no")
+        self.assertEqual(r.recvline(), b"Enter your input: You entered: Io_no")
+        
+        d.wait()
+        d.kill()
