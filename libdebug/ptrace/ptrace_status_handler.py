@@ -409,8 +409,9 @@ class PtraceStatusHandler:
                         f"Process {pid} forked with new pid: {message}",
                     )
                     # We need to detach from the child process and attach to it again with a new debugger
-                    self.ptrace_interface.lib_trace.detach_from_child(message)
-                    self.internal_debugger.set_child_debugger(message)
+                    self.ptrace_interface.lib_trace.detach_from_child(message, self.internal_debugger.follow_children)
+                    if self.internal_debugger.follow_children:
+                        self.internal_debugger.set_child_debugger(message)
                     self.forward_signal = False
 
     def _handle_change(self: PtraceStatusHandler, pid: int, status: int, results: list) -> None:

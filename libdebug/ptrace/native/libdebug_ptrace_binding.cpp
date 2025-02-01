@@ -251,14 +251,16 @@ void LibdebugPtraceInterface::detach_and_cont()
     kill(process_id, SIGCONT);
 }
 
-void LibdebugPtraceInterface::detach_from_child(pid_t pid)
+void LibdebugPtraceInterface::detach_from_child(pid_t pid, bool follow_child)
 {  
     // the child will be in trace stop, we need to sync with it
     int status;
     waitpid(pid, &status, 0);
 
-    // send a SIGSTOP to the process to avoid the process to run after the detach
-    kill(pid, SIGSTOP);
+    if (follow_child){
+        // send a SIGSTOP to the process to avoid the process to run after the detach
+        kill(pid, SIGSTOP);
+    }
 
     // we need to repair the memory of the software breakpoints
     for (auto &bp : software_breakpoints) {
@@ -781,10 +783,12 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "detach_from_child",
             &LibdebugPtraceInterface::detach_from_child,
             nb::arg("pid"),
+            nb::arg("follow_child"),
             "Detaches from a specific child process.\n"
             "\n"
             "Args:\n"
             "    pid (int): The process id to detach from."
+            "    follow_child (bool): A flag to indicate if the child should be followed."
         )
         .def(
             "set_ptrace_options",

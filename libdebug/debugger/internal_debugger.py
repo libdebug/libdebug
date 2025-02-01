@@ -113,6 +113,9 @@ class InternalDebugger:
     auto_interrupt_on_command: bool
     """A flag that indicates if the debugger should automatically interrupt the debugged process when a command is issued."""
 
+    follow_children: bool
+    """A flag that indicates if the debugger should follow child processes creating a new debugger for each one."""
+
     breakpoints: dict[int, Breakpoint]
     """A dictionary of all the breakpoints set on the process. Key: the address of the breakpoint."""
 
@@ -375,6 +378,7 @@ class InternalDebugger:
         child_internal_debugger.escape_antidebug = self.escape_antidebug
         child_internal_debugger.fast_memory = self.fast_memory
         child_internal_debugger.kill_on_exit = self.kill_on_exit
+        child_internal_debugger.follow_children = self.follow_children
 
         # Create the new Debugger instance for the child process
         child_debugger = Debugger()
