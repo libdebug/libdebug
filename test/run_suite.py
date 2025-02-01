@@ -42,6 +42,7 @@ def fast_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SyscallHijackTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.ThreadTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.WatchpointTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SymbolTest))
 
     return suite
 
