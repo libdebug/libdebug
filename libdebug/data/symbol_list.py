@@ -79,12 +79,22 @@ class SymbolList(list):
 
         return SymbolList(filtered_symbols)
 
-    def __getitem__(self: SymbolList, key: str) -> Symbol:
-        """Returns the symbol with the specified name."""
+    def __getitem__(self: SymbolList, key: str | int) -> SymbolList[Symbol] | Symbol:
+        """Returns the symbol with the specified name.
+
+        Args:
+            key (str, int): The name of the symbol to return, or the index of the symbol in the list.
+
+        Returns:
+            Symbol | SymbolList[Symbol]: The symbol at the specified index, or the SymbolList of symbols with the specified name.
+        """
+        if isinstance(key, int):
+            return super().__getitem__(key)
+
         symbols = [symbol for symbol in self if symbol.name == key]
         if not symbols:
             raise KeyError(f"Symbol '{key}' not found.")
-        return symbols
+        return SymbolList(symbols)
 
     def __hash__(self) -> int:
         """Return the hash of the symbol list."""
