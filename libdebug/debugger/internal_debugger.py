@@ -383,7 +383,7 @@ class InternalDebugger:
         child_debugger.arch = self.arch
 
         # Attach to the child process with the new debugger
-        child_debugger.attach(child_pid)
+        child_internal_debugger.attach(child_pid)
         self.children.append(child_debugger)
         liblog.debugger(
             "Child process with pid %d registered to the parent debugger (pid %d)",
