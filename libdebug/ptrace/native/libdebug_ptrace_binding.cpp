@@ -260,6 +260,13 @@ void LibdebugPtraceInterface::detach_from_child(pid_t pid)
     // send a SIGSTOP to the process to avoid the process to run after the detach
     kill(pid, SIGSTOP);
 
+    // we need to repair the memory of the software breakpoints
+    for (auto &bp : software_breakpoints) {
+        if (bp.second.enabled) {
+            ptrace(PTRACE_POKETEXT, pid, (void *) bp.first, (void *) bp.second.instruction);
+        }
+    }
+
     if (ptrace(PTRACE_DETACH, pid, NULL, 0) == -1) {
         printf("ptrace detach failed\n");
         throw std::runtime_error("ptrace detach failed");
@@ -846,7 +853,7 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "Args:\n"
             "    tid (int): The thread id to step.\n"
             "    use_trampoline_heuristic (bool): A flag to indicate if the trampoline heuristic for i386 should be used."
-        )
+        ) 
         .def(
             "forward_signals",
             &LibdebugPtraceInterface::forward_signals,
