@@ -142,7 +142,7 @@ const ElfInfo read_elf_info(const std::string &elf_file_path, const int debug_in
     }
 
     if (access(elf_file_path.c_str(), R_OK) == -1) {
-        throw std::invalid_argument("File not found or not readable: " + elf_file_path);
+        return {"", "", symbols};
     }
 
     if ((fd = open(elf_file_path.c_str(), O_RDONLY, 0)) < 0) {
