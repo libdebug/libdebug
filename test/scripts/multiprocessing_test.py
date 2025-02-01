@@ -212,7 +212,7 @@ class MultiprocessingTest(TestCase):
         r = d.run()
 
         # Breakpoint after the fork in the parent
-        bp_parent = d.bp(AFTER_FORK_STRESS, file="binary", hardware=True)
+        bp_parent = d.bp(AFTER_FORK_STRESS, file="binary", hardware=False)
 
         d.cont()
         
@@ -225,7 +225,7 @@ class MultiprocessingTest(TestCase):
         dd = d.children[0]
         
         # Breakpoint after the fork in the first child
-        bp_child1 = dd.bp(AFTER_FORK_STRESS, file="binary", hardware=True)
+        bp_child1 = dd.bp(AFTER_FORK_STRESS, file="binary", hardware=False)
         
         # The process is already at the breakpoint address (after fork), we need to skip it
         # and wait for the next hit
@@ -244,7 +244,7 @@ class MultiprocessingTest(TestCase):
         ddd = dd.children[0]
         
         # Breakpoint after the fork in the second child
-        bp_child2 = ddd.bp(AFTER_FORK_STRESS, file="binary", hardware=True)
+        bp_child2 = ddd.bp(AFTER_FORK_STRESS, file="binary", hardware=False)
         
         # The process is already at the breakpoint address (after fork), we need to skip it
         # and wait for the next hit
@@ -265,7 +265,7 @@ class MultiprocessingTest(TestCase):
         dddd = ddd.children[0]
         
         # Breakpoint after the fork in the third child
-        bp_child3 = dddd.bp(AFTER_FORK_STRESS, file="binary", hardware=True)
+        bp_child3 = dddd.bp(AFTER_FORK_STRESS, file="binary", hardware=False)
         
         # The process is already at the breakpoint address (after fork), we need to skip it
         # and wait for the next hit
@@ -288,7 +288,7 @@ class MultiprocessingTest(TestCase):
         ddddd = dddd.children[0]
         
         # Breakpoint after the fork in the fourth child
-        bp_child4 = ddddd.bp(AFTER_FORK_STRESS, file="binary", hardware=True)
+        bp_child4 = ddddd.bp(AFTER_FORK_STRESS, file="binary", hardware=False)
         
         # The process is already at the breakpoint address (after fork), we need to skip it
         # and wait for the next hit
