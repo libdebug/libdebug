@@ -897,8 +897,8 @@ class InternalDebugger:
         """
         # Check if the terminal has been configured correctly
         try:
-            check_call(libcontext.terminal, stderr=DEVNULL)
-        except CalledProcessError as err:
+            check_call([*libcontext.terminal, "uname"], stderr=DEVNULL, stdout=DEVNULL)
+        except (CalledProcessError, FileNotFoundError) as err:
             raise RuntimeError(
                 "Failed to open GDB in terminal. Check the terminal configuration in libcontext.terminal.",
             ) from err
