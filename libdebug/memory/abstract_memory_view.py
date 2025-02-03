@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from libdebug.data.memory_map import MemoryMap
 from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 from libdebug.liblog import liblog
-from libdebug.utils.platform_utils import get_platform_register_size
+from libdebug.utils.platform_utils import get_platform_ptr_size
 from libdebug.utils.search_utils import find_all_overlapping_occurrences
 
 
@@ -227,7 +227,7 @@ class AbstractMemoryView(MutableSequence, ABC):
             return found_references
 
         # Get the size of a pointer in the target process
-        pointer_size = get_platform_register_size(self._internal_debugger.arch)
+        pointer_size = get_platform_ptr_size(self._internal_debugger.arch)
 
         # Get the byteorder of the target machine (endianness)
         byteorder = sys.byteorder

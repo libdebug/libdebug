@@ -5,14 +5,14 @@
 #
 
 
-def get_platform_register_size(arch: str) -> int:
-    """Get the register size of the platform.
+def get_platform_ptr_size(arch: str) -> int:
+    """Get the ptr size of the platform.
 
     Args:
         arch (str): The architecture of the platform.
 
     Returns:
-        int: The register size in bytes.
+        int: The ptr size in bytes.
     """
     match arch:
         case "amd64":
