@@ -26,7 +26,7 @@ class FindReferencesTest(TestCase):
         d = debugger(RESOLVE_EXE("find_ref_test"))
         
         r = d.run()
-        d.bp(0x12c4, hardware=True, file="binary")
+        d.bp(LOCATION, hardware=True, file="binary")
 
         d.cont()
 
