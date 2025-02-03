@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2023-2025 Roberto Alessandro Bertolini, Gabriele Digregorio, Mario Polino. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -9,9 +9,13 @@ from __future__ import annotations
 import sys
 from abc import ABC, abstractmethod
 from collections.abc import MutableSequence
+from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from libdebug.data.memory_map import MemoryMap
 from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 from libdebug.liblog import liblog
+from libdebug.utils.platform_utils import get_platform_register_size
 from libdebug.utils.search_utils import find_all_overlapping_occurrences
 
 
@@ -122,6 +126,121 @@ class AbstractMemoryView(MutableSequence, ABC):
             occurrences = find_all_overlapping_occurrences(value, memory_content, start)
 
         return occurrences
+
+    def find_references(
+        self: AbstractMemoryView, target: int | str = "*", source: int | str = "*", stride: int = 1
+    ) -> list[tuple[int, int]]:
+        """
+        Find all references to a specific memory map within another memory map.
+
+        If the source or target is a string, it is treated as a backing file. If it is an integer, the memory map containing the address will be used.
+        If "*", "ALL", "all" or -1 is passed, all memory maps will be considered.
+
+        Args:
+            target (int | str): Identifier of the memory map whose references we want to find. Defaults to "*", which means all memory maps.
+            source (int | str): Identifier of the memory map where we want to search for references. Defaults to "*", which means all memory maps.
+            stride (int): The interval step size while iterating over the memory buffer. Defaults to 1.
+
+        Returns:
+            list[tuple[int, int]]: A list of tuples containing the address where the reference was found and the reference itself.
+        """
+        # Filter memory maps that match the target
+        if target in {"*", "ALL", "all", -1}:
+            target_maps = self._internal_debugger.maps
+        else:
+            target_maps = self._internal_debugger.maps.filter(target)
+
+        if not target_maps:
+            raise ValueError("No memory map found for the specified target.")
+
+        target_backing_files = {vmap.backing_file for vmap in target_maps}
+
+        # Filter memory maps that match the source
+        if source in {"*", "ALL", "all", -1}:
+            source_maps = self._internal_debugger.maps
+        else:
+            source_maps = self._internal_debugger.maps.filter(source)
+
+        if not source_maps:
+            raise ValueError("No memory map found for the specified source.")
+
+        source_backing_files = {vmap.backing_file for vmap in source_maps}
+
+        if len(source_backing_files) == 1 and len(target_backing_files) == 1:
+            return self.__internal_find_references(target_maps, source_maps, stride)
+        elif len(source_backing_files) == 1:
+            found_references = []
+            for target_backing_file in target_backing_files:
+                found_references += self.__internal_find_references(
+                    self._internal_debugger.maps.filter(target_backing_file),
+                    source_maps,
+                    stride,
+                )
+            return found_references
+        elif len(target_backing_files) == 1:
+            found_references = []
+            for source_backing_file in source_backing_files:
+                found_references += self.__internal_find_references(
+                    target_maps,
+                    self._internal_debugger.maps.filter(source_backing_file),
+                    stride,
+                )
+            return found_references
+        else:
+            found_references = []
+            for source_backing_file in source_backing_files:
+                for target_backing_file in target_backing_files:
+                    found_references += self.__internal_find_references(
+                        self._internal_debugger.maps.filter(target_backing_file),
+                        self._internal_debugger.maps.filter(source_backing_file),
+                        stride,
+                    )
+
+        return found_references
+
+    def __internal_find_references(
+        self: AbstractMemoryView,
+        target_maps: list[MemoryMap],
+        source_maps: list[MemoryMap],
+        stride: int,
+    ) -> list[tuple[int, int]]:
+        """Find all references to a specific memory map within another memory map. Internal implementation."""
+        found_references = []
+
+        # Obtain the start/end of the target memory segment
+        target_start_address = target_maps[0].start
+        target_end_address = target_maps[-1].end
+
+        # Obtain the start/end of the source memory segment
+        source_start_address = source_maps[0].start
+        source_end_address = source_maps[-1].end
+
+        # Read the memory from the source memory segment
+        if not self._internal_debugger.fast_memory:
+            liblog.warning(
+                "Fast memory reading is disabled. Using find_references with fast_memory=False may be very slow.",
+            )
+        try:
+            source_memory_buffer = self.read(source_start_address, source_end_address - source_start_address)
+        except (OSError, OverflowError):
+            liblog.error(f"Cannot read the target memory segment with backing file: {source_maps[0].backing_file}.")
+            return found_references
+
+        # Get the size of a pointer in the target process
+        pointer_size = get_platform_register_size(self._internal_debugger.arch)
+
+        # Get the byteorder of the target machine (endianness)
+        byteorder = sys.byteorder
+
+        # Search for references in the source memory segment
+        append = found_references.append
+        for i in range(0, len(source_memory_buffer), stride):
+            reference = source_memory_buffer[i : i + pointer_size]
+            reference = int.from_bytes(reference, byteorder=byteorder)
+            if target_start_address <= reference < target_end_address:
+                append((source_start_address + i, reference))
+
+        return found_references
 
     def __getitem__(self: AbstractMemoryView, key: int | slice | str | tuple) -> bytes:
         """Read from memory, either a single byte or a byte string.
