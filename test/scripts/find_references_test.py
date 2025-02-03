@@ -73,7 +73,8 @@ class FindReferencesTest(TestCase):
 
         # Find references to the stack in the heap
         heap_base = d.maps.filter("heap")[0].start
-        values = d.mem.find_references(d.regs.rbp, heap_base)
+        stack_base = d.maps.filter("stack")[0].start
+        values = d.mem.find_references(stack_base, heap_base)
 
         d.cont()
 
