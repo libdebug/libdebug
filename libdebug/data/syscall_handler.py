@@ -58,14 +58,20 @@ class SyscallHandler:
 
     def hit_on(self: SyscallHandler, thread_context: ThreadContext) -> bool:
         """Returns whether the syscall handler has been hit on the given thread context."""
+        internal_debugger = provide_internal_debugger(self)
+        internal_debugger._ensure_process_stopped()
         return self.enabled and thread_context.syscall_number == self.syscall_number
 
     def hit_on_enter(self: SyscallHandler, thread_context: ThreadContext) -> bool:
         """Returns whether the syscall handler has been hit during the syscall entry on the given thread context."""
+        internal_debugger = provide_internal_debugger(self)
+        internal_debugger._ensure_process_stopped()
         return self.enabled and thread_context.syscall_number == self.syscall_number and self._has_entered
 
     def hit_on_exit(self: SyscallHandler, thread_context: ThreadContext) -> bool:
         """Returns whether the syscall handler has been hit during the syscall exit on the given thread context."""
+        internal_debugger = provide_internal_debugger(self)
+        internal_debugger._ensure_process_stopped()
         return self.enabled and thread_context.syscall_number == self.syscall_number and not self._has_entered
 
     def __hash__(self: SyscallHandler) -> int:
