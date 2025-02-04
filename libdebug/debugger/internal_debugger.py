@@ -13,7 +13,7 @@ import signal
 import sys
 from pathlib import Path
 from queue import Queue
-from signal import SIGKILL, SIGSTOP
+from signal import SIGKILL, SIGSTOP, SIGTRAP
 from subprocess import DEVNULL, CalledProcessError, Popen, check_call
 from tempfile import NamedTemporaryFile
 from threading import Thread, current_thread
@@ -618,6 +618,8 @@ class InternalDebugger:
                 raise ValueError(
                     f"Cannot catch SIGSTOP ({signal_number}) as it is used by the debugger or ptrace for their internal operations.",
                 )
+            case SIGTRAP.value:
+                liblog.warning(f"Catching SIGTRAP ({signal_number}) may interfere with libdebug operations as it is used by the debugger or ptrace for their internal operations. Pay attention.")
 
         if signal_number in self.caught_signals:
             liblog.warning(
