@@ -64,7 +64,7 @@ class PtraceStatusHandler:
         if self.internal_debugger.get_thread_by_id(thread_id):
             self.ptrace_interface.unregister_thread(thread_id, exit_code=exit_code, exit_signal=exit_signal)
 
-    def _handle_breakpoints(self: PtraceStatusHandler, thread_id: int) -> bool:
+    def _handle_breakpoints(self: PtraceStatusHandler, thread_id: int) -> None:
         thread = self.internal_debugger.get_thread_by_id(thread_id)
 
         if not hasattr(thread, "instruction_pointer"):
@@ -110,6 +110,7 @@ class PtraceStatusHandler:
 
         if bp:
             self.internal_debugger.resume_context.event_hit_ref[thread_id] = bp
+            self.internal_debugger.resume_context.event_type[thread_id] = EventType.BREAKPOINT
             self.forward_signal = False
             bp.hit_count += 1
 
@@ -117,7 +118,6 @@ class PtraceStatusHandler:
                 bp.callback(thread, bp)
             else:
                 # If the breakpoint has no callback, we need to stop the process despite the other signals
-                self.internal_debugger.resume_context.event_type[thread_id] = EventType.BREAKPOINT
                 self.internal_debugger.resume_context.resume = False
 
     def _manage_syscall_on_enter(
@@ -332,7 +332,6 @@ class PtraceStatusHandler:
             self._manage_caught_signal(catcher, thread, signal_number, {signal_number})
         elif -1 in self.internal_debugger.caught_signals and signal_number not in (
             signal.SIGSTOP,
-            signal.SIGTRAP,
             signal.SIGKILL,
         ):
             # Handle all signals is enabled
@@ -388,10 +387,12 @@ class PtraceStatusHandler:
                     )
                     self._handle_clone(message, results)
                     self.forward_signal = False
+                    self.internal_debugger.resume_context.event_type[pid] = EventType.CLONE
                 case StopEvents.SECCOMP_EVENT:
                     # The process has installed a seccomp
                     liblog.debugger(f"Process {pid} installed a seccomp")
                     self.forward_signal = False
+                    self.internal_debugger.resume_context.event_type[pid] = EventType.SECCOMP
                 case StopEvents.EXIT_EVENT:
                     # The tracee is still alive; it needs
                     # to be PTRACE_CONTed or PTRACE_DETACHed to finish exiting.
@@ -402,6 +403,7 @@ class PtraceStatusHandler:
                         f"Thread {pid} exited with status: {message}",
                     )
                     self.forward_signal = False
+                    self.internal_debugger.resume_context.event_type[pid] = EventType.EXIT
                 case StopEvents.FORK_EVENT:
                     # The process has been forked
                     message = self.ptrace_interface._get_event_msg(pid)
@@ -413,6 +415,7 @@ class PtraceStatusHandler:
                     if self.internal_debugger.follow_children:
                         self.internal_debugger.set_child_debugger(message)
                     self.forward_signal = False
+                    self.internal_debugger.resume_context.event_type[pid] = EventType.FORK
 
     def _handle_change(self: PtraceStatusHandler, pid: int, status: int, results: list) -> None:
         """Handle a change in the status of a traced process."""
@@ -437,7 +440,8 @@ class PtraceStatusHandler:
                 thread._signal_number = signum
 
                 # Handle the signal
-                self._handle_signal(thread)
+                if self.internal_debugger.resume_context.event_type.get(pid, None) is None:
+                    self._handle_signal(thread)
 
                 if self.forward_signal and signum != signal.SIGSTOP:
                     # We have to forward the signal to the thread
