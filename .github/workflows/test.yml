@@ -41,7 +41,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install --upgrade wheel build
-        python -m pip install pwntools pytest
+        python -m pip install pwntools pytest objgraph
 
     - name: Install library
       run: |
