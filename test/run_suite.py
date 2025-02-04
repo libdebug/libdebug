@@ -66,6 +66,13 @@ def stress_suite():
 
     return suite
 
+def memory_suite():
+    suite = TestSuite()
+
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.MemoryLeakTest))
+
+    return suite
+
 def main(suite: str):
     if sys.version_info >= (3, 12):
         runner = TextTestRunner(verbosity=2, durations=3)
@@ -79,6 +86,8 @@ def main(suite: str):
         runner.verbosity = 1
     elif suite == "fast":
         suite = fast_suite()
+    elif suite == "memory":
+        suite = memory_suite()
     else:
         raise ValueError(f"Invalid suite: {suite}")
 
@@ -86,7 +95,7 @@ def main(suite: str):
 
 if __name__ == "__main__":
     parser = ArgumentParser(prog="libdebug Test Suite", description="Run the test suite")
-    parser.add_argument("suite", type=str, help="The suite to run the tests from", choices=["fast", "slow", "stress"], default="fast", nargs="?")
+    parser.add_argument("suite", type=str, help="The suite to run the tests from", choices=["fast", "slow", "stress", "memory"], default="fast", nargs="?")
 
     dbg = 'dbg' in sys.argv
     if dbg:
