@@ -37,7 +37,7 @@ from libdebug.debugger.debugger import Debugger
 from libdebug.debugger.internal_debugger_instance_manager import (
     extend_internal_debugger,
     link_to_internal_debugger,
-    remove_internal_debugger_refs
+    remove_internal_debugger_refs,
 )
 from libdebug.interfaces.interface_helper import provide_debugging_interface
 from libdebug.liblog import liblog
@@ -448,8 +448,12 @@ class InternalDebugger:
             del self.__polling_thread
             self.__polling_thread = None
 
-        # Remove elems from internal_debugger_holder to avoid memleaks
+        # Remove elemement from internal_debugger_holder to avoid memleaks
         remove_internal_debugger_refs(self)
+
+        # Clean up the register accessors
+        for thread in self.threads:
+            thread._register_holder.cleanup()
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
