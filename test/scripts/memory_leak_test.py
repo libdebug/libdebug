@@ -20,6 +20,26 @@ class MemoryLeakTest(TestCase):
             d.kill()
             d.terminate()
             
+        # Initialize the counter, to remove dependencies from previous tests
+        internal_debugger_count = objgraph.count('InternalDebugger')
+        debugger_count = objgraph.count('Debugger')
+        pipe_manager_count = objgraph.count('PipeManager')
+        resume_context_count = objgraph.count('ResumeContext')
+        process_memory_manager_count = objgraph.count('ProcessMemoryManager')
+        ptrace_interface_count = objgraph.count('PtraceInterface')
+        direct_memory_view_count = objgraph.count('DirectMemoryView')
+        chunked_memory_view_count = objgraph.count('ChunkedMemoryView')
+        ptrace_status_handler_count = objgraph.count('PtraceStatusHandler')
+        thread_context_count = objgraph.count('ThreadContext')
+        amd64_ptrace_register_holder_count = objgraph.count('Amd64PtraceRegisterHolder')
+        aarch64_ptrace_register_holder_count = objgraph.count('Aarch64PtraceRegisterHolder')
+        i386_over_amd64_ptrace_register_holder_count = objgraph.count('I386OverAMD64PtraceRegisterHolder')
+        i386_ptrace_register_holder_count = objgraph.count('I386PtraceRegisterHolder')
+        amd64_registers_count = objgraph.count('Amd64Registers')
+        aarch64_registers_count = objgraph.count('Aarch64Registers')
+        i386_over_amd64_registers_count = objgraph.count('I386OverAMD64Registers')
+        i386_registers_count = objgraph.count('I386Registers')
+ 
         # Force garbage collection before starting
         gc.collect()
 
@@ -50,22 +70,22 @@ class MemoryLeakTest(TestCase):
         # Get leaking objects
         objgraph.get_leaking_objects()
         
-        # Check that there are no objects of the following types
-        assert objgraph.count('InternalDebugger') == 0
-        assert objgraph.count('Debugger') == 0
-        assert objgraph.count('PipeManager') == 0
-        assert objgraph.count('ResumeContext') == 0
-        assert objgraph.count('ProcessMemoryManager') == 0
-        assert objgraph.count('PtraceInterface') == 0
-        assert objgraph.count('DirectMemoryView') == 0
-        assert objgraph.count('ChunkedMemoryView') == 0
-        assert objgraph.count('PtraceStatusHandler') == 0
-        assert objgraph.count('ThreadContext') == 0
-        assert objgraph.count('Amd64PtraceRegisterHolder') == 0
-        assert objgraph.count('Aarch64PtraceRegisterHolder') == 0
-        assert objgraph.count('I386OverAMD64PtraceRegisterHolder') == 0
-        assert objgraph.count('I386PtraceRegisterHolder') == 0
-        assert objgraph.count('Amd64Registers') == 0
-        assert objgraph.count('Aarch64Registers') == 0
-        assert objgraph.count('I386OverAMD64Registers') == 0
-        assert objgraph.count('I386Registers') == 0
+        # Check that there are no objects of the following types more than before
+        self.assertEqual(internal_debugger_count, objgraph.count('InternalDebugger'))
+        self.assertEqual(debugger_count, objgraph.count('Debugger'))
+        self.assertEqual(pipe_manager_count, objgraph.count('PipeManager'))
+        self.assertEqual(resume_context_count, objgraph.count('ResumeContext'))
+        self.assertEqual(process_memory_manager_count, objgraph.count('ProcessMemoryManager'))
+        self.assertEqual(ptrace_interface_count, objgraph.count('PtraceInterface'))
+        self.assertEqual(direct_memory_view_count, objgraph.count('DirectMemoryView'))
+        self.assertEqual(chunked_memory_view_count, objgraph.count('ChunkedMemoryView'))
+        self.assertEqual(ptrace_status_handler_count, objgraph.count('PtraceStatusHandler'))
+        self.assertEqual(thread_context_count, objgraph.count('ThreadContext'))
+        self.assertEqual(amd64_ptrace_register_holder_count, objgraph.count('Amd64PtraceRegisterHolder'))
+        self.assertEqual(aarch64_ptrace_register_holder_count, objgraph.count('Aarch64PtraceRegisterHolder'))
+        self.assertEqual(i386_over_amd64_ptrace_register_holder_count, objgraph.count('I386OverAMD64PtraceRegisterHolder'))
+        self.assertEqual(i386_ptrace_register_holder_count, objgraph.count('I386PtraceRegisterHolder'))
+        self.assertEqual(amd64_registers_count, objgraph.count('Amd64Registers'))
+        self.assertEqual(aarch64_registers_count, objgraph.count('Aarch64Registers'))
+        self.assertEqual(i386_over_amd64_registers_count, objgraph.count('I386OverAMD64Registers'))
+        self.assertEqual(i386_registers_count, objgraph.count('I386Registers'))
