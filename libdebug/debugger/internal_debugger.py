@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 from queue import Queue
 from signal import SIGKILL, SIGSTOP, SIGTRAP
-from subprocess import Popen
+from subprocess import DEVNULL, CalledProcessError, Popen, check_call
 from tempfile import NamedTemporaryFile
 from threading import Thread, current_thread
 from typing import TYPE_CHECKING
@@ -231,6 +231,11 @@ class InternalDebugger:
         self.pprint_syscalls = False
         self.pipe_manager = None
         self.process_id = 0
+
+        for t in self.threads:
+            del t.regs.register_file
+            del t.regs._fp_register_file
+
         self.threads.clear()
         self.instanced = False
         self.is_debugging = False
@@ -288,7 +293,8 @@ class InternalDebugger:
             self.kill()
         if self.threads:
             self.clear()
-            self.debugging_interface.reset()
+
+        self.debugging_interface.reset()
 
         self.instanced = True
         self.is_debugging = True
@@ -462,14 +468,7 @@ class InternalDebugger:
     def pprint_maps(self: InternalDebugger) -> None:
         """Prints the memory maps of the process."""
         self._ensure_process_stopped()
-        header = (
-            f"{'start':>18}  "
-            f"{'end':>18}  "
-            f"{'perm':>6}  "
-            f"{'size':>8}  "
-            f"{'offset':>8}  "
-            f"{'backing_file':<20}"
-        )
+        header = f"{'start':>18}  {'end':>18}  {'perm':>6}  {'size':>8}  {'offset':>8}  {'backing_file':<20}"
         print(header)
         for memory_map in self.maps:
             info = (
@@ -798,10 +797,6 @@ class InternalDebugger:
         # TODO: not needed?
         self.interrupt()
 
-        self.__polling_thread_command_queue.put((self.__threaded_gdb, ()))
-
-        self._join_and_check_status()
-
         # Create the command file
         command_file = self._craft_gdb_migration_file(migrate_breakpoints)
 
@@ -900,6 +895,17 @@ class InternalDebugger:
         Args:
             script_path (str): The path to the script to run in the terminal.
         """
+        # Check if the terminal has been configured correctly
+        try:
+            check_call([*libcontext.terminal, "uname"], stderr=DEVNULL, stdout=DEVNULL)
+        except (CalledProcessError, FileNotFoundError) as err:
+            raise RuntimeError(
+                "Failed to open GDB in terminal. Check the terminal configuration in libcontext.terminal.",
+            ) from err
+
+        self.__polling_thread_command_queue.put((self.__threaded_gdb, ()))
+        self._join_and_check_status()
+
         # Create the command to open the terminal and run the script
         command = [*libcontext.terminal, script_path]
 
@@ -940,6 +946,9 @@ class InternalDebugger:
         Args:
             script_path (str): The path to the script to run in the terminal.
         """
+        self.__polling_thread_command_queue.put((self.__threaded_gdb, ()))
+        self._join_and_check_status()
+
         gdb_pid = os.fork()
 
         if gdb_pid == 0:  # This is the child process.

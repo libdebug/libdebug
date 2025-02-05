@@ -26,6 +26,7 @@ class TerminalTypes:
         "tmux: server": ["tmux", "split-window", "-h"],
         "xfce4-terminal": ["xfce4-terminal", "--tab", "-e"],
         "terminator": ["terminator", "--new-tab", "-e"],
+        "ptyxis-agent": ["ptyxis", "--tab", "-x"],
     }
 
     @staticmethod
