@@ -465,10 +465,15 @@ class PtraceStatusHandler:
             # Resume the process if the stop was due to a race condition with SIGSTOP sent by the debugger
             return
 
-    def check_for_new_threads(self: PtraceStatusHandler, pid: int) -> None:
+    def check_for_changes_in_threads(self: PtraceStatusHandler, pid: int) -> None:
         """Check for new threads in the process and register them."""
         tids = get_process_tasks(pid)
         for tid in tids:
             if not self.internal_debugger.get_thread_by_id(tid):
-                self.ptrace_interface.register_new_thread(tid, self.internal_debugger)
+                self.ptrace_interface.register_new_thread(tid)
                 liblog.debugger("Manually registered new thread %d" % tid)
+
+        for thread in self.internal_debugger.threads:
+            if not thread.dead and thread.thread_id not in tids:
+                self.ptrace_interface.unregister_thread(thread.thread_id, None, None)
+                liblog.debugger("Manually unregistered thread %d" % thread.thread_id)

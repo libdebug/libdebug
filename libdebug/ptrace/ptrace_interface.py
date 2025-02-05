@@ -522,14 +522,14 @@ class PtraceInterface(DebuggingInterface):
                         bp.address,
                     )
 
-        self.lib_trace.ptrace_detach_for_migration(self._global_state, self.process_id)
+        self.lib_trace.detach_for_migration()
 
     def migrate_from_gdb(self: PtraceInterface) -> None:
         """Migrates the current process from GDB."""
-        self.lib_trace.ptrace_reattach_from_gdb(self._global_state, self.process_id)
-
         invalidate_process_cache()
-        self.status_handler.check_for_new_threads(self.process_id)
+        self.status_handler.check_for_changes_in_threads(self.process_id)
+
+        self.lib_trace.reattach_from_migration()
 
         # We have to reinstall any hardware breakpoint
         for bp in self._internal_debugger.breakpoints.values():
