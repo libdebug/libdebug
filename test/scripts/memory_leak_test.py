@@ -8,12 +8,13 @@ from unittest import TestCase
 import tracemalloc
 import gc
 import objgraph
+from utils.binary_utils import RESOLVE_EXE
 
 
 class MemoryLeakTest(TestCase):
     def test_memory_leak(self):
         def runner():
-            d = debugger("ls")
+            d = debugger(RESOLVE_EXE("basic_test"))
             d.run()
             d.cont()
             d.wait()
