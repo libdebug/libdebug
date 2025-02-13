@@ -5,6 +5,7 @@
 #
 from __future__ import annotations
 
+from abc import ABC
 from typing import TYPE_CHECKING
 
 from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
@@ -24,7 +25,7 @@ if TYPE_CHECKING:
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
 
 
-class ThreadContext:
+class ThreadContext(ABC):
     """This object represents a thread in the context of the target process. It holds information about the thread's state, registers and stack."""
 
     instruction_pointer: int
@@ -86,7 +87,6 @@ class ThreadContext:
         regs_class = self._register_holder.provide_regs_class()
         self.regs = regs_class(thread_id, self._register_holder.provide_regs())
         self._register_holder.apply_on_regs(self.regs, regs_class)
-        self._register_holder.apply_on_thread(self, ThreadContext)
 
     def set_as_dead(self: ThreadContext) -> None:
         """Set the thread as dead."""
