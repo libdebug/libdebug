@@ -14,9 +14,7 @@ from libdebug.utils.debugging_utils import resolve_symbol_name_in_maps_util
 
 def pprint_maps_util(maps: MemoryMapList | MemoryMapSnapshotList) -> None:
     """Prints the memory maps of the process."""
-    header = (
-        f"{'start':>18}  " f"{'end':>18}  " f"{'perm':>6}  " f"{'size':>8}  " f"{'offset':>8}  " f"{'backing_file':<20}"
-    )
+    header = f"{'start':>18}  {'end':>18}  {'perm':>6}  {'size':>8}  {'offset':>8}  {'backing_file':<20}"
     print(header)
     for memory_map in maps:
         info = (
