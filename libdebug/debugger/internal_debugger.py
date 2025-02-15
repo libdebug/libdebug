@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
+# Copyright (c) 2023-2025 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -1718,7 +1718,6 @@ class InternalDebugger:
         """Set the state of the process to stopped."""
         self._is_running = False
 
-
     def _threaded_invoke_syscall(
         self: InternalDebugger,
         thread: ThreadContext,
@@ -1736,24 +1735,6 @@ class InternalDebugger:
             int: The return value of the syscall.
         """
         return self.debugging_interface.invoke_syscall(thread.tid, syscall_number, *args)
-
-    def _background_invoke_syscall(
-        self: InternalDebugger,
-        thread: ThreadContext,
-        syscall_number: int,
-        *args: int,
-    ) -> int:
-        """Invoke a syscall in the target process.
-
-        Args:
-            thread (ThreadContext): The thread to invoke the syscall in.
-            syscall_identifier (int): The syscall number.
-            *args (int): The arguments to pass to the syscall.
-
-        Returns:
-            int: The return value of the syscall.
-        """
-        return self._threaded_invoke_syscall(thread, syscall_number, *args)
 
     @background_alias(_background_invalid_call)
     @change_state_function_thread
@@ -1780,6 +1761,6 @@ class InternalDebugger:
 
         self._ensure_process_stopped()
         self.__polling_thread_command_queue.put(
-            (self._background_invoke_syscall, (thread, syscall_number, *args)),
+            (self._threaded_invoke_syscall, (thread, syscall_number, *args)),
         )
         return self._join_and_get_return_value()

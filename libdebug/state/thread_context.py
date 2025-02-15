@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
+# Copyright (c) 2024-2025 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 from __future__ import annotations
@@ -377,7 +377,7 @@ class ThreadContext(ABC):
         self._internal_debugger.next(self)
 
     def invoke_syscall(self: ThreadContext, syscall_identifier: str | int, *args: int) -> int:
-        """Invokes a syscall with the specified arguments.
+        """Invokes a syscall with the specified arguments on this thread.
 
         Args:
             syscall_identifier (str | int): The syscall identifier.

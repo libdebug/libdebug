@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024  Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
+# Copyright (c) 2023-2025  Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -894,6 +894,15 @@ class Debugger:
     def ni(self: Debugger) -> None:
         """Alias for the `next` method. Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._internal_debugger.next(self)
+
+    def invoke_syscall(self: Debugger, syscall_identifier: str | int, *args: int) -> int:
+        """Invokes a syscall with the specified arguments on the main thread.
+
+        Args:
+            syscall_identifier (str | int): The syscall identifier.
+            *args (int): The syscall arguments.
+        """
+        self._internal_debugger.invoke_syscall(self.threads[0], syscall_identifier, *args)
 
     def __repr__(self: Debugger) -> str:
         """Return the string representation of the `Debugger` object."""
