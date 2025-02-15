@@ -1404,6 +1404,22 @@ class InternalDebugger:
             if response is not None:
                 raise response
 
+    def _join_and_get_return_value(self: InternalDebugger) -> int:
+        # Wait for the background thread to signal "task done" before returning
+        # We don't want any asynchronous behaviour here
+        self.__polling_thread_command_queue.join()
+
+        # Check for any exceptions raised by the background thread
+        if not self.__polling_thread_response_queue.empty():
+            response = self.__polling_thread_response_queue.get()
+            self.__polling_thread_response_queue.task_done()
+            if response is None:
+                raise RuntimeError("No return value from the background thread.")
+
+            return response
+        else:
+            raise RuntimeError("No return value from the background thread.")
+
     @functools.cached_property
     def _process_full_path(self: InternalDebugger) -> str:
         """Get the full path of the process.
@@ -1702,6 +1718,45 @@ class InternalDebugger:
         """Set the state of the process to stopped."""
         self._is_running = False
 
+
+    def _threaded_invoke_syscall(
+        self: InternalDebugger,
+        thread: ThreadContext,
+        syscall_number: int,
+        *args: int,
+    ) -> int:
+        """Invoke a syscall in the target process.
+
+        Args:
+            thread (ThreadContext): The thread to invoke the syscall in.
+            syscall_number (int): The syscall number.
+            *args (int): The arguments to pass to the syscall.
+
+        Returns:
+            int: The return value of the syscall.
+        """
+        return self.debugging_interface.invoke_syscall(thread.tid, syscall_number, *args)
+
+    def _background_invoke_syscall(
+        self: InternalDebugger,
+        thread: ThreadContext,
+        syscall_number: int,
+        *args: int,
+    ) -> int:
+        """Invoke a syscall in the target process.
+
+        Args:
+            thread (ThreadContext): The thread to invoke the syscall in.
+            syscall_identifier (int): The syscall number.
+            *args (int): The arguments to pass to the syscall.
+
+        Returns:
+            int: The return value of the syscall.
+        """
+        return self._threaded_invoke_syscall(thread, syscall_number, *args)
+
+    @background_alias(_background_invalid_call)
+    @change_state_function_thread
     def invoke_syscall(
         self: InternalDebugger,
         thread: ThreadContext,
@@ -1724,9 +1779,7 @@ class InternalDebugger:
             syscall_number = syscall_identifier
 
         self._ensure_process_stopped()
-
-        return self.debugging_interface.invoke_syscall(
-            thread.thread_id,
-            syscall_number,
-            *args,
+        self.__polling_thread_command_queue.put(
+            (self._background_invoke_syscall, (thread, syscall_number, *args)),
         )
+        return self._join_and_get_return_value()

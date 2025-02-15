@@ -642,11 +642,12 @@ unsigned long LibdebugPtraceInterface::invoke_syscall(pid_t tid, unsigned long s
 {
 
     Thread &t = threads[tid];
-
+    printf("DEBUG: Thread %d\n", tid);
+    printf("DEBUG: Invoking syscall %lu with %u arguments\n", syscall_number, actual_syscall_argcount);
     printf("DEBUG: RIP at %p", t.regs->rip);
 
     errno = 0;  // Clear errno before calling ptrace
-    if (ptrace(PTRACE_PEEKUSER, tid, 0, NULL) == -1 && errno == ESRCH) {
+    if (ptrace(PTRACE_PEEKUSER, process_id, 0, NULL) == -1 && errno == ESRCH) {
         throw std::runtime_error("Thread is dead: " + std::string(strerror(errno)));
     }
     
