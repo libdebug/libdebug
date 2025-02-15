@@ -17,8 +17,6 @@ from libdebug.utils.platform_utils import get_platform_register_size
 
 class MemoryTest(TestCase):
     def setUp(self) -> None:
-        self.d = debugger(RESOLVE_EXE("memory_test"))
-
         # Redirect logging to a string buffer
         self.log_capture_string = io.StringIO()
         self.log_handler = logging.StreamHandler(self.log_capture_string)
@@ -31,7 +29,7 @@ class MemoryTest(TestCase):
         self.logger.setLevel(logging.WARNING)
 
     def test_memory(self):
-        d = self.d
+        d = debugger(RESOLVE_EXE("memory_test"))
 
         d.run()
 
@@ -55,7 +53,7 @@ class MemoryTest(TestCase):
         d.terminate()
 
     def test_mem_access_libs(self):
-        d = self.d
+        d = debugger(RESOLVE_EXE("memory_test"))
 
         d.run()
 
@@ -78,7 +76,7 @@ class MemoryTest(TestCase):
         d.terminate()
 
     def test_memory_exceptions(self):
-        d = self.d
+        d = debugger(RESOLVE_EXE("memory_test"))
 
         d.run()
 
@@ -108,7 +106,7 @@ class MemoryTest(TestCase):
         d.terminate()
 
     def test_memory_multiple_runs(self):
-        d = self.d
+        d = debugger(RESOLVE_EXE("memory_test"))
 
         for _ in range(10):
             d.run()
@@ -299,7 +297,7 @@ class MemoryTest(TestCase):
         d.terminate()
     
     def test_search_maps(self):
-        d = self.d
+        d = debugger(RESOLVE_EXE("memory_test"))
 
         d.run()
 

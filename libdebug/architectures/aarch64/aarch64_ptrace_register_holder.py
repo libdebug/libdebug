@@ -68,7 +68,14 @@ def _get_property_fp_8(name: str, index: int) -> property:
         self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        data = value.to_bytes(1, sys.byteorder)
+
+        # The binding expects the value to be a 16-byte array, so we can't rely on to_bytes
+        # to fail if the value is too large. We need to check it manually and then dump it
+        # to a 16-byte array.
+        if (value & 0xFF) != value:
+            raise ValueError("Value is too large for 8-bit register")
+
+        data = value.to_bytes(16, sys.byteorder)
         self._fp_register_file.vregs[index].data = data
         self._fp_register_file.dirty = True
 
@@ -86,7 +93,14 @@ def _get_property_fp_16(name: str, index: int) -> property:
         self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        data = value.to_bytes(2, sys.byteorder)
+
+        # The binding expects the value to be a 16-byte array, so we can't rely on to_bytes
+        # to fail if the value is too large. We need to check it manually and then dump it
+        # to a 16-byte array.
+        if (value & 0xFFFF) != value:
+            raise ValueError("Value is too large for 16-bit register")
+
+        data = value.to_bytes(16, sys.byteorder)
         self._fp_register_file.vregs[index].data = data
         self._fp_register_file.dirty = True
 
@@ -104,7 +118,14 @@ def _get_property_fp_32(name: str, index: int) -> property:
         self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        data = value.to_bytes(4, sys.byteorder)
+
+        # The binding expects the value to be a 16-byte array, so we can't rely on to_bytes
+        # to fail if the value is too large. We need to check it manually and then dump it
+        # to a 16-byte array.
+        if (value & 0xFFFFFFFF) != value:
+            raise ValueError("Value is too large for 32-bit register")
+
+        data = value.to_bytes(16, sys.byteorder)
         self._fp_register_file.vregs[index].data = data
         self._fp_register_file.dirty = True
 
@@ -122,7 +143,14 @@ def _get_property_fp_64(name: str, index: int) -> property:
         self._internal_debugger._ensure_process_stopped()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        data = value.to_bytes(8, sys.byteorder)
+
+        # The binding expects the value to be a 16-byte array, so we can't rely on to_bytes
+        # to fail if the value is too large. We need to check it manually and then dump it
+        # to a 16-byte array.
+        if (value & 0xFFFFFFFFFFFFFFFF) != value:
+            raise ValueError("Value is too large for 64-bit register")
+
+        data = value.to_bytes(16, sys.byteorder)
         self._fp_register_file.vregs[index].data = data
         self._fp_register_file.dirty = True
 
