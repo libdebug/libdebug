@@ -84,7 +84,7 @@ libcontext.terminal = ['tmux', 'splitw', '-h']
 
 # Define signal catchers
 def catcher_SIGUSR1(thread, catcher) -> None:
-    t.signal = 0x0
+    thread.signal = 0x0
     print(f"SIGUSR1: Signal number {catcher}")
 
 def catcher_SIGINT(thread, catcher) -> None:
@@ -94,7 +94,7 @@ def catcher_SIGPIPE(thread, catcher) -> None:
     print(f"SIGPIPE: Signal number {catcher}")
 
 def handler_geteuid(thread, handler) -> None:
-	t.regs.rax = 0x0
+	thread.regs.rax = 0x0
 
 # Initialize the debugger
 d = debugger('/path/to/executable', continue_to_binary_entrypoint=False, aslr=False)
