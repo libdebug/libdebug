@@ -65,7 +65,7 @@ int IS_CALL_INSTRUCTION(uint8_t* instr)
 
 static int _get_remaining_count(const int tid, const int command)
 {
-    struct user_hwdebug_state dbg_state = {0};
+    struct user_hwdebug_state dbg_state = {};
 
     struct iovec iov;
     iov.iov_base = &dbg_state;
@@ -76,37 +76,8 @@ static int _get_remaining_count(const int tid, const int command)
     return dbg_state.dbg_info & 0xff;
 }
 
-void LibdebugPtraceInterface::step_thread(Thread &t, bool forward_signal, bool step_over_hardware_bp)
+static void _step_thread(Thread &t, bool forward_signal)
 {
-    // on aarch64, step doesn't override hardware breakpoints
-    if (step_over_hardware_bp) {
-        // check if the thread is on a hardware breakpoint
-        for (auto &bp : hardware_breakpoints) {
-            if (bp.tid == t.tid && bp.enabled && hit_hardware_breakpoint_address(t.tid) == bp.addr) {
-                // remove the breakpoint
-                remove_hardware_breakpoint(bp);
-
-                if (forward_signal) {
-                    if (ptrace(PTRACE_SINGLESTEP, t.tid, NULL, t.signal_to_forward) == -1) {
-                        throw std::runtime_error("ptrace singlestep failed");
-                    }
-
-                    t.signal_to_forward = 0;
-                } else {
-                    if (ptrace(PTRACE_SINGLESTEP, t.tid, NULL, 0) == -1) {
-                        throw std::runtime_error("ptrace singlestep failed");
-                    }
-                }
-
-                // re-add the breakpoint
-                install_hardware_breakpoint(bp);
-
-                return;
-            }
-        }
-    }
-
-    // either step_over_hardware_bp is false or the thread is not on a hardware breakpoint
     if (forward_signal) {
         if (ptrace(PTRACE_SINGLESTEP, t.tid, NULL, t.signal_to_forward) == -1) {
             throw std::runtime_error("ptrace singlestep failed");
@@ -120,26 +91,60 @@ void LibdebugPtraceInterface::step_thread(Thread &t, bool forward_signal, bool s
     }
 }
 
+void LibdebugPtraceInterface::step_thread(Thread &t, bool forward_signal, bool step_over_hardware_bp)
+{
+    // on aarch64, step doesn't override hardware breakpoints
+    if (step_over_hardware_bp) {
+        // check if the thread is on a hardware breakpoint
+        for (auto &bp : t.hardware_breakpoints) {
+            if (bp.second.enabled && hit_hardware_breakpoint_address(t.tid) == bp.first) {
+                // remove the breakpoint
+                remove_hardware_breakpoint(bp.second);
+
+                _step_thread(t, forward_signal);
+
+                // re-add the breakpoint
+                install_hardware_breakpoint(bp.second);
+
+                return;
+            }
+        }
+    }
+
+    // either step_over_hardware_bp is false or the thread is not on a hardware breakpoint
+    _step_thread(t, forward_signal);
+}
+
 void LibdebugPtraceInterface::arch_check_if_hit_and_step_over()
 {
     // iterate over all the threads and check if any of them has hit a hardware breakpoint
     for (auto &t : threads) {
-        for (auto &bp : hardware_breakpoints) {
-            if (bp.tid == t.first && bp.enabled && hit_hardware_breakpoint_address(t.first) == bp.addr) {
+        unsigned long address = hit_hardware_breakpoint_address(t.second.tid);
+
+        if (!address) {
+            continue;
+        }
+
+        for (auto &bp: t.second.hardware_breakpoints) {
+            if (bp.second.enabled && address == bp.first) {
                 // remove the breakpoint
-                remove_hardware_breakpoint(bp);
+                remove_hardware_breakpoint(bp.second);
 
-                // step over the breakpoint
-                if (ptrace(PTRACE_SINGLESTEP, t.first, NULL, NULL)) {
-                    throw std::runtime_error("ptrace singlestep failed");
-                }
+                // step the thread
+                _step_thread(t.second, false);
 
-                // wait for the child
                 int status;
                 waitpid(t.first, &status, 0);
 
+                // status == 4991 ==> (WIFSTOPPED(status) && WSTOPSIG(status) ==
+                // SIGSTOP) this should happen only if threads are involved
+                if (status == 4991) {
+                    step_thread(t.second, false);
+                    waitpid(t.first, &status, 0);
+                }
+
                 // re-add the breakpoint
-                install_hardware_breakpoint(bp);
+                install_hardware_breakpoint(bp.second);
 
                 break;
             }
@@ -214,7 +219,7 @@ void LibdebugPtraceInterface::arch_setfpregs(Thread &t)
 void LibdebugPtraceInterface::install_hardware_breakpoint(const HardwareBreakpoint &bp)
 {
     // find a free debug register
-    struct user_hwdebug_state state = {0};
+    struct user_hwdebug_state state = {};
 
     struct iovec iov;
     iov.iov_base = &state;
@@ -252,7 +257,7 @@ void LibdebugPtraceInterface::install_hardware_breakpoint(const HardwareBreakpoi
 
 void LibdebugPtraceInterface::remove_hardware_breakpoint(const HardwareBreakpoint &bp)
 {
-    struct user_hwdebug_state state = {0};
+    struct user_hwdebug_state state = {};
 
     struct iovec iov;
     iov.iov_base = &state;
@@ -296,6 +301,8 @@ unsigned long LibdebugPtraceInterface::hit_hardware_breakpoint_address(const pid
 
 bool LibdebugPtraceInterface::check_if_dl_trampoline(unsigned long instruction_pointer)
 {
+    (void) instruction_pointer;
+
     // Does not apply to AArch64
     return false;
 }

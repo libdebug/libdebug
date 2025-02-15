@@ -38,6 +38,8 @@ int IS_CALL_INSTRUCTION(uint8_t* instr)
 void LibdebugPtraceInterface::step_thread(Thread &t, bool forward_signal, bool step_over_hardware_bp)
 {
     // on x86, step overrides hardware breakpoints, so we do not care about them
+    (void) step_over_hardware_bp;
+
     if (forward_signal) {
         if (ptrace(PTRACE_SINGLESTEP, t.tid, NULL, t.signal_to_forward) == -1) {
             throw std::runtime_error("ptrace singlestep failed");

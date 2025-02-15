@@ -57,7 +57,7 @@ I386_SPECIAL_REGS = [
 # instead of a 16-byte array, which the nanobind binding does not expect.
 # We need to reimplement it here.
 def _get_property_fp_st(name: str, index: int) -> property:
-    # We should be able to expose the long double member from CFFI directly
+    # We should be able to expose the long double member from nanobind directly
     # But their support for long double does not actually allow for value comparison or manipulation
     # So, ctypes it is
     def getter(self: I386Registers) -> float:

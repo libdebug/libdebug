@@ -61,7 +61,7 @@ issues = "https://github.com/libdebug/libdebug/issues"
 
 [tool.ruff]
 include = ["pyproject.toml", "libdebug/**/*.py"]
-exclude = ["libdebug/cffi/*.py", "test/"]
+exclude = ["test/"]
 line-length = 120
 indent-width = 4
 target-version = "py312"

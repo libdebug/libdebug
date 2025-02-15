@@ -115,6 +115,17 @@ int LibdebugPtraceInterface::prepare_for_run()
     return 0;
 }
 
+Thread& LibdebugPtraceInterface::try_get_thread(const pid_t tid)
+{
+    auto it = threads.find(tid);
+
+    if (it == threads.end()) {
+        throw std::runtime_error("Thread not found");
+    }
+
+    return it->second;
+}
+
 LibdebugPtraceInterface::LibdebugPtraceInterface()
 {
     process_id = -1;
@@ -215,6 +226,21 @@ void LibdebugPtraceInterface::detach_for_migration()
     }
 }
 
+void LibdebugPtraceInterface::reattach_from_migration(){
+    for (auto it = threads.begin(); it != threads.end(); ++it) {
+        // reattach to the process
+        if (ptrace(PTRACE_ATTACH, it->first, NULL, NULL)) {
+            throw std::runtime_error("ptrace attach failed");
+        }
+
+        if (getregs(it->second)) {
+            // if we can't read the registers, the attach failed
+            throw std::runtime_error("ptrace attach failed");
+        }
+    }
+
+}
+
 void LibdebugPtraceInterface::detach_and_cont()
 {
     detach_for_migration();
@@ -238,7 +264,7 @@ void LibdebugPtraceInterface::detach_for_kill()
         }
 
         // detach from it
-        if (ptrace(PTRACE_DETACH, it->first, NULL, NULL)) {
+        if (ptrace(PTRACE_DETACH, it->first, NULL, NULL) && errno != ESRCH) {
             throw std::runtime_error("ptrace detach failed");
         }
 
@@ -273,23 +299,25 @@ void LibdebugPtraceInterface::cont_all_and_set_bps(bool handle_syscalls)
     }
 }
 
-void LibdebugPtraceInterface::step(pid_t tid)
+void LibdebugPtraceInterface::step(const pid_t tid)
 {
+    Thread &t = try_get_thread(tid);
+
     // Flush any register changes
-    if (setregs(threads[tid])) {
+    if (setregs(t)) {
         throw std::runtime_error("setregs failed");
     }
 
-    check_and_set_fpregs(threads[tid]);
+    check_and_set_fpregs(t);
 
     // Step the thread
     // The third parameter indicates that we must step over hardware breakpoints
-    step_thread(threads[tid], true, true);
+    step_thread(t, true, true);
 }
 
-void LibdebugPtraceInterface::step_until(pid_t tid, unsigned long addr, int max_steps)
+void LibdebugPtraceInterface::step_until(const pid_t tid, const unsigned long addr, const int max_steps)
 {
-    Thread &t = threads[tid];
+    Thread &t = try_get_thread(tid);
 
     // Flush any register changes
     if (setregs(t)) {
@@ -337,9 +365,9 @@ void LibdebugPtraceInterface::step_until(pid_t tid, unsigned long addr, int max_
     }
 }
 
-void LibdebugPtraceInterface::stepping_finish(pid_t tid, bool use_trampoline_heuristic)
+void LibdebugPtraceInterface::stepping_finish(const pid_t tid, const bool use_trampoline_heuristic)
 {
-    Thread &stepping_thread = threads[tid];
+    Thread &stepping_thread = try_get_thread(tid);
 
     prepare_for_run();
 
@@ -530,7 +558,7 @@ void LibdebugPtraceInterface::disable_breakpoint(const unsigned long address)
 
 void LibdebugPtraceInterface::register_hw_breakpoint(const pid_t tid, unsigned long address, const int type, const int len)
 {
-    Thread &t = threads[tid];
+    Thread &t = try_get_thread(tid);
 
     if (t.hardware_breakpoints.find(address) != t.hardware_breakpoints.end()) {
         throw std::runtime_error("Breakpoint already registered");
@@ -552,11 +580,7 @@ void LibdebugPtraceInterface::register_hw_breakpoint(const pid_t tid, unsigned l
 
 void LibdebugPtraceInterface::unregister_hw_breakpoint(const pid_t tid, const unsigned long address)
 {
-    if (threads.find(tid) == threads.end()) {
-        return;
-    }
-
-    Thread &t = threads[tid];
+    Thread &t = try_get_thread(tid);
 
     if (t.hardware_breakpoints.find(address) == t.hardware_breakpoints.end()) {
         throw std::runtime_error("Breakpoint not found");
@@ -572,13 +596,15 @@ void LibdebugPtraceInterface::unregister_hw_breakpoint(const pid_t tid, const un
 
 unsigned long LibdebugPtraceInterface::get_hit_hw_breakpoint(const pid_t tid)
 {
+    Thread &t = try_get_thread(tid);
+
     unsigned long address = hit_hardware_breakpoint_address(tid);
 
     if (address == 0) {
         return 0;
     }
 
-    if (threads[tid].hardware_breakpoints.find(address) != threads[tid].hardware_breakpoints.end()) {
+    if (t.hardware_breakpoints.find(address) != t.hardware_breakpoints.end()) {
         return address;
     }
 
@@ -587,7 +613,7 @@ unsigned long LibdebugPtraceInterface::get_hit_hw_breakpoint(const pid_t tid)
 
 void LibdebugPtraceInterface::get_fp_regs(pid_t tid)
 {
-    Thread &t = threads[tid];
+    Thread &t = try_get_thread(tid);
 
     getfpregs(t);
 }
@@ -784,6 +810,11 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "detach_for_migration",
             &LibdebugPtraceInterface::detach_for_migration,
             "Detaches from the process for migration to another debugger."
+        )
+        .def(
+            "reattach_from_migration",
+            &LibdebugPtraceInterface::reattach_from_migration,
+            "Reattaches to the process after migration from another debugger."
         )
         .def(
             "detach_and_cont",

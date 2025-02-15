@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 
 from libdebug.architectures.call_utilities_provider import call_utilities_provider
 from libdebug.architectures.register_helper import register_holder_provider
+from libdebug.architectures.thread_context_helper import thread_context_class_provider
 from libdebug.commlink.pipe_manager import PipeManager
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.debugger.internal_debugger_instance_manager import (
@@ -27,7 +28,6 @@ from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.liblog import liblog
 from libdebug.ptrace.native import libdebug_ptrace_binding
 from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
-from libdebug.state.thread_context import ThreadContext
 from libdebug.utils.debugging_utils import normalize_and_validate_address
 from libdebug.utils.elf_utils import get_entry_point
 from libdebug.utils.process_utils import (
@@ -57,6 +57,7 @@ if TYPE_CHECKING:
     from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.debugger.internal_debugger import InternalDebugger
+    from libdebug.state.thread_context import ThreadContext
 
 
 class PtraceInterface(DebuggingInterface):
@@ -222,7 +223,10 @@ class PtraceInterface(DebuggingInterface):
         # We must disable all breakpoints before detaching
         for bp in list(self._internal_debugger.breakpoints.values()):
             if bp.enabled:
-                self.unset_breakpoint(bp, delete=True)
+                try:
+                    self.unset_breakpoint(bp, delete=True)
+                except RuntimeError as e:
+                    liblog.debugger("Error unsetting breakpoint %r", e)
 
         self.lib_trace.detach_and_cont()
 
@@ -497,7 +501,9 @@ class PtraceInterface(DebuggingInterface):
                 liblog.debugger(
                     f"Forwarding signal {thread.signal_number} to thread {thread.thread_id}",
                 )
+                # Add the signal to the list of signals to forward
                 signals_to_forward.append((thread.thread_id, thread.signal_number))
+                # Reset the signal number
                 thread._signal_number = 0
 
         self.lib_trace.forward_signals(signals_to_forward)
@@ -517,14 +523,14 @@ class PtraceInterface(DebuggingInterface):
                         bp.address,
                     )
 
-        self.lib_trace.ptrace_detach_for_migration(self._global_state, self.process_id)
+        self.lib_trace.detach_for_migration()
 
     def migrate_from_gdb(self: PtraceInterface) -> None:
         """Migrates the current process from GDB."""
-        self.lib_trace.ptrace_reattach_from_gdb(self._global_state, self.process_id)
-
         invalidate_process_cache()
-        self.status_handler.check_for_new_threads(self.process_id)
+        self.status_handler.check_for_changes_in_threads(self.process_id)
+
+        self.lib_trace.reattach_from_migration()
 
         # We have to reinstall any hardware breakpoint
         for bp in self._internal_debugger.breakpoints.values():
@@ -547,9 +553,10 @@ class PtraceInterface(DebuggingInterface):
         register_file, fp_register_file = self.lib_trace.register_thread(new_thread_id)
 
         register_holder = register_holder_provider(self._internal_debugger.arch, register_file, fp_register_file)
+        thread_context_class = thread_context_class_provider(self._internal_debugger.arch)
 
         with extend_internal_debugger(self._internal_debugger):
-            thread = ThreadContext(new_thread_id, register_holder)
+            thread = thread_context_class(new_thread_id, register_holder)
 
         self._internal_debugger.insert_new_thread(thread)
 

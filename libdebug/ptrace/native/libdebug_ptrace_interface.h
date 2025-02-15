@@ -43,6 +43,9 @@ private:
     // Others
     bool check_if_dl_trampoline(unsigned long);
 
+    // Utility methods
+    Thread &try_get_thread(const pid_t);
+
 public:
     LibdebugPtraceInterface();
 
@@ -56,6 +59,7 @@ public:
     // Debugger process methods
     int attach(const pid_t);
     void detach_for_migration();
+    void reattach_from_migration();
     void detach_and_cont();
     void detach_for_kill();
     void set_tracing_options();

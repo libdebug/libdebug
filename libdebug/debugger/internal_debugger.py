@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 from queue import Queue
 from signal import SIGKILL, SIGSTOP, SIGTRAP
-from subprocess import Popen
+from subprocess import DEVNULL, CalledProcessError, Popen, check_call
 from tempfile import NamedTemporaryFile
 from threading import Thread, current_thread
 from typing import TYPE_CHECKING
@@ -468,14 +468,7 @@ class InternalDebugger:
     def pprint_maps(self: InternalDebugger) -> None:
         """Prints the memory maps of the process."""
         self._ensure_process_stopped()
-        header = (
-            f"{'start':>18}  "
-            f"{'end':>18}  "
-            f"{'perm':>6}  "
-            f"{'size':>8}  "
-            f"{'offset':>8}  "
-            f"{'backing_file':<20}"
-        )
+        header = f"{'start':>18}  {'end':>18}  {'perm':>6}  {'size':>8}  {'offset':>8}  {'backing_file':<20}"
         print(header)
         for memory_map in self.maps:
             info = (
@@ -804,10 +797,6 @@ class InternalDebugger:
         # TODO: not needed?
         self.interrupt()
 
-        self.__polling_thread_command_queue.put((self.__threaded_gdb, ()))
-
-        self._join_and_check_status()
-
         # Create the command file
         command_file = self._craft_gdb_migration_file(migrate_breakpoints)
 
@@ -906,6 +895,17 @@ class InternalDebugger:
         Args:
             script_path (str): The path to the script to run in the terminal.
         """
+        # Check if the terminal has been configured correctly
+        try:
+            check_call([*libcontext.terminal, "uname"], stderr=DEVNULL, stdout=DEVNULL)
+        except (CalledProcessError, FileNotFoundError) as err:
+            raise RuntimeError(
+                "Failed to open GDB in terminal. Check the terminal configuration in libcontext.terminal.",
+            ) from err
+
+        self.__polling_thread_command_queue.put((self.__threaded_gdb, ()))
+        self._join_and_check_status()
+
         # Create the command to open the terminal and run the script
         command = [*libcontext.terminal, script_path]
 
@@ -946,6 +946,9 @@ class InternalDebugger:
         Args:
             script_path (str): The path to the script to run in the terminal.
         """
+        self.__polling_thread_command_queue.put((self.__threaded_gdb, ()))
+        self._join_and_check_status()
+
         gdb_pid = os.fork()
 
         if gdb_pid == 0:  # This is the child process.
@@ -1278,7 +1281,7 @@ class InternalDebugger:
                 # we have to assume it is in the main map
                 backing_file = self._process_full_path
                 liblog.warning(
-                    f"No backing file specified and no corresponding absolute address found for {hex(address)}. Assuming {backing_file}.",
+                    f"No backing file specified and no corresponding absolute address found for {hex(address)}. Assuming `{backing_file}`.",
                 )
 
         filtered_maps = maps.filter(backing_file)
@@ -1299,10 +1302,33 @@ class InternalDebugger:
             raise ValueError("Cannot use `absolute` backing file with symbols.")
 
         if backing_file == "hybrid":
-            # If no explicit backing file is specified, we have to assume it is in the main map
-            backing_file = self._process_full_path
-            liblog.debugger(f"No backing file specified for the symbol {symbol}. Assuming {backing_file}.")
-        elif backing_file in ["binary", self._process_name]:
+            # If no explicit backing file is specified, we try resolving the symbol in the main map
+            filtered_maps = self.maps.filter("binary")
+            try:
+                return resolve_symbol_in_maps(symbol, filtered_maps)
+            except ValueError:
+                liblog.warning(
+                    f"No backing file specified for the symbol `{symbol}`. Resolving the symbol in ALL the maps (slow!)",
+                )
+
+            # Otherwise, we resolve the symbol in all the maps: as this can be slow,
+            # we issue a warning with the file containing it
+            address = resolve_symbol_in_maps(symbol, self.maps)
+
+            filtered_maps = self.maps.filter(address)
+            if len(filtered_maps) != 1:
+                # Shouldn't happen, but you never know...
+                raise RuntimeError(
+                    "The symbol address is present in zero or multiple backing files. Please specify the correct backing file.",
+                )
+            liblog.warning(
+                f"Symbol `{symbol}` found in `{filtered_maps[0].backing_file}`, "
+                f"specify it manually as the backing file for better performance.",
+            )
+
+            return address
+
+        if backing_file in ["binary", self._process_name]:
             backing_file = self._process_full_path
 
         filtered_maps = self.maps.filter(backing_file)
