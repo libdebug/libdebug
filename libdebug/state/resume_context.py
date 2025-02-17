@@ -22,6 +22,7 @@ class ResumeContext:
         self.is_a_step: bool = False
         self.is_startup: bool = False
         self.block_on_signal: bool = False
+        self.is_sync_in_callback: bool = False
         self.threads_with_signals_to_forward: list[int] = []
         self.event_type: dict[int, EventType] = {}
         self.event_hit_ref: dict[int, Breakpoint] = {}
@@ -33,6 +34,7 @@ class ResumeContext:
         self.is_a_step = False
         self.is_startup = False
         self.block_on_signal = False
+        self.is_sync_in_callback = False
         self.threads_with_signals_to_forward.clear()
         self.event_type.clear()
         self.event_hit_ref.clear()

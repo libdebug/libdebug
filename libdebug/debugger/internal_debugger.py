@@ -1066,6 +1066,7 @@ class InternalDebugger:
         Args:
             thread (ThreadContext): The thread to step. Defaults to None.
         """
+        self.resume_context.is_sync_in_callback = True
         self.__threaded_step(thread)
         self.__threaded_wait()
 
@@ -1102,6 +1103,7 @@ class InternalDebugger:
         else:
             address = self.resolve_address(position, file)
 
+        self.resume_context.is_sync_in_callback = True
         self.__threaded_step_until(thread, address, max_steps)
 
     @background_alias(_background_step_until)
@@ -1151,6 +1153,7 @@ class InternalDebugger:
             thread (ThreadContext): The thread to finish.
             heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
         """
+        self.resume_context.is_sync_in_callback = True
         self.__threaded_finish(thread, heuristic)
 
     @background_alias(_background_finish)
@@ -1177,6 +1180,7 @@ class InternalDebugger:
         thread: ThreadContext,
     ) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
+        self.resume_context.is_sync_in_callback = True
         self.__threaded_next(thread)
 
     @background_alias(_background_next)
