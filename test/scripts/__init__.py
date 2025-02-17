@@ -32,6 +32,7 @@ from .syscall_hijack_test import SyscallHijackTest
 from .thread_test import ThreadTest
 from .vmwhere1_test import Vmwhere1Test
 from .watchpoint_test import WatchpointTest
+from .symbol_test import SymbolTest
 
 
-__all__ = ["AliasTest", "AntidebugEscapingTest", "AttachDetachTest", "AutoWaitingTest", "BacktraceTest", "BreakpointTest", "BruteTest", "CallbackTest", "ControlFlowTest", "DeathTest", "DeepDiveDivisionTest", "FinishTest", "FloatingPointTest", "JumpoutTest", "JumpstartTest", "LargeBinarySymTest", "MemoryTest", "MemoryFastTest", "MultipleDebuggersTest", "NextTest", "NlinksTest", "PPrintSyscallsTest", "RegisterTest", "SignalCatchTest", "SignalMultithreadTest", "SnapshotsTest", "SpeedTest", "SyscallHandleTest", "SyscallHijackTest", "ThreadTest", "Vmwhere1Test", "WatchpointTest"]
+__all__ = ["AliasTest", "AntidebugEscapingTest", "AttachDetachTest", "AutoWaitingTest", "BacktraceTest", "BreakpointTest", "BruteTest", "CallbackTest", "ControlFlowTest", "DeathTest", "DeepDiveDivisionTest", "FinishTest", "FloatingPointTest", "JumpoutTest", "JumpstartTest", "LargeBinarySymTest", "MemoryTest", "MemoryFastTest", "MultipleDebuggersTest", "NextTest", "NlinksTest", "PPrintSyscallsTest", "RegisterTest", "SignalCatchTest", "SignalMultithreadTest", "SnapshotsTest", "SpeedTest", "SyscallHandleTest", "SyscallHijackTest", "ThreadTest", "Vmwhere1Test", "WatchpointTest", "SymbolTest"]

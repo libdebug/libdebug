@@ -1,6 +1,6 @@
 //
 // This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-// Copyright (c) 2023-2024 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
+// Copyright (c) 2023-2025 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for details.
 //
 
@@ -142,7 +142,7 @@ const ElfInfo read_elf_info(const std::string &elf_file_path, const int debug_in
     }
 
     if (access(elf_file_path.c_str(), R_OK) == -1) {
-        throw std::invalid_argument("File not found or not readable: " + elf_file_path);
+        return {"", "", symbols};
     }
 
     if ((fd = open(elf_file_path.c_str(), O_RDONLY, 0)) < 0) {
