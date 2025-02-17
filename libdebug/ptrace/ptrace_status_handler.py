@@ -117,8 +117,7 @@ class PtraceStatusHandler:
             else:
                 # If the breakpoint has no callback, we need to stop the process despite the other signals
                 self.internal_debugger.resume_context.event_type[thread_id] = EventType.BREAKPOINT
-                if self.internal_debugger.resume_context.is_sync_in_callback is False:
-                    self.internal_debugger.resume_context.resume = False
+                self.internal_debugger.resume_context.resume = False
 
     def _manage_syscall_on_enter(
         self: PtraceStatusHandler,
@@ -374,8 +373,7 @@ class PtraceStatusHandler:
             if self.internal_debugger.resume_context.is_a_step:
                 # The process is stepping, we need to stop the execution
                 self.internal_debugger.resume_context.event_type[pid] = EventType.STEP
-                if self.internal_debugger.resume_context.is_sync_in_callback is False:
-                    self.internal_debugger.resume_context.resume = False
+                self.internal_debugger.resume_context.resume = False
                 self.internal_debugger.resume_context.is_a_step = False
                 self.forward_signal = False
 
@@ -466,9 +464,6 @@ class PtraceStatusHandler:
             if pid != -1:
                 # Otherwise, this is a spurious trap
                 self._handle_change(pid, status, result)
-
-        # Reset the callback flag
-        self.internal_debugger.resume_context.is_sync_in_callback = False
 
         if self._assume_race_sigstop:
             # Resume the process if the stop was due to a race condition with SIGSTOP sent by the debugger
