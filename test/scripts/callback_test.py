@@ -13,11 +13,20 @@ from libdebug import debugger
 
 match PLATFORM:
     case "amd64":
-        TEST_CALLBACK_STEP_OFFSET = 1
+        TEST_BASIC_CALLBACK_STEP_OFFSET = 1
+        TEST_CALLS_CALLBACK_STEP_OFFSET = 4
+        TEST_CALLS_BP = 0x11a3
+        TEST_CALLS_FINISH_OFFSET = 74
     case "aarch64":
-        TEST_CALLBACK_STEP_OFFSET = 4
+        TEST_BASIC_CALLBACK_STEP_OFFSET = 4
+        TEST_CALLS_CALLBACK_STEP_OFFSET = 4
+        TEST_CALLS_BP = 0X7b8
+        TEST_CALLS_FINISH_OFFSET = 68
     case "i386":
-        TEST_CALLBACK_STEP_OFFSET = 1
+        TEST_BASIC_CALLBACK_STEP_OFFSET = 1
+        TEST_CALLS_CALLBACK_STEP_OFFSET = 1
+        TEST_CALLS_BP = 0x1213
+        TEST_CALLS_FINISH_OFFSET = 93
     case _:
         raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
 
@@ -159,11 +168,92 @@ class CallbackTest(TestCase):
         def callback(t, bp):
             self.assertEqual(t.instruction_pointer, bp.address)
             d.step()
-            self.assertEqual(t.instruction_pointer, bp.address + TEST_CALLBACK_STEP_OFFSET)
+            self.assertEqual(t.instruction_pointer, bp.address + TEST_BASIC_CALLBACK_STEP_OFFSET)
 
         d.breakpoint("register_test", callback=callback)
 
         d.cont()
+
+        d.kill()
+        d.terminate()
+        
+    def test_callback_next(self):
+        d = debugger(RESOLVE_EXE("multiple_calls"))
+        
+        def callback(t, b):
+            instruction_pointer_1 = t.instruction_pointer
+            t.next()
+            instruction_pointer_2 = t.instruction_pointer
+            self.assertEqual(instruction_pointer_1 + TEST_CALLS_CALLBACK_STEP_OFFSET, instruction_pointer_2)
+
+        r = d.run()
+
+        d.bp("printMessage", hardware=True, callback=callback)
+
+        bp2 = d.bp(TEST_CALLS_BP, hardware=True, file="binary")
+
+        d.cont()
+
+        for i in range(1, 11):
+            self.assertEqual(r.recvline(), f"Function call number: {i}".encode())
+            
+        d.wait()
+
+        assert bp2.hit_on(d)
+
+        d.kill()
+        d.terminate()
+        
+    def test_callback_finish(self):
+        d = debugger(RESOLVE_EXE("multiple_calls"))
+        
+        def callback(t, b):
+            instruction_pointer_1 = t.instruction_pointer
+            t.finish()
+            instruction_pointer_2 = t.instruction_pointer
+            self.assertEqual(instruction_pointer_1 + TEST_CALLS_FINISH_OFFSET, instruction_pointer_2)
+
+        r = d.run()
+
+        d.bp("printMessage", hardware=True, callback=callback)
+
+        bp2 = d.bp(TEST_CALLS_BP, hardware=True, file="binary")
+
+        d.cont()
+
+        for i in range(1, 11):
+            self.assertEqual(r.recvline(), f"Function call number: {i}".encode())
+            
+        d.wait()
+
+        assert bp2.hit_on(d)
+
+        d.kill()
+        d.terminate()
+        
+    def test_callback_finish(self):
+        d = debugger(RESOLVE_EXE("multiple_calls"))
+        
+        def callback(t, b):
+            instruction_pointer_1 = t.instruction_pointer
+            t.step_until(instruction_pointer_1 + TEST_CALLS_CALLBACK_STEP_OFFSET)
+            instruction_pointer_2 = t.instruction_pointer
+            self.assertEqual(instruction_pointer_1 + TEST_CALLS_CALLBACK_STEP_OFFSET, instruction_pointer_2)
+
+        r = d.run()
+
+        d.bp("printMessage", hardware=True, callback=callback)
+
+        bp2 = d.bp(TEST_CALLS_BP, hardware=True, file="binary")
+
+        d.cont()
+
+        for i in range(1, 11):
+            self.assertEqual(r.recvline(), f"Function call number: {i}".encode())
+            
+        d.wait()
+
+        assert bp2.hit_on(d)
 
         d.kill()
         d.terminate()
