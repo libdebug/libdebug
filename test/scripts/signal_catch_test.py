@@ -1261,12 +1261,8 @@ class SignalCatchTest(TestCase):
         catcher5 = d.catch_signal("SIGPIPE")
 
         signals = b""
-        while not d.dead:
-            d.cont()
-            try:
-                signals += r.recvline()
-            except:
-                pass
+        d.cont()
+        while True:
             d.wait()
             if catcher1.hit_on(d):
                 SIGUSR1_count += 1
@@ -1278,6 +1274,10 @@ class SignalCatchTest(TestCase):
                 SIGQUIT_count += 1
             elif catcher5.hit_on(d):
                 SIGPIPE_count += 1
+            if d.dead:
+                break
+            d.cont()
+            signals += r.recvline()
 
         d.kill()
         d.terminate()
