@@ -23,7 +23,7 @@ match PLATFORM:
     
 class FindPointersTest(TestCase):
     def test_find_ref_strings(self):
-        d = debugger(RESOLVE_EXE("find_ref_test"))
+        d = debugger(RESOLVE_EXE("find_ptr_test"))
         
         r = d.run()
         d.bp(LOCATION, hardware=True, file="binary")
@@ -64,7 +64,7 @@ class FindPointersTest(TestCase):
         d.kill()
         
     def test_find_ref_addresses(self):
-        d = debugger(RESOLVE_EXE("find_ref_test"))
+        d = debugger(RESOLVE_EXE("find_ptr_test"))
         
         r = d.run()
         d.bp(LOCATION, hardware=True, file="binary")
