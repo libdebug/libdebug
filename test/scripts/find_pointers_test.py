@@ -21,7 +21,7 @@ match PLATFORM:
     case _:
         raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
     
-class FindReferencesTest(TestCase):
+class FindPointersTest(TestCase):
     def test_find_ref_strings(self):
         d = debugger(RESOLVE_EXE("find_ref_test"))
         
@@ -31,7 +31,7 @@ class FindReferencesTest(TestCase):
         d.cont()
 
         # Find references to the stack in the heap
-        values = d.mem.find_references("stack", "heap")
+        values = d.mem.find_pointers("stack", "heap")
 
         d.cont()
 
@@ -74,7 +74,7 @@ class FindReferencesTest(TestCase):
         # Find references to the stack in the heap
         heap_base = d.maps.filter("heap")[0].start
         stack_base = d.maps.filter("stack")[0].start
-        values = d.mem.find_references(stack_base, heap_base)
+        values = d.mem.find_pointers(stack_base, heap_base)
 
         d.cont()
 
