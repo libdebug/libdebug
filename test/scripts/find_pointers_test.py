@@ -31,7 +31,7 @@ class FindPointersTest(TestCase):
         d.cont()
 
         # Find references to the stack in the heap
-        values = d.mem.find_pointers("stack", "heap")
+        values = d.mem.find_pointers("heap", "stack")
 
         d.cont()
 
@@ -74,7 +74,7 @@ class FindPointersTest(TestCase):
         # Find references to the stack in the heap
         heap_base = d.maps.filter("heap")[0].start
         stack_base = d.maps.filter("stack")[0].start
-        values = d.mem.find_pointers(stack_base, heap_base)
+        values = d.mem.find_pointers(heap_base, stack_base)
 
         d.cont()
 
