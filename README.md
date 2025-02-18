@@ -182,7 +182,7 @@ If you intend to use libdebug in your projects, please cite the software using t
 }
 ```
 
-We've also published a poster on libdebug. If you use libdebug in your research, you can cite the following paper:
+We've also published a poster on libdebug. If you use libdebug in your research, you can cite the associated short paper:
 ```bibtex
 @inproceedings{10.1145/3658644.3691391,
 author = {Digregorio, Gabriele and Bertolini, Roberto Alessandro and Panebianco, Francesco and Polino, Mario},
