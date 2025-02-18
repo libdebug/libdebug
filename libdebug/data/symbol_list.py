@@ -8,18 +8,16 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from libdebug.debugger.internal_debugger_instance_manager import get_global_internal_debugger
-
 if TYPE_CHECKING:
     from libdebug.data.symbol import Symbol
-    from libdebug.debugger.debugger import Debugger
+    from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.snapshots.snapshot import Snapshot
 
 
 class SymbolList(list):
     """A list of symbols in the target process."""
 
-    def __init__(self: SymbolList, symbols: list[Symbol], maps_source: Debugger | Snapshot = None) -> None:
+    def __init__(self: SymbolList, symbols: list[Symbol], maps_source: InternalDebugger | Snapshot) -> None:
         """Initializes the SymbolDict."""
         super().__init__(symbols)
 
@@ -74,9 +72,6 @@ class SymbolList(list):
         Returns:
             SymbolList[Symbol]: The symbols matching the specified value.
         """
-        if self._maps_source is None:
-            self._maps_source = get_global_internal_debugger()
-
         if isinstance(value, int):
             filtered_symbols = self._search_by_address(value)
         elif isinstance(value, str):
@@ -84,7 +79,7 @@ class SymbolList(list):
         else:
             raise TypeError("The value must be an integer or a string.")
 
-        return SymbolList(filtered_symbols)
+        return SymbolList(filtered_symbols, self._maps_source)
 
     def __getitem__(self: SymbolList, key: str | int) -> SymbolList[Symbol] | Symbol:
         """Returns the symbol with the specified name.
@@ -101,7 +96,7 @@ class SymbolList(list):
         symbols = [symbol for symbol in self if symbol.name == key]
         if not symbols:
             raise KeyError(f"Symbol '{key}' not found.")
-        return SymbolList(symbols)
+        return SymbolList(symbols, self._maps_source)
 
     def __hash__(self) -> int:
         """Return the hash of the symbol list."""

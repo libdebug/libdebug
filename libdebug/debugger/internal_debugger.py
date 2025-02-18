@@ -1293,7 +1293,8 @@ class InternalDebugger:
             # If no explicit backing file is specified, we try resolving the symbol in the main map
             filtered_maps = self.maps.filter("binary")
             try:
-                return resolve_symbol_in_maps(symbol, filtered_maps)
+                with extend_internal_debugger(self):
+                    return resolve_symbol_in_maps(symbol, filtered_maps)
             except ValueError:
                 liblog.warning(
                     f"No backing file specified for the symbol `{symbol}`. Resolving the symbol in ALL the maps (slow!)",
@@ -1301,7 +1302,9 @@ class InternalDebugger:
 
             # Otherwise, we resolve the symbol in all the maps: as this can be slow,
             # we issue a warning with the file containing it
-            address = resolve_symbol_in_maps(symbol, self.maps)
+            maps = self.maps
+            with extend_internal_debugger(self):
+                address = resolve_symbol_in_maps(symbol, maps)
 
             filtered_maps = self.maps.filter(address)
             if len(filtered_maps) != 1:
@@ -1321,7 +1324,8 @@ class InternalDebugger:
 
         filtered_maps = self.maps.filter(backing_file)
 
-        return resolve_symbol_in_maps(symbol, filtered_maps)
+        with extend_internal_debugger(self):
+            return resolve_symbol_in_maps(symbol, filtered_maps)
 
     @property
     def symbols(self: InternalDebugger) -> SymbolList[Symbol]:

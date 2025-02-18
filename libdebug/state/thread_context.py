@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
 from libdebug.debugger.internal_debugger_instance_manager import (
+    extend_internal_debugger,
     provide_internal_debugger,
 )
 from libdebug.liblog import liblog
@@ -222,7 +223,8 @@ class ThreadContext(ABC):
         backtrace = stack_unwinder.unwind(self)
         if as_symbols:
             maps = self._internal_debugger.debugging_interface.get_maps()
-            backtrace = [resolve_address_in_maps(x, maps) for x in backtrace]
+            with extend_internal_debugger(self._internal_debugger):
+                backtrace = [resolve_address_in_maps(x, maps) for x in backtrace]
         return backtrace
 
     def pprint_backtrace(self: ThreadContext) -> None:
