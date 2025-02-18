@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
+# Copyright (c) 2023-2025 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -43,6 +43,7 @@ def fast_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.ThreadTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.WatchpointTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.FindPointersTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SymbolTest))
 
     return suite
 

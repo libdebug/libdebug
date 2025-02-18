@@ -1,6 +1,6 @@
 //
 // This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-// Copyright (c) 2024 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
+// Copyright (c) 2024-2025 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for details.
 //
 
@@ -9,6 +9,8 @@
 #include <sys/ptrace.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <algorithm>
+
 
 #include "libdebug_ptrace_base.h"
 #include "libdebug_ptrace_interface.h"
@@ -129,7 +131,6 @@ Thread& LibdebugPtraceInterface::try_get_thread(const pid_t tid)
 LibdebugPtraceInterface::LibdebugPtraceInterface()
 {
     process_id = -1;
-    group_id = -1;
     handle_syscall = false;
 }
 
@@ -140,7 +141,6 @@ void LibdebugPtraceInterface::cleanup()
     software_breakpoints.clear();
 
     process_id = -1;
-    group_id = -1;
     handle_syscall = false;
 }
 
@@ -156,7 +156,6 @@ std::pair<std::shared_ptr<PtraceRegsStruct>, std::shared_ptr<PtraceFPRegsStruct>
 
     if (process_id == -1) {
         process_id = tid;
-        group_id = getpgid(tid);
     }
 
     Thread t;
@@ -226,6 +225,21 @@ void LibdebugPtraceInterface::detach_for_migration()
     }
 }
 
+void LibdebugPtraceInterface::reattach_from_migration(){
+    for (auto it = threads.begin(); it != threads.end(); ++it) {
+        // reattach to the process
+        if (ptrace(PTRACE_ATTACH, it->first, NULL, NULL)) {
+            throw std::runtime_error("ptrace attach failed");
+        }
+
+        if (getregs(it->second)) {
+            // if we can't read the registers, the attach failed
+            throw std::runtime_error("ptrace attach failed");
+        }
+    }
+
+}
+
 void LibdebugPtraceInterface::detach_and_cont()
 {
     detach_for_migration();
@@ -249,7 +263,7 @@ void LibdebugPtraceInterface::detach_for_kill()
         }
 
         // detach from it
-        if (ptrace(PTRACE_DETACH, it->first, NULL, NULL)) {
+        if (ptrace(PTRACE_DETACH, it->first, NULL, NULL) && errno != ESRCH) {
             throw std::runtime_error("ptrace detach failed");
         }
 
@@ -434,7 +448,17 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_
 
     int tid, status;
 
-    tid = waitpid(-group_id, &status, 0);
+    while (true) {
+        // Check if any thread has finished
+        bool anyFinished = std::any_of(threads.begin(), threads.end(), [&](auto &t) {
+            tid = waitpid(t.first, &status, WNOHANG);
+            return (tid != 0);
+        });
+
+        if (anyFinished) {
+            break;
+        }
+    }
 
     if (tid == -1) {
         throw std::runtime_error("waitpid failed");
@@ -462,8 +486,22 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_
     }
 
     // We keep polling but don't block, we want to get all the statuses we can
-    while ((temp_tid = waitpid(-group_id, &temp_status, WNOHANG)) > 0) {
-        thread_statuses.push_back({temp_tid, temp_status});
+    while (true) {
+        bool eventRetrieved = false;
+
+        for (auto &t : threads) {
+            tid = waitpid(t.first, &status, WNOHANG);
+            if (tid > 0) {
+                // Record the PID and its status
+                thread_statuses.push_back({tid, status});
+                eventRetrieved = true;
+            }
+        }
+
+        // If we didn't retrieve any new events, we're done
+        if (!eventRetrieved) {
+            break;
+        }
     }
 
     // Update the registers of all the threads
@@ -707,6 +745,11 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "detach_for_migration",
             &LibdebugPtraceInterface::detach_for_migration,
             "Detaches from the process for migration to another debugger."
+        )
+        .def(
+            "reattach_from_migration",
+            &LibdebugPtraceInterface::reattach_from_migration,
+            "Reattaches to the process after migration from another debugger."
         )
         .def(
             "detach_and_cont",
