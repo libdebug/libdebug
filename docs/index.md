@@ -121,7 +121,7 @@ Need to cite **libdebug** as software used in your work? This is the way to cite
 }
 ```
 
-We also have a poster on **libdebug**. If you use **libdebug** in your research, you can cite the following paper:
+We also have a poster on **libdebug**. If you use **libdebug** in your research, you can cite the associated short paper:
 
 ```bibtex
 @inproceedings{10.1145/3658644.3691391,
