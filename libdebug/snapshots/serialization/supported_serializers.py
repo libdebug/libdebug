@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 from libdebug.snapshots.serialization.json_serializer import JSONSerializer
 
 if TYPE_CHECKING:
-    from libdebug.snapshots.serialization.serializer import Serializer
+    from libdebug.snapshots.serialization.serializer import AbstractSerializer
 
 
 class SupportedSerializers(Enum):
@@ -20,6 +20,6 @@ class SupportedSerializers(Enum):
     JSON = JSONSerializer
 
     @property
-    def serializer_class(self: SupportedSerializers) -> Serializer:
+    def serializer_class(self: SupportedSerializers) -> AbstractSerializer:
         """Return the serializer class."""
         return self.value
