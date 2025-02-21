@@ -8,7 +8,7 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/bind_vector.h>
 
-#include "debug_sym_parser.h"
+#include "bin_info_parser.h"
 
 #define HAVE_DECL_BASENAME 1
 #include <demangle.h>
@@ -64,6 +64,39 @@ void process_symbol_tables(Elf *elf, SymbolVector &symbols)
                 }
             }
         }
+    }
+}
+
+void process_section_layout(Elf *elf, SectionLayout &sections)
+{
+    Elf_Scn *scn = NULL;
+    GElf_Shdr shdr;
+
+    while ((scn = elf_nextscn(elf, scn)) != NULL) {
+        if (gelf_getshdr(scn, &shdr) != &shdr) {
+            continue;
+        }
+
+        SectionInfo* section_info = new SectionInfo();
+
+        const char *name = elf_strptr(elf, elf_getshstrndx(elf), shdr.sh_name);
+        if (name) {
+            section_info.name = strdup(name);
+        } else {
+            throw std::runtime_error("Failed to read section name at address: " + std::to_string(shdr.sh_addr));
+        }
+
+        section_info.type = shdr.sh_type;
+        section_info.flags = shdr.sh_flags;
+        section_info.addr = shdr.sh_addr;
+        section_info.offset = shdr.sh_offset;
+        section_info.size = shdr.sh_size;
+        section_info.link = shdr.sh_link;
+        section_info.info = shdr.sh_info;
+        section_info.addralign = shdr.sh_addralign;
+        section_info.entsize = shdr.sh_entsize;
+
+        sections.push_back(section_info);
     }
 }
 
@@ -131,7 +164,7 @@ std::pair<const std::string, const std::string> read_build_id_and_filename(Elf *
     return std::make_pair(build_id_str, debuglink_str);
 }
 
-const ElfInfo read_elf_info(const std::string &elf_file_path, const int debug_info_level)
+SymbolVector parse_symbols(const std::string &elf_file_path, const int debug_info_level);
 {
     int fd;
     Elf *elf;
@@ -142,7 +175,7 @@ const ElfInfo read_elf_info(const std::string &elf_file_path, const int debug_in
     }
 
     if (access(elf_file_path.c_str(), R_OK) == -1) {
-        return {"", "", symbols};
+        return {"", ""};
     }
 
     if ((fd = open(elf_file_path.c_str(), O_RDONLY, 0)) < 0) {
@@ -156,11 +189,6 @@ const ElfInfo read_elf_info(const std::string &elf_file_path, const int debug_in
     // Read the symbol table
     process_symbol_tables(elf, symbols);
 
-    // Read the build ID
-    std::pair<std::string, std::string> build_id_and_debug_file_path = read_build_id_and_filename(elf);
-    std::string build_id = build_id_and_debug_file_path.first;
-    std::string debug_file_path = build_id_and_debug_file_path.second;
-
     if (debug_info_level > 1) {
         // Read the dwarf info
         process_dwarf_info(fd, symbols);
@@ -169,7 +197,70 @@ const ElfInfo read_elf_info(const std::string &elf_file_path, const int debug_in
     elf_end(elf);
     close(fd);
 
-    return {build_id, debug_file_path, symbols};
+    return symbols;
+}
+
+SectionLayout parse_section_layout(const std::string &elf_file_path)
+{
+    int fd;
+    Elf *elf;
+    SectionLayout sections;
+
+    if (elf_version(EV_CURRENT) == EV_NONE) {
+        throw std::runtime_error("ELF library initialization failed: " + std::string(elf_errmsg(-1)));
+    }
+
+    if (access(elf_file_path.c_str(), R_OK) == -1) {
+        return {"", ""};
+    }
+
+    if ((fd = open(elf_file_path.c_str(), O_RDONLY, 0)) < 0) {
+        throw std::invalid_argument("Error opening file: " + elf_file_path);
+    }
+
+    if ((elf = elf_begin(fd, ELF_C_READ, NULL)) == NULL) {
+        throw std::runtime_error("Error reading ELF file: " + elf_file_path);
+    }
+
+    process_section_layout(elf, sections);
+
+    elf_end(elf);
+    close(fd);
+
+    return sections;
+}
+
+std::pair<const std::string, const std::string> read_build_id_and_filename(const std::string &elf_file_path)
+{
+    int fd;
+    Elf *elf;
+    SymbolVector symbols;
+
+    if (elf_version(EV_CURRENT) == EV_NONE) {
+        throw std::runtime_error("ELF library initialization failed: " + std::string(elf_errmsg(-1)));
+    }
+
+    if (access(elf_file_path.c_str(), R_OK) == -1) {
+        return {"", ""};
+    }
+
+    if ((fd = open(elf_file_path.c_str(), O_RDONLY, 0)) < 0) {
+        throw std::invalid_argument("Error opening file: " + elf_file_path);
+    }
+
+    if ((elf = elf_begin(fd, ELF_C_READ, NULL)) == NULL) {
+        throw std::runtime_error("Error reading ELF file: " + elf_file_path);
+    }
+
+    // Read the build ID
+    std::pair<std::string, std::string> build_id_and_debug_file_path = read_build_id_and_filename(elf);
+    std::string build_id = build_id_and_debug_file_path.first;
+    std::string debug_file_path = build_id_and_debug_file_path.second;
+
+    elf_end(elf);
+    close(fd);
+
+    return {build_id, debug_file_path};
 }
 
 SymbolVector collect_external_symbols(const std::string &debug_file_path, const int debug_info_level)
@@ -213,33 +304,67 @@ SymbolVector collect_external_symbols(const std::string &debug_file_path, const 
     return symbols;
 }
 
-NB_MODULE(libdebug_debug_sym_parser, m)
+NB_MODULE(libdebug_bin_info_parser, m)
 {
     nb::bind_vector<SymbolVector>(m, "SymbolVector", "A vector of symbols");
+    nb::bind_vector<SectionLayout>(m, "SectionLayout", "A vector of sections");
 
     nb::class_<SymbolInfo>(m, "SymbolInfo", "Symbol information")
         .def_ro("name", &SymbolInfo::name, "The name of the symbol")
         .def_ro("low_pc", &SymbolInfo::low_pc, "The low address of the symbol")
         .def_ro("high_pc", &SymbolInfo::high_pc, "The high address of the symbol");
 
-    nb::class_<ElfInfo>(m, "ElfInfo", "Information about an ELF file")
-        .def_ro("build_id", &ElfInfo::build_id, "The build ID of the ELF file")
-        .def_ro("debuglink", &ElfInfo::debuglink, "The debug link of the ELF file")
-        .def_ro("symbols", &ElfInfo::symbols, "The symbols of the ELF file");
+    nb::class_<SectionInfo>(m, "SectionInfo", "Section information")
+        .def_ro("name", &SectionInfo::name, "The name of the section")
+        .def_ro("type", &SectionInfo::type, "The type of the section")
+        .def_ro("flags", &SectionInfo::flags, "The flags of the section")
+        .def_ro("addr", &SectionInfo::addr, "The address of the section")
+        .def_ro("offset", &SectionInfo::offset, "The offset of the section")
+        .def_ro("size", &SectionInfo::size, "The size of the section")
+        .def_ro("link", &SectionInfo::link, "The link of the section")
+        .def_ro("info", &SectionInfo::info, "The info of the section")
+        .def_ro("addralign", &SectionInfo::addralign, "The alignment of the section")
+        .def_ro("entsize", &SectionInfo::entsize, "The size of the entries in the section");
 
     m.def(
-        "read_elf_info",
-        &read_elf_info,
+        "parse_symbols",
+        &parse_symbols,
         nb::arg("elf_file_path"),
         nb::arg("debug_info_level"),
-        "Read the symbol table and the build ID from an ELF file\n"
+        "Parse the symbols from an ELF file\n"
         "\n"
         "Args:\n"
         "    elf_file_path (str): The path to the ELF file\n"
         "    debug_info_level (int): The debug info level for parsing.\n"
         "\n"
         "Returns:\n"
-        "    tuple: A tuple containing the symbol table, the build ID and the debug file path"
+        "    SymbolVector: A vector of symbols"
+    );
+
+    m.def(
+        "parse_section_layout",
+        &parse_section_layout,
+        nb::arg("elf_file_path"),
+        "Parse the section layout from an ELF file\n"
+        "\n"
+        "Args:\n"
+        "    elf_file_path (str): The path to the ELF file\n"
+        "\n"
+        "Returns:\n"
+        "    SectionLayout: A vector of sections"
+    );
+
+    m.def(
+        "read_build_id_and_filename",
+        &read_build_id_and_filename,
+        nb::arg("elf_file_path"),
+        "Read the build ID and debug file path from an ELF file\n"
+        "\n"
+        "Args:\n"
+        "    elf_file_path (str): The path to the ELF file\n"
+        "\n"
+        "Returns:\n"
+        "    tuple: A tuple containing the build ID and debug file path"
     );
 
     m.def(

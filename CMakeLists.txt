@@ -199,33 +199,33 @@ nanobind_add_stub(
 
 # Check if in the libdwarf include path we find the substring libwarf-0
 if (DWARF_HEADER MATCHES "libdwarf-0")
-  # Add the libdebug_debug_sym_parser module, using the new libdwarf-0
+  # Add the libdebug_bin_info_parser module, using the new libdwarf-0
   nanobind_add_module(
-    libdebug_debug_sym_parser
+    libdebug_bin_info_parser
     NOMINSIZE
     NOSTRIP
     LTO
-    libdebug/native/symbols/debug_sym_parser.cpp
-    libdebug/native/symbols/debug_sym_parser_new.cpp
+    libdebug/native/symbols/bin_info_parser.cpp
+    libdebug/native/symbols/bin_info_parser_new.cpp
   )
 else()
-  # Add the libdebug_debug_sym_parser module, using the old libdwarf
+  # Add the libdebug_bin_info_parser module, using the old libdwarf
   nanobind_add_module(
-    libdebug_debug_sym_parser
+    libdebug_bin_info_parser
     NOMINSIZE
     NOSTRIP
     LTO
-    libdebug/native/symbols/debug_sym_parser.cpp
-    libdebug/native/symbols/debug_sym_parser_legacy.cpp
+    libdebug/native/symbols/bin_info_parser.cpp
+    libdebug/native/symbols/bin_info_parser_legacy.cpp
   )
 endif()
 
-# Add the stub for libdebug_debug_sym_parser
+# Add the stub for libdebug_bin_info_parser
 nanobind_add_stub(
-  libdebug_debug_sym_parser_stub
-  MODULE libdebug_debug_sym_parser
-  DEPENDS libdebug_debug_sym_parser
-  OUTPUT libdebug_debug_sym_parser.pyi
+  libdebug_bin_info_parser_stub
+  MODULE libdebug_bin_info_parser
+  DEPENDS libdebug_bin_info_parser
+  OUTPUT libdebug_bin_info_parser.pyi
   PYTHON_PATH "."
 )
 
@@ -268,12 +268,12 @@ endif()
 target_include_directories(libdebug_ptrace_binding PRIVATE libdebug/ptrace/native)
 
 # Link required libraries
-target_link_libraries(libdebug_debug_sym_parser PRIVATE elf dwarf iberty)
+target_link_libraries(libdebug_bin_info_parser PRIVATE elf dwarf iberty)
 
 # Install the binding libraries
 install(TARGETS libdebug_ptrace_binding LIBRARY DESTINATION libdebug/ptrace/native)
 install(TARGETS libdebug_linux_binding LIBRARY DESTINATION libdebug/native)
-install(TARGETS libdebug_debug_sym_parser LIBRARY DESTINATION libdebug/native)
+install(TARGETS libdebug_bin_info_parser LIBRARY DESTINATION libdebug/native)
 
 # Include the jumpstart.c file and add it as an executable
 set(SRC_DIR "${CMAKE_SOURCE_DIR}/libdebug/ptrace/jumpstart")

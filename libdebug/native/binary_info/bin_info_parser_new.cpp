@@ -4,7 +4,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for details.
 //
 
-#include "debug_sym_parser.h"
+#include "bin_info_parser.h"
 
 void process_die(Dwarf_Debug dbg, Dwarf_Die the_die, SymbolVector &symbols)
 {
