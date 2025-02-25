@@ -487,6 +487,10 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_
         }
     }
 
+    if (tid == -1) {
+        throw std::runtime_error("waitpid failed");
+    }
+
     thread_statuses.push_back({tid, status});
 
     // We must interrupt all the other threads with a SIGSTOP

@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 
 from libdebug.architectures.call_utilities_provider import call_utilities_provider
 from libdebug.architectures.register_helper import register_holder_provider
+from libdebug.architectures.thread_context_helper import thread_context_class_provider
 from libdebug.commlink.pipe_manager import PipeManager
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.debugger.internal_debugger_instance_manager import (
@@ -27,7 +28,6 @@ from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.liblog import liblog
 from libdebug.ptrace.native import libdebug_ptrace_binding
 from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
-from libdebug.state.thread_context import ThreadContext
 from libdebug.utils.debugging_utils import normalize_and_validate_address
 from libdebug.utils.elf_utils import get_entry_point
 from libdebug.utils.process_utils import (
@@ -57,6 +57,7 @@ if TYPE_CHECKING:
     from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.debugger.internal_debugger import InternalDebugger
+    from libdebug.state.thread_context import ThreadContext
 
 
 class PtraceInterface(DebuggingInterface):
@@ -552,9 +553,10 @@ class PtraceInterface(DebuggingInterface):
         register_file, fp_register_file = self.lib_trace.register_thread(new_thread_id)
 
         register_holder = register_holder_provider(self._internal_debugger.arch, register_file, fp_register_file)
+        thread_context_class = thread_context_class_provider(self._internal_debugger.arch)
 
         with extend_internal_debugger(self._internal_debugger):
-            thread = ThreadContext(new_thread_id, register_holder)
+            thread = thread_context_class(new_thread_id, register_holder)
 
         self._internal_debugger.insert_new_thread(thread)
 
