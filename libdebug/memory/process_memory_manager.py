@@ -25,12 +25,9 @@ class ProcessMemoryManager:
     def _split_seek(self: ProcessMemoryManager, file_obj: object, address: int) -> None:
         """Seeks to an address in a file, splitting the seek if necessary to avoid overflow."""
         if address > self.max_size:
-            base = (address // self.max_size) * self.max_size
-            remainder = address - base
-            # Absolute seek to base offset
-            file_obj.seek(base, os.SEEK_SET)
-            # Relative seek for remainder
-            file_obj.seek(remainder, os.SEEK_CUR)
+            # We need to split the seek
+            file_obj.seek(self.max_size, os.SEEK_SET)
+            file_obj.seek(address - self.max_size, os.SEEK_CUR)
         else:
             # We can seek directly
             file_obj.seek(address, os.SEEK_SET)
