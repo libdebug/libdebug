@@ -46,8 +46,10 @@ class SnapshotMemoryMap(MemoryMap):
         if not isinstance(value, MemoryMap):
             return False
 
+        is_snapshot_map = isinstance(value, SnapshotMemoryMap)
+
         # Check if the content is available and if it is the same
-        should_compare_content = self.content is not None and value.content is not None
+        should_compare_content = is_snapshot_map and self.content is not None and value.content is not None
         same_content = not should_compare_content or self.content == value.content
 
         return (
