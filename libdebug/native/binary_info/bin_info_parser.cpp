@@ -71,21 +71,14 @@ void process_section_layout(Elf *elf, SectionLayout &sections)
 {
     Elf_Scn *scn = NULL;
     GElf_Shdr shdr;
+    SectionInfo section_info;
 
     while ((scn = elf_nextscn(elf, scn)) != NULL) {
         if (gelf_getshdr(scn, &shdr) != &shdr) {
             continue;
         }
 
-        SectionInfo* section_info = new SectionInfo();
-
-        const char *name = elf_strptr(elf, elf_getshstrndx(elf), shdr.sh_name);
-        if (name) {
-            section_info.name = strdup(name);
-        } else {
-            throw std::runtime_error("Failed to read section name at address: " + std::to_string(shdr.sh_addr));
-        }
-
+        section_info.name = elf_strptr(elf, shdr.sh_link, shdr.sh_name);
         section_info.type = shdr.sh_type;
         section_info.flags = shdr.sh_flags;
         section_info.addr = shdr.sh_addr;
@@ -164,7 +157,7 @@ std::pair<const std::string, const std::string> read_build_id_and_filename(Elf *
     return std::make_pair(build_id_str, debuglink_str);
 }
 
-SymbolVector parse_symbols(const std::string &elf_file_path, const int debug_info_level);
+SymbolVector parse_symbols(const std::string &elf_file_path, const int debug_info_level)
 {
     int fd;
     Elf *elf;

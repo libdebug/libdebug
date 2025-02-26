@@ -205,8 +205,8 @@ if (DWARF_HEADER MATCHES "libdwarf-0")
     NOMINSIZE
     NOSTRIP
     LTO
-    libdebug/native/symbols/bin_info_parser.cpp
-    libdebug/native/symbols/bin_info_parser_new.cpp
+    libdebug/native/binary_info/bin_info_parser.cpp
+    libdebug/native/binary_info/bin_info_parser_new.cpp
   )
 else()
   # Add the libdebug_bin_info_parser module, using the old libdwarf
@@ -215,8 +215,8 @@ else()
     NOMINSIZE
     NOSTRIP
     LTO
-    libdebug/native/symbols/bin_info_parser.cpp
-    libdebug/native/symbols/bin_info_parser_legacy.cpp
+    libdebug/native/binary_info/bin_info_parser.cpp
+    libdebug/native/binary_info/bin_info_parser_legacy.cpp
   )
 endif()
 

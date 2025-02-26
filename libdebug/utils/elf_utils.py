@@ -14,7 +14,7 @@ from elftools.elf.elffile import ELFFile
 from libdebug.data.symbol import Symbol
 from libdebug.data.symbol_list import SymbolList
 from libdebug.liblog import liblog
-from libdebug.native import libdebug_bin_info_parser
+from libdebug.native import bin_info_parser
 from libdebug.utils.libcontext import libcontext
 
 DEBUGINFOD_PATH: Path = Path.home() / ".cache" / "debuginfod_client"
