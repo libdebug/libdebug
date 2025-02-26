@@ -151,8 +151,6 @@ def pprint_reg_diff_util(
 
 def pprint_reg_diff_large_util(
     curr_reg_tuple: (str, str),
-    maps_before: MemoryMapList,
-    maps_after: MemoryMapList,
     reg_tuple_before: (int, int),
     reg_tuple_after: (int, int),
 ) -> None:
@@ -201,13 +199,39 @@ def pprint_diff_substring(content: str, start: int, end: int) -> None:
 
     print(f"{content[:start]}{color}{content[start:end]}{ANSIColors.RESET}{content[end:]}")
 
+def pprint_memory_util(
+    address_start: int,
+    extract: bytes,
+    word_size: int,
+    maps: MemoryMapList,
+    integer_mode: bool = False,
+) -> None:
+    """Pretty prints the memory."""
+    # Loop through each word-sized chunk
+    for i in range(0, len(extract), word_size):
+        # Calculate the current address
+        current_address = address_start + i
+
+        # Extract word-sized chunks from both extracts
+        word = extract[i : i + word_size]
+
+        # Convert each byte in the chunks to hex and compare
+        formatted_word = [f"{byte:02x}" for byte in word]
+
+        # Join the formatted bytes into a string for each column
+        out = " ".join(formatted_word) if not integer_mode else "0x" + "".join(formatted_word[::-1])
+
+        current_address_str = _get_colored_address_string(current_address, maps)
+
+        # Print the memory diff with the address for this word
+        print(f"{current_address_str}:  {out}")
 
 def pprint_memory_diff_util(
     address_start: int,
     extract_before: bytes,
     extract_after: bytes,
     word_size: int,
-    address_width: int,
+    maps: MemoryMapSnapshotList,
     integer_mode: bool = False,
 ) -> None:
     """Pretty prints the memory diff."""
@@ -242,8 +266,10 @@ def pprint_memory_diff_util(
             before_str = "0x" + "".join(formatted_before[::-1])
             after_str = "0x" + "".join(formatted_after[::-1])
 
+        current_address_str = _get_colored_address_string(current_address, maps)
+
         # Print the memory diff with the address for this word
-        print(f"{current_address:0{address_width}x}:  {before_str}    {after_str}")
+        print(f"{current_address_str}:  {before_str}    {after_str}")
 
 
 def pprint_inline_diff(content: str, start: int, end: int, correction: str) -> None:

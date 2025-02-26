@@ -6,32 +6,31 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from libdebug.liblog import liblog
-
-if TYPE_CHECKING:
-    from libdebug.data.memory_map import MemoryMap
+from libdebug.snapshots.memory.memory_map_snapshot import SnapshotMemoryMap
 
 
-class MemoryMapSnapshotList(list):
+class MemoryMapSnapshotList(list[SnapshotMemoryMap]):
     """A list of memory map snapshot from the target process."""
 
     def __init__(
-        self: MemoryMapSnapshotList, memory_maps: list[MemoryMap], process_name: str, full_process_path: str,
+        self: MemoryMapSnapshotList,
+        memory_maps: list[SnapshotMemoryMap],
+        process_name: str,
+        full_process_path: str,
     ) -> None:
         """Initializes the MemoryMapSnapshotList."""
         super().__init__(memory_maps)
         self._process_full_path = full_process_path
         self._process_name = process_name
 
-    def _search_by_address(self: MemoryMapSnapshotList, address: int) -> list[MemoryMap]:
+    def _search_by_address(self: MemoryMapSnapshotList, address: int) -> list[SnapshotMemoryMap]:
         for vmap in self:
             if vmap.start <= address < vmap.end:
                 return [vmap]
         return []
 
-    def _search_by_backing_file(self: MemoryMapSnapshotList, backing_file: str) -> list[MemoryMap]:
+    def _search_by_backing_file(self: MemoryMapSnapshotList, backing_file: str) -> list[SnapshotMemoryMap]:
         if backing_file in ["binary", self._process_name]:
             backing_file = self._process_full_path
 
@@ -50,7 +49,7 @@ class MemoryMapSnapshotList(list):
 
         return filtered_maps
 
-    def filter(self: MemoryMapSnapshotList, value: int | str) -> MemoryMapSnapshotList[MemoryMap]:
+    def filter(self: MemoryMapSnapshotList, value: int | str) -> MemoryMapSnapshotList[SnapshotMemoryMap]:
         """Filters the memory maps according to the specified value.
 
         If the value is an integer, it is treated as an address.
@@ -60,7 +59,7 @@ class MemoryMapSnapshotList(list):
             value (int | str): The value to search for.
 
         Returns:
-            MemoryMapSnapshotList[MemoryMap]: The memory maps matching the specified value.
+            MemoryMapSnapshotList[SnapshotMemoryMap]: The memory maps matching the specified value.
         """
         if isinstance(value, int):
             filtered_maps = self._search_by_address(value)

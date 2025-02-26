@@ -11,9 +11,9 @@ from base64 import b64decode, b64encode
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from libdebug.data.memory_map import MemoryMap
 from libdebug.data.symbol import Symbol
 from libdebug.data.symbol_list import SymbolList
+from libdebug.snapshots.memory.memory_map_snapshot import SnapshotMemoryMap
 from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
 from libdebug.snapshots.memory.snapshot_memory_view import SnapshotMemoryView
 from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
@@ -79,7 +79,7 @@ class JSONSerializer:
         raw_map_list = []
 
         for saved_map in loaded_maps:
-            new_map = MemoryMap(
+            new_map = SnapshotMemoryMap(
                 saved_map["start"],
                 saved_map["end"],
                 saved_map["permissions"],
@@ -146,11 +146,9 @@ class JSONSerializer:
             snapshot (Snapshot): The snapshot to be dumped.
             out_path (str): The path to the output JSON file.
         """
+
         def get_register_names(regs: SnapshotRegisters) -> list[str]:
-            return [
-                reg_name for reg_name in dir(regs)
-                if isinstance(getattr(regs, reg_name), int | float)
-            ]
+            return [reg_name for reg_name in dir(regs) if isinstance(getattr(regs, reg_name), int | float)]
 
         def save_memory_maps(maps: MemoryMapSnapshotList) -> list[dict]:
             return [
@@ -162,7 +160,8 @@ class JSONSerializer:
                     "offset": memory_map.offset,
                     "backing_file": memory_map.backing_file,
                     "content": b64encode(memory_map.content).decode("utf-8")
-                    if memory_map.content is not None else None,
+                    if memory_map.content is not None
+                    else None,
                 }
                 for memory_map in maps
             ]
@@ -207,21 +206,24 @@ class JSONSerializer:
                 }
                 for thread in snapshot.threads
             ]
-            serializable_dict.update({
-                "process_id": snapshot.process_id,
-                "threads": thread_snapshots,
-                "_process_full_path": snapshot._process_full_path,
-                "_process_name": snapshot._process_name,
-            })
+            serializable_dict.update(
+                {
+                    "process_id": snapshot.process_id,
+                    "threads": thread_snapshots,
+                    "_process_full_path": snapshot._process_full_path,
+                    "_process_name": snapshot._process_name,
+                }
+            )
         else:
             # ThreadSnapshot-specific data
-            serializable_dict.update({
-                "thread_id": snapshot.thread_id,
-                "regs": {reg_name: getattr(snapshot.regs, reg_name) for reg_name in all_reg_names},
-                "_process_full_path": snapshot._process_full_path,
-                "_process_name": snapshot._process_name,
-            })
+            serializable_dict.update(
+                {
+                    "thread_id": snapshot.thread_id,
+                    "regs": {reg_name: getattr(snapshot.regs, reg_name) for reg_name in all_reg_names},
+                    "_process_full_path": snapshot._process_full_path,
+                    "_process_name": snapshot._process_name,
+                }
+            )
 
         with Path(out_path).open("w") as file:
             json.dump(serializable_dict, file)
-

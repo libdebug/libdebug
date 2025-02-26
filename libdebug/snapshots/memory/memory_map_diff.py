@@ -10,17 +10,17 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from libdebug.data.memory_map import MemoryMap
+    from libdebug.snapshots.memory.memory_map_snapshot import SnapshotMemoryMap
 
 
 @dataclass
 class MemoryMapDiff:
     """This object represents a diff between memory contents in a memory map."""
 
-    old_map_state: MemoryMap
+    old_map_state: SnapshotMemoryMap
     """The old state of the memory map."""
 
-    new_map_state: MemoryMap
+    new_map_state: SnapshotMemoryMap
     """The new state of the memory map."""
 
     has_changed: bool

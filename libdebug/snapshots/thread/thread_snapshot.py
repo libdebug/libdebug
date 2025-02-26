@@ -8,6 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from libdebug.liblog import liblog
+from libdebug.snapshots.memory.memory_map_snapshot import SnapshotMemoryMap
 from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
 from libdebug.snapshots.memory.snapshot_memory_view import SnapshotMemoryView
 from libdebug.snapshots.snapshot import Snapshot
@@ -55,7 +56,20 @@ class ThreadSnapshot(Snapshot):
         # Memory maps
         match level:
             case "base":
-                map_list = list(thread.debugger.maps)
+                map_list = []
+
+                for curr_map in thread.debugger.maps:
+                    saved_map = SnapshotMemoryMap(
+                        start=curr_map.start,
+                        end=curr_map.end,
+                        permissions=curr_map.permissions,
+                        size=curr_map.size,
+                        offset=curr_map.offset,
+                        backing_file=curr_map.backing_file,
+                        content=None,
+                    )
+                    map_list.append(saved_map)
+
                 self.maps = MemoryMapSnapshotList(map_list, self._process_name, self._process_full_path)
 
                 self._memory = None

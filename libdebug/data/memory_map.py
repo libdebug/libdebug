@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
-@dataclass(frozen=True)
+@dataclass
 class MemoryMap:
     """A memory map of the target process.
 
@@ -20,7 +20,6 @@ class MemoryMap:
         size (int): The size of the memory map.
         offset (int): The relative offset of the memory map.
         backing_file (str): The backing file of the memory map, or the symbolic name of the memory map.
-        content (bytes): The content of the memory map, used for snapshotted pages.
     """
 
     start: int = 0
@@ -33,9 +32,6 @@ class MemoryMap:
 
     backing_file: str = ""
     """The backing file of the memory map, such as 'libc.so.6', or the symbolic name of the memory map, such as '[stack]'."""
-
-    content: bytes = None
-    """The content of the memory map, used for snapshotted pages."""
 
     @staticmethod
     def parse(vmap: str) -> MemoryMap:
@@ -68,34 +64,6 @@ class MemoryMap:
         """Alias for the start address of the memory map."""
         return self.start
 
-    def is_same_identity(self: MemoryMap, other: MemoryMap) -> bool:
-        """Check if the memory map corresponds to another memory map."""
-        return self.start == other.start and self.backing_file == other.backing_file
-
     def __repr__(self: MemoryMap) -> str:
         """Return the string representation of the memory map."""
-        str_repr =  f"MemoryMap(start={hex(self.start)}, end={hex(self.end)}, permissions={self.permissions}, size={hex(self.size)}, offset={hex(self.offset)}, backing_file={self.backing_file})"
-
-        if self.content is not None:
-            str_repr = str_repr[:-1] + ", content=...)"
-
-        return str_repr
-
-    def __eq__(self, value: object) -> bool:
-        """Check if this MemoryMap is equal to another object."""
-        if not isinstance(value, MemoryMap):
-            return False
-
-        # Check if the content is available and if it is the same
-        should_compare_content = self.content is not None and value.content is not None
-        same_content = not should_compare_content or self.content == value.content
-
-        return (
-            self.start == value.start
-            and self.end == value.end
-            and self.permissions == value.permissions
-            and self.size == value.size
-            and self.offset == value.offset
-            and self.backing_file == value.backing_file
-            and same_content
-        )
+        return f"MemoryMap(start={hex(self.start)}, end={hex(self.end)}, permissions={self.permissions}, size={hex(self.size)}, offset={hex(self.offset)}, backing_file={self.backing_file})"

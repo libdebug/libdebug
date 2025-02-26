@@ -824,6 +824,24 @@ class Debugger:
         """
         self.pprint_registers_all()
 
+    def pprint_memory(self: Debugger,
+        start: int,
+        end: int,
+        file: str = "hybrid",
+        override_word_size: int | None = None,
+        integer_mode: bool = False,
+    ) -> None:
+        """Pretty prints the memory contents of the process.
+
+        Args:
+            start (int): The start address of the memory region.
+            end (int): The end address of the memory region.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
+            override_word_size (int, optional): The word size to use for the memory dump. Defaults to None.
+            integer_mode (bool, optional): Whether to print the memory contents as integers. Defaults to False.
+        """
+        self._internal_debugger.pprint_memory(start, end, file, override_word_size, integer_mode)
+
     def step(self: Debugger) -> None:
         """Executes a single instruction of the process."""
         self._internal_debugger.step(self)

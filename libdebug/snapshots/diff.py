@@ -150,13 +150,11 @@ class Diff:
 
             # If is added
             if diff.old_map_state is None:
-
                 pprint_diff_line(map_state_str, is_added=True)
 
                 has_prev_changed = True
             # If is removed
             elif diff.new_map_state is None:
-
                 pprint_diff_line(map_state_str, is_added=False)
 
                 has_prev_changed = True
@@ -239,11 +237,30 @@ class Diff:
             extract_before,
             extract_after,
             word_size,
-            address_width=get_platform_register_size(self.snapshot1.arch),
+            self.snapshot1.maps,
             integer_mode=integer_mode,
         )
 
     def pprint_regs(self: Diff) -> None:
+        """Pretty print the general_purpose registers diffs."""
+        # Header with column alignment
+        print("{:<19} {:<24} {:<20}\n".format("Register", "Old Value", "New Value"))
+        print("-" * 58 + "")
+
+        # Log all integer changes
+        for attr_name in self.regs._generic_regs:
+            attr = self.regs.__getattribute__(attr_name)
+
+            if attr.has_changed:
+                pprint_reg_diff_util(
+                    attr_name,
+                    self.snapshot1.maps,
+                    self.snapshot2.maps,
+                    attr.old_value,
+                    attr.new_value,
+                )
+
+    def pprint_regs_all(self: Diff) -> None:
         """Pretty print the registers diffs (including special and vector registers)."""
         # Header with column alignment
         print("{:<19} {:<24} {:<20}\n".format("Register", "Old Value", "New Value"))
@@ -272,8 +289,6 @@ class Diff:
             if attr1.has_changed or attr2.has_changed:
                 pprint_reg_diff_large_util(
                     (attr1_name, attr2_name),
-                    self.snapshot1.maps,
-                    self.snapshot2.maps,
                     (attr1.old_value, attr2.old_value),
                     (attr1.new_value, attr2.new_value),
                 )
@@ -281,3 +296,7 @@ class Diff:
     def pprint_registers(self: Diff) -> None:
         """Alias afor pprint_regs."""
         self.pprint_regs()
+
+    def pprint_registers_all(self: Diff) -> None:
+        """Alias for pprint_regs_all."""
+        self.pprint_regs_all()

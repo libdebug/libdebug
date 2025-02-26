@@ -38,30 +38,46 @@ class SnapshotMemoryView(AbstractMemoryView):
         Returns:
             bytes: The read bytes.
         """
-        target_maps = self._snap_ref.maps.filter(address)
+        start_map = self._snap_ref.maps.filter(address)[0]
+        end_map = self._snap_ref.maps.filter(address + size - 1)[0]
+
+        index_start = self._snap_ref.maps.index(start_map)
+        index_end = self._snap_ref.maps.index(end_map)
+
+        target_maps = self._snap_ref.maps[index_start:index_end + 1]
 
         if not target_maps:
             raise ValueError("No mapped memory at the specified address.")
 
-        target_map = target_maps[0]
+        for target_map in target_maps:
+            # The memory of the target map cannot be retrieved
+            if target_map.content is None:
+                error = "One or more of the memory maps involved was not snapshotted"
 
-        # The memory of the target map cannot be retrieved
-        if target_map.content is None:
-            error = "Corresponding memory map was not snapshotted"
+                if self._snap_ref.level == "base":
+                    error += ", snapshot level is base, no memory contents were saved."
+                elif self._snap_ref.level == "writable" and "w" not in target_map.permissions:
+                    error += ", snapshot level is writable but the target page corresponds to non-writable memory."
+                else:
+                    error += " (it could be a priviledged memory map e.g. [vvar])."
 
-            if self._snap_ref.level == "base":
-                error += ", snapshot level is base, no memory contents were saved."
-            elif self._snap_ref.level == "writable" and "w" not in target_map.permissions:
-                error += ", snapshot level is writable but the target page corresponds to non-writable memory."
-            else:
-                error += " (it could be a priviledged memory map e.g. [vvar])."
+                raise ValueError(error)
 
-            raise ValueError(error)
+        start_offset = address - target_maps[0].start
 
-        start_offset = address - target_map.start
-        end_offset = start_offset + size
+        if len(target_maps) == 1:
+            end_offset = start_offset + size
+            return target_maps[0].content[start_offset:end_offset]
+        else:
+            data = target_maps[0].content[start_offset:]
 
-        return target_map.content[start_offset:end_offset]
+            for target_map in target_maps[1:-1]:
+                data += target_map.content
+
+            end_offset = size - len(data)
+            data += target_maps[-1].content[:end_offset]
+
+            return data
 
     def write(self: SnapshotMemoryView, address: int, data: bytes) -> None:
         """Writes memory to the target snapshot.

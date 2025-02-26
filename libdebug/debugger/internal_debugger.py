@@ -58,7 +58,7 @@ from libdebug.utils.debugging_utils import (
 from libdebug.utils.elf_utils import get_all_symbols
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.platform_utils import get_platform_register_size
-from libdebug.utils.pprint_primitives import pprint_maps_util
+from libdebug.utils.pprint_primitives import pprint_maps_util, pprint_memory_util
 from libdebug.utils.signal_utils import (
     resolve_signal_name,
     resolve_signal_number,
@@ -477,6 +477,60 @@ class InternalDebugger:
         """Prints the memory maps of the process."""
         self._ensure_process_stopped()
         pprint_maps_util(self.maps)
+
+    def pprint_memory(
+        self: InternalDebugger,
+        start: int,
+        end: int,
+        file: str = "hybrid",
+        override_word_size: int | None = None,
+        integer_mode: bool = False,
+    ) -> None:
+        """Pretty print the memory diff.
+
+        Args:
+            start (int): The start address of the memory diff.
+            end (int): The end address of the memory diff.
+            file (str, optional): The backing file for relative / absolute addressing. Defaults to "hybrid".
+            override_word_size (int, optional): The word size to use for the diff in place of the ISA word size. Defaults to None.
+            integer_mode (bool, optional): If True, the diff will be printed as hex integers (system endianness applies). Defaults to False.
+        """
+        if start > end:
+            tmp = start
+            start = end
+            end = tmp
+
+        word_size = (
+            get_platform_register_size(self.arch) if override_word_size is None else override_word_size
+        )
+
+        extract = self.memory[start:end, file]
+
+        file_info = f" (file: {file})" if file not in ("absolute", "hybrid") else ""
+
+        print(f"Memory from {start:#x} to {end:#x}{file_info}:")
+
+        # Resolve the address
+        if file == "absolute":
+            address_start = start
+        elif file == "hybrid":
+            try:
+                # Try to resolve the address as absolute
+                self.maps.filter(start)
+                address_start = start
+            except ValueError:
+                # If the address is not in the maps, we use the binary file
+                address_start = start + self.maps[0].base
+        else:
+            address_start = start + self.maps.filter(file)[0].base
+
+        pprint_memory_util(
+            address_start,
+            extract,
+            word_size,
+            self.maps,
+            integer_mode=integer_mode,
+        )
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
