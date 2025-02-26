@@ -103,7 +103,8 @@ The attribute will return a list of [slice](https://docs.python.org/3/c-api/slic
 
 | Function | Description |
 | -------- | ----------- |
-| `pprint_registers()` | Prints all changed register values (including special and vector registers) |
+| `pprint_registers()` | Prints changed general-purpose register values |
+| `pprint_registers_all()` | Prints all changed register values (including special and vector registers) |
 | `pprint_maps()` | Prints memory maps which have changed between snapshots (highlights if only the content or the end address have changed). |
 | `pprint_memory()` | Prints the memory content diffs of the snapshot. See next section for more information |
 

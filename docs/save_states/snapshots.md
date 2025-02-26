@@ -111,7 +111,7 @@ The snapshot type will be inferred from the json file, so you can easily load bo
 ### :octicons-diff-24: Resolving Diffs
 Thanks to their static nature, snapshots can be easily compared to find differences in saved properties.
 
-You can diff a snapshot against another _of the same type_ using the [`diff()`](../../from_pydoc/generated/snapshots/snapshot#libdebug.snapshots.snapshot.Snapshot.diff) method. The method will return a [Diff](../../from_pydoc/generated/snapshots/diff) object that represents the differences between the two snapshots.
+You can diff a snapshot against another using the [`diff()`](../../from_pydoc/generated/snapshots/snapshot#libdebug.snapshots.snapshot.Snapshot.diff) method. The method will return a [Diff](../../from_pydoc/generated/snapshots/diff) object that represents the differences between the two snapshots. The diff will be of the lowest level of the two snapshots being compared in terms.
 
 !!! ABSTRACT "Example usage"
     ```python

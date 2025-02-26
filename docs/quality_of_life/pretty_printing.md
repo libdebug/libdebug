@@ -55,3 +55,38 @@ To pretty print the memory maps of a process, you can simply use the `pprint_map
 To pretty print the stack trace ([backtrace](../stack_frame_utils)) of a process, you can use the `pprint_backtrace()` function. This will print the stack trace of the process in a human-readable format.
 
 <img src="../../assets/pprint_backtrace.jpeg" alt="Pretty Printing Stack Trace" width="100%"/>
+
+## :fontawesome-solid-memory: Memory Pretty Printing
+The `pprint_memory()` function will print the contents of the process memory within a certain range of addresses.
+
+!!! ABSTRACT "Function signature"
+    ```python
+    d.pprint_memory(
+        start: int,
+        end: int,
+        file: str = "hybrid",
+        override_word_size: int = None,
+        integer_mode: bool = False,
+    ) -> None:
+    ```
+
+| Parameter | Data Type | Description |
+| --------- | --------- | ----------- |
+| `start` | `int` | The start address of the memory range to print. |
+| `end` | `int` | The end address of the memory range to print. |
+| `file` | `str` (optional) | The file to use for the memory content. Defaults to `hybrid` mode (see [memory access](../../basics/memory_access/)). |
+| `override_word_size` | `int` (optional) | The word size to use to align memory contents. By default, it uses the ISA register size. |
+| `integer_mode` | `bool` (optional) | Whether to print the memory content in integer mode. Defaults to False |
+
+!!! TIP "Start after End"
+    For your convenience, if the `start` address is greater than the `end` address, the function will **swap** the values.
+
+Here is a visual example of the memory content pretty printing (with and without integer mode):
+
+=== "Integer mode disabled"
+
+    ![Memory Content Diff](../../assets/pprint_memory_base_debugger.jpeg)
+
+=== "Integer mode enabled"
+
+    ![Memory Content Diff Integer](../../assets/pprint_memory_endianness_debugger.jpeg)
