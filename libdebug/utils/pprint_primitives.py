@@ -7,6 +7,7 @@
 from libdebug.data.memory_map_list import MemoryMapList
 from libdebug.data.registers import Registers
 from libdebug.data.symbol_list import SymbolList
+from libdebug.debugger.internal_debugger_instance_manager import extend_internal_debugger
 from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
 from libdebug.utils.ansi_escape_codes import ANSIColors
 from libdebug.utils.debugging_utils import resolve_symbol_name_in_maps_util
@@ -43,7 +44,8 @@ def pprint_backtrace_util(
     """Pretty prints the current backtrace of the thread."""
     for return_address in backtrace:
         filtered_maps = maps.filter(return_address)
-        return_address_symbol = resolve_symbol_name_in_maps_util(return_address, filtered_maps, external_symbols)
+        with extend_internal_debugger(maps._internal_debugger):
+            return_address_symbol = resolve_symbol_name_in_maps_util(return_address, filtered_maps, external_symbols)
         permissions = filtered_maps[0].permissions
         if "rwx" in permissions:
             style = f"{ANSIColors.UNDERLINE}{ANSIColors.RED}"
@@ -199,6 +201,7 @@ def pprint_diff_substring(content: str, start: int, end: int) -> None:
 
     print(f"{content[:start]}{color}{content[start:end]}{ANSIColors.RESET}{content[end:]}")
 
+
 def pprint_memory_util(
     address_start: int,
     extract: bytes,
@@ -225,6 +228,7 @@ def pprint_memory_util(
 
         # Print the memory diff with the address for this word
         print(f"{current_address_str}:  {out}")
+
 
 def pprint_memory_diff_util(
     address_start: int,
