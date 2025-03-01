@@ -61,6 +61,7 @@ public:
     void detach_for_migration();
     void reattach_from_migration();
     void detach_and_cont();
+    void detach_from_child(const pid_t, const bool);
     void detach_for_kill();
     void set_tracing_options();
 

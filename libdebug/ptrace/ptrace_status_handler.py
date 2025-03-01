@@ -404,9 +404,14 @@ class PtraceStatusHandler:
                     self.forward_signal = False
                 case StopEvents.FORK_EVENT:
                     # The process has been forked
-                    liblog.warning(
-                        f"Process {pid} forked. Continuing execution of the parent process. The child process will be stopped until the user decides to attach to it.",
+                    message = self.ptrace_interface._get_event_msg(pid)
+                    liblog.debugger(
+                        f"Process {pid} forked with new pid: {message}",
                     )
+                    # We need to detach from the child process and attach to it again with a new debugger
+                    self.ptrace_interface.lib_trace.detach_from_child(message, self.internal_debugger.follow_children)
+                    if self.internal_debugger.follow_children:
+                        self.internal_debugger.set_child_debugger(message)
                     self.forward_signal = False
 
     def _handle_change(self: PtraceStatusHandler, pid: int, status: int, results: list) -> None:
@@ -429,7 +434,7 @@ class PtraceStatusHandler:
             thread = self.internal_debugger.get_thread_by_id(pid)
 
             if thread is not None:
-                thread._signal_number = signum
+                thread._signal_number = signum & 0x7F
 
                 # Handle the signal
                 self._handle_signal(thread)

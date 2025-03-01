@@ -187,8 +187,11 @@ void LibdebugPtraceInterface::unregister_thread(const pid_t tid)
 }
 
 int LibdebugPtraceInterface::attach(pid_t tid)
-{
-    return ptrace(PTRACE_ATTACH, tid, NULL, NULL);
+{   
+    if(ptrace(PTRACE_ATTACH, tid, NULL, NULL) == -1) {
+        return errno;
+    }
+    return 0;
 }
 
 void LibdebugPtraceInterface::detach_for_migration()
@@ -246,6 +249,30 @@ void LibdebugPtraceInterface::detach_and_cont()
 
     // continue the execution of the process
     kill(process_id, SIGCONT);
+}
+
+void LibdebugPtraceInterface::detach_from_child(pid_t pid, bool follow_child)
+{  
+    // the child will be in trace stop, we need to sync with it
+    int status;
+    waitpid(pid, &status, 0);
+
+    if (follow_child){
+        // send a SIGSTOP to the process to avoid the process to run after the detach
+        kill(pid, SIGSTOP);
+    }
+
+    // we need to repair the memory of the software breakpoints
+    for (auto &bp : software_breakpoints) {
+        if (bp.second.enabled) {
+            ptrace(PTRACE_POKETEXT, pid, (void *) bp.first, (void *) bp.second.instruction);
+        }
+    }
+
+    if (ptrace(PTRACE_DETACH, pid, NULL, 0) == -1) {
+        printf("ptrace detach failed\n");
+        throw std::runtime_error("ptrace detach failed");
+    }
 }
 
 void LibdebugPtraceInterface::detach_for_kill()
@@ -757,6 +784,17 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "Detaches from the process and continues its execution."
         )
         .def(
+            "detach_from_child",
+            &LibdebugPtraceInterface::detach_from_child,
+            nb::arg("pid"),
+            nb::arg("follow_child"),
+            "Detaches from a specific child process.\n"
+            "\n"
+            "Args:\n"
+            "    pid (int): The process id to detach from."
+            "    follow_child (bool): A flag to indicate if the child should be followed."
+        )
+        .def(
             "set_ptrace_options",
             &LibdebugPtraceInterface::set_tracing_options,
             "Sets the ptrace options for the process."
@@ -823,7 +861,7 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "Args:\n"
             "    tid (int): The thread id to step.\n"
             "    use_trampoline_heuristic (bool): A flag to indicate if the trampoline heuristic for i386 should be used."
-        )
+        ) 
         .def(
             "forward_signals",
             &LibdebugPtraceInterface::forward_signals,
