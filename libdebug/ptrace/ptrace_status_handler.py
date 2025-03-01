@@ -434,7 +434,7 @@ class PtraceStatusHandler:
             thread = self.internal_debugger.get_thread_by_id(pid)
 
             if thread is not None:
-                thread._signal_number = signum
+                thread._signal_number = signum & 0x7F
 
                 # Handle the signal
                 self._handle_signal(thread)
