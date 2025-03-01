@@ -62,6 +62,7 @@ class FindPointersTest(TestCase):
         d.wait()
 
         d.kill()
+        d.terminate()
         
     def test_find_ref_addresses(self):
         d = debugger(RESOLVE_EXE("find_ptr_test"))
@@ -105,6 +106,4 @@ class FindPointersTest(TestCase):
         d.wait()
 
         d.kill()
-                
-        
-        
+        d.terminate()
