@@ -58,7 +58,7 @@ from libdebug.utils.debugging_utils import (
 )
 from libdebug.utils.elf_utils import get_all_symbols
 from libdebug.utils.libcontext import libcontext
-from libdebug.utils.platform_utils import get_platform_register_size
+from libdebug.utils.platform_utils import get_platform_gp_register_size
 from libdebug.utils.signal_utils import (
     resolve_signal_name,
     resolve_signal_number,
@@ -263,7 +263,7 @@ class InternalDebugger:
             self._slow_memory = ChunkedMemoryView(
                 self._peek_memory,
                 self._poke_memory,
-                unit_size=get_platform_register_size(libcontext.platform),
+                unit_size=get_platform_gp_register_size(libcontext.platform),
             )
 
     def start_processing_thread(self: InternalDebugger) -> None:
@@ -627,9 +627,7 @@ class InternalDebugger:
                     f"Cannot catch SIGSTOP ({signal_number}) as it is used by the debugger or ptrace for their internal operations.",
                 )
             case SIGTRAP.value:
-                raise ValueError(
-                    f"Cannot catch SIGTRAP ({signal_number}) as it is used by the debugger or ptrace for their internal operations.",
-                )
+                liblog.warning(f"Catching SIGTRAP ({signal_number}) may interfere with libdebug operations as it is used by the debugger or ptrace for their internal operations. Use with care.")
 
         if signal_number in self.caught_signals:
             liblog.warning(
@@ -1604,7 +1602,7 @@ class InternalDebugger:
 
     def __threaded_peek_memory(self: InternalDebugger, address: int) -> bytes | BaseException:
         value = self.debugging_interface.peek_memory(address)
-        return value.to_bytes(get_platform_register_size(libcontext.platform), sys.byteorder)
+        return value.to_bytes(get_platform_gp_register_size(libcontext.platform), sys.byteorder)
 
     def __threaded_poke_memory(self: InternalDebugger, address: int, data: bytes) -> None:
         int_data = int.from_bytes(data, sys.byteorder)
