@@ -619,9 +619,7 @@ class InternalDebugger:
                     f"Cannot catch SIGSTOP ({signal_number}) as it is used by the debugger or ptrace for their internal operations.",
                 )
             case SIGTRAP.value:
-                raise ValueError(
-                    f"Cannot catch SIGTRAP ({signal_number}) as it is used by the debugger or ptrace for their internal operations.",
-                )
+                liblog.warning(f"Catching SIGTRAP ({signal_number}) may interfere with libdebug operations as it is used by the debugger or ptrace for their internal operations. Use with care.")
 
         if signal_number in self.caught_signals:
             liblog.warning(
