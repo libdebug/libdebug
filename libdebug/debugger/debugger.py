@@ -373,6 +373,11 @@ class Debugger:
         return self._internal_debugger.breakpoints
 
     @property
+    def children(self: Debugger) -> list[Debugger]:
+        """Get the list of child debuggers."""
+        return self._internal_debugger.children
+
+    @property
     def handled_syscalls(self: InternalDebugger) -> dict[int, SyscallHandler]:
         """Get the handled syscalls dictionary.
 
@@ -906,6 +911,7 @@ class Debugger:
         repr_str += f"auto_interrupt_on_command = {self._internal_debugger.auto_interrupt_on_command}, "
         repr_str += f"fast_memory = {self._internal_debugger.fast_memory}, "
         repr_str += f"kill_on_exit = {self._internal_debugger.kill_on_exit})\n"
+        repr_str += f"follow_children = {self._internal_debugger.follow_children}, "
         repr_str += f"  Architecture: {self.arch}\n"
         repr_str += "  Threads:"
         for thread in self.threads:
