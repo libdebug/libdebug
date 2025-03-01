@@ -51,9 +51,9 @@ GitHub issues are not the appropriate place to debug your specific project, but 
 
 1. [Fork][fork] and clone the repository.
 1. Configure and install the dependencies:
-Ubuntu: `sudo apt install -y python3 python3-dev libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg`
-Debian: `sudo apt install -y python3 python3-dev libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg`<br>
-Fedora: `sudo dnf install -y python3 python3-devel kernel-devel binutils-devel libdwarf-devel`<br>
+Ubuntu: `sudo apt install -y python3 python3-dev g++ libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg`
+Debian: `sudo apt install -y python3 python3-dev g++ libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg`<br>
+Fedora: `sudo dnf install -y python3 python3-devel kernel-devel g++ binutils-devel libdwarf-devel`<br>
 Arch Linux: `sudo pacman -S python libelf libdwarf gcc make debuginfod`<br>
 1. Create a new branch: `git checkout -b my-branch-name`
 1. Install your package in editable mode: `pip install -e /path/to/your/local/repo`

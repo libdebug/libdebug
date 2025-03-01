@@ -20,13 +20,13 @@ Documentation: https://docs.libdebug.org
 
 ### Installation Requirements:
 Ubuntu: \
-`sudo apt install -y python3 python3-dev libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg` \
+`sudo apt install -y python3 python3-dev g++ libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg` \
 Debian: \
-`sudo apt install -y python3 python3-dev libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg` \
+`sudo apt install -y python3 python3-dev g++ libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg` \
 Arch Linux: \
 `sudo pacman -S python libelf libdwarf gcc make debuginfod` \
 Fedora: \
-`sudo dnf install -y python3 python3-devel kernel-devel binutils-devel libdwarf-devel`
+`sudo dnf install -y python3 python3-devel kernel-devel g++ binutils-devel libdwarf-devel`
 
 ## Installation
 ```bash
