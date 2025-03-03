@@ -56,8 +56,9 @@ Debian: `sudo apt install -y python3 python3-dev g++ libdwarf-dev libelf-dev lib
 Fedora: `sudo dnf install -y python3 python3-devel kernel-devel g++ binutils-devel libdwarf-devel`<br>
 Arch Linux: `sudo pacman -S python libelf libdwarf gcc make debuginfod`<br>
 1. Create a new branch: `git checkout -b my-branch-name`
-1. Install your package in editable mode: `pip install -e /path/to/your/local/repo`
-1. Make your change, add tests, and make sure the tests still pass. Remember, if you change any .c files, you will need to run the command at the previous point **again**.
+1. Install the build system requirements: `pip install scikit_build_core`
+1. Install libdebug in editable mode: `pip install --no-build-isolation -Ceditable.rebuild=true -ve .`
+1. Make your change, add tests, and make sure the tests still pass. If you change any .cpp files, they will be automatically recompiled at runtime.
 1. Push to your fork and [submit a pull request][pr].
 1. Pat your self on the back and wait for your pull request to be reviewed and merged.
 
