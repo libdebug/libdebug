@@ -33,6 +33,7 @@ from libdebug.data.gdb_resume_event import GdbResumeEvent
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
 from libdebug.data.terminals import TerminalTypes
+from libdebug.debugger.debugger import Debugger
 from libdebug.debugger.internal_debugger_instance_manager import (
     extend_internal_debugger,
     link_to_internal_debugger,
@@ -57,8 +58,8 @@ from libdebug.utils.debugging_utils import (
 )
 from libdebug.utils.elf_utils import get_all_symbols
 from libdebug.utils.libcontext import libcontext
-from libdebug.utils.platform_utils import get_platform_register_size
 from libdebug.utils.pprint_primitives import pprint_maps_util, pprint_memory_util
+from libdebug.utils.platform_utils import get_platform_gp_register_size
 from libdebug.utils.signal_utils import (
     resolve_signal_name,
     resolve_signal_number,
@@ -79,7 +80,6 @@ if TYPE_CHECKING:
     from libdebug.data.registers import Registers
     from libdebug.data.symbol import Symbol
     from libdebug.data.symbol_list import SymbolList
-    from libdebug.debugger import Debugger
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
     from libdebug.snapshots.snapshot import Snapshot
@@ -115,6 +115,9 @@ class InternalDebugger:
 
     auto_interrupt_on_command: bool
     """A flag that indicates if the debugger should automatically interrupt the debugged process when a command is issued."""
+
+    follow_children: bool
+    """A flag that indicates if the debugger should follow child processes creating a new debugger for each one."""
 
     breakpoints: dict[int, Breakpoint]
     """A dictionary of all the breakpoints set on the process. Key: the address of the breakpoint."""
@@ -157,6 +160,9 @@ class InternalDebugger:
 
     is_debugging: bool = False
     """Whether the debugger is currently debugging a process."""
+
+    children: list[Debugger]
+    """The list of child debuggers."""
 
     pprint_syscalls: bool
     """A flag that indicates if the debugger should pretty print syscalls."""
@@ -226,6 +232,7 @@ class InternalDebugger:
         self.__polling_thread_response_queue = Queue()
         self._snapshot_count = 0
         self.serialization_helper = SerializationHelper()
+        self.children = []
 
     def clear(self: InternalDebugger) -> None:
         """Reinitializes the context, so it is ready for a new run."""
@@ -249,6 +256,7 @@ class InternalDebugger:
         self.is_debugging = False
         self._is_running = False
         self.resume_context.clear()
+        self.children.clear()
 
     def start_up(self: InternalDebugger) -> None:
         """Starts up the context."""
@@ -262,7 +270,7 @@ class InternalDebugger:
             self._slow_memory = ChunkedMemoryView(
                 self._peek_memory,
                 self._poke_memory,
-                unit_size=get_platform_register_size(libcontext.platform),
+                unit_size=get_platform_gp_register_size(libcontext.platform),
             )
 
     def start_processing_thread(self: InternalDebugger) -> None:
@@ -360,6 +368,40 @@ class InternalDebugger:
         self._join_and_check_status()
 
         self._process_memory_manager.close()
+
+    def set_child_debugger(self: InternalDebugger, child_pid: int) -> None:
+        """Sets the child debugger after a fork.
+
+        Args:
+            child_pid (int): The PID of the child process.
+        """
+        # Create a new InternalDebugger instance for the child process with the same configuration
+        # of the parent debugger
+        child_internal_debugger = InternalDebugger()
+        child_internal_debugger.argv = self.argv
+        child_internal_debugger.env = self.env
+        child_internal_debugger.aslr_enabled = self.aslr_enabled
+        child_internal_debugger.autoreach_entrypoint = self.autoreach_entrypoint
+        child_internal_debugger.auto_interrupt_on_command = self.auto_interrupt_on_command
+        child_internal_debugger.escape_antidebug = self.escape_antidebug
+        child_internal_debugger.fast_memory = self.fast_memory
+        child_internal_debugger.kill_on_exit = self.kill_on_exit
+        child_internal_debugger.follow_children = self.follow_children
+
+        # Create the new Debugger instance for the child process
+        child_debugger = Debugger()
+        child_debugger.post_init_(child_internal_debugger)
+        child_internal_debugger.debugger = child_debugger
+        child_debugger.arch = self.arch
+
+        # Attach to the child process with the new debugger
+        child_internal_debugger.attach(child_pid)
+        self.children.append(child_debugger)
+        liblog.debugger(
+            "Child process with pid %d registered to the parent debugger (pid %d)",
+            child_pid,
+            self.process_id,
+        )
 
     @background_alias(_background_invalid_call)
     def kill(self: InternalDebugger) -> None:
@@ -501,7 +543,7 @@ class InternalDebugger:
             end = tmp
 
         word_size = (
-            get_platform_register_size(self.arch) if override_word_size is None else override_word_size
+            get_platform_gp_register_size(self.arch) if override_word_size is None else override_word_size
         )
 
         extract = self.memory[start:end, file]
@@ -619,9 +661,7 @@ class InternalDebugger:
                     f"Cannot catch SIGSTOP ({signal_number}) as it is used by the debugger or ptrace for their internal operations.",
                 )
             case SIGTRAP.value:
-                raise ValueError(
-                    f"Cannot catch SIGTRAP ({signal_number}) as it is used by the debugger or ptrace for their internal operations.",
-                )
+                liblog.warning(f"Catching SIGTRAP ({signal_number}) may interfere with libdebug operations as it is used by the debugger or ptrace for their internal operations. Use with care.")
 
         if signal_number in self.caught_signals:
             liblog.warning(
@@ -1588,7 +1628,7 @@ class InternalDebugger:
 
     def __threaded_peek_memory(self: InternalDebugger, address: int) -> bytes | BaseException:
         value = self.debugging_interface.peek_memory(address)
-        return value.to_bytes(get_platform_register_size(libcontext.platform), sys.byteorder)
+        return value.to_bytes(get_platform_gp_register_size(libcontext.platform), sys.byteorder)
 
     def __threaded_poke_memory(self: InternalDebugger, address: int, data: bytes) -> None:
         int_data = int.from_bytes(data, sys.byteorder)

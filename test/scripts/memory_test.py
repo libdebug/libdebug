@@ -12,7 +12,7 @@ from utils.thread_utils import FUN_ARG_0, STACK_POINTER
 
 from libdebug import debugger
 from libdebug.utils.libcontext import libcontext
-from libdebug.utils.platform_utils import get_platform_register_size
+from libdebug.utils.platform_utils import get_platform_gp_register_size
 
 
 class MemoryTest(TestCase):
@@ -68,9 +68,9 @@ class MemoryTest(TestCase):
             arena = d.memory["main_arena", 256, "libc"]
 
         def pack(x):
-            return x.to_bytes(get_platform_register_size(d.arch), "little")
+            return x.to_bytes(get_platform_gp_register_size(d.arch), "little")
 
-        self.assertTrue(pack(address - get_platform_register_size(d.arch) * 2) in arena)
+        self.assertTrue(pack(address - get_platform_gp_register_size(d.arch) * 2) in arena)
 
         d.kill()
         d.terminate()

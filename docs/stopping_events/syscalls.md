@@ -90,11 +90,11 @@ The `handle_syscall()` function in the [Debugger](../../from_pydoc/generated/deb
 
 !!! ABSTRACT "Example usage of asynchronous syscall handlers"
     ```python
-    def on_enter_open(t: ThreadContext, handler: SyscallHandler):
+    def on_enter_open(t, handler):
         print("entering open")
         t.syscall_arg0 = 0x1
 
-    def on_exit_open(t: ThreadContext, handler: SyscallHandler):
+    def on_exit_open(t, handler):
         print("exiting open")
         t.syscall_return = 0x0
 

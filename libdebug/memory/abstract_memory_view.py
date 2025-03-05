@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
+# Copyright (c) 2023-2025 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco, Mario Polino. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -9,9 +9,13 @@ from __future__ import annotations
 import sys
 from abc import ABC, abstractmethod
 from collections.abc import MutableSequence
+from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from libdebug.data.memory_map import MemoryMap
 from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 from libdebug.liblog import liblog
+from libdebug.utils.platform_utils import get_platform_gp_register_size
 from libdebug.utils.search_utils import find_all_overlapping_occurrences
 
 
@@ -122,6 +126,134 @@ class AbstractMemoryView(MutableSequence, ABC):
             occurrences = find_all_overlapping_occurrences(value, memory_content, start)
 
         return occurrences
+
+    def find_pointers(
+        self: AbstractMemoryView,
+        where: int | str = "*",
+        target: int | str = "*",
+        step: int = 1,
+    ) -> list[tuple[int, int]]:
+        """
+        Find all pointers in the specified memory map that point to the target memory map.
+
+        If the where parameter or the target parameter is a string, it is treated as a backing file. If it is an integer, the memory map containing the address will be used.
+
+        If "*", "ALL", "all" or -1 is passed, all memory maps will be considered.
+
+        Args:
+            where (int | str): Identifier of the memory map where we want to search for references. Defaults to "*", which means all memory maps.
+            target (int | str): Identifier of the memory map whose pointers we want to find. Defaults to "*", which means all memory maps.
+            step (int): The interval step size while iterating over the memory buffer. Defaults to 1.
+
+        Returns:
+            list[tuple[int, int]]: A list of tuples containing the address where the pointer was found and the pointer itself.
+        """
+        # Filter memory maps that match the target
+        if target in {"*", "ALL", "all", -1}:
+            target_maps = self._internal_debugger.maps
+        else:
+            target_maps = self._internal_debugger.maps.filter(target)
+
+        if not target_maps:
+            raise ValueError("No memory map found for the specified target.")
+
+        target_backing_files = {vmap.backing_file for vmap in target_maps}
+
+        # Filter memory maps that match the where parameter
+        if where in {"*", "ALL", "all", -1}:
+            where_maps = self._internal_debugger.maps
+        else:
+            where_maps = self._internal_debugger.maps.filter(where)
+
+        if not where_maps:
+            raise ValueError("No memory map found for the specified where parameter.")
+
+        where_backing_files = {vmap.backing_file for vmap in where_maps}
+
+        if len(where_backing_files) == 1 and len(target_backing_files) == 1:
+            return self.__internal_find_pointers(where_maps, target_maps, step)
+        elif len(where_backing_files) == 1:
+            found_pointers = []
+            for target_backing_file in target_backing_files:
+                found_pointers += self.__internal_find_pointers(
+                    where_maps,
+                    self._internal_debugger.maps.filter(target_backing_file),
+                    step,
+                )
+            return found_pointers
+        elif len(target_backing_files) == 1:
+            found_pointers = []
+            for where_backing_file in where_backing_files:
+                found_pointers += self.__internal_find_pointers(
+                    self._internal_debugger.maps.filter(where_backing_file),
+                    target_maps,
+                    step,
+                )
+            return found_pointers
+        else:
+            found_pointers = []
+            for where_backing_file in where_backing_files:
+                for target_backing_file in target_backing_files:
+                    found_pointers += self.__internal_find_pointers(
+                        self._internal_debugger.maps.filter(where_backing_file),
+                        self._internal_debugger.maps.filter(target_backing_file),
+                        step,
+                    )
+
+        return found_pointers
+
+    def __internal_find_pointers(
+        self: AbstractMemoryView,
+        where_maps: list[MemoryMap],
+        target_maps: list[MemoryMap],
+        stride: int,
+    ) -> list[tuple[int, int]]:
+        """Find all pointers to a specific memory map within another memory map. Internal implementation.
+
+        Args:
+            where_maps (list[MemoryMap]): The memory maps where to search for pointers.
+            target_maps (list[MemoryMap]): The memory maps for which to search for pointers.
+            stride (int): The interval step size while iterating over the memory buffer.
+
+        Returns:
+            list[tuple[int, int]]: A list of tuples containing the address where the pointer was found and the pointer itself.
+        """
+        found_pointers = []
+
+        # Obtain the start/end of the target memory segment
+        target_start_address = target_maps[0].start
+        target_end_address = target_maps[-1].end
+
+        # Obtain the start/end of the where memory segment
+        where_start_address = where_maps[0].start
+        where_end_address = where_maps[-1].end
+
+        # Read the memory from the where memory segment
+        if not self._internal_debugger.fast_memory:
+            liblog.warning(
+                "Fast memory reading is disabled. Using find_pointers with fast_memory=False may be very slow.",
+            )
+        try:
+            where_memory_buffer = self.read(where_start_address, where_end_address - where_start_address)
+        except (OSError, OverflowError):
+            liblog.error(f"Cannot read the target memory segment with backing file: {where_maps[0].backing_file}.")
+            return found_pointers
+
+        # Get the size of a pointer in the target process
+        pointer_size = get_platform_gp_register_size(self._internal_debugger.arch)
+
+        # Get the byteorder of the target machine (endianness)
+        byteorder = sys.byteorder
+
+        # Search for references in the where memory segment
+        append = found_pointers.append
+        for i in range(0, len(where_memory_buffer), stride):
+            reference = where_memory_buffer[i : i + pointer_size]
+            reference = int.from_bytes(reference, byteorder=byteorder)
+            if target_start_address <= reference < target_end_address:
+                append((where_start_address + i, reference))
+
+        return found_pointers
 
     def __getitem__(self: AbstractMemoryView, key: int | slice | str | tuple) -> bytes:
         """Read from memory, either a single byte or a byte string.

@@ -9,7 +9,7 @@ search:
 Processes can handle these signals in different ways: they may catch and define custom behavior for certain signals, ignore them, or allow the default action to occur.
 
 !!! WARNING "Restrictions on Signal Catching"
-    **libdebug** does not support catching `SIGTRAP`, `SIGSTOP`, and `SIGKILL`. While the first is used internally for debugging purposes, the other two cannot be blocked as a result of kernel limitations.
+    **libdebug** does not support catching `SIGSTOP` and `SIGKILL`, since kernel-level restrictions prevent these signals from being caught or ignored. While `SIGTRAP` can be caught, it is used internally by **libdebug** to implement stopping events and should be used with caution.
 
 **libdebug** allows you to intercept signals sent to the tracee. Specifically, you can choose to **catch** or **hijack** a specific signal (read more on [hijacking](../stopping_events/#hijacking)).
 
