@@ -6,14 +6,19 @@
 
 from __future__ import annotations
 
+from itertools import zip_longest
 from typing import TYPE_CHECKING
 
+from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
 from libdebug.snapshots.memory.memory_map_diff import MemoryMapDiff
 from libdebug.snapshots.memory.memory_map_diff_list import MemoryMapDiffList
 from libdebug.snapshots.registers.register_diff import RegisterDiff
 from libdebug.snapshots.registers.register_diff_accessor import RegisterDiffAccessor
+from libdebug.utils.libcontext import libcontext
 from libdebug.utils.platform_utils import get_platform_register_size
 from libdebug.utils.pprint_primitives import (
+    get_colored_saved_address_util,
+    pad_colored_string,
     pprint_diff_line,
     pprint_diff_substring,
     pprint_inline_diff,
@@ -163,13 +168,24 @@ class Diff:
 
                 new_map_end = diff.new_map_state.end
 
-                start_strike = printed_line.find("end=") + 4
-                end_strike = printed_line.find(", perm")
+                start_strike = printed_line.find("end:") + 4
+                end_strike = printed_line.find("\n", start_strike)
 
                 pprint_inline_diff(printed_line, start_strike, end_strike, f"{hex(new_map_end)}")
 
                 has_prev_changed = True
-            elif diff.has_changed:
+            elif diff.old_map_state.permissions != diff.new_map_state.permissions:
+                printed_line = map_state_str
+
+                new_map_permissions = diff.new_map_state.permissions
+
+                start_strike = printed_line.find("permissions:") + 12
+                end_strike = printed_line.find("\n", start_strike)
+
+                pprint_inline_diff(printed_line, start_strike, end_strike, new_map_permissions)
+
+                has_prev_changed = True
+            elif diff.old_map_state.content != diff.new_map_state.content:
                 printed_line = map_state_str + "    [content changed]\n"
                 color_start = printed_line.find("[content changed]")
 
@@ -300,3 +316,64 @@ class Diff:
     def pprint_registers_all(self: Diff) -> None:
         """Alias for pprint_regs_all."""
         self.pprint_regs_all()
+
+    def pprint_backtrace(self: Diff) -> None:
+        """Pretty print the backtrace diff."""
+        if self.level == "base":
+            raise ValueError("Backtrace is not available at base level. Stack is not available")
+
+        prev_log_level = libcontext.general_logger
+        libcontext.general_logger = "SILENT"
+        stack_unwinder = stack_unwinding_provider(self.snapshot1.arch)
+        backtrace1 = stack_unwinder.unwind(self.snapshot1)
+        backtrace2 = stack_unwinder.unwind(self.snapshot2)
+
+        maps1 = self.snapshot1.maps
+        maps2 = self.snapshot2.maps
+
+        symbols = self.snapshot1.memory._symbol_ref
+
+        # Columns are Before, Unchanged, After
+        #  __    __
+        # |__|  |__|
+        # |__|  |__|
+        # |__|__|__|
+        # |__|__|__|
+        # |__|__|__|
+
+        # You can reduce repeated calls and simplify logic:
+        column1 = []
+        column2 = []
+        column3 = []
+
+        for addr1, addr2 in zip_longest(reversed(backtrace1), reversed(backtrace2)):
+            col1 = get_colored_saved_address_util(addr1, maps1, symbols).strip() if addr1 else None
+            col2 = None
+            col3 = None
+
+            if addr2:
+                if addr1 == addr2:
+                    col2 = col1
+                    col1 = None
+                else:
+                    col3 = get_colored_saved_address_util(addr2, maps2, symbols).strip()
+
+            column1.append(col1)
+            column2.append(col2)
+            column3.append(col3)
+
+        max_str_len = max([len(x) if x else 0 for x in column1 + column2 + column3])
+
+        print("Backtrace diff:")
+        print("-" * (max_str_len * 3 + 6))
+        print(f"{'Before':<{max_str_len}} | {'Unchanged':<{max_str_len}} | {'After':<{max_str_len}}")
+        for col1_val, col2_val, col3_val in zip(reversed(column1), reversed(column2), reversed(column3), strict=False):
+            col1 = pad_colored_string(col1_val, max_str_len) if col1_val else " " * max_str_len
+            col2 = pad_colored_string(col2_val, max_str_len) if col2_val else " " * max_str_len
+            col3 = pad_colored_string(col3_val, max_str_len) if col3_val else " " * max_str_len
+
+            print(f"{col1} | {col2} | {col3}")
+
+        print("-" * (max_str_len * 3 + 6))
+
+        libcontext.general_logger = prev_log_level

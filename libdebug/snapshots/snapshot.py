@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
 from libdebug.liblog import liblog
-from libdebug.snapshots.memory.memory_map_snapshot import SnapshotMemoryMap
+from libdebug.snapshots.memory.memory_map_snapshot import MemoryMapSnapshot
 from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
 from libdebug.snapshots.registers.snapshot_registers import SnapshotRegisters
 from libdebug.utils.platform_utils import get_platform_register_size
@@ -58,7 +58,9 @@ class Snapshot:
 
     def _save_memory_maps(self: Snapshot, debugger: InternalDebugger, writable_only: bool) -> None:
         """Saves memory maps of the process to the snapshot."""
-        map_list = []
+        process_name = debugger._process_name
+        full_process_path = debugger._process_full_path
+        self.maps = MemoryMapSnapshotList([], process_name, full_process_path)
 
         for curr_map in debugger.maps:
             # Skip non-writable maps if requested
@@ -72,7 +74,7 @@ class Snapshot:
             else:
                 contents = None
 
-            saved_map = SnapshotMemoryMap(
+            saved_map = MemoryMapSnapshot(
                 curr_map.start,
                 curr_map.end,
                 curr_map.permissions,
@@ -81,12 +83,7 @@ class Snapshot:
                 curr_map.backing_file,
                 contents,
             )
-            map_list.append(saved_map)
-
-        process_name = debugger._process_name
-        full_process_path = debugger._process_full_path
-
-        self.maps = MemoryMapSnapshotList(map_list, process_name, full_process_path)
+            self.maps.append(saved_map)
 
     @property
     def registers(self: Snapshot) -> SnapshotRegisters:
@@ -192,26 +189,32 @@ class Snapshot:
             get_platform_register_size(self.arch) if override_word_size is None else override_word_size
         )
 
-        extract = self.memory[start:end, file]
-        print(f"[DEBUG] Extract len: {len(extract)}")
-
         file_info = f" (file: {file})" if file not in ("absolute", "hybrid") else ""
 
         print(f"Memory from {start:#x} to {end:#x}{file_info}:")
 
+        is_absolute = True
+
         # Resolve the address
-        if file == "absolute":
-            address_start = start
-        elif file == "hybrid":
+        if file == "hybrid":
+            found_map = None
+
             try:
                 # Try to resolve the address as absolute
-                self.maps.filter(start)
+                found_map = self.maps.filter(start)[0]
                 address_start = start
             except ValueError:
                 # If the address is not in the maps, we use the binary file
+                is_absolute = False
                 address_start = start + self.maps[0].base
+
+            address_end = end if is_absolute else end + found_map.base
+            file = "absolute"
         else:
-            address_start = start + self.maps.filter(file)[0].base
+            address_start = start
+            address_end = end
+
+        extract = self.memory[address_start:address_end, file]
 
         pprint_memory_util(
             address_start,

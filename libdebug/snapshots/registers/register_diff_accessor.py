@@ -41,10 +41,10 @@ class RegisterDiffAccessor:
 
             if attr.has_changed:
                 # Format integer values in hexadecimal without zero-padding
-                old_value = f"{attr.old_value:<20}" if isinstance(attr.old_value, float) else f"0x{attr.old_value:<16x}"
-                new_value = f"{attr.new_value:<20}" if isinstance(attr.new_value, float) else f"0x{attr.new_value:<16x}"
+                old_value = f"{attr.old_value:<18}" if isinstance(attr.old_value, float) else f"{attr.old_value:<#16x}"
+                new_value = f"{attr.new_value:<18}" if isinstance(attr.new_value, float) else f"{attr.new_value:<#16x}"
                 # Align output for consistent spacing between old and new values
-                str_repr += f"{attr_name:<15} {old_value:<20} {new_value:<20}\n"
+                str_repr += f"{attr_name:<15} {old_value} {new_value}\n"
 
         str_repr += "[...]\n"
         str_repr += ")"

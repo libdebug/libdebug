@@ -746,7 +746,7 @@ class PtraceInterface(DebuggingInterface):
 
     def get_maps(self: PtraceInterface) -> MemoryMapList[MemoryMap]:
         """Returns the memory maps of the process."""
-        with extend_internal_debugger(self._internal_debugger):
+        with extend_internal_debugger(self):
             return get_process_maps(self.process_id)
 
     def get_hit_watchpoint(self: PtraceInterface, thread_id: int) -> Breakpoint:

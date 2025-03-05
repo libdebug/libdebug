@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from libdebug.liblog import liblog
-from libdebug.snapshots.memory.memory_map_snapshot import SnapshotMemoryMap
+from libdebug.snapshots.memory.memory_map_snapshot import MemoryMapSnapshot
 from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
 from libdebug.snapshots.memory.snapshot_memory_view import SnapshotMemoryView
 from libdebug.snapshots.snapshot import Snapshot
@@ -46,6 +46,7 @@ class ThreadSnapshot(Snapshot):
         self.name = name
         self.level = level
         self.arch = thread._internal_debugger.arch
+        self.aslr_enabled = thread._internal_debugger.aslr_enabled
         self._process_full_path = thread.debugger._internal_debugger._process_full_path
         self._process_name = thread.debugger._internal_debugger._process_name
         self._serialization_helper = thread._internal_debugger.serialization_helper
@@ -59,7 +60,7 @@ class ThreadSnapshot(Snapshot):
                 map_list = []
 
                 for curr_map in thread.debugger.maps:
-                    saved_map = SnapshotMemoryMap(
+                    saved_map = MemoryMapSnapshot(
                         start=curr_map.start,
                         end=curr_map.end,
                         permissions=curr_map.permissions,

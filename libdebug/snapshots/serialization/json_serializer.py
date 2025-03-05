@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 
 from libdebug.data.symbol import Symbol
 from libdebug.data.symbol_list import SymbolList
-from libdebug.snapshots.memory.memory_map_snapshot import SnapshotMemoryMap
+from libdebug.snapshots.memory.memory_map_snapshot import MemoryMapSnapshot
 from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
 from libdebug.snapshots.memory.snapshot_memory_view import SnapshotMemoryView
 from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
@@ -58,13 +58,14 @@ class JSONSerializer:
         loaded_snap.arch = snapshot_dict["arch"]
         loaded_snap.name = snapshot_dict["name"]
         loaded_snap.level = snapshot_dict["level"]
+        loaded_snap.aslr_enabled = snapshot_dict.get("aslr_enabled")
         loaded_snap._process_full_path = snapshot_dict.get("_process_full_path", None)
         loaded_snap._process_name = snapshot_dict.get("_process_name", None)
 
         # Create a register field for the snapshot
         if not is_process_snapshot:
             loaded_snap.regs = SnapshotRegisters(
-                getattr(loaded_snap, "thread_id", None),
+                loaded_snap.thread_id,
                 snapshot_dict["architectural_registers"]["generic"],
                 snapshot_dict["architectural_registers"]["special"],
                 snapshot_dict["architectural_registers"]["vector_fp"],
@@ -79,7 +80,7 @@ class JSONSerializer:
         raw_map_list = []
 
         for saved_map in loaded_maps:
-            new_map = SnapshotMemoryMap(
+            new_map = MemoryMapSnapshot(
                 saved_map["start"],
                 saved_map["end"],
                 saved_map["permissions"],
@@ -187,6 +188,7 @@ class JSONSerializer:
             "snapshot_id": snapshot.snapshot_id,
             "level": snapshot.level,
             "name": snapshot.name,
+            "aslr_enabled": snapshot.aslr_enabled,
             "architectural_registers": {
                 "generic": snapshot.regs._generic_regs,
                 "special": snapshot.regs._special_regs,

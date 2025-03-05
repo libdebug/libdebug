@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from libdebug.liblog import liblog
 from libdebug.snapshots.diff import Diff
 
 if TYPE_CHECKING:
@@ -30,3 +31,8 @@ class ThreadSnapshotDiff(Diff):
 
         # Memory map diffs
         self._resolve_maps_diff()
+
+        if (self.snapshot1._process_name == self.snapshot2._process_name) and (
+            self.snapshot1.aslr_enabled or self.snapshot2.aslr_enabled
+        ):
+            liblog.warning("ASLR is enabled in either or both snapshots. Diff may be messy.")

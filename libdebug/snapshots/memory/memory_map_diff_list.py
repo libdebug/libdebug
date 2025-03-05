@@ -15,10 +15,13 @@ if TYPE_CHECKING:
 
 
 class MemoryMapDiffList(list):
-    """A list of memory map snapshot from the target process."""
+    """A list of memory map snapshot diffs from the target process."""
 
     def __init__(
-        self: MemoryMapDiffList, memory_maps: list[MemoryMapDiff], process_name: str, full_process_path: str,
+        self: MemoryMapDiffList,
+        memory_maps: list[MemoryMapDiff],
+        process_name: str,
+        full_process_path: str,
     ) -> None:
         """Initializes the MemoryMapSnapshotList."""
         super().__init__(memory_maps)
@@ -26,12 +29,28 @@ class MemoryMapDiffList(list):
         self._process_name = process_name
 
     def _search_by_address(self: MemoryMapDiffList, address: int) -> list[MemoryMapDiff]:
+        """Searches for a memory map diff by address.
+
+        Args:
+            address (int): The address to search for.
+
+        Returns:
+            list[MemoryMapDiff]: The memory map diff matching the specified address.
+        """
         for vmap_diff in self:
             if vmap_diff.old_map_state.start <= address < vmap_diff.new_map_state.end:
                 return [vmap_diff]
         return []
 
     def _search_by_backing_file(self: MemoryMapDiffList, backing_file: str) -> list[MemoryMapDiff]:
+        """Searches for a memory map diff by backing file.
+
+        Args:
+            backing_file (str): The backing file to search for.
+
+        Returns:
+            list[MemoryMapDiff]: The memory map diff matching the specified backing file.
+        """
         if backing_file in ["binary", self._process_name]:
             backing_file = self._process_full_path
 
@@ -39,8 +58,8 @@ class MemoryMapDiffList(list):
         unique_files = set()
 
         for vmap_diff in self:
-            compare_with_old = vmap_diff.old_map_state is not None and hasattr(vmap_diff.old_map_state, "backing_file")
-            compare_with_new = vmap_diff.new_map_state is not None and hasattr(vmap_diff.new_map_state, "backing_file")
+            compare_with_old = vmap_diff.old_map_state is not None
+            compare_with_new = vmap_diff.new_map_state is not None
 
             if compare_with_old and backing_file in vmap_diff.old_map_state.backing_file:
                 filtered_maps.append(vmap_diff)
@@ -66,7 +85,7 @@ class MemoryMapDiffList(list):
             value (int | str): The value to search for.
 
         Returns:
-            MemoryMapSnapshotList[MemoryMap]: The memory maps matching the specified value.
+            MemoryMapDiffList[MemoryMapDiff]: The memory maps matching the specified value.
         """
         if isinstance(value, int):
             filtered_maps = self._search_by_address(value)

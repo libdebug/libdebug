@@ -37,7 +37,7 @@ class SymbolList(list):
             address -= maps[0].start
         else:
             raise ValueError(
-                f"Address {address:#x} does not belong to any memory map. You must specify an absolute address."
+                f"Address {address:#x} does not belong to any memory map. You must specify an absolute address.",
             )
         return [symbol for symbol in self if symbol.start <= address < symbol.end]
 

@@ -55,7 +55,7 @@ class Amd64StackUnwinder(StackUnwindingManager):
             except (OSError, ValueError):
                 break
 
-        # If we are in the prolouge of a function, we need to get the return address from the stack
+        # If we are in the prologue of a function, we need to get the return address from the stack
         # using a slightly more complex method
         try:
             first_return_address = self.get_return_address(target, vmaps)

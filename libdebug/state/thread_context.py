@@ -233,7 +233,7 @@ class ThreadContext(ABC):
         stack_unwinder = stack_unwinding_provider(self._internal_debugger.arch)
         backtrace = stack_unwinder.unwind(self)
         maps = self._internal_debugger.debugging_interface.get_maps()
-        pprint_backtrace_util(backtrace, maps)
+        pprint_backtrace_util(backtrace, maps, self._internal_debugger.symbols)
 
     def pprint_registers(self: ThreadContext) -> None:
         """Pretty prints the thread's registers."""
@@ -364,6 +364,7 @@ class ThreadContext(ABC):
         Returns:
             ThreadSnapshot: The created snapshot.
         """
+        self._internal_debugger._ensure_process_stopped()
         return ThreadSnapshot(self, level, name)
 
     def notify_snapshot_taken(self: ThreadContext) -> None:

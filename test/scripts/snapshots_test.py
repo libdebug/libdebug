@@ -8,11 +8,7 @@ from unittest import TestCase
 from utils.binary_utils import RESOLVE_EXE
 from libdebug import debugger
 import os
-
-def create_if_not_exists(path):
-    if not os.path.exists(path):
-        folder_path = os.path.dirname(path) 
-        os.makedirs(folder_path, exist_ok=True)
+import tempfile
 
 class SnapshotsTest(TestCase):
     def test_thread_base_snapshot(self):
@@ -49,9 +45,8 @@ class SnapshotsTest(TestCase):
             saved_backtrace = ts1.backtrace()
 
         # Try saving
-        save_path = "/tmp/libdebug-tests/snapshots/base1.json"
-
-        create_if_not_exists(save_path)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp_file:
+            save_path = tmp_file.name
 
         ts1.save(save_path)
         ts1_restored = d.load_snapshot(save_path)
@@ -139,7 +134,8 @@ class SnapshotsTest(TestCase):
         # Try saving
         save_path = "/tmp/libdebug-tests/snapshots/writable1.json"
 
-        create_if_not_exists(save_path)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp_file:
+            save_path = tmp_file.name
 
         ts1.save(save_path)
         ts1_restored = d.load_snapshot(save_path)
@@ -195,8 +191,6 @@ class SnapshotsTest(TestCase):
         d = debugger(RESOLVE_EXE("process_snapshot_test"), auto_interrupt_on_command=False, aslr=False, fast_memory=True)
         d.run()
 
-        d.breakpoint
-
         thread = d.threads[0]
 
         # Create initial snapshot
@@ -241,7 +235,8 @@ class SnapshotsTest(TestCase):
         # Try saving
         save_path = "/tmp/libdebug-tests/snapshots/full1.json"
 
-        create_if_not_exists(save_path)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp_file:
+            save_path = tmp_file.name
 
         ts1.save(save_path)
         ts1_restored = d.load_snapshot(save_path)
@@ -341,10 +336,8 @@ class SnapshotsTest(TestCase):
                         thread.regs.__getattribute__(reg_name)
                     )
 
-        # Try saving
-        save_path = "/tmp/libdebug-tests/snapshots/p_base2.json"
-
-        create_if_not_exists(save_path)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp_file:
+            save_path = tmp_file.name
 
         ps1.save(save_path)
         ps1_restored = d.load_snapshot(save_path)
@@ -459,10 +452,8 @@ class SnapshotsTest(TestCase):
                         thread.regs.__getattribute__(reg_name)
                     )
 
-        # Try saving
-        save_path = "/tmp/libdebug-tests/snapshots/p_base2.json"
-
-        create_if_not_exists(save_path)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp_file:
+            save_path = tmp_file.name
 
         ps1.save(save_path)
         ps1_restored = d.load_snapshot(save_path)
@@ -561,3 +552,5 @@ class SnapshotsTest(TestCase):
                 self.assertEqual(reg_diff.old_value, old_val)
                 self.assertEqual(reg_diff.new_value, new_val)
                 self.assertEqual(reg_diff.has_changed, has_changed)
+        
+        d.terminate()

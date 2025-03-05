@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from libdebug.liblog import liblog
-from libdebug.snapshots.memory.memory_map_snapshot import SnapshotMemoryMap
+from libdebug.snapshots.memory.memory_map_snapshot import MemoryMapSnapshot
 from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
 from libdebug.snapshots.memory.snapshot_memory_view import SnapshotMemoryView
 from libdebug.snapshots.process.process_shapshot_diff import ProcessSnapshotDiff
@@ -50,6 +50,7 @@ class ProcessSnapshot(Snapshot):
         self.name = name
         self.level = level
         self.arch = debugger.arch
+        self.aslr_enabled = debugger.aslr_enabled
         self._process_full_path = debugger._process_full_path
         self._process_name = debugger._process_name
         self._serialization_helper = debugger.serialization_helper
@@ -57,10 +58,10 @@ class ProcessSnapshot(Snapshot):
         # Memory maps
         match level:
             case "base":
-                map_list = []
+                self.maps = MemoryMapSnapshotList([], self._process_name, self._process_full_path)
 
                 for curr_map in debugger.maps:
-                    saved_map = SnapshotMemoryMap(
+                    saved_map = MemoryMapSnapshot(
                         start=curr_map.start,
                         end=curr_map.end,
                         permissions=curr_map.permissions,
@@ -69,8 +70,7 @@ class ProcessSnapshot(Snapshot):
                         backing_file=curr_map.backing_file,
                         content=None,
                     )
-                    map_list.append(saved_map)
-                self.maps = MemoryMapSnapshotList(map_list, self._process_name, self._process_full_path)
+                    self.maps.append(saved_map)
 
                 self._memory = None
             case "writable":

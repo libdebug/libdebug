@@ -12,8 +12,8 @@ from libdebug.data.memory_map import MemoryMap
 
 
 @dataclass
-class SnapshotMemoryMap(MemoryMap):
-    """A memory map of the target process.
+class MemoryMapSnapshot(MemoryMap):
+    """A snapshot of the memory map of the target process.
 
     Attributes:
         start (int): The start address of the memory map. You can access it also with the 'base' attribute.
@@ -32,7 +32,7 @@ class SnapshotMemoryMap(MemoryMap):
         """Check if the memory map corresponds to another memory map."""
         return self.start == other.start and self.backing_file == other.backing_file
 
-    def __repr__(self: SnapshotMemoryMap) -> str:
+    def __repr__(self: MemoryMapSnapshot) -> str:
         """Return the string representation of the memory map."""
         str_repr = super().__repr__()
 
@@ -42,11 +42,18 @@ class SnapshotMemoryMap(MemoryMap):
         return str_repr
 
     def __eq__(self, value: object) -> bool:
-        """Check if this MemoryMap is equal to another object."""
+        """Check if this MemoryMap is equal to another object.
+
+        Args:
+            value (object): The object to compare to.
+
+        Returns:
+            bool: True if the objects are equal, False otherwise.
+        """
         if not isinstance(value, MemoryMap):
             return False
 
-        is_snapshot_map = isinstance(value, SnapshotMemoryMap)
+        is_snapshot_map = isinstance(value, MemoryMapSnapshot)
 
         # Check if the content is available and if it is the same
         should_compare_content = is_snapshot_map and self.content is not None and value.content is not None

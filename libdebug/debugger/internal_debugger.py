@@ -520,7 +520,7 @@ class InternalDebugger:
                 address_start = start
             except ValueError:
                 # If the address is not in the maps, we use the binary file
-                address_start = start + self.maps[0].base
+                address_start = start + self.maps.filter("binary")[0].start
         else:
             address_start = start + self.maps.filter(file)[0].base
 
@@ -1763,6 +1763,7 @@ class InternalDebugger:
         Returns:
             ProcessSnapshot: The created snapshot.
         """
+        self._ensure_process_stopped()
         return ProcessSnapshot(self, level, name)
 
     def load_snapshot(self: Debugger, file_path: str) -> Snapshot:

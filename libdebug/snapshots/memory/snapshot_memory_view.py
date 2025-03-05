@@ -38,13 +38,36 @@ class SnapshotMemoryView(AbstractMemoryView):
         Returns:
             bytes: The read bytes.
         """
-        start_map = self._snap_ref.maps.filter(address)[0]
-        end_map = self._snap_ref.maps.filter(address + size - 1)[0]
+        snapshot_maps = self._snap_ref.maps
 
-        index_start = self._snap_ref.maps.index(start_map)
-        index_end = self._snap_ref.maps.index(end_map)
+        start_index = 0
+        start_map = None
 
-        target_maps = self._snap_ref.maps[index_start:index_end + 1]
+        # Find the start map index
+        while start_index < len(snapshot_maps):
+            start_map = snapshot_maps[start_index]
+
+            if start_map.start <= address < start_map.end:
+                break
+            start_index += 1
+
+        if start_index == len(snapshot_maps) and start_map.end <= address:
+            raise ValueError("No mapped memory at the specified start address.")
+
+        end_index = start_index
+        end_map = None
+
+        # Find the end map index
+        while end_index < len(snapshot_maps):
+            end_map = snapshot_maps[end_index]
+            if end_map.start <= address + size - 1 < end_map.end:
+                break
+            end_index += 1
+
+        if end_index == len(snapshot_maps) and end_map.end <= address + end_map.size - 1:
+            raise ValueError("No mapped memory at the specified address.")
+
+        target_maps = self._snap_ref.maps[start_index:end_index + 1]
 
         if not target_maps:
             raise ValueError("No mapped memory at the specified address.")

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from libdebug.liblog import liblog
 from libdebug.snapshots.diff import Diff
 from libdebug.snapshots.thread.lw_thread_snapshot_diff import LightweightThreadSnapshotDiff
 
@@ -35,36 +36,33 @@ class ProcessSnapshotDiff(Diff):
         # Thread diffs
         self._generate_thread_diffs()
 
+        if (self.snapshot1._process_name == self.snapshot2._process_name) and (
+            self.snapshot1.aslr_enabled or self.snapshot2.aslr_enabled
+        ):
+            liblog.warning("ASLR is enabled in either or both snapshots. Diff may be messy.")
+
     def _generate_thread_diffs(self: ProcessSnapshotDiff) -> None:
-        # Thread diffs
-        # - Born and dead threads are saved as snapshots
-        # - Threads that keep existing are saved as diffs and are accessed through the usual threads property
+        """Generates thread diffs between the two snapshots.
+
+        Thread diffs
+         - Born and dead threads are saved as snapshots
+         - Threads that keep existing are saved as diffs and are accessed through the usual threads property
+        """
         self.born_threads = []
         self.dead_threads = []
         self.threads_diff = []
 
-        for t1 in self.snapshot1.threads:
-            t2 = None
+        snapshot1_by_tid = {thread.tid: thread for thread in self.snapshot1.threads}
+        snapshot2_by_tid = {thread.tid: thread for thread in self.snapshot2.threads}
 
-            for candidate in self.snapshot2.threads:
-                if t1.tid == candidate.tid:
-                    t2 = candidate
-                    break
-
+        for tid, t1 in snapshot1_by_tid.items():
+            t2 = snapshot2_by_tid.get(tid)
             if t2 is None:
-                # Append thread snapshot to dead threads
                 self.dead_threads.append(t1)
             else:
                 diff = LightweightThreadSnapshotDiff(t1, t2, self)
                 self.threads_diff.append(diff)
 
-        for t2 in self.snapshot2.threads:
-            t1 = None
-
-            for candidate in self.snapshot1.threads:
-                if t2.tid == candidate.tid:
-                    t1 = candidate
-                    break
-
-            if t1 is None:
+        for tid, t2 in snapshot2_by_tid.items():
+            if tid not in snapshot1_by_tid:
                 self.born_threads.append(t2)

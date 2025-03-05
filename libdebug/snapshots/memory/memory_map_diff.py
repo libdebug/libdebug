@@ -10,17 +10,17 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from libdebug.snapshots.memory.memory_map_snapshot import SnapshotMemoryMap
+    from libdebug.snapshots.memory.memory_map_snapshot import MemoryMapSnapshot
 
 
 @dataclass
 class MemoryMapDiff:
     """This object represents a diff between memory contents in a memory map."""
 
-    old_map_state: SnapshotMemoryMap
+    old_map_state: MemoryMapSnapshot
     """The old state of the memory map."""
 
-    new_map_state: SnapshotMemoryMap
+    new_map_state: MemoryMapSnapshot
     """The new state of the memory map."""
 
     has_changed: bool
@@ -32,9 +32,6 @@ class MemoryMapDiff:
     @property
     def content_diff(self: MemoryMapDiff) -> list[slice]:
         """Resolve the content diffs of a memory map between two snapshots.
-
-        Args:
-            vmap (MemoryMapDiff): The memory map diff to resolve.
 
         Returns:
             list[slice]: The list of slices representing the relative positions of diverging content.
@@ -61,7 +58,7 @@ class MemoryMapDiff:
         # Find all the slices
         cursor = 0
         while cursor < work_len:
-            # Find the first non-zero byte
+            # Find the first differing byte of the sequence
             if old_content[cursor] == new_content[cursor]:
                 cursor += 1
                 continue

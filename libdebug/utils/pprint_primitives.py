@@ -1,8 +1,10 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Gabriele Digregorio, Francesco Panebianco. All rights reserved.
+# Copyright (c) 2024 Gabriele Digregorio, Francesco Panebianco, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
+
+import re
 
 from libdebug.data.memory_map_list import MemoryMapList
 from libdebug.data.registers import Registers
@@ -37,28 +39,41 @@ def pprint_maps_util(maps: MemoryMapList | MemoryMapSnapshotList) -> None:
             print(info)
 
 
+def get_colored_saved_address_util(
+    return_address: int,
+    maps: MemoryMapList | MemoryMapSnapshotList,
+    external_symbols: SymbolList = None,
+) -> str:
+    """Pretty prints a return address for backtrace pprint."""
+    filtered_maps = maps.filter(return_address)
+
+    return_address_symbol = resolve_symbol_name_in_maps_util(return_address, external_symbols)
+
+    permissions = filtered_maps[0].permissions
+    if "rwx" in permissions:
+        style = f"{ANSIColors.UNDERLINE}{ANSIColors.RED}"
+    elif "x" in permissions:
+        style = f"{ANSIColors.RED}"
+    elif "w" in permissions:
+        # This should not happen, but it's here for completeness
+        style = f"{ANSIColors.YELLOW}"
+    elif "r" in permissions:
+        # This should not happen, but it's here for completeness
+        style = f"{ANSIColors.GREEN}"
+    if return_address_symbol[:2] == "0x":
+        return f"{style}{return_address:#x} {ANSIColors.RESET}"
+    else:
+        return f"{style}{return_address:#x} <{return_address_symbol}> {ANSIColors.RESET}"
+
+
 def pprint_backtrace_util(
-    backtrace: list, maps: MemoryMapList | MemoryMapSnapshotList, external_symbols: SymbolList = None
+    backtrace: list,
+    maps: MemoryMapList | MemoryMapSnapshotList,
+    external_symbols: SymbolList = None,
 ) -> None:
     """Pretty prints the current backtrace of the thread."""
     for return_address in backtrace:
-        filtered_maps = maps.filter(return_address)
-        return_address_symbol = resolve_symbol_name_in_maps_util(return_address, filtered_maps, external_symbols)
-        permissions = filtered_maps[0].permissions
-        if "rwx" in permissions:
-            style = f"{ANSIColors.UNDERLINE}{ANSIColors.RED}"
-        elif "x" in permissions:
-            style = f"{ANSIColors.RED}"
-        elif "w" in permissions:
-            # This should not happen, but it's here for completeness
-            style = f"{ANSIColors.YELLOW}"
-        elif "r" in permissions:
-            # This should not happen, but it's here for completeness
-            style = f"{ANSIColors.GREEN}"
-        if return_address_symbol[:2] == "0x":
-            print(f"{style}{return_address:#x} {ANSIColors.RESET}")
-        else:
-            print(f"{style}{return_address:#x} <{return_address_symbol}> {ANSIColors.RESET}")
+        print(get_colored_saved_address_util(return_address, maps, external_symbols))
 
 
 def _pprint_reg(registers: Registers, maps: MemoryMapList, register: str) -> None:
@@ -199,6 +214,7 @@ def pprint_diff_substring(content: str, start: int, end: int) -> None:
 
     print(f"{content[:start]}{color}{content[start:end]}{ANSIColors.RESET}{content[end:]}")
 
+
 def pprint_memory_util(
     address_start: int,
     extract: bytes,
@@ -225,6 +241,7 @@ def pprint_memory_util(
 
         # Print the memory diff with the address for this word
         print(f"{current_address_str}:  {out}")
+
 
 def pprint_memory_diff_util(
     address_start: int,
@@ -275,5 +292,35 @@ def pprint_memory_diff_util(
 def pprint_inline_diff(content: str, start: int, end: int, correction: str) -> None:
     """Prints a diff with inline changes."""
     print(
-        f"{content[:start]}{ANSIColors.RED}{ANSIColors.STRIKE}{content[start:end]}{ANSIColors.RESET}{ANSIColors.GREEN}{correction}{ANSIColors.RESET}{content[start:]}"
+        f"{content[:start]}{ANSIColors.RED}{ANSIColors.STRIKE}{content[start:end]}{ANSIColors.RESET} {ANSIColors.GREEN}{correction}{ANSIColors.RESET}{content[end:]}"
     )
+
+
+def strip_ansi_codes(string: str) -> str:
+    """Strips ANSI escape codes from a string.
+
+    Args:
+        string (str): The string to strip.
+
+    Returns:
+        str: The string without the ANSI escape codes.
+    """
+    ansi_escape = re.compile(r"\x1B[@-_][0-?]*[ -/]*[@-~]")
+    return ansi_escape.sub("", string)
+
+
+def pad_colored_string(string: str, length: int) -> str:
+    """Pads a colored string with spaces to the specified length.
+
+    Args:
+        string (str): The string to pad.
+        length (int): The desired length of the string.
+
+    Returns:
+        str: The padded string.
+    """
+    stripped_string = strip_ansi_codes(string)
+    padding_length = length - len(stripped_string)
+    if padding_length > 0:
+        return string + " " * padding_length
+    return string

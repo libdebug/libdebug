@@ -152,6 +152,7 @@ Pretty printing utilities of snapshots are "mirrors" of pretty pretting function
 | `level` | `str` | All | The snapshot level. | |
 | `maps` | [`MemoryMapSnapshotList`](../../from_pydoc/generated/snapshots/memory/memory_map_snapshot_list) | All | The memory maps of the process. Each map will also have the contents of the memory map under the appropriate snapshot level. | |
 | `memory` | [`SnapshotMemoryView`](../../from_pydoc/generated/snapshots/memory/snapshot_memory_view) | `writable` / `full` | Interface to the memory of the process. | `mem` |
+| `aslr_enabled` | `bool` | All | Whether ASLR was enabled at the time of the snapshot. | |
 | **Thread Snapshot** |
 | `thread_id` | `int` | All | The ID of the thread the snapshot was taken from. | `tid` |
 | `regs` | [`SnapshotRegisters`](../../from_pydoc/generated/snapshots/registers/snapshot_registers) | All | The register values of the thread. | `registers` |
