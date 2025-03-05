@@ -15,7 +15,7 @@ from libdebug.snapshots.memory.memory_map_diff_list import MemoryMapDiffList
 from libdebug.snapshots.registers.register_diff import RegisterDiff
 from libdebug.snapshots.registers.register_diff_accessor import RegisterDiffAccessor
 from libdebug.utils.libcontext import libcontext
-from libdebug.utils.platform_utils import get_platform_register_size
+from libdebug.utils.platform_utils import get_platform_gp_register_size
 from libdebug.utils.pprint_primitives import (
     get_colored_saved_address_util,
     pad_colored_string,
@@ -224,7 +224,7 @@ class Diff:
             end = tmp
 
         word_size = (
-            get_platform_register_size(self.snapshot1.arch) if override_word_size is None else override_word_size
+            get_platform_gp_register_size(self.snapshot1.arch) if override_word_size is None else override_word_size
         )
 
         extract_before = self.snapshot1.memory[start:end, file]

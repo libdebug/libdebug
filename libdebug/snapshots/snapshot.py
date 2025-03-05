@@ -20,7 +20,7 @@ from libdebug.liblog import liblog
 from libdebug.snapshots.memory.memory_map_snapshot import MemoryMapSnapshot
 from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
 from libdebug.snapshots.registers.snapshot_registers import SnapshotRegisters
-from libdebug.utils.platform_utils import get_platform_register_size
+from libdebug.utils.platform_utils import get_platform_gp_register_size
 from libdebug.utils.pprint_primitives import (
     pprint_backtrace_util,
     pprint_maps_util,
@@ -186,7 +186,7 @@ class Snapshot:
             end = tmp
 
         word_size = (
-            get_platform_register_size(self.arch) if override_word_size is None else override_word_size
+            get_platform_gp_register_size(self.arch) if override_word_size is None else override_word_size
         )
 
         file_info = f" (file: {file})" if file not in ("absolute", "hybrid") else ""
