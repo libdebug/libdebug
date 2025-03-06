@@ -37,6 +37,7 @@ from libdebug.debugger.debugger import Debugger
 from libdebug.debugger.internal_debugger_instance_manager import (
     extend_internal_debugger,
     link_to_internal_debugger,
+    remove_internal_debugger_refs,
 )
 from libdebug.interfaces.interface_helper import provide_debugging_interface
 from libdebug.liblog import liblog
@@ -454,6 +455,13 @@ class InternalDebugger:
             self.__polling_thread.join()
             del self.__polling_thread
             self.__polling_thread = None
+
+        # Remove elemement from internal_debugger_holder to avoid memleaks
+        remove_internal_debugger_refs(self)
+
+        # Clean up the register accessors
+        for thread in self.threads:
+            thread._register_holder.cleanup()
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
@@ -1101,6 +1109,9 @@ class InternalDebugger:
         self.__threaded_step(thread)
         self.__threaded_wait()
 
+        # At this point, we need to continue the execution of the callback from which the step was called
+        self.resume_context.resume = True
+
     @background_alias(_background_step)
     @change_state_function_thread
     def step(self: InternalDebugger, thread: ThreadContext) -> None:
@@ -1135,6 +1146,9 @@ class InternalDebugger:
             address = self.resolve_address(position, file)
 
         self.__threaded_step_until(thread, address, max_steps)
+
+        # At this point, we need to continue the execution of the callback from which the step was called
+        self.resume_context.resume = True
 
     @background_alias(_background_step_until)
     @change_state_function_thread
@@ -1185,6 +1199,9 @@ class InternalDebugger:
         """
         self.__threaded_finish(thread, heuristic)
 
+        # At this point, we need to continue the execution of the callback from which the step was called
+        self.resume_context.resume = True
+
     @background_alias(_background_finish)
     @change_state_function_thread
     def finish(self: InternalDebugger, thread: ThreadContext, heuristic: str = "backtrace") -> None:
@@ -1210,6 +1227,9 @@ class InternalDebugger:
     ) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self.__threaded_next(thread)
+        
+        # At this point, we need to continue the execution of the callback from which the step was called
+        self.resume_context.resume = True
 
     @background_alias(_background_next)
     @change_state_function_thread
