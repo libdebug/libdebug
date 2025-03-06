@@ -131,9 +131,6 @@ class SnapshotsTest(TestCase):
         for i, spc in enumerate(current_backtrace):
             self.assertEqual(spc, saved_backtrace[i])
 
-        # Try saving
-        save_path = "/tmp/libdebug-tests/snapshots/writable1.json"
-
         with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp_file:
             save_path = tmp_file.name
 
@@ -231,9 +228,6 @@ class SnapshotsTest(TestCase):
 
         for i, spc in enumerate(current_backtrace):
             self.assertEqual(spc, saved_backtrace[i])
-
-        # Try saving
-        save_path = "/tmp/libdebug-tests/snapshots/full1.json"
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp_file:
             save_path = tmp_file.name
