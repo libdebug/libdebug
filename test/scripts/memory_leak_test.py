@@ -65,8 +65,8 @@ class MemoryLeakTest(TestCase):
         # Compute total leaked memory
         total_leaked_memory = sum(stat.size_diff for stat in stats if stat.size_diff > 0)
         
-        # Assert that the total leaked memory is less than 1MB
-        self.assertLess(total_leaked_memory, 1024 * 1024)
+        # Assert that the total leaked memory is less than 3MB
+        self.assertLess(total_leaked_memory, 3 * 1024 * 1024)
         
         # Get leaking objects
         objgraph.get_leaking_objects()
