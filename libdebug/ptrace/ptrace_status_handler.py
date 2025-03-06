@@ -107,7 +107,6 @@ class PtraceStatusHandler:
             bp = self.ptrace_interface.get_hit_watchpoint(thread_id)
             if bp:
                 liblog.debugger("Watchpoint hit at 0x%x", bp.address)
-
         if bp:
             self.internal_debugger.resume_context.event_hit_ref[thread_id] = bp
             self.internal_debugger.resume_context.event_type[thread_id] = EventType.BREAKPOINT
