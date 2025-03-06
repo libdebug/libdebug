@@ -53,7 +53,7 @@ When `blocking` is set to `False`, the `gdb()` method will return a [GdbResumeEv
     with open("dump.bin", "r") as f:
         pipe.send(f.read())
 
-    gdb_event.join() # (1)
+    gdb_event.join() # (1)!
 
     ```
     

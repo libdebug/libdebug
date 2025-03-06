@@ -9,7 +9,7 @@ Welcome to **libdebug**! When writing a script to debug a program, the first ste
 ```python
 from libdebug import debugger
 
-debugger = debugger(argv=["./program", "arg1", "arg2"]) # (1)
+debugger = debugger(argv=["./program", "arg1", "arg2"]) # (1)!
 ```
 
 1. `argv` can either be a string (the name/path of the executable) or an array corresponding to the argument vector of the execution.

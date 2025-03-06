@@ -35,12 +35,12 @@ d.breakpoint("func")
 
 d.cont()
 
-print(f"RAX: {hex(d.regs.rax)}") # (1)
+print(f"RAX: {hex(d.regs.rax)}") # (1)!
 
 d.cont()
-d.interrupt() # (2)
+d.interrupt() # (2)!
 
-print(f"RAX: {hex(d.regs.rax)}") # (3)
+print(f"RAX: {hex(d.regs.rax)}") # (3)!
 
 d.cont()
 
@@ -64,11 +64,11 @@ d.breakpoint("func")
 d.cont()
 d.wait()
 
-print(f"RAX: {hex(d.regs.rax)}") # (1)
+print(f"RAX: {hex(d.regs.rax)}") # (1)!
 
 d.cont()
 
-print(f"RAX: {hex(d.regs.rax)}") # (2)
+print(f"RAX: {hex(d.regs.rax)}") # (2)!
 
 d.cont()
 

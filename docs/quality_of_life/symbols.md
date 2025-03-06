@@ -11,9 +11,9 @@ You can list all resolved symbols in the binary and shared libraries using the `
 This object grants the user hybrid access to the symbols: as a dict or as a list. Tor example, the following lines of code all have a valid syntax:
 
 ```python
-d.symbols['printf'] #(1)
-d.symbols[0] #(2)
-d.symbols['printf'][0] #(3)
+d.symbols['printf'] #(1)!
+d.symbols[0] #(2)!
+d.symbols['printf'][0] #(3)!
 ```
 
 1. Returns a list of symbols that match the string `printf` exactly.

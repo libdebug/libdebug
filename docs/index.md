@@ -72,18 +72,18 @@ Now that you have **libdebug** installed, you can start using it in your scripts
 ```python title="libdebug's Hello World!"
 from libdebug import debugger
 
-d = debugger("./test") # (1)
+d = debugger("./test") # (1)!
 
 # Start debugging from the entry point
-d.run() # (2)
+d.run() # (2)!
 
-my_breakpoint = d.breakpoint("function") # (3)
+my_breakpoint = d.breakpoint("function") # (3)!
 
 # Continue the execution until the breakpoint is hit
-d.cont() # (4)
+d.cont() # (4)!
 
 # Print RAX
-print(f"RAX is {hex(d.regs.rax)}") # (5)
+print(f"RAX is {hex(d.regs.rax)}") # (5)!
 ```
 
 1. A debugger is created for the `test` executable

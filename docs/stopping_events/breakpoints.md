@@ -68,13 +68,13 @@ The `breakpoint()` function in the [Debugger](../../from_pydoc/generated/debugge
 
     d.run()
 
-    bp = d.breakpoint(0x10ab, file="binary") # (1)
-    bp1 = d.breakpoint("main", file="binary") # (3)
-    bp2 = d.breakpoint("printf", file="libc") # (4)
+    bp = d.breakpoint(0x10ab, file="binary") # (1)!
+    bp1 = d.breakpoint("main", file="binary") # (3)!
+    bp2 = d.breakpoint("printf", file="libc") # (4)!
 
     d.cont()
 
-    print(f"RAX: {d.regs.rax} at the breakpoint") # (2)
+    print(f"RAX: {d.regs.rax} at the breakpoint") # (2)!
     if bp.hit_on(d):
         print("Breakpoint at 0x10ab was hit")
     elif bp1.hit_on(d):
