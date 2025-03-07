@@ -42,29 +42,39 @@ class SnapshotMemoryView(AbstractMemoryView):
 
         start_index = 0
         start_map = None
+        has_failed = True
 
         # Find the start map index
         while start_index < len(snapshot_maps):
             start_map = snapshot_maps[start_index]
 
-            if start_map.start <= address < start_map.end:
+            if address < start_map.start:
+                break
+            elif start_map.start <= address < start_map.end:
+                has_failed = False
                 break
             start_index += 1
 
-        if start_index == len(snapshot_maps) and start_map.end <= address:
+        if has_failed:
             raise ValueError("No mapped memory at the specified start address.")
 
         end_index = start_index
+        end_address = address + size - 1
         end_map = None
+        has_failed = True
 
         # Find the end map index
         while end_index < len(snapshot_maps):
             end_map = snapshot_maps[end_index]
-            if end_map.start <= address + size - 1 < end_map.end:
+
+            if end_address < end_map.start:
+                break
+            elif end_map.start <= end_address < end_map.end:
+                has_failed = False
                 break
             end_index += 1
 
-        if end_index == len(snapshot_maps) and end_map.end <= address + end_map.size - 1:
+        if has_failed:
             raise ValueError("No mapped memory at the specified address.")
 
         target_maps = self._snap_ref.maps[start_index:end_index + 1]
