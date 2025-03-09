@@ -25,7 +25,7 @@ class SymbolTest(TestCase):
         d.kill()
         d.terminate()
         
-    def test_symbols_access(self):
+    def test_symbols_access_slices(self):
         d = debugger(RESOLVE_EXE("breakpoint_test"))
 
         d.run()
