@@ -24,3 +24,19 @@ class SymbolTest(TestCase):
 
         d.kill()
         d.terminate()
+        
+    def test_symbols_access(self):
+        d = debugger(RESOLVE_EXE("breakpoint_test"))
+
+        d.run()
+        
+        # Test the __getitem__ method
+        d.symbols["random_function"][0]
+        d.symbols["random_function"][:1]
+        d.symbols["random_function"][1:]
+        d.symbols["random_function"][0:1]
+        d.symbols["random_function"][:]
+        d.symbols["random_function"][-1]
+
+        d.kill()
+        d.terminate()

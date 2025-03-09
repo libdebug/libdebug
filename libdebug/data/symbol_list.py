@@ -90,7 +90,7 @@ class SymbolList(list):
         Returns:
             Symbol | SymbolList[Symbol]: The symbol at the specified index, or the SymbolList of symbols with the specified name.
         """
-        if isinstance(key, int):
+        if not isinstance(key, str):
             return super().__getitem__(key)
 
         symbols = [symbol for symbol in self if symbol.name == key]
