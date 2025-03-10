@@ -513,12 +513,14 @@ class InternalDebugger:
         self._join_and_check_status()
 
     @property
+    @change_state_function_process
     def maps(self: InternalDebugger) -> MemoryMapList[MemoryMap]:
         """Returns the memory maps of the process."""
         self._ensure_process_stopped()
         return self.debugging_interface.get_maps()
 
     @property
+    @change_state_function_process
     def memory(self: InternalDebugger) -> AbstractMemoryView:
         """The memory view of the debugged process."""
         return self._fast_memory if self.fast_memory else self._slow_memory
@@ -550,9 +552,7 @@ class InternalDebugger:
             start = end
             end = tmp
 
-        word_size = (
-            get_platform_gp_register_size(self.arch) if override_word_size is None else override_word_size
-        )
+        word_size = get_platform_gp_register_size(self.arch) if override_word_size is None else override_word_size
 
         extract = self.memory[start:end, file]
 
@@ -669,7 +669,9 @@ class InternalDebugger:
                     f"Cannot catch SIGSTOP ({signal_number}) as it is used by the debugger or ptrace for their internal operations.",
                 )
             case SIGTRAP.value:
-                liblog.warning(f"Catching SIGTRAP ({signal_number}) may interfere with libdebug operations as it is used by the debugger or ptrace for their internal operations. Use with care.")
+                liblog.warning(
+                    f"Catching SIGTRAP ({signal_number}) may interfere with libdebug operations as it is used by the debugger or ptrace for their internal operations. Use with care."
+                )
 
         if signal_number in self.caught_signals:
             liblog.warning(
@@ -1227,7 +1229,7 @@ class InternalDebugger:
     ) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self.__threaded_next(thread)
-        
+
         # At this point, we need to continue the execution of the callback from which the step was called
         self.resume_context.resume = True
 
@@ -1390,6 +1392,7 @@ class InternalDebugger:
 
         return normalize_and_validate_address(address, filtered_maps)
 
+    @change_state_function_process
     def resolve_symbol(self: InternalDebugger, symbol: str, backing_file: str) -> int:
         """Resolves the address of the specified symbol.
 
@@ -1460,6 +1463,25 @@ class InternalDebugger:
         """Validates the state of the process."""
         if self._is_migrated_to_gdb:
             raise RuntimeError("Cannot execute this command after migrating to GDB.")
+
+        if not self.running:
+            return
+
+        if self.auto_interrupt_on_command:
+            self.interrupt()
+
+        self._join_and_check_status()
+
+    @background_alias(_background_ensure_process_stopped)
+    def _ensure_process_stopped_regs(self: InternalDebugger) -> None:
+        """Validates the state of the process. This is designed to be used by register-related commands."""
+        if self._is_migrated_to_gdb:
+            raise RuntimeError("Cannot execute this command after migrating to GDB.")
+
+        if not self.is_debugging and not self.threads[0].dead:
+            # The process is not being debugged, we cannot access registers
+            # We can still access registers if the process is dead to guarantee post-mortem analysis
+            raise RuntimeError("The process is not being debugged, cannot access registers. Check your script.")
 
         if not self.running:
             return
@@ -1808,6 +1830,7 @@ class InternalDebugger:
         """Set the state of the process to stopped."""
         self._is_running = False
 
+    @change_state_function_process
     def create_snapshot(self: Debugger, level: str = "base", name: str | None = None) -> ProcessSnapshot:
         """Create a snapshot of the current process state.
 
