@@ -59,8 +59,8 @@ from libdebug.utils.debugging_utils import (
 )
 from libdebug.utils.elf_utils import get_all_symbols
 from libdebug.utils.libcontext import libcontext
-from libdebug.utils.pprint_primitives import pprint_maps_util, pprint_memory_util
 from libdebug.utils.platform_utils import get_platform_gp_register_size
+from libdebug.utils.pprint_primitives import pprint_maps_util, pprint_memory_util
 from libdebug.utils.signal_utils import (
     resolve_signal_name,
     resolve_signal_number,
@@ -421,6 +421,8 @@ class InternalDebugger:
 
         self.instanced = False
         self.is_debugging = False
+
+        self.set_all_threads_as_dead()
 
         if self.pipe_manager:
             self.pipe_manager.close()
@@ -1331,6 +1333,11 @@ class InternalDebugger:
                 thread._exit_code = exit_code
                 thread._exit_signal = exit_signal
                 break
+
+    def set_all_threads_as_dead(self: InternalDebugger) -> None:
+        """Set all threads as dead."""
+        for thread in self.threads:
+            thread.set_as_dead()
 
     def get_thread_by_id(self: InternalDebugger, thread_id: int) -> ThreadContext:
         """Get a thread by its ID.
