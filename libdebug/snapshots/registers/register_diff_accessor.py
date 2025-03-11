@@ -46,7 +46,4 @@ class RegisterDiffAccessor:
                 # Align output for consistent spacing between old and new values
                 str_repr += f"{attr_name:<15} {old_value} {new_value}\n"
 
-        str_repr += "[...]\n"
-        str_repr += ")"
-
         return str_repr

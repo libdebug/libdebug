@@ -227,26 +227,28 @@ class Diff:
             get_platform_gp_register_size(self.snapshot1.arch) if override_word_size is None else override_word_size
         )
 
-        extract_before = self.snapshot1.memory[start:end, file]
-        extract_after = self.snapshot2.memory[start:end, file]
-
-        file_info = f" (file: {file})" if file not in ("absolute", "hybrid") else ""
-
-        print(f"Memory diff from {start:#x} to {end:#x}{file_info}:")
-
         # Resolve the address
         if file == "absolute":
             address_start = start
         elif file == "hybrid":
             try:
                 # Try to resolve the address as absolute
-                self.snapshot1.maps.filter(start)
+                self.snapshot1.memory[start, 1, "absolute"]
                 address_start = start
             except ValueError:
                 # If the address is not in the maps, we use the binary file
-                address_start = start + self.snapshot1.maps[0].base
+                address_start = start + self.snapshot1.maps.filter("binary")[0].start
+                file = "binary"
         else:
-            address_start = start + self.snapshot1.maps.filter(file)[0].base
+            map_file = self.snapshot1.maps.filter(file)[0]
+            address_start = start + map_file.base
+            file = map_file.backing_file if file != "binary" else "binary"
+
+        extract_before = self.snapshot1.memory[start:end, file]
+        extract_after = self.snapshot2.memory[start:end, file]
+
+        file_info = f" (file: {file})" if file not in ("absolute", "hybrid") else ""
+        print(f"Memory diff from {start:#x} to {end:#x}{file_info}:")
 
         pprint_memory_diff_util(
             address_start,
@@ -340,8 +342,6 @@ class Diff:
         # |__|__|__|
         # |__|__|__|
         # |__|__|__|
-
-        # You can reduce repeated calls and simplify logic:
         column1 = []
         column2 = []
         column3 = []

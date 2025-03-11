@@ -59,8 +59,8 @@ from libdebug.utils.debugging_utils import (
 )
 from libdebug.utils.elf_utils import get_all_symbols
 from libdebug.utils.libcontext import libcontext
-from libdebug.utils.pprint_primitives import pprint_maps_util, pprint_memory_util
 from libdebug.utils.platform_utils import get_platform_gp_register_size
+from libdebug.utils.pprint_primitives import pprint_maps_util, pprint_memory_util
 from libdebug.utils.signal_utils import (
     resolve_signal_name,
     resolve_signal_number,
@@ -550,15 +550,7 @@ class InternalDebugger:
             start = end
             end = tmp
 
-        word_size = (
-            get_platform_gp_register_size(self.arch) if override_word_size is None else override_word_size
-        )
-
-        extract = self.memory[start:end, file]
-
-        file_info = f" (file: {file})" if file not in ("absolute", "hybrid") else ""
-
-        print(f"Memory from {start:#x} to {end:#x}{file_info}:")
+        word_size = get_platform_gp_register_size(self.arch) if override_word_size is None else override_word_size
 
         # Resolve the address
         if file == "absolute":
@@ -566,13 +558,21 @@ class InternalDebugger:
         elif file == "hybrid":
             try:
                 # Try to resolve the address as absolute
-                self.maps.filter(start)
+                self.memory[start, 1, "absolute"]
                 address_start = start
             except ValueError:
                 # If the address is not in the maps, we use the binary file
                 address_start = start + self.maps.filter("binary")[0].start
+                file = "binary"
         else:
-            address_start = start + self.maps.filter(file)[0].base
+            map_file = self.maps.filter(file)[0]
+            address_start = start + map_file.base
+            file = map_file.backing_file if file != "binary" else "binary"
+
+        extract = self.memory[start:end, file]
+
+        file_info = f" (file: {file})" if file not in ("absolute", "hybrid") else ""
+        print(f"Memory from {start:#x} to {end:#x}{file_info}:")
 
         pprint_memory_util(
             address_start,
@@ -669,7 +669,9 @@ class InternalDebugger:
                     f"Cannot catch SIGSTOP ({signal_number}) as it is used by the debugger or ptrace for their internal operations.",
                 )
             case SIGTRAP.value:
-                liblog.warning(f"Catching SIGTRAP ({signal_number}) may interfere with libdebug operations as it is used by the debugger or ptrace for their internal operations. Use with care.")
+                liblog.warning(
+                    f"Catching SIGTRAP ({signal_number}) may interfere with libdebug operations as it is used by the debugger or ptrace for their internal operations. Use with care."
+                )
 
         if signal_number in self.caught_signals:
             liblog.warning(
@@ -1227,7 +1229,7 @@ class InternalDebugger:
     ) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self.__threaded_next(thread)
-        
+
         # At this point, we need to continue the execution of the callback from which the step was called
         self.resume_context.resume = True
 

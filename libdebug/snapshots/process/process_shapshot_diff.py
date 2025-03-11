@@ -42,11 +42,11 @@ class ProcessSnapshotDiff(Diff):
             liblog.warning("ASLR is enabled in either or both snapshots. Diff may be messy.")
 
     def _generate_thread_diffs(self: ProcessSnapshotDiff) -> None:
-        """Generates thread diffs between the two snapshots.
+        """Generates diffs between threads in the two compared snapshots.
 
-        Thread diffs
-         - Born and dead threads are saved as snapshots
-         - Threads that keep existing are saved as diffs and are accessed through the usual threads property
+        Thread differences:
+         - Born threads and dead threads are stored directly in separate lists (no state diff exists between the two).
+         - Threads that exist in both snapshots are stored as diffs and can be accessed through the threads_diff property.
         """
         self.born_threads = []
         self.dead_threads = []

@@ -28,7 +28,7 @@ class MemoryMapSnapshot(MemoryMap):
     content: bytes = None
     """The content of the memory map, used for snapshotted pages."""
 
-    def is_same_identity(self: MemoryMap, other: MemoryMap) -> bool:
+    def is_same_identity(self: MemoryMapSnapshot, other: MemoryMap) -> bool:
         """Check if the memory map corresponds to another memory map."""
         return self.start == other.start and self.backing_file == other.backing_file
 

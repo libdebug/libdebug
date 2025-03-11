@@ -180,41 +180,37 @@ class Snapshot:
             override_word_size (int, optional): The word size to use for the diff in place of the ISA word size. Defaults to None.
             integer_mode (bool, optional): If True, the diff will be printed as hex integers (system endianness applies). Defaults to False.
         """
+        if self.level == "base":
+            raise ValueError("Memory is not available at base level.")
+
         if start > end:
             tmp = start
             start = end
             end = tmp
 
-        word_size = (
-            get_platform_gp_register_size(self.arch) if override_word_size is None else override_word_size
-        )
-
-        file_info = f" (file: {file})" if file not in ("absolute", "hybrid") else ""
-
-        print(f"Memory from {start:#x} to {end:#x}{file_info}:")
-
-        is_absolute = True
+        word_size = get_platform_gp_register_size(self.arch) if override_word_size is None else override_word_size
 
         # Resolve the address
-        if file == "hybrid":
-            found_map = None
-
+        if file == "absolute":
+            address_start = start
+        elif file == "hybrid":
             try:
                 # Try to resolve the address as absolute
-                found_map = self.maps.filter(start)[0]
+                self.memory[start, 1, "absolute"]
                 address_start = start
             except ValueError:
                 # If the address is not in the maps, we use the binary file
-                is_absolute = False
-                address_start = start + self.maps[0].base
-
-            address_end = end if is_absolute else end + found_map.base
-            file = "absolute"
+                address_start = start + self.maps.filter("binary")[0].start
+                file = "binary"
         else:
-            address_start = start
-            address_end = end
+            map_file = self.maps.filter(file)[0]
+            address_start = start + map_file.base
+            file = map_file.backing_file if file != "binary" else "binary"
 
-        extract = self.memory[address_start:address_end, file]
+        extract = self.memory[start:end, file]
+
+        file_info = f" (file: {file})" if file not in ("absolute", "hybrid") else ""
+        print(f"Memory from {start:#x} to {end:#x}{file_info}:")
 
         pprint_memory_util(
             address_start,
