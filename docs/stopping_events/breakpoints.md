@@ -74,7 +74,7 @@ The `breakpoint()` function in the [Debugger](../../from_pydoc/generated/debugge
 
     d.cont()
 
-    print(f"RAX: {d.regs.rax} at the breakpoint") # (2)!
+    print(f"RAX: {d.regs.rax:#x} at the breakpoint") # (2)!
     if bp.hit_on(d):
         print("Breakpoint at 0x10ab was hit")
     elif bp1.hit_on(d):
@@ -109,7 +109,7 @@ If you wish to create an [asynchronous](../debugging_flow) breakpoint, you will 
 !!! ABSTRACT "Example usage of asynchronous breakpoints"
     ```python
     def on_breakpoint_hit(t, bp):
-        print(f"RAX: {t.regs.rax}")
+        print(f"RAX: {t.regs.rax:#x}")
 
         if bp.hit_count == 100:
             print("Hit count reached 100")

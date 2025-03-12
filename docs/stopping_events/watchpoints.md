@@ -73,7 +73,7 @@ If you wish to create an [asynchronous](../debugging_flow) watchpoint, you will 
 !!! ABSTRACT "Example usage of asynchronous watchpoints"
     ```python
     def on_watchpoint_hit(t, bp):
-        print(f"RAX: {t.regs.rax}")
+        print(f"RAX: {t.regs.rax:#x}")
 
         if bp.hit_count == 100:
             print("Hit count reached 100")
