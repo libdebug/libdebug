@@ -15,13 +15,14 @@ from libdebug.liblog import liblog
 if TYPE_CHECKING:
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.memory_map_list import MemoryMapList
+    from libdebug.snapshots.snapshot import Snapshot
     from libdebug.state.thread_context import ThreadContext
 
 
 class Amd64StackUnwinder(StackUnwindingManager):
     """Class that provides stack unwinding for the x86_64 architecture."""
 
-    def unwind(self: Amd64StackUnwinder, target: ThreadContext) -> list:
+    def unwind(self: Amd64StackUnwinder, target: ThreadContext | Snapshot) -> list:
         """Unwind the stack of a process.
 
         Args:
@@ -36,7 +37,8 @@ class Amd64StackUnwinder(StackUnwindingManager):
         current_rbp = target.regs.rbp
         stack_trace = [target.regs.rip]
 
-        vmaps = target._internal_debugger.debugging_interface.get_maps()
+        # Instead of isinstance, we check if the target has the maps attribute to avoid circular imports
+        vmaps = target.maps if hasattr(target, "maps") else target._internal_debugger.debugging_interface.get_maps()
 
         while current_rbp:
             try:
@@ -53,7 +55,7 @@ class Amd64StackUnwinder(StackUnwindingManager):
             except (OSError, ValueError):
                 break
 
-        # If we are in the prolouge of a function, we need to get the return address from the stack
+        # If we are in the prologue of a function, we need to get the return address from the stack
         # using a slightly more complex method
         try:
             first_return_address = self.get_return_address(target, vmaps)
@@ -70,7 +72,7 @@ class Amd64StackUnwinder(StackUnwindingManager):
 
         return stack_trace
 
-    def get_return_address(self: Amd64StackUnwinder, target: ThreadContext, vmaps: MemoryMapList[MemoryMap]) -> int:
+    def get_return_address(self: Amd64StackUnwinder, target: ThreadContext | Snapshot, vmaps: MemoryMapList[MemoryMap]) -> int:
         """Get the return address of the current function.
 
         Args:

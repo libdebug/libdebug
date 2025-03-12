@@ -25,7 +25,7 @@ To install **libdebug**, you first need to have some dependencies that will not 
 
 === ":material-ubuntu: Ubuntu"
     ```bash
-    sudo apt install -y python3 python3-dev libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg
+    sudo apt install -y python3 python3-dev g++ libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg
     ```
 
 === ":material-arch: Arch Linux"
@@ -35,12 +35,12 @@ To install **libdebug**, you first need to have some dependencies that will not 
 
 === ":material-fedora: Fedora"
     ```bash
-    sudo dnf install -y python3 python3-devel kernel-devel binutils-devel libdwarf-devel
+    sudo dnf install -y python3 python3-devel kernel-devel g++ binutils-devel libdwarf-devel
     ```
 
 === ":material-debian: Debian"
     ```bash
-    sudo apt install -y python3 python3-dev libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg
+    sudo apt install -y python3 python3-dev g++ libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg
     ```
 
 !!! QUESTION "Is your distro missing?"

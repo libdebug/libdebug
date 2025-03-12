@@ -4,7 +4,7 @@ search:
     boost: 4
 ---
 ## :material-alphabetical: Symbol Resolution
-As described in the [memory access](../../basics/memory_access/#absolute-and-relative-addressing) section, many functions in **libdebug** accept symbols as an alternative to actual addresses.
+As described in the [memory access](../../basics/memory_access/#absolute-and-relative-addressing) section, many functions in **libdebug** accept symbols as an alternative to actual addresses or offsets.
 
 You can list all resolved symbols in the binary and shared libraries using the `symbols` attribute of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object. This attribute returns a [SymbolList](../../from_pydoc/generated/data/symbol_list/) object.
 
@@ -65,14 +65,14 @@ The `symbols` attribute of the [Debugger](../../from_pydoc/generated/debugger/de
     d.symbols.filter(value: int | str) -> SymbolList[Symbol]
     ```
 
-Given a symbol name or address, this function returns a [SymbolList](../../from_pydoc/generated/data/symbol_list/). The list will conta
+Given a symbol name or address, this function returns a [SymbolList](../../from_pydoc/generated/data/symbol_list/). The list will contain all symbols that match the given value.
 
 [Symbol](../../from_pydoc/generated/data/symbol/) objects contain the following attributes:
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
-| `start`   | `int` | The start address of the symbol. |
-| `end`     | `int` | The end address of the symbol. |
+| `start`   | `int` | The start offset of the symbol. |
+| `end`     | `int` | The end offset of the symbol. |
 | `name`    | `str` | The name of the symbol. |
 | `backing_file` | `str` | The file where the symbol is defined (e.g., binary, libc, ld). |
 
