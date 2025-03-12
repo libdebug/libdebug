@@ -138,6 +138,11 @@ for thread in d.threads:
 ## :material-share: Shared and Unshared State
 Each thread has its own register set, stack, and instruction pointer. However, the virtual address space is shared among all threads. This means that threads can access the same memory and share the same code.
 
+!!! EXAMPLE "How to access TLS?"
+    While the virtual address space is shared between threads, each thread has its own [Thread Local Storage (TLS)](https://en.wikipedia.org/wiki/Thread-local_storage) area. As it stands, **libdebug** does not provide a direct interface to the TLS area.
+
+Let's see a couple of things to keep in mind when debugging multi-threaded applications with **libdebug**.
+
 ### :material-sign-caution: Software Breakpoints
 
 Software breakpoints are implemented through code patching in the process memory. This means that a breakpoint set in one thread will be replicated across all threads.
@@ -146,12 +151,22 @@ When using [synchronous](../../stopping_events/debugging_flow) breakpoints, you 
 
 !!! ABSTRACT "Diagnosing a Synchronous Breakpoint"
     ```python
-    for bp in d.breakpoints:
+    thread = d.threads[2]
+
+    for addr, bp in d.breakpoints.items():
         if bp.hit_on(thread):
-            print(f"Thread {thread.tid} hit breakpoint {bp.addr}")
+            print(f"Thread {thread.tid} hit breakpoint {addr:#x}")
     ```
 
 When using [asynchronous](../../stopping_events/debugging_flow) breakpoints, the breakpoint will be more intuitive to handle, as the signature of the [callback function](../../stopping_events/breakpoints#callback-signature) includes the [ThreadContext](../../from_pydoc/generated/state/thread_context/) object that triggered the breakpoint.
+
+!!! ABSTRACT "Handling an Asynchronous Breakpoint"
+    ```python
+    def on_breakpoint_hit(t, bp):
+        print(f"Thread {t.tid} hit breakpoint {bp.address:#x}")
+
+    d.breakpoint(0x10ab, callback=on_breakpoint_hit, file="binary")
+    ```
 
 ### :octicons-cpu-24: Hardware Breakpoints and Watchpoints
 While hardware breakpoints are thread-specific, **libdebug** mirrors them across all threads. This is done to avoid asymmetries with software breakpoints. Watchpoints are hardware breakpoints, so this applies to them as well.
@@ -162,8 +177,14 @@ For consistency, [syscall handlers](../../stopping_events/syscalls) are also ena
     When debugging entering and exiting events in syscalls, be mindful of the scheduling. The kernel may schedule a different thread to handle the syscall exit event right after the enter event of another thread.
 
 ### :material-traffic-light-outline: Signal Catching
+
+<div style="text-align: center;">
+    <img src="/assets/bus_diagram_light.png#only-light" loading="lazy" width="512" />
+    <img src="/assets/bus_diagram.png#only-dark" loading="lazy" width="512" />
+</div>
+
+<div style="text-align: center; font-size: 0.85rem;">
+Who will receive the signal?
+</div> 
+
 [Signal Catching](../../stopping_events/signals) is also shared among threads. Apart from consistency, this is a necessity. In fact, the kernel does not guarantee that a signal sent to a process will be dispatched to a specific thread. By contrast, when sending arbitrary signals through the [ThreadContext](../../from_pydoc/generated/state/thread_context/) object, the signal will be sent to the requested thread.
-
-
-!!! EXAMPLE "How to access TLS?"
-    While the virtual address space is shared between threads, each thread has its own [Thread Local Storage (TLS)](https://en.wikipedia.org/wiki/Thread-local_storage) area. As it stands, **libdebug** does not provide a direct interface to the TLS area.

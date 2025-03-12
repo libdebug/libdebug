@@ -99,6 +99,8 @@ markdown_extensions:
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
+  - pymdownx.arithmatex:
+      generic: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - attr_list
@@ -109,3 +111,7 @@ markdown_extensions:
 
 extra_css:
   - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
