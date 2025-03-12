@@ -44,6 +44,7 @@ def fast_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.WatchpointTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.FindPointersTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SymbolTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SnapshotsTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.MultiprocessingTest))
 
     return suite

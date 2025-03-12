@@ -25,6 +25,7 @@ from .register_test import RegisterTest
 from .run_pipes_test import RunPipesTest
 from .signal_catch_test import SignalCatchTest
 from .signal_multithread_test import SignalMultithreadTest
+from .snapshots_test import SnapshotsTest
 from .speed_test import SpeedTest
 from .syscall_handle_test import SyscallHandleTest
 from .syscall_hijack_test import SyscallHijackTest
@@ -33,8 +34,10 @@ from .vmwhere1_test import Vmwhere1Test
 from .watchpoint_test import WatchpointTest
 from .find_pointers_test import FindPointersTest
 from .symbol_test import SymbolTest
+from .snapshots_test import SnapshotsTest
 from .multiprocessing_test import MultiprocessingTest
 from .memory_leak_test import MemoryLeakTest
 
 
-__all__ = ["AliasTest", "AntidebugEscapingTest", "AttachDetachTest", "AutoWaitingTest", "BacktraceTest", "BreakpointTest", "BruteTest", "CallbackTest", "ControlFlowTest", "DeathTest", "DeepDiveDivisionTest", "FinishTest", "FloatingPointTest", "JumpoutTest", "JumpstartTest", "LargeBinarySymTest", "MemoryTest", "MemoryFastTest", "MultipleDebuggersTest", "NextTest", "NlinksTest", "PPrintSyscallsTest", "RegisterTest", "SignalCatchTest", "SignalMultithreadTest", "SpeedTest", "SyscallHandleTest", "SyscallHijackTest", "ThreadTest", "Vmwhere1Test", "WatchpointTest", "FindPointersTest", "SymbolTest", "MultiprocessingTest", "MemoryLeakTest"]
+__all__ = ["AliasTest", "AntidebugEscapingTest", "AttachDetachTest", "AutoWaitingTest", "BacktraceTest", "BreakpointTest", "BruteTest", "CallbackTest", "ControlFlowTest", "DeathTest", "DeepDiveDivisionTest", "FinishTest", "FloatingPointTest", "JumpoutTest", "JumpstartTest", "LargeBinarySymTest", "MemoryTest", "MemoryFastTest", "MultipleDebuggersTest", "NextTest", "NlinksTest", "PPrintSyscallsTest", "RegisterTest", "SignalCatchTest", "SignalMultithreadTest", "SpeedTest", "SyscallHandleTest", "SyscallHijackTest", "ThreadTest", "Vmwhere1Test", "WatchpointTest", "FindPointersTest", "SymbolTest", "SnapshotsTest", "MultiprocessingTest", "MemoryLeakTest"]
+

@@ -1,11 +1,12 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2023-2024 Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
 from libdebug.data.memory_map import MemoryMap
 from libdebug.data.memory_map_list import MemoryMapList
+from libdebug.data.symbol_list import SymbolList
 from libdebug.liblog import liblog
 from libdebug.utils.elf_utils import is_pie, resolve_address, resolve_symbol
 
@@ -113,3 +114,21 @@ def resolve_address_in_maps(address: int, maps: MemoryMapList[MemoryMap]) -> str
             pass
 
     return hex(address)
+
+
+def resolve_symbol_name_in_maps_util(
+    address: int,
+    external_symbols: SymbolList,
+) -> str:
+    """Resolves the address."""
+    if not external_symbols:
+        return f"{address:#x}"
+
+    matching_symbols = external_symbols._search_by_address(address)
+
+    if len(matching_symbols) == 0:
+        return f"{address:#x}"
+    elif len(matching_symbols) > 1:
+        liblog.warning(f"Multiple symbols found for address {address:#x}. Taking the first one.")
+
+    return matching_symbols[0].name

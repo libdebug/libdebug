@@ -15,13 +15,14 @@ from libdebug.liblog import liblog
 if TYPE_CHECKING:
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.memory_map_list import MemoryMapList
+    from libdebug.snapshots.snapshot import Snapshot
     from libdebug.state.thread_context import ThreadContext
 
 
 class Aarch64StackUnwinder(StackUnwindingManager):
     """Class that provides stack unwinding for the AArch64 architecture."""
 
-    def unwind(self: Aarch64StackUnwinder, target: ThreadContext) -> list:
+    def unwind(self: Aarch64StackUnwinder, target: ThreadContext | Snapshot) -> list:
         """Unwind the stack of a process.
 
         Args:
@@ -34,7 +35,9 @@ class Aarch64StackUnwinder(StackUnwindingManager):
 
         frame_pointer = target.regs.x29
 
-        vmaps = target._internal_debugger.debugging_interface.get_maps()
+        # Instead of isinstance, we check if the target has the maps attribute to avoid circular imports
+        vmaps = target.maps if hasattr(target, "maps") else target._internal_debugger.debugging_interface.get_maps()
+
         initial_link_register = None
 
         try:
@@ -70,7 +73,7 @@ class Aarch64StackUnwinder(StackUnwindingManager):
 
     def get_return_address(
         self: Aarch64StackUnwinder,
-        target: ThreadContext,
+        target: ThreadContext | Snapshot,
         vmaps: MemoryMapList[MemoryMap],
     ) -> int:
         """Get the return address of the current function.

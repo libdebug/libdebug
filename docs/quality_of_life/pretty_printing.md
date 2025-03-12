@@ -3,10 +3,10 @@ icon: material/flower-tulip-outline
 search:
     boost: 4
 ---
-## :material-flower-tulip-outline: Pretty Printing
+# :material-flower-tulip-outline: Pretty Printing
 **libdebug** offers utilities to visualize the process's state in a human-readable format and with color highlighting. This can be especially useful when debugging complex binaries or when you need to quickly understand the behavior of a program.
 
-### :material-hexadecimal: Registers Pretty Printing
+## :material-hexadecimal: Registers Pretty Printing
 There are two functions available to print the registers of a thread: `pprint_registers()` and `print_registers_all()`. The former will print the current values of the most commonly-interesting registers, while the latter will print all available registers.
 
 <img src="../../assets/pprint_regs.jpeg" alt="Pretty Printing Registers" width="100%"/>
@@ -15,7 +15,7 @@ There are two functions available to print the registers of a thread: `pprint_re
     If you don't like long function names, you can use aliases for the two register pretty print functions. The shorter aliases are `pprint_regs()` and `print_regs_all()`.
 
 
-### :fontawesome-solid-terminal: Syscall Trace Pretty Printing
+## :fontawesome-solid-terminal: Syscall Trace Pretty Printing
 When debugging a binary, it is often much faster to guess what the intended functionality is by looking at the syscalls that are being invoked. **libdebug** offers a function that will intercept any syscall and print its arguments and return value. This can be done by setting the property `pprint_syscalls = True` in the [Debugger](../../from_pydoc/generated/debugger/debugger) object or [ThreadContext](../../from_pydoc/generated/state/thread_context) object and resuming the process.
 
 !!! ABSTRACT "Syscall Trace PPrint Syntax"
@@ -37,7 +37,7 @@ The output will be printed to the console in color according to the following co
 
 <img src="../../assets/pprint_syscalls.jpeg" alt="Pretty Printing Syscalls" width="`100%"/>
 
-### :material-map-search: Memory Maps Pretty Printing
+## :material-map-search: Memory Maps Pretty Printing
 To pretty print the memory maps of a process, you can simply use the `pprint_maps()` function. This will print the memory maps of the process in a human-readable format, with color highlighting to distinguish between different memory regions.
 
 | Format | Description |
@@ -51,7 +51,42 @@ To pretty print the memory maps of a process, you can simply use the `pprint_map
 <img src="../../assets/pprint_maps.jpeg" alt="Pretty Printing Memory Maps" width="100%"/>
 
 
-### :octicons-stack-24: Stack Trace Pretty Printing
+## :octicons-stack-24: Stack Trace Pretty Printing
 To pretty print the stack trace ([backtrace](../stack_frame_utils)) of a process, you can use the `pprint_backtrace()` function. This will print the stack trace of the process in a human-readable format.
 
 <img src="../../assets/pprint_backtrace.jpeg" alt="Pretty Printing Stack Trace" width="100%"/>
+
+## :fontawesome-solid-memory: Memory Pretty Printing
+The `pprint_memory()` function will print the contents of the process memory within a certain range of addresses.
+
+!!! ABSTRACT "Function signature"
+    ```python
+    d.pprint_memory(
+        start: int,
+        end: int,
+        file: str = "hybrid",
+        override_word_size: int = None,
+        integer_mode: bool = False,
+    ) -> None:
+    ```
+
+| Parameter | Data Type | Description |
+| --------- | --------- | ----------- |
+| `start` | `int` | The start address of the memory range to print. |
+| `end` | `int` | The end address of the memory range to print. |
+| `file` | `str` (optional) | The file to use for the memory content. Defaults to `hybrid` mode (see [memory access](../../basics/memory_access/)). |
+| `override_word_size` | `int` (optional) | The word size to use to align memory contents. By default, it uses the ISA register size. |
+| `integer_mode` | `bool` (optional) | Whether to print the memory content in integer mode. Defaults to False |
+
+!!! TIP "Start after End"
+    For your convenience, if the `start` address is greater than the `end` address, the function will **swap** the values.
+
+Here is a visual example of the memory content pretty printing (with and without integer mode):
+
+=== "Integer mode disabled"
+
+    ![Memory Content Diff](../../assets/pprint_memory_base_debugger.jpeg)
+
+=== "Integer mode enabled"
+
+    ![Memory Content Diff Integer](../../assets/pprint_memory_endianness_debugger.jpeg)
