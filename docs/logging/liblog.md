@@ -28,7 +28,7 @@ The `debugger` option displays all logs related to the debugging operations perf
 ### :material-pipe: Pipe Logging
 The `pipe` option, on the other hand, displays all logs related to interactions with the process pipe: bytes received and bytes sent.
  
-<img src="../../assets/pipe_logging.jpeg" alt="pipe argv option" />
+<img src="/assets/pipe_logging.jpeg" alt="pipe argv option" />
 
 ### :material-vector-union: The best of both worlds
 The `dbg` option is the combination of the `pipe` and `debugger` options. It displays all logs related to the debugging operations performed on the process by libdebug, as well as interactions with the process pipe: bytes received and bytes sent.

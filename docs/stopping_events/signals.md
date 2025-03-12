@@ -41,7 +41,7 @@ The `catch_signal()` function in the [Debugger](../../from_pydoc/generated/debug
 | --- | --- | --- |
 | `SignalCatcher` | [SignalCatcher](../../from_pydoc/generated/data/signal_catcher) | The catcher object created. |
 
-### Callback Signature
+### :material-code-json: Callback Signature
 
 !!! ABSTRACT "Callback Signature"
     ```python

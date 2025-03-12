@@ -14,7 +14,7 @@ from libdebug import debugger
 d = debugger("program")
 d.run()
 
-d.breakpoint("func")
+d.breakpoint("func", file="binary")
 
 d.cont()
 
@@ -31,7 +31,7 @@ d = debugger("program")
 
 d.run()
 
-d.breakpoint("func")
+d.breakpoint("func", file="binary")
 
 d.cont()
 
@@ -59,7 +59,7 @@ d = debugger("program", auto_interrupt_on_command=True)
 
 d.run()
 
-d.breakpoint("func")
+d.breakpoint("func", file="binary")
 
 d.cont()
 d.wait()

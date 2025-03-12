@@ -65,7 +65,7 @@ The `handle_syscall()` function in the [Debugger](../../from_pydoc/generated/deb
 | --- | --- | --- |
 | `SyscallHandler` | [SyscallHandler](../../from_pydoc/generated/data/syscall_handler) | The handler object created. |
 
-### Callback Signature
+### :material-code-json: Callback Signature
 
 !!! ABSTRACT "Callback Signature"
     ```python

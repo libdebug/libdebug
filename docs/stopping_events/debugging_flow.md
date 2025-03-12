@@ -11,8 +11,8 @@ The flow of all stopping events is similar and adheres to a mostly uniform API s
 ---
 
 <figure markdown="span">
-  ![Syncronous and Asyncronous Flow](../../assets/sync_async.webp#only-light){ width="90%" }
-  ![Syncronous and Asyncronous Flow](../../assets/sync_async_dark.webp#only-dark){ width="90%" }
+  ![Syncronous and Asyncronous Flow](/assets/sync_async.webp#only-light){ width="90%" }
+  ![Syncronous and Asyncronous Flow](/assets/sync_async_dark.webp#only-dark){ width="90%" }
   <figcaption>Flowchart of different handling modes for stopping events</figcaption>
 </figure>
 
@@ -57,8 +57,8 @@ The `hit_on()` function is used to check if the stopping event was the cause of 
 Hijacking is a powerful feature that allows you to change the flow of the process when a stopping event is hit. It is available for both syscalls and signals, but currently not for other stopping events. When registering a hijack for a compatible stopping event, that execution flow will be replaced with another.
 
 <figure markdown="span">
-  ![Hijack of a Signal](../../assets/hijack.webp#only-light){ width="90%" }
-  ![Hijack of a Signal](../../assets/hijack-dark.webp#only-dark){ width="90%" }
+  ![Hijack of a Signal](/assets/hijack.webp#only-light){ width="90%" }
+  ![Hijack of a Signal](/assets/hijack-dark.webp#only-dark){ width="90%" }
   <figcaption>Example hijacking of a SIGALRM to a SIGUSR1</figcaption>
 </figure>
 
