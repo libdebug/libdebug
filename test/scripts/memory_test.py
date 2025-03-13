@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2023-2025 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -402,4 +402,27 @@ class MemoryTest(TestCase):
             assert (chr(i).encode("latin-1") * 16) in leaks
 
         d.kill()
+        d.terminate()
+        
+    def test_memory_debugger_status(self):
+        d = debugger(RESOLVE_EXE("basic_test"))
+        
+        with self.assertRaises(RuntimeError):
+            d.memory
+            
+        with self.assertRaises(RuntimeError):
+            d.mem
+
+        d.run()   
+        
+        d.memory
+             
+        d.detach()
+        
+        with self.assertRaises(RuntimeError):
+            d.memory
+            
+        with self.assertRaises(RuntimeError):
+            d.mem
+        
         d.terminate()
