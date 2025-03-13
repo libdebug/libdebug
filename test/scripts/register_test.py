@@ -11,6 +11,16 @@ from utils.binary_utils import PLATFORM, RESOLVE_EXE
 
 from libdebug import debugger
 
+match PLATFORM:
+    case "amd64":
+        REGISTER_ACCESS = "rip"
+    case "aarch64":
+        REGISTER_ACCESS = "pc"
+    case "i386":
+        REGISTER_ACCESS = "eip"
+    case _:
+        raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
+
 class RegisterTest(TestCase):
     @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_registers_amd64(self):
@@ -798,7 +808,7 @@ class RegisterTest(TestCase):
             d.regs
             
         with self.assertRaises(RuntimeError):
-            registers.rip
+            registers.__getattribute__(REGISTER_ACCESS)
         
         d.terminate()
         
