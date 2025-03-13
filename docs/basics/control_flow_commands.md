@@ -21,7 +21,7 @@ The `step()` command executes the instruction at the instruction pointer and sto
 ### :material-debug-step-over: Next
 The `next()` command executes the current instruction at the instruction pointer and stops the process. If the instruction is a function call, it will execute the whole function and stop at the instruction following the call. In other debuggers, this command is known as "step over".
 
-Please note that the `next()` command resumes the execution of the program if the instruction is a function call. This means that the debugger can encounter [stopping events](../../stopping_events/stopping_events) in the middle of the function, causing the command to return before the function finishes.
+Please note that the `next()` command resumes the execution of the program if the instruction is a function call. This means that the debugger can encounter [stopping events](/stopping_events/stopping_events) in the middle of the function, causing the command to return before the function finishes.
 
 !!! ABSTRACT "Function Signature"
     ```python
@@ -40,7 +40,7 @@ The `step_until()` command executes single steps until a specific address is rea
     d.step_until(position, max_steps=-1, file='hybrid') 
     ```
 
-The file parameter can be used to specify the choice on relative addressing. Refer to the [memory access](../memory_access/#absolute-and-relative-addressing) section for more information on addressing modes.
+The file parameter can be used to specify the choice on relative addressing. Refer to the [memory access](/basics/memory_access/#absolute-and-relative-addressing) section for more information on addressing modes.
 
 ## :material-step-forward: Continuing
 
@@ -68,7 +68,7 @@ The `cont()` command continues the execution.
 
 ### :material-clock-alert-outline: The `wait()` Method
 
-The `wait()` command is likely the most important in **libdebug**. Loved by most and hated by many, it instructs the debugger to wait for a [stopping event](../../stopping_events/stopping_events) before continuing with the execution of the script.
+The `wait()` command is likely the most important in **libdebug**. Loved by most and hated by many, it instructs the debugger to wait for a [stopping event](/stopping_events/stopping_events) before continuing with the execution of the script.
 
 !!! ABSTRACT "Example"
     In the following script, **libdebug** will wait for the process to stop before printing "provola".

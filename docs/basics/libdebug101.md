@@ -4,7 +4,7 @@ search:
     boost: 4
 ---
 # :material-school-outline: **libdebug** 101
-Welcome to **libdebug**! When writing a script to debug a program, the first step is to create a [Debugger](../../from_pydoc/generated/debugger/debugger/) object. This object will be your main interface for debugging commands.
+Welcome to **libdebug**! When writing a script to debug a program, the first step is to create a [Debugger](/from_pydoc/generated/debugger/debugger/) object. This object will be your main interface for debugging commands.
 
 ```python
 from libdebug import debugger
@@ -15,11 +15,11 @@ debugger = debugger(argv=["./program", "arg1", "arg2"]) # (1)!
 1. `argv` can either be a string (the name/path of the executable) or an array corresponding to the argument vector of the execution.
 
 !!! INFO "Am I already debugging?"
-    Creating a [Debugger](../../from_pydoc/generated/debugger/debugger/) object will not start the execution automatically. You can reuse the same debugger to iteratively run multiple instances of the program. This is particularly useful for smart bruteforcing or fuzzing scripts.
+    Creating a [Debugger](/from_pydoc/generated/debugger/debugger/) object will not start the execution automatically. You can reuse the same debugger to iteratively run multiple instances of the program. This is particularly useful for smart bruteforcing or fuzzing scripts.
 
     Performing debugger initialization each time is not required and can be expensive.
 
-    To run the executable, refer to [Running an Executable](../running_an_executable)
+    To run the executable, refer to [Running an Executable](/basics/running_an_executable)
 
 ### :material-tree: Environment
 Just as you would expect, you can also pass environment variables to the program using the `env` parameter. Here, the variables are passed as a string-string dictionary.
@@ -59,7 +59,7 @@ debugger = debugger("test", continue_to_binary_entrypoint=False)
     Please note that this feature assumes the binary is well-formed. If the ELF header is corrupt, the binary entrypoint will not be resolved correctly. As such, setting this parameter to `False` is a good practice when you don't want **libdebug** to rely on this information.
 
 ### :material-chat-question: What else can I do?
-The [Debugger](../../from_pydoc/generated/debugger/debugger/) object has many more parameters it can take.
+The [Debugger](/from_pydoc/generated/debugger/debugger/) object has many more parameters it can take.
 !!! ABSTRACT "Function Signature"
     ```python
     debugger(
@@ -80,11 +80,11 @@ The [Debugger](../../from_pydoc/generated/debugger/debugger/) object has many mo
 | `argv` | `str` \| `list[str]` | Path to the binary or argv list |
 | `aslr` | `bool` | Whether to enable ASLR. Defaults to True. |
 | `env` | `dict[str, str]` | The environment variables to use. Defaults to the same environment of the parent process. |
-| `escape_antidebug` | `bool` | Whether to [automatically attempt to patch antidebugger detectors](../../quality_of_life/anti_debugging) based on `ptrace`. |
+| `escape_antidebug` | `bool` | Whether to [automatically attempt to patch antidebugger detectors](/quality_of_life/anti_debugging) based on `ptrace`. |
 | `continue_to_binary_entrypoint` | `bool` | Whether to automatically continue to the binary entrypoint. |
-| `auto_interrupt_on_command` | `bool` | Whether to run **libdebug** in [ASAP Mode](../command_queue). |
-| `fast_memory` | `bool` | Whether to use a [faster memory reading method](../memory_access#faster-memory-access). Defaults to False. |
-| `kill_on_exit` | `bool` | Whether to [kill the debugged process when the debugger exits](../kill_and_post_mortem). Defaults to True. |
+| `auto_interrupt_on_command` | `bool` | Whether to run **libdebug** in [ASAP Mode](/basics/command_queue). |
+| `fast_memory` | `bool` | Whether to use a [faster memory reading method](/basics/memory_access#faster-memory-access). Defaults to False. |
+| `kill_on_exit` | `bool` | Whether to [kill the debugged process when the debugger exits](/basics/kill_and_post_mortem). Defaults to True. |
 | `follow_children` | `bool` | Whether to automatically monitor child processes. Defaults to True. |
 | **Return Value** |
-|[Debugger](../../from_pydoc/generated/debugger/debugger/) | `Debugger` | The debugger object |
+|[Debugger](/from_pydoc/generated/debugger/debugger/) | `Debugger` | The debugger object |

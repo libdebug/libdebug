@@ -29,10 +29,10 @@ When a **synchronous** event is hit, the process will stop, awaiting further com
 
 | Event Type | Description                          | Notes                                |
 |------------|--------------------------------------|--------------------------------------|
-| [Breakpoint](../breakpoints) | Stops the process when a certain address is executed | Can be a software or a hardware breakpoint    |
-| [Watchpoint](../watchpoints) | Stops the process when a memory area is read or written | Alias for a hardware breakpoint |
-| [Syscall](../syscalls)    | Stops the process when a syscall is made | Two events are supported: syscall start and end |
-| [Signal](../signals)     | Stops the process when a signal is received |  |
+| [Breakpoint](/stopping_events/breakpoints) | Stops the process when a certain address is executed | Can be a software or a hardware breakpoint    |
+| [Watchpoint](/stopping_events/watchpoints) | Stops the process when a memory area is read or written | Alias for a hardware breakpoint |
+| [Syscall](/stopping_events/syscalls)    | Stops the process when a syscall is made | Two events are supported: syscall start and end |
+| [Signal](/stopping_events/signals)     | Stops the process when a signal is received |  |
 
 !!! INFO "Multiple callbacks or hijacks"
   Please note that there can be at most **one** user-defined callback or hijack for each instance of a stopping event (the same syscall, signal or breakpoint address). If a new stopping event is defined for the same thing, the new stopping event will replace the old one, and a warning will be printed.
@@ -51,7 +51,7 @@ The callback function of the event can be set, changed or removed (set to `None`
 ### :simple-ticktick: Hit Records
 Stopping events have attributes that can help you keep track of hits. For example, the `hit_count` attribute stores the number of times the event has been triggered.
 
-The `hit_on()` function is used to check if the stopping event was the cause of the process stopping. It is particularly useful when debugging multithreaded applications, as it takes a [ThreadContext](../../from_pydoc/generated/state/thread_context) as a parameter. Refer to [multithreading](../../multithreading/multithreading) for more information.
+The `hit_on()` function is used to check if the stopping event was the cause of the process stopping. It is particularly useful when debugging multithreaded applications, as it takes a [ThreadContext](/from_pydoc/generated/state/thread_context) as a parameter. Refer to [multithreading](/multithreading/multithreading) for more information.
 
 ### :material-arrow-decision: Hijacking
 Hijacking is a powerful feature that allows you to change the flow of the process when a stopping event is hit. It is available for both syscalls and signals, but currently not for other stopping events. When registering a hijack for a compatible stopping event, that execution flow will be replaced with another.

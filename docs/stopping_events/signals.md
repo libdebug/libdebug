@@ -11,16 +11,16 @@ Processes can handle these signals in different ways: they may catch and define 
 !!! WARNING "Restrictions on Signal Catching"
     **libdebug** does not support catching `SIGSTOP` and `SIGKILL`, since kernel-level restrictions prevent these signals from being caught or ignored. While `SIGTRAP` can be caught, it is used internally by **libdebug** to implement stopping events and should be used with caution.
 
-**libdebug** allows you to intercept signals sent to the tracee. Specifically, you can choose to **catch** or **hijack** a specific signal (read more on [hijacking](../stopping_events/#hijacking)).
+**libdebug** allows you to intercept signals sent to the tracee. Specifically, you can choose to **catch** or **hijack** a specific signal (read more on [hijacking](/stopping_events/stopping_events/#hijacking)).
 
 ## :material-bucket-outline: Signal Catchers
-Signal catchers can be created to register [stopping events](../stopping_events/) for when a signal is received.
+Signal catchers can be created to register [stopping events](/stopping_events/stopping_events/) for when a signal is received.
 
 !!! INFO "Multiple catchers for the same signal"
     Please note that there can be at most **one** user-defined catcher or hijack for each signal. If a new catcher is defined for a signal that is already caught or hijacked, the new catcher will replace the old one, and a warning will be printed.
 
 ## **libdebug** API for Signal Catching
-The `catch_signal()` function in the [Debugger](../../from_pydoc/generated/debugger/debugger/) object registers a catcher for the specified signal.
+The `catch_signal()` function in the [Debugger](/from_pydoc/generated/debugger/debugger/) object registers a catcher for the specified signal.
 
 !!! ABSTRACT "Function Signature"
     ```python
@@ -39,7 +39,7 @@ The `catch_signal()` function in the [Debugger](../../from_pydoc/generated/debug
 
 | Return | Type | Description |
 | --- | --- | --- |
-| `SignalCatcher` | [SignalCatcher](../../from_pydoc/generated/data/signal_catcher) | The catcher object created. |
+| `SignalCatcher` | [SignalCatcher](/from_pydoc/generated/data/signal_catcher) | The catcher object created. |
 
 ### :material-code-json: Callback Signature
 
@@ -52,8 +52,8 @@ The `catch_signal()` function in the [Debugger](../../from_pydoc/generated/debug
 
 | Argument | Type | Description |
 | --- | --- | --- |
-| `t` | [ThreadContext](../../from_pydoc/generated/state/thread_context) | The thread that received the signal. |
-| `catcher` | [SignalCatcher](../../from_pydoc/generated/data/signal_catcher) | The SignalCatcher object that triggered the callback. |
+| `t` | [ThreadContext](/from_pydoc/generated/state/thread_context) | The thread that received the signal. |
+| `catcher` | [SignalCatcher](/from_pydoc/generated/data/signal_catcher) | The SignalCatcher object that triggered the callback. |
 
 !!! WARNING "Signals in multi-threaded applications"
     In the Linux kernel, an incoming signal could be delivered to any thread in the process. Please do not assume that the signal will be delivered to a specific thread in your scripts.
@@ -119,7 +119,7 @@ When hijacking a signal, the user can provide an alternative signal to be execut
 
 | Return | Type | Description |
 | --- | --- | --- |
-| `SignalCatcher` | [SignalCatcher](../../from_pydoc/generated/data/signal_catcher) | The catcher object created. |
+| `SignalCatcher` | [SignalCatcher](/from_pydoc/generated/data/signal_catcher) | The catcher object created. |
 
 
 !!! ABSTRACT "Example of hijacking a signal"
@@ -213,4 +213,4 @@ You can also send an arbitrary signal to the process. The signal will be forward
     d.cont()
     ```
 
-In [multithreaded](../../multithreading/multithreading) applications, the same syntax applies when using a [ThreadContext](../../from_pydoc/generated/state/thread_context) object instead of the [Debugger](../../from_pydoc/generated/debugger/debugger) object.
+In [multithreaded](/multithreading/multithreading) applications, the same syntax applies when using a [ThreadContext](/from_pydoc/generated/state/thread_context) object instead of the [Debugger](/from_pydoc/generated/debugger/debugger) object.

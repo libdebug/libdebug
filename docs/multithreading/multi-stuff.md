@@ -28,9 +28,9 @@ Child processes are created by system calls such as [fork](https://man7.org/linu
 
 In the Linux kernel, the [ptrace](https://man7.org/linux/man-pages/man2/ptrace.2.html) system call allows a tracer to handle events like process creation and termination.
 
-Since version 0.8 :sushi: *Chutoro Nigiri* :sushi:, **libdebug** supports handling children process. Read more about it in the dedicated [Multiprocessing](../multiprocessing/) section.
+Since version 0.8 :sushi: *Chutoro Nigiri* :sushi:, **libdebug** supports handling children process. Read more about it in the dedicated [Multiprocessing](/multithreading/multiprocessing/) section.
 
 ## :material-table-column-plus-after: Threads
 Threads of a running process in the [POSIX Threads](https://en.wikipedia.org/wiki/Pthreads) standard are children of the main process. They are created by the system calls [clone](https://man7.org/linux/man-pages/man2/clone.2.html) and [clone3](https://man7.org/linux/man-pages/man2/clone.2.html#:~:text=The%20clone3()%20system%20call). What distinguishes threads from processes is that threads share the same virtual address space.
 
-**libdebug** offers a simple API to work with children threads. Read more about it in the dedicated [Multithreading](../multithreading/) section.
+**libdebug** offers a simple API to work with children threads. Read more about it in the dedicated [Multithreading](/basics/multithreading/) section.

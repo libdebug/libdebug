@@ -19,7 +19,7 @@ There are three available levels of snapshots in **libdebug**, which differ in t
 
 Since memory content snapshots can be large, the default level is `base`.
 
-You can create snapshots of [single threads](../../from_pydoc/generated/snapshots/thread/thread_snapshot) or [the entire process](../../from_pydoc/generated/snapshots/process/process_snapshot).
+You can create snapshots of [single threads](/from_pydoc/generated/snapshots/thread/thread_snapshot) or [the entire process](/from_pydoc/generated/snapshots/process/process_snapshot).
 
 ## :octicons-code-24: API
 
@@ -31,7 +31,7 @@ You can create snapshots of [single threads](../../from_pydoc/generated/snapshot
 
     You can access a snapshot's registers using the `regs` attribute, just like you would when debugging the process.
 
-    [:octicons-arrow-right-24: API Reference](../../basics/register_access)
+    [:octicons-arrow-right-24: API Reference](/basics/register_access)
 
 -   :fontawesome-solid-memory:{ .lg .middle } __Memory Access__
 
@@ -39,7 +39,7 @@ You can create snapshots of [single threads](../../from_pydoc/generated/snapshot
 
     When the snapshot level is appropriate, you can access the memory of the process using the `memory` attribute.
 
-    [:octicons-arrow-right-24: API Reference](../../basics/memory_access)
+    [:octicons-arrow-right-24: API Reference](/basics/memory_access)
 
 -   :material-map-plus:{ .lg .middle } __Memory Maps__
 
@@ -47,7 +47,7 @@ You can create snapshots of [single threads](../../from_pydoc/generated/snapshot
 
     Memory maps are always available. When the snapshot level is appropriate, you can access the contents as a [bytes-like object](https://docs.python.org/3/library/stdtypes.html#bytes).
 
-    [:octicons-arrow-right-24: API Reference](../../quality_of_life/memory_maps)
+    [:octicons-arrow-right-24: API Reference](/quality_of_life/memory_maps)
 
 -   :octicons-stack-24:{ .lg .middle } __Stack Trace__
 
@@ -55,7 +55,7 @@ You can create snapshots of [single threads](../../from_pydoc/generated/snapshot
 
     When the snapshot level is appropriate, you can access the backtrace of the process or thread.
 
-    [:octicons-arrow-right-24: API Reference](../../quality_of_life/stack_frame_utils)
+    [:octicons-arrow-right-24: API Reference](/quality_of_life/stack_frame_utils)
 
 </div>
 
@@ -65,8 +65,8 @@ The function used to create a snapshot is `create_snapshot()`. It behaves differ
 
 | Calling Object | Snapshot Type | Description |
 | -------------- | ------------- | ----------- |
-| [ThreadContext](../../from_pydoc/generated/state/thread_context) | [ThreadSnapshot](../../from_pydoc/generated/snapshots/thread/thread_snapshot) | Creates a snapshot of the specific thread. |
-| [Debugger](../../from_pydoc/generated/debugger/debugger/) | [ProcessSnapshot](../../from_pydoc/generated/snapshots/process/process_snapshot) | Creates a snapshot of the entire process. This includes snapshots _for all threads_. |
+| [ThreadContext](/from_pydoc/generated/state/thread_context) | [ThreadSnapshot](/from_pydoc/generated/snapshots/thread/thread_snapshot) | Creates a snapshot of the specific thread. |
+| [Debugger](/from_pydoc/generated/debugger/debugger/) | [ProcessSnapshot](/from_pydoc/generated/snapshots/process/process_snapshot) | Creates a snapshot of the entire process. This includes snapshots _for all threads_. |
 
 The following is the signature of the function:
 
@@ -78,7 +78,7 @@ The following is the signature of the function:
     ```python
     t.create_snapshot(level: str = "base", name: str = None) -> ThreadSnapshot
     ```
-    Where `d` is a [Debugger](../../from_pydoc/generated/debugger/debugger/) object and `t` is a [ThreadContext](../../from_pydoc/generated/state/thread_context) object.
+    Where `d` is a [Debugger](/from_pydoc/generated/debugger/debugger/) object and `t` is a [ThreadContext](/from_pydoc/generated/state/thread_context) object.
 
 The following is an example usage of the function in both cases:
 
@@ -101,7 +101,7 @@ ps = d.create_snapshot(level="writable", name="very cool snapshot") #(2)!
     When creating a snapshot, you can optionally specify a name for it. The name will be useful when comparing snapshots in diffs or when saving them to disk.
 
 ### :material-content-save-outline: Saving and Loading Snapshots
-You can save a snapshot to disk using the [`save()`](../../from_pydoc/generated/snapshots/snapshot/#libdebug.snapshots.snapshot.Snapshot.save) method of the [Snapshot](../../from_pydoc/generated/snapshots/snapshot) object. The method will create a serializable version of the snapshot and export a json file to the specified path.
+You can save a snapshot to disk using the [`save()`](/from_pydoc/generated/snapshots/snapshot/#libdebug.snapshots.snapshot.Snapshot.save) method of the [Snapshot](/from_pydoc/generated/snapshots/snapshot) object. The method will create a serializable version of the snapshot and export a json file to the specified path.
 
 !!! ABSTRACT "Example usage"
     ```python
@@ -111,7 +111,7 @@ You can save a snapshot to disk using the [`save()`](../../from_pydoc/generated/
 
 ---
 
-You can load a snapshot from disk using the [`load_snapshot()`](../../from_pydoc/generated/debugger/debugger#libdebug.debugger.debugger.Debugger.load_snapshot) method of the [Debugger](../../from_pydoc/generated/debugger/debugger) object. The method will read the json file from the specified path and create a [Snapshot](../../from_pydoc/generated/snapshots/snapshot) object from it.
+You can load a snapshot from disk using the [`load_snapshot()`](/from_pydoc/generated/debugger/debugger#libdebug.debugger.debugger.Debugger.load_snapshot) method of the [Debugger](/from_pydoc/generated/debugger/debugger) object. The method will read the json file from the specified path and create a [Snapshot](/from_pydoc/generated/snapshots/snapshot) object from it.
 
 !!! ABSTRACT "Example usage"
     ```python
@@ -123,7 +123,7 @@ The snapshot type will be inferred from the json file, so you can easily load bo
 ### :octicons-diff-24: Resolving Diffs
 Thanks to their static nature, snapshots can be easily compared to find differences in saved properties.
 
-You can diff a snapshot against another using the [`diff()`](../../from_pydoc/generated/snapshots/snapshot#libdebug.snapshots.snapshot.Snapshot.diff) method. The method will return a [Diff](../../from_pydoc/generated/snapshots/diff) object that represents the differences between the two snapshots. The diff will be of the lowest level of the two snapshots being compared in terms.
+You can diff a snapshot against another using the [`diff()`](/from_pydoc/generated/snapshots/snapshot#libdebug.snapshots.snapshot.Snapshot.diff) method. The method will return a [Diff](/from_pydoc/generated/snapshots/diff) object that represents the differences between the two snapshots. The diff will be of the lowest level of the two snapshots being compared in terms.
 
 !!! ABSTRACT "Example usage"
     ```python
@@ -139,20 +139,20 @@ You can diff a snapshot against another using the [`diff()`](../../from_pydoc/ge
     1. Do some operations that change the state of the process.
     2. Compute the diff between the two snapshots
 
-Diffs have a rich and detailed API that allows you to inspect the differences in registers, memory, and other properties. Read more in the [dedicated section](../snapshot_diffs).
+Diffs have a rich and detailed API that allows you to inspect the differences in registers, memory, and other properties. Read more in the [dedicated section](/save_states/snapshot_diffs).
 
 ### :material-flower-tulip-outline: Pretty Printing
 
-[Pretty Printing](../../quality_of_life/pretty_printing) is a feature of some **libdebug** objects that allows you to print the contents of a snapshot in a colorful and eye-catching format. This is useful when you want to inspect the state of the process at a glance.
+[Pretty Printing](/quality_of_life/pretty_printing) is a feature of some **libdebug** objects that allows you to print the contents of a snapshot in a colorful and eye-catching format. This is useful when you want to inspect the state of the process at a glance.
 
-Pretty printing utilities of snapshots are "mirrors" of pretty pretting functions available for the [Debugger](../../from_pydoc/generated/debugger/debugger/) and [ThreadContext](../../from_pydoc/generated/state/thread_context). Here is a list of available pretty printing functions and their equivalent for the running process:
+Pretty printing utilities of snapshots are "mirrors" of pretty pretting functions available for the [Debugger](/from_pydoc/generated/debugger/debugger/) and [ThreadContext](/from_pydoc/generated/state/thread_context). Here is a list of available pretty printing functions and their equivalent for the running process:
 
 | Function | Description | Reference |
 | -------- | ----------- | --------- |
-| `pprint_registers()` | Prints the general-purpose registers of the snapshot. | [:octicons-arrow-right-24: API Reference](../../quality_of_life/pretty_printing#registers-pretty-printing) |
-| `pprint_registers_all()` | Prints all registers of the snapshot. | [:octicons-arrow-right-24: API Reference](../../quality_of_life/pretty_printing#registers-pretty-printing) |
-| `pprint_maps()` | Prints the memory of the snapshot. | [:octicons-arrow-right-24: API Reference](../../quality_of_life/pretty_printing#memory-maps-pretty-printing) |
-| `pprint_backtrace()` | Prints the backtrace of the snapshot. | [:octicons-arrow-right-24: API Reference](../../quality_of_life/pretty_printing#stack-trace-pretty-printing) |
+| `pprint_registers()` | Prints the general-purpose registers of the snapshot. | [:octicons-arrow-right-24: API Reference](/quality_of_life/pretty_printing#registers-pretty-printing) |
+| `pprint_registers_all()` | Prints all registers of the snapshot. | [:octicons-arrow-right-24: API Reference](/quality_of_life/pretty_printing#registers-pretty-printing) |
+| `pprint_maps()` | Prints the memory of the snapshot. | [:octicons-arrow-right-24: API Reference](/quality_of_life/pretty_printing#memory-maps-pretty-printing) |
+| `pprint_backtrace()` | Prints the backtrace of the snapshot. | [:octicons-arrow-right-24: API Reference](/quality_of_life/pretty_printing#stack-trace-pretty-printing) |
 
 
 ## :material-code-json: Attributes
@@ -164,13 +164,13 @@ Pretty printing utilities of snapshots are "mirrors" of pretty pretting function
 | `arch` | `str` | All | The ISA under which the snapshot process was running. | |
 | `snapshot_id` | int | All | Progressive id counted from 0. Process and Thread snapshots have separate counters. | |
 | `level` | `str` | All | The snapshot level. | |
-| `maps` | [`MemoryMapSnapshotList`](../../from_pydoc/generated/snapshots/memory/memory_map_snapshot_list) | All | The memory maps of the process. Each map will also have the contents of the memory map under the appropriate snapshot level. | |
-| `memory` | [`SnapshotMemoryView`](../../from_pydoc/generated/snapshots/memory/snapshot_memory_view) | `writable` / `full` | Interface to the memory of the process. | `mem` |
+| `maps` | [`MemoryMapSnapshotList`](/from_pydoc/generated/snapshots/memory/memory_map_snapshot_list) | All | The memory maps of the process. Each map will also have the contents of the memory map under the appropriate snapshot level. | |
+| `memory` | [`SnapshotMemoryView`](/from_pydoc/generated/snapshots/memory/snapshot_memory_view) | `writable` / `full` | Interface to the memory of the process. | `mem` |
 | `aslr_enabled` | `bool` | All | Whether ASLR was enabled at the time of the snapshot. | |
 | **Thread Snapshot** |
 | `thread_id` | `int` | All | The ID of the thread the snapshot was taken from. | `tid` |
-| `regs` | [`SnapshotRegisters`](../../from_pydoc/generated/snapshots/registers/snapshot_registers) | All | The register values of the thread. | `registers` |
+| `regs` | [`SnapshotRegisters`](/from_pydoc/generated/snapshots/registers/snapshot_registers) | All | The register values of the thread. | `registers` |
 | **Process Snapshot** |
 | `process_id` | `int` | All | The ID of the process the snapshot was taken from. | `pid` |
-| `threads` | [`list[LightweightThreadSnapshot]`](../../from_pydoc/generated/snapshots/thread/lw_thread_snapshot) | All | Snapshots of all threads of the process. | |
-| `regs` | [`SnapshotRegisters`](../../from_pydoc/generated/snapshots/registers/snapshot_registers) | All | The register values of the main thread of the process. | `registers` |
+| `threads` | [`list[LightweightThreadSnapshot]`](/from_pydoc/generated/snapshots/thread/lw_thread_snapshot) | All | Snapshots of all threads of the process. | |
+| `regs` | [`SnapshotRegisters`](/from_pydoc/generated/snapshots/registers/snapshot_registers) | All | The register values of the main thread of the process. | `registers` |
