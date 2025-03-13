@@ -4,9 +4,9 @@ search:
     boost: 4
 ---
 ## :material-alphabetical: Symbol Resolution
-As described in the [memory access](/basics/memory_access/#absolute-and-relative-addressing) section, many functions in **libdebug** accept symbols as an alternative to actual addresses or offsets.
+As described in the [memory access](../../basics/memory_access/#absolute-and-relative-addressing) section, many functions in **libdebug** accept symbols as an alternative to actual addresses or offsets.
 
-You can list all resolved symbols in the binary and shared libraries using the `symbols` attribute of the [Debugger](/from_pydoc/generated/debugger/debugger/) object. This attribute returns a [SymbolList](/from_pydoc/generated/data/symbol_list/) object.
+You can list all resolved symbols in the binary and shared libraries using the `symbols` attribute of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object. This attribute returns a [SymbolList](../../from_pydoc/generated/data/symbol_list/) object.
 
 This object grants the user hybrid access to the symbols: as a dict or as a list. Tor example, the following lines of code all have a valid syntax:
 
@@ -26,7 +26,7 @@ Please note that the dict-like access returns exact matches with the symbol name
     Reverse-engineering of C++ binaries can be a struggle. To help out, **libdebug** automatically demangles C++ symbols.
 
 ### :material-pyramid: Symbol Resolution Levels
-With large binaries and libraries, parsing symbols can become an expensive operation. Because of this, **libdebug** offers the possibility of choosing among 5 levels of symbol resolution. To set the symbol resolution level, you can use the `sym_lvl` property of the [`libcontext`](/from_pydoc/generated/utils/libcontext) module. The default value is level 5.
+With large binaries and libraries, parsing symbols can become an expensive operation. Because of this, **libdebug** offers the possibility of choosing among 5 levels of symbol resolution. To set the symbol resolution level, you can use the `sym_lvl` property of the [`libcontext`](../../from_pydoc/generated/utils/libcontext) module. The default value is level 5.
 
 | Level | Description |
 |-------|-------------|
@@ -58,16 +58,16 @@ If you want to change the symbol resolution level temporarily, you can use a `wi
     ```
 
 ## :material-filter: Symbol Filtering
-The `symbols` attribute of the [Debugger](/from_pydoc/generated/debugger/debugger/) object allows you to filter symbols in the binary and shared libraries.
+The `symbols` attribute of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object allows you to filter symbols in the binary and shared libraries.
 
 !!! ABSTRACT "Function Signature"
     ```python
     d.symbols.filter(value: int | str) -> SymbolList[Symbol]
     ```
 
-Given a symbol name or address, this function returns a [SymbolList](/from_pydoc/generated/data/symbol_list/). The list will contain all symbols that match the given value.
+Given a symbol name or address, this function returns a [SymbolList](../../from_pydoc/generated/data/symbol_list/). The list will contain all symbols that match the given value.
 
-[Symbol](/from_pydoc/generated/data/symbol/) objects contain the following attributes:
+[Symbol](../../from_pydoc/generated/data/symbol/) objects contain the following attributes:
 
 | Attribute | Type | Description |
 |-----------|------|-------------|

@@ -4,7 +4,7 @@ search:
     boost: 4
 ---
 # :fontawesome-solid-memory: Memory Access
-In **libdebug**, memory access is performed via the `memory` attribute of the [Debugger](/from_pydoc/generated/debugger/debugger/) object or the [Thread Context](/from_pydoc/generated/state/thread_context). When reading from memory, a [*bytes-like*](https://docs.python.org/3/glossary.html#term-bytes-like-object) object is returned. The following methods are available:
+In **libdebug**, memory access is performed via the `memory` attribute of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object or the [Thread Context](../../from_pydoc/generated/state/thread_context). When reading from memory, a [*bytes-like*](https://docs.python.org/3/glossary.html#term-bytes-like-object) object is returned. The following methods are available:
 
 === "Single byte access"
     Access a single byte of memory by providing the address as an integer.
@@ -87,7 +87,7 @@ You can use the third parameter of the memory access method to select the file y
     ```
 
 ## :octicons-search-24: Searching inside Memory
-The `memory` attribute of the [Debugger](/from_pydoc/generated/debugger/debugger/) object also allows you to search for specific values in the memory of the process. You can search for integers, strings, or [bytes-like](https://docs.python.org/3/glossary.html#term-bytes-like-object) objects.
+The `memory` attribute of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object also allows you to search for specific values in the memory of the process. You can search for integers, strings, or [bytes-like](https://docs.python.org/3/glossary.html#term-bytes-like-object) objects.
 
 !!! ABSTRACT "Function Signature"
     ```python
@@ -122,7 +122,7 @@ The `memory` attribute of the [Debugger](/from_pydoc/generated/debugger/debugger
     ```
 
 ### :fontawesome-solid-droplet: Leaker API
-The `memory` attribute of the [Debugger](/from_pydoc/generated/debugger/debugger/) object also allows you to search for pointers between two memory maps. This is useful for finding leaks of memory addresses when **libdebug** is used for exploitation tasks.
+The `memory` attribute of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object also allows you to search for pointers between two memory maps. This is useful for finding leaks of memory addresses when **libdebug** is used for exploitation tasks.
 
 !!! ABSTRACT "Function Signature"
     ```py
@@ -156,12 +156,12 @@ The `memory` attribute of the [Debugger](/from_pydoc/generated/debugger/debugger
     ```
 
 ## :material-clock-fast: Fast and Slow Memory Access
-**libdebug** supports two different methods to access memory on Linux, controlled by the `fast_memory` parameter of the [Debugger](/from_pydoc/generated/debugger/debugger/) object. The two methods are:
+**libdebug** supports two different methods to access memory on Linux, controlled by the `fast_memory` parameter of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object. The two methods are:
 
 - `fast_memory=False` uses the [`ptrace`](https://man7.org/linux/man-pages/man2/ptrace.2.html) system call interface, requiring a context switch from user space to kernel space for each architectural word-size read.
 - `fast_memory=True` reduces the access latency by relying on Linux's [procfs](https://docs.kernel.org/filesystems/proc.html), which contains a virtual as an interface to the process memory.
 
-As of version **0.8** :sushi: *Chutoro Nigiri* :sushi:, `fast_memory=True` is the default. The following examples show how to change the memory access method when creating the [Debugger](/from_pydoc/generated/debugger/debugger/) object or at runtime.
+As of version **0.8** :sushi: *Chutoro Nigiri* :sushi:, `fast_memory=True` is the default. The following examples show how to change the memory access method when creating the [Debugger](../../from_pydoc/generated/debugger/debugger/) object or at runtime.
 
 === "When creating the Debugger object"
     ```python

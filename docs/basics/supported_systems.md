@@ -21,7 +21,7 @@ Currently, **libdebug** only supports the :simple-linux: GNU/Linux Operating Sys
 
 
 !!! TIP "Forcing a specific architecture"
-    If for any reason you need to force **libdebug** to use a specific architecture (e.g., corrupted ELF), you can do so by setting the `arch` parameter in the [Debugger](/from_pydoc/generated/debugger/debugger/) object. For example, to force the debugger to use the x86_64 architecture, you can use the following code:
+    If for any reason you need to force **libdebug** to use a specific architecture (e.g., corrupted ELF), you can do so by setting the `arch` parameter in the [Debugger](../../from_pydoc/generated/debugger/debugger/) object. For example, to force the debugger to use the x86_64 architecture, you can use the following code:
     ```python
     from libdebug import debugger
 

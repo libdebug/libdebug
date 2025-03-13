@@ -16,11 +16,11 @@ At this point, the process execution is stopped, waiting for your commands.
 
 !!! INFO "A few things to keep in mind"
     - Please remember that the process you are debugging (the tracee) and the debugger itself are running in different threads. 
-    - Also note that breakpoints and other [stopping events](/stopping_events/stopping_events) set by the user are not kept between different runs of the program. If you want to place them again, you should redo so after each call to `d.run()`. You cannot set breakpoints before calling `d.run()`.
+    - Also note that breakpoints and other [stopping events](../../stopping_events/stopping_events) set by the user are not kept between different runs of the program. If you want to place them again, you should redo so after each call to `d.run()`. You cannot set breakpoints before calling `d.run()`.
 
 ## :material-harddisk: Process I/O
 
-When execution is resumed, chances are that your process will need to take input and produce output. To interact with the standard input and output of the process, you can use the [PipeManager](/from_pydoc/generated/commlink/pipe_manager) returned by the `run()` function.
+When execution is resumed, chances are that your process will need to take input and produce output. To interact with the standard input and output of the process, you can use the [PipeManager](../../from_pydoc/generated/commlink/pipe_manager) returned by the `run()` function.
 
 ```python
 from libdebug import debugger
@@ -33,7 +33,7 @@ print(pipe.recvline().decode())
 d.wait()
 ```
 
-All pipe receive-like methods have a timeout parameter that you can set. The default value, `timeout_default`, can be set globally as a parameter of the [PipeManager](/from_pydoc/generated/commlink/pipe_manager) object. By default, this value is set to 2 seconds.
+All pipe receive-like methods have a timeout parameter that you can set. The default value, `timeout_default`, can be set globally as a parameter of the [PipeManager](../../from_pydoc/generated/commlink/pipe_manager) object. By default, this value is set to 2 seconds.
 
 !!! TIP "Changing the global timeout"
     ```python
@@ -62,14 +62,14 @@ You can interact with the process's pipe manager using the following methods:
 | `interactive`  | Enters interactive mode, allowing manual send/receive operations with the target. Read more in the [dedicated section](#interactive-io).<br><br>**Parameters**:<br>- `prompt` (str) &nbsp;&nbsp;&nbsp; \[default = "$ "\]<br>- `auto_quit` (bool) &nbsp;&nbsp;&nbsp; \[default = False\] |
 
 !!! INFO "When process is stopped"
-    When the process is stopped, the [PipeManager](/from_pydoc/generated/commlink/pipe_manager) will not be able to receive new (unbuffered) data from the target. For this reason, the API includes a parameter called `optional`.
+    When the process is stopped, the [PipeManager](../../from_pydoc/generated/commlink/pipe_manager) will not be able to receive new (unbuffered) data from the target. For this reason, the API includes a parameter called `optional`.
     
     When set to `True`, **libdebug** will not necessarily expect to receive data from the process when it is stopped. When set to `False`, any recv-like instruction (including `sendafter` and `sendlineafter`) will fail with an exception when the process is not running.
     
     Operations on stdin like `send` and `sendline` are not affected by this limitation, since the kernel will buffer the data until the process is resumed.
 
 ### :material-keyboard: Interactive I/O
-The [PipeManager](/from_pydoc/generated/commlink/pipe_manager) contains a method called `interactive()` that allows you to directly interact with the process's standard I/O. This method will print characters from standard output and error and read your inputs, letting you interact naturally with the process. The `interactive()` method is blocking, so the execution of the script will wait for the user to terminate the interactive session. To quit an interactive session, you can press `Ctrl+C` or `Ctrl+D`.
+The [PipeManager](../../from_pydoc/generated/commlink/pipe_manager) contains a method called `interactive()` that allows you to directly interact with the process's standard I/O. This method will print characters from standard output and error and read your inputs, letting you interact naturally with the process. The `interactive()` method is blocking, so the execution of the script will wait for the user to terminate the interactive session. To quit an interactive session, you can press `Ctrl+C` or `Ctrl+D`.
 
 !!! ABSTRACT "Function Signature"
     ```python
@@ -81,7 +81,7 @@ The `prompt` parameter sets the line prefix in the terminal (e.g. `"$ "` and `">
 If any of the file descriptors of standard input, output, or error are closed, a warning will be printed.
 
 ## :fontawesome-solid-syringe: Attaching to a Running Process
-If you want to attach to a running process instead of spawning a child, you can use the `attach()` method in the [Debugger](/from_pydoc/generated/debugger/debugger/) object. This method will attach to the process with the specified PID.
+If you want to attach to a running process instead of spawning a child, you can use the `attach()` method in the [Debugger](../../from_pydoc/generated/debugger/debugger/) object. This method will attach to the process with the specified PID.
 
 ```python
 from libdebug import debugger
@@ -106,4 +106,4 @@ By default, **libdebug** redirects the standard input, output, and error of the 
     d.run(redirect_pipes=False)
     ```
 
-When set to `False`, the standard input, output, and error of the process will not be redirected to pipes. This means that you will not be able to interact with the process using the [PipeManager](/from_pydoc/generated/commlink/pipe_manager) object, and **libdebug** will act as a transparent proxy between the executable and its standard I/O.
+When set to `False`, the standard input, output, and error of the process will not be redirected to pipes. This means that you will not be able to interact with the process using the [PipeManager](../../from_pydoc/generated/commlink/pipe_manager) object, and **libdebug** will act as a transparent proxy between the executable and its standard I/O.

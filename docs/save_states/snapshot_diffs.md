@@ -4,20 +4,20 @@ search:
     boost: 4
 ---
 # :octicons-diff-24: Snapshot Diffs
-[Snapshot](/save_states/snapshots) diffs are objects that represent what changed between two snapshots. They are created through the [`diff()`](/from_pydoc/generated/snapshots/snapshot/?h=#libdebug.snapshots.snapshot.Snapshot.diff) method of a snapshot.
+[Snapshot](../snapshots) diffs are objects that represent what changed between two snapshots. They are created through the [`diff()`](../../from_pydoc/generated/snapshots/snapshot/?h=#libdebug.snapshots.snapshot.Snapshot.diff) method of a snapshot.
 
-The level of a diff is resolved as the lowest level of the two snapshots being compared. For example, if a diff is created between a `full` snapshot and a `base` snapshot, their diff will be of `base` level. For more information on the different levels of snapshots, see the [Snapshots](/save_states/snapshots) page.
+The level of a diff is resolved as the lowest level of the two snapshots being compared. For example, if a diff is created between a `full` snapshot and a `base` snapshot, their diff will be of `base` level. For more information on the different levels of snapshots, see the [Snapshots](../snapshots) page.
 
 !!! WARNING "ASLR Mess"
-    If Address Space Layout Randomization (ASLR) is enabled, the memory addresses in the diffs may appear inconsistent or messy. **libdebug** will remind you of this when you diff snapshots with ASLR enabled. See [here](/basics/libdebug101/#address-space-layout-randomization-aslr) for more information.
+    If Address Space Layout Randomization (ASLR) is enabled, the memory addresses in the diffs may appear inconsistent or messy. **libdebug** will remind you of this when you diff snapshots with ASLR enabled. See [here](../../basics/libdebug101/#address-space-layout-randomization-aslr) for more information.
 
 ## :octicons-code-24: API
-Just like snapshots themselves, diffs try to mimic the API of the [Debugger](/from_pydoc/generated/debugger/debugger) and [ThreadContext](/from_pydoc/generated/state/thread_context) objects. The main difference is that returned objects represent a change in state, rather than the state itself.
+Just like snapshots themselves, diffs try to mimic the API of the [Debugger](../../from_pydoc/generated/debugger/debugger) and [ThreadContext](../../from_pydoc/generated/state/thread_context) objects. The main difference is that returned objects represent a change in state, rather than the state itself.
 
 ### :material-hexadecimal: Register Diffs
-The `regs` attribute of a diff object (aliased as `registers`) is a [RegisterDiffAccessor](/from_pydoc/generated/snapshots/registers/register_diff_accessor) object that allows you to access the register values of the snapshot. The accessor will return a [RegisterDiff](/from_pydoc/generated/snapshots/registers/register_diff) object that represents the difference between the two snapshots.
+The `regs` attribute of a diff object (aliased as `registers`) is a [RegisterDiffAccessor](../../from_pydoc/generated/snapshots/registers/register_diff_accessor) object that allows you to access the register values of the snapshot. The accessor will return a [RegisterDiff](../../from_pydoc/generated/snapshots/registers/register_diff) object that represents the difference between the two snapshots.
 
-You can access each diff with any of the architecture-specific register names. For a full list, refer to the [Register Access](/basics/register_access) page.
+You can access each diff with any of the architecture-specific register names. For a full list, refer to the [Register Access](../../basics/register_access) page.
 
 !!! ABSTRACT "Example usage"
     ```python
@@ -37,9 +37,9 @@ Each register diff is an object with the following attributes:
 | `has_changed` | `bool` | Whether the register value has changed. |
 
 ### :material-map-plus: Memory Map Diffs
-The `maps` attribute of a diff object is a [MemoryMapDiffList](/from_pydoc/generated/snapshots/memory/memory_map_diff_list) object that contains the memory maps of the process in each of the snapshots.
+The `maps` attribute of a diff object is a [MemoryMapDiffList](../../from_pydoc/generated/snapshots/memory/memory_map_diff_list) object that contains the memory maps of the process in each of the snapshots.
 
-Here is what a [MemoryMapDiff](/from_pydoc/generated/snapshots/memory/memory_map_diff) object looks like:
+Here is what a [MemoryMapDiff](../../from_pydoc/generated/snapshots/memory/memory_map_diff) object looks like:
 
 !!! ABSTRACT "Example usage"
     ```python
@@ -73,15 +73,15 @@ The map diff contains the following attributes:
 
 | Attribute | Data Type | Description |
 | --------- | --------- | ----------- |
-| `old_map_state` | [`MemoryMap`](/from_pydoc/generated/data/memory_map) | The memory map in the first snapshot. |
-| `new_map_state` | [`MemoryMap`](/from_pydoc/generated/data/memory_map) | The memory map in the second snapshot. |
+| `old_map_state` | [`MemoryMap`](../../from_pydoc/generated/data/memory_map) | The memory map in the first snapshot. |
+| `new_map_state` | [`MemoryMap`](../../from_pydoc/generated/data/memory_map) | The memory map in the second snapshot. |
 | `has_changed` | `bool` | Whether the memory map has changed. |
 
 !!! INFO "Memory Map Diff Levels"
     If the diff is of `base` level, the `has_changed` attribute will only consider _superficial changes_ in the memory map (e.g., permissions, end address). Under the `writable` and `full` levels, the diff will also consider the contents of the memory map.
 
 #### :material-tape-drive: Memory Content Diffs
-If the diff is of `full` or `writable` level, the [MemoryMapDiff](/from_pydoc/generated/snapshots/memory/memory_map_diff) object exposes a useful utility to track blocks of differing memory contents in a certain memory map: the `content_diff` attribute.
+If the diff is of `full` or `writable` level, the [MemoryMapDiff](../../from_pydoc/generated/snapshots/memory/memory_map_diff) object exposes a useful utility to track blocks of differing memory contents in a certain memory map: the `content_diff` attribute.
 
 !!! ABSTRACT "Example usage"
     ```python
@@ -103,23 +103,23 @@ The attribute will return a list of [slice](https://docs.python.org/3/c-api/slic
 | Attribute | Data Type | Level | Description | Aliases |
 | ---------- | --------- | ----- | ----------- | ------- |
 | **Common** |
-| `snapshot1` | [`Snapshot`](/from_pydoc/generated/snapshots/snapshot) | All | The earliest snapshot being compared (recency is determined by id ordering). | |
-| `snapshot2` | [`Snapshot`](/from_pydoc/generated/snapshots/snapshot) | All | The latest snapshot being compared (recency is determined by id ordering). | |
+| `snapshot1` | [`Snapshot`](../../from_pydoc/generated/snapshots/snapshot) | All | The earliest snapshot being compared (recency is determined by id ordering). | |
+| `snapshot2` | [`Snapshot`](../../from_pydoc/generated/snapshots/snapshot) | All | The latest snapshot being compared (recency is determined by id ordering). | |
 | `level` | `str` | All | The diff level. | |
-| `maps` | [`MemoryMapDiffList`](/from_pydoc/generated/snapshots/memory/memory_map_diff_list) | All | The memory maps of the process. Each map will also have the contents of the memory map under the appropriate snapshot level. | |
+| `maps` | [`MemoryMapDiffList`](../../from_pydoc/generated/snapshots/memory/memory_map_diff_list) | All | The memory maps of the process. Each map will also have the contents of the memory map under the appropriate snapshot level. | |
 | **Thread Snapshot Diff** |
-| `regs` | [`RegisterDiffAccessor`](/from_pydoc/generated/snapshots/registers/register_diff_accessor) | All | The register values of the thread. | `registers` |
+| `regs` | [`RegisterDiffAccessor`](../../from_pydoc/generated/snapshots/registers/register_diff_accessor) | All | The register values of the thread. | `registers` |
 | **Process Snapshot Diff** |
-| `born_threads` | [`list[LightweightThreadSnapshot]`](/from_pydoc/generated/snapshots/thread/lw_thread_snapshot) | All | Snapshots of all threads of the process. | |
-| `dead_threads` | [`list[LightweightThreadSnapshot]`](/from_pydoc/generated/snapshots/thread/lw_thread_snapshot) | All | Snapshots of all threads of the process. | |
-| `threads` | [`list[LightweightThreadSnapshotDiff]`](/from_pydoc/generated/snapshots/thread/lw_thread_snapshot_diff) | All | Snapshots of all threads of the process. | |
-| `regs` | [`RegsterDiffAccessor`](/from_pydoc/generated/snapshots/registers/register_diff_accessor) | All | The register values of the main thread of the process. | `registers` |
+| `born_threads` | [`list[LightweightThreadSnapshot]`](../../from_pydoc/generated/snapshots/thread/lw_thread_snapshot) | All | Snapshots of all threads of the process. | |
+| `dead_threads` | [`list[LightweightThreadSnapshot]`](../../from_pydoc/generated/snapshots/thread/lw_thread_snapshot) | All | Snapshots of all threads of the process. | |
+| `threads` | [`list[LightweightThreadSnapshotDiff]`](../../from_pydoc/generated/snapshots/thread/lw_thread_snapshot_diff) | All | Snapshots of all threads of the process. | |
+| `regs` | [`RegsterDiffAccessor`](../../from_pydoc/generated/snapshots/registers/register_diff_accessor) | All | The register values of the main thread of the process. | `registers` |
 
 ## :material-flower-tulip-outline: Pretty Printing
 
-[Pretty Printing](/quality_of_life/pretty_printing) is a feature of some **libdebug** objects that allows you to print the contents of a snapshot in a colorful and eye-catching format. This is useful when you want to inspect the state of the process at a glance.
+[Pretty Printing](../../quality_of_life/pretty_printing) is a feature of some **libdebug** objects that allows you to print the contents of a snapshot in a colorful and eye-catching format. This is useful when you want to inspect the state of the process at a glance.
 
-[Diff](/from_pydoc/generated/snapshots/diff) objects have the following pretty printing functions:
+[Diff](../../from_pydoc/generated/snapshots/diff) objects have the following pretty printing functions:
 
 | Function | Description |
 | -------- | ----------- |
@@ -137,7 +137,7 @@ The `pprint_registers()` function of a diff object will print the changed genera
 
 Here is a visual example of the register diff pretty printing:
 
-![Register Diff](/assets/pprint_reg_diff.jpeg)
+![Register Diff](../../assets/pprint_reg_diff.jpeg)
 
 ### :material-map-plus: Memory Map Diff Pretty Printing
 
@@ -145,7 +145,7 @@ The `pprint_maps()` function of a diff object will print the memory maps which h
 
 Here is a visual example of the memory map diff pretty printing:
 
-![Memory Map Diff](/assets/pprint_map_diff.jpeg)
+![Memory Map Diff](../../assets/pprint_map_diff.jpeg)
 
 ### :material-format-columns: Memory Content Diff Pretty Printing
 
@@ -166,7 +166,7 @@ The `pprint_memory()` function of a diff object will print the content diffs wit
 | --------- | --------- | ----------- |
 | `start` | `int` | The start address of the memory range to print. |
 | `end` | `int` | The end address of the memory range to print. |
-| `file` | `str` (optional) | The file to use for the memory content. Defaults to `hybrid` mode (see [memory access](/basics/memory_access/)). |
+| `file` | `str` (optional) | The file to use for the memory content. Defaults to `hybrid` mode (see [memory access](../../basics/memory_access/)). |
 | `override_word_size` | `int` (optional) | The word size to use to align memory contents. By default, it uses the ISA register size. |
 | `integer_mode` | `bool` (optional) | Whether to print the memory content in integer mode. Defaults to False |
 
@@ -177,13 +177,13 @@ Here is a visual example of the memory content diff pretty printing (with and wi
 
 === "Integer mode disabled"
 
-    ![Memory Content Diff](/assets/pprint_memory_base.jpeg)
+    ![Memory Content Diff](../../assets/pprint_memory_base.jpeg)
 
 === "Integer mode enabled"
 
-    ![Memory Content Diff Integer](/assets/pprint_memory_endianness.jpeg)
+    ![Memory Content Diff Integer](../../assets/pprint_memory_endianness.jpeg)
 
 #### :octicons-stack-24: Stack Trace Diff Pretty Printing
-To pretty print the stack trace diff ([backtrace](/quality_of_life/stack_frame_utils)) of a process, you can use the `pprint_backtrace()` function. Return addresses are printed from the most to the least recent. They are placed in three columns. The center one is the common part of the backtrace, while the left and right columns are the differing parts. The following image shows an example of a backtrace diff:
+To pretty print the stack trace diff ([backtrace](../../quality_of_life/stack_frame_utils)) of a process, you can use the `pprint_backtrace()` function. Return addresses are printed from the most to the least recent. They are placed in three columns. The center one is the common part of the backtrace, while the left and right columns are the differing parts. The following image shows an example of a backtrace diff:
 
-<img src="/assets/pprint_backtrace_diff.jpeg" alt="Pretty Printing Stack Trace Diff" width="100%"/>
+<img src="../../assets/pprint_backtrace_diff.jpeg" alt="Pretty Printing Stack Trace Diff" width="100%"/>

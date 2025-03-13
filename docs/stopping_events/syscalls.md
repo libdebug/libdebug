@@ -4,9 +4,9 @@ search:
     boost: 4
 ---
 # :fontawesome-solid-terminal: Syscalls
-System calls (a.k.a. syscalls or software interrupts) are the interface between user space and kernel space. They are used to request services from the kernel, such as reading from a file or creating a new process. **libdebug** allows you to trace syscalls invoked by the debugged program. Specifically, you can choose to **handle** or **hijack** a specific syscall (read more on [hijacking](/stopping_events/stopping_events/#hijacking)).
+System calls (a.k.a. syscalls or software interrupts) are the interface between user space and kernel space. They are used to request services from the kernel, such as reading from a file or creating a new process. **libdebug** allows you to trace syscalls invoked by the debugged program. Specifically, you can choose to **handle** or **hijack** a specific syscall (read more on [hijacking](../stopping_events/#hijacking)).
 
-For extra convenience, the [Debugger](/from_pydoc/generated/debugger/debugger/) and the [ThreadContext](/from_pydoc/generated/state/thread_context) objects provide a system-agnostic interface to the arguments and return values of syscalls. Interacting directly with these parameters enables you to create scripts that are independent of the syscall calling convention specific to the target architecture.
+For extra convenience, the [Debugger](../../from_pydoc/generated/debugger/debugger/) and the [ThreadContext](../../from_pydoc/generated/state/thread_context) objects provide a system-agnostic interface to the arguments and return values of syscalls. Interacting directly with these parameters enables you to create scripts that are independent of the syscall calling convention specific to the target architecture.
 
 | Field | Description |
 | --- | --- |
@@ -37,13 +37,13 @@ For extra convenience, the [Debugger](/from_pydoc/generated/debugger/debugger/) 
     2. Now the `execve('/bin/sh', 0, 0)` will be executed in place of the previous syscall.
 
 ## :material-format-align-middle: Syscall Handlers
-Syscall handlers can be created to register [stopping events](/stopping_events/stopping_events/) for when a syscall is entered and exited.
+Syscall handlers can be created to register [stopping events](../stopping_events/) for when a syscall is entered and exited.
 
 !!! QUESTION "Do I have to handle both on enter and on exit?"
-    When using [asynchronous](/stopping_events/debugging_flow) syscall handlers, you can choose to handle both or only one of the two events. However, when using synchronous handlers, both events will stop the process.
+    When using [asynchronous](../debugging_flow) syscall handlers, you can choose to handle both or only one of the two events. However, when using synchronous handlers, both events will stop the process.
 
 ## **libdebug** API for Syscall Handlers
-The `handle_syscall()` function in the [Debugger](/from_pydoc/generated/debugger/debugger/) object registers a handler for the specified syscall.
+The `handle_syscall()` function in the [Debugger](../../from_pydoc/generated/debugger/debugger/) object registers a handler for the specified syscall.
 
 !!! ABSTRACT "Function Signature"
     ```python
@@ -63,7 +63,7 @@ The `handle_syscall()` function in the [Debugger](/from_pydoc/generated/debugger
 
 | Return | Type | Description |
 | --- | --- | --- |
-| `SyscallHandler` | [SyscallHandler](/from_pydoc/generated/data/syscall_handler) | The handler object created. |
+| `SyscallHandler` | [SyscallHandler](../../from_pydoc/generated/data/syscall_handler) | The handler object created. |
 
 ### :material-code-json: Callback Signature
 
@@ -76,11 +76,11 @@ The `handle_syscall()` function in the [Debugger](/from_pydoc/generated/debugger
 
 | Argument | Type | Description |
 | --- | --- | --- |
-| `t` | [ThreadContext](/from_pydoc/generated/state/thread_context) | The thread that hit the syscall. |
-| `handler` | [SyscallHandler](/from_pydoc/generated/data/syscall_handler) | The SyscallHandler object that triggered the callback. |
+| `t` | [ThreadContext](../../from_pydoc/generated/state/thread_context) | The thread that hit the syscall. |
+| `handler` | [SyscallHandler](../../from_pydoc/generated/data/syscall_handler) | The SyscallHandler object that triggered the callback. |
 
 !!! INFO "Nuances of Syscall Handling"
-    The syscall handler is the only [stopping event](/stopping_events/stopping_events/) that can be triggered by the same syscall twice in a row. This is because the handler is triggered both when the syscall is entered and when it is exited. As a result the `hit_on()` method of the [SyscallHandler](/from_pydoc/generated/data/syscall_handler) object will return `True` in both instances.
+    The syscall handler is the only [stopping event](../stopping_events/) that can be triggered by the same syscall twice in a row. This is because the handler is triggered both when the syscall is entered and when it is exited. As a result the `hit_on()` method of the [SyscallHandler](../../from_pydoc/generated/data/syscall_handler) object will return `True` in both instances.
 
     You can also use the `hit_on_enter()` and `hit_on_exit()` functions to check if the cause of the process stop was the syscall entering or exiting, respectively.
 
@@ -143,7 +143,7 @@ When hijacking a syscall, the user can provide an alternative syscall to be exec
 
 | Return | Type | Description |
 | --- | --- | --- |
-| `SyscallHandler` | [SyscallHandler](/from_pydoc/generated/data/syscall_handler) | The handler object created. |
+| `SyscallHandler` | [SyscallHandler](../../from_pydoc/generated/data/syscall_handler) | The handler object created. |
 
 
 !!! ABSTRACT "Example of hijacking a syscall"
