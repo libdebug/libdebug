@@ -188,3 +188,6 @@ Who will receive the signal?
 </div> 
 
 [Signal Catching](../../stopping_events/signals) is also shared among threads. Apart from consistency, this is a necessity. In fact, the kernel does not guarantee that a signal sent to a process will be dispatched to a specific thread. By contrast, when sending arbitrary signals through the [ThreadContext](../../from_pydoc/generated/state/thread_context/) object, the signal will be sent to the requested thread.
+
+## :fontawesome-regular-file-zipper: Snapshot Behavior
+When creating a [snapshot](/save_states/snapshots) of a process from the corresponding [Debugger](/from_pydoc/generated/debugger/debugger/) object, the snapshot will also save the state of all threads. You can also create a snapshot of a single thread by calling the [`create_snapshot()`](/save_states/snapshots/#creating-snapshots) method from the [ThreadContext](/from_pydoc/generated/state/thread_context/) object instead. Read more about snapshots in the [Save States](/save_states) section.

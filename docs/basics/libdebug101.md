@@ -70,7 +70,8 @@ The [Debugger](../../from_pydoc/generated/debugger/debugger/) object has many mo
         continue_to_binary_entrypoint=True,
         auto_interrupt_on_command=False,
         fast_memory=False,
-        kill_on_exit=True
+        kill_on_exit=True,
+        follow_children=True
     ) -> Debugger
     ```
 
@@ -84,5 +85,6 @@ The [Debugger](../../from_pydoc/generated/debugger/debugger/) object has many mo
 | `auto_interrupt_on_command` | `bool` | Whether to run **libdebug** in [ASAP Mode](../command_queue). |
 | `fast_memory` | `bool` | Whether to use a [faster memory reading method](../memory_access#faster-memory-access). Defaults to False. |
 | `kill_on_exit` | `bool` | Whether to [kill the debugged process when the debugger exits](../kill_and_post_mortem). Defaults to True. |
+| `follow_children` | `bool` | Whether to automatically monitor child processes. Defaults to True. |
 | **Return Value** |
 |[Debugger](../../from_pydoc/generated/debugger/debugger/) | `Debugger` | The debugger object |
