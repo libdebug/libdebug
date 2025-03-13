@@ -568,13 +568,21 @@ class InternalDebugger:
         elif file == "hybrid":
             try:
                 # Try to resolve the address as absolute
-                self.maps.filter(start)
+                self.memory[start, 1, "absolute"]
                 address_start = start
             except ValueError:
                 # If the address is not in the maps, we use the binary file
                 address_start = start + self.maps.filter("binary")[0].start
+                file = "binary"
         else:
-            address_start = start + self.maps.filter(file)[0].base
+            map_file = self.maps.filter(file)[0]
+            address_start = start + map_file.base
+            file = map_file.backing_file if file != "binary" else "binary"
+
+        extract = self.memory[start:end, file]
+
+        file_info = f" (file: {file})" if file not in ("absolute", "hybrid") else ""
+        print(f"Memory from {start:#x} to {end:#x}{file_info}:")
 
         pprint_memory_util(
             address_start,

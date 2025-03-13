@@ -10,6 +10,8 @@ from dataclasses import dataclass
 
 from libdebug.data.memory_map import MemoryMap
 
+from libdebug.liblog import liblog
+
 
 @dataclass
 class MemoryMapSnapshot(MemoryMap):
@@ -28,7 +30,7 @@ class MemoryMapSnapshot(MemoryMap):
     content: bytes = None
     """The content of the memory map, used for snapshotted pages."""
 
-    def is_same_identity(self: MemoryMap, other: MemoryMap) -> bool:
+    def is_same_identity(self: MemoryMapSnapshot, other: MemoryMap) -> bool:
         """Check if the memory map corresponds to another memory map."""
         return self.start == other.start and self.backing_file == other.backing_file
 
@@ -55,8 +57,14 @@ class MemoryMapSnapshot(MemoryMap):
 
         is_snapshot_map = isinstance(value, MemoryMapSnapshot)
 
+        is_content_map_1 = self.content is not None
+        is_content_map_2 = is_snapshot_map and value.content is not None
+
+        if is_content_map_1 != is_content_map_2:
+            liblog.warning("Comparing a memory map snapshot with content with a memory map without content. Equality will not take into account the content.") 
+
         # Check if the content is available and if it is the same
-        should_compare_content = is_snapshot_map and self.content is not None and value.content is not None
+        should_compare_content = is_snapshot_map and is_content_map_1 and is_content_map_2
         same_content = not should_compare_content or self.content == value.content
 
         return (
