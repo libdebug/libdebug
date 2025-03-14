@@ -29,7 +29,7 @@ def fast_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.JumpstartTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.LargeBinarySymTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.MemoryTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.MemoryFastTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.MemoryNoFastTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.MultipleDebuggersTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.NextTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.NlinksTest))

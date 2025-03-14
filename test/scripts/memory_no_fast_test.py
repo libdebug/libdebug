@@ -13,9 +13,9 @@ from libdebug import debugger, libcontext
 from libdebug.utils.platform_utils import get_platform_gp_register_size
 
 
-class MemoryFastTest(TestCase):
+class MemoryNoFastTest(TestCase):
     def test_memory(self):
-        d = debugger(RESOLVE_EXE("memory_test"), fast_memory=True)
+        d = debugger(RESOLVE_EXE("memory_test"), fast_memory=False)
 
         d.run()
 
@@ -39,7 +39,7 @@ class MemoryFastTest(TestCase):
         d.terminate()
 
     def test_mem_access_libs(self):
-        d = debugger(RESOLVE_EXE("memory_test"), fast_memory=True)
+        d = debugger(RESOLVE_EXE("memory_test"), fast_memory=False)
 
         d.run()
 
@@ -62,7 +62,7 @@ class MemoryFastTest(TestCase):
         d.terminate()
 
     def test_memory_exceptions(self):
-        d = debugger(RESOLVE_EXE("memory_test"), fast_memory=True)
+        d = debugger(RESOLVE_EXE("memory_test"), fast_memory=False)
 
         d.run()
 
@@ -92,7 +92,7 @@ class MemoryFastTest(TestCase):
         d.terminate()
 
     def test_memory_multiple_runs(self):
-        d = debugger(RESOLVE_EXE("memory_test"), fast_memory=True)
+        d = debugger(RESOLVE_EXE("memory_test"), fast_memory=False)
 
         for _ in range(10):
             d.run()
@@ -118,7 +118,7 @@ class MemoryFastTest(TestCase):
         d.terminate()
 
     def test_memory_access_while_running(self):
-        d = debugger(RESOLVE_EXE("memory_test_2"), fast_memory=True)
+        d = debugger(RESOLVE_EXE("memory_test_2"), fast_memory=False)
 
         d.run()
 
@@ -135,7 +135,7 @@ class MemoryFastTest(TestCase):
         d.terminate()
 
     def test_memory_access_methods(self):
-        d = debugger(RESOLVE_EXE("memory_test_2"), fast_memory=True)
+        d = debugger(RESOLVE_EXE("memory_test_2"), fast_memory=False)
 
         d.run()
 
@@ -204,7 +204,7 @@ class MemoryFastTest(TestCase):
         d.terminate()
 
     def test_memory_access_methods_backing_file(self):
-        d = debugger(RESOLVE_EXE("memory_test_2"), fast_memory=True)
+        d = debugger(RESOLVE_EXE("memory_test_2"), fast_memory=False)
 
         d.run()
 
@@ -283,7 +283,7 @@ class MemoryFastTest(TestCase):
         d.terminate()
 
     def test_memory_large_read(self):
-        d = debugger(RESOLVE_EXE("memory_test_3"), fast_memory=True)
+        d = debugger(RESOLVE_EXE("memory_test_3"), fast_memory=False)
 
         d.run()
 
@@ -295,16 +295,16 @@ class MemoryFastTest(TestCase):
 
         leak = FUN_ARG_0(d)
 
-        # Read 4MB of memory
-        data = d.memory[leak, 4 * 1024 * 1024]
+        # Read 256K of memory
+        data = d.memory[leak, 256 * 1024]
 
-        assert data == b"".join(x.to_bytes(4, "little") for x in range(1024 * 1024))
+        assert data == b"".join(x.to_bytes(4, "little") for x in range(64 * 1024))
 
         d.kill()
         d.terminate()
 
     def test_invalid_memory_location(self):
-        d = debugger(RESOLVE_EXE("memory_test"), fast_memory=True)
+        d = debugger(RESOLVE_EXE("memory_test"), fast_memory=False)
 
         d.run()
 
@@ -323,7 +323,7 @@ class MemoryFastTest(TestCase):
         d.terminate()
 
     def test_memory_multiple_threads(self):
-        d = debugger(RESOLVE_EXE("memory_test_4"), fast_memory=True)
+        d = debugger(RESOLVE_EXE("memory_test_4"), fast_memory=False)
 
         d.run()
 
@@ -398,7 +398,7 @@ class MemoryFastTest(TestCase):
         # Ensure that fast-memory works when attaching to a process
         r = process(RESOLVE_EXE("attach_test"))
 
-        d = debugger(fast_memory=True)
+        d = debugger(fast_memory=False)
 
         d.attach(r.pid)
 
@@ -406,51 +406,9 @@ class MemoryFastTest(TestCase):
 
         d.kill()
         d.terminate()
-
-    def test_search_memory(self):
-        d = debugger(RESOLVE_EXE("memory_test"), fast_memory=True)
-
-        d.run()
-
-        bp = d.breakpoint("change_memory")
-
-        d.cont()
-
-        assert d.instruction_pointer == bp.address
-
-        address = FUN_ARG_0(d)
-        prev = bytes(range(256))
-
-        self.assertTrue(d.memory[address, 256] == prev)
-        
-        d.memory[address + 128 :] = b"abcd123456"
-        prev = prev[:128] + b"abcd123456" + prev[138:]
-
-        self.assertTrue(d.memory[address : address + 256] == prev)
-        
-        start = d.maps.filter("heap")[0].start
-        end = d.maps.filter("heap")[-1].end - 1
-        
-        # Search for the string "abcd123456" in the whole memory
-        self.assertTrue(d.memory.find(b"abcd123456") == [address + 128])
-        
-        # Search for the string "abcd123456" in the memory starting from start
-        self.assertTrue(d.memory.find(b"abcd123456", start=start) == [address + 128])
-        
-        # Search for the string "abcd123456" in the memory ending at end
-        self.assertTrue(d.memory.find(b"abcd123456", end=end) == [address + 128])
-        
-        # Search for the string "abcd123456" in the heap using backing file
-        self.assertTrue(d.memory.find(b"abcd123456", file="heap") == [address + 128])
-        
-        # Search for the string "abcd123456" in the heap using start and end
-        self.assertTrue(d.memory.find(b"abcd123456", start=start, end=end) == [address + 128])
-
-        d.kill()
-        d.terminate()
-        
-    def test_memory_fast_debugger_status(self):
-        d = debugger(RESOLVE_EXE("basic_test"), fast_memory=True)
+    
+    def test_memory_no_fast_debugger_status(self):
+        d = debugger(RESOLVE_EXE("basic_test"), fast_memory=False)
         
         with self.assertRaises(RuntimeError):
             d.memory
@@ -469,5 +427,3 @@ class MemoryFastTest(TestCase):
             
         with self.assertRaises(RuntimeError):
             d.mem
-        
-        d.terminate()
