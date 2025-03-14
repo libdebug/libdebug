@@ -347,7 +347,7 @@ class ThreadContext(ABC):
             syscall_identifier (str | int): The syscall identifier.
             *args (int): The syscall arguments.
         """
-        self._internal_debugger.invoke_syscall(self, syscall_identifier, *args)
+        return self._internal_debugger.invoke_syscall(self, syscall_identifier, *args)
 
     def __repr__(self: ThreadContext) -> str:
         """Returns a string representation of the object."""
