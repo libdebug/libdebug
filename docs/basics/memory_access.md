@@ -159,7 +159,7 @@ The `memory` attribute of the [Debugger](../../from_pydoc/generated/debugger/deb
 **libdebug** supports two different methods to access memory on Linux, controlled by the `fast_memory` parameter of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object. The two methods are:
 
 - `fast_memory=False` uses the [`ptrace`](https://man7.org/linux/man-pages/man2/ptrace.2.html) system call interface, requiring a context switch from user space to kernel space for each architectural word-size read.
-- `fast_memory=True` reduces the access latency by relying on Linux's [procfs](https://docs.kernel.org/filesystems/proc.html), which contains a virtual as an interface to the process memory.
+- `fast_memory=True` reduces the access latency by relying on Linux's [procfs](https://docs.kernel.org/filesystems/proc.html), which contains a virtual file as an interface to the process memory.
 
 As of version **0.8** :sushi: *Chutoro Nigiri* :sushi:, `fast_memory=True` is the default. The following examples show how to change the memory access method when creating the [Debugger](../../from_pydoc/generated/debugger/debugger/) object or at runtime.
 
