@@ -422,6 +422,8 @@ class InternalDebugger:
         self.instanced = False
         self.is_debugging = False
 
+        self.set_all_threads_as_dead()
+
         if self.pipe_manager:
             self.pipe_manager.close()
 
@@ -513,12 +515,14 @@ class InternalDebugger:
         self._join_and_check_status()
 
     @property
+    @change_state_function_process
     def maps(self: InternalDebugger) -> MemoryMapList[MemoryMap]:
         """Returns the memory maps of the process."""
         self._ensure_process_stopped()
         return self.debugging_interface.get_maps()
 
     @property
+    @change_state_function_process
     def memory(self: InternalDebugger) -> AbstractMemoryView:
         """The memory view of the debugged process."""
         return self._fast_memory if self.fast_memory else self._slow_memory
@@ -1332,6 +1336,11 @@ class InternalDebugger:
                 thread._exit_signal = exit_signal
                 break
 
+    def set_all_threads_as_dead(self: InternalDebugger) -> None:
+        """Set all threads as dead."""
+        for thread in self.threads:
+            thread.set_as_dead()
+
     def get_thread_by_id(self: InternalDebugger, thread_id: int) -> ThreadContext:
         """Get a thread by its ID.
 
@@ -1392,6 +1401,7 @@ class InternalDebugger:
 
         return normalize_and_validate_address(address, filtered_maps)
 
+    @change_state_function_process
     def resolve_symbol(self: InternalDebugger, symbol: str, backing_file: str) -> int:
         """Resolves the address of the specified symbol.
 
@@ -1462,6 +1472,25 @@ class InternalDebugger:
         """Validates the state of the process."""
         if self._is_migrated_to_gdb:
             raise RuntimeError("Cannot execute this command after migrating to GDB.")
+
+        if not self.running:
+            return
+
+        if self.auto_interrupt_on_command:
+            self.interrupt()
+
+        self._join_and_check_status()
+
+    @background_alias(_background_ensure_process_stopped)
+    def _ensure_process_stopped_regs(self: InternalDebugger) -> None:
+        """Validates the state of the process. This is designed to be used by register-related commands."""
+        if self._is_migrated_to_gdb:
+            raise RuntimeError("Cannot execute this command after migrating to GDB.")
+
+        if not self.is_debugging and not self.threads[0].dead:
+            # The process is not being debugged, we cannot access registers
+            # We can still access registers if the process is dead to guarantee post-mortem analysis
+            raise RuntimeError("The process is not being debugged, cannot access registers. Check your script.")
 
         if not self.running:
             return
@@ -1810,6 +1839,7 @@ class InternalDebugger:
         """Set the state of the process to stopped."""
         self._is_running = False
 
+    @change_state_function_process
     def create_snapshot(self: Debugger, level: str = "base", name: str | None = None) -> ProcessSnapshot:
         """Create a snapshot of the current process state.
 

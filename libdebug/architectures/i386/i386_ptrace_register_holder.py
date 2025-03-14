@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2024-2025 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -61,13 +61,13 @@ def _get_property_fp_st(name: str, index: int) -> property:
     # But their support for long double does not actually allow for value comparison or manipulation
     # So, ctypes it is
     def getter(self: I386Registers) -> float:
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger._ensure_process_stopped_regs()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         return c_longdouble.from_buffer_copy(bytes(self._fp_register_file.mmx[index].data)).value
 
     def setter(self: I386Registers, value: float) -> None:
-        self._internal_debugger._ensure_process_stopped()
+        self._internal_debugger._ensure_process_stopped_regs()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         # Only difference from the amd64 version is the padding to 16 bytes

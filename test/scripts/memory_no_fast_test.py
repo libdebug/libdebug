@@ -406,3 +406,24 @@ class MemoryNoFastTest(TestCase):
 
         d.kill()
         d.terminate()
+    
+    def test_memory_no_fast_debugger_status(self):
+        d = debugger(RESOLVE_EXE("basic_test"), fast_memory=False)
+        
+        with self.assertRaises(RuntimeError):
+            d.memory
+            
+        with self.assertRaises(RuntimeError):
+            d.mem
+
+        d.run()   
+        
+        d.memory
+             
+        d.detach()
+        
+        with self.assertRaises(RuntimeError):
+            d.memory
+            
+        with self.assertRaises(RuntimeError):
+            d.mem

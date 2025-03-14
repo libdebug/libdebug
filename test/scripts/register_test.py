@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
+# Copyright (c) 2023-2025 Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -10,6 +10,16 @@ from unittest import TestCase, skipUnless
 from utils.binary_utils import PLATFORM, RESOLVE_EXE
 
 from libdebug import debugger
+
+match PLATFORM:
+    case "amd64":
+        REGISTER_ACCESS = "rip"
+    case "aarch64":
+        REGISTER_ACCESS = "pc"
+    case "i386":
+        REGISTER_ACCESS = "eip"
+    case _:
+        raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
 
 class RegisterTest(TestCase):
     @skipUnless(PLATFORM == "amd64", "Requires amd64")
@@ -781,3 +791,27 @@ class RegisterTest(TestCase):
 
         d.kill()
         d.terminate()
+        
+    def test_register_debugger_status(self):
+        d = debugger(RESOLVE_EXE("basic_test"))
+        
+        with self.assertRaises(RuntimeError):
+            d.regs
+
+        d.run()
+        
+        registers = d.regs
+        
+        d.detach()
+        
+        with self.assertRaises(RuntimeError): 
+            d.regs
+            
+        with self.assertRaises(RuntimeError):
+            registers.__getattribute__(REGISTER_ACCESS)
+        
+        d.terminate()
+        
+        
+
+
