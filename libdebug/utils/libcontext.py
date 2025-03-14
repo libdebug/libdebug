@@ -22,6 +22,7 @@ class LibContext:
     _pipe_logger_levels: list[str]
     _debugger_logger_levels: list[str]
     _general_logger_levels: list[str]
+    _debuginfod_server: str
 
     def __new__(cls: type):
         """Create a new instance of the class if it does not exist yet.
@@ -47,6 +48,8 @@ class LibContext:
         self._debugger_logger = "SILENT"
         self._pipe_logger = "SILENT"
         self._general_logger = "INFO"
+
+        self._debuginfod_server = "https://debuginfod.elfutils.org/"
 
         # Adjust log levels based on command-line arguments
         if len(sys.argv) > 1:
@@ -172,6 +175,24 @@ class LibContext:
             value = [value]
 
         self._terminal = value
+
+    @property
+    def debuginfod_server(self: LibContext) -> str:
+        """Property getter for debuginfod_server.
+
+        Returns:
+            _debuginfod_server (str): the current debuginfod server.
+        """
+        return self._debuginfod_server
+
+    @debuginfod_server.setter
+    def debuginfod_server(self: LibContext, value: str) -> None:
+        """Property setter for debuginfod_server, ensuring it's a valid URL."""
+        self._debuginfod_server = value
+        if type(value) is not str or (not value.startswith("http://") and not value.startswith("https://")):
+            raise ValueError(
+                "debuginfod_server must be a valid string URL in the format 'http://<server>' or 'https://<server>'",
+            )
 
     def update(self: LibContext, **kwargs: ...) -> None:
         """Update the context with the given values."""

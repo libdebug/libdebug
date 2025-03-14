@@ -20,7 +20,6 @@ from libdebug.utils.libcontext import libcontext
 
 DEBUGINFOD_PATH: Path = Path.home() / ".cache" / "debuginfod_client"
 LOCAL_DEBUG_PATH: Path = Path("/usr/lib/debug/.build-id/")
-URL_BASE: str = "https://debuginfod.elfutils.org/buildid/{}/debuginfo"
 NOT_FOUND: int = 404
 
 
@@ -32,7 +31,7 @@ def _download_debuginfod(buildid: str, debuginfod_path: Path) -> None:
         debuginfod_path (Path): The output directory.
     """
     try:
-        url = URL_BASE.format(buildid)
+        url = libcontext.debuginfod_server + "buildid/" + buildid + "/debuginfo"
         r = requests.get(url, allow_redirects=True, timeout=1)
 
         if r.ok:
