@@ -194,6 +194,13 @@ SymbolVector collect_external_symbols(const std::string &debug_file_path, const 
         throw std::invalid_argument("Error opening file: " + debug_file_path);
     }
 
+    // Check if the file is empty
+    if (lseek(fd, 0, SEEK_END) == 0) {
+        // The debug file is empty
+        close(fd);
+        return symbols;
+    }
+
     // Read the ELF file
     if ((elf = elf_begin(fd, ELF_C_READ, NULL)) == NULL) {
         throw std::runtime_error("Error reading ELF file: " + debug_file_path);
