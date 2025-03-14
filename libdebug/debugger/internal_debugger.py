@@ -556,12 +556,6 @@ class InternalDebugger:
 
         word_size = get_platform_gp_register_size(self.arch) if override_word_size is None else override_word_size
 
-        extract = self.memory[start:end, file]
-
-        file_info = f" (file: {file})" if file not in ("absolute", "hybrid") else ""
-
-        print(f"Memory from {start:#x} to {end:#x}{file_info}:")
-
         # Resolve the address
         if file == "absolute":
             address_start = start
