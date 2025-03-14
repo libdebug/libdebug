@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
+# Copyright (c) 2023-2025 Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -746,7 +746,7 @@ class PtraceInterface(DebuggingInterface):
 
     def get_maps(self: PtraceInterface) -> MemoryMapList[MemoryMap]:
         """Returns the memory maps of the process."""
-        with extend_internal_debugger(self._internal_debugger):
+        with extend_internal_debugger(self):
             return get_process_maps(self.process_id)
 
     def get_hit_watchpoint(self: PtraceInterface, thread_id: int) -> Breakpoint:

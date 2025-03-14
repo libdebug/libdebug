@@ -447,3 +447,9 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
             setattr(target_class, name_zmm, _get_property_fp_zmm1(name_zmm, index))
 
             self._vector_fp_registers.append((name_xmm, name_ymm, name_zmm))
+
+    def cleanup(self: Amd64PtraceRegisterHolder) -> None:
+        """Clean up the register accessors from the Amd64Registers class."""
+        for attr_name, attr_value in list(Amd64Registers.__dict__.items()):
+            if isinstance(attr_value, property):
+                delattr(Amd64Registers, attr_name)

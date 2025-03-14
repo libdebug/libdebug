@@ -36,6 +36,8 @@ if TYPE_CHECKING:
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
+    from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
+    from libdebug.snapshots.snapshot import Snapshot
     from libdebug.state.thread_context import ThreadContext
 
 
@@ -371,6 +373,11 @@ class Debugger:
     def breakpoints(self: Debugger) -> dict[int, Breakpoint]:
         """Get the breakpoints set on the process."""
         return self._internal_debugger.breakpoints
+
+    @property
+    def children(self: Debugger) -> list[Debugger]:
+        """Get the list of child debuggers."""
+        return self._internal_debugger.children
 
     @property
     def handled_syscalls(self: InternalDebugger) -> dict[int, SyscallHandler]:
@@ -822,6 +829,24 @@ class Debugger:
         """
         self.pprint_registers_all()
 
+    def pprint_memory(self: Debugger,
+        start: int,
+        end: int,
+        file: str = "hybrid",
+        override_word_size: int | None = None,
+        integer_mode: bool = False,
+    ) -> None:
+        """Pretty prints the memory contents of the process.
+
+        Args:
+            start (int): The start address of the memory region.
+            end (int): The end address of the memory region.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
+            override_word_size (int, optional): The word size to use for the memory dump. Defaults to None.
+            integer_mode (bool, optional): Whether to print the memory contents as integers. Defaults to False.
+        """
+        self._internal_debugger.pprint_memory(start, end, file, override_word_size, integer_mode)
+
     def step(self: Debugger) -> None:
         """Executes a single instruction of the process."""
         self._internal_debugger.step(self)
@@ -915,9 +940,35 @@ class Debugger:
         repr_str += f"auto_interrupt_on_command = {self._internal_debugger.auto_interrupt_on_command}, "
         repr_str += f"fast_memory = {self._internal_debugger.fast_memory}, "
         repr_str += f"kill_on_exit = {self._internal_debugger.kill_on_exit})\n"
+        repr_str += f"follow_children = {self._internal_debugger.follow_children}, "
         repr_str += f"  Architecture: {self.arch}\n"
         repr_str += "  Threads:"
         for thread in self.threads:
             repr_str += f"\n    ({thread.tid}, {'dead' if thread.dead else 'alive'}) "
             repr_str += f"ip: {thread.instruction_pointer:#x}"
         return repr_str
+
+    def create_snapshot(self: Debugger, level: str = "base", name: str | None = None) -> ProcessSnapshot:
+        """Create a snapshot of the current process state.
+
+        Snapshot levels:
+        - base: Registers
+        - writable: Registers, writable memory contents
+        - full: Registers, all memory contents
+
+        Args:
+            level (str): The level of the snapshot.
+            name (str, optional): The name of the snapshot. Defaults to None.
+
+        Returns:
+            ProcessSnapshot: The created snapshot.
+        """
+        return self._internal_debugger.create_snapshot(level, name)
+
+    def load_snapshot(self: Debugger, file_path: str) -> Snapshot:
+        """Load a snapshot of the thread / process state.
+
+        Args:
+            file_path (str): The path to the snapshot file.
+        """
+        return self._internal_debugger.load_snapshot(file_path)

@@ -33,17 +33,20 @@ from libdebug.data.gdb_resume_event import GdbResumeEvent
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
 from libdebug.data.terminals import TerminalTypes
+from libdebug.debugger.debugger import Debugger
 from libdebug.debugger.internal_debugger_instance_manager import (
     extend_internal_debugger,
     link_to_internal_debugger,
+    remove_internal_debugger_refs,
 )
 from libdebug.interfaces.interface_helper import provide_debugging_interface
 from libdebug.liblog import liblog
 from libdebug.memory.chunked_memory_view import ChunkedMemoryView
 from libdebug.memory.direct_memory_view import DirectMemoryView
 from libdebug.memory.process_memory_manager import ProcessMemoryManager
+from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
+from libdebug.snapshots.serialization.serialization_helper import SerializationHelper
 from libdebug.state.resume_context import ResumeContext
-from libdebug.utils.ansi_escape_codes import ANSIColors
 from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.debugger_wrappers import (
     background_alias,
@@ -56,7 +59,8 @@ from libdebug.utils.debugging_utils import (
 )
 from libdebug.utils.elf_utils import get_all_symbols
 from libdebug.utils.libcontext import libcontext
-from libdebug.utils.platform_utils import get_platform_register_size
+from libdebug.utils.platform_utils import get_platform_gp_register_size
+from libdebug.utils.pprint_primitives import pprint_maps_util, pprint_memory_util
 from libdebug.utils.signal_utils import (
     resolve_signal_name,
     resolve_signal_number,
@@ -77,9 +81,9 @@ if TYPE_CHECKING:
     from libdebug.data.registers import Registers
     from libdebug.data.symbol import Symbol
     from libdebug.data.symbol_list import SymbolList
-    from libdebug.debugger import Debugger
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
+    from libdebug.snapshots.snapshot import Snapshot
     from libdebug.state.thread_context import ThreadContext
 
 THREAD_TERMINATE = -1
@@ -112,6 +116,9 @@ class InternalDebugger:
 
     auto_interrupt_on_command: bool
     """A flag that indicates if the debugger should automatically interrupt the debugged process when a command is issued."""
+
+    follow_children: bool
+    """A flag that indicates if the debugger should follow child processes creating a new debugger for each one."""
 
     breakpoints: dict[int, Breakpoint]
     """A dictionary of all the breakpoints set on the process. Key: the address of the breakpoint."""
@@ -155,6 +162,9 @@ class InternalDebugger:
     is_debugging: bool = False
     """Whether the debugger is currently debugging a process."""
 
+    children: list[Debugger]
+    """The list of child debuggers."""
+
     pprint_syscalls: bool
     """A flag that indicates if the debugger should pretty print syscalls."""
 
@@ -188,6 +198,9 @@ class InternalDebugger:
     _slow_memory: ChunkedMemoryView
     """The memory view of the debugged process using the slow memory access method."""
 
+    _snapshot_count: int
+    """The counter used to assign an ID to each snapshot."""
+
     def __init__(self: InternalDebugger) -> None:
         """Initialize the context."""
         # These must be reinitialized on every call to "debugger"
@@ -218,6 +231,9 @@ class InternalDebugger:
         self.fast_memory = False
         self.__polling_thread_command_queue = Queue()
         self.__polling_thread_response_queue = Queue()
+        self._snapshot_count = 0
+        self.serialization_helper = SerializationHelper()
+        self.children = []
 
     def clear(self: InternalDebugger) -> None:
         """Reinitializes the context, so it is ready for a new run."""
@@ -241,6 +257,7 @@ class InternalDebugger:
         self.is_debugging = False
         self._is_running = False
         self.resume_context.clear()
+        self.children.clear()
 
     def start_up(self: InternalDebugger) -> None:
         """Starts up the context."""
@@ -254,7 +271,7 @@ class InternalDebugger:
             self._slow_memory = ChunkedMemoryView(
                 self._peek_memory,
                 self._poke_memory,
-                unit_size=get_platform_register_size(libcontext.platform),
+                unit_size=get_platform_gp_register_size(libcontext.platform),
             )
 
     def start_processing_thread(self: InternalDebugger) -> None:
@@ -353,6 +370,40 @@ class InternalDebugger:
 
         self._process_memory_manager.close()
 
+    def set_child_debugger(self: InternalDebugger, child_pid: int) -> None:
+        """Sets the child debugger after a fork.
+
+        Args:
+            child_pid (int): The PID of the child process.
+        """
+        # Create a new InternalDebugger instance for the child process with the same configuration
+        # of the parent debugger
+        child_internal_debugger = InternalDebugger()
+        child_internal_debugger.argv = self.argv
+        child_internal_debugger.env = self.env
+        child_internal_debugger.aslr_enabled = self.aslr_enabled
+        child_internal_debugger.autoreach_entrypoint = self.autoreach_entrypoint
+        child_internal_debugger.auto_interrupt_on_command = self.auto_interrupt_on_command
+        child_internal_debugger.escape_antidebug = self.escape_antidebug
+        child_internal_debugger.fast_memory = self.fast_memory
+        child_internal_debugger.kill_on_exit = self.kill_on_exit
+        child_internal_debugger.follow_children = self.follow_children
+
+        # Create the new Debugger instance for the child process
+        child_debugger = Debugger()
+        child_debugger.post_init_(child_internal_debugger)
+        child_internal_debugger.debugger = child_debugger
+        child_debugger.arch = self.arch
+
+        # Attach to the child process with the new debugger
+        child_internal_debugger.attach(child_pid)
+        self.children.append(child_debugger)
+        liblog.debugger(
+            "Child process with pid %d registered to the parent debugger (pid %d)",
+            child_pid,
+            self.process_id,
+        )
+
     @background_alias(_background_invalid_call)
     def kill(self: InternalDebugger) -> None:
         """Kills the process."""
@@ -404,6 +455,13 @@ class InternalDebugger:
             self.__polling_thread.join()
             del self.__polling_thread
             self.__polling_thread = None
+
+        # Remove elemement from internal_debugger_holder to avoid memleaks
+        remove_internal_debugger_refs(self)
+
+        # Clean up the register accessors
+        for thread in self.threads:
+            thread._register_holder.cleanup()
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
@@ -468,27 +526,61 @@ class InternalDebugger:
     def pprint_maps(self: InternalDebugger) -> None:
         """Prints the memory maps of the process."""
         self._ensure_process_stopped()
-        header = f"{'start':>18}  {'end':>18}  {'perm':>6}  {'size':>8}  {'offset':>8}  {'backing_file':<20}"
-        print(header)
-        for memory_map in self.maps:
-            info = (
-                f"{memory_map.start:#18x}  "
-                f"{memory_map.end:#18x}  "
-                f"{memory_map.permissions:>6}  "
-                f"{memory_map.size:#8x}  "
-                f"{memory_map.offset:#8x}  "
-                f"{memory_map.backing_file}"
-            )
-            if "rwx" in memory_map.permissions:
-                print(f"{ANSIColors.RED}{ANSIColors.UNDERLINE}{info}{ANSIColors.RESET}")
-            elif "x" in memory_map.permissions:
-                print(f"{ANSIColors.RED}{info}{ANSIColors.RESET}")
-            elif "w" in memory_map.permissions:
-                print(f"{ANSIColors.YELLOW}{info}{ANSIColors.RESET}")
-            elif "r" in memory_map.permissions:
-                print(f"{ANSIColors.GREEN}{info}{ANSIColors.RESET}")
-            else:
-                print(info)
+        pprint_maps_util(self.maps)
+
+    def pprint_memory(
+        self: InternalDebugger,
+        start: int,
+        end: int,
+        file: str = "hybrid",
+        override_word_size: int | None = None,
+        integer_mode: bool = False,
+    ) -> None:
+        """Pretty print the memory diff.
+
+        Args:
+            start (int): The start address of the memory diff.
+            end (int): The end address of the memory diff.
+            file (str, optional): The backing file for relative / absolute addressing. Defaults to "hybrid".
+            override_word_size (int, optional): The word size to use for the diff in place of the ISA word size. Defaults to None.
+            integer_mode (bool, optional): If True, the diff will be printed as hex integers (system endianness applies). Defaults to False.
+        """
+        if start > end:
+            tmp = start
+            start = end
+            end = tmp
+
+        word_size = get_platform_gp_register_size(self.arch) if override_word_size is None else override_word_size
+
+        # Resolve the address
+        if file == "absolute":
+            address_start = start
+        elif file == "hybrid":
+            try:
+                # Try to resolve the address as absolute
+                self.memory[start, 1, "absolute"]
+                address_start = start
+            except ValueError:
+                # If the address is not in the maps, we use the binary file
+                address_start = start + self.maps.filter("binary")[0].start
+                file = "binary"
+        else:
+            map_file = self.maps.filter(file)[0]
+            address_start = start + map_file.base
+            file = map_file.backing_file if file != "binary" else "binary"
+
+        extract = self.memory[start:end, file]
+
+        file_info = f" (file: {file})" if file not in ("absolute", "hybrid") else ""
+        print(f"Memory from {start:#x} to {end:#x}{file_info}:")
+
+        pprint_memory_util(
+            address_start,
+            extract,
+            word_size,
+            self.maps,
+            integer_mode=integer_mode,
+        )
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
@@ -577,8 +669,8 @@ class InternalDebugger:
                     f"Cannot catch SIGSTOP ({signal_number}) as it is used by the debugger or ptrace for their internal operations.",
                 )
             case SIGTRAP.value:
-                raise ValueError(
-                    f"Cannot catch SIGTRAP ({signal_number}) as it is used by the debugger or ptrace for their internal operations.",
+                liblog.warning(
+                    f"Catching SIGTRAP ({signal_number}) may interfere with libdebug operations as it is used by the debugger or ptrace for their internal operations. Use with care."
                 )
 
         if signal_number in self.caught_signals:
@@ -1019,6 +1111,9 @@ class InternalDebugger:
         self.__threaded_step(thread)
         self.__threaded_wait()
 
+        # At this point, we need to continue the execution of the callback from which the step was called
+        self.resume_context.resume = True
+
     @background_alias(_background_step)
     @change_state_function_thread
     def step(self: InternalDebugger, thread: ThreadContext) -> None:
@@ -1053,6 +1148,9 @@ class InternalDebugger:
             address = self.resolve_address(position, file)
 
         self.__threaded_step_until(thread, address, max_steps)
+
+        # At this point, we need to continue the execution of the callback from which the step was called
+        self.resume_context.resume = True
 
     @background_alias(_background_step_until)
     @change_state_function_thread
@@ -1103,6 +1201,9 @@ class InternalDebugger:
         """
         self.__threaded_finish(thread, heuristic)
 
+        # At this point, we need to continue the execution of the callback from which the step was called
+        self.resume_context.resume = True
+
     @background_alias(_background_finish)
     @change_state_function_thread
     def finish(self: InternalDebugger, thread: ThreadContext, heuristic: str = "backtrace") -> None:
@@ -1128,6 +1229,9 @@ class InternalDebugger:
     ) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self.__threaded_next(thread)
+
+        # At this point, we need to continue the execution of the callback from which the step was called
+        self.resume_context.resume = True
 
     @background_alias(_background_next)
     @change_state_function_thread
@@ -1305,7 +1409,8 @@ class InternalDebugger:
             # If no explicit backing file is specified, we try resolving the symbol in the main map
             filtered_maps = self.maps.filter("binary")
             try:
-                return resolve_symbol_in_maps(symbol, filtered_maps)
+                with extend_internal_debugger(self):
+                    return resolve_symbol_in_maps(symbol, filtered_maps)
             except ValueError:
                 liblog.warning(
                     f"No backing file specified for the symbol `{symbol}`. Resolving the symbol in ALL the maps (slow!)",
@@ -1313,7 +1418,9 @@ class InternalDebugger:
 
             # Otherwise, we resolve the symbol in all the maps: as this can be slow,
             # we issue a warning with the file containing it
-            address = resolve_symbol_in_maps(symbol, self.maps)
+            maps = self.maps
+            with extend_internal_debugger(self):
+                address = resolve_symbol_in_maps(symbol, maps)
 
             filtered_maps = self.maps.filter(address)
             if len(filtered_maps) != 1:
@@ -1333,7 +1440,8 @@ class InternalDebugger:
 
         filtered_maps = self.maps.filter(backing_file)
 
-        return resolve_symbol_in_maps(symbol, filtered_maps)
+        with extend_internal_debugger(self):
+            return resolve_symbol_in_maps(symbol, filtered_maps)
 
     @property
     def symbols(self: InternalDebugger) -> SymbolList[Symbol]:
@@ -1558,7 +1666,7 @@ class InternalDebugger:
 
     def __threaded_peek_memory(self: InternalDebugger, address: int) -> bytes | BaseException:
         value = self.debugging_interface.peek_memory(address)
-        return value.to_bytes(get_platform_register_size(libcontext.platform), sys.byteorder)
+        return value.to_bytes(get_platform_gp_register_size(libcontext.platform), sys.byteorder)
 
     def __threaded_poke_memory(self: InternalDebugger, address: int, data: bytes) -> None:
         int_data = int.from_bytes(data, sys.byteorder)
@@ -1764,3 +1872,41 @@ class InternalDebugger:
             (self._threaded_invoke_syscall, (thread, syscall_number, *args)),
         )
         return self._join_and_get_return_value()
+
+    def create_snapshot(self: Debugger, level: str = "base", name: str | None = None) -> ProcessSnapshot:
+        """Create a snapshot of the current process state.
+
+        Snapshot levels:
+        - base: Registers
+        - writable: Registers, writable memory contents
+        - full: Registers, all memory contents
+
+        Args:
+            level (str): The level of the snapshot.
+            name (str, optional): The name of the snapshot. Defaults to None.
+
+        Returns:
+            ProcessSnapshot: The created snapshot.
+        """
+        self._ensure_process_stopped()
+        return ProcessSnapshot(self, level, name)
+
+    def load_snapshot(self: Debugger, file_path: str) -> Snapshot:
+        """Load a snapshot of the thread / process state.
+
+        Args:
+            file_path (str): The path to the snapshot file.
+        """
+        loaded_snap = self.serialization_helper.load(file_path)
+
+        # Log the creation of the snapshot
+        named_addition = " named " + loaded_snap.name if loaded_snap.name is not None else ""
+        liblog.debugger(
+            f"Loaded {type(loaded_snap)} snapshot {loaded_snap.snapshot_id} of level {loaded_snap.level} from file {file_path}{named_addition}"
+        )
+
+        return loaded_snap
+
+    def notify_snaphot_taken(self: InternalDebugger) -> None:
+        """Notify the debugger that a snapshot has been taken."""
+        self._snapshot_count += 1

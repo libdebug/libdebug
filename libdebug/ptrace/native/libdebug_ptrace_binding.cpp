@@ -1,6 +1,6 @@
 //
 // This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-// Copyright (c) 2024 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
+// Copyright (c) 2024-2025 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for details.
 //
 
@@ -9,6 +9,8 @@
 #include <sys/ptrace.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <algorithm>
+
 
 #include "libdebug_ptrace_base.h"
 #include "libdebug_ptrace_interface.h"
@@ -129,7 +131,6 @@ Thread& LibdebugPtraceInterface::try_get_thread(const pid_t tid)
 LibdebugPtraceInterface::LibdebugPtraceInterface()
 {
     process_id = -1;
-    group_id = -1;
     handle_syscall = false;
 }
 
@@ -140,7 +141,6 @@ void LibdebugPtraceInterface::cleanup()
     software_breakpoints.clear();
 
     process_id = -1;
-    group_id = -1;
     handle_syscall = false;
 }
 
@@ -156,7 +156,6 @@ std::pair<std::shared_ptr<PtraceRegsStruct>, std::shared_ptr<PtraceFPRegsStruct>
 
     if (process_id == -1) {
         process_id = tid;
-        group_id = getpgid(tid);
     }
 
     Thread t;
@@ -188,8 +187,11 @@ void LibdebugPtraceInterface::unregister_thread(const pid_t tid)
 }
 
 int LibdebugPtraceInterface::attach(pid_t tid)
-{
-    return ptrace(PTRACE_ATTACH, tid, NULL, NULL);
+{   
+    if(ptrace(PTRACE_ATTACH, tid, NULL, NULL) == -1) {
+        return errno;
+    }
+    return 0;
 }
 
 void LibdebugPtraceInterface::detach_for_migration()
@@ -247,6 +249,30 @@ void LibdebugPtraceInterface::detach_and_cont()
 
     // continue the execution of the process
     kill(process_id, SIGCONT);
+}
+
+void LibdebugPtraceInterface::detach_from_child(pid_t pid, bool follow_child)
+{  
+    // the child will be in trace stop, we need to sync with it
+    int status;
+    waitpid(pid, &status, 0);
+
+    if (follow_child){
+        // send a SIGSTOP to the process to avoid the process to run after the detach
+        kill(pid, SIGSTOP);
+    }
+
+    // we need to repair the memory of the software breakpoints
+    for (auto &bp : software_breakpoints) {
+        if (bp.second.enabled) {
+            ptrace(PTRACE_POKETEXT, pid, (void *) bp.first, (void *) bp.second.instruction);
+        }
+    }
+
+    if (ptrace(PTRACE_DETACH, pid, NULL, 0) == -1) {
+        printf("ptrace detach failed\n");
+        throw std::runtime_error("ptrace detach failed");
+    }
 }
 
 void LibdebugPtraceInterface::detach_for_kill()
@@ -449,7 +475,17 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_
 
     int tid, status;
 
-    tid = waitpid(-group_id, &status, 0);
+    while (true) {
+        // Check if any thread has finished
+        bool anyFinished = std::any_of(threads.begin(), threads.end(), [&](auto &t) {
+            tid = waitpid(t.first, &status, WNOHANG);
+            return (tid != 0);
+        });
+
+        if (anyFinished) {
+            break;
+        }
+    }
 
     if (tid == -1) {
         throw std::runtime_error("waitpid failed");
@@ -477,8 +513,22 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_
     }
 
     // We keep polling but don't block, we want to get all the statuses we can
-    while ((temp_tid = waitpid(-group_id, &temp_status, WNOHANG)) > 0) {
-        thread_statuses.push_back({temp_tid, temp_status});
+    while (true) {
+        bool eventRetrieved = false;
+
+        for (auto &t : threads) {
+            tid = waitpid(t.first, &status, WNOHANG);
+            if (tid > 0) {
+                // Record the PID and its status
+                thread_statuses.push_back({tid, status});
+                eventRetrieved = true;
+            }
+        }
+
+        // If we didn't retrieve any new events, we're done
+        if (!eventRetrieved) {
+            break;
+        }
     }
 
     // Update the registers of all the threads
@@ -823,6 +873,17 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "Detaches from the process and continues its execution."
         )
         .def(
+            "detach_from_child",
+            &LibdebugPtraceInterface::detach_from_child,
+            nb::arg("pid"),
+            nb::arg("follow_child"),
+            "Detaches from a specific child process.\n"
+            "\n"
+            "Args:\n"
+            "    pid (int): The process id to detach from."
+            "    follow_child (bool): A flag to indicate if the child should be followed."
+        )
+        .def(
             "set_ptrace_options",
             &LibdebugPtraceInterface::set_tracing_options,
             "Sets the ptrace options for the process."
@@ -889,7 +950,7 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "Args:\n"
             "    tid (int): The thread id to step.\n"
             "    use_trampoline_heuristic (bool): A flag to indicate if the trampoline heuristic for i386 should be used."
-        )
+        ) 
         .def(
             "forward_signals",
             &LibdebugPtraceInterface::forward_signals,

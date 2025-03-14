@@ -47,6 +47,8 @@ class SignalCatcher:
 
     def hit_on(self: SignalCatcher, thread_context: ThreadContext) -> bool:
         """Returns whether the signal catcher has been hit on the given thread context."""
+        internal_debugger = provide_internal_debugger(self)
+        internal_debugger._ensure_process_stopped()
         return self.enabled and thread_context.signal_number == self.signal_number
 
     def __hash__(self: SignalCatcher) -> int:

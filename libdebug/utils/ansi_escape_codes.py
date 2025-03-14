@@ -17,6 +17,7 @@ class ANSIColors:
     YELLOW = "\033[33m"
     PINK = "\033[95m"
     CYAN = "\033[96m"
+    ORANGE = "\033[38;5;208m"
     BOLD = "\033[1m"
     UNDERLINE = "\033[4m"
     STRIKE = "\033[9m"

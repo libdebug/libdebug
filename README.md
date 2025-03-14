@@ -20,13 +20,13 @@ Documentation: https://docs.libdebug.org
 
 ### Installation Requirements:
 Ubuntu: \
-`sudo apt install -y python3 python3-dev libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg` \
+`sudo apt install -y python3 python3-dev g++ libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg` \
 Debian: \
-`sudo apt install -y python3 python3-dev libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg` \
+`sudo apt install -y python3 python3-dev g++ libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg` \
 Arch Linux: \
 `sudo pacman -S python libelf libdwarf gcc make debuginfod` \
 Fedora: \
-`sudo dnf install -y python3 python3-devel kernel-devel binutils-devel libdwarf-devel`
+`sudo dnf install -y python3 python3-devel kernel-devel g++ binutils-devel libdwarf-devel`
 
 ## Installation
 ```bash
@@ -83,18 +83,18 @@ from libdebug import debugger, libcontext
 libcontext.terminal = ['tmux', 'splitw', '-h']
 
 # Define signal catchers
-def catcher_SIGUSR1(t: ThreadContext, catcher: SignalCatcher) -> None:
-    t.signal = 0x0
+def catcher_SIGUSR1(thread, catcher) -> None:
+    thread.signal = 0x0
     print(f"SIGUSR1: Signal number {catcher}")
 
-def catcher_SIGINT(t: ThreadContext, catcher: SignalCatcher) -> None:
+def catcher_SIGINT(thread, catcher) -> None:
     print(f"SIGINT: Signal number {catcher}")
 
-def catcher_SIGPIPE(t: ThreadContext, catcher: SignalCatcher) -> None:
+def catcher_SIGPIPE(thread, catcher) -> None:
     print(f"SIGPIPE: Signal number {catcher}")
 
-def handler_geteuid(t: ThreadContext, handler: SyscallHandler) -> None:
-	t.regs.rax = 0x0
+def handler_geteuid(thread, handler) -> None:
+	thread.regs.rax = 0x0
 
 # Initialize the debugger
 d = debugger('/path/to/executable', continue_to_binary_entrypoint=False, aslr=False)
@@ -169,9 +169,8 @@ d.kill()
 ```
 
 ## Attribution
-If you intend to use libdebug in your work, please cite this repository using the following biblatex:
-
-```biblatex
+If you intend to use libdebug in your projects, please cite the software using the following bibtex:
+```bibtex
 @software{libdebug_2024,
 	title = {libdebug: {Build} {Your} {Own} {Debugger}},
 	copyright = {MIT Licence},
@@ -180,5 +179,25 @@ If you intend to use libdebug in your work, please cite this repository using th
 	author = {Digregorio, Gabriele and Bertolini, Roberto Alessandro and Panebianco, Francesco and Polino, Mario},
 	year = {2024},
 	doi = {10.5281/zenodo.13151549},
+}
+```
+
+We've also published a poster on libdebug. If you use libdebug in your research, you can cite the associated short paper:
+```bibtex
+@inproceedings{10.1145/3658644.3691391,
+author = {Digregorio, Gabriele and Bertolini, Roberto Alessandro and Panebianco, Francesco and Polino, Mario},
+title = {Poster: libdebug, Build Your Own Debugger for a Better (Hello) World},
+year = {2024},
+isbn = {9798400706363},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3658644.3691391},
+doi = {10.1145/3658644.3691391},
+booktitle = {Proceedings of the 2024 on ACM SIGSAC Conference on Computer and Communications Security},
+pages = {4976–4978},
+numpages = {3},
+keywords = {debugging, reverse engineering, software security},
+location = {Salt Lake City, UT, USA},
+series = {CCS '24}
 }
 ```

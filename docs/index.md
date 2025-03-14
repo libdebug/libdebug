@@ -25,7 +25,7 @@ To install **libdebug**, you first need to have some dependencies that will not 
 
 === ":material-ubuntu: Ubuntu"
     ```bash
-    sudo apt install -y python3 python3-dev libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg
+    sudo apt install -y python3 python3-dev g++ libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg
     ```
 
 === ":material-arch: Arch Linux"
@@ -35,12 +35,12 @@ To install **libdebug**, you first need to have some dependencies that will not 
 
 === ":material-fedora: Fedora"
     ```bash
-    sudo dnf install -y python3 python3-devel kernel-devel binutils-devel libdwarf-devel
+    sudo dnf install -y python3 python3-devel kernel-devel g++ binutils-devel libdwarf-devel
     ```
 
 === ":material-debian: Debian"
     ```bash
-    sudo apt install -y python3 python3-dev libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg
+    sudo apt install -y python3 python3-dev g++ libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg
     ```
 
 !!! QUESTION "Is your distro missing?"
@@ -107,7 +107,7 @@ Examples of some known issues include:
 The documentation for versions of **libdebug** older that 0.7.0 has to be accessed manually at [http://docs.libdebug.org/archive/VERSION](http://docs.libdebug.org/archive/VERSION), where `VERSION` is the version number you are looking for.
 
 ## :material-format-quote-open: Cite Us
-Need to cite **libdebug** in your research? Use the following BibTeX entry:
+Need to cite **libdebug** as software used in your work? This is the way to cite us:
 
 ```bibtex
 @software{libdebug_2024,
@@ -118,5 +118,26 @@ Need to cite **libdebug** in your research? Use the following BibTeX entry:
     author = {Digregorio, Gabriele and Bertolini, Roberto Alessandro and Panebianco, Francesco and Polino, Mario},
     year = {2024},
     doi = {10.5281/zenodo.13151549},
+}
+```
+
+We also have a poster on **libdebug**. If you use **libdebug** in your research, you can cite the associated short paper:
+
+```bibtex
+@inproceedings{10.1145/3658644.3691391,
+author = {Digregorio, Gabriele and Bertolini, Roberto Alessandro and Panebianco, Francesco and Polino, Mario},
+title = {Poster: libdebug, Build Your Own Debugger for a Better (Hello) World},
+year = {2024},
+isbn = {9798400706363},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3658644.3691391},
+doi = {10.1145/3658644.3691391},
+booktitle = {Proceedings of the 2024 on ACM SIGSAC Conference on Computer and Communications Security},
+pages = {4976–4978},
+numpages = {3},
+keywords = {debugging, reverse engineering, software security},
+location = {Salt Lake City, UT, USA},
+series = {CCS '24}
 }
 ```

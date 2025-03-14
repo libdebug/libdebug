@@ -13,6 +13,7 @@ from elftools.elf.elffile import ELFFile
 
 from libdebug.data.symbol import Symbol
 from libdebug.data.symbol_list import SymbolList
+from libdebug.debugger.internal_debugger_instance_manager import get_global_internal_debugger
 from libdebug.liblog import liblog
 from libdebug.native import libdebug_debug_sym_parser
 from libdebug.utils.libcontext import libcontext
@@ -74,7 +75,10 @@ def _collect_external_info(path: str) -> SymbolList[Symbol]:
     """
     ext_symbols = libdebug_debug_sym_parser.collect_external_symbols(path, libcontext.sym_lvl)
 
-    return SymbolList([Symbol(symbol.low_pc, symbol.high_pc, symbol.name, path) for symbol in ext_symbols])
+    return SymbolList(
+        [Symbol(symbol.low_pc, symbol.high_pc, symbol.name, path) for symbol in ext_symbols],
+        get_global_internal_debugger(),
+    )
 
 
 @functools.cache
@@ -94,7 +98,7 @@ def _parse_elf_file(path: str, debug_info_level: int) -> tuple[SymbolList[Symbol
 
     symbols = [Symbol(symbol.low_pc, symbol.high_pc, symbol.name, path) for symbol in elfinfo.symbols]
 
-    return SymbolList(symbols), elfinfo.build_id, elfinfo.debuglink
+    return SymbolList(symbols, get_global_internal_debugger()), elfinfo.build_id, elfinfo.debuglink
 
 
 @functools.cache
@@ -150,7 +154,7 @@ def get_all_symbols(backing_files: set[str]) -> SymbolList[Symbol]:
     Returns:
         SymbolList[Symbol]: A list of all the symbols in the target process.
     """
-    symbols = SymbolList([])
+    symbols = SymbolList([], get_global_internal_debugger())
 
     if libcontext.sym_lvl == 0:
         raise Exception(
@@ -196,7 +200,7 @@ def resolve_address(path: str, address: int) -> str:
     symbols = [symbol for symbol in symbols if symbol.start <= address < symbol.end]
     if symbols:
         symbol = symbols[0]
-        return f"{symbol.name}+{address-symbol.start:x}"
+        return f"{symbol.name}+{address - symbol.start:x}"
 
     # Retrieve the symbols from the external debuginfo file
     if buildid and debug_file and libcontext.sym_lvl > 2:
@@ -206,7 +210,7 @@ def resolve_address(path: str, address: int) -> str:
         symbols = [symbol for symbol in symbols if symbol.start <= address < symbol.end]
         if symbols:
             symbol = symbols[0]
-            return f"{symbol.name}+{address-symbol.start:x}"
+            return f"{symbol.name}+{address - symbol.start:x}"
 
     # Retrieve the symbols from debuginfod
     if buildid and libcontext.sym_lvl > 4:
@@ -216,7 +220,7 @@ def resolve_address(path: str, address: int) -> str:
             symbols = [symbol for symbol in symbols if symbol.start <= address < symbol.end]
             if symbols:
                 symbol = symbols[0]
-                return f"{symbol.name}+{address-symbol.start:x}"
+                return f"{symbol.name}+{address - symbol.start:x}"
 
     # Address not found
     raise ValueError(f"Address {hex(address)} not found in {path}. Please specify a valid address.")
@@ -293,7 +297,10 @@ def resolve_argv_path(argv_path: str) -> str:
     if argv_path_expanded.is_absolute():
         # It's an absolute path, return it as is
         resolved_path = argv_path_expanded
+    elif argv_path_expanded.is_file():
+        # It already points to a file, return it
+        resolved_path = argv_path_expanded
     else:
-        # It's a relative path, try to resolve it
+        # Try to resolve the path using shutil
         resolved_path = abs_path if (abs_path := shutil.which(argv_path_expanded)) else argv_path_expanded
     return str(resolved_path)
