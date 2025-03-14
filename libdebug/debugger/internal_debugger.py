@@ -228,7 +228,7 @@ class InternalDebugger:
         self.arch = map_arch(libcontext.platform)
         self.kill_on_exit = True
         self._process_memory_manager = ProcessMemoryManager()
-        self.fast_memory = False
+        self.fast_memory = True
         self.__polling_thread_command_queue = Queue()
         self.__polling_thread_response_queue = Queue()
         self._snapshot_count = 0
