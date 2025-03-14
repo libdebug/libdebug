@@ -216,4 +216,4 @@ class LibContext:
 
 
 # Global context instance
-libcontext = LibContext()
+libcontext: LibContext = LibContext()
