@@ -7,6 +7,25 @@ search:
 
 This code example shows how to hijack the exection flow of the program to retrieve the state of a Sudoku game and solve it with Z3. This is a challenge from the TRX CTF 2025. The full writeup, written by Luca Padalino (padawan), can be found [here](https://towerofhanoi.it/writeups/2025-03-14-sudo-kurl/).
 
+## :material-comment-text-outline: Context of the challenge
+The attachment is an AMD64 ELF binary that simulates a futuristic scenario where the New Roman Empire faces alien invaders. Upon execution, the program prompts users to deploy legions by specifying row and column indices, along with troop values, within a 25x25 grid. The goal is to determine the correct deployment strategy to secure victory against the alien threat. The constraints for the deployment are actually those of a Sudoku game. The challenge is to solve the Sudoku puzzle to deploy the legions correctly.
+
+The following table summarizes the main functions and their roles within the binary:
+
+| Function | Description |
+| -------- | ----------- |
+| **main()** | Prints the initial welcome message and then calls the game loop by invoking `play()`. |
+| **play()** | Implements the main game loop: it repeatedly validates the board state via `isValid()`, collects user input using `askInput()`, and upon receiving the win-check signal (`-1`), verifies the board via `checkWin()`. Depending on the result, it either displays a defeat message or computes and prints the flag via `getFlag()`. |
+| **isValid(board)** | Checks the board’s validity (a 25×25 grid) by verifying that each row, column, and 5×5 sub-grid has correct values without duplicates—akin to a Sudoku verification. |
+| **askInput(board)** | Prompts the user to input a row, column, and number of troops (values between 1 and 25). It updates the board if the target cell is empty or shows an error if the cell is already occupied. Using `-1` for the row index signals that the user wants to check for a win. |
+| **checkWin(board)** | Scans the board to ensure that no cell contains a 0 and that the board remains valid. It returns a status indicating whether the win condition has been met. |
+| **getFlag(board)** | Processes the board along with an internal vector (named `A`) by splitting it into segments, performing matrix–vector multiplications (via `matrixVectorMultiply()`), and converting the resulting numbers into characters to form the flag string. |
+| **matrixVectorMultiply(matrix, vector)** | Multiplies a matrix with a vector and returns the result. This operation is used within `getFlag()` to transform part of the internal vector into a sequence that contributes to the flag. |
+
+This table provides an at-a-glance reference to the main functions and their roles within the binary.
+
+## :material-clipboard-text: The solution
+
 The following is the initial state of the Sudoku board retrieved by the script:
 
 ```
@@ -49,14 +68,15 @@ d = debugger("./chall")
 pipe = d.run()
 
 # 0) Hijack the instruction pointer to the displayBoard function
-bp = d.breakpoint(f"play()+{str(hex(38))}", file="binary", hardware=True)
+# Yes...the parenteses are part of the symbol name
+bp = d.breakpoint("play()+26", file="binary", hardware=True)
 while not d.dead:
     d.cont()
     d.wait()
 
     if bp.hit_on(d.threads[0]):
         d.step()
-        print("Hit on play+38")
+        print("Hit on play()+0x26")
         d.regs.rip = d.maps[0].base + 0x2469
 
 # 1) Get information from the board

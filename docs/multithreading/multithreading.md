@@ -62,7 +62,7 @@ stateDiagram-v2
 ## **libdebug** API for Multithreading
 To access the threads of a process, you can use the `threads` attribute of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object. This attribute will return a list of [ThreadContext](../../from_pydoc/generated/state/thread_context/) objects, each representing a thread of the process.
 
-The properties of the [ThreadContext](../../from_pydoc/generated/state/thread_context/) object mimick those of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object. This means that you can access the registers, memory, and other state fields of the thread in the same way you would access them for the main thread. Let's see an example:
+If you're already familiar with the [Debugger](../../from_pydoc/generated/debugger/debugger/) object, you'll find the [ThreadContext](../../from_pydoc/generated/state/thread_context/) straightforward to use. The [Debugger](../../from_pydoc/generated/debugger/debugger/) has always acted as a facade for the main thread, enabling you to access registers, memory, and other thread state fields exactly as you would for the main thread. The difference you will notice is that the [ThreadContext](../../from_pydoc/generated/state/thread_context/) object is missing a couple of fields that just don't make sense in the context of a single thread (e.g. symbols, which belong to the binary, and memory maps, since they are shared for the whole process).
 
 ```python
 from libdebug import debugger

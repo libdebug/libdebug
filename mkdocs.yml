@@ -50,7 +50,7 @@ nav:
       - Examples Index: code_examples/examples_index.md
       - nlinks - DEF CON Quals 2023: code_examples/example_nlinks.md
       - CyberChallenge 24 Workshop: code_examples/example_cc24.md
-      - Execution Highjacking Example: code_examples/examples_sudo_kurl.md
+      - Execution Highjacking Example - TRX CTF 2025: code_examples/examples_sudo_kurl.md
   - The Basics:
       - libdebug 101: basics/libdebug101.md
       - Running an Executable: basics/running_an_executable.md

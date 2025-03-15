@@ -121,8 +121,8 @@ The `memory` attribute of the [Debugger](../../from_pydoc/generated/debugger/deb
     value_address = d.memory.find(0x1234, file="stack", start=d.regs.rsp)
     ```
 
-### :fontawesome-solid-droplet: Leaker API
-The `memory` attribute of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object also allows you to search for pointers between two memory maps. This is useful for finding leaks of memory addresses when **libdebug** is used for exploitation tasks.
+### :material-laser-pointer: Searching Pointers
+The `memory` attribute of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object also allows you to search for values in a source memory map that are pointers to another memory map. One use case for this would be identifying potential leaks of memory addresses when **libdebug** is used for exploitation tasks.
 
 !!! ABSTRACT "Function Signature"
     ```py
