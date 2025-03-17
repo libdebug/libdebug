@@ -37,7 +37,8 @@ from .symbol_test import SymbolTest
 from .snapshots_test import SnapshotsTest
 from .multiprocessing_test import MultiprocessingTest
 from .memory_leak_test import MemoryLeakTest
+from .events_test import EventsTest
 
 
-__all__ = ["AliasTest", "AntidebugEscapingTest", "AttachDetachTest", "AutoWaitingTest", "BacktraceTest", "BreakpointTest", "BruteTest", "CallbackTest", "ControlFlowTest", "DeathTest", "DeepDiveDivisionTest", "FinishTest", "FloatingPointTest", "JumpoutTest", "JumpstartTest", "LargeBinarySymTest", "MemoryTest", "MemoryNoFastTest", "MultipleDebuggersTest", "NextTest", "NlinksTest", "PPrintSyscallsTest", "RegisterTest", "SignalCatchTest", "SignalMultithreadTest", "SpeedTest", "SyscallHandleTest", "SyscallHijackTest", "ThreadTest", "Vmwhere1Test", "WatchpointTest", "FindPointersTest", "SymbolTest", "SnapshotsTest", "MultiprocessingTest", "MemoryLeakTest"]
+__all__ = ["AliasTest", "AntidebugEscapingTest", "AttachDetachTest", "AutoWaitingTest", "BacktraceTest", "BreakpointTest", "BruteTest", "CallbackTest", "ControlFlowTest", "DeathTest", "DeepDiveDivisionTest", "FinishTest", "FloatingPointTest", "JumpoutTest", "JumpstartTest", "LargeBinarySymTest", "MemoryTest", "MemoryNoFastTest", "MultipleDebuggersTest", "NextTest", "NlinksTest", "PPrintSyscallsTest", "RegisterTest", "SignalCatchTest", "SignalMultithreadTest", "SpeedTest", "SyscallHandleTest", "SyscallHijackTest", "ThreadTest", "Vmwhere1Test", "WatchpointTest", "FindPointersTest", "SymbolTest", "SnapshotsTest", "MultiprocessingTest", "MemoryLeakTest", "EventsTest"]
 
