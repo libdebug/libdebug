@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2023-2025 Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -8,8 +8,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+try:
+    from enum import StrEnum
+except ImportError:
+    from strenum import StrEnum
+
 if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
+    from libdebug.data.signal_catcher import SignalCatcher
+    from libdebug.data.syscall_handler import SyscallHandler
 
 
 class ResumeContext:
@@ -24,7 +31,7 @@ class ResumeContext:
         self.block_on_signal: bool = False
         self.threads_with_signals_to_forward: list[int] = []
         self.event_type: dict[int, EventType] = {}
-        self.event_hit_ref: dict[int, Breakpoint] = {}
+        self.event_hit_ref: dict[int, Breakpoint | SignalCatcher | SyscallHandler] = {}
 
     def clear(self: ResumeContext) -> None:
         """Clears the context."""
@@ -55,24 +62,34 @@ class ResumeContext:
                     event_str += f"Syscall {hit_ref.syscall_number} on thread {tid}."
                 elif event == EventType.SIGNAL:
                     hit_ref = self.event_hit_ref[tid]
-                    event_str += f"Signal {hit_ref.signal} on thread {tid}."
+                    event_str += f"Signal {hit_ref.signal_number} on thread {tid}."
                 else:
                     event_str += f"{event} on thread {tid}."
 
         return event_str
 
 
-class EventType:
+class EventType(StrEnum):
     """A class representing the type of event that caused the resume decision."""
 
-    UNKNOWN = "Unknown Event"
+    # Event types with a specific reference type
     BREAKPOINT = "Breakpoint"
     SYSCALL = "Syscall"
     SIGNAL = "Signal"
-    USER_INTERRUPT = "User Interrupt"
-    STEP = "Step"
-    STARTUP = "Process Startup"
-    CLONE = "Thread Clone"
-    FORK = "Process Fork"
-    EXIT = "Process Exit"
+    CLONE = "Clone"
+    FORK = "Fork"
     SECCOMP = "Seccomp"
+    # Event without a specific reference type
+    STEP = "Step"
+    EXIT = "Exit"
+    USER_INTERRUPT = "User Interrupt"
+    STARTUP = "Startup"
+    UNKNOWN = "Unknown"
+
+    def __eq__(self: EventType, other: str | EventType) -> bool:
+        """Compares the EventType with another object."""
+        if isinstance(other, str):
+            return self.value.lower() == other.lower()
+        if isinstance(other, EventType):
+            return self.value == other.value
+        return False

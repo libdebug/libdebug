@@ -196,7 +196,6 @@ class PtraceStatusHandler:
             handler._has_entered = True
         if not handler.on_enter_user and not handler.on_exit_user and handler.enabled:
             # If the syscall has no callback, we need to stop the process despite the other signals
-            self.internal_debugger.resume_context.event_type[thread.thread_id] = EventType.SYSCALL
             handler._has_entered = True
             self.internal_debugger.resume_context.resume = False
 
@@ -219,6 +218,7 @@ class PtraceStatusHandler:
             # Resume the execution
             return
 
+        self.internal_debugger.resume_context.event_type[thread.thread_id] = EventType.SYSCALL
         self.internal_debugger.resume_context.event_hit_ref[thread_id] = handler
 
         if not handler._has_entered:
@@ -266,7 +266,6 @@ class PtraceStatusHandler:
             handler._skip_exit = False
             if not handler.on_enter_user and not handler.on_exit_user and handler.enabled:
                 # If the syscall has no callback, we need to stop the process despite the other signals
-                self.internal_debugger.resume_context.event_type[thread_id] = EventType.SYSCALL
                 self.internal_debugger.resume_context.resume = False
 
     def _manage_caught_signal(
@@ -277,6 +276,9 @@ class PtraceStatusHandler:
         hijacked_set: set[int],
     ) -> None:
         if catcher.enabled:
+            self.internal_debugger.resume_context.event_type[thread.thread_id] = EventType.SIGNAL
+            self.internal_debugger.resume_context.event_hit_ref[thread.thread_id] = catcher
+
             catcher.hit_count += 1
             liblog.debugger(
                 "Caught signal %s (%d) hit on thread %d",
@@ -318,7 +320,6 @@ class PtraceStatusHandler:
                         )
             else:
                 # If the caught signal has no callback, we need to stop the process despite the other signals
-                self.internal_debugger.resume_context.event = EventType.SIGNAL
                 self.internal_debugger.resume_context.resume = False
 
     def _handle_signal(self: PtraceStatusHandler, thread: ThreadContext) -> bool:
@@ -327,7 +328,6 @@ class PtraceStatusHandler:
 
         if signal_number in self.internal_debugger.caught_signals:
             catcher = self.internal_debugger.caught_signals[signal_number]
-
             self._manage_caught_signal(catcher, thread, signal_number, {signal_number})
         elif -1 in self.internal_debugger.caught_signals and signal_number not in (
             signal.SIGSTOP,
@@ -335,9 +335,6 @@ class PtraceStatusHandler:
         ):
             # Handle all signals is enabled
             catcher = self.internal_debugger.caught_signals[-1]
-
-            self.internal_debugger.resume_context.event_hit_ref[thread.thread_id] = catcher
-
             self._manage_caught_signal(catcher, thread, signal_number, {signal_number})
 
     def _internal_signal_handler(

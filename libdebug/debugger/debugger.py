@@ -788,6 +788,16 @@ class Debugger:
             raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         return self.threads[0].signal_number
 
+    @property
+    def event_type(self: Debugger) -> str | None:
+        """The type of the last event that occurred in the main thread.
+
+        If no event occurred, None is returned.
+        """
+        if not self.threads:
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
+        return self.threads[0].event_type
+
     def backtrace(self: Debugger, as_symbols: bool = False) -> list:
         """Returns the current backtrace of the main thread.
 

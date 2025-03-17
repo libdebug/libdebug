@@ -212,6 +212,14 @@ class ThreadContext(ABC):
         """The signal number to forward to the thread."""
         return self._signal_number
 
+    @property
+    def event_type(self: ThreadContext) -> str | None:
+        """The type of the last event that occurred on the thread.
+
+        If no event occurred, None is returned.
+        """
+        return self._internal_debugger.resume_context.event_type.get(self.thread_id, None)
+
     def backtrace(self: ThreadContext, as_symbols: bool = False) -> list:
         """Returns the current backtrace of the thread.
 
