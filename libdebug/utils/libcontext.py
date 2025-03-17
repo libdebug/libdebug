@@ -188,11 +188,11 @@ class LibContext:
     @debuginfod_server.setter
     def debuginfod_server(self: LibContext, value: str) -> None:
         """Property setter for debuginfod_server, ensuring it's a valid URL."""
-        self._debuginfod_server = value
         if type(value) is not str or (not value.startswith("http://") and not value.startswith("https://")):
             raise ValueError(
                 "debuginfod_server must be a valid string URL in the format 'http://<server>' or 'https://<server>'",
             )
+        self._debuginfod_server = value
 
     def update(self: LibContext, **kwargs: ...) -> None:
         """Update the context with the given values."""
