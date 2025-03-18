@@ -70,7 +70,7 @@ class Breakpoint:
 
     def __hash__(self: Breakpoint) -> int:
         """Hash the breakpoint by its address, so that it can be used in sets and maps correctly."""
-        return hash(self.address)
+        return hash(id(self))
 
     def __eq__(self: Breakpoint, other: object) -> bool:
         """Check if two breakpoints are equal."""

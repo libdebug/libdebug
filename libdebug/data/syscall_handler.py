@@ -76,4 +76,8 @@ class SyscallHandler:
 
     def __hash__(self: SyscallHandler) -> int:
         """Return the hash of the syscall handler, based just on the syscall number."""
-        return hash(self.syscall_number)
+        return hash(id(self))
+
+    def __eq__(self: SyscallHandler, other: object) -> bool:
+        """Check if two handlers are equal."""
+        return id(self) == id(other)

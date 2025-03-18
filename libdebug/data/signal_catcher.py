@@ -53,4 +53,8 @@ class SignalCatcher:
 
     def __hash__(self: SignalCatcher) -> int:
         """Return the hash of the signal catcher, based just on the signal number."""
-        return hash(self.signal_number)
+        return hash(id(self))
+
+    def __eq__(self: SignalCatcher, other: object) -> bool:
+        """Check if two catchers are equal."""
+        return id(self) == id(other)
