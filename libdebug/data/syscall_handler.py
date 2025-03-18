@@ -75,7 +75,7 @@ class SyscallHandler:
         return self.enabled and thread_context.syscall_number == self.syscall_number and not self._has_entered
 
     def __hash__(self: SyscallHandler) -> int:
-        """Return the hash of the syscall handler, based just on the syscall number."""
+        """Hash the syscall handler object by its memory address, so that it can be used in sets and dicts correctly."""
         return hash(id(self))
 
     def __eq__(self: SyscallHandler, other: object) -> bool:
