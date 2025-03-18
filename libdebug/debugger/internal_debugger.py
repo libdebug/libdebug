@@ -58,6 +58,7 @@ from libdebug.utils.debugging_utils import (
     resolve_symbol_in_maps,
 )
 from libdebug.utils.elf_utils import get_all_symbols
+from libdebug.utils.file_utils import ensure_file_executable
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.platform_utils import get_platform_gp_register_size
 from libdebug.utils.pprint_primitives import pprint_maps_util, pprint_memory_util
@@ -297,13 +298,7 @@ class InternalDebugger:
         if not self.argv:
             raise RuntimeError("No binary file specified.")
 
-        if not Path(self.argv[0]).is_file():
-            raise RuntimeError(f"File {self.argv[0]} does not exist.")
-
-        if not os.access(self.argv[0], os.X_OK):
-            raise RuntimeError(
-                f"File {self.argv[0]} is not executable.",
-            )
+        ensure_file_executable(self.argv[0])
 
         if self.is_debugging:
             liblog.debugger("Process already running, stopping it before restarting.")
