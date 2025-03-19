@@ -798,6 +798,23 @@ class Debugger:
             raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         return self.threads[0].event_type
 
+    @property
+    def event_object(self: Debugger) -> Breakpoint | SyscallHandler | SignalCatcher | None:
+        """The object associated with the last event that occurred in the main thread.
+
+        The following objects can be returned:
+        - Breakpoint, if the event was associated with a breakpoint.
+        - SyscallHandler, if the event was associated with a syscall.
+        - SignalCatcher, if the event was associated with a signal.
+        - None, if the event was not associated with an object or if no event occurred.
+
+        Returns:
+            Breakpoint | SyscallHandler | SignalCatcher | None: The object associated with the last event that occurred in the main thread.
+        """
+        if not self.threads:
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
+        return self.threads[0].event_object
+
     def backtrace(self: Debugger, as_symbols: bool = False) -> list:
         """Returns the current backtrace of the main thread.
 

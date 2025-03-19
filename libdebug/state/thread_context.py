@@ -20,8 +20,11 @@ from libdebug.utils.pprint_primitives import pprint_backtrace_util, pprint_regis
 from libdebug.utils.signal_utils import resolve_signal_name, resolve_signal_number
 
 if TYPE_CHECKING:
+    from libdebug.data.breakpoint import Breakpoint
     from libdebug.data.register_holder import RegisterHolder
     from libdebug.data.registers import Registers
+    from libdebug.data.signal_catcher import SignalCatcher
+    from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.debugger.debugger import Debugger
     from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
@@ -219,6 +222,21 @@ class ThreadContext(ABC):
         If no event occurred, None is returned.
         """
         return self._internal_debugger.resume_context.event_type.get(self.thread_id, None)
+
+    @property
+    def event_object(self: ThreadContext) -> Breakpoint | SyscallHandler | SignalCatcher | None:
+        """The object associated with the last event that occurred in the specified thread.
+
+        The following objects can be returned:
+        - Breakpoint, if the event was associated with a breakpoint.
+        - SyscallHandler, if the event was associated with a syscall.
+        - SignalCatcher, if the event was associated with a signal.
+        - None, if the event was not associated with an object or if no event occurred.
+
+        Returns:
+            Breakpoint | SyscallHandler | SignalCatcher | None: The object associated with the last event that occurred in the specified thread.
+        """
+        return self._internal_debugger.resume_context.event_hit_ref.get(self.thread_id, None)
 
     def backtrace(self: ThreadContext, as_symbols: bool = False) -> list:
         """Returns the current backtrace of the thread.

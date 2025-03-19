@@ -6,7 +6,7 @@
 
 import io
 import logging
-from unittest import TestCase, skipUnless
+from unittest import TestCase
 from utils.binary_utils import PLATFORM, RESOLVE_EXE
 
 from libdebug import debugger
