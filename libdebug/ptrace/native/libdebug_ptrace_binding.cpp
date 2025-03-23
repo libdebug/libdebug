@@ -697,7 +697,7 @@ unsigned long LibdebugPtraceInterface::invoke_syscall(pid_t tid, unsigned long s
     printf("DEBUG: RIP at %p", t.regs->rip);
 
     errno = 0;  // Clear errno before calling ptrace
-    if (ptrace(PTRACE_PEEKUSER, process_id, 0, NULL) == -1 && errno == ESRCH) {
+    if (ptrace(PTRACE_PEEKUSER, process_id, 0, NULL) == -1) {
         throw std::runtime_error("Thread is dead: " + std::string(strerror(errno)));
     }
     
