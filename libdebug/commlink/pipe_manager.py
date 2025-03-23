@@ -586,7 +586,7 @@ class PipeManager:
             # To avoid starvation, we switch between pipes upon receiving a bunch of data from one of them.
             if self._stdout_is_open:
                 while True:
-                    new_recv = self._raw_recv()
+                    new_recv = self._raw_recv(numb=1024, timeout=0.1)
                     payload = self.__stdout_buffer.get_data()
 
                     if not (new_recv or payload):
@@ -601,7 +601,7 @@ class PipeManager:
                 stdout_has_warned = True
             if self._stderr_is_open:
                 while True:
-                    new_recv = self._raw_recv(stderr=True)
+                    new_recv = self._raw_recv(stderr=True, numb=1024, timeout=0.1)
                     payload = self.__stderr_buffer.get_data()
 
                     if not (new_recv or payload):
