@@ -12,7 +12,7 @@ import os
 def multi_process_spam_sync_test_auto():
     """Test a multi-process spam binary with syncronous breakpoints and auto_quit=False."""
     print("Test a multi-process spam binary with syncronous breakpoints and auto_quit=False.")
-    d = debugger('../binaries/multi')
+    d = debugger('../binaries/amd64/multi')
 
     r = d.run()
     # Install a brakpoint after the input of the user is read
@@ -40,7 +40,7 @@ def multi_process_spam_sync_test_auto():
 def multi_process_spam_sync_test_no_auto():
     """Test a multi-process spam binary with syncronous breakpoints and auto_quit=True."""
     print("Test a multi-process spam binary with syncronous breakpoints and auto_quit=True.")
-    d = debugger('../binaries/multi')
+    d = debugger('../binaries/amd64/multi')
 
     r = d.run()
     # Install a brakpoint after the input of the user is read
@@ -67,7 +67,7 @@ def multi_process_spam_sync_test_no_auto():
 def multi_process_spam_async_test():
     """Test a multi-process spam binary with asyncronous breakpoints."""
     print("Test a multi-process spam binary with asyncronous breakpoints.")
-    d = debugger('../binaries/multi')
+    d = debugger('../binaries/amd64/multi')
 
     r = d.run()
     # Install a brakpoint after the input of the user is read
@@ -109,20 +109,23 @@ def complex_ctf_test():
     print("Test a complex CTF binary that might mess up the terminal.")
     print("Press Ctrl+C to exit the test.")
     
-    def fix_sedd(t, bp):
+    def fix_seed(t, bp):
         """Fix the seed"""
         t.regs.edi = 0xdeadbeef
-     
-    d = debugger("../binaries/amd64/blackjack/blackjack", aslr=False)
+    
+    os.chdir("../binaries/amd64/CTF/blackjack")
+    
+    d = debugger("blackjack", aslr=False)
     
     r = d.run()
-    d.bp(0x312, file="blackjack", callback=fix_sedd)
+    
+    d.bp(0x312, file="blackjack", callback=fix_seed)
     d.bp(0x21EF, file="blackjack")
+    
     d.cont()
 
     r.sendline(b'500')
     r.sendline(b"\x07\x00\x00\x00")
-
 
     d.cont()
     r.sendline(b'500')
@@ -133,7 +136,7 @@ def complex_ctf_test():
     d.kill()
     
 
-# multi_process_spam_sync_test_auto()
+multi_process_spam_sync_test_auto()
 multi_process_spam_sync_test_no_auto()
 multi_process_spam_async_test()
 process_death_during_interactive_test()
