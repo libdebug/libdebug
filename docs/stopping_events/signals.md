@@ -41,6 +41,8 @@ The `catch_signal()` function in the [Debugger](../../from_pydoc/generated/debug
 | --- | --- | --- |
 | `SignalCatcher` | [SignalCatcher](../../from_pydoc/generated/data/signal_catcher) | The catcher object created. |
 
+Inside a callback or when the process stops on hitting your catcher, you can retrieve the signal number that triggered the catcher by accessing the `signal_number` attribute of the [ThreadContext](../../from_pydoc/generated/state/thread_context) object. Alternatively, if one exists, the `signal` attribute of the will contain the signal mnemonic corresponding to the signal number. This is particularly useful when your catcher is registered for multiple signals (e.g., with the `all` option) and accessing the signal number from it will not represent the signal that triggered the catcher.
+
 ### :material-code-json: Callback Signature
 
 !!! ABSTRACT "Callback Signature"
@@ -69,7 +71,7 @@ The `catch_signal()` function in the [Debugger](../../from_pydoc/generated/debug
 
     # Define the callback function
     def catcher_SIGUSR1(t, catcher):
-        t.signal = 0x0
+        t.signal = 0x0 # (1)!
         print("Look mum, I'm catching a signal")
 
     def catcher_SIGINT(t, catcher):
@@ -82,6 +84,8 @@ The `catch_signal()` function in the [Debugger](../../from_pydoc/generated/debug
     d.cont()
     d.wait()
     ```
+
+    1. This line replaces the signal number with `0x0` to prevent the signal from being delivered to the process. (Equivalent to filtering the signal).
 
 !!! ABSTRACT "Example of synchronous signal catching"
     ```python
@@ -98,6 +102,23 @@ The `catch_signal()` function in the [Debugger](../../from_pydoc/generated/debug
     ```
 
     The script above will print "Signal 10 was entered".
+
+!!! ABSTRACT "Example of all signal catching"
+    ```python
+    from libdebug import debugger
+
+    def catcher(t, catcher):
+        print(f"Signal {t.signal_number} ({t.signal}) was caught")
+
+    d = debugger("./test_program")
+    d.run()
+
+    catcher = d.catch_signal("all")
+    d.cont()
+    d.wait()
+    ```
+
+    The script above will print the number and mnemonic of the signal that was caught.
 
 ## :material-arrow-decision: Hijacking
 When hijacking a signal, the user can provide an alternative signal to be executed in place of the original one. Internally, the hijack is implemented by registering a catcher for the signal and replacing the signal number with the new one.
