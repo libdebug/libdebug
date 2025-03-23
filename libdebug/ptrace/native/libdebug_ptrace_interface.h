@@ -75,6 +75,8 @@ public:
     std::vector<std::pair<pid_t, int>> wait_all_and_update_regs();
     unsigned long get_thread_event_msg(const pid_t);
     void forward_signals(const std::vector<std::pair<pid_t, int>>);
+    void make_fast_regs_backup(const pid_t);
+    void restore_fast_regs_backup(const pid_t);
 
     // Debugger software breakpoint methods
     void register_breakpoint(const unsigned long);

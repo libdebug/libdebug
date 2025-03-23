@@ -5,7 +5,7 @@
 #
 from __future__ import annotations
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
@@ -379,3 +379,8 @@ class ThreadContext(ABC):
     def notify_snapshot_taken(self: ThreadContext) -> None:
         """Notify the thread that a snapshot has been taken."""
         self._snapshot_count += 1
+
+    @property
+    @abstractmethod
+    def num_syscall_args(self: ThreadContext) -> int:
+        """The number of syscall arguments."""

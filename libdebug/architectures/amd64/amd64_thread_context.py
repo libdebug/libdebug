@@ -25,3 +25,8 @@ class Amd64ThreadContext(ThreadContext):
 
         # Register the thread properties
         self._register_holder.apply_on_thread(self, Amd64ThreadContext)
+
+    @property
+    def num_syscall_args(self: Amd64ThreadContext) -> int:
+        """Returns the number of syscall arguments."""
+        return 6

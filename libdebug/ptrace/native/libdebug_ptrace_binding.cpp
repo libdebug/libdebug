@@ -168,6 +168,9 @@ std::pair<std::shared_ptr<PtraceRegsStruct>, std::shared_ptr<PtraceFPRegsStruct>
 #endif
     t.fpregs->dirty = 0;
     t.fpregs->fresh = 0;
+    
+    t.regs_backup.regs = std::make_shared<PtraceRegsStruct>();
+    t.regs_backup.fpregs = std::make_shared<PtraceFPRegsStruct>();
 
     threads[tid] = t;
 
@@ -688,93 +691,37 @@ void LibdebugPtraceInterface::poke_data(unsigned long addr, unsigned long data)
     }
 }
 
-unsigned long LibdebugPtraceInterface::invoke_syscall(pid_t tid, unsigned long syscall_number, unsigned int actual_syscall_argcount, unsigned long arg0, unsigned long arg1, unsigned long arg2, unsigned long arg3, unsigned long arg4, unsigned long arg5)
+void LibdebugPtraceInterface::make_fast_regs_backup(pid_t tid)
 {
+    Thread &t = try_get_thread(tid);
 
-    Thread &t = threads[tid];
-    printf("DEBUG: Thread %d\n", tid);
-    printf("DEBUG: Invoking syscall %lu with %u arguments\n", syscall_number, actual_syscall_argcount);
-    printf("DEBUG: RIP at %p", t.regs->rip);
-
-    errno = 0;  // Clear errno before calling ptrace
-    if (ptrace(PTRACE_PEEKUSER, process_id, 0, NULL) == -1) {
-        throw std::runtime_error("Thread is dead: " + std::string(strerror(errno)));
-    }
-    
-    // Backup the registers
-    if(getregs(t)) {
-        throw std::runtime_error("first getregs failed");
+    int ret = getregs(t);
+    if (ret == -1) {
+        throw std::runtime_error("getregs failed");
     }
 
-    PtraceRegsStruct backup_regs = *t.regs;
+    getfpregs(t);
 
-    // Set the syscall number
-    SET_SYSCALL_NUMBER(t.regs, syscall_number);
+    std::shared_ptr<PtraceRegsStruct> regs = threads[tid].regs;
+    std::shared_ptr<PtraceFPRegsStruct> fpregs = threads[tid].fpregs;
 
-    // Set the syscall arguments
-    switch (actual_syscall_argcount)
-    {
-    case 6:
-        SET_SYSCALL_ARG5(t.regs, arg5);
-        [[fallthrough]];
-    case 5:
-        SET_SYSCALL_ARG4(t.regs, arg4);
-        [[fallthrough]];
-    case 4:
-        SET_SYSCALL_ARG3(t.regs, arg3);
-        [[fallthrough]];
-    case 3:
-        SET_SYSCALL_ARG2(t.regs, arg2);
-        [[fallthrough]];
-    case 2:
-        SET_SYSCALL_ARG1(t.regs, arg1);
-        [[fallthrough]];
-    case 1:
-        SET_SYSCALL_ARG0(t.regs, arg0);
-        break;
-    
-    default:
-        break;
-    }
+    printf("make_fast_regs_backup: %p %p\n", t.regs_backup.regs, t.regs_backup.fpregs);
+    *t.regs_backup.regs = *regs;
+    *t.regs_backup.fpregs = *fpregs;
 
-    // Flush the registers
-    if (setregs(t)) {
-        throw std::runtime_error("first setregs failed");
-    }
+}
 
-    unsigned long ip = INSTRUCTION_POINTER(t.regs);
+void LibdebugPtraceInterface::restore_fast_regs_backup(pid_t tid)
+{
+    Thread &t = try_get_thread(tid);
 
-    // Backup the current instruction window
-    unsigned long instruction = ptrace(PTRACE_PEEKTEXT, process_id, (void *) ip, NULL);
+    printf("restore_fast_regs_backup: %p %p\n", t.regs_backup.regs, t.regs_backup.fpregs);
+    *t.regs = *t.regs_backup.regs;
+    *t.fpregs = *t.regs_backup.fpregs;
 
-    // Set the syscall instruction
-    ptrace(PTRACE_POKETEXT, process_id, (void *) ip, (void *) SYSCALL_INSTRUCTION);
+    setregs(t);
+    setfpregs(t);
 
-    // Single step the thread
-    step_thread(t);
-
-    // Wait for the syscall to complete
-    int status;
-    waitpid(tid, &status, 0);
-
-    // Update the registers
-    getregs(t);
-
-    // Return the syscall result
-    unsigned long return_value = GET_SYSCALL_RESULT(t.regs);
-
-    // Restore the text
-    ptrace(PTRACE_POKETEXT, process_id, (void *) ip, (void *) instruction);
-
-    // Restore the registers
-    *t.regs = backup_regs;
-
-    // Flush the registers
-    if (setregs(t)) {
-        throw std::runtime_error("second setregs failed");
-    }
-
-    return return_value;
 }
 
 NB_MODULE(libdebug_ptrace_binding, m)
@@ -1090,32 +1037,22 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "    data (int): The data to poke at the address."
         )
         .def(
-            "invoke_syscall",
-            &LibdebugPtraceInterface::invoke_syscall,
+            "make_fast_regs_backup",
+            &LibdebugPtraceInterface::make_fast_regs_backup,
             nb::arg("tid"),
-            nb::arg("syscall_number"),
-            nb::arg("actual_syscall_argcount"),
-            nb::arg("arg0"),
-            nb::arg("arg1"),
-            nb::arg("arg2"),
-            nb::arg("arg3"),
-            nb::arg("arg4"),
-            nb::arg("arg5"),
-            "Invokes a syscall on a thread.\n"
+            "Makes a fast backup of the registers for a thread.\n"
             "\n"
             "Args:\n"
-            "    tid (int): The thread id to invoke the syscall on.\n"
-            "    syscall_number (int): The syscall number to invoke.\n"
-            "    actual_syscall_argcount (int): The actual number of arguments for the syscall.\n"
-            "    arg0 (int): The first argument for the syscall.\n"
-            "    arg1 (int): The second argument for the syscall.\n"
-            "    arg2 (int): The third argument for the syscall.\n"
-            "    arg3 (int): The fourth argument for the syscall.\n"
-            "    arg4 (int): The fifth argument for the syscall.\n"
-            "    arg5 (int): The sixth argument for the syscall.\n"
+            "    tid (int): The thread id to make the backup for."
+        )
+        .def(
+            "restore_fast_regs_backup",
+            &LibdebugPtraceInterface::restore_fast_regs_backup,
+            nb::arg("tid"),
+            "Restores the fast backup of the registers for a thread.\n"
             "\n"
-            "Returns:\n"
-            "    int: The result of the syscall."
+            "Args:\n"
+            "    tid (int): The thread id to restore the backup for."
         );
 
     nb::set_leak_warnings(false);

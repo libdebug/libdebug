@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING
 from psutil import STATUS_ZOMBIE, Error, Process, ZombieProcess, process_iter
 
 from libdebug.architectures.breakpoint_validator import validate_hardware_breakpoint
+from libdebug.architectures.call_utilities_provider import call_utilities_provider
 from libdebug.architectures.syscall_hijacker import SyscallHijacker
 from libdebug.builtin.antidebug_syscall_handler import on_enter_ptrace, on_exit_ptrace
 from libdebug.builtin.pretty_print_syscall_handler import (
@@ -1702,6 +1703,12 @@ class InternalDebugger:
     def __threaded_flush_fp_registers(self: InternalDebugger, registers: Registers) -> None:
         self.debugging_interface.flush_fp_registers(registers)
 
+    def __threaded_quick_regs_copy(self: InternalDebugger, thread: ThreadContext) -> None:
+        self.debugging_interface.quick_regs_copy(thread.thread_id)
+
+    def __threaded_quick_regs_restore(self: InternalDebugger, thread: ThreadContext) -> None:
+        self.debugging_interface.quick_regs_restore(thread.thread_id)
+
     @background_alias(__threaded_peek_memory)
     def _peek_memory(self: InternalDebugger, address: int) -> bytes:
         """Reads memory from the process."""
@@ -1850,24 +1857,6 @@ class InternalDebugger:
         """Set the state of the process to stopped."""
         self._is_running = False
 
-    def _threaded_invoke_syscall(
-        self: InternalDebugger,
-        thread: ThreadContext,
-        syscall_number: int,
-        *args: int,
-    ) -> int:
-        """Invoke a syscall in the target process.
-
-        Args:
-            thread (ThreadContext): The thread to invoke the syscall in.
-            syscall_number (int): The syscall number.
-            *args (int): The arguments to pass to the syscall.
-
-        Returns:
-            int: The return value of the syscall.
-        """
-        return self.debugging_interface.invoke_syscall(thread.tid, syscall_number, *args)
-
     @background_alias(_background_invalid_call)
     @change_state_function_thread
     def invoke_syscall(
@@ -1891,11 +1880,78 @@ class InternalDebugger:
         else:
             syscall_number = syscall_identifier
 
+        num_args = len(args)
+        max_architectural_args = thread.num_syscall_args
+
+        if num_args > max_architectural_args:
+            raise ValueError(
+                f"Too many arguments for syscall invocation. Expected at most {max_architectural_args}, got {num_args}.",
+            )
+
         self._ensure_process_stopped()
+
+        # Get the thread object for tid.
+        print(f"DEBUG: Thread {thread.tid}")
+        print(f"DEBUG: Invoking syscall {syscall_number} with {num_args} arguments")
+        print(f"DEBUG: RIP at {thread.instruction_pointer}")
+
+        # Backup registers.
         self.__polling_thread_command_queue.put(
-            (self._threaded_invoke_syscall, (thread, syscall_number, *args)),
+            (self.__threaded_quick_regs_copy, (thread,)),
         )
-        return self._join_and_get_return_value()
+        self._join_and_check_status()
+
+        # Set the syscall number.
+        thread.syscall_number = syscall_number
+
+        # Set the syscall arguments according to the argument count.
+        if num_args >= 1:
+            thread.syscall_arg0 = args[0]
+        if num_args >= 2:
+            thread.syscall_arg1 = args[1]
+        if num_args >= 3:
+            thread.syscall_arg2 = args[2]
+        if num_args >= 4:
+            thread.syscall_arg3 = args[3]
+        if num_args >= 5:
+            thread.syscall_arg4 = args[4]
+        if num_args >= 6:
+            thread.syscall_arg5 = args[5]
+        # Some architectures / ABIs have 7 syscall arguments.
+        if num_args > 6:
+            thread.syscall_arg6 = args[6]
+
+        call_utils = call_utilities_provider(self.arch)
+
+        ip = thread.instruction_pointer
+        syscall_instruction = call_utils.get_syscall_instruction()
+
+        len_patch = len(syscall_instruction)
+
+        backup_code = thread.memory[ip, len_patch, "absolute"]
+
+        # Patch the syscall instruction.
+        thread.memory[ip, len_patch, "absolute"] = syscall_instruction
+
+        self.__polling_thread_command_queue.put(
+            (self.__threaded_step, (thread,)),
+        )
+        self._join_and_check_status()
+
+        # Restore the original code.
+        thread.memory[ip, len_patch, "absolute"] = backup_code
+
+        # Get return value.
+        retval = thread.syscall_return
+
+        # Restore the registers
+        self.__polling_thread_command_queue.put(
+            (self.__threaded_quick_regs_restore, (thread,)),
+        )
+        self._join_and_check_status()
+
+        return retval
+
 
     @change_state_function_process
     def create_snapshot(self: Debugger, level: str = "base", name: str | None = None) -> ProcessSnapshot:
