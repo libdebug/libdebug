@@ -190,7 +190,7 @@ void LibdebugPtraceInterface::unregister_thread(const pid_t tid)
 
 void LibdebugPtraceInterface::mark_thread_as_zombie(const pid_t tid)
 {
-    threads[tid].is_zombie = true;
+    try_get_thread(tid).is_zombie = true;
 }
 
 int LibdebugPtraceInterface::attach(pid_t tid)
@@ -476,7 +476,8 @@ unsigned long LibdebugPtraceInterface::get_thread_event_msg(const pid_t tid)
     return data;
 }
 
-std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_regs(){
+std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_regs()
+{
     if (std::all_of(threads.begin(), threads.end(), [](const auto& kv) {
             return kv.second.is_zombie;
         })) {
