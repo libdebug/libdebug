@@ -162,7 +162,6 @@ std::pair<std::shared_ptr<PtraceRegsStruct>, std::shared_ptr<PtraceFPRegsStruct>
     Thread t;
     t.tid = tid;
     t.signal_to_forward = 0;
-    t.is_zombie = false;
     t.regs = std::make_shared<PtraceRegsStruct>();
     t.fpregs = std::make_shared<PtraceFPRegsStruct>();
 #if defined ARCH_X86_64 || defined ARCH_X86
@@ -186,11 +185,6 @@ void LibdebugPtraceInterface::unregister_thread(const pid_t tid)
     // move the dead thread to the dead list
     dead_threads[tid] = threads[tid];
     threads.erase(tid);
-}
-
-void LibdebugPtraceInterface::mark_thread_as_zombie(const pid_t tid)
-{
-    try_get_thread(tid).is_zombie = true;
 }
 
 int LibdebugPtraceInterface::attach(pid_t tid)
@@ -476,11 +470,9 @@ unsigned long LibdebugPtraceInterface::get_thread_event_msg(const pid_t tid)
     return data;
 }
 
-std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_regs()
+std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_regs(const bool all_zombies)
 {
-    if (std::all_of(threads.begin(), threads.end(), [](const auto& kv) {
-            return kv.second.is_zombie;
-        })) {
+    if (all_zombies) {
         // All threads are zombies, we might be in the case of a fatal signal
         // that killed all the threads
         return wait_all_and_update_regs_zombies();
@@ -920,8 +912,12 @@ NB_MODULE(libdebug_ptrace_binding, m)
         .def(
             "wait_all_and_update_regs",
             &LibdebugPtraceInterface::wait_all_and_update_regs,
+            nb::arg("all_zombies"),
             nb::call_guard<nb::gil_scoped_release>(),
             "Waits for any thread to stop, interrupts all the others and updates the registers.\n"
+            "\n"
+            "Args:\n"
+            "    all_zombies (bool): A flag to indicate if all the threads are zombies.\n"
             "\n"
             "Returns:\n"
             "    list: A list of tuples containing the thread id and the corresponding waitpid result."
@@ -1020,15 +1016,6 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "Args:\n"
             "    tid (int): The thread id to unregister the hardware breakpoint for.\n"
             "    address (int): The address to remove the hardware breakpoint from."
-        )
-        .def(
-            "mark_thread_as_zombie",
-            &LibdebugPtraceInterface::mark_thread_as_zombie,
-            nb::arg("tid"),
-            "Marks a thread as a zombie.\n"
-            "\n"
-            "Args:\n"
-            "    tid (int): The thread id to mark as a zombie."
         )
         .def(
             "get_hit_hw_breakpoint",
