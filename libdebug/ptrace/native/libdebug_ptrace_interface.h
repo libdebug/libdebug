@@ -40,6 +40,10 @@ private:
     // This method checks if the thread is on a hardware breakpoint and steps over it
     void arch_check_if_hit_and_step_over();
 
+    // Manage the waitpid and update the registers for all the threads
+    std::vector<std::pair<pid_t, int>> wait_all_and_update_regs_standard();
+    std::vector<std::pair<pid_t, int>> wait_all_and_update_regs_zombies();
+
     // Others
     bool check_if_dl_trampoline(unsigned long);
 
@@ -55,6 +59,7 @@ public:
     // Thread management methods
     std::pair<std::shared_ptr<PtraceRegsStruct>, std::shared_ptr<PtraceFPRegsStruct>> register_thread(const pid_t);
     void unregister_thread(const pid_t);
+    void mark_thread_as_zombie(const pid_t);
 
     // Debugger process methods
     int attach(const pid_t);

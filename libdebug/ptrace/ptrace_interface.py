@@ -587,6 +587,14 @@ class PtraceInterface(DebuggingInterface):
 
         self._internal_debugger.set_thread_as_dead(thread_id, exit_code=exit_code, exit_signal=exit_signal)
 
+    def mark_thread_as_zombie(self: PtraceInterface, thread_id: int) -> None:
+        """Marks a thread as a zombie.
+
+        Args:
+            thread_id (int): The thread ID.
+        """
+        self.lib_trace.mark_thread_as_zombie(thread_id)
+
     def _set_sw_breakpoint(self: PtraceInterface, bp: Breakpoint) -> None:
         """Sets a software breakpoint at the specified address.
 
