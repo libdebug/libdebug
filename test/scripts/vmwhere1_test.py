@@ -22,7 +22,7 @@ class Vmwhere1Test(TestCase):
         counter = 3
         stop = False
 
-        d = debugger([RESOLVE_EXE("CTF/vmwhere1"), RESOLVE_EXE("CTF/vmwhere1_program")])
+        d = debugger([RESOLVE_EXE("CTF/vmwhere1/vmwhere1"), RESOLVE_EXE("CTF/vmwhere1/vmwhere1_program")])
 
         while not stop:
             for el in string.printable:
@@ -67,7 +67,7 @@ class Vmwhere1Test(TestCase):
         counter = 3
         stop = False
 
-        d = debugger([RESOLVE_EXE("CTF/vmwhere1"), RESOLVE_EXE("CTF/vmwhere1_program")])
+        d = debugger([RESOLVE_EXE("CTF/vmwhere1/vmwhere1"), RESOLVE_EXE("CTF/vmwhere1/vmwhere1_program")])
 
         def callback(d, bp):
             pass

@@ -80,13 +80,14 @@ def multi_process_spam_async_test():
     print("End of the test.")
     
     d.interrupt()
-    d.kill()
+    d.terminate()
+
     
 def process_death_during_interactive_test():
     """Test the death of a process during an interactive session."""
     print("Test the death of a process during an interactive session.")
-    print("Press Ctrl+C to exit the test.")
-    d = debugger('../binaries/multi')
+    print("Wait 5 seconds, then press Ctrl+C to exit the test.")
+    d = debugger('../binaries/amd64/multi')
 
     r = d.run()
     d.cont()
@@ -102,10 +103,38 @@ def process_death_during_interactive_test():
     r.interactive()
     
     print("End of the test.")
-    t.join()
-        
+    
+def complex_ctf_test():
+    """Test a complex CTF binary that might mess up the terminal."""
+    print("Test a complex CTF binary that might mess up the terminal.")
+    print("Press Ctrl+C to exit the test.")
+    
+    def fix_sedd(t, bp):
+        """Fix the seed"""
+        t.regs.edi = 0xdeadbeef
+     
+    d = debugger("../binaries/amd64/blackjack/blackjack", aslr=False)
+    
+    r = d.run()
+    d.bp(0x312, file="blackjack", callback=fix_sedd)
+    d.bp(0x21EF, file="blackjack")
+    d.cont()
 
-multi_process_spam_sync_test_auto()
+    r.sendline(b'500')
+    r.sendline(b"\x07\x00\x00\x00")
+
+
+    d.cont()
+    r.sendline(b'500')
+    r.sendline(b"\xee\x00\x00\x00")
+
+
+    r.interactive()
+    d.kill()
+    
+
+# multi_process_spam_sync_test_auto()
 multi_process_spam_sync_test_no_auto()
 multi_process_spam_async_test()
 process_death_during_interactive_test()
+complex_ctf_test()
