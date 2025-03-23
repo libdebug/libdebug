@@ -20,7 +20,7 @@ from libdebug.utils.libcontext import libcontext
 
 DEBUGINFOD_PATH: Path = Path.home() / ".cache" / "debuginfod_client"
 LOCAL_DEBUG_PATH: Path = Path("/usr/lib/debug/.build-id/")
-URL_BASE: str = "https://debuginfod.elfutils.org/buildid/{}/debuginfo"
+NOT_FOUND: int = 404
 
 
 def _download_debuginfod(buildid: str, debuginfod_path: Path) -> None:
@@ -31,15 +31,24 @@ def _download_debuginfod(buildid: str, debuginfod_path: Path) -> None:
         debuginfod_path (Path): The output directory.
     """
     try:
-        url = URL_BASE.format(buildid)
+        url = libcontext.debuginfod_server + "buildid/" + buildid + "/debuginfo"
         r = requests.get(url, allow_redirects=True, timeout=1)
 
         if r.ok:
-            debuginfod_path.parent.mkdir(parents=True, exist_ok=True)
-            with debuginfod_path.open("wb") as f:
-                f.write(r.content)
+            # We found the debuginfo file, just use it
+            content = r.content
+        elif r.status_code == NOT_FOUND:
+            # We need to cache the empty content to avoid multiple requests
+            liblog.error(f"Debuginfo file for buildid {buildid} not found.")
+            content = b""
         else:
+            # We do not cache the content in case of error. We will retry the download next time.
             liblog.error(f"Failed to download debuginfo file. Error code: {r.status_code}")
+            return
+
+        debuginfod_path.parent.mkdir(parents=True, exist_ok=True)
+        with debuginfod_path.open("wb") as f:
+            f.write(content)
     except Exception as e:
         liblog.debugger(f"Exception {e} occurred while downloading debuginfod symbols")
 
@@ -73,6 +82,8 @@ def _collect_external_info(path: str) -> SymbolList[Symbol]:
     Returns:
         SymbolList[Symbol]: A list containing the symbols taken from the external debuginfo file.
     """
+    liblog.debugger("Collecting external symbols from %s", path)
+
     ext_symbols = libdebug_debug_sym_parser.collect_external_symbols(path, libcontext.sym_lvl)
 
     return SymbolList(
@@ -94,6 +105,8 @@ def _parse_elf_file(path: str, debug_info_level: int) -> tuple[SymbolList[Symbol
         buildid (str): The buildid of the specified ELF file.
         debug_file_path (str): The path to the external debuginfo file corresponding.
     """
+    liblog.debugger("Searching for symbols in %s", path)
+
     elfinfo = libdebug_debug_sym_parser.read_elf_info(path, debug_info_level)
 
     symbols = [Symbol(symbol.low_pc, symbol.high_pc, symbol.name, path) for symbol in elfinfo.symbols]

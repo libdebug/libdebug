@@ -58,6 +58,7 @@ from libdebug.utils.debugging_utils import (
     resolve_symbol_in_maps,
 )
 from libdebug.utils.elf_utils import get_all_symbols
+from libdebug.utils.file_utils import ensure_file_executable
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.platform_utils import get_platform_gp_register_size
 from libdebug.utils.pprint_primitives import pprint_maps_util, pprint_memory_util
@@ -228,7 +229,7 @@ class InternalDebugger:
         self.arch = map_arch(libcontext.platform)
         self.kill_on_exit = True
         self._process_memory_manager = ProcessMemoryManager()
-        self.fast_memory = False
+        self.fast_memory = True
         self.__polling_thread_command_queue = Queue()
         self.__polling_thread_response_queue = Queue()
         self._snapshot_count = 0
@@ -297,13 +298,7 @@ class InternalDebugger:
         if not self.argv:
             raise RuntimeError("No binary file specified.")
 
-        if not Path(self.argv[0]).is_file():
-            raise RuntimeError(f"File {self.argv[0]} does not exist.")
-
-        if not os.access(self.argv[0], os.X_OK):
-            raise RuntimeError(
-                f"File {self.argv[0]} is not executable.",
-            )
+        ensure_file_executable(self.argv[0])
 
         if self.is_debugging:
             liblog.debugger("Process already running, stopping it before restarting.")
@@ -422,6 +417,8 @@ class InternalDebugger:
         self.instanced = False
         self.is_debugging = False
 
+        self.set_all_threads_as_dead()
+
         if self.pipe_manager:
             self.pipe_manager.close()
 
@@ -513,12 +510,14 @@ class InternalDebugger:
         self._join_and_check_status()
 
     @property
+    @change_state_function_process
     def maps(self: InternalDebugger) -> MemoryMapList[MemoryMap]:
         """Returns the memory maps of the process."""
         self._ensure_process_stopped()
         return self.debugging_interface.get_maps()
 
     @property
+    @change_state_function_process
     def memory(self: InternalDebugger) -> AbstractMemoryView:
         """The memory view of the debugged process."""
         return self._fast_memory if self.fast_memory else self._slow_memory
@@ -1332,6 +1331,11 @@ class InternalDebugger:
                 thread._exit_signal = exit_signal
                 break
 
+    def set_all_threads_as_dead(self: InternalDebugger) -> None:
+        """Set all threads as dead."""
+        for thread in self.threads:
+            thread.set_as_dead()
+
     def get_thread_by_id(self: InternalDebugger, thread_id: int) -> ThreadContext:
         """Get a thread by its ID.
 
@@ -1392,6 +1396,7 @@ class InternalDebugger:
 
         return normalize_and_validate_address(address, filtered_maps)
 
+    @change_state_function_process
     def resolve_symbol(self: InternalDebugger, symbol: str, backing_file: str) -> int:
         """Resolves the address of the specified symbol.
 
@@ -1462,6 +1467,25 @@ class InternalDebugger:
         """Validates the state of the process."""
         if self._is_migrated_to_gdb:
             raise RuntimeError("Cannot execute this command after migrating to GDB.")
+
+        if not self.running:
+            return
+
+        if self.auto_interrupt_on_command:
+            self.interrupt()
+
+        self._join_and_check_status()
+
+    @background_alias(_background_ensure_process_stopped)
+    def _ensure_process_stopped_regs(self: InternalDebugger) -> None:
+        """Validates the state of the process. This is designed to be used by register-related commands."""
+        if self._is_migrated_to_gdb:
+            raise RuntimeError("Cannot execute this command after migrating to GDB.")
+
+        if not self.is_debugging and not self.threads[0].dead:
+            # The process is not being debugged, we cannot access registers
+            # We can still access registers if the process is dead to guarantee post-mortem analysis
+            raise RuntimeError("The process is not being debugged, cannot access registers. Check your script.")
 
         if not self.running:
             return
@@ -1873,6 +1897,7 @@ class InternalDebugger:
         )
         return self._join_and_get_return_value()
 
+    @change_state_function_process
     def create_snapshot(self: Debugger, level: str = "base", name: str | None = None) -> ProcessSnapshot:
         """Create a snapshot of the current process state.
 

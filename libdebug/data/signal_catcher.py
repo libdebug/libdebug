@@ -52,5 +52,9 @@ class SignalCatcher:
         return self.enabled and thread_context.signal_number == self.signal_number
 
     def __hash__(self: SignalCatcher) -> int:
-        """Return the hash of the signal catcher, based just on the signal number."""
-        return hash(self.signal_number)
+        """Hash the signal catcher object by its memory address, so that it can be used in sets and dicts correctly."""
+        return hash(id(self))
+
+    def __eq__(self: SignalCatcher, other: object) -> bool:
+        """Check if two catchers are equal."""
+        return id(self) == id(other)
