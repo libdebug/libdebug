@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2023-2025 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -345,10 +345,10 @@ class MemoryTest(TestCase):
 
         leak = FUN_ARG_0(d)
 
-        # Read 256K of memory
-        data = d.memory[leak, 256 * 1024]
+        # Read 4MB of memory
+        data = d.memory[leak, 4 * 1024 * 1024]
 
-        assert data == b"".join(x.to_bytes(4, "little") for x in range(64 * 1024))
+        assert data == b"".join(x.to_bytes(4, "little") for x in range(1024 * 1024))
 
         d.kill()
         d.terminate()
@@ -402,4 +402,69 @@ class MemoryTest(TestCase):
             assert (chr(i).encode("latin-1") * 16) in leaks
 
         d.kill()
+        d.terminate()
+
+    def test_search_memory(self):
+        d = debugger(RESOLVE_EXE("memory_test"))
+
+        d.run()
+
+        bp = d.breakpoint("change_memory")
+
+        d.cont()
+
+        assert d.instruction_pointer == bp.address
+
+        address = FUN_ARG_0(d)
+        prev = bytes(range(256))
+
+        self.assertTrue(d.memory[address, 256] == prev)
+        
+        d.memory[address + 128 :] = b"abcd123456"
+        prev = prev[:128] + b"abcd123456" + prev[138:]
+
+        self.assertTrue(d.memory[address : address + 256] == prev)
+        
+        start = d.maps.filter("heap")[0].start
+        end = d.maps.filter("heap")[-1].end - 1
+        
+        # Search for the string "abcd123456" in the whole memory
+        self.assertTrue(d.memory.find(b"abcd123456") == [address + 128])
+        
+        # Search for the string "abcd123456" in the memory starting from start
+        self.assertTrue(d.memory.find(b"abcd123456", start=start) == [address + 128])
+        
+        # Search for the string "abcd123456" in the memory ending at end
+        self.assertTrue(d.memory.find(b"abcd123456", end=end) == [address + 128])
+        
+        # Search for the string "abcd123456" in the heap using backing file
+        self.assertTrue(d.memory.find(b"abcd123456", file="heap") == [address + 128])
+        
+        # Search for the string "abcd123456" in the heap using start and end
+        self.assertTrue(d.memory.find(b"abcd123456", start=start, end=end) == [address + 128])
+
+        d.kill()
+        d.terminate()
+    
+    def test_memory_debugger_status(self):
+        d = debugger(RESOLVE_EXE("basic_test"))
+        
+        with self.assertRaises(RuntimeError):
+            d.memory
+            
+        with self.assertRaises(RuntimeError):
+            d.mem
+
+        d.run()   
+        
+        d.memory
+             
+        d.detach()
+        
+        with self.assertRaises(RuntimeError):
+            d.memory
+            
+        with self.assertRaises(RuntimeError):
+            d.mem
+        
         d.terminate()

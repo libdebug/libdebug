@@ -69,8 +69,8 @@ class Breakpoint:
         return internal_debugger.resume_context.event_hit_ref.get(thread_context.thread_id) == self
 
     def __hash__(self: Breakpoint) -> int:
-        """Hash the breakpoint by its address, so that it can be used in sets and maps correctly."""
-        return hash(self.address)
+        """Hash the breakpoint object by its memory address, so that it can be used in sets and dicts correctly."""
+        return hash(id(self))
 
     def __eq__(self: Breakpoint, other: object) -> bool:
         """Check if two breakpoints are equal."""
