@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <algorithm>
+#include <unordered_set>
 
 
 #include "libdebug_ptrace_base.h"
@@ -161,6 +162,7 @@ std::pair<std::shared_ptr<PtraceRegsStruct>, std::shared_ptr<PtraceFPRegsStruct>
     Thread t;
     t.tid = tid;
     t.signal_to_forward = 0;
+    t.is_zombie = false;
     t.regs = std::make_shared<PtraceRegsStruct>();
     t.fpregs = std::make_shared<PtraceFPRegsStruct>();
 #if defined ARCH_X86_64 || defined ARCH_X86
@@ -184,6 +186,11 @@ void LibdebugPtraceInterface::unregister_thread(const pid_t tid)
     // move the dead thread to the dead list
     dead_threads[tid] = threads[tid];
     threads.erase(tid);
+}
+
+void LibdebugPtraceInterface::mark_thread_as_zombie(const pid_t tid)
+{
+    try_get_thread(tid).is_zombie = true;
 }
 
 int LibdebugPtraceInterface::attach(pid_t tid)
@@ -471,6 +478,19 @@ unsigned long LibdebugPtraceInterface::get_thread_event_msg(const pid_t tid)
 
 std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_regs()
 {
+    if (std::all_of(threads.begin(), threads.end(), [](const auto& kv) {
+            return kv.second.is_zombie;
+        })) {
+        // All threads are zombies, we might be in the case of a fatal signal
+        // that killed all the threads
+        return wait_all_and_update_regs_zombies();
+    } else {
+        return wait_all_and_update_regs_standard();
+    }
+}
+
+std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_regs_standard()
+{
     std::vector<std::pair<pid_t, int>> thread_statuses;
 
     int tid, status;
@@ -540,6 +560,92 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_
     for (auto &bp : software_breakpoints) {
         if (bp.second.enabled) {
             ptrace(PTRACE_POKETEXT, process_id, (void *) bp.first, (void *) bp.second.instruction);
+        }
+    }
+
+    return thread_statuses;
+}
+
+std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_regs_zombies()
+{   
+    // Usually, when one or more threads are zombies, the kernel sends a PTRACE_EVENT_EXIT for each
+    // of them. In this case, we can just wait for the event and reap the exit status of the thread.
+    // When the exit status has been reaped, the kernel will clean up the zombie.
+    
+    // However, there are some corner cases where the kernel doesn't send the PTRACE_EVENT_EXIT.
+    // For example, when a fatal signal is received, all the threads are zombies but there are no
+    // guarantees that all of them will receive the PTRACE_EVENT_EXIT event. 
+    
+    // What happens in this case is that any of the threads can receive the PTRACE_EVENT_EXIT event. 
+    // For that thread, we can behave as usual, reaping the exit status. However, as soon as the event
+    // is received by the main thread and we reap the exit status, the kernel will clean up all the
+    // zombies. This means that the other threads will not receive the PTRACE_EVENT_EXIT event.
+    
+    std::vector<std::pair<pid_t, int>> thread_statuses;
+    int tid, status, main_status;
+    
+    std::unordered_set<pid_t> tids_with_event = {};
+    int main_tid = threads.begin()->first;
+
+
+    // The idea is to reap all the threads until the main thread is reaped
+    while (true) {
+        // Check if the main thread has been reaped
+        bool mainReaped = std::any_of(threads.begin(), threads.end(), [&](auto &t) {
+            tid = waitpid(t.first, &status, WNOHANG);
+            return (tid == main_tid);
+        });
+
+        if (tid > 0) {
+            // Record the PID and its status
+            thread_statuses.push_back({tid, status});
+            tids_with_event.insert(tid);
+        }
+
+        if (mainReaped) {
+            // The main thread has been reaped, we can break
+            main_status = status;
+            break;
+        }
+    }
+
+    if (tid == -1) {
+        throw std::runtime_error("waitpid failed");
+    }
+
+    // We keep polling but don't block, we want to get all the statuses we can
+    // This will handle the case where the kernel actually sends the PTRACE_EVENT_EXIT
+    // and we are not in the corner case of the fatal signal
+    while (true) {
+        bool eventRetrieved = false;
+
+        for (auto &t : threads) {
+            tid = waitpid(t.first, &status, WNOHANG);
+            if (tid > 0) {
+                // Record the PID and its status
+                thread_statuses.push_back({tid, status});
+                tids_with_event.insert(tid);
+                eventRetrieved = true;
+            }
+        }
+
+        // If we didn't retrieve any new events, we're done
+        if (!eventRetrieved) {
+            break;
+        }
+    }
+
+    // Update the registers of all the threads
+    for (auto &t : threads) {
+        getregs(t.second);
+    }
+
+    // For consistency, we want to simulate the behavior of the kernel and set the exit status of
+    // the missing threads. We can do this by iterating over all the threads and assign the main
+    // thread status if no status is present
+    for (auto &t : threads) {
+        if (tids_with_event.find(t.first) == tids_with_event.end()) {
+            thread_statuses.push_back({t.first, main_status});
         }
     }
 
@@ -914,6 +1020,15 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "Args:\n"
             "    tid (int): The thread id to unregister the hardware breakpoint for.\n"
             "    address (int): The address to remove the hardware breakpoint from."
+        )
+        .def(
+            "mark_thread_as_zombie",
+            &LibdebugPtraceInterface::mark_thread_as_zombie,
+            nb::arg("tid"),
+            "Marks a thread as a zombie.\n"
+            "\n"
+            "Args:\n"
+            "    tid (int): The thread id to mark as a zombie."
         )
         .def(
             "get_hit_hw_breakpoint",

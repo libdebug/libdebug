@@ -55,6 +55,9 @@ class PtraceStatusHandler:
             os.waitpid(thread_id, 0)
         self.ptrace_interface.register_new_thread(thread_id)
 
+    def _handle_zombie(self: PtraceStatusHandler, thread_id: int) -> None:
+        self.ptrace_interface.mark_thread_as_zombie(thread_id)
+
     def _handle_exit(
         self: PtraceStatusHandler,
         thread_id: int,
@@ -398,6 +401,7 @@ class PtraceStatusHandler:
                     # so we don't call self._handle_exit(pid) here
                     # it will be called at the next wait (hopefully)
                     message = self.ptrace_interface._get_event_msg(pid)
+                    self._handle_zombie(pid)
                     liblog.debugger(
                         f"Thread {pid} exited with status: {message}",
                     )
