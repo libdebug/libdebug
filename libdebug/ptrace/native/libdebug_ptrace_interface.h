@@ -59,7 +59,6 @@ public:
     // Thread management methods
     std::pair<std::shared_ptr<PtraceRegsStruct>, std::shared_ptr<PtraceFPRegsStruct>> register_thread(const pid_t);
     void unregister_thread(const pid_t);
-    void mark_thread_as_zombie(const pid_t);
 
     // Debugger process methods
     int attach(const pid_t);
@@ -77,7 +76,7 @@ public:
     void stepping_finish(const pid_t, const bool);
 
     // Debugger status and signal methods
-    std::vector<std::pair<pid_t, int>> wait_all_and_update_regs();
+    std::vector<std::pair<pid_t, int>> wait_all_and_update_regs(const bool);
     unsigned long get_thread_event_msg(const pid_t);
     void forward_signals(const std::vector<std::pair<pid_t, int>>);
 

@@ -478,7 +478,9 @@ class PtraceInterface(DebuggingInterface):
 
     def wait(self: PtraceInterface) -> None:
         """Waits for the process to stop. Returns True if the wait has to be repeated."""
-        statuses = self.lib_trace.wait_all_and_update_regs()
+        all_zombies = all(thread.zombie for thread in self._internal_debugger.threads)
+
+        statuses = self.lib_trace.wait_all_and_update_regs(all_zombies)
 
         invalidate_process_cache()
 

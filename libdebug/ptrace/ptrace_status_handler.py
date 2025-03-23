@@ -55,9 +55,6 @@ class PtraceStatusHandler:
             os.waitpid(thread_id, 0)
         self.ptrace_interface.register_new_thread(thread_id)
 
-    def _handle_zombie(self: PtraceStatusHandler, thread_id: int) -> None:
-        self.ptrace_interface.mark_thread_as_zombie(thread_id)
-
     def _handle_exit(
         self: PtraceStatusHandler,
         thread_id: int,
@@ -349,6 +346,7 @@ class PtraceStatusHandler:
         signum: int,
         results: list,
         status: int,
+        thread: ThreadContext,
     ) -> None:
         """Internal handler for signals used by the debugger."""
         if signum == SYSCALL_SIGTRAP:
@@ -401,7 +399,8 @@ class PtraceStatusHandler:
                     # so we don't call self._handle_exit(pid) here
                     # it will be called at the next wait (hopefully)
                     message = self.ptrace_interface._get_event_msg(pid)
-                    self._handle_zombie(pid)
+                    # Mark the thread as a zombie
+                    thread._zombie = True
                     liblog.debugger(
                         f"Thread {pid} exited with status: {message}",
                     )
@@ -434,10 +433,10 @@ class PtraceStatusHandler:
             if signum != signal.SIGSTOP:
                 self._assume_race_sigstop = False
 
-            # Check if the debugger needs to handle the signal
-            self._internal_signal_handler(pid, signum, results, status)
-
             thread = self.internal_debugger.get_thread_by_id(pid)
+
+            # Check if the debugger needs to handle the signal
+            self._internal_signal_handler(pid, signum, results, status, thread)
 
             if thread is not None:
                 thread._signal_number = signum & 0x7F
