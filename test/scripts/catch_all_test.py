@@ -42,7 +42,12 @@ class CatchAllTest(TestCase):
         d.catch_signal("*", callback=catch_signal)
         d.handle_syscall("*", on_enter=dummy_syscall, on_exit=dummy_syscall)
         d.breakpoint("malloc", callback=dummy_breakpoint, file="libc.so.6")
-        d.watchpoint(d.regs.rsp, "rw", callback=dummy_watchpoint, file="absolute")
+
+        stack_map = d.maps.filter("stack")[0]
+
+        good_stack_pos = stack_map.end - 0x20
+
+        d.watchpoint(good_stack_pos, "rw", length=4, callback=dummy_watchpoint, file="absolute")
         d.pprint_syscalls = True
 
         d.cont()
