@@ -1,12 +1,14 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2024-2025 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
 from unittest import TestCase
 from utils.binary_utils import PLATFORM, RESOLVE_EXE
 from utils.thread_utils import FUN_RET_VAL
+from threading import Thread
+import os
 
 from libdebug import debugger
 
@@ -141,4 +143,24 @@ class ThreadTest(TestCase):
                 break
 
         d.kill()
+        d.terminate()
+        
+    def test_fatal_signal(self):
+        d = debugger(RESOLVE_EXE("multi"))
+
+        r = d.run()
+        d.cont()
+        
+        # spawn a thread to kill the process after 5 seconds
+        def kill():
+            os.kill(d.pid, 9)
+            
+        r.recvuntil(b"Enter some text: ")
+        r.recvuntil(b"stdout: Count")
+            
+        t = Thread(target=kill)
+        t.start()
+        t.join()
+        
+        d.wait()
         d.terminate()
