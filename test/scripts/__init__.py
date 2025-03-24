@@ -7,6 +7,7 @@ from .backtrace_test import BacktraceTest
 from .breakpoint_test import BreakpointTest
 from .brute_test import BruteTest
 from .callback_test import CallbackTest
+from .catch_all_test import CatchAllTest
 from .control_flow_test import ControlFlowTest
 from .death_test import DeathTest
 from .deep_dive_division_test import DeepDiveDivisionTest

@@ -22,6 +22,7 @@ def fast_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.BacktraceTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.BreakpointTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.CallbackTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.CatchAllTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.ControlFlowTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.DeathTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.FinishTest))
