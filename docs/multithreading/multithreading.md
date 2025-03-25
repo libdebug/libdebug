@@ -115,6 +115,7 @@ for thread in d.threads:
 | `syscall_return` | `int` | The thread's syscall return value. |
 | `signal` | `str` | The signal will be forwarded to the thread. |
 | `signal_number` | `int` | The signal number to forward to the thread. |
+| `zombie` | `bool` | Whether the thread is in a zombie state. |
 
 ### Methods of the ThreadContext
 
@@ -191,3 +192,43 @@ Who will receive the signal?
 
 ## :fontawesome-regular-file-zipper: Snapshot Behavior
 When creating a [snapshot](../../save_states/snapshots) of a process from the corresponding [Debugger](../../from_pydoc/generated/debugger/debugger/) object, the snapshot will also save the state of all threads. You can also create a snapshot of a single thread by calling the [`create_snapshot()`](../../save_states/snapshots/#creating-snapshots) method from the [ThreadContext](../../from_pydoc/generated/state/thread_context/) object instead. Read more about snapshots in the [Save States](../../save_states) section.
+
+## :material-brain: Zombie Threads
+When a thread or process terminates, it enters a **zombie** state. This is a temporary condition where the process is effectively dead but awaiting *reaping* by the parent or debugger, which involves reading its status. Reaping traced zombie threads can become complicated due to certain edge cases.
+
+While **libdebug** automatically handles the reaping of zombie threads, it provides a property named `zombie` within the [ThreadContext](../../from_pydoc/generated/state/thread_context/) object, indicating whether the thread is in a zombie state. The same property is also available in the [Debugger](../../from_pydoc/generated/debugger/debugger/) object, indicating whether the main thread is in a zombie state.
+
+!!! ABSTRACT "Example Code"
+    ```python
+    if d.zombie:
+        print("The process is a zombie")
+    ```
+
+```mermaid
+sequenceDiagram
+    participant Parent as Parent Process
+    participant Child as Child Thread
+    participant Kernel as Linux Kernel
+    
+    Note over Parent,Kernel: Normal Execution Phase
+    Parent->>Child: clone()
+    activate Child
+    Child->>Kernel: Task added to the Process Table
+    Kernel-->>Child: Thread ID
+    
+    Note over Parent,Kernel: Zombie Creation Phase
+    Child->>Kernel: exit(statusCode)
+    deactivate Child
+    Note right of Kernel: Parent will be<br/>notified of exit
+    Kernel->>Parent: SIGCHLD
+    Note right of Parent: Parent Busy<br/>Cannot Process Signal
+    
+    Note over Parent,Kernel: Zombie State
+    Note right of Child: Thread becomes<br/>zombie (defunct)<br/>- Maintains TID<br/>- Keeps exit status<br/>- Consumes minimal resources
+    
+    Note over Parent,Kernel: Reaping Phase
+    Parent->>Kernel: waitpid()
+    Kernel-->>Parent: Return Exit Status
+    Kernel->>Kernel: Remove Zombie Entry<br/>from Process Table
+    Note right of Kernel: Resources Released
+```

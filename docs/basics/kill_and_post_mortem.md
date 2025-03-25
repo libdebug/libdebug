@@ -59,3 +59,12 @@ if d.dead:
 if d.dead:
     print(f"The process exited with signal {d.exit_signal}")
 ```
+
+### :material-brain: Zombie Processes and Threads
+When a process dies, it becomes a zombie process. This means that the process has terminated, but its parent process has not yet read its exit status. In **libdebug**, you can check if the process is a zombie using the `zombie` property of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object. This is particularly relevant in multi-threaded applications. To read more about this, check the [dedicated section](../../multithreading/multithreading/#zombie-threads) on zombie processes.
+
+!!! ABSTRACT "Example Code"
+    ```python
+    if d.zombie:
+        print("The process is a zombie")
+    ```
