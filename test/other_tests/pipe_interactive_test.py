@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2024-2025 Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -106,6 +106,11 @@ def process_death_during_interactive_test():
     
 def complex_ctf_test():
     """Test a complex CTF binary that might mess up the terminal."""
+    
+    #
+    # blackjack - challenge from m0leCon CTF 2025 Finals
+    #
+    
     print("Test a complex CTF binary that might mess up the terminal.")
     print("Press Ctrl+C to exit the test.")
     
