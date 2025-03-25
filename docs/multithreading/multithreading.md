@@ -200,8 +200,8 @@ While **libdebug** automatically handles the reaping of zombie threads, it provi
 
 !!! ABSTRACT "Example Code"
     ```python
-    if d.zombie:
-        print("The process is a zombie")
+    if d.threads[1].zombie:
+        print("The thread is a zombie")
     ```
 
 ```mermaid
