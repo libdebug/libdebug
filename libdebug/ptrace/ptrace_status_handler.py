@@ -438,7 +438,7 @@ class PtraceStatusHandler:
             # Check if the debugger needs to handle the signal
             self._internal_signal_handler(pid, signum, results, status, thread)
 
-            if thread is not None:
+            if signum != SYSCALL_SIGTRAP and thread is not None:
                 thread._signal_number = signum & 0x7F
 
                 # Handle the signal
