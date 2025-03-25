@@ -1502,7 +1502,7 @@ class SignalCatchTest(TestCase):
         d.catch_signal("*", callback=catch_signal)
         d.handle_syscall("*", on_enter=True, on_exit=True)
         d.breakpoint("malloc", callback=True, file="libc.so.6")
-        d.watchpoint("__dso_handle", "rw", length=4, callback=True, file="binary")
+        d.breakpoint("free", hardware=True, callback=True, file="libc.so.6")
         d.pprint_syscalls = True
 
         d.cont()
