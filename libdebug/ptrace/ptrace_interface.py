@@ -520,7 +520,6 @@ class PtraceInterface(DebuggingInterface):
             if bp.hardware:
                 for thread in self._internal_debugger.threads:
                     self.lib_trace.unregister_hw_breakpoint(
-                        self._global_state,
                         thread.thread_id,
                         bp.address,
                     )

@@ -39,6 +39,38 @@ print(hex(d.regs.rip))
 d.kill()
 
 """
+Single thread test with hardware breakpoint
+"""
+d = debugger("../binaries/amd64/basic_test")
+
+# libcontext.terminal = ["tmux", "splitw", "-h"]
+# libcontext.terminal = ["gnome-terminal", "--tab", "--"]
+
+d.run()
+
+bp = d.breakpoint("register_test", hardware=True)
+
+d.step()
+d.step()
+
+print(hex(d.regs.rip))
+
+d.gdb()
+
+print(hex(d.regs.rip))
+
+d.cont()
+d.wait()
+
+print(hex(d.regs.rip))
+
+d.step()
+
+print(hex(d.regs.rip))
+
+d.kill()
+
+"""
 Multi thread test 1
 """
 d = debugger("../binaries/amd64/multithread_input")
