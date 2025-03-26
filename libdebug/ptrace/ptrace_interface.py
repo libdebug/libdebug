@@ -30,6 +30,7 @@ from libdebug.ptrace.native import libdebug_ptrace_binding
 from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
 from libdebug.utils.debugging_utils import normalize_and_validate_address
 from libdebug.utils.elf_utils import get_entry_point
+from libdebug.utils.platform_utils import get_platform_gp_register_size
 from libdebug.utils.process_utils import (
     disable_self_aslr,
     get_process_maps,
@@ -715,6 +716,18 @@ class PtraceInterface(DebuggingInterface):
             result = self.lib_trace.peek_data(address)
         except RuntimeError as e:
             raise OSError("Invalid memory location") from e
+        except TypeError as e:
+            # This is not equal to sys.maxsize, as the address is unsigned
+            plat_ulong_max = 256 ** get_platform_gp_register_size(self._internal_debugger.arch) - 1
+
+            if abs(address) > plat_ulong_max:
+                # If we are here, the type conversion failed because
+                # address > (256**sizeof(unsigned long)) on this platform
+                # We raise this as OSError for consistency, as the
+                # address is certainly invalid
+                raise OSError(f"Address {address:#x} is not valid for this architecture") from e
+
+            raise RuntimeError("Unexpected error") from e
 
         liblog.debugger(
             "PEEKDATA at address %d returned with result %x",
@@ -725,7 +738,24 @@ class PtraceInterface(DebuggingInterface):
 
     def poke_memory(self: PtraceInterface, address: int, value: int) -> None:
         """Writes the memory at the specified address."""
-        result = self.lib_trace.poke_data(address, value)
+        try:
+            result = self.lib_trace.poke_data(address, value)
+        except RuntimeError as e:
+            raise OSError("Invalid memory location") from e
+        except TypeError as e:
+            # This is not equal to sys.maxsize, as the address is unsigned
+            plat_ulong_max = 256 ** get_platform_gp_register_size(self._internal_debugger.arch) - 1
+
+            if abs(address) > plat_ulong_max:
+                # See the comment in peek_memory
+                raise OSError(f"Address {address:#x} is not valid for this architecture") from e
+
+            if abs(value) > plat_ulong_max:
+                # See the comment in peek_memory
+                raise RuntimeError("Requested write %d does not fit in a single operation", value) from e
+
+            raise RuntimeError("Unexpected error") from e
+
         liblog.debugger(
             "POKEDATA at address %d returned with result %d",
             address,
