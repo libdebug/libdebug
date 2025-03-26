@@ -32,7 +32,12 @@ class ProcessMemoryManager:
         if address > self.max_size:
             # We need to split the seek
             file_obj.seek(self.max_size, os.SEEK_SET)
-            file_obj.seek(address - self.max_size, os.SEEK_CUR)
+            try:
+                file_obj.seek(address - self.max_size, os.SEEK_CUR)
+            except OverflowError as e:
+                # The address must have been larger than 2 * max_size
+                # This implies that it is invalid for the current architecture
+                raise OSError(f"Address {address:#x} is not valid for this architecture") from e
         else:
             # We can seek directly
             file_obj.seek(address, os.SEEK_SET)
