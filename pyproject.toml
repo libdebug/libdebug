@@ -18,7 +18,7 @@ authors = [
 description = "A Python library for the debugging of binary executables."
 requires-python = ">= 3.10"
 license = {file = "LICENSE"}
-version = "0.8.0"
+version = "0.8.0-2"
 readme = {file = "README.md", content-type = "text/markdown"}
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -44,6 +44,7 @@ classifiers = [
 keywords = ["libdebug", "debugger", "elf", "ptrace", "gdb", "debug", "ctf", "reverse-engineering", "reverse", "rev", "scriptable", "script"]
 dependencies = [
     "psutil",
+    "pyelftools",
     "requests",
     "prompt-toolkit",
 ]
@@ -87,3 +88,6 @@ line-ending = "auto"
 minimum-version = "0.4"
 build-dir = "build/{wheel_tag}"
 wheel.py-api = "cp312"
+
+[tool.scikit-build.sdist]
+exclude = ["test", "docs", "media", "examples", ".github", "*/__pycache__"]
