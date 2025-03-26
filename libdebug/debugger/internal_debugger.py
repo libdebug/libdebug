@@ -1890,11 +1890,6 @@ class InternalDebugger:
 
         self._ensure_process_stopped()
 
-        # Get the thread object for tid.
-        print(f"DEBUG: Thread {thread.tid}")
-        print(f"DEBUG: Invoking syscall {syscall_number} with {num_args} arguments")
-        print(f"DEBUG: RIP at {thread.instruction_pointer}")
-
         # Backup registers.
         self.__polling_thread_command_queue.put(
             (self.__threaded_quick_regs_copy, (thread,)),
@@ -1905,27 +1900,13 @@ class InternalDebugger:
         thread.syscall_number = syscall_number
 
         # Set the syscall arguments according to the argument count.
-        if num_args >= 1:
-            thread.syscall_arg0 = args[0]
-        if num_args >= 2:
-            thread.syscall_arg1 = args[1]
-        if num_args >= 3:
-            thread.syscall_arg2 = args[2]
-        if num_args >= 4:
-            thread.syscall_arg3 = args[3]
-        if num_args >= 5:
-            thread.syscall_arg4 = args[4]
-        if num_args >= 6:
-            thread.syscall_arg5 = args[5]
-        # Some architectures / ABIs have 7 syscall arguments.
-        if num_args > 6:
-            thread.syscall_arg6 = args[6]
+        for i, arg in enumerate(args):
+            setattr(thread, f"syscall_arg{i}", arg)
 
         call_utils = call_utilities_provider(self.arch)
 
         ip = thread.instruction_pointer
         syscall_instruction = call_utils.get_syscall_instruction()
-        print(f"syscall_instruction: {syscall_instruction}")
 
         len_patch = len(syscall_instruction)
 
@@ -1934,18 +1915,23 @@ class InternalDebugger:
         # Patch the syscall instruction.
         thread.memory[ip, len_patch, "absolute"] = syscall_instruction
 
-        # TODO: Emulate syscall enter event
-        # -------------------------------
+        #  Emulate syscall enter event
+        self.debugging_interface.status_handler.handle_syscall(thread.thread_id)
 
         self.__polling_thread_command_queue.put((self.__threaded_step, (thread,)))
         self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
         self._join_and_check_status()
 
-        # Restore the original code.
-        thread.memory[ip, len_patch, "absolute"] = backup_code
-
         # Get return value.
         retval = thread.syscall_return
+
+        thread.syscall_number = syscall_number
+
+        # Emulate syscall exit event
+        self.debugging_interface.status_handler.handle_syscall(thread.thread_id)
+
+        # Restore the original code.
+        thread.memory[ip, len_patch, "absolute"] = backup_code
 
         # Restore the registers
         self.__polling_thread_command_queue.put(
@@ -1954,7 +1940,6 @@ class InternalDebugger:
         self._join_and_check_status()
 
         return retval
-
 
     @change_state_function_process
     def create_snapshot(self: Debugger, level: str = "base", name: str | None = None) -> ProcessSnapshot:

@@ -803,7 +803,6 @@ void LibdebugPtraceInterface::make_fast_regs_backup(pid_t tid)
     std::shared_ptr<PtraceRegsStruct> regs = threads[tid].regs;
     std::shared_ptr<PtraceFPRegsStruct> fpregs = threads[tid].fpregs;
 
-    printf("make_fast_regs_backup: %p %p\n", t.regs_backup.regs, t.regs_backup.fpregs);
     *t.regs_backup.regs = *regs;
     *t.regs_backup.fpregs = *fpregs;
 
@@ -813,7 +812,6 @@ void LibdebugPtraceInterface::restore_fast_regs_backup(pid_t tid)
 {
     Thread &t = try_get_thread(tid);
 
-    printf("restore_fast_regs_backup: %p %p\n", t.regs_backup.regs, t.regs_backup.fpregs);
     *t.regs = *t.regs_backup.regs;
     *t.fpregs = *t.regs_backup.fpregs;
 

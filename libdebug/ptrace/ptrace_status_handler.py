@@ -200,7 +200,7 @@ class PtraceStatusHandler:
             handler._has_entered = True
             self.internal_debugger.resume_context.resume = False
 
-    def _handle_syscall(self: PtraceStatusHandler, thread_id: int) -> bool:
+    def handle_syscall(self: PtraceStatusHandler, thread_id: int) -> bool:
         """Handle a syscall trap."""
         thread = self.internal_debugger.get_thread_by_id(thread_id)
         if not hasattr(thread, "syscall_number"):
@@ -254,13 +254,14 @@ class PtraceStatusHandler:
                     return_value_after_callback = thread.syscall_return
                     if return_value_after_callback != return_value_before_callback:
                         handler.on_exit_pprint(
+                            thread,
                             (return_value_before_callback, return_value_after_callback),
                         )
                     else:
-                        handler.on_exit_pprint(return_value_after_callback)
+                        handler.on_exit_pprint(thread, return_value_after_callback)
             elif handler.on_exit_pprint:
                 # Pretty print the return value
-                handler.on_exit_pprint(thread.syscall_return)
+                handler.on_exit_pprint(thread, thread.syscall_return)
 
             handler._has_entered = False
             handler._skip_exit = False
@@ -352,7 +353,7 @@ class PtraceStatusHandler:
         if signum == SYSCALL_SIGTRAP:
             # We hit a syscall
             liblog.debugger("Child thread %d stopped on syscall", pid)
-            self._handle_syscall(pid)
+            self.handle_syscall(pid)
             self.forward_signal = False
         elif signum == signal.SIGSTOP and self.internal_debugger.resume_context.force_interrupt:
             # The user has requested an interrupt, we need to stop the process despite the ohter signals
