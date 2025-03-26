@@ -84,6 +84,9 @@ class ThreadContext(ABC):
     _snapshot_count: int = 0
     """The number of snapshots taken."""
 
+    _zombie: bool = False
+    """Whether the thread is a zombie."""
+
     def __init__(self: ThreadContext, thread_id: int, registers: RegisterHolder) -> None:
         """Initializes the Thread Context."""
         self._internal_debugger = provide_internal_debugger(self)
@@ -211,6 +214,11 @@ class ThreadContext(ABC):
     def signal_number(self: ThreadContext) -> int:
         """The signal number to forward to the thread."""
         return self._signal_number
+
+    @property
+    def zombie(self: ThreadContext) -> bool:
+        """Whether the thread is a zombie."""
+        return self._zombie
 
     def backtrace(self: ThreadContext, as_symbols: bool = False) -> list:
         """Returns the current backtrace of the thread.

@@ -26,16 +26,17 @@ d.kill_on_exit = False
 
 You can kill the process any time the process is stopped using the `kill()` method:
 
-```python
-d.kill()
-```
+!!! ABSTRACT "Function Signature"
+    ```python
+    d.kill()
+    ```
 
 The method sends a `SIGKILL` signal to the process, which terminates it immediately. If the process is already dead, **libdebug** will throw an exception. When multiple threads are running, the `kill()` method will kill all threads under the parent process.
 
 !!! INFO "Process Stop"
     The `kill()` method will not stop a running process, unless **libdebug** is operating in [ASAP Mode](../command_queue). Just like other commands, in the default mode, the `kill()` method will wait for the process to stop before executing.
 
-# Post Mortem Analysis
+# :material-robot-dead: Post Mortem Analysis
 You can check if the process is dead using the `dead` property:
 
 ```python
@@ -48,7 +49,7 @@ else:
 !!! WARNING "The `running` property"
     The [Debugger](../../from_pydoc/generated/debugger/debugger/) object also exposes the `running` property. This is not the opposite of `dead`. The `running` property is `True` when the process is not stopped and `False` otherwise. If execution was stopped by a [stopping event](../../stopping_events/stopping_events), the `running` property will be equal to `False`. However, in this case the process can still be alive.
 
-### Cause of Death
+### :material-grave-stone: Cause of Death
 Has your process passed away unexpectedly? We are sorry to hear that. If your process is indeed defunct, you can access the exit code and signal using `exit_code` and `exit_signal`. When there is no valid exit code or signal, these properties will return `None`.
 
 ```python
@@ -58,3 +59,12 @@ if d.dead:
 if d.dead:
     print(f"The process exited with signal {d.exit_signal}")
 ```
+
+### :material-brain: Zombie Processes and Threads
+When a process dies, it becomes a zombie process. This means that the process has terminated, but its parent process has not yet read its exit status. In **libdebug**, you can check if the process is a zombie using the `zombie` property of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object. This is particularly relevant in multi-threaded applications. To read more about this, check the [dedicated section](../../multithreading/multithreading/#zombie-threads) on zombie processes.
+
+!!! ABSTRACT "Example Code"
+    ```python
+    if d.zombie:
+        print("The process is a zombie")
+    ```

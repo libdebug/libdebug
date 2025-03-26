@@ -1,10 +1,11 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2024-2025 Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
 import io
+import sys
 import logging
 from unittest import TestCase
 from utils.binary_utils import PLATFORM, RESOLVE_EXE
@@ -1484,3 +1485,28 @@ class SignalCatchTest(TestCase):
         self.assertTrue(bp.hit_count, 5)
         
         d.kill()
+
+    # Verify that debugging signals are properly filtered out by the status handler
+    # before processing external signal handlers
+    def test_catch_all(self):
+        self.capturedOutput = io.StringIO()
+        sys.stdout = self.capturedOutput
+
+        def catch_signal(t, ch):
+            self.assertNotEqual(t.signal, "SIGTRAP")
+
+        d = debugger("/bin/ls")
+
+        d.run()
+
+        d.catch_signal("*", callback=catch_signal)
+        d.handle_syscall("*", on_enter=True, on_exit=True)
+        d.breakpoint("malloc", callback=True, file="libc.so.6")
+        d.breakpoint("free", hardware=True, callback=True, file="libc.so.6")
+        d.pprint_syscalls = True
+
+        d.cont()
+        d.wait()
+
+        d.terminate()
+        sys.stdout = sys.__stdout__

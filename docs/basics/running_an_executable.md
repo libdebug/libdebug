@@ -39,7 +39,7 @@ All pipe receive-like methods have a timeout parameter that you can set. The def
     ```python
     pipe = d.run()
 
-    pipe.timeout_default = 10 # (1)
+    pipe.timeout_default = 10 # (1)!
     ```
 
     1. This sets the default timeout for all pipe receive-like methods to 10 seconds.

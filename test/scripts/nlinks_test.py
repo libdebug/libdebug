@@ -19,7 +19,7 @@ class NlinksTest(TestCase):
     def get_passsphrase_from_class_1_binaries(self, previous_flag):
         flag = b""
 
-        d = debugger(RESOLVE_EXE("CTF/1"))
+        d = debugger(RESOLVE_EXE("CTF/nlinks/1"))
         r = d.run()
 
         bp = d.breakpoint(0x7EF1, hardware=True)
@@ -51,7 +51,7 @@ class NlinksTest(TestCase):
         lastpos = 0
         flag = b""
 
-        d = debugger(RESOLVE_EXE("CTF/2"))
+        d = debugger(RESOLVE_EXE("CTF/nlinks/2"))
         r = d.run()
 
         bp1 = d.breakpoint(0xD8C1, hardware=True)
@@ -92,7 +92,7 @@ class NlinksTest(TestCase):
     def get_passsphrase_from_class_3_binaries(self):
         flag = b""
 
-        d = debugger(RESOLVE_EXE("CTF/0"))
+        d = debugger(RESOLVE_EXE("CTF/nlinks/0"))
         r = d.run()
 
         bp = d.breakpoint(0x91A1, hardware=True)
@@ -129,7 +129,7 @@ class NlinksTest(TestCase):
     def aw_get_passsphrase_from_class_1_binaries(self, previous_flag):
         flag = b""
 
-        d = debugger(RESOLVE_EXE("CTF/1"), auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("CTF/nlinks/1"), auto_interrupt_on_command=False)
         r = d.run()
 
         d.breakpoint(0x7EF1, hardware=True, file="binary")
@@ -159,7 +159,7 @@ class NlinksTest(TestCase):
         lastpos = 0
         flag = b""
 
-        d = debugger(RESOLVE_EXE("CTF/2"), auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("CTF/nlinks/2"), auto_interrupt_on_command=False)
         r = d.run()
 
         bp1 = d.breakpoint(0xD8C1, hardware=True, file="binary")
@@ -200,7 +200,7 @@ class NlinksTest(TestCase):
     def aw_get_passsphrase_from_class_3_binaries(self):
         flag = b""
 
-        d = debugger(RESOLVE_EXE("CTF/0"), auto_interrupt_on_command=False)
+        d = debugger(RESOLVE_EXE("CTF/nlinks/0"), auto_interrupt_on_command=False)
         r = d.run()
 
         d.breakpoint(0x91A1, hardware=True, file="binary")
@@ -234,7 +234,7 @@ class NlinksTest(TestCase):
     def w_get_passsphrase_from_class_1_binaries(self, previous_flag):
         flag = b""
 
-        d = debugger(RESOLVE_EXE("CTF/1"), auto_interrupt_on_command=True)
+        d = debugger(RESOLVE_EXE("CTF/nlinks/1"), auto_interrupt_on_command=True)
         r = d.run()
 
         d.breakpoint(0x7EF1, hardware=True)
@@ -265,7 +265,7 @@ class NlinksTest(TestCase):
         lastpos = 0
         flag = b""
 
-        d = debugger(RESOLVE_EXE("CTF/2"), auto_interrupt_on_command=True)
+        d = debugger(RESOLVE_EXE("CTF/nlinks/2"), auto_interrupt_on_command=True)
         r = d.run()
 
         bp1 = d.breakpoint(0xD8C1, hardware=True)
@@ -307,7 +307,7 @@ class NlinksTest(TestCase):
     def w_get_passsphrase_from_class_3_binaries(self):
         flag = b""
 
-        d = debugger(RESOLVE_EXE("CTF/0"), auto_interrupt_on_command=True)
+        d = debugger(RESOLVE_EXE("CTF/nlinks/0"), auto_interrupt_on_command=True)
         r = d.run()
 
         d.breakpoint(0x91A1, hardware=True)

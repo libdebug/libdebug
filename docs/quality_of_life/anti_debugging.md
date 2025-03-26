@@ -20,14 +20,14 @@ To enable this feature, set the `escape_antidebug` property to `True` when creat
     int main()
     {
 
-        if (ptrace(PTRACE_TRACEME, 0, NULL, 0) == -1) // (1)
+        if (ptrace(PTRACE_TRACEME, 0, NULL, 0) == -1) // (1)!
         {
-            puts("No cheating! Debugger detected.\n"); // (2)
+            puts("No cheating! Debugger detected."); // (2)!
             exit(1);
         }
 
-        puts("Congrats! Here's your flag:\n"); // (3)
-        puts("flag{y0u_sn3aky_guy_y0u_tr1ck3d_m3}\n");
+        puts("Congrats! Here's your flag:"); // (3)!
+        puts("flag{y0u_sn3aky_guy_y0u_tr1ck3d_m3}");
 
         return 0;
     }

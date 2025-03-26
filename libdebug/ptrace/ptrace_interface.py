@@ -478,7 +478,9 @@ class PtraceInterface(DebuggingInterface):
 
     def wait(self: PtraceInterface) -> None:
         """Waits for the process to stop. Returns True if the wait has to be repeated."""
-        statuses = self.lib_trace.wait_all_and_update_regs()
+        all_zombies = all(thread.zombie for thread in self._internal_debugger.threads)
+
+        statuses = self.lib_trace.wait_all_and_update_regs(all_zombies)
 
         invalidate_process_cache()
 
@@ -518,7 +520,6 @@ class PtraceInterface(DebuggingInterface):
             if bp.hardware:
                 for thread in self._internal_debugger.threads:
                     self.lib_trace.unregister_hw_breakpoint(
-                        self._global_state,
                         thread.thread_id,
                         bp.address,
                     )
@@ -586,6 +587,14 @@ class PtraceInterface(DebuggingInterface):
         self.lib_trace.unregister_thread(thread_id)
 
         self._internal_debugger.set_thread_as_dead(thread_id, exit_code=exit_code, exit_signal=exit_signal)
+
+    def mark_thread_as_zombie(self: PtraceInterface, thread_id: int) -> None:
+        """Marks a thread as a zombie.
+
+        Args:
+            thread_id (int): The thread ID.
+        """
+        self.lib_trace.mark_thread_as_zombie(thread_id)
 
     def _set_sw_breakpoint(self: PtraceInterface, bp: Breakpoint) -> None:
         """Sets a software breakpoint at the specified address.

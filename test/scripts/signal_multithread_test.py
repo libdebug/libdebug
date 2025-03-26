@@ -1,22 +1,23 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2024-2025 Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
 from unittest import TestCase
 from utils.binary_utils import PLATFORM, RESOLVE_EXE
+import threading
 
 from libdebug import debugger
 
 
 match PLATFORM:
     case "amd64":
-        TEST_SIGNAL_MULTITHREAD_SEND_SIGNAL_BP_ADDRESS = 0x14d8
+        TEST_SIGNAL_MULTITHREAD_SEND_SIGNAL_BP_ADDRESS = 0x1724
     case "aarch64":
-        TEST_SIGNAL_MULTITHREAD_SEND_SIGNAL_BP_ADDRESS = 0xf1c
+        TEST_SIGNAL_MULTITHREAD_SEND_SIGNAL_BP_ADDRESS = 0x1008
     case "i386":
-        TEST_SIGNAL_MULTITHREAD_SEND_SIGNAL_BP_ADDRESS = 0x156a
+        TEST_SIGNAL_MULTITHREAD_SEND_SIGNAL_BP_ADDRESS = 0x168f
     case _:
         raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
 
@@ -176,41 +177,52 @@ class SignalMultithreadTest(TestCase):
         SIGTERM_count = 0
         SIGPIPE_count = 0
         tids = []
+        signal_event = threading.Event()
 
         def catcher_SIGUSR1(t, sc):
             nonlocal SIGUSR1_count
             nonlocal tids
+            nonlocal signal_event
 
             SIGUSR1_count += 1
             tids.append(t.thread_id)
+            signal_event.set()
 
         def catcher_SIGTERM(t, sc):
             nonlocal SIGTERM_count
             nonlocal tids
+            nonlocal signal_event
 
             SIGTERM_count += 1
             tids.append(t.thread_id)
+            signal_event.set()
 
         def catcher_SIGINT(t, sc):
             nonlocal SIGINT_count
             nonlocal tids
+            nonlocal signal_event
 
             SIGINT_count += 1
             tids.append(t.thread_id)
+            signal_event.set()
 
         def catcher_SIGQUIT(t, sc):
             nonlocal SIGQUIT_count
             nonlocal tids
+            nonlocal signal_event
 
             SIGQUIT_count += 1
             tids.append(t.thread_id)
+            signal_event.set()
 
         def catcher_SIGPIPE(t, sc):
             nonlocal SIGPIPE_count
             nonlocal tids
+            nonlocal signal_event
 
             SIGPIPE_count += 1
             tids.append(t.thread_id)
+            signal_event.set()
 
         d = debugger(RESOLVE_EXE("signals_multithread_det_test"))
 
@@ -225,11 +237,17 @@ class SignalMultithreadTest(TestCase):
         d.signals_to_block = ["SIGUSR1", 15, "SIGINT", 3, 13]
 
         d.cont()
+        
+        for _ in range(12):   
+            signal_event.clear()             
+            r.sendline(b"sync")
+            if not signal_event.wait(timeout=5):
+                raise TimeoutError("No signal received within 5 seconds")
+            
 
-        # Receive the exit message
-        r.recvline(timeout=15)
+        self.assertEqual(r.recvline(timeout=5), b"Sender exiting normally.")
         r.sendline(b"sync")
-        r.recvline()
+        self.assertEqual(r.recvline(timeout=5), b"Receiver exiting normally.")
 
         receiver = d.threads[1].thread_id
         d.kill()
@@ -307,10 +325,12 @@ class SignalMultithreadTest(TestCase):
         d.cont()
 
         received = []
-        for _ in range(13):
+        for i in range(12):                
             received.append(r.recvline(timeout=5))
+            r.sendline(b"sync")
 
         r.sendline(b"sync")
+        received.append(r.recvline(timeout=5))
         received.append(r.recvline(timeout=5))
 
         receiver = d.threads[1].thread_id
@@ -399,8 +419,9 @@ class SignalMultithreadTest(TestCase):
         d.cont()
 
         received = []
-        for _ in range(13):
+        for _ in range(12):
             received.append(r.recvline(timeout=5))
+            r.sendline(b"sync")
 
         r.sendline(b"sync")
 

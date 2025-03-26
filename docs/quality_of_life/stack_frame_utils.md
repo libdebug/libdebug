@@ -9,8 +9,8 @@ Function calls in a binary executable are made according to a system calling con
 Different architectures have slightly different ways to retrieve the return address (for example, in AArch64, the latest return address is stored in `x30`, the Link Register). To abstract these differences, **libdebug** provides common utilities to resolve the stack trace (*backtrace*) of the running process (or thread).
 
 <div style="text-align: center;">
-    <img src="../../assets/backtrace_plot.png#only-light" loading="lazy" width="85%" />
-    <img src="../../assets/backtrace_plot_dark.png#only-dark" loading="lazy" width="85%" />
+    <img src="/assets/backtrace_plot.png#only-light" loading="lazy" width="85%" />
+    <img src="/assets/backtrace_plot_dark.png#only-dark" loading="lazy" width="85%" />
 </div>
 
 **libdebug**'s *backtrace* is structured like a LIFO stack, with the top-most value being the current instruction pointer. Subsequent values are the return addresses of the functions that were called to reach the current instruction pointer.

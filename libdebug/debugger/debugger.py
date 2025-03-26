@@ -701,6 +701,13 @@ class Debugger:
         return self.threads[0].dead
 
     @property
+    def zombie(self: Debugger) -> None:
+        """Whether the main thread is a zombie."""
+        if not self.threads:
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
+        return self.threads[0].zombie
+
+    @property
     def memory(self: Debugger) -> AbstractMemoryView:
         """The memory view of the process."""
         return self._internal_debugger.memory

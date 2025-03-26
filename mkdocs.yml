@@ -50,6 +50,7 @@ nav:
       - Examples Index: code_examples/examples_index.md
       - nlinks - DEF CON Quals 2023: code_examples/example_nlinks.md
       - CyberChallenge 24 Workshop: code_examples/example_cc24.md
+      - Execution Highjacking Example - TRX CTF 2025: code_examples/examples_sudo_kurl.md
   - The Basics:
       - libdebug 101: basics/libdebug101.md
       - Running an Executable: basics/running_an_executable.md
@@ -67,8 +68,10 @@ nav:
       - Watchpoints: stopping_events/watchpoints.md
       - Syscalls: stopping_events/syscalls.md
       - Signals: stopping_events/signals.md
-  - Multithreading:
-      - Multithreaded Applications: multithreading/multithreading.md
+  - Processes and Threads:
+      - The family of the Process: multithreading/multi-stuff.md
+      - Multithreading: multithreading/multithreading.md
+      - Multiprocessing: multithreading/multiprocessing.md
   - Logging:
       - Logging: logging/liblog.md
   - Quality of Life:
@@ -90,13 +93,19 @@ extra:
     provider: mike
 markdown_extensions:
   - admonition
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
+  - pymdownx.arithmatex:
+      generic: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - attr_list
@@ -107,3 +116,7 @@ markdown_extensions:
 
 extra_css:
   - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
