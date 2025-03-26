@@ -347,6 +347,7 @@ class ThreadContext(ABC):
             syscall_identifier (str | int): The syscall identifier.
             *args (int): The syscall arguments.
         """
+        liblog.info(f"\033[91mInvoking syscall {syscall_identifier} with args {args}\033[0m")
         return self._internal_debugger.invoke_syscall(self, syscall_identifier, *args)
 
     def __repr__(self: ThreadContext) -> str:

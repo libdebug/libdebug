@@ -1925,6 +1925,7 @@ class InternalDebugger:
 
         ip = thread.instruction_pointer
         syscall_instruction = call_utils.get_syscall_instruction()
+        print(f"syscall_instruction: {syscall_instruction}")
 
         len_patch = len(syscall_instruction)
 
@@ -1933,9 +1934,11 @@ class InternalDebugger:
         # Patch the syscall instruction.
         thread.memory[ip, len_patch, "absolute"] = syscall_instruction
 
-        self.__polling_thread_command_queue.put(
-            (self.__threaded_step, (thread,)),
-        )
+        # TODO: Emulate syscall enter event
+        # -------------------------------
+
+        self.__polling_thread_command_queue.put((self.__threaded_step, (thread,)))
+        self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
         self._join_and_check_status()
 
         # Restore the original code.
