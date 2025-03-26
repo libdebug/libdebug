@@ -314,7 +314,7 @@ class MemoryNoFastTest(TestCase):
 
         assert d.instruction_pointer == bp.address
 
-        address = 0xDEADBEEFD00D
+        address = 0xDEADBEEF
 
         with self.assertRaises(ValueError):
             d.memory[address, 256, "absolute"]
