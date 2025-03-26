@@ -5,9 +5,9 @@ RUN dnf -y upgrade && dnf install -y python3 python3-devel kernel-devel pypy3 py
 WORKDIR /test
 
 RUN python3 -m ensurepip
-RUN python3 -m pip install -U pip pwntools requests capstone pyelftools
+RUN python3 -m pip install -U pip pwntools requests capstone
 RUN pypy3 -m ensurepip
-RUN pypy3 -m pip install -U pip pwntools requests capstone pyelftools
+RUN pypy3 -m pip install -U pip pwntools requests capstone
 
 COPY . .
 

@@ -18,7 +18,7 @@ authors = [
 description = "A Python library for the debugging of binary executables."
 requires-python = ">= 3.10"
 license = {file = "LICENSE"}
-version = "0.7.0"
+version = "0.8.0"
 readme = {file = "README.md", content-type = "text/markdown"}
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -36,6 +36,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Security",
     "Topic :: Software Development :: Debuggers",
     "Typing :: Typed",
@@ -43,7 +44,6 @@ classifiers = [
 keywords = ["libdebug", "debugger", "elf", "ptrace", "gdb", "debug", "ctf", "reverse-engineering", "reverse", "rev", "scriptable", "script"]
 dependencies = [
     "psutil",
-    "pyelftools",
     "requests",
     "prompt-toolkit",
 ]
