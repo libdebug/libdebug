@@ -303,7 +303,7 @@ class MemoryNoFastTest(TestCase):
         d.kill()
         d.terminate()
 
-    def test_invalid_memory_location(self):
+    def test_invalid_memory_locations(self):
         d = debugger(RESOLVE_EXE("memory_test"), fast_memory=False)
 
         d.run()
@@ -314,10 +314,21 @@ class MemoryNoFastTest(TestCase):
 
         assert d.instruction_pointer == bp.address
 
-        address = 0xDEADBEEFD00D
+        address = 0xDEADBEEF # This address does not exist in the given binary
 
         with self.assertRaises(ValueError):
             d.memory[address, 256, "absolute"]
+
+        with self.assertRaises(ValueError):
+            d.memory[address, 256, "absolute"] = b"abcd1234"
+
+        address = 0xDEADBEEFD00DDEADBEEF # This address is out of bounds on any platform
+
+        with self.assertRaises(ValueError):
+            d.memory[address, 256, "absolute"]
+
+        with self.assertRaises(ValueError):
+            d.memory[address, 256, "absolute"] = b"abcd1234"
 
         d.kill()
         d.terminate()
