@@ -35,14 +35,14 @@ The `breakpoint()` function in the [Debugger](../../from_pydoc/generated/debugge
 
 !!! ABSTRACT "Function Signature"
     ```python
-    d.breakpoint(position, hardware=False, condition='x', length=1, callback=None, file='hybrid')
+    d.breakpoint(address, hardware=False, condition='x', length=1, callback=None, file='hybrid')
     ```
 
 **Parameters**:
 
 | Argument | Type | Description |
 | --- | --- | --- |
-| `position` | `int` \| `str` | The address or symbol where the breakpoint will be set. |
+| `address` | `int` \| `str` | The address or symbol where the breakpoint will be set. |
 | `hardware` | `bool` | Set to `True` to set a hardware breakpoint. |
 | `condition` | `str` | The type of access in case of a hardware breakpoint. |
 | `length` | `int` | The size of the word being watched in case of a hardware breakpoint. |
@@ -68,13 +68,13 @@ The `breakpoint()` function in the [Debugger](../../from_pydoc/generated/debugge
 
     d.run()
 
-    bp = d.breakpoint(0x10ab, file="binary") # (1)
-    bp1 = d.breakpoint("main", file="binary") # (3)
-    bp2 = d.breakpoint("printf", file="libc") # (4)
+    bp = d.breakpoint(0x10ab, file="binary") # (1)!
+    bp1 = d.breakpoint("main", file="binary") # (3)!
+    bp2 = d.breakpoint("printf", file="libc") # (4)!
 
     d.cont()
 
-    print(f"RAX: {d.regs.rax} at the breakpoint") # (2)
+    print(f"RAX: {d.regs.rax:#x} at the breakpoint") # (2)!
     if bp.hit_on(d):
         print("Breakpoint at 0x10ab was hit")
     elif bp1.hit_on(d):
@@ -89,7 +89,7 @@ The `breakpoint()` function in the [Debugger](../../from_pydoc/generated/debugge
     4. Set a software breakpoint at the `printf` symbol in the `libc` library
 
 
-### Callback Signature
+### :material-code-json: Callback Signature
 If you wish to create an [asynchronous](../debugging_flow) breakpoint, you will have to provide a callback function. If you want to leave the callback empty, you can set callback to `True`.
 
 !!! ABSTRACT "Callback Signature"
@@ -109,7 +109,7 @@ If you wish to create an [asynchronous](../debugging_flow) breakpoint, you will 
 !!! ABSTRACT "Example usage of asynchronous breakpoints"
     ```python
     def on_breakpoint_hit(t, bp):
-        print(f"RAX: {t.regs.rax}")
+        print(f"RAX: {t.regs.rax:#x}")
 
         if bp.hit_count == 100:
             print("Hit count reached 100")
@@ -117,3 +117,40 @@ If you wish to create an [asynchronous](../debugging_flow) breakpoint, you will 
 
     d.breakpoint(0x11f0, callback=on_breakpoint_hit, file="binary")
     ```
+
+## :material-package-up: The Breakpoints Dict
+The `breakpoints` attribute of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object is a dictionary that contains all the breakpoints set by the user. The keys are the addresses of the breakpoints, and the values are the corresponding [Breakpoint](../../from_pydoc/generated/data/breakpoint) objects. This is useful to retrieve breakpoints in $O(1)$ time complexity.
+
+!!! ABSTRACT "Usage Example - Massive Breakpoint Insertion"
+    ```python
+    from libdebug import debugger
+
+    def hook_callback(t, bp):
+        [...]
+
+    d = debugger("example_binary")
+    d.run()
+
+    # Massive breakpoint insertion
+    with open("example_binary", "rb") as f:
+        binary_data = f.read()
+
+    cursor = 0
+    while cursor < len(binary_data):
+        if binary_data[cursor:cursor+2] == b"\xD9\xC9":
+            d.breakpoint(cursor, callback=hook_callback, file="binary") # (1)!
+        cursor += 1
+
+    d.cont()
+
+    [...]
+
+    ip = d.regs.rip
+
+    if d.memory[0x10, 4, "binary"] == b"\x00\xff\x00\xab":
+        d.breakpoints[ip].disable() # (2)!
+    [...]
+    ```
+
+    1. Insert a breakpoint at every `FXCH` instruction in the binary (at least ones found through static analysis)
+    2. If some condition is met, disable the breakpoint at the current instruction pointer

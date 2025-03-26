@@ -68,6 +68,18 @@ The function used to create a snapshot is `create_snapshot()`. It behaves differ
 | [ThreadContext](../../from_pydoc/generated/state/thread_context) | [ThreadSnapshot](../../from_pydoc/generated/snapshots/thread/thread_snapshot) | Creates a snapshot of the specific thread. |
 | [Debugger](../../from_pydoc/generated/debugger/debugger/) | [ProcessSnapshot](../../from_pydoc/generated/snapshots/process/process_snapshot) | Creates a snapshot of the entire process. This includes snapshots _for all threads_. |
 
+The following is the signature of the function:
+
+!!! ABSTRACT "Function Signature"
+    ```python
+    d.create_snapshot(level: str = "base", name: str = None) -> ProcessSnapshot
+    ```
+    or
+    ```python
+    t.create_snapshot(level: str = "base", name: str = None) -> ThreadSnapshot
+    ```
+    Where `d` is a [Debugger](../../from_pydoc/generated/debugger/debugger/) object and `t` is a [ThreadContext](../../from_pydoc/generated/state/thread_context) object.
+
 The following is an example usage of the function in both cases:
 
 ```python
@@ -76,10 +88,10 @@ d = debugger("program")
 my_thread = d.threads[1]
 
 # Thread Snapshot
-ts = my_thread.create_snapshot(level="full", name="cool snapshot") #(1)
+ts = my_thread.create_snapshot(level="full", name="cool snapshot") #(1)!
 
 # Process Snapshot
-ps = d.create_snapshot(level="writable", name="very cool snapshot") #(2)
+ps = d.create_snapshot(level="writable", name="very cool snapshot") #(2)!
 ```
 
 1. This will create a full-level snapshot of the thread `my_thread` and name it "cool snapshot".
@@ -116,10 +128,12 @@ You can diff a snapshot against another using the [`diff()`](../../from_pydoc/ge
 !!! ABSTRACT "Example usage"
     ```python
     ts1 = d.threads[1].create_snapshot(level="full")
-    [...] # (1)
+
+    [...] # (1)!
+    
     ts2 = d.threads[1].create_snapshot(level="full")
 
-    ts_diff = ts1.diff(ts2) # (2)
+    ts_diff = ts1.diff(ts2) # (2)!
     ```
 
     1. Do some operations that change the state of the process.
