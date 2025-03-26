@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
+# Copyright (c) 2023-2025 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -29,7 +29,7 @@ def fast_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.JumpstartTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.LargeBinarySymTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.MemoryTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.MemoryFastTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.MemoryNoFastTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.MultipleDebuggersTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.NextTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.NlinksTest))
@@ -42,6 +42,10 @@ def fast_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SyscallHijackTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.ThreadTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.WatchpointTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.FindPointersTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SymbolTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SnapshotsTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.MultiprocessingTest))
 
     return suite
 
@@ -64,6 +68,13 @@ def stress_suite():
 
     return suite
 
+def memory_suite():
+    suite = TestSuite()
+
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.MemoryLeakTest))
+
+    return suite
+
 def main(suite: str):
     if sys.version_info >= (3, 12):
         runner = TextTestRunner(verbosity=2, durations=3)
@@ -77,6 +88,8 @@ def main(suite: str):
         runner.verbosity = 1
     elif suite == "fast":
         suite = fast_suite()
+    elif suite == "memory":
+        suite = memory_suite()
     else:
         raise ValueError(f"Invalid suite: {suite}")
 
@@ -84,7 +97,7 @@ def main(suite: str):
 
 if __name__ == "__main__":
     parser = ArgumentParser(prog="libdebug Test Suite", description="Run the test suite")
-    parser.add_argument("suite", type=str, help="The suite to run the tests from", choices=["fast", "slow", "stress"], default="fast", nargs="?")
+    parser.add_argument("suite", type=str, help="The suite to run the tests from", choices=["fast", "slow", "stress", "memory"], default="fast", nargs="?")
 
     dbg = 'dbg' in sys.argv
     if dbg:

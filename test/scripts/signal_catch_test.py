@@ -1,10 +1,11 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2024-2025 Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
 import io
+import sys
 import logging
 from unittest import TestCase
 from utils.binary_utils import PLATFORM, RESOLVE_EXE
@@ -15,10 +16,13 @@ from libdebug import debugger
 match PLATFORM:
     case "amd64":
         ADDRESS = 0x12c4
+        TEST_SIGTRAP_SIGACTION_ADDRESS = 0x12aa
     case "aarch64":
         ADDRESS = 0x964
+        TEST_SIGTRAP_SIGACTION_ADDRESS = 0xa0c
     case "i386":
         ADDRESS = 0x12fa
+        TEST_SIGTRAP_SIGACTION_ADDRESS = 0x12bf
     case _:
         raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
 
@@ -1258,12 +1262,8 @@ class SignalCatchTest(TestCase):
         catcher5 = d.catch_signal("SIGPIPE")
 
         signals = b""
-        while not d.dead:
-            d.cont()
-            try:
-                signals += r.recvline()
-            except:
-                pass
+        d.cont()
+        while True:
             d.wait()
             if catcher1.hit_on(d):
                 SIGUSR1_count += 1
@@ -1275,6 +1275,10 @@ class SignalCatchTest(TestCase):
                 SIGQUIT_count += 1
             elif catcher5.hit_on(d):
                 SIGPIPE_count += 1
+            if d.dead:
+                break
+            d.cont()
+            signals += r.recvline()
 
         d.kill()
         d.terminate()
@@ -1345,3 +1349,164 @@ class SignalCatchTest(TestCase):
             self.assertEqual(12, counter)
 
         d.terminate()
+
+    def test_catch_sigtrap_sync(self):
+        d = debugger(RESOLVE_EXE("./sigtrap_test"))
+
+        r = d.run()
+
+        cs = d.catch_signal("SIGTRAP", callback=True)
+
+        d.cont()
+
+        self.assertEqual(r.recvline(), b'SIGTRAP received 1 times')
+        self.assertEqual(r.recvline(), b'SIGTRAP received 2 times')
+        self.assertEqual(r.recvline(), b'SIGTRAP received 3 times')
+        self.assertEqual(r.recvline(), b'SIGTRAP received 4 times')
+        self.assertEqual(r.recvline(), b'SIGTRAP received 5 times')
+
+        d.wait()
+        
+        self.assertEqual(cs.hit_count, 5)
+        
+        d.kill()
+        
+    def test_catch_sigtrap_sync_bp(self):
+        d = debugger(RESOLVE_EXE("./sigtrap_test"))
+
+        r = d.run()
+
+        cs = d.catch_signal("SIGTRAP", callback=True)
+
+        # This is the address of the raise call
+        bp = d.bp(TEST_SIGTRAP_SIGACTION_ADDRESS, callback=True, file="binary", hardware=True)
+
+        d.cont()
+
+        self.assertEqual(r.recvline(), b'SIGTRAP received 1 times')
+        self.assertEqual(r.recvline(), b'SIGTRAP received 2 times')
+        self.assertEqual(r.recvline(), b'SIGTRAP received 3 times')
+        self.assertEqual(r.recvline(), b'SIGTRAP received 4 times')
+        self.assertEqual(r.recvline(), b'SIGTRAP received 5 times')
+
+        d.wait()
+        
+        self.assertEqual(cs.hit_count, 5)
+        self.assertTrue(bp.hit_count, 5)
+        
+        d.kill()
+        
+    def test_catch_sigtrap_async(self):
+        d = debugger(RESOLVE_EXE("./sigtrap_test"))
+
+        r = d.run()
+
+        cs = d.catch_signal("SIGTRAP")
+
+        d.cont()
+        
+        for i in range(1, 6):
+            self.assertTrue(cs.hit_on(d))
+            d.cont()
+            self.assertEqual(r.recvline(), f'SIGTRAP received {i} times'.encode())
+
+        d.wait()
+        
+        self.assertEqual(cs.hit_count, 5)
+        
+        d.kill()
+        
+    def test_catch_sigtrap_async_bp(self):
+        d = debugger(RESOLVE_EXE("./sigtrap_test"))
+
+        r = d.run()
+
+        cs = d.catch_signal("SIGTRAP")
+
+        # This is the address of the raise call
+        bp = d.bp(TEST_SIGTRAP_SIGACTION_ADDRESS, callback=True, file="binary", hardware=True)
+
+        d.cont()
+
+        for i in range(1, 6):
+            self.assertTrue(cs.hit_on(d))
+            d.cont()
+            self.assertEqual(r.recvline(), f'SIGTRAP received {i} times'.encode())
+
+        d.wait()
+        
+        self.assertEqual(cs.hit_count, 5)
+        self.assertTrue(bp.hit_count, 5)        
+        
+        d.kill()
+
+    def test_catch_sigtrap_all(self):
+        d = debugger(RESOLVE_EXE("./sigtrap_test"))
+
+        r = d.run()
+
+        cs = d.catch_signal("*", callback=True)
+
+        d.cont()
+
+        self.assertEqual(r.recvline(), b'SIGTRAP received 1 times')
+        self.assertEqual(r.recvline(), b'SIGTRAP received 2 times')
+        self.assertEqual(r.recvline(), b'SIGTRAP received 3 times')
+        self.assertEqual(r.recvline(), b'SIGTRAP received 4 times')
+        self.assertEqual(r.recvline(), b'SIGTRAP received 5 times')
+
+        d.wait()
+        
+        self.assertEqual(cs.hit_count, 5)
+        
+        d.kill()
+        
+    def test_catch_sigtrap_all_bp(self):
+        d = debugger(RESOLVE_EXE("./sigtrap_test"))
+
+        r = d.run()
+
+        cs = d.catch_signal("*", callback=True)
+
+        # This is the address of the raise call
+        bp = d.bp(TEST_SIGTRAP_SIGACTION_ADDRESS, callback=True, file="binary", hardware=True)
+
+        d.cont()
+
+        self.assertEqual(r.recvline(), b'SIGTRAP received 1 times')
+        self.assertEqual(r.recvline(), b'SIGTRAP received 2 times')
+        self.assertEqual(r.recvline(), b'SIGTRAP received 3 times')
+        self.assertEqual(r.recvline(), b'SIGTRAP received 4 times')
+        self.assertEqual(r.recvline(), b'SIGTRAP received 5 times')
+
+        d.wait()
+        
+        self.assertEqual(cs.hit_count, 5)
+        self.assertTrue(bp.hit_count, 5)
+        
+        d.kill()
+
+    # Verify that debugging signals are properly filtered out by the status handler
+    # before processing external signal handlers
+    def test_catch_all(self):
+        self.capturedOutput = io.StringIO()
+        sys.stdout = self.capturedOutput
+
+        def catch_signal(t, ch):
+            self.assertNotEqual(t.signal, "SIGTRAP")
+
+        d = debugger("/bin/ls")
+
+        d.run()
+
+        d.catch_signal("*", callback=catch_signal)
+        d.handle_syscall("*", on_enter=True, on_exit=True)
+        d.breakpoint("malloc", callback=True, file="libc.so.6")
+        d.breakpoint("free", hardware=True, callback=True, file="libc.so.6")
+        d.pprint_syscalls = True
+
+        d.cont()
+        d.wait()
+
+        d.terminate()
+        sys.stdout = sys.__stdout__

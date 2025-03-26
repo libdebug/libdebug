@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
+# Copyright (c) 2023-2025 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -17,8 +17,9 @@ def debugger(
     escape_antidebug: bool = False,
     continue_to_binary_entrypoint: bool = True,
     auto_interrupt_on_command: bool = False,
-    fast_memory: bool = False,
+    fast_memory: bool = True,
     kill_on_exit: bool = True,
+    follow_children: bool = True,
 ) -> Debugger:
     """This function is used to create a new `Debugger` object. It returns a `Debugger` object.
 
@@ -29,8 +30,9 @@ def debugger(
         escape_antidebug (bool): Whether to automatically attempt to patch antidebugger detectors based on the ptrace syscall.
         continue_to_binary_entrypoint (bool, optional): Whether to automatically continue to the binary entrypoint. Defaults to True.
         auto_interrupt_on_command (bool, optional): Whether to automatically interrupt the process when a command is issued. Defaults to False.
-        fast_memory (bool, optional): Whether to use a faster memory reading method. Defaults to False.
+        fast_memory (bool, optional): Whether to use a faster memory reading method. Defaults to True.
         kill_on_exit (bool, optional): Whether to kill the debugged process when the debugger exits. Defaults to True.
+        follow_children (bool, optional): Whether to follow child processes. Defaults to True, which means that a new debugger will be created for each child process automatically.
 
     Returns:
         Debugger: The `Debugger` object.
@@ -49,6 +51,7 @@ def debugger(
     internal_debugger.escape_antidebug = escape_antidebug
     internal_debugger.fast_memory = fast_memory
     internal_debugger.kill_on_exit = kill_on_exit
+    internal_debugger.follow_children = follow_children
 
     debugger = Debugger()
     debugger.post_init_(internal_debugger)

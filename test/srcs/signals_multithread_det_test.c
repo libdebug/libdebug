@@ -13,7 +13,9 @@
 // Global variables for synchronization
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+pthread_cond_t cond_done = PTHREAD_COND_INITIALIZER;
 int ready = 0;
+int sender_done = 0;
 
 void signal_handler_receiver(int sig) {
     printf("Received signal on receiver %d\n", sig);
@@ -33,32 +35,41 @@ void *sender(void *arg) {
     }
     pthread_mutex_unlock(&mutex);
 
+    char input[100];
+
     // Send signals to the receiver
     pthread_kill(thread, SIGUSR1);
-    usleep(500);
+    scanf("%99s", input);
     pthread_kill(thread, SIGTERM);
-    usleep(500);
+    scanf("%99s", input);
     pthread_kill(thread, SIGINT);
-    usleep(500);
+    scanf("%99s", input);
     pthread_kill(thread, SIGQUIT);
-    usleep(500);
+    scanf("%99s", input);
     pthread_kill(thread, SIGPIPE);
-    usleep(500);
+    scanf("%99s", input);
     pthread_kill(thread, SIGUSR1);
-    usleep(500);
+    scanf("%99s", input);
     pthread_kill(thread, SIGTERM);
-    usleep(500);
+    scanf("%99s", input);
     pthread_kill(thread, SIGINT);
-    usleep(500);
+    scanf("%99s", input);
     pthread_kill(thread, SIGQUIT);
-    usleep(500);
+    scanf("%99s", input);
     pthread_kill(thread, SIGPIPE);
-    usleep(500);
+    scanf("%99s", input);
     pthread_kill(thread, SIGQUIT);
-    usleep(500);
+    scanf("%99s", input);
     pthread_kill(thread, SIGPIPE);
+    scanf("%99s", input);
 
-    // Normal program termination after handling signals
+    // Notify receiver that sender is done
+    pthread_mutex_lock(&mutex);
+    sender_done = 1;
+    pthread_cond_signal(&cond_done);
+    pthread_mutex_unlock(&mutex);
+
+
     printf("Sender exiting normally.\n");
     return NULL;
 }
@@ -77,11 +88,17 @@ void *receiver() {
     pthread_cond_signal(&cond);
     pthread_mutex_unlock(&mutex);
 
-    // Receive an input for synchronization
-    char input[100];
-    scanf("%s", input);
+    // Wait until sender signals it's done
+    pthread_mutex_lock(&mutex);
+    while (!sender_done) {
+        pthread_cond_wait(&cond_done, &mutex);
+    }
+    pthread_mutex_unlock(&mutex);
 
-    // Normal program termination after handling signals
+    // Final sync before exit
+    char input[100];
+    scanf("%99s", input);
+
     printf("Receiver exiting normally.\n");
     return NULL;
 }

@@ -8,9 +8,9 @@ import functools
 import os
 from pathlib import Path
 
-from libdebug.cffi._personality_cffi import lib as lib_personality
 from libdebug.data.memory_map import MemoryMap
 from libdebug.data.memory_map_list import MemoryMapList
+from libdebug.native import libdebug_linux_binding
 
 
 @functools.cache
@@ -65,7 +65,7 @@ def invalidate_process_cache() -> None:
 
 def disable_self_aslr() -> None:
     """Disables ASLR for the current process."""
-    retval = lib_personality.disable_aslr()
+    retval = libdebug_linux_binding.disable_aslr()
 
     if retval == -1:
         raise RuntimeError("Failed to disable ASLR.")

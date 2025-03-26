@@ -116,24 +116,58 @@ The `memory` attribute of the [Debugger](../../from_pydoc/generated/debugger/deb
 
 !!! ABSTRACT "Usage Example"
     ```python
-    bish_string_addr = d.memory.find("/bin/sh", file="libc")
+    binsh_string_addr = d.memory.find("/bin/sh", file="libc")
 
     value_address = d.memory.find(0x1234, file="stack", start=d.regs.rsp)
     ```
 
-## :material-clock-fast: Faster Memory Access
-!!! EXAMPLE "Warning: This feature is Experimental!"
-    This feature is experimental and may not work as expected. Please report any issues you encounter [:octicons-issue-opened-24: here](https://github.com/libdebug/libdebug/issues).
+### :material-laser-pointer: Searching Pointers
+The `memory` attribute of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object also allows you to search for values in a source memory map that are pointers to another memory map. One use case for this would be identifying potential leaks of memory addresses when **libdebug** is used for exploitation tasks.
 
-By default, **libdebug** reads and writes memory using the [`ptrace`](https://man7.org/linux/man-pages/man2/ptrace.2.html) system call interface. However, this is not the most efficient way to access memory and will likely be changed in future versions.
+!!! ABSTRACT "Function Signature"
+    ```py
+    def find_pointers(
+            where: int | str = "*",
+            target: int | str = "*",
+            step: int = 1,
+        ) -> list[tuple[int, int]]:
+    ```
 
-To speed up memory access, you can already enable a faster system that relies on Linux's [procfs](https://docs.kernel.org/filesystems/proc.html). To use it, simply set the `fast_memory` parameter to `True` when creating the [Debugger](../../from_pydoc/generated/debugger/debugger/) object. You can also enable and disable this feature at runtime by accessing the debugger's attribute.
+**Parameters**:
+
+| Argument | Type | Description |
+| --- | --- | --- |
+| `where` | `int` \| `str` | The memory map where we want to search for references. Defaults to `"*"`, which means all memory maps. |
+| `target` | `int` \| `str` | The memory map whose pointers we want to find. Defaults to `"*"`, which means all memory maps. |
+| `step` | `int` | The interval step size while iterating over the memory buffer. Defaults to `1`. |
+
+**Returns**:
+
+| Return | Type | Description |
+| --- | --- | --- |
+| `Pointers` | `list[tuple[int, int]]` | A list of tuples containing the address where the pointer was found and the pointer itself. |
+
+!!! ABSTRACT "Usage Example"
+    ```python
+    pointers = d.memory.find_pointers("stack", "heap")
+
+    for src, dst in pointers:
+        print(f"Heap leak to {dst} found at {src} points")
+    ```
+
+## :material-clock-fast: Fast and Slow Memory Access
+**libdebug** supports two different methods to access memory on Linux, controlled by the `fast_memory` parameter of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object. The two methods are:
+
+- `fast_memory=False` uses the [`ptrace`](https://man7.org/linux/man-pages/man2/ptrace.2.html) system call interface, requiring a context switch from user space to kernel space for each architectural word-size read.
+- `fast_memory=True` reduces the access latency by relying on Linux's [procfs](https://docs.kernel.org/filesystems/proc.html), which contains a virtual file as an interface to the process memory.
+
+As of version **0.8** :sushi: *Chutoro Nigiri* :sushi:, `fast_memory=True` is the default. The following examples show how to change the memory access method when creating the [Debugger](../../from_pydoc/generated/debugger/debugger/) object or at runtime.
 
 === "When creating the Debugger object"
     ```python
-    d = debugger("test", fast_memory=True)
+    d = debugger("test", fast_memory=False)
     ```
 === "At runtime"
     ```python
-    d.fast_memory = True
+    d.fast_memory = False
     ```

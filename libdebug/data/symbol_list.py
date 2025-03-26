@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2024-2025 Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -8,18 +8,20 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from libdebug.debugger.internal_debugger_instance_manager import get_global_internal_debugger
-
 if TYPE_CHECKING:
     from libdebug.data.symbol import Symbol
+    from libdebug.debugger.internal_debugger import InternalDebugger
+    from libdebug.snapshots.snapshot import Snapshot
 
 
 class SymbolList(list):
     """A list of symbols in the target process."""
 
-    def __init__(self: SymbolList, symbols: list[Symbol]) -> None:
+    def __init__(self: SymbolList, symbols: list[Symbol], maps_source: InternalDebugger | Snapshot) -> None:
         """Initializes the SymbolDict."""
         super().__init__(symbols)
+
+        self._maps_source = maps_source
 
     def _search_by_address(self: SymbolList, address: int) -> list[Symbol]:
         """Searches for a symbol by address.
@@ -31,11 +33,11 @@ class SymbolList(list):
             list[Symbol]: The list of symbols that match the specified address.
         """
         # Find the memory map that contains the address
-        if maps := get_global_internal_debugger().maps.filter(address):
+        if maps := self._maps_source.maps.filter(address):
             address -= maps[0].start
         else:
             raise ValueError(
-                f"Address {address:#x} does not belong to any memory map. You must specify an absolute address."
+                f"Address {address:#x} does not belong to any memory map. You must specify an absolute address.",
             )
         return [symbol for symbol in self if symbol.start <= address < symbol.end]
 
@@ -77,14 +79,24 @@ class SymbolList(list):
         else:
             raise TypeError("The value must be an integer or a string.")
 
-        return SymbolList(filtered_symbols)
+        return SymbolList(filtered_symbols, self._maps_source)
 
-    def __getitem__(self: SymbolList, key: str) -> Symbol:
-        """Returns the symbol with the specified name."""
+    def __getitem__(self: SymbolList, key: str | int) -> SymbolList[Symbol] | Symbol:
+        """Returns the symbol with the specified name.
+
+        Args:
+            key (str, int): The name of the symbol to return, or the index of the symbol in the list.
+
+        Returns:
+            Symbol | SymbolList[Symbol]: The symbol at the specified index, or the SymbolList of symbols with the specified name.
+        """
+        if not isinstance(key, str):
+            return super().__getitem__(key)
+
         symbols = [symbol for symbol in self if symbol.name == key]
         if not symbols:
             raise KeyError(f"Symbol '{key}' not found.")
-        return symbols
+        return SymbolList(symbols, self._maps_source)
 
     def __hash__(self) -> int:
         """Return the hash of the symbol list."""

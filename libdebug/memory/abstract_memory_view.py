@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2023-2025 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco, Mario Polino. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -9,9 +9,13 @@ from __future__ import annotations
 import sys
 from abc import ABC, abstractmethod
 from collections.abc import MutableSequence
+from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from libdebug.data.memory_map import MemoryMap
 from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 from libdebug.liblog import liblog
+from libdebug.utils.platform_utils import get_platform_gp_register_size
 from libdebug.utils.search_utils import find_all_overlapping_occurrences
 
 
@@ -74,47 +78,47 @@ class AbstractMemoryView(MutableSequence, ABC):
 
         occurrences = []
         if file == "all" and start is None and end is None:
-            for vmap in self._internal_debugger.maps:
+            for vmap in self.maps:
                 liblog.debugger(f"Searching in {vmap.backing_file}...")
                 try:
                     memory_content = self.read(vmap.start, vmap.end - vmap.start)
-                except (OSError, OverflowError):
+                except (OSError, OverflowError, ValueError):
                     # There are some memory regions that cannot be read, such as [vvar], [vdso], etc.
                     continue
                 occurrences += find_all_overlapping_occurrences(value, memory_content, vmap.start)
         elif file == "all" and start is not None and end is None:
-            for vmap in self._internal_debugger.maps:
+            for vmap in self.maps:
                 if vmap.end > start:
                     liblog.debugger(f"Searching in {vmap.backing_file}...")
                     read_start = max(vmap.start, start)
                     try:
                         memory_content = self.read(read_start, vmap.end - read_start)
-                    except (OSError, OverflowError):
+                    except (OSError, OverflowError, ValueError):
                         # There are some memory regions that cannot be read, such as [vvar], [vdso], etc.
                         continue
                     occurrences += find_all_overlapping_occurrences(value, memory_content, read_start)
         elif file == "all" and start is None and end is not None:
-            for vmap in self._internal_debugger.maps:
+            for vmap in self.maps:
                 if vmap.start < end:
                     liblog.debugger(f"Searching in {vmap.backing_file}...")
                     read_end = min(vmap.end, end)
                     try:
                         memory_content = self.read(vmap.start, read_end - vmap.start)
-                    except (OSError, OverflowError):
+                    except (OSError, OverflowError, ValueError):
                         # There are some memory regions that cannot be read, such as [vvar], [vdso], etc.
                         continue
                     occurrences += find_all_overlapping_occurrences(value, memory_content, vmap.start)
         elif file == "all" and start is not None and end is not None:
             # Search in the specified range, hybrid mode
-            start = self._internal_debugger.resolve_address(start, "hybrid", True)
-            end = self._internal_debugger.resolve_address(end, "hybrid", True)
+            start = self.resolve_address(start, "hybrid", True)
+            end = self.resolve_address(end, "hybrid", True)
             liblog.debugger(f"Searching in the range {start:#x}-{end:#x}...")
             memory_content = self.read(start, end - start)
             occurrences = find_all_overlapping_occurrences(value, memory_content, start)
         else:
-            maps = self._internal_debugger.maps.filter(file)
-            start = self._internal_debugger.resolve_address(start, file, True) if start is not None else maps[0].start
-            end = self._internal_debugger.resolve_address(end, file, True) if end is not None else maps[-1].end - 1
+            maps = self.maps.filter(file)
+            start = self.resolve_address(start, file, True) if start is not None else maps[0].start
+            end = self.resolve_address(end, file, True) if end is not None else maps[-1].end - 1
 
             liblog.debugger(f"Searching in the range {start:#x}-{end:#x}...")
             memory_content = self.read(start, end - start)
@@ -122,6 +126,134 @@ class AbstractMemoryView(MutableSequence, ABC):
             occurrences = find_all_overlapping_occurrences(value, memory_content, start)
 
         return occurrences
+
+    def find_pointers(
+        self: AbstractMemoryView,
+        where: int | str = "*",
+        target: int | str = "*",
+        step: int = 1,
+    ) -> list[tuple[int, int]]:
+        """
+        Find all pointers in the specified memory map that point to the target memory map.
+
+        If the where parameter or the target parameter is a string, it is treated as a backing file. If it is an integer, the memory map containing the address will be used.
+
+        If "*", "ALL", "all" or -1 is passed, all memory maps will be considered.
+
+        Args:
+            where (int | str): Identifier of the memory map where we want to search for references. Defaults to "*", which means all memory maps.
+            target (int | str): Identifier of the memory map whose pointers we want to find. Defaults to "*", which means all memory maps.
+            step (int): The interval step size while iterating over the memory buffer. Defaults to 1.
+
+        Returns:
+            list[tuple[int, int]]: A list of tuples containing the address where the pointer was found and the pointer itself.
+        """
+        # Filter memory maps that match the target
+        if target in {"*", "ALL", "all", -1}:
+            target_maps = self._internal_debugger.maps
+        else:
+            target_maps = self._internal_debugger.maps.filter(target)
+
+        if not target_maps:
+            raise ValueError("No memory map found for the specified target.")
+
+        target_backing_files = {vmap.backing_file for vmap in target_maps}
+
+        # Filter memory maps that match the where parameter
+        if where in {"*", "ALL", "all", -1}:
+            where_maps = self._internal_debugger.maps
+        else:
+            where_maps = self._internal_debugger.maps.filter(where)
+
+        if not where_maps:
+            raise ValueError("No memory map found for the specified where parameter.")
+
+        where_backing_files = {vmap.backing_file for vmap in where_maps}
+
+        if len(where_backing_files) == 1 and len(target_backing_files) == 1:
+            return self.__internal_find_pointers(where_maps, target_maps, step)
+        elif len(where_backing_files) == 1:
+            found_pointers = []
+            for target_backing_file in target_backing_files:
+                found_pointers += self.__internal_find_pointers(
+                    where_maps,
+                    self._internal_debugger.maps.filter(target_backing_file),
+                    step,
+                )
+            return found_pointers
+        elif len(target_backing_files) == 1:
+            found_pointers = []
+            for where_backing_file in where_backing_files:
+                found_pointers += self.__internal_find_pointers(
+                    self._internal_debugger.maps.filter(where_backing_file),
+                    target_maps,
+                    step,
+                )
+            return found_pointers
+        else:
+            found_pointers = []
+            for where_backing_file in where_backing_files:
+                for target_backing_file in target_backing_files:
+                    found_pointers += self.__internal_find_pointers(
+                        self._internal_debugger.maps.filter(where_backing_file),
+                        self._internal_debugger.maps.filter(target_backing_file),
+                        step,
+                    )
+
+        return found_pointers
+
+    def __internal_find_pointers(
+        self: AbstractMemoryView,
+        where_maps: list[MemoryMap],
+        target_maps: list[MemoryMap],
+        stride: int,
+    ) -> list[tuple[int, int]]:
+        """Find all pointers to a specific memory map within another memory map. Internal implementation.
+
+        Args:
+            where_maps (list[MemoryMap]): The memory maps where to search for pointers.
+            target_maps (list[MemoryMap]): The memory maps for which to search for pointers.
+            stride (int): The interval step size while iterating over the memory buffer.
+
+        Returns:
+            list[tuple[int, int]]: A list of tuples containing the address where the pointer was found and the pointer itself.
+        """
+        found_pointers = []
+
+        # Obtain the start/end of the target memory segment
+        target_start_address = target_maps[0].start
+        target_end_address = target_maps[-1].end
+
+        # Obtain the start/end of the where memory segment
+        where_start_address = where_maps[0].start
+        where_end_address = where_maps[-1].end
+
+        # Read the memory from the where memory segment
+        if not self._internal_debugger.fast_memory:
+            liblog.warning(
+                "Fast memory reading is disabled. Using find_pointers with fast_memory=False may be very slow.",
+            )
+        try:
+            where_memory_buffer = self.read(where_start_address, where_end_address - where_start_address)
+        except (OSError, OverflowError):
+            liblog.error(f"Cannot read the target memory segment with backing file: {where_maps[0].backing_file}.")
+            return found_pointers
+
+        # Get the size of a pointer in the target process
+        pointer_size = get_platform_gp_register_size(self._internal_debugger.arch)
+
+        # Get the byteorder of the target machine (endianness)
+        byteorder = sys.byteorder
+
+        # Search for references in the where memory segment
+        append = found_pointers.append
+        for i in range(0, len(where_memory_buffer), stride):
+            reference = where_memory_buffer[i : i + pointer_size]
+            reference = int.from_bytes(reference, byteorder=byteorder)
+            if target_start_address <= reference < target_end_address:
+                append((where_start_address + i, reference))
+
+        return found_pointers
 
     def __getitem__(self: AbstractMemoryView, key: int | slice | str | tuple) -> bytes:
         """Read from memory, either a single byte or a byte string.
@@ -154,21 +286,21 @@ class AbstractMemoryView(MutableSequence, ABC):
             file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
         if isinstance(key, int):
-            address = self._internal_debugger.resolve_address(key, file, skip_absolute_address_validation=True)
+            address = self.resolve_address(key, file, skip_absolute_address_validation=True)
             try:
                 return self.read(address, 1)
             except OSError as e:
                 raise ValueError("Invalid address.") from e
         elif isinstance(key, slice):
             if isinstance(key.start, str):
-                start = self._internal_debugger.resolve_symbol(key.start, file)
+                start = self.resolve_symbol(key.start, file)
             else:
-                start = self._internal_debugger.resolve_address(key.start, file, skip_absolute_address_validation=True)
+                start = self.resolve_address(key.start, file, skip_absolute_address_validation=True)
 
             if isinstance(key.stop, str):
-                stop = self._internal_debugger.resolve_symbol(key.stop, file)
+                stop = self.resolve_symbol(key.stop, file)
             else:
-                stop = self._internal_debugger.resolve_address(key.stop, file, skip_absolute_address_validation=True)
+                stop = self.resolve_address(key.stop, file, skip_absolute_address_validation=True)
 
             if stop < start:
                 raise ValueError("Invalid slice range.")
@@ -178,7 +310,7 @@ class AbstractMemoryView(MutableSequence, ABC):
             except OSError as e:
                 raise ValueError("Invalid address.") from e
         elif isinstance(key, str):
-            address = self._internal_debugger.resolve_symbol(key, file)
+            address = self.resolve_symbol(key, file)
 
             return self.read(address, 1)
         elif isinstance(key, tuple):
@@ -214,9 +346,9 @@ class AbstractMemoryView(MutableSequence, ABC):
             raise TypeError("Invalid type for the size. Expected int.")
 
         if isinstance(address, str):
-            address = self._internal_debugger.resolve_symbol(address, file)
+            address = self.resolve_symbol(address, file)
         elif isinstance(address, int):
-            address = self._internal_debugger.resolve_address(address, file, skip_absolute_address_validation=True)
+            address = self.resolve_address(address, file, skip_absolute_address_validation=True)
         else:
             raise TypeError("Invalid type for the address. Expected int or string.")
 
@@ -239,22 +371,22 @@ class AbstractMemoryView(MutableSequence, ABC):
             file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
         if isinstance(key, int):
-            address = self._internal_debugger.resolve_address(key, file, skip_absolute_address_validation=True)
+            address = self.resolve_address(key, file, skip_absolute_address_validation=True)
             try:
                 self.write(address, value)
             except OSError as e:
                 raise ValueError("Invalid address.") from e
         elif isinstance(key, slice):
             if isinstance(key.start, str):
-                start = self._internal_debugger.resolve_symbol(key.start, file)
+                start = self.resolve_symbol(key.start, file)
             else:
-                start = self._internal_debugger.resolve_address(key.start, file, skip_absolute_address_validation=True)
+                start = self.resolve_address(key.start, file, skip_absolute_address_validation=True)
 
             if key.stop is not None:
                 if isinstance(key.stop, str):
-                    stop = self._internal_debugger.resolve_symbol(key.stop, file)
+                    stop = self.resolve_symbol(key.stop, file)
                 else:
-                    stop = self._internal_debugger.resolve_address(
+                    stop = self.resolve_address(
                         key.stop,
                         file,
                         skip_absolute_address_validation=True,
@@ -272,7 +404,7 @@ class AbstractMemoryView(MutableSequence, ABC):
                 raise ValueError("Invalid address.") from e
 
         elif isinstance(key, str):
-            address = self._internal_debugger.resolve_symbol(key, file)
+            address = self.resolve_symbol(key, file)
 
             self.write(address, value)
         elif isinstance(key, tuple):
@@ -310,9 +442,9 @@ class AbstractMemoryView(MutableSequence, ABC):
             raise TypeError("Invalid type for the size. Expected int.")
 
         if isinstance(address, str):
-            address = self._internal_debugger.resolve_symbol(address, file)
+            address = self.resolve_symbol(address, file)
         elif isinstance(address, int):
-            address = self._internal_debugger.resolve_address(address, file, skip_absolute_address_validation=True)
+            address = self.resolve_address(address, file, skip_absolute_address_validation=True)
         else:
             raise TypeError("Invalid type for the address. Expected int or string.")
 
@@ -335,3 +467,43 @@ class AbstractMemoryView(MutableSequence, ABC):
     def insert(self: AbstractMemoryView, index: int, value: int) -> None:
         """MemoryView doesn't support insertion."""
         raise NotImplementedError("MemoryView doesn't support insertion")
+
+    @property
+    def maps(self: AbstractMemoryView) -> list:
+        """Returns the list of memory maps of the target process."""
+        raise NotImplementedError("The maps property must be implemented in the subclass.")
+
+    def resolve_address(
+        self: AbstractMemoryView,
+        address: int,
+        backing_file: str,
+        skip_absolute_address_validation: bool = False,
+    ) -> int:
+        """Normalizes and validates the specified address.
+
+        Args:
+            address (int): The address to normalize and validate.
+            backing_file (str): The backing file to resolve the address in.
+            skip_absolute_address_validation (bool, optional): Whether to skip bounds checking for absolute addresses. Defaults to False.
+
+        Returns:
+            int: The normalized and validated address.
+
+        Raises:
+            ValueError: If the substring `backing_file` is present in multiple backing files.
+        """
+        return self._internal_debugger.resolve_address(
+            address, backing_file, skip_absolute_address_validation,
+        )
+
+    def resolve_symbol(self: AbstractMemoryView, symbol: str, backing_file: str) -> int:
+        """Resolves the address of the specified symbol.
+
+        Args:
+            symbol (str): The symbol to resolve.
+            backing_file (str): The backing file to resolve the symbol in.
+
+        Returns:
+            int: The address of the symbol.
+        """
+        return self._internal_debugger.resolve_symbol(symbol, backing_file)

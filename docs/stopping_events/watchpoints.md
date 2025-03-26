@@ -47,13 +47,14 @@ The `length` parameter specifies the size of the word being watched. By default,
 
 | Architecture | Supported Lengths |
 | --- | --- |
-| AMD64 | 1, 2, 4, 8 |
-| AArch64 | Any length from 1 to 8 bytes |
+| <span style="font-size: 2.5em; vertical-align: middle;">:simple-intel:</span> AMD64 | 1, 2, 4, 8 |
+| <span style="font-size: 2.5em; vertical-align: middle;">:simple-intel:</span> i386 | 1, 2, 4 |
+| <span style="font-size: 2.5em; vertical-align: middle;">:simple-arm:</span> AArch64 | Any length from 1 to 8 bytes |
 
 !!! INFO "Watchpoint alignment in AArch64"
     The address of the watchpoint on AArch64-based CPUs needs to be aligned to 8 bytes. Instead, basic hardware breakpoints have to be aligned to 4 bytes (which is the size of an ARM instruction).
 
-### Callback Signature
+### :material-code-json: Callback Signature
 If you wish to create an [asynchronous](../debugging_flow) watchpoint, you will have to provide a callback function. Since internally watchpoints are implemented as hardware breakpoints, the callback signature is the same as for [breakpoints](../breakpoints#callback-signature). As for breakpoints, if you want to leave the callback empty, you can set callback to `True`.
 
 !!! ABSTRACT "Callback Signature"
@@ -73,7 +74,7 @@ If you wish to create an [asynchronous](../debugging_flow) watchpoint, you will 
 !!! ABSTRACT "Example usage of asynchronous watchpoints"
     ```python
     def on_watchpoint_hit(t, bp):
-        print(f"RAX: {t.regs.rax}")
+        print(f"RAX: {t.regs.rax:#x}")
 
         if bp.hit_count == 100:
             print("Hit count reached 100")

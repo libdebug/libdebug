@@ -14,13 +14,14 @@ from libdebug.liblog import liblog
 if TYPE_CHECKING:
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.memory_map_list import MemoryMapList
+    from libdebug.snapshots.snapshot import Snapshot
     from libdebug.state.thread_context import ThreadContext
 
 
 class I386StackUnwinder(StackUnwindingManager):
     """Class that provides stack unwinding for the i386 architecture."""
 
-    def unwind(self: I386StackUnwinder, target: ThreadContext) -> list:
+    def unwind(self: I386StackUnwinder, target: ThreadContext | Snapshot) -> list:
         """Unwind the stack of a process.
 
         Args:
@@ -35,7 +36,8 @@ class I386StackUnwinder(StackUnwindingManager):
         current_ebp = target.regs.ebp
         stack_trace = [target.regs.eip]
 
-        vmaps = target._internal_debugger.debugging_interface.get_maps()
+        # Instead of isinstance, we check if the target has the maps attribute to avoid circular imports
+        vmaps = target.maps if hasattr(target, "maps") else target._internal_debugger.debugging_interface.get_maps()
 
         while current_ebp:
             try:
@@ -63,13 +65,13 @@ class I386StackUnwinder(StackUnwindingManager):
             else:
                 stack_trace.append(first_return_address)
         except (OSError, ValueError):
-            liblog.WARNING(
+            liblog.warning(
                 "Failed to get the return address from the stack. Check stack frame registers (e.g., base pointer). The stack trace may be incomplete.",
             )
 
         return stack_trace
 
-    def get_return_address(self: I386StackUnwinder, target: ThreadContext, vmaps: MemoryMapList[MemoryMap]) -> int:
+    def get_return_address(self: I386StackUnwinder, target: ThreadContext | Snapshot, vmaps: MemoryMapList[MemoryMap]) -> int:
         """Get the return address of the current function.
 
         Args:

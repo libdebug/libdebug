@@ -21,7 +21,7 @@ For extra convenience, the [Debugger](../../from_pydoc/generated/debugger/debugg
 
 !!! ABSTRACT "Example of Syscall Parameters"
     ```python
-    [...] # (1)
+    [...] # (1)!
 
     binsh_str = d.memory.find(b"/bin/sh\x00", file="libc")[0]
 
@@ -30,7 +30,7 @@ For extra convenience, the [Debugger](../../from_pydoc/generated/debugger/debugg
     d.syscall_arg2 = 0x0
     d.syscall_number = 0x3b
 
-    d.step() # (2)
+    d.step() # (2)!
     ```
 
     1. The instruction pointer is on a syscall / SVC instruction
@@ -65,7 +65,7 @@ The `handle_syscall()` function in the [Debugger](../../from_pydoc/generated/deb
 | --- | --- | --- |
 | `SyscallHandler` | [SyscallHandler](../../from_pydoc/generated/data/syscall_handler) | The handler object created. |
 
-### Callback Signature
+### :material-code-json: Callback Signature
 
 !!! ABSTRACT "Callback Signature"
     ```python
@@ -90,11 +90,11 @@ The `handle_syscall()` function in the [Debugger](../../from_pydoc/generated/deb
 
 !!! ABSTRACT "Example usage of asynchronous syscall handlers"
     ```python
-    def on_enter_open(t: ThreadContext, handler: SyscallHandler):
+    def on_enter_open(t, handler):
         print("entering open")
         t.syscall_arg0 = 0x1
 
-    def on_exit_open(t: ThreadContext, handler: SyscallHandler):
+    def on_exit_open(t, handler):
         print("exiting open")
         t.syscall_return = 0x0
 

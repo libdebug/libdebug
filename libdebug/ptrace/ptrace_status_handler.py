@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2023-2025 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -64,7 +64,7 @@ class PtraceStatusHandler:
         if self.internal_debugger.get_thread_by_id(thread_id):
             self.ptrace_interface.unregister_thread(thread_id, exit_code=exit_code, exit_signal=exit_signal)
 
-    def _handle_breakpoints(self: PtraceStatusHandler, thread_id: int) -> bool:
+    def _handle_breakpoints(self: PtraceStatusHandler, thread_id: int) -> None:
         thread = self.internal_debugger.get_thread_by_id(thread_id)
 
         if not hasattr(thread, "instruction_pointer"):
@@ -107,9 +107,9 @@ class PtraceStatusHandler:
             bp = self.ptrace_interface.get_hit_watchpoint(thread_id)
             if bp:
                 liblog.debugger("Watchpoint hit at 0x%x", bp.address)
-
         if bp:
             self.internal_debugger.resume_context.event_hit_ref[thread_id] = bp
+            self.internal_debugger.resume_context.event_type[thread_id] = EventType.BREAKPOINT
             self.forward_signal = False
             bp.hit_count += 1
 
@@ -117,7 +117,6 @@ class PtraceStatusHandler:
                 bp.callback(thread, bp)
             else:
                 # If the breakpoint has no callback, we need to stop the process despite the other signals
-                self.internal_debugger.resume_context.event_type[thread_id] = EventType.BREAKPOINT
                 self.internal_debugger.resume_context.resume = False
 
     def _manage_syscall_on_enter(
@@ -332,7 +331,6 @@ class PtraceStatusHandler:
             self._manage_caught_signal(catcher, thread, signal_number, {signal_number})
         elif -1 in self.internal_debugger.caught_signals and signal_number not in (
             signal.SIGSTOP,
-            signal.SIGTRAP,
             signal.SIGKILL,
         ):
             # Handle all signals is enabled
@@ -348,6 +346,7 @@ class PtraceStatusHandler:
         signum: int,
         results: list,
         status: int,
+        thread: ThreadContext,
     ) -> None:
         """Internal handler for signals used by the debugger."""
         if signum == SYSCALL_SIGTRAP:
@@ -388,26 +387,37 @@ class PtraceStatusHandler:
                     )
                     self._handle_clone(message, results)
                     self.forward_signal = False
+                    self.internal_debugger.resume_context.event_type[pid] = EventType.CLONE
                 case StopEvents.SECCOMP_EVENT:
                     # The process has installed a seccomp
                     liblog.debugger(f"Process {pid} installed a seccomp")
                     self.forward_signal = False
+                    self.internal_debugger.resume_context.event_type[pid] = EventType.SECCOMP
                 case StopEvents.EXIT_EVENT:
                     # The tracee is still alive; it needs
                     # to be PTRACE_CONTed or PTRACE_DETACHed to finish exiting.
                     # so we don't call self._handle_exit(pid) here
                     # it will be called at the next wait (hopefully)
                     message = self.ptrace_interface._get_event_msg(pid)
+                    # Mark the thread as a zombie
+                    thread._zombie = True
                     liblog.debugger(
                         f"Thread {pid} exited with status: {message}",
                     )
                     self.forward_signal = False
+                    self.internal_debugger.resume_context.event_type[pid] = EventType.EXIT
                 case StopEvents.FORK_EVENT:
                     # The process has been forked
-                    liblog.warning(
-                        f"Process {pid} forked. Continuing execution of the parent process. The child process will be stopped until the user decides to attach to it.",
+                    message = self.ptrace_interface._get_event_msg(pid)
+                    liblog.debugger(
+                        f"Process {pid} forked with new pid: {message}",
                     )
+                    # We need to detach from the child process and attach to it again with a new debugger
+                    self.ptrace_interface.lib_trace.detach_from_child(message, self.internal_debugger.follow_children)
+                    if self.internal_debugger.follow_children:
+                        self.internal_debugger.set_child_debugger(message)
                     self.forward_signal = False
+                    self.internal_debugger.resume_context.event_type[pid] = EventType.FORK
 
     def _handle_change(self: PtraceStatusHandler, pid: int, status: int, results: list) -> None:
         """Handle a change in the status of a traced process."""
@@ -423,16 +433,17 @@ class PtraceStatusHandler:
             if signum != signal.SIGSTOP:
                 self._assume_race_sigstop = False
 
-            # Check if the debugger needs to handle the signal
-            self._internal_signal_handler(pid, signum, results, status)
-
             thread = self.internal_debugger.get_thread_by_id(pid)
 
-            if thread is not None:
-                thread._signal_number = signum
+            # Check if the debugger needs to handle the signal
+            self._internal_signal_handler(pid, signum, results, status, thread)
+
+            if signum != SYSCALL_SIGTRAP and thread is not None:
+                thread._signal_number = signum & 0x7F
 
                 # Handle the signal
-                self._handle_signal(thread)
+                if self.internal_debugger.resume_context.event_type.get(pid, None) is None:
+                    self._handle_signal(thread)
 
                 if self.forward_signal and signum != signal.SIGSTOP:
                     # We have to forward the signal to the thread
@@ -465,10 +476,15 @@ class PtraceStatusHandler:
             # Resume the process if the stop was due to a race condition with SIGSTOP sent by the debugger
             return
 
-    def check_for_new_threads(self: PtraceStatusHandler, pid: int) -> None:
+    def check_for_changes_in_threads(self: PtraceStatusHandler, pid: int) -> None:
         """Check for new threads in the process and register them."""
         tids = get_process_tasks(pid)
         for tid in tids:
             if not self.internal_debugger.get_thread_by_id(tid):
-                self.ptrace_interface.register_new_thread(tid, self.internal_debugger)
+                self.ptrace_interface.register_new_thread(tid)
                 liblog.debugger("Manually registered new thread %d" % tid)
+
+        for thread in self.internal_debugger.threads:
+            if not thread.dead and thread.thread_id not in tids:
+                self.ptrace_interface.unregister_thread(thread.thread_id, None, None)
+                liblog.debugger("Manually unregistered thread %d" % thread.thread_id)

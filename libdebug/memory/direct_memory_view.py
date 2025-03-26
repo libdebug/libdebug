@@ -13,6 +13,8 @@ from libdebug.memory.abstract_memory_view import AbstractMemoryView
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from libdebug.data.memory_map_list import MemoryMapList
+
 
 class DirectMemoryView(AbstractMemoryView):
     """A memory interface for the target process, intended for direct memory access.
@@ -72,3 +74,13 @@ class DirectMemoryView(AbstractMemoryView):
             prefix_data = self.getter(base_address, new_size)
             new_data = prefix_data[:prefix] + data + prefix_data[prefix + size :]
             self.setter(base_address, new_data)
+
+    @property
+    def maps(self: DirectMemoryView) -> MemoryMapList:
+        """Returns a list of memory maps in the target process.
+
+        Returns:
+            MemoryMapList: The memory maps.
+        """
+        return self._internal_debugger.maps
+

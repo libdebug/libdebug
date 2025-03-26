@@ -58,16 +58,26 @@ class SyscallHandler:
 
     def hit_on(self: SyscallHandler, thread_context: ThreadContext) -> bool:
         """Returns whether the syscall handler has been hit on the given thread context."""
+        internal_debugger = provide_internal_debugger(self)
+        internal_debugger._ensure_process_stopped()
         return self.enabled and thread_context.syscall_number == self.syscall_number
 
     def hit_on_enter(self: SyscallHandler, thread_context: ThreadContext) -> bool:
         """Returns whether the syscall handler has been hit during the syscall entry on the given thread context."""
+        internal_debugger = provide_internal_debugger(self)
+        internal_debugger._ensure_process_stopped()
         return self.enabled and thread_context.syscall_number == self.syscall_number and self._has_entered
 
     def hit_on_exit(self: SyscallHandler, thread_context: ThreadContext) -> bool:
         """Returns whether the syscall handler has been hit during the syscall exit on the given thread context."""
+        internal_debugger = provide_internal_debugger(self)
+        internal_debugger._ensure_process_stopped()
         return self.enabled and thread_context.syscall_number == self.syscall_number and not self._has_entered
 
     def __hash__(self: SyscallHandler) -> int:
-        """Return the hash of the syscall handler, based just on the syscall number."""
-        return hash(self.syscall_number)
+        """Hash the syscall handler object by its memory address, so that it can be used in sets and dicts correctly."""
+        return hash(id(self))
+
+    def __eq__(self: SyscallHandler, other: object) -> bool:
+        """Check if two handlers are equal."""
+        return id(self) == id(other)

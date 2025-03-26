@@ -13,6 +13,8 @@ from libdebug.memory.abstract_memory_view import AbstractMemoryView
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from libdebug.data.memory_map_list import MemoryMapList
+
 
 class ChunkedMemoryView(AbstractMemoryView):
     """A memory interface for the target process, intended for chunk-based memory access.
@@ -112,3 +114,13 @@ class ChunkedMemoryView(AbstractMemoryView):
                 address + size - remainder,
                 data[size - remainder :] + prev_data[remainder:],
             )
+
+    @property
+    def maps(self: ChunkedMemoryView) -> MemoryMapList:
+        """Returns a list of memory maps in the target process.
+
+        Returns:
+            MemoryMapList: The memory maps.
+        """
+        return self._internal_debugger.maps
+

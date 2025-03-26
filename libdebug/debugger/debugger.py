@@ -36,6 +36,8 @@ if TYPE_CHECKING:
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
+    from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
+    from libdebug.snapshots.snapshot import Snapshot
     from libdebug.state.thread_context import ThreadContext
 
 
@@ -373,6 +375,11 @@ class Debugger:
         return self._internal_debugger.breakpoints
 
     @property
+    def children(self: Debugger) -> list[Debugger]:
+        """Get the list of child debuggers."""
+        return self._internal_debugger.children
+
+    @property
     def handled_syscalls(self: InternalDebugger) -> dict[int, SyscallHandler]:
         """Get the handled syscalls dictionary.
 
@@ -556,141 +563,149 @@ class Debugger:
     def instruction_pointer(self: Debugger) -> int:
         """Get the main thread's instruction pointer."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         return self.threads[0].instruction_pointer
 
     @instruction_pointer.setter
     def instruction_pointer(self: Debugger, value: int) -> None:
         """Set the main thread's instruction pointer."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         self.threads[0].instruction_pointer = value
 
     @property
     def syscall_arg0(self: Debugger) -> int:
         """Get the main thread's syscall argument 0."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         return self.threads[0].syscall_arg0
 
     @syscall_arg0.setter
     def syscall_arg0(self: Debugger, value: int) -> None:
         """Set the main thread's syscall argument 0."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         self.threads[0].syscall_arg0 = value
 
     @property
     def syscall_arg1(self: Debugger) -> int:
         """Get the main thread's syscall argument 1."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         return self.threads[0].syscall_arg1
 
     @syscall_arg1.setter
     def syscall_arg1(self: Debugger, value: int) -> None:
         """Set the main thread's syscall argument 1."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         self.threads[0].syscall_arg1 = value
 
     @property
     def syscall_arg2(self: Debugger) -> int:
         """Get the main thread's syscall argument 2."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         return self.threads[0].syscall_arg2
 
     @syscall_arg2.setter
     def syscall_arg2(self: Debugger, value: int) -> None:
         """Set the main thread's syscall argument 2."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         self.threads[0].syscall_arg2 = value
 
     @property
     def syscall_arg3(self: Debugger) -> int:
         """Get the main thread's syscall argument 3."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         return self.threads[0].syscall_arg3
 
     @syscall_arg3.setter
     def syscall_arg3(self: Debugger, value: int) -> None:
         """Set the main thread's syscall argument 3."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         self.threads[0].syscall_arg3 = value
 
     @property
     def syscall_arg4(self: Debugger) -> int:
         """Get the main thread's syscall argument 4."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         return self.threads[0].syscall_arg4
 
     @syscall_arg4.setter
     def syscall_arg4(self: Debugger, value: int) -> None:
         """Set the main thread's syscall argument 4."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         self.threads[0].syscall_arg4 = value
 
     @property
     def syscall_arg5(self: Debugger) -> int:
         """Get the main thread's syscall argument 5."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         return self.threads[0].syscall_arg5
 
     @syscall_arg5.setter
     def syscall_arg5(self: Debugger, value: int) -> None:
         """Set the main thread's syscall argument 5."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         self.threads[0].syscall_arg5 = value
 
     @property
     def syscall_number(self: Debugger) -> int:
         """Get the main thread's syscall number."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         return self.threads[0].syscall_number
 
     @syscall_number.setter
     def syscall_number(self: Debugger, value: int) -> None:
         """Set the main thread's syscall number."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         self.threads[0].syscall_number = value
 
     @property
     def syscall_return(self: Debugger) -> int:
         """Get the main thread's syscall return value."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         return self.threads[0].syscall_return
 
     @syscall_return.setter
     def syscall_return(self: Debugger, value: int) -> None:
         """Set the main thread's syscall return value."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         self.threads[0].syscall_return = value
 
     @property
     def regs(self: Debugger) -> Registers:
         """Get the main thread's registers."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
+        self._internal_debugger._ensure_process_stopped_regs()
         return self.threads[0].regs
 
     @property
     def dead(self: Debugger) -> bool:
         """Whether the process is dead."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         return self.threads[0].dead
+
+    @property
+    def zombie(self: Debugger) -> None:
+        """Whether the main thread is a zombie."""
+        if not self.threads:
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
+        return self.threads[0].zombie
 
     @property
     def memory(self: Debugger) -> AbstractMemoryView:
@@ -722,7 +737,7 @@ class Debugger:
     def thread_id(self: Debugger) -> int:
         """The thread ID of the main thread."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         return self.threads[0].tid
 
     @property
@@ -742,42 +757,42 @@ class Debugger:
     def saved_ip(self: Debugger) -> int:
         """Get the saved instruction pointer of the main thread."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         return self.threads[0].saved_ip
 
     @property
     def exit_code(self: Debugger) -> int | None:
         """The main thread's exit code."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         return self.threads[0].exit_code
 
     @property
     def exit_signal(self: Debugger) -> str | None:
         """The main thread's exit signal."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         return self.threads[0].exit_signal
 
     @property
     def signal(self: Debugger) -> str | None:
         """The signal to be forwarded to the main thread."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         return self.threads[0].signal
 
     @signal.setter
     def signal(self: Debugger, signal: str | int) -> None:
         """Set the signal to forward to the main thread."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         self.threads[0].signal = signal
 
     @property
     def signal_number(self: Debugger) -> int | None:
         """The signal number to be forwarded to the main thread."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         return self.threads[0].signal_number
 
     def backtrace(self: Debugger, as_symbols: bool = False) -> list:
@@ -787,19 +802,19 @@ class Debugger:
             as_symbols (bool, optional): Whether to return the backtrace as symbols
         """
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         return self.threads[0].backtrace(as_symbols)
 
     def pprint_backtrace(self: Debugger) -> None:
         """Pretty pints the current backtrace of the main thread."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         self.threads[0].pprint_backtrace()
 
     def pprint_registers(self: Debugger) -> None:
         """Pretty prints the main thread's registers."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         self.threads[0].pprint_registers()
 
     def pprint_regs(self: Debugger) -> None:
@@ -812,7 +827,7 @@ class Debugger:
     def pprint_registers_all(self: Debugger) -> None:
         """Pretty prints all the main thread's registers."""
         if not self.threads:
-            raise ValueError("No threads available.")
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         self.threads[0].pprint_registers_all()
 
     def pprint_regs_all(self: Debugger) -> None:
@@ -821,6 +836,25 @@ class Debugger:
         Pretty prints all the main thread's registers.
         """
         self.pprint_registers_all()
+
+    def pprint_memory(
+        self: Debugger,
+        start: int,
+        end: int,
+        file: str = "hybrid",
+        override_word_size: int | None = None,
+        integer_mode: bool = False,
+    ) -> None:
+        """Pretty prints the memory contents of the process.
+
+        Args:
+            start (int): The start address of the memory region.
+            end (int): The end address of the memory region.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
+            override_word_size (int, optional): The word size to use for the memory dump. Defaults to None.
+            integer_mode (bool, optional): Whether to print the memory contents as integers. Defaults to False.
+        """
+        self._internal_debugger.pprint_memory(start, end, file, override_word_size, integer_mode)
 
     def step(self: Debugger) -> None:
         """Executes a single instruction of the process."""
@@ -906,9 +940,35 @@ class Debugger:
         repr_str += f"auto_interrupt_on_command = {self._internal_debugger.auto_interrupt_on_command}, "
         repr_str += f"fast_memory = {self._internal_debugger.fast_memory}, "
         repr_str += f"kill_on_exit = {self._internal_debugger.kill_on_exit})\n"
+        repr_str += f"follow_children = {self._internal_debugger.follow_children}, "
         repr_str += f"  Architecture: {self.arch}\n"
         repr_str += "  Threads:"
         for thread in self.threads:
             repr_str += f"\n    ({thread.tid}, {'dead' if thread.dead else 'alive'}) "
             repr_str += f"ip: {thread.instruction_pointer:#x}"
         return repr_str
+
+    def create_snapshot(self: Debugger, level: str = "base", name: str | None = None) -> ProcessSnapshot:
+        """Create a snapshot of the current process state.
+
+        Snapshot levels:
+        - base: Registers
+        - writable: Registers, writable memory contents
+        - full: Registers, all memory contents
+
+        Args:
+            level (str): The level of the snapshot.
+            name (str, optional): The name of the snapshot. Defaults to None.
+
+        Returns:
+            ProcessSnapshot: The created snapshot.
+        """
+        return self._internal_debugger.create_snapshot(level, name)
+
+    def load_snapshot(self: Debugger, file_path: str) -> Snapshot:
+        """Load a snapshot of the thread / process state.
+
+        Args:
+            file_path (str): The path to the snapshot file.
+        """
+        return self._internal_debugger.load_snapshot(file_path)

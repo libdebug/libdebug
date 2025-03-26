@@ -72,3 +72,7 @@ class EventType:
     USER_INTERRUPT = "User Interrupt"
     STEP = "Step"
     STARTUP = "Process Startup"
+    CLONE = "Thread Clone"
+    FORK = "Process Fork"
+    EXIT = "Process Exit"
+    SECCOMP = "Seccomp"

@@ -14,7 +14,7 @@ from libdebug import debugger
 d = debugger("program")
 d.run()
 
-d.breakpoint("func")
+d.breakpoint("func", file="binary")
 
 d.cont()
 
@@ -31,16 +31,16 @@ d = debugger("program")
 
 d.run()
 
-d.breakpoint("func")
+d.breakpoint("func", file="binary")
 
 d.cont()
 
-print(f"RAX: {hex(d.regs.rax)}") # (1)
+print(f"RAX: {hex(d.regs.rax)}") # (1)!
 
 d.cont()
-d.interrupt() # (2)
+d.interrupt() # (2)!
 
-print(f"RAX: {hex(d.regs.rax)}") # (3)
+print(f"RAX: {hex(d.regs.rax)}") # (3)!
 
 d.cont()
 
@@ -59,16 +59,16 @@ d = debugger("program", auto_interrupt_on_command=True)
 
 d.run()
 
-d.breakpoint("func")
+d.breakpoint("func", file="binary")
 
 d.cont()
 d.wait()
 
-print(f"RAX: {hex(d.regs.rax)}") # (1)
+print(f"RAX: {hex(d.regs.rax)}") # (1)!
 
 d.cont()
 
-print(f"RAX: {hex(d.regs.rax)}") # (2)
+print(f"RAX: {hex(d.regs.rax)}") # (2)!
 
 d.cont()
 

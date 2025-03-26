@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2024-2025 Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -26,6 +26,7 @@ class TerminalTypes:
         "tmux: server": ["tmux", "split-window", "-h"],
         "xfce4-terminal": ["xfce4-terminal", "--tab", "-e"],
         "terminator": ["terminator", "--new-tab", "-e"],
+        "ptyxis-agent": ["ptyxis", "--tab", "-x"],
     }
 
     @staticmethod

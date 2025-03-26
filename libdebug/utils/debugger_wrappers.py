@@ -21,7 +21,12 @@ def change_state_function_process(method: callable) -> callable:
     def wrapper(self: InternalDebugger, *args: ..., **kwargs: ...) -> ...:
         if not self.instanced:
             raise RuntimeError(
-                "Process not running. Did you call run()?",
+                "Process not running. Did you call run() or attach()?",
+            )
+
+        if not self.is_debugging:
+            raise RuntimeError(
+                "No process is being debugged. Check your script.",
             )
 
         # We have to ensure that the process is stopped before executing the method
@@ -47,7 +52,12 @@ def change_state_function_thread(method: callable) -> callable:
     ) -> ...:
         if not self.instanced:
             raise RuntimeError(
-                "Process not running. Did you call run()?",
+                "Process not running. Did you call run() or attach()?",
+            )
+
+        if not self.is_debugging:
+            raise RuntimeError(
+                "No process is being debugged. Check your script.",
             )
 
         # We have to ensure that the process is stopped before executing the method
