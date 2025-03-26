@@ -84,82 +84,100 @@ err_code = {
 
 # File access modes
 # From /usr/include/uapi/asm-generic/fcntl.h
-O_ACCMODE = 0o00000003
-O_RDONLY = 0o00000000
-O_WRONLY = 0o00000001
-O_RDWR = 0o00000002
-O_CREAT = 0o00000100
-O_EXCL = 0o00000200
-O_NOCTTY = 0o00000400
-O_TRUNC = 0o00001000
-O_APPEND = 0o00002000
-O_NONBLOCK = 0o00004000
-O_DSYNC = 0o00010000
-FASYNC = 0o00020000
-O_DIRECT = 0o00040000
-O_LARGEFILE = 0o00100000
-O_DIRECTORY = 0o00200000
-O_NOFOLLOW = 0o00400000
-O_NOATIME = 0o01000000
-O_CLOEXEC = 0o02000000
-__O_SYNC = 0o04000000
-O_SYNC = (__O_SYNC | O_DSYNC)
-O_PATH = 0o010000000
-__O_TMPFILE = 0o020000000
-O_TMPFILE = (__O_TMPFILE | O_DIRECTORY)
-O_NDELAY = O_NONBLOCK
+file_access_modes = {
+    "O_ACCMODE": {"value": 0o00000003, "description": "Bit mask for the file access modes"},
+    "O_RDONLY": {"value": 0o00000000, "description": "Open for reading only"},
+    "O_WRONLY": {"value": 0o00000001, "description": "Open for writing only"},
+    "O_RDWR": {"value": 0o00000002, "description": "Open for reading and writing"},
+    "O_CREAT": {"value": 0o00000100, "description": "Create file if it does not exist"},
+    "O_EXCL": {"value": 0o00000200, "description": "Error if O_CREAT and the file exists"},
+    "O_NOCTTY": {"value": 0o00000400, "description": "Do not assign controlling terminal"},
+    "O_TRUNC": {"value": 0o00001000, "description": "Truncate file to zero length"},
+    "O_APPEND": {"value": 0o00002000, "description": "Append on each write"},
+    "O_NONBLOCK": {"value": 0o00004000, "description": "Non-blocking mode"},
+    "O_DSYNC": {"value": 0o00010000, "description": "Synchronized I/O data integrity completion"},
+    "FASYNC": {"value": 0o00020000, "description": "Enable signal-driven I/O"},
+    "O_DIRECT": {"value": 0o00040000, "description": "Minimize cache effects of I/O"},
+    "O_LARGEFILE": {"value": 0o00100000, "description": "Allow files larger than 2GB"},
+    "O_DIRECTORY": {"value": 0o00200000, "description": "Must be a directory"},
+    "O_NOFOLLOW": {"value": 0o00400000, "description": "Do not follow symbolic links"},
+    "O_NOATIME": {"value": 0o01000000, "description": "Do not update file access time"},
+    "O_CLOEXEC": {"value": 0o02000000, "description": "Set the close-on-exec flag"},
+    "__O_SYNC": {"value": 0o04000000, "description": "Internal synchronous writes flag"},
+    "O_SYNC": {"value": 0o04000000 | 0o00010000, "description": "Synchronous writes flag (O_DSYNC combined with __O_SYNC)"},
+    "O_PATH": {"value": 0o010000000, "description": "Obtain a file descriptor that can be used for two purposes: to indicate the file for operations that act purely at the file descriptor level and as input to fstat()"},
+    "__O_TMPFILE": {"value": 0o020000000, "description": "Internal temporary file flag"},
+    "O_TMPFILE": {"value": (0o020000000 | 0o00200000), "description": "Open a temporary file (combines __O_TMPFILE with O_DIRECTORY)"},
+    "O_NDELAY": {"value": 0o00004000, "description": "Historical alias for O_NONBLOCK"},
+}
 
 # File status flags
-F_DUPFD = 0
-F_GETFD = 1
-F_SETFD = 2
-F_GETFL = 3
-F_SETFL = 4
-F_GETLK = 5
-F_SETLK = 6
-F_SETLKW = 7
-F_SETOWN = 8
-F_GETOWN = 9
-F_SETSIG = 10
-F_GETSIG = 11
-F_GETLK64 = 12
-F_SETLK64 = 13
-F_SETLKW64 = 14
-F_SETOWN_EX = 15
-F_GETOWN_EX = 16
-F_GETOWNER_UIDS = 17
+file_status_flags = {
+    "F_DUPFD": {"value": 0, "description": "Duplicate file descriptor"},
+    "F_GETFD": {"value": 1, "description": "Get file descriptor flags"},
+    "F_SETFD": {"value": 2, "description": "Set file descriptor flags"},
+    "F_GETFL": {"value": 3, "description": "Get file status flags"},
+    "F_SETFL": {"value": 4, "description": "Set file status flags"},
+    "F_GETLK": {"value": 5, "description": "Get record locking information"},
+    "F_SETLK": {"value": 6, "description": "Set record locking information"},
+    "F_SETLKW": {"value": 7, "description": "Set record locking info and wait if blocked"},
+    "F_SETOWN": {"value": 8, "description": "Set the process/group ID to receive SIGIO"},
+    "F_GETOWN": {"value": 9, "description": "Get the process/group ID receiving SIGIO"},
+    "F_SETSIG": {"value": 10, "description": "Set the signal sent when I/O is possible"},
+    "F_GETSIG": {"value": 11, "description": "Get the signal sent when I/O is possible"},
+    "F_GETLK64": {"value": 12, "description": "Get record locking info (64-bit)"},
+    "F_SETLK64": {"value": 13, "description": "Set record locking info (64-bit)"},
+    "F_SETLKW64": {"value": 14, "description": "Set record locking info and wait (64-bit)"},
+    "F_SETOWN_EX": {"value": 15, "description": "Set extended process/group ID for SIGIO"},
+    "F_GETOWN_EX": {"value": 16, "description": "Get extended process/group ID for SIGIO"},
+    "F_GETOWNER_UIDS": {"value": 17, "description": "Get UIDs responsible for file lock ownership"},
+}
 
 # File status flags for OFD locks
-F_OFD_GETLK = 36
-F_OFD_SETLK = 37
-F_OFD_SETLKW = 38
+ofd_lock_status_flags = {
+    "F_OFD_GETLK": {"value": 36, "description": "Get OFD lock status"},
+    "F_OFD_SETLK": {"value": 37, "description": "Set OFD lock"},
+    "F_OFD_SETLKW": {"value": 38, "description": "Set OFD lock and wait if blocked"},
+}
 
 # File owner types
-F_OWNER_TID = 0
-F_OWNER_PID = 1
-F_OWNER_PGRP = 2
+file_owner_types = {
+    "F_OWNER_TID": {"value": 0, "description": "Thread ID owner"},
+    "F_OWNER_PID": {"value": 1, "description": "Process ID owner"},
+    "F_OWNER_PGRP": {"value": 2, "description": "Process group owner"},
+}
 
 # File descriptor flags
-FD_CLOEXEC = 1
+file_descriptor_flags = {
+    "FD_CLOEXEC": {"value": 1, "description": "Close-on-exec flag"},
+}
 
 # File lock types
-F_RDLCK = 0
-F_WRLCK = 1
-F_UNLCK = 2
+file_lock_types = {
+    "F_RDLCK": {"value": 0, "description": "Read lock"},
+    "F_WRLCK": {"value": 1, "description": "Write lock"},
+    "F_UNLCK": {"value": 2, "description": "Unlock"},
+}
 
 # File lock operations
-F_EXLCK = 4
-F_SHLCK = 8
+file_lock_operations = {
+    "F_EXLCK": {"value": 4, "description": "Exclusive lock operation"},
+    "F_SHLCK": {"value": 8, "description": "Shared lock operation"},
+}
 
 # File lock types for OFD locks
-LOCK_SH = 1
-LOCK_EX = 2
-LOCK_NB = 4
-LOCK_UN = 8
+ofd_lock_types = {
+    "LOCK_SH": {"value": 1, "description": "OFD shared lock"},
+    "LOCK_EX": {"value": 2, "description": "OFD exclusive lock"},
+    "LOCK_NB": {"value": 4, "description": "OFD non-blocking lock"},
+    "LOCK_UN": {"value": 8, "description": "OFD unlock"},
+}
 
 # File lock operations for OFD locks
-LOCK_MAND = 32
-LOCK_READ = 64
-LOCK_WRITE = 128
-LOCK_RW = 192
+ofd_lock_operations = {
+    "LOCK_MAND": {"value": 32, "description": "OFD mandatory lock operation"},
+    "LOCK_READ": {"value": 64, "description": "OFD read lock operation"},
+    "LOCK_WRITE": {"value": 128, "description": "OFD write lock operation"},
+    "LOCK_RW": {"value": 192, "description": "OFD read/write lock operation"},
+}
 

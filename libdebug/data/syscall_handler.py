@@ -36,7 +36,7 @@ class SyscallHandler:
     on_enter_user: Callable[[ThreadContext, int], None]
     on_exit_user: Callable[[ThreadContext, int], None]
     on_enter_pprint: Callable[[ThreadContext, int, Any], None]
-    on_exit_pprint: Callable[[int | tuple[int, int]], None]
+    on_exit_pprint: Callable[[ThreadContext, int | tuple[int, int]], None]
     recursive: bool = False
     enabled: bool = True
     hit_count: int = 0
