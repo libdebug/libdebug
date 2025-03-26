@@ -57,7 +57,7 @@ stateDiagram-v2
     state "Child 2" as Child222
 ```
 </div>
-<div style="text-align: center; font-size: 0.85rem;">All live threads are syncronized in their execution state.</div>
+<div style="text-align: center; font-size: 0.85rem;">All live threads are synchronized in their execution state.</div>
 
 ## **libdebug** API for Multithreading
 To access the threads of a process, you can use the `threads` attribute of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object. This attribute will return a list of [ThreadContext](../../from_pydoc/generated/state/thread_context/) objects, each representing a thread of the process.
@@ -180,8 +180,8 @@ For consistency, [syscall handlers](../../stopping_events/syscalls) are also ena
 ### :material-traffic-light-outline: Signal Catching
 
 <div style="text-align: center;">
-    <img src="/assets/bus_diagram_light.png#only-light" loading="lazy" width="512" />
-    <img src="/assets/bus_diagram.png#only-dark" loading="lazy" width="512" />
+    <img src="../../assets/bus_diagram_light.png#only-light" loading="lazy" width="512" />
+    <img src="../../assets/bus_diagram.png#only-dark" loading="lazy" width="512" />
 </div>
 
 <div style="text-align: center; font-size: 0.85rem;">
