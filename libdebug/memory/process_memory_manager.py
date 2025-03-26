@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2024-2025 Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -8,10 +8,15 @@ from __future__ import annotations
 
 import os
 import sys
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from io import FileIO
 
 
 class ProcessMemoryManager:
     """A class that provides accessors to the memory of a process, through /proc/pid/mem."""
+
     max_size = sys.maxsize
 
     def open(self: ProcessMemoryManager, process_id: int) -> None:
@@ -22,7 +27,7 @@ class ProcessMemoryManager:
     def _open(self: ProcessMemoryManager) -> None:
         self._mem_file = open(f"/proc/{self.process_id}/mem", "r+b", buffering=0)
 
-    def _split_seek(self: ProcessMemoryManager, file_obj: object, address: int) -> None:
+    def _split_seek(self: ProcessMemoryManager, file_obj: FileIO, address: int) -> None:
         """Seeks to an address in a file, splitting the seek if necessary to avoid overflow."""
         if address > self.max_size:
             # We need to split the seek
