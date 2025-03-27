@@ -78,7 +78,7 @@ d.cont()
 1. This is the value of RAX at the breakpoint.
 2. This is the value of RAX shortly after the breakpoint. The process is forcibly stopped to read the register.
 
-For the sake of this example the `wait()` method is used to wait for the [stopping event](../../stopping_events/stopping_events) (in this case, a breakpoint). This enforces the syncronization of the execution to the stopping point that we want to reach. Read more about the `wait()` method in the section dedicated to [control flow](../control_flow) commands.
+For the sake of this example the `wait()` method is used to wait for the [stopping event](../../stopping_events/stopping_events) (in this case, a breakpoint). This enforces the synchronization of the execution to the stopping point that we want to reach. Read more about the `wait()` method in the section dedicated to [control flow](../control_flow) commands.
 
 !!! TIP "Pwning with **libdebug**"
     Respectable pwners in the field find that the ASAP polling mode is particularly useful when writing exploits.
