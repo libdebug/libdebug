@@ -12,6 +12,7 @@ from libdebug.memory.abstract_memory_view import AbstractMemoryView
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
     from libdebug.data.memory_map_list import MemoryMapList
 
 

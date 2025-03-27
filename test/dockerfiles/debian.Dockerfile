@@ -6,7 +6,7 @@ WORKDIR /test
 
 # Debian forces venvs
 RUN python3 -m venv venv
-RUN venv/bin/python -m pip install -U pip pwntools requests capstone pyelftools
+RUN venv/bin/python -m pip install -U pip pwntools requests capstone
 
 COPY . .
 

@@ -1,7 +1,9 @@
 ![logo](https://github.com/libdebug/libdebug/blob/dev/media/libdebug_header.png?raw=true)
 # libdebug [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13151549.svg)](https://doi.org/10.5281/zenodo.13151549)
 
-libdebug is an open source Python library to automate the debugging of a binary executable.
+libdebug is an open source Python library for programmatic debugging of userland binary executables. 
+
+libdebug provides a comprehensive set of building blocks designed to facilitate the development of debugging tools for different purposes, including reverse engineering and exploitation. **Build Your Own Debugger!**
 
 With libdebug you have full control of the flow of your debugged executable. With it you can:
 - Access process memory and registers 
