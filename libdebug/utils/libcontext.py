@@ -23,6 +23,7 @@ class LibContext:
     _debugger_logger_levels: list[str]
     _general_logger_levels: list[str]
     _debuginfod_server: str
+    _parse_pprint_constants: bool
 
     def __new__(cls: type):
         """Create a new instance of the class if it does not exist yet.
@@ -67,6 +68,8 @@ class LibContext:
         self._initialized = True
 
         self._terminal = []
+
+        self._parse_pprint_constants = True
 
     def _set_debug_level_for_all(self: LibContext) -> None:
         """Set the debug level for all the loggers to DEBUG."""
@@ -199,6 +202,22 @@ class LibContext:
         for key, value in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, value)
+
+    def parse_pprint_constants(self: LibContext) -> bool:
+        """Property getter for parse_pprint_constants.
+
+        Returns:
+            _parse_pprint_constants (bool): the current parse_pprint_constants value.
+        """
+        return self._parse_pprint_constants
+
+    @parse_pprint_constants.setter
+    def parse_pprint_constants(self: LibContext, value: bool) -> None:
+        """Property setter for parse_pprint_constants, ensuring it's a boolean."""
+        if not isinstance(value, bool):
+            raise TypeError("parse_pprint_constants must be a boolean")
+
+        self._parse_pprint_constants = value
 
     @contextmanager
     def tmp(self: LibContext, **kwargs: ...) -> ...:

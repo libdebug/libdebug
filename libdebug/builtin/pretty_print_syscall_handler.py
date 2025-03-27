@@ -8,8 +8,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from libdebug import libcontext
 from libdebug.utils.ansi_escape_codes import ANSIColors
-from libdebug.utils.gnu_constants import err_code
+from libdebug.utils.gnu_constants import err_code, file_access_modes
 from libdebug.utils.platform_utils import get_platform_gp_register_size
 from libdebug.utils.syscall_utils import (
     resolve_syscall_arguments,
@@ -32,7 +33,10 @@ def negate_value(value: int, word_size: int) -> int:
     """
     return (1 << word_size * 8) - value
 
-def numeric_or_mnemonic(value: int, mnemonic_dict: dict, equality: bool, negate_search: bool, word_size: int | None = None) -> str:
+
+def numeric_or_mnemonic(
+    value: int, mnemonic_dict: dict, equality: bool, negate_search: bool, word_size: int | None = None,
+) -> str:
     """Return the mnemonic of a value if it is present in the mnemonic dictionary.
 
     Args:
@@ -45,19 +49,58 @@ def numeric_or_mnemonic(value: int, mnemonic_dict: dict, equality: bool, negate_
     Returns:
         str: the mnemonic.
     """
+    numeric_str = f"{value:#x}"
+
+    if  not libcontext.parse_pprint_constants:
+        return numeric_str
+
+    # Parse exact match
     if equality:
         mnemonic_val = negate_value(value, word_size) if negate_search else value
         mnemonic = mnemonic_dict.get(mnemonic_val)
-        mnemonic = mnemonic["short_name"] if mnemonic is not None else f"{value:#x}"
+        mnemonic = mnemonic["short_name"] if mnemonic is not None else numeric_str
+    # Parse bitwise OR
     else:
         mnemonics_list = []
         for key, mnemonic in mnemonic_dict.items():
             if key & value:
                 mnemonics_list.append(mnemonic["short_name"])
-        mnemonic = " | ".join(mnemonics_list) if mnemonics_list else f"{value:#x}"
+        mnemonic = " | ".join(mnemonics_list) if mnemonics_list else ] numeric_str
 
     return mnemonic
 
+def parse_syscall_arg(t: ThreadContext, syscall_name: str, arg_name: str, arg_val: int) -> str:
+    """Parse a syscall argument.
+
+    Args:
+        t (ThreadContext): the thread context.
+        syscall_name (str): the syscall name.
+        arg_name (str): the syscall argument name.
+        arg_val (int): the syscall argument value.
+    """
+
+    if not libcontext.parse_pprint_constants:
+        return f"{arg_val:#x}"
+    elif "char *" in arg_name:
+        string_content = ""
+
+        curr_char = ""
+        cursor = arg_val
+
+        while curr_char != "\0":
+            string_content += curr_char
+            curr_char = t.memory[cursor, 1, "absolute"]
+            cursor += 1
+
+        return f"\"{string_content}\""
+
+    match syscall_name:
+        case "open" | "openat":
+            if arg_name == "flags" or arg_name == "mode":
+                return numeric_or_mnemonic(arg_val, file_access_modes, equality=False, negate_search=False)
+        case "fstat" | "stat":
+            if arg_name == "mode":
+                return numeric_or_mnemonic(arg_val, file_access_modes, equality=False, negate_search=False)
 
 def pprint_on_enter(t: ThreadContext, syscall_number: int, **kwargs: int) -> None:
     """Function that will be called when a syscall is entered in pretty print mode.
@@ -132,8 +175,12 @@ def pprint_on_exit(t: ThreadContext, syscall_return: int | tuple[int, int]) -> N
     word_size = get_platform_gp_register_size(t.debugger.arch)
 
     if isinstance(syscall_return, tuple):
-        real_retval = numeric_or_mnemonic(syscall_return[0], err_code, equality=True, negate_search=True, word_size=word_size)
-        changed_retval = numeric_or_mnemonic(syscall_return[1], err_code, equality=True, negate_search=True, word_size=word_size)
+        real_retval = numeric_or_mnemonic(
+            syscall_return[0], err_code, equality=True, negate_search=True, word_size=word_size,
+        )
+        changed_retval = numeric_or_mnemonic(
+            syscall_return[1], err_code, equality=True, negate_search=True, word_size=word_size,
+        )
 
         print(
             f"{ANSIColors.YELLOW}{ANSIColors.STRIKE}{real_retval}{ANSIColors.RESET} {ANSIColors.YELLOW}{changed_retval}{ANSIColors.RESET}",
