@@ -72,6 +72,8 @@ def resolve_symbol_in_maps(symbol: str, maps: MemoryMapList[MemoryMap]) -> int:
             liblog.debugger(f"Error while resolving symbol {symbol} in {file}: {e}")
         except ValueError:
             pass
+        except RuntimeError as e:
+            liblog.warning(f"Error while resolving symbol {symbol} in {file}: {e}")
 
     raise ValueError(f"Symbol {symbol} not found in the specified mapped file. Please specify a valid symbol.")
 

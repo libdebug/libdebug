@@ -176,7 +176,12 @@ def get_all_symbols(backing_files: set[str]) -> SymbolList[Symbol]:
 
     for file in backing_files:
         # Retrieve the symbols from the SymbolTableSection
-        new_symbols, buildid, debug_file = _parse_elf_file(file, libcontext.sym_lvl)
+        try:
+            new_symbols, buildid, debug_file = _parse_elf_file(file, libcontext.sym_lvl)
+        except RuntimeError as e:
+            liblog.warning(f"Failed to parse ELF file {file}: {e}")
+            continue
+
         symbols += new_symbols
 
         # Retrieve the symbols from the external debuginfo file
