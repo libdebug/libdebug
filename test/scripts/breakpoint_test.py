@@ -62,14 +62,14 @@ class BreakpointTest(TestCase):
         self.logger.setLevel(logging.WARNING)
 
     def tearDown(self):
-        # Remove the custom handler and restore original handlers
+        # Remove the custom handler
+        self.logger.removeHandler(self.log_handler)
+
+        # Restore the original handlers
         self.logger.handlers = self.original_handlers
 
         # Close the log capture string buffer
         self.log_capture_string.close()
-
-        # Remove the custom handler
-        self.logger.removeHandler(self.log_handler)
 
     def test_bps(self):
         d = debugger(RESOLVE_EXE("breakpoint_test"))
