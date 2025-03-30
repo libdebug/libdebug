@@ -7,7 +7,9 @@ from __future__ import annotations
 
 from libdebug.debugger.debugger import Debugger
 from libdebug.debugger.internal_debugger import InternalDebugger
+from libdebug.liblog import liblog
 from libdebug.utils.elf_utils import elf_architecture, resolve_argv_path
+from libdebug.utils.libcontext import libcontext
 
 
 def debugger(
@@ -60,6 +62,11 @@ def debugger(
 
     # If we are attaching, we assume the architecture is the same as the current platform
     if argv:
-        debugger.arch = elf_architecture(argv[0])
+        try:
+            debugger.arch = elf_architecture(argv[0])
+        except ValueError as e:
+            liblog.warning(f"Failed to get the architecture of the binary: {e}"
+                        "\nAssuming the architecture is the same as the current platform.")
+            debugger.arch = libcontext.platform
 
     return debugger
