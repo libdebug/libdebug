@@ -121,4 +121,4 @@ class LibLog:
 
 
 # Create the logger instance
-liblog = LibLog()
+liblog: LibLog = LibLog()
