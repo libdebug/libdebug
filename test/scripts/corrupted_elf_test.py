@@ -16,6 +16,42 @@ class CorruptedELFTest(TestCase):
 
         r = d.run()
 
+        # We hijack SIGBUS to SIGCONT to avoid the process to terminate
+        hijacker = d.hijack_signal("SIGBUS", "SIGCONT")
+
+        hit = False
+
+        def on_enter_1337(t, s):
+            nonlocal hit
+            hit = True
+
+        # We check that we can still handle syscalls
+        handler = d.handle_syscall(0x1337, on_enter=on_enter_1337)
+
+        d.cont()
+
+        # We ensure that pipes work
         self.assertEqual(r.recvline(), b"Provola!")
 
+        r.sendline(b"3")
+
         d.kill()
+        d.terminate()
+
+        self.assertTrue(hit)
+        self.assertEqual(hijacker.hit_count, 1)
+        self.assertEqual(handler.hit_count, 1)
+
+    def test_symbol_access_corrupted_elf(self):
+        d = debugger(RESOLVE_EXE("corrupted_elf_test"))
+        d.run()
+
+        with self.assertRaises(ValueError):
+            # This should raise an exception, because the symbol is in the corrupted executable
+            d.bp("skill_issue")
+
+        # This should not raise an exception, it just wont contain any symbol from the executable
+        d.symbols
+
+        d.kill()
+        d.terminate()
