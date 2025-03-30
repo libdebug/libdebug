@@ -12,6 +12,8 @@ from libdebug.utils.elf_utils import elf_architecture, resolve_argv_path
 
 def debugger(
     argv: str | list[str] | None = None,
+    *, # We enforce keyword-only arguments to avoid confusion with argv
+    path: str | None = None,
     aslr: bool = True,
     env: dict[str, str] | None = None,
     escape_antidebug: bool = False,
@@ -25,6 +27,7 @@ def debugger(
 
     Args:
         argv (str | list[str], optional): The location of the binary to debug and any arguments to pass to it.
+        path (str, optional): The path to the binary to debug. If this is not provided, the first argument in `argv` will be used.
         aslr (bool, optional): Whether to enable ASLR. Defaults to True.
         env (dict[str, str], optional): The environment variables to use. Defaults to the same environment of the debugging script.
         escape_antidebug (bool): Whether to automatically attempt to patch antidebugger detectors based on the ptrace syscall.
@@ -38,12 +41,16 @@ def debugger(
         Debugger: The `Debugger` object.
     """
     if isinstance(argv, str):
-        argv = [resolve_argv_path(argv)]
+        argv = [argv]
+
+    if path:
+        path = resolve_argv_path(path)
     elif argv:
-        argv[0] = resolve_argv_path(argv[0])
+        path = resolve_argv_path(argv[0])
 
     internal_debugger = InternalDebugger()
     internal_debugger.argv = argv
+    internal_debugger.path = path
     internal_debugger.env = env
     internal_debugger.aslr_enabled = aslr
     internal_debugger.autoreach_entrypoint = continue_to_binary_entrypoint
@@ -60,6 +67,6 @@ def debugger(
 
     # If we are attaching, we assume the architecture is the same as the current platform
     if argv:
-        debugger.arch = elf_architecture(argv[0])
+        debugger.arch = elf_architecture(path)
 
     return debugger

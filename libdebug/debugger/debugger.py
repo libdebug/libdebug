@@ -933,6 +933,7 @@ class Debugger:
         """Return the string representation of the `Debugger` object."""
         repr_str = "Debugger("
         repr_str += f"argv = {self._internal_debugger.argv}, "
+        repr_str += f"path = {self._internal_debugger.path}, "
         repr_str += f"aslr = {self._internal_debugger.aslr_enabled}, "
         repr_str += f"env = {self._internal_debugger.env}, "
         repr_str += f"escape_antidebug = {self._internal_debugger.escape_antidebug}, "

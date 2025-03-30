@@ -96,6 +96,7 @@ class PtraceInterface(DebuggingInterface):
             disable_self_aslr()
             self._disabled_aslr = True
 
+        path = self._internal_debugger.path
         argv = self._internal_debugger.argv
         env = self._internal_debugger.env
 
@@ -152,6 +153,8 @@ class PtraceInterface(DebuggingInterface):
             JUMPSTART_LOCATION,
             str(env_len),
             *[f"{key}={value}" for key, value in env.items()],
+            "NULL",
+            path,
             "NULL",
             *argv,
         ]
@@ -463,7 +466,7 @@ class PtraceInterface(DebuggingInterface):
 
         if continue_to_entry_point:
             # Now that the process is running, we must continue until we have reached the entry point
-            entry_point = get_entry_point(self._internal_debugger.argv[0])
+            entry_point = get_entry_point(self._internal_debugger.path)
 
             # For PIE binaries, the entry point is a relative address
             entry_point = normalize_and_validate_address(entry_point, self.get_maps())
