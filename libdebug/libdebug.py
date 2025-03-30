@@ -11,7 +11,7 @@ from libdebug.utils.elf_utils import elf_architecture, resolve_argv_path
 
 
 def debugger(
-    argv: str | list[str] = [],
+    argv: str | list[str] | None = None,
     aslr: bool = True,
     env: dict[str, str] | None = None,
     escape_antidebug: bool = False,
