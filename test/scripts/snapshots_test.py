@@ -548,3 +548,25 @@ class SnapshotsTest(TestCase):
                 self.assertEqual(reg_diff.has_changed, has_changed)
         
         d.terminate()
+
+    def test_symbol_permanence_test(self):
+        d = debugger(RESOLVE_EXE("process_snapshot_test"), auto_interrupt_on_command=False, aslr=False, fast_memory=True)
+        d.run()
+
+        # Create a snapshot
+        ps1 = d.create_snapshot(level="writable", name="_start_snapshot")
+
+        d.kill()
+
+        # This should not throw an exception even if the binary is dead
+        symbol = ps1.memory._symbol_ref.filter("malloc")
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp_file:
+            save_path = tmp_file.name
+
+        ps1.save(save_path)
+        ps1_restored = d.load_snapshot(save_path)
+
+        # Retry filtering symbols on the restored snapshot
+        restored_symbol = ps1_restored.memory._symbol_ref.filter("malloc")
+        self.assertEqual(symbol, restored_symbol)
