@@ -570,3 +570,5 @@ class SnapshotsTest(TestCase):
         # Retry filtering symbols on the restored snapshot
         restored_symbol = ps1_restored.memory._symbol_ref.filter("malloc")
         self.assertEqual(symbol, restored_symbol)
+
+        d.terminate()
