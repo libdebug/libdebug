@@ -26,7 +26,7 @@ def debugger(
     """This function is used to create a new `Debugger` object. It returns a `Debugger` object.
 
     Args:
-        argv (str | list[str], optional): The location of the binary to debug and any arguments to pass to it.
+        argv (str | list[str], optional): The argument, or list of arguments, passed to the debugged binary.
         path (str, optional): The path to the binary to debug. If this is not provided, the first argument in `argv` will be used.
         aslr (bool, optional): Whether to enable ASLR. Defaults to True.
         env (dict[str, str], optional): The environment variables to use. Defaults to the same environment of the debugging script.
