@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+from elftools.common.exceptions import ELFError
+
 from libdebug.debugger.debugger import Debugger
 from libdebug.debugger.internal_debugger import InternalDebugger
 from libdebug.liblog import liblog
@@ -64,7 +66,7 @@ def debugger(
     if argv:
         try:
             debugger.arch = elf_architecture(argv[0])
-        except ValueError as e:
+        except (ValueError, ELFError) as e:
             liblog.warning(f"Failed to get the architecture of the binary: {e} "
                         "Assuming the architecture is the same as the current platform.")
             debugger.arch = libcontext.platform
