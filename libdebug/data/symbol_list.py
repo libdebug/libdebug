@@ -32,14 +32,21 @@ class SymbolList(list):
         Returns:
             list[Symbol]: The list of symbols that match the specified address.
         """
-        # Find the memory map that contains the address
-        if maps := self._maps_source.maps.filter(address):
-            address -= maps[0].start
+        # Find the backing file that contains the address
+        map_middle = self._maps_source.maps.filter(address)
+
+        if map_middle:
+            backing_file_first_map = self._maps_source.maps.filter(map_middle[0].backing_file)[0]
+            address -= backing_file_first_map.start
         else:
             raise ValueError(
                 f"Address {address:#x} does not belong to any memory map. You must specify an absolute address.",
             )
-        return [symbol for symbol in self if symbol.start <= address < symbol.end]
+        return [
+            symbol for symbol in self
+            if symbol.start <= address < symbol.end
+            and symbol.backing_file == map_middle[0].backing_file
+        ]
 
     def _search_by_name(self: SymbolList, name: str) -> list[Symbol]:
         """Searches for a symbol by name.
