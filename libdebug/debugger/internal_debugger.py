@@ -404,11 +404,8 @@ class InternalDebugger:
         """Kills the process."""
         if not self.is_debugging:
             raise RuntimeError("No process currently debugged, cannot kill.")
-        try:
-            self._ensure_process_stopped()
-        except (OSError, RuntimeError):
-            # This exception might occur if the process has already died
-            liblog.debugger("OSError raised during kill")
+
+        self._ensure_process_stopped()
 
         self._process_memory_manager.close()
 
@@ -1471,7 +1468,7 @@ class InternalDebugger:
         if not self.running:
             return
 
-        if self.auto_interrupt_on_command:
+        if self.auto_interrupt_on_command and not self.threads[0].zombie:
             self.interrupt()
 
         self._join_and_check_status()
@@ -1490,7 +1487,7 @@ class InternalDebugger:
         if not self.running:
             return
 
-        if self.auto_interrupt_on_command:
+        if self.auto_interrupt_on_command and not self.threds[0].zombie:
             self.interrupt()
 
         self._join_and_check_status()
