@@ -6,8 +6,8 @@
 
 import io
 import logging
-from unittest import TestCase
-from utils.binary_utils import RESOLVE_EXE
+from unittest import TestCase, skipUnless
+from utils.binary_utils import RESOLVE_EXE, PLATFORM
 
 from libdebug import debugger
 
@@ -84,3 +84,29 @@ class CorruptedELFTest(TestCase):
         capture = self.log_capture_string.getvalue()
         self.assertIn("Failed to get the architecture of the binary:", capture)
         self.assertIn("Failed to get the entry point for the given binary:", capture)
+
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
+    def test_technically_correct(self):
+        #
+        # Challenge taken from LACTF 2024
+        #
+        # Our solution does not involve dynamic analysis
+        # The handout is a corrupted x86_64 ELF
+        # Here we only ensure that we can make the binary run and print "yes"
+        #
+        d = debugger([RESOLVE_EXE("CTF/technically_correct"), "notthecorrectflag"], escape_antidebug=True)
+
+        r = d.run()
+
+        def patch_correctness_check(t, _):
+            t.regs.rbx = t.regs.rcx
+
+        ENTRY = 0x5c7d084c137
+        d.bp(ENTRY + 0x4a2, callback=patch_correctness_check, hardware=True)
+
+        d.cont()
+
+        self.assertEqual(r.recvline(), b"yes")
+
+        d.kill()
+        d.terminate()
