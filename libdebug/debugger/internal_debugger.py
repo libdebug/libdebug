@@ -1487,7 +1487,7 @@ class InternalDebugger:
         if not self.running:
             return
 
-        if self.auto_interrupt_on_command and not self.threds[0].zombie:
+        if self.auto_interrupt_on_command and not self.threads[0].zombie:
             self.interrupt()
 
         self._join_and_check_status()
