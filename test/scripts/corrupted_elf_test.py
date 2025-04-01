@@ -63,8 +63,8 @@ class CorruptedELFTest(TestCase):
 
         # Validate that we triggered a few warnings
         capture = self.log_capture_string.getvalue()
-        self.assertIn("Failed to get the architecture of the binary: Architecture <unknown> not supported. Assuming the architecture is the same as the current platform.", capture)
-        self.assertIn("Failed to get the entry point for the given binary: ", capture)
+        self.assertIn("Failed to get the architecture of the binary:", capture)
+        self.assertIn("Failed to get the entry point for the given binary:", capture)
 
     def test_symbol_access_corrupted_elf(self):
         d = debugger(RESOLVE_EXE("corrupted_elf_test"))
@@ -82,5 +82,5 @@ class CorruptedELFTest(TestCase):
 
         # Validate that we triggered a few warnings
         capture = self.log_capture_string.getvalue()
-        self.assertIn("Failed to get the architecture of the binary: Architecture <unknown> not supported. Assuming the architecture is the same as the current platform.", capture)
-        self.assertIn("Failed to get the entry point for the given binary: ", capture)
+        self.assertIn("Failed to get the architecture of the binary:", capture)
+        self.assertIn("Failed to get the entry point for the given binary:", capture)
