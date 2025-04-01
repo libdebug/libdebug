@@ -22,7 +22,7 @@ class NlinksTest(TestCase):
         d = debugger(RESOLVE_EXE("CTF/nlinks/1"))
         r = d.run()
 
-        bp = d.breakpoint(0x7EF1, hardware=True)
+        bp = d.breakpoint(0x7EF1, hardware=True, file="1")
 
         d.cont()
 
@@ -54,9 +54,9 @@ class NlinksTest(TestCase):
         d = debugger(RESOLVE_EXE("CTF/nlinks/2"))
         r = d.run()
 
-        bp1 = d.breakpoint(0xD8C1, hardware=True)
-        bp2 = d.breakpoint(0x1858, hardware=True)
-        bp3 = d.breakpoint(0xDBA1, hardware=True)
+        bp1 = d.breakpoint(0xD8C1, hardware=True, file="2")
+        bp2 = d.breakpoint(0x1858, hardware=True, file="2")
+        bp3 = d.breakpoint(0xDBA1, hardware=True, file="2")
 
         d.cont()
 
@@ -95,7 +95,7 @@ class NlinksTest(TestCase):
         d = debugger(RESOLVE_EXE("CTF/nlinks/0"))
         r = d.run()
 
-        bp = d.breakpoint(0x91A1, hardware=True)
+        bp = d.breakpoint(0x91A1, hardware=True, file="0")
 
         d.cont()
 
@@ -237,7 +237,7 @@ class NlinksTest(TestCase):
         d = debugger(RESOLVE_EXE("CTF/nlinks/1"), auto_interrupt_on_command=True)
         r = d.run()
 
-        d.breakpoint(0x7EF1, hardware=True)
+        d.breakpoint(0x7EF1, hardware=True, file="1")
 
         d.cont()
 
@@ -268,9 +268,9 @@ class NlinksTest(TestCase):
         d = debugger(RESOLVE_EXE("CTF/nlinks/2"), auto_interrupt_on_command=True)
         r = d.run()
 
-        bp1 = d.breakpoint(0xD8C1, hardware=True)
-        bp2 = d.breakpoint(0x1858, hardware=True)
-        bp3 = d.breakpoint(0xDBA1, hardware=True)
+        bp1 = d.breakpoint(0xD8C1, hardware=True, file="2")
+        bp2 = d.breakpoint(0x1858, hardware=True, file="2")
+        bp3 = d.breakpoint(0xDBA1, hardware=True, file="2")
 
         d.cont()
 
@@ -310,7 +310,7 @@ class NlinksTest(TestCase):
         d = debugger(RESOLVE_EXE("CTF/nlinks/0"), auto_interrupt_on_command=True)
         r = d.run()
 
-        d.breakpoint(0x91A1, hardware=True)
+        d.breakpoint(0x91A1, hardware=True, file="0")
 
         d.cont()
 
