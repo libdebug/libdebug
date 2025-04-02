@@ -1,6 +1,6 @@
 //
 // This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-// Copyright (c) 2024 Roberto Alessandro Bertolini. All rights reserved.
+// Copyright (c) 2024-2025 Roberto Alessandro Bertolini. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for details.
 //
 
@@ -19,7 +19,9 @@ int main(int argc, char **argv)
     // argv[2 + env_len + 0] should be NULL
     // argv[2 + env_len + 1] should be pathname
     // argv[2 + env_len + 2] should be NULL
-    // argv[2 + env_len + 3] is the new argv
+    // argv[2 + env_len + 3] is the new argv[0]
+    // argv[2 + env_len + X] is the new argv[X - 3]
+
     int env_len = atoi(argv[1]);
 
     int path_offset = env_len > 0 ? env_len : 0;
