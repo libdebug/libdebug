@@ -63,7 +63,8 @@ The [Debugger](../../from_pydoc/generated/debugger/debugger/) object has many mo
 !!! ABSTRACT "Function Signature"
     ```python
     debugger(
-        argv=[],
+        argv=None,
+        path=None,
         aslr=True,
         env=None,
         escape_antidebug=False,
@@ -77,7 +78,8 @@ The [Debugger](../../from_pydoc/generated/debugger/debugger/) object has many mo
 
 | Parameter | Type | Description |
 | --- | --- | --- |
-| `argv` | `str` \| `list[str]` | Path to the binary or argv list |
+| `argv` | `str` \| `list[str]` | The argument, or list of arguments, passed to the binary. |
+| `path` | `str` | The path to the binary. If not provided, the first argument is used |
 | `aslr` | `bool` | Whether to enable ASLR. Defaults to True. |
 | `env` | `dict[str, str]` | The environment variables to use. Defaults to the same environment of the parent process. |
 | `escape_antidebug` | `bool` | Whether to [automatically attempt to patch antidebugger detectors](../../quality_of_life/anti_debugging) based on `ptrace`. |

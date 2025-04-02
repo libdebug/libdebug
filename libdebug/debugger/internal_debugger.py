@@ -104,6 +104,9 @@ class InternalDebugger:
     argv: list[str]
     """The command line arguments of the debugged process."""
 
+    path: str
+    """The path to the binary of the debugged process."""
+
     env: dict[str, str] | None
     """The environment variables of the debugged process."""
 
@@ -299,7 +302,7 @@ class InternalDebugger:
         if not self.argv:
             raise RuntimeError("No binary file specified.")
 
-        ensure_file_executable(self.argv[0])
+        ensure_file_executable(self.path)
 
         if self.is_debugging:
             liblog.debugger("Process already running, stopping it before restarting.")
@@ -376,6 +379,7 @@ class InternalDebugger:
         # of the parent debugger
         child_internal_debugger = InternalDebugger()
         child_internal_debugger.argv = self.argv
+        child_internal_debugger.path = self.path
         child_internal_debugger.env = self.env
         child_internal_debugger.aslr_enabled = self.aslr_enabled
         child_internal_debugger.autoreach_entrypoint = self.autoreach_entrypoint
@@ -1573,7 +1577,7 @@ class InternalDebugger:
             return f.read().strip()
 
     def __threaded_run(self: InternalDebugger, redirect_pipes: bool) -> None:
-        liblog.debugger("Starting process %s.", self.argv[0])
+        liblog.debugger("Starting process %s.", self.path)
         self.debugging_interface.run(redirect_pipes)
 
         self.set_stopped()
@@ -1594,7 +1598,7 @@ class InternalDebugger:
         if self.argv:
             liblog.debugger(
                 "Killing process %s (%d).",
-                self.argv[0],
+                self.path,
                 self.process_id,
             )
         else:
@@ -1605,7 +1609,7 @@ class InternalDebugger:
         if self.argv:
             liblog.debugger(
                 "Continuing process %s (%d).",
-                self.argv[0],
+                self.path,
                 self.process_id,
             )
         else:
@@ -1631,7 +1635,7 @@ class InternalDebugger:
         if self.argv:
             liblog.debugger(
                 "Waiting for process %s (%d) to stop.",
-                self.argv[0],
+                self.path,
                 self.process_id,
             )
         else:

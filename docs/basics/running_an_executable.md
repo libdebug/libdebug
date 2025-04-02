@@ -107,3 +107,15 @@ By default, **libdebug** redirects the standard input, output, and error of the 
     ```
 
 When set to `False`, the standard input, output, and error of the process will not be redirected to pipes. This means that you will not be able to interact with the process using the [PipeManager](../../from_pydoc/generated/commlink/pipe_manager) object, and **libdebug** will act as a transparent proxy between the executable and its standard I/O.
+
+## :material-contain-start: Overriding the Pathname
+Conventionally, the first element of the `argv` list is the name of the executable. However, this is not always the case. When running a new executable using `execve`, the absolute path of the executable is given as the `pathname`, and the list of arguments can be anything.
+
+By default, **libdebug** assumes that the path to the executable matches with the first element of the `argv` list.
+If the debuggee expects a different list of arguments, you can manually specify the path to the executable using the `path` parameter of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object.
+
+```python
+from libdebug import debugger
+
+d = debugger(["argv[0]", "argv[1]", ...], path="my_executable")
+```
