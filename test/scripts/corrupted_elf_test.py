@@ -74,7 +74,7 @@ class CorruptedELFTest(TestCase):
             # This should raise an exception, because the symbol is in the corrupted executable
             d.bp("skill_issue")
 
-        # This should not raise an exception, it just wont contain any symbol from the executable
+        # This should not raise an exception, it just won't contain any symbol from the executable
         d.symbols
 
         d.kill()
