@@ -220,8 +220,14 @@ memory_protection_constants = {
     0x02000000: {"short_name": "PROT_GROWSUP", "description": "Extend change to end of growsup VMA"},
 }
 
+
+
 # Memory mapping constants
 memory_mapping_constants = {
+    0x01: {"short_name": "MAP_SHARED", "description": "Share changes"},
+    0x02: {"short_name": "MAP_PRIVATE", "description": "Changes are private"},
+    0x03: {"short_name": "MAP_SHARED_VALIDATE", "description": "Share + validate extension flags"},
+    0x08: {"short_name": "MAP_DROPPABLE", "description": "Zero memory under memory pressure"},
     0x0f: {"short_name": "MAP_TYPE", "description": "Mask for type of mapping"},
     0x10: {"short_name": "MAP_FIXED", "description": "Interpret address exactly"},
     0x20: {"short_name": "MAP_ANONYMOUS", "description": "Do not use a file"},
