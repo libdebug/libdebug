@@ -475,7 +475,7 @@ class PtraceInterface(DebuggingInterface):
                 entry_point = normalize_and_validate_address(entry_point, self.get_maps())
             except (ValueError, ELFError) as e:
                 # Possibly the ELF is corrupt, or something else went wrong
-                liblog.warning(f"Failed to get the entry point for the given binary: {e}")
+                liblog.error(f"Failed to get the entry point for the given binary: {e}")
             else:
                 # Only if we think we have found a valid entry point location, we attempt to reach it
                 bp = Breakpoint(entry_point, hardware=True)

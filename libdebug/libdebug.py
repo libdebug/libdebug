@@ -74,7 +74,7 @@ def debugger(
         try:
             debugger.arch = elf_architecture(path)
         except (ValueError, ELFError) as e:
-            liblog.warning(f"Failed to get the architecture of the binary: {e} "
+            liblog.error(f"Failed to get the architecture of the binary: {e} "
                         "Assuming the architecture is the same as the current platform.")
             debugger.arch = libcontext.platform
 
