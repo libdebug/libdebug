@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2023-2025 Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -121,4 +121,4 @@ class LibLog:
 
 
 # Create the logger instance
-liblog = LibLog()
+liblog: LibLog = LibLog()

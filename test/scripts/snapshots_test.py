@@ -1,9 +1,11 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Francesco Panebianco, Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2025 Francesco Panebianco, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+import io
+import logging
 from unittest import TestCase
 from utils.binary_utils import RESOLVE_EXE
 from libdebug import debugger
@@ -11,6 +13,28 @@ import os
 import tempfile
 
 class SnapshotsTest(TestCase):
+    def setUp(self) -> None:
+        # Redirect logging to a string buffer
+        self.log_capture_string = io.StringIO()
+        self.log_handler = logging.StreamHandler(self.log_capture_string)
+        self.log_handler.setLevel(logging.WARNING)
+
+        self.logger = logging.getLogger("libdebug")
+        self.original_handlers = self.logger.handlers
+        self.logger.handlers = []
+        self.logger.addHandler(self.log_handler)
+        self.logger.setLevel(logging.WARNING)
+
+    def tearDown(self):
+        # Remove the custom handler
+        self.logger.removeHandler(self.log_handler)
+
+        # Restore the original handlers
+        self.logger.handlers = self.original_handlers
+
+        # Close the log capture string buffer
+        self.log_capture_string.close()
+
     def test_thread_base_snapshot(self):
         # Create a debugger and start execution
         d = debugger(RESOLVE_EXE("process_snapshot_test"), auto_interrupt_on_command=False, aslr=False)

@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2023-2025 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -61,6 +61,15 @@ class BreakpointTest(TestCase):
         self.logger.addHandler(self.log_handler)
         self.logger.setLevel(logging.WARNING)
 
+    def tearDown(self):
+        # Remove the custom handler
+        self.logger.removeHandler(self.log_handler)
+
+        # Restore the original handlers
+        self.logger.handlers = self.original_handlers
+
+        # Close the log capture string buffer
+        self.log_capture_string.close()
 
     def test_bps(self):
         d = debugger(RESOLVE_EXE("breakpoint_test"))
