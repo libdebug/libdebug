@@ -1614,6 +1614,19 @@ class InternalDebugger:
         self.set_running()
         self.debugging_interface.cont()
 
+    def __threaded_cont_to_syscall(self: InternalDebugger, thread: ThreadContext) -> None:
+        if self.argv:
+            liblog.debugger(
+                "Continuing process %s (%d) to syscall (Arbitrary Invocation).",
+                self.argv[0],
+                self.process_id,
+            )
+        else:
+            liblog.debugger("Continuing process %d to syscall (Arbitrary Invocation).", self.process_id)
+
+        self.debugging_interface.cont_to_syscall(thread)
+        self.set_running()
+
     def __threaded_wait(self: InternalDebugger) -> None:
         if self.argv:
             liblog.debugger(
@@ -1917,20 +1930,18 @@ class InternalDebugger:
         thread.syscall_num_register = syscall_number
         thread.syscall_number = syscall_number
 
-        #  Emulate syscall enter event
-        self.debugging_interface.status_handler.handle_syscall(thread.thread_id)
+        self.debugging_interface.status_handler.executing_arbitrary_syscall = True
 
-        self.__polling_thread_command_queue.put((self.__threaded_step, (thread,)))
+        self.__polling_thread_command_queue.put((self.__threaded_cont_to_syscall, (thread,)))
         self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
         self._join_and_check_status()
+
+        self.debugging_interface.status_handler.executing_arbitrary_syscall = False
 
         # Get return value.
         retval = thread.syscall_return
 
         thread.syscall_number = syscall_number
-
-        # Emulate syscall exit event
-        self.debugging_interface.status_handler.handle_syscall(thread.thread_id)
 
         # Restore the original code.
         thread.memory[ip, len_patch, "absolute"] = backup_code

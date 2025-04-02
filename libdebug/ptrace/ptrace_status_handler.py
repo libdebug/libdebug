@@ -39,6 +39,7 @@ class PtraceStatusHandler:
         self._assume_race_sigstop: bool = (
             True  # Assume the stop is due to a race condition with SIGSTOP sent by the debugger
         )
+        self.executing_arbitrary_syscall: bool = False
 
     def _handle_clone(self: PtraceStatusHandler, thread_id: int, results: list) -> None:
         # https://go.googlesource.com/debug/+/a09ead70f05c87ad67bd9a131ff8352cf39a6082/doc/ptrace-nptl.txt
@@ -265,7 +266,9 @@ class PtraceStatusHandler:
 
             handler._has_entered = False
             handler._skip_exit = False
-            if not handler.on_enter_user and not handler.on_exit_user and handler.enabled:
+            if (
+                not handler.on_enter_user and not handler.on_exit_user and handler.enabled
+            ) or self.executing_arbitrary_syscall:
                 # If the syscall has no callback, we need to stop the process despite the other signals
                 self.internal_debugger.resume_context.event_type[thread_id] = EventType.SYSCALL
                 self.internal_debugger.resume_context.resume = False

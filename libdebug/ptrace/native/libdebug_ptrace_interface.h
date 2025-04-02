@@ -71,6 +71,7 @@ public:
 
     // Debugger control flow methods
     void cont_all_and_set_bps(const bool);
+    void cont_to_syscall(const pid_t);
     void step(const pid_t);
     void step_until(const pid_t, const unsigned long, const int);
     void stepping_finish(const pid_t, const bool);

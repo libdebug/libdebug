@@ -820,6 +820,26 @@ void LibdebugPtraceInterface::restore_fast_regs_backup(pid_t tid)
 
 }
 
+
+void LibdebugPtraceInterface::cont_to_syscall(pid_t tid)
+{
+    Thread &t = try_get_thread(tid);
+
+    // Flush any register changes
+    if (setregs(t)) {
+        throw std::runtime_error("setregs failed");
+    }
+
+    check_and_set_fpregs(t);
+
+    // Continue to syscall on specified thread
+    if (ptrace(PTRACE_SYSCALL, t.tid, NULL, t.signal_to_forward) == -1) {
+        throw std::runtime_error("ptrace cont failed");
+    }
+
+    t.signal_to_forward = 0;
+}
+
 NB_MODULE(libdebug_ptrace_binding, m)
 {
     init_libdebug_ptrace_registers(m);
@@ -1153,6 +1173,15 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "\n"
             "Args:\n"
             "    tid (int): The thread id to restore the backup for."
+        )
+        .def(
+            "cont_to_syscall",
+            &LibdebugPtraceInterface::cont_to_syscall,
+            nb::arg("tid"),
+            "Continues a thread to the next syscall.\n"
+            "\n"
+            "Args:\n"
+            "    tid (int): The thread id to continue to the next syscall."
         );
 
     nb::set_leak_warnings(false);

@@ -809,3 +809,13 @@ class PtraceInterface(DebuggingInterface):
     def quick_regs_restore(self: PtraceInterface, thread_id: int) -> None:
         """Restores the registers of the specified thread."""
         self.lib_trace.restore_fast_regs_backup(thread_id)
+
+    def cont_to_syscall(self: PtraceInterface, thread: ThreadContext) -> None:
+        """Continues the execution of the specified thread until the next syscall."""
+        # Reset the event type
+        self._internal_debugger.resume_context.event_type.clear()
+
+        # Reset the breakpoint hit
+        self._internal_debugger.resume_context.event_hit_ref.clear()
+
+        self.lib_trace.cont_to_syscall(thread.thread_id)
