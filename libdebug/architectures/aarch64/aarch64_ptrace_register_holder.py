@@ -267,6 +267,7 @@ class Aarch64PtraceRegisterHolder(PtraceRegisterHolder):
         target_class.instruction_pointer = _get_property_64("pc")
 
         # setup generic syscall properties
+        target_class.syscall_num_register = _get_property_64("w8")
         target_class.syscall_return = _get_property_64("x0")
         target_class.syscall_arg0 = _get_property_64("x0")
         target_class.syscall_arg1 = _get_property_64("x1")

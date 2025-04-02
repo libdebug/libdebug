@@ -52,7 +52,10 @@ class ThreadContext(ABC):
     """The thread's syscall argument 5."""
 
     syscall_number: int
-    """The thread's syscall number."""
+    """The thread's syscall number when the kernel has entered a syscall."""
+
+    syscall_num_register: int
+    """The thread's syscall number from the architectural register dedicated to syscalls."""
 
     syscall_return: int
     """The thread's syscall return value."""

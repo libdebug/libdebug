@@ -1896,9 +1896,6 @@ class InternalDebugger:
         )
         self._join_and_check_status()
 
-        # Set the syscall number.
-        thread.syscall_number = syscall_number
-
         # Set the syscall arguments according to the argument count.
         for i, arg in enumerate(args):
             setattr(thread, f"syscall_arg{i}", arg)
@@ -1914,6 +1911,11 @@ class InternalDebugger:
 
         # Patch the syscall instruction.
         thread.memory[ip, len_patch, "absolute"] = syscall_instruction
+
+        # Set the syscall number in both the architectural register
+        # and the corresponding kernel copy register (e.g., orig_rax on x86_64).
+        thread.syscall_num_register = syscall_number
+        thread.syscall_number = syscall_number
 
         #  Emulate syscall enter event
         self.debugging_interface.status_handler.handle_syscall(thread.thread_id)

@@ -8,9 +8,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from libdebug import libcontext
 from libdebug.utils.ansi_escape_codes import ANSIColors
-from libdebug.utils.gnu_constants import err_code, file_access_modes
+from libdebug.utils.gnu_constants import err_code
+from libdebug.utils.libcontext import libcontext
 from libdebug.utils.platform_utils import get_platform_gp_register_size
 from libdebug.utils.syscall_utils import (
     resolve_syscall_arguments,
@@ -35,7 +35,11 @@ def negate_value(value: int, word_size: int) -> int:
 
 
 def numeric_or_mnemonic(
-    value: int, mnemonic_dict: dict, equality: bool, negate_search: bool, word_size: int | None = None,
+    value: int,
+    mnemonic_dict: dict,
+    equality: bool,
+    negate_search: bool,
+    word_size: int | None = None,
 ) -> str:
     """Return the mnemonic of a value if it is present in the mnemonic dictionary.
 
@@ -51,7 +55,7 @@ def numeric_or_mnemonic(
     """
     numeric_str = f"{value:#x}"
 
-    if  not libcontext.parse_pprint_constants:
+    if not libcontext.parse_pprint_constants:
         return numeric_str
 
     # Parse exact match
@@ -65,9 +69,10 @@ def numeric_or_mnemonic(
         for key, mnemonic in mnemonic_dict.items():
             if key & value:
                 mnemonics_list.append(mnemonic["short_name"])
-        mnemonic = " | ".join(mnemonics_list) if mnemonics_list else ] numeric_str
+        mnemonic = " | ".join(mnemonics_list) if mnemonics_list else numeric_str
 
     return mnemonic
+
 
 def parse_syscall_arg(t: ThreadContext, syscall_name: str, arg_name: str, arg_val: int) -> str:
     """Parse a syscall argument.
@@ -78,7 +83,6 @@ def parse_syscall_arg(t: ThreadContext, syscall_name: str, arg_name: str, arg_va
         arg_name (str): the syscall argument name.
         arg_val (int): the syscall argument value.
     """
-
     if not libcontext.parse_pprint_constants:
         return f"{arg_val:#x}"
     elif "char *" in arg_name:
@@ -92,15 +96,10 @@ def parse_syscall_arg(t: ThreadContext, syscall_name: str, arg_name: str, arg_va
             curr_char = t.memory[cursor, 1, "absolute"]
             cursor += 1
 
-        return f"\"{string_content}\""
+        return f'"{string_content}"'
+    else:
+        return f"{arg_val:#x}"
 
-    match syscall_name:
-        case "open" | "openat":
-            if arg_name == "flags" or arg_name == "mode":
-                return numeric_or_mnemonic(arg_val, file_access_modes, equality=False, negate_search=False)
-        case "fstat" | "stat":
-            if arg_name == "mode":
-                return numeric_or_mnemonic(arg_val, file_access_modes, equality=False, negate_search=False)
 
 def pprint_on_enter(t: ThreadContext, syscall_number: int, **kwargs: int) -> None:
     """Function that will be called when a syscall is entered in pretty print mode.
@@ -176,10 +175,18 @@ def pprint_on_exit(t: ThreadContext, syscall_return: int | tuple[int, int]) -> N
 
     if isinstance(syscall_return, tuple):
         real_retval = numeric_or_mnemonic(
-            syscall_return[0], err_code, equality=True, negate_search=True, word_size=word_size,
+            syscall_return[0],
+            err_code,
+            equality=True,
+            negate_search=True,
+            word_size=word_size,
         )
         changed_retval = numeric_or_mnemonic(
-            syscall_return[1], err_code, equality=True, negate_search=True, word_size=word_size,
+            syscall_return[1],
+            err_code,
+            equality=True,
+            negate_search=True,
+            word_size=word_size,
         )
 
         print(

@@ -203,6 +203,7 @@ class LibContext:
             if hasattr(self, key):
                 setattr(self, key, value)
 
+    @property
     def parse_pprint_constants(self: LibContext) -> bool:
         """Property getter for parse_pprint_constants.
 
