@@ -215,6 +215,11 @@ class PtraceStatusHandler:
         elif -1 in self.internal_debugger.handled_syscalls:
             # Handle all syscalls is enabled
             handler = self.internal_debugger.handled_syscalls[-1]
+        elif self.executing_arbitrary_syscall:
+            self.internal_debugger.resume_context.event_type[thread_id] = EventType.SYSCALL
+            self.internal_debugger.resume_context.event_hit_ref[thread_id] = None
+            self.internal_debugger.resume_context.resume = False
+            return
         else:
             # This is a syscall we don't care about
             # Resume the execution

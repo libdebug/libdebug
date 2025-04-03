@@ -929,15 +929,6 @@ class Debugger:
         """Alias for the `next` method. Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._internal_debugger.next(self)
 
-    def invoke_syscall(self: Debugger, syscall_identifier: str | int, *args: int) -> int:
-        """Invokes a syscall with the specified arguments on the main thread.
-
-        Args:
-            syscall_identifier (str | int): The syscall identifier.
-            *args (int): The syscall arguments.
-        """
-        self._internal_debugger.invoke_syscall(self.threads[0], syscall_identifier, *args)
-
     def __repr__(self: Debugger) -> str:
         """Return the string representation of the `Debugger` object."""
         repr_str = "Debugger("
@@ -982,3 +973,12 @@ class Debugger:
             file_path (str): The path to the snapshot file.
         """
         return self._internal_debugger.load_snapshot(file_path)
+
+    def invoke_syscall(self: Debugger, syscall_identifier: str | int, *args: int) -> int:
+        """Invokes a syscall with the specified arguments on this thread.
+
+        Args:
+            syscall_identifier (str | int): The syscall identifier.
+            *args (int): The syscall arguments.
+        """
+        return self.threads[0].invoke_syscall(syscall_identifier, *args)

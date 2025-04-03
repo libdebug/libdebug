@@ -1905,6 +1905,9 @@ class InternalDebugger:
                 f"Too many arguments for syscall invocation. Expected at most {max_architectural_args}, got {num_args}.",
             )
 
+        if any(not isinstance(arg, int) for arg in args):
+            raise TypeError("All arguments must be integers.")
+
         self._ensure_process_stopped()
 
         # Backup registers.
@@ -1938,6 +1941,11 @@ class InternalDebugger:
 
         self.__polling_thread_command_queue.put((self.__threaded_cont_to_syscall, (thread,)))
         self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
+
+        if syscall_number not in self.handled_syscalls:
+            self.__polling_thread_command_queue.put((self.__threaded_cont_to_syscall, (thread,)))
+            self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
+
         self._join_and_check_status()
 
         self.debugging_interface.status_handler.executing_arbitrary_syscall = False
