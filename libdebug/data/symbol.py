@@ -18,7 +18,7 @@ class Symbol:
     name (str): The name of the symbol in the target process.
     backing_file (str): The backing file of the symbol in the target process.
     reference_file (str): The file that the symbol's offsets refer to in the target process.
-    reference_build_id (str): The build ID of the reference file.
+    reference_build_id (str | None): The build ID of the reference file.
     is_external (bool): Whether the symbol is external or not.
     """
 
@@ -27,7 +27,7 @@ class Symbol:
     name: str
     backing_file: str
     reference_file: str
-    reference_build_id: str
+    reference_build_id: str | None
     is_external: bool
 
     def __hash__(self: Symbol) -> int:
