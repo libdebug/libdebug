@@ -69,15 +69,6 @@ Given a symbol name or address, this function returns a [SymbolList](../../from_
 
 [Symbol](../../from_pydoc/generated/data/symbol/) objects contain the following attributes:
 
-start (int): The start address of the symbol in the target process.
-    end (int): The end address of the symbol in the target process.
-    name (str): The name of the symbol in the target process.
-    backing_file (str): The backing file of the symbol in the target process.
-    reference_file (str): The file that the symbol's offsets refer to in the target process.
-    reference_build_id (str): The build ID of the reference file.
-    is_external (bool): Whether the symbol is external or not.
-    """
-
 | Attribute | Type | Description |
 |-----------|------|-------------|
 | `start`   | `int` | The start offset of the symbol. |
