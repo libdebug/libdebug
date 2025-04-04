@@ -45,7 +45,7 @@ class SymbolList(list):
         return [
             symbol for symbol in self
             if symbol.start <= address < symbol.end
-            and symbol.backing_file == map_middle[0].backing_file
+            and symbol.reference_file == map_middle[0].backing_file
         ]
 
     def _search_by_name(self: SymbolList, name: str) -> list[Symbol]:
