@@ -476,6 +476,8 @@ class InternalDebugger:
             del self.__polling_thread
             self.__polling_thread = None
 
+        self.cleanup_timeout_thread()
+
         # Remove elemement from internal_debugger_holder to avoid memleaks
         remove_internal_debugger_refs(self)
 
@@ -1948,6 +1950,26 @@ class InternalDebugger:
             # Check that the timeout thread has signaled "task done"
             self.__timeout_thread_command_queue.join()
 
+    def cleanup_timeout_thread(self: InternalDebugger) -> None:
+        """Cleans up the timeout thread and all the linked objects."""
+        if self.__timeout_thread is not None:
+            # Notify the timeout thread to terminate
+            self.__timeout_thread_command_queue.put(THREAD_TERMINATE)
+
+            # Wait for the timeout thread to terminate
+            self.__timeout_thread.join()
+
+            # Cleanup the command queue
+            self.__timeout_thread_command_queue = None
+
+            # Cleanup the conditional variable
+            self.__timeout_thread_conditional = None
+
+            # Cleanup the timeout thread
+            self.__timeout_thread = None
+
+            liblog.debugger("Timeout thread cleaned up.")
+
     def __timeout_thread_function(self: InternalDebugger) -> None:
         """This function continously checks for timeouts and kills the debuggee if needed."""
         while True:
@@ -1955,6 +1977,8 @@ class InternalDebugger:
             timeout_amount = self.__timeout_thread_command_queue.get()
 
             if timeout_amount == THREAD_TERMINATE:
+                # Signal that the command has been executed
+                self.__timeout_thread_command_queue.task_done()
                 return
 
             debuggee_died = self.__timeout_thread_conditional.wait(timeout_amount)
