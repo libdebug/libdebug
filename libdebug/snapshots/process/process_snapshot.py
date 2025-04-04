@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from libdebug.data.symbol_list import SymbolList
 from libdebug.liblog import liblog
 from libdebug.snapshots.memory.memory_map_snapshot import MemoryMapSnapshot
 from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
@@ -82,7 +83,9 @@ class ProcessSnapshot(Snapshot):
                 # Save all memory pages
                 self._save_memory_maps(debugger, writable_only=True)
 
-                self._memory = SnapshotMemoryView(self, debugger.symbols)
+                symbols = SymbolList(debugger.symbols, self)
+
+                self._memory = SnapshotMemoryView(self, symbols)
             case "full":
                 if not debugger.fast_memory:
                     liblog.warning(
@@ -92,7 +95,9 @@ class ProcessSnapshot(Snapshot):
                 # Save all memory pages
                 self._save_memory_maps(debugger, writable_only=False)
 
-                self._memory = SnapshotMemoryView(self, debugger.symbols)
+                symbols = SymbolList(debugger.symbols, self)
+
+                self._memory = SnapshotMemoryView(self, symbols)
             case _:
                 raise ValueError(f"Invalid snapshot level {level}")
 

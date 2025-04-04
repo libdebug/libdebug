@@ -128,6 +128,9 @@ class JSONSerializer:
                     saved_symbol["end"],
                     saved_symbol["name"],
                     saved_symbol["backing_file"],
+                    saved_symbol["reference_file"],
+                    saved_symbol["reference_build_id"],
+                    saved_symbol["is_external"],
                 )
                 for saved_symbol in raw_loaded_symbols
             ]
@@ -176,6 +179,9 @@ class JSONSerializer:
                     "end": symbol.end,
                     "name": symbol.name,
                     "backing_file": symbol.backing_file,
+                    "reference_file": symbol.reference_file,
+                    "reference_build_id": symbol.reference_build_id,
+                    "is_external": symbol.is_external,
                 }
                 for symbol in memory._symbol_ref
             ]

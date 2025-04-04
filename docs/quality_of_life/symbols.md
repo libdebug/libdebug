@@ -74,7 +74,10 @@ Given a symbol name or address, this function returns a [SymbolList](../../from_
 | `start`   | `int` | The start offset of the symbol. |
 | `end`     | `int` | The end offset of the symbol. |
 | `name`    | `str` | The name of the symbol. |
-| `backing_file` | `str` | The file where the symbol is defined (e.g., binary, libc, ld). |
+| `backing_file` | `str` | The file where the symbol is defined (e.g., binary, libc, ld, debug file). |
+| `reference_file` | `str` | The file that the symbol's offsets refer to (will be different from backing_file for a debugging symbols file). |
+| `reference_build_id` | `str \| None` | The build ID of the reference file (None if none is present). |
+| `is_external` | `bool` | Whether the symbol is retrieved externally or not. |
 
 !!! INFO "Slow Symbol Resolution"
     Please keep in mind that symbol resolution can be an expensive operation on large binaries and shared libraries. If you are experiencing performance issues, you can set the [symbol resolution level](#symbol-resolution-levels) to a lower value.
