@@ -1909,7 +1909,7 @@ class InternalDebugger:
             self.__timeout_thread_command_queue = Queue()
 
             # Inflate the conditional variable
-            self.__timeout_thread_conditional_variable = Event()
+            self.__timeout_thread_conditional = Event()
 
             # Inflate the timeout thread
             self.__timeout_thread = Thread(
@@ -1929,7 +1929,7 @@ class InternalDebugger:
             raise RuntimeError("Timeout thread command queue is not empty.")
 
         # Unset the conditional variable
-        self.__timeout_thread_conditional_variable.clear()
+        self.__timeout_thread_conditional.clear()
 
         # Enqueue the timeout
         self.__timeout_thread_command_queue.put(timeout)
@@ -1943,7 +1943,7 @@ class InternalDebugger:
         """If the timeout thread is active, we must let it know that the debuggee died."""
         if self.__timeout_thread is not None:
             # Notify the timeout thread that the debuggee died
-            self.__timeout_thread_conditional_variable.set()
+            self.__timeout_thread_conditional.set()
 
             # Check that the timeout thread has signaled "task done"
             self.__timeout_thread_command_queue.join()
@@ -1957,7 +1957,7 @@ class InternalDebugger:
             if timeout_amount == THREAD_TERMINATE:
                 return
 
-            debuggee_died = self.__timeout_thread_conditional_variable.wait(timeout_amount)
+            debuggee_died = self.__timeout_thread_conditional.wait(timeout_amount)
 
             if not debuggee_died:
                 # Kill it
@@ -1969,7 +1969,7 @@ class InternalDebugger:
                 )
 
                 # Wait for the main thread to notice it has died
-                self.__timeout_thread_conditional_variable.wait()
+                self.__timeout_thread_conditional.wait()
 
             # Signal that the command has been executed
             self.__timeout_thread_command_queue.task_done()
