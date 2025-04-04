@@ -1985,12 +1985,26 @@ class InternalDebugger:
 
             if not debuggee_died:
                 # Kill it
-                os.kill(self.process_id, signal.SIGKILL)
-                liblog.debugger(
-                    "Debuggee process %s (%d) killed due to timeout.",
-                    self.path,
-                    self.process_id,
-                )
+                try:
+                    os.kill(self.process_id, signal.SIGKILL)
+                    liblog.debugger(
+                        "Debuggee process %s (%d) killed due to timeout.",
+                        self.path,
+                        self.process_id,
+                    )
+                except ProcessLookupError:
+                    liblog.debugger(
+                        "Debuggee process %s (%d) already dead.",
+                        self.path,
+                        self.process_id,
+                    )
+                except Exception as e:
+                    liblog.debugger(
+                        "Error while killing timed out debuggee process %s (%d): %s",
+                        self.path,
+                        self.process_id,
+                        e,
+                    )
 
                 # Wait for the main thread to notice it has died
                 self.__timeout_thread_conditional.wait()
