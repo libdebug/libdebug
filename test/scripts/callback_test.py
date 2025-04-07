@@ -441,5 +441,74 @@ class CallbackTest(TestCase):
         d.kill()
         d.terminate()
 
-        if self.exceptions:
-            raise self.exceptions[0]
+    def test_disable_self_inside_callback(self):
+        d = debugger(RESOLVE_EXE("run_pipes_test"))
+
+        r = d.run()
+
+        def callback(_, x):
+            x.disable()
+
+        bp = d.bp("option_1", callback=callback)
+        sc = d.catch_signal(50, callback=callback)
+        sh1 = d.handle_syscall("rt_sigaction", on_enter=callback)
+        sh2 = d.handle_syscall("write", on_exit=callback)
+
+        d.cont()
+
+        r.sendline(b"3")
+        r.sendline(b"1")
+        r.sendline(b"4")
+
+        d.wait()
+
+        self.assertEqual(bp.hit_count, 1)
+        self.assertEqual(sc.hit_count, 1)
+        self.assertEqual(sh1.hit_count, 1)
+        self.assertEqual(sh2.hit_count, 1)
+        self.assertTrue(d.dead)
+
+        d.kill()
+        d.terminate()
+
+    def test_signal_and_syscalls_inside_callback(self):
+        d = debugger(RESOLVE_EXE("run_pipes_test"))
+
+        r = d.run()
+
+        sc = None
+        bp = None
+
+        def rt_signaction_callback(_, sh):
+            nonlocal sc, bp
+
+            sc = d.catch_signal(50)
+            bp = d.bp("option_1", callback=True)
+
+        sh = d.handle_syscall("rt_sigaction", on_enter=rt_signaction_callback)
+
+        d.cont()
+
+        r.sendline(b"3")
+
+        d.wait()
+
+        # We should be stopped at SIGPROVOLA
+        self.assertEqual(sc.hit_count, 1)
+        self.assertTrue(sc.hit_on(d))
+
+        d.cont()
+
+        for _ in range(5):
+            r.sendline(b"1") # Calls option_1
+
+        r.sendline(b"4")
+
+        d.wait()
+
+        self.assertEqual(bp.hit_count, 5)
+        self.assertEqual(sc.hit_count, 1)
+        self.assertEqual(sh.hit_count, 1)
+
+        d.kill()
+        d.terminate()
