@@ -117,7 +117,7 @@ class PtraceStatusHandler:
                 try:
                     bp.callback(thread, bp)
                 except Exception as e:  # noqa: BLE001
-                    liblog.error('Exception raised while executing callback for Breakpoint at "%s": %s', bp.symbol, e)
+                    liblog.error('Exception raised while executing callback for breakpoint at "%s": %s', bp.symbol, e)
                     self.internal_debugger.resume_context.resume = False
             else:
                 # If the breakpoint has no callback, we need to stop the process despite the other signals
