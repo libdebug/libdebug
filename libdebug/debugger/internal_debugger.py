@@ -1984,6 +1984,15 @@ class InternalDebugger:
             debuggee_died = self.__timeout_thread_conditional.wait(timeout_amount)
 
             if not debuggee_died:
+                # This is racy, but the side-effect is us printing a warning
+                # and not much else
+                if self.resume_context.is_in_callback:
+                    # We have no way to stop the callback, let's notify the user
+                    liblog.warning(
+                        "Timeout occurred while executing a callback. "
+                        "Asynchronous callbacks cannot be interrupted.",
+                    )
+
                 # Kill it
                 try:
                     os.kill(self.process_id, signal.SIGKILL)
@@ -1998,13 +2007,16 @@ class InternalDebugger:
                         self.path,
                         self.process_id,
                     )
-                except Exception as e:
+                except Exception as e: # noqa: BLE001
                     liblog.debugger(
                         "Error while killing timed out debuggee process %s (%d): %s",
                         self.path,
                         self.process_id,
                         e,
                     )
+
+                # We manually stop the background wait-cont loop, just to make sure
+                self.resume_context.resume = False
 
                 # Wait for the main thread to notice it has died
                 self.__timeout_thread_conditional.wait()

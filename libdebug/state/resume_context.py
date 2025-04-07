@@ -25,6 +25,7 @@ class ResumeContext:
         self.threads_with_signals_to_forward: list[int] = []
         self.event_type: dict[int, EventType] = {}
         self.event_hit_ref: dict[int, Breakpoint] = {}
+        self.is_in_callback: bool = False
 
     def clear(self: ResumeContext) -> None:
         """Clears the context."""
