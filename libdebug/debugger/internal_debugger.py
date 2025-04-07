@@ -1116,19 +1116,6 @@ class InternalDebugger:
 
         self._is_migrated_to_gdb = False
 
-    def _background_step(self: InternalDebugger, thread: ThreadContext) -> None:
-        """Executes a single instruction of the process.
-
-        Args:
-            thread (ThreadContext): The thread to step. Defaults to None.
-        """
-        self.__threaded_step(thread)
-        self.__threaded_wait()
-
-        # At this point, we need to continue the execution of the callback from which the step was called
-        self.resume_context.resume = True
-
-    @background_alias(_background_step)
     @change_state_function_thread
     def step(self: InternalDebugger, thread: ThreadContext) -> None:
         """Executes a single instruction of the process.
@@ -1136,36 +1123,18 @@ class InternalDebugger:
         Args:
             thread (ThreadContext): The thread to step. Defaults to None.
         """
-        self.__polling_thread_command_queue.put((self.__threaded_step, (thread,)))
-        self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
-        self._join_and_check_status()
-
-    def _background_step_until(
-        self: InternalDebugger,
-        thread: ThreadContext,
-        position: int | str,
-        max_steps: int = -1,
-        file: str = "hybrid",
-    ) -> None:
-        """Executes instructions of the process until the specified location is reached.
-
-        Args:
-            thread (ThreadContext): The thread to step. Defaults to None.
-            position (int | bytes): The location to reach.
-            max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
-        """
-        if isinstance(position, str):
-            address = self.resolve_symbol(position, file)
+        if not self._is_in_background():
+            self.__polling_thread_command_queue.put((self.__threaded_step, (thread,)))
+            self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
+            self._join_and_check_status()
         else:
-            address = self.resolve_address(position, file)
+            # Let's do this ourselves and move on
+            self.__threaded_step(thread)
+            self.__threaded_wait()
 
-        self.__threaded_step_until(thread, address, max_steps)
+            # At this point, we need to continue the execution of the callback from which the step was called
+            self.resume_context.resume = True
 
-        # At this point, we need to continue the execution of the callback from which the step was called
-        self.resume_context.resume = True
-
-    @background_alias(_background_step_until)
     @change_state_function_thread
     def step_until(
         self: InternalDebugger,
@@ -1187,37 +1156,20 @@ class InternalDebugger:
         else:
             address = self.resolve_address(position, file)
 
-        arguments = (
-            thread,
-            address,
-            max_steps,
-        )
+        if not self._is_in_background():
+            self.__polling_thread_command_queue.put(
+                (
+                    self.__threaded_step_until,
+                    (thread, address, max_steps),
+                ),
+            )
+            self._join_and_check_status()
+        else:
+            self.__threaded_step_until(thread, address, max_steps)
 
-        self.__polling_thread_command_queue.put((self.__threaded_step_until, arguments))
+            # At this point, we need to continue the execution of the callback from which the step was called
+            self.resume_context.resume = True
 
-        self._join_and_check_status()
-
-    def _background_finish(
-        self: InternalDebugger,
-        thread: ThreadContext,
-        heuristic: str = "backtrace",
-    ) -> None:
-        """Continues execution until the current function returns or the process stops.
-
-        The command requires a heuristic to determine the end of the function. The available heuristics are:
-        - `backtrace`: The debugger will place a breakpoint on the saved return address found on the stack and continue execution on all threads.
-        - `step-mode`: The debugger will step on the specified thread until the current function returns. This will be slower.
-
-        Args:
-            thread (ThreadContext): The thread to finish.
-            heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
-        """
-        self.__threaded_finish(thread, heuristic)
-
-        # At this point, we need to continue the execution of the callback from which the step was called
-        self.resume_context.resume = True
-
-    @background_alias(_background_finish)
     @change_state_function_thread
     def finish(self: InternalDebugger, thread: ThreadContext, heuristic: str = "backtrace") -> None:
         """Continues execution until the current function returns or the process stops.
@@ -1230,28 +1182,28 @@ class InternalDebugger:
             thread (ThreadContext): The thread to finish.
             heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
         """
-        self.__polling_thread_command_queue.put(
-            (self.__threaded_finish, (thread, heuristic)),
-        )
+        if not self._is_in_background():
+            self.__polling_thread_command_queue.put(
+                (self.__threaded_finish, (thread, heuristic)),
+            )
+            self._join_and_check_status()
+        else:
+            self.__threaded_finish(thread, heuristic)
 
-        self._join_and_check_status()
+            # At this point, we need to continue the execution of the callback from which the step was called
+            self.resume_context.resume = True
 
-    def _background_next(
-        self: InternalDebugger,
-        thread: ThreadContext,
-    ) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
-        self.__threaded_next(thread)
-
-        # At this point, we need to continue the execution of the callback from which the step was called
-        self.resume_context.resume = True
-
-    @background_alias(_background_next)
     @change_state_function_thread
     def next(self: InternalDebugger, thread: ThreadContext) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
-        self.__polling_thread_command_queue.put((self.__threaded_next, (thread,)))
-        self._join_and_check_status()
+        if not self._is_in_background():
+            self.__polling_thread_command_queue.put((self.__threaded_next, (thread,)))
+            self._join_and_check_status()
+        else:
+            self.__threaded_next(thread)
+
+            # At this point, we need to continue the execution of the callback from which the step was called
+            self.resume_context.resume = True
 
     def enable_pretty_print(
         self: InternalDebugger,
