@@ -109,18 +109,14 @@ By default, **libdebug** redirects the standard input, output, and error of the 
 When set to `False`, the standard input, output, and error of the process will not be redirected to pipes. This means that you will not be able to interact with the process using the [PipeManager](../../from_pydoc/generated/commlink/pipe_manager) object, and **libdebug** will act as a transparent proxy between the executable and its standard I/O.
 
 ## :material-timer-alert: Execution Timeout
-If the executable you are debugging might enter an infinite loop, or if you want to set a limit on the execution time of the process, you can specify a timeout in seconds using the `timeout` parameter of the `run()` method.
+If the executable you are debugging has the potential to get stuck in an infinite loop, or if you want to set a limit on the execution time of the process, you can specify a timeout in seconds using the `timeout` parameter of the `run()` method.
 
-```python
-from libdebug import debugger
+!!! ABSTRACT "Usage"
+    ```python
+    d.run(timeout=5)
+    ```
 
-d = debugger("test")
-d.run(timeout=5)
-
-...
-```
-
-If the process does not terminate within the specified time, **libdebug** will send a `SIGKILL` signal to the process to terminate it.
+If the process does not terminate within the specified time, **libdebug** will forcibly kill the process by sending a `SIGKILL` signal to the process.
 
 !!! WARNING "Timeout and Asynchronous Callbacks"
     The process will be killed once the specified time passes, but there is no way for **libdebug** to interrupt any still running callback.
