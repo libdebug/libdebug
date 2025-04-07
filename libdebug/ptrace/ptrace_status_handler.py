@@ -114,7 +114,11 @@ class PtraceStatusHandler:
             bp.hit_count += 1
 
             if bp.callback:
-                bp.callback(thread, bp)
+                try:
+                    bp.callback(thread, bp)
+                except Exception as e:  # noqa: BLE001
+                    liblog.error('Exception raised while executing callback for Breakpoint at "%s": %s', bp.symbol, e)
+                    self.internal_debugger.resume_context.resume = False
             else:
                 # If the breakpoint has no callback, we need to stop the process despite the other signals
                 self.internal_debugger.resume_context.resume = False
@@ -137,7 +141,11 @@ class PtraceStatusHandler:
                 thread.syscall_arg4,
                 thread.syscall_arg5,
             ]
-            handler.on_enter_user(thread, handler)
+            try:
+                handler.on_enter_user(thread, handler)
+            except Exception as e:  # noqa: BLE001
+                liblog.error("Exception raised in on-enter callback for syscall %d: %s", handler.syscall_number, e)
+                self.internal_debugger.resume_context.resume = False
 
             # Check if the syscall number has changed
             syscall_number_after_callback = thread.syscall_number
@@ -249,7 +257,13 @@ class PtraceStatusHandler:
                 # Pretty print the return value before the callback
                 if handler.on_exit_pprint:
                     return_value_before_callback = thread.syscall_return
-                handler.on_exit_user(thread, handler)
+
+                try:
+                    handler.on_exit_user(thread, handler)
+                except Exception as e: # noqa: BLE001
+                    liblog.error("Exception raised in on-exit callback for syscall %d: %s", handler.syscall_number, e)
+                    self.internal_debugger.resume_context.resume = False
+
                 if handler.on_exit_pprint:
                     return_value_after_callback = thread.syscall_return
                     if return_value_after_callback != return_value_before_callback:
@@ -286,7 +300,15 @@ class PtraceStatusHandler:
             )
             if catcher.callback:
                 # Execute the user-defined callback
-                catcher.callback(thread, catcher)
+                try:
+                    catcher.callback(thread, catcher)
+                except Exception as e:
+                    liblog.error(
+                        "Exception raised in callback for signal %s: %s",
+                        resolve_signal_name(signal_number),
+                        e,
+                    )
+                    self.internal_debugger.resume_context.resume = False
 
                 new_signal_number = thread._signal_number
 
