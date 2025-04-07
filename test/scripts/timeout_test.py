@@ -4,6 +4,8 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+import io
+import logging
 from time import perf_counter, sleep
 from unittest import TestCase
 from utils.binary_utils import RESOLVE_EXE
@@ -12,6 +14,23 @@ from libdebug import debugger
 
 
 class TimeoutTest(TestCase):
+    def setUp(self):
+        # Redirect logging to a string buffer
+        self.log_capture_string = io.StringIO()
+        self.log_handler = logging.StreamHandler(self.log_capture_string)
+        self.log_handler.setLevel(logging.WARNING)
+
+        self.logger = logging.getLogger("libdebug")
+        self.original_handlers = self.logger.handlers
+        self.logger.handlers = []
+        self.logger.addHandler(self.log_handler)
+        self.logger.setLevel(logging.WARNING)
+
+    def tearDown(self):
+        self.logger.removeHandler(self.log_handler)
+        self.logger.handlers = self.original_handlers
+        self.log_handler.close()
+
     def test_infinite_loop_timeout(self):
         # We will run a program that goes into an infinite loop
         # and we set a 1 seconds timeout
@@ -70,6 +89,11 @@ class TimeoutTest(TestCase):
 
         d.kill()
         d.terminate()
+
+        # Check if the warning was logged
+        self.log_handler.flush()
+        log_contents = self.log_capture_string.getvalue()
+        self.assertIn("Asynchronous callbacks cannot be interrupted", log_contents)
 
     def test_repeated_timeout(self):
         # We ensure that a timeout doesn't disrupt the next run
