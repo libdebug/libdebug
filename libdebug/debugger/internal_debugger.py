@@ -579,7 +579,6 @@ class InternalDebugger:
             integer_mode=integer_mode,
         )
 
-    @background_alias(_background_invalid_call)
     @change_state_function_process
     def breakpoint(
         self: InternalDebugger,
@@ -621,9 +620,13 @@ class InternalDebugger:
 
         link_to_internal_debugger(bp, self)
 
-        self.__polling_thread_command_queue.put((self.__threaded_breakpoint, (bp,)))
-
-        self._join_and_check_status()
+        if not self._is_in_background():
+            # Go through the queue and wait for it to be done
+            self.__polling_thread_command_queue.put((self.__threaded_breakpoint, (bp,)))
+            self._join_and_check_status()
+        else:
+            # Let's do this ourselves and move on
+            self.__threaded_breakpoint(bp)
 
         # the breakpoint should have been set by interface
         if address not in self.breakpoints:
@@ -631,7 +634,6 @@ class InternalDebugger:
 
         return bp
 
-    @background_alias(_background_invalid_call)
     @change_state_function_process
     def catch_signal(
         self: InternalDebugger,
@@ -687,13 +689,16 @@ class InternalDebugger:
 
         link_to_internal_debugger(catcher, self)
 
-        self.__polling_thread_command_queue.put((self.__threaded_catch_signal, (catcher,)))
-
-        self._join_and_check_status()
+        if not self._is_in_background():
+            # Go through the queue and wait for it to be done
+            self.__polling_thread_command_queue.put((self.__threaded_catch_signal, (catcher,)))
+            self._join_and_check_status()
+        else:
+            # Let's do this ourselves and move on
+            self.__threaded_catch_signal(catcher)
 
         return catcher
 
-    @background_alias(_background_invalid_call)
     @change_state_function_process
     def hijack_signal(
         self: InternalDebugger,
@@ -732,7 +737,6 @@ class InternalDebugger:
 
         return self.catch_signal(original_signal_number, callback, recursive)
 
-    @background_alias(_background_invalid_call)
     @change_state_function_process
     def handle_syscall(
         self: InternalDebugger,
@@ -790,15 +794,18 @@ class InternalDebugger:
 
             link_to_internal_debugger(handler, self)
 
-            self.__polling_thread_command_queue.put(
-                (self.__threaded_handle_syscall, (handler,)),
-            )
-
-            self._join_and_check_status()
+            if not self._is_in_background():
+                # Go through the queue and wait for it to be done
+                self.__polling_thread_command_queue.put(
+                    (self.__threaded_handle_syscall, (handler,)),
+                )
+                self._join_and_check_status()
+            else:
+                # Let's do this ourselves and move on
+                self.__threaded_handle_syscall(handler)
 
         return handler
 
-    @background_alias(_background_invalid_call)
     @change_state_function_process
     def hijack_syscall(
         self: InternalDebugger,
@@ -866,11 +873,15 @@ class InternalDebugger:
 
             link_to_internal_debugger(handler, self)
 
-            self.__polling_thread_command_queue.put(
-                (self.__threaded_handle_syscall, (handler,)),
-            )
-
-            self._join_and_check_status()
+            if not self._is_in_background():
+                # Go through the queue and wait for it to be done
+                self.__polling_thread_command_queue.put(
+                    (self.__threaded_handle_syscall, (handler,)),
+                )
+                self._join_and_check_status()
+            else:
+                # Let's do this ourselves and move on
+                self.__threaded_handle_syscall(handler)
 
         return handler
 
