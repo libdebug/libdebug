@@ -474,7 +474,11 @@ class InternalDebugger:
 
         self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
 
-    @background_alias(_background_invalid_call)
+    def _background_interrupt(self: InternalDebugger) -> None:
+        """Interrupts the process in the background."""
+        self.resume_context.resume = False
+
+    @background_alias(_background_interrupt)
     def interrupt(self: InternalDebugger) -> None:
         """Interrupts the process."""
         if not self.is_debugging:
