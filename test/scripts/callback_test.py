@@ -4,6 +4,8 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+import io
+import logging
 from unittest import TestCase, skipUnless
 from utils.binary_utils import PLATFORM, RESOLVE_EXE
 from utils.thread_utils import FUN_ARG_0
@@ -33,6 +35,20 @@ match PLATFORM:
 class CallbackTest(TestCase):
     def setUp(self):
         self.exceptions = []
+        self.log_capture_string = io.StringIO()
+        self.log_handler = logging.StreamHandler(self.log_capture_string)
+        self.log_handler.setLevel(logging.WARNING)
+
+        self.logger = logging.getLogger("libdebug")
+        self.original_handlers = self.logger.handlers
+        self.logger.handlers = []
+        self.logger.addHandler(self.log_handler)
+        self.logger.setLevel(logging.WARNING)
+
+    def tearDown(self):
+        self.logger.removeHandler(self.log_handler)
+        self.logger.handlers = self.original_handlers
+        self.log_handler.close()
 
     def test_callback_simple(self):
         self.exceptions.clear()
@@ -340,6 +356,113 @@ class CallbackTest(TestCase):
         d.terminate()
 
         self.assertEqual(bp.hit_count, 1)
+
+        if self.exceptions:
+            raise self.exceptions[0]
+
+    def test_raise_exception_in_callback(self):
+        self.exceptions.clear()
+
+        d = debugger(RESOLVE_EXE("basic_test"))
+
+        d.run()
+
+        def callback(_, __):
+            raise Exception("Test exception")
+
+        d.breakpoint("register_test", callback=callback)
+
+        d.cont()
+
+        d.wait()
+
+        d.kill()
+        d.terminate()
+
+        # Check if the error was logged
+        self.log_handler.flush()
+        log_output = self.log_capture_string.getvalue()
+        self.assertIn("Test exception", log_output)
+        self.assertIn("ERROR", log_output)
+
+        if self.exceptions:
+            raise self.exceptions[0]
+
+    def test_interrupt_inside_callback(self):
+        self.exceptions.clear()
+
+        d = debugger(RESOLVE_EXE("multiple_calls"))
+
+        d.run()
+
+        def callback(_, bp):
+            if bp.hit_count == 5:
+                d.interrupt()
+
+        bp = d.breakpoint("printMessage", callback=callback)
+
+        d.cont()
+        d.wait()
+
+        # We should be interrupted here
+        self.assertEqual(bp.hit_count, 5)
+        self.assertFalse(d.dead)
+
+        bp.callback = None
+
+        d.cont()
+        d.wait()
+
+        self.assertEqual(bp.hit_count, 6)
+        self.assertFalse(d.dead)
+
+        bp.callback = callback
+
+        d.cont()
+        d.wait()
+
+        self.assertTrue(d.dead)
+
+        d.kill()
+        d.terminate()
+
+        if self.exceptions:
+            raise self.exceptions[0]
+
+    def test_bp_inside_callback(self):
+        self.exceptions.clear()
+
+        d = debugger(RESOLVE_EXE("backtrace_test"))
+
+        d.run()
+
+        bp2 = None
+        bp3 = None
+
+        def callback(_, bp):
+            nonlocal bp2, bp3
+            if bp.symbol == "function1":
+                bp2 = d.breakpoint("function2")
+                bp3 = d.breakpoint("function3", callback=callback, hardware=True)
+
+        bp1 = d.breakpoint("function1", callback=callback)
+
+        d.cont()
+        d.wait()
+
+        # We should be stopped at function2
+        self.assertEqual(bp1.hit_count, 1)
+        self.assertEqual(bp2.hit_count, 1)
+        self.assertTrue(bp2.hit_on(d))
+
+        d.cont()
+        d.wait()
+
+        self.assertTrue(d.dead)
+        self.assertEqual(bp3.hit_count, 1)
+
+        d.kill()
+        d.terminate()
 
         if self.exceptions:
             raise self.exceptions[0]
