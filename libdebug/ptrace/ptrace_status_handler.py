@@ -147,6 +147,11 @@ class PtraceStatusHandler:
                 liblog.error("Exception raised in on-enter callback for syscall %d: %s", handler.syscall_number, e)
                 self.internal_debugger.resume_context.resume = False
 
+            if not handler.enabled:
+                # The syscall has been disabled by the user, we will never hit the on_exit
+                # so we have to increment the hit count here
+                handler.hit_count += 1
+
             # Check if the syscall number has changed
             syscall_number_after_callback = thread.syscall_number
 
