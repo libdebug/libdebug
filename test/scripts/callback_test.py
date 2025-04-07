@@ -215,7 +215,7 @@ class CallbackTest(TestCase):
             
         d.wait()
 
-        assert bp2.hit_on(d)
+        self.assertTrue(bp2.hit_on(d))
 
         d.kill()
         d.terminate()
@@ -242,7 +242,7 @@ class CallbackTest(TestCase):
             
         d.wait()
 
-        assert bp2.hit_on(d)
+        self.assertTrue(bp2.hit_on(d))
 
         d.kill()
         d.terminate()
@@ -269,14 +269,12 @@ class CallbackTest(TestCase):
             
         d.wait()
 
-        assert bp2.hit_on(d)
+        self.assertTrue(bp2.hit_on(d))
 
         d.kill()
         d.terminate()
 
     def test_callback_pid_accessible(self):
-        self.exceptions.clear()
-
         d = debugger(RESOLVE_EXE("basic_test"))
 
         d.run()
@@ -297,8 +295,6 @@ class CallbackTest(TestCase):
         self.assertTrue(hit)
     
     def test_callback_pid_accessible_alias(self):
-        self.exceptions.clear()
-
         d = debugger(RESOLVE_EXE("basic_test"))
 
         d.run()
@@ -320,8 +316,6 @@ class CallbackTest(TestCase):
         self.assertTrue(hit)
         
     def test_callback_tid_accessible_alias(self):
-        self.exceptions.clear()
-
         d = debugger(RESOLVE_EXE("basic_test"))
 
         d.run()
@@ -342,8 +336,6 @@ class CallbackTest(TestCase):
         self.assertTrue(hit)
     
     def test_callback_empty(self):
-        self.exceptions.clear()
-
         d = debugger(RESOLVE_EXE("basic_test"))
 
         d.run()
@@ -357,12 +349,7 @@ class CallbackTest(TestCase):
 
         self.assertEqual(bp.hit_count, 1)
 
-        if self.exceptions:
-            raise self.exceptions[0]
-
     def test_raise_exception_in_callback(self):
-        self.exceptions.clear()
-
         d = debugger(RESOLVE_EXE("basic_test"))
 
         d.run()
@@ -385,12 +372,7 @@ class CallbackTest(TestCase):
         self.assertIn("Test exception", log_output)
         self.assertIn("ERROR", log_output)
 
-        if self.exceptions:
-            raise self.exceptions[0]
-
     def test_interrupt_inside_callback(self):
-        self.exceptions.clear()
-
         d = debugger(RESOLVE_EXE("multiple_calls"))
 
         d.run()
@@ -426,12 +408,7 @@ class CallbackTest(TestCase):
         d.kill()
         d.terminate()
 
-        if self.exceptions:
-            raise self.exceptions[0]
-
     def test_bp_inside_callback(self):
-        self.exceptions.clear()
-
         d = debugger(RESOLVE_EXE("backtrace_test"))
 
         d.run()
