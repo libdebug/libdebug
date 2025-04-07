@@ -4,6 +4,58 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+def parse_ptrace_data(*args) -> str:
+    """
+    Parse the ptrace data value into a dictionary.
+
+    Args:
+        *args: The arguments passed to the ptrace syscall.
+    """
+    request, pid, addr, data = args
+
+    # Skip any other parsing it's just 0
+    if data == 0:
+        return "0x0"
+
+    PTRACE_SETOPTIONS = 0x4200
+    PTRACE_SEIZE = 0x4206
+
+    if request in (PTRACE_SETOPTIONS, PTRACE_SEIZE):
+        options = {
+            0x1: "PTRACE_O_TRACESYSGOOD",
+            0x2: "PTRACE_O_TRACEFORK",
+            0x4: "PTRACE_O_TRACEVFORK",
+            0x8: "PTRACE_O_TRACECLONE",
+            0x10: "PTRACE_O_TRACEEXEC",
+            0x20: "PTRACE_O_TRACEVFORKDONE",
+            0x40: "PTRACE_O_TRACEEXIT",
+            0x80: "PTRACE_O_TRACESECCOMP",
+            0x100000: "PTRACE_O_EXITKILL",
+            0x200000: "PTRACE_O_SUSPEND_SECCOMP",
+        }
+
+        masked_bits = 0x0
+        out = ""
+
+        for bit, name in options.items():
+            if data & bit:
+                masked_bits |= bit
+                out = out + " | " + name if out else name
+                data &= ~bit
+
+                # Early exit if all bits are masked
+                if not data:
+                    break
+
+        # Unmasked values
+        if data:
+            return out + f" | {data:#x}" if out else f"{data:#x}"
+
+        return out
+    else:
+        return f"{data:#x}"
+
+
 AMD64_SYSCALL_PARSER_MAP = \
 {
 #open
@@ -806,13 +858,60 @@ AMD64_SYSCALL_PARSER_MAP = \
 #ptrace
 101:{
     #long request
-    0: {},
-    #long pid
-    1: {},
-    #unsigned long addr
-    2: {},
+    0: {
+        # Arch-specific
+        0: "PTRACE_TRACEME",
+        1: "PTRACE_PEEKTEXT",
+        2: "PTRACE_PEEKDATA",
+        3: "PTRACE_PEEKUSER",
+        4: "PTRACE_POKETEXT",
+        5: "PTRACE_POKEDATA",
+        6: "PTRACE_POKEUSER",
+        7: "PTRACE_CONT",
+        8: "PTRACE_KILL",
+        9: "PTRACE_SINGLESTEP",
+        16: "PTRACE_ATTACH",
+        17: "PTRACE_DETACH",
+        24: "PTRACE_SYSCALL",
+        12: "PTRACE_GETREGS",
+        13: "PTRACE_SETREGS",
+        14: "PTRACE_GETFPREGS",
+        15: "PTRACE_SETFPREGS",
+        18: "PTRACE_GETFPXREGS",
+        19: "PTRACE_SETFPXREGS",
+        21: "PTRACE_OLDSETOPTIONS",
+        25: "PTRACE_GET_THREAD_AREA",
+        26: "PTRACE_SET_THREAD_AREA",
+        30: "PTRACE_ARCH_PRCTL",
+        31: "PTRACE_SYSEMU",
+        32: "PTRACE_SYSEMU_SINGLESTEP",
+        33: "PTRACE_SINGLEBLOCK",
+        # Arch-independent
+        0x4200: "PTRACE_SETOPTIONS",
+        0x4201: "PTRACE_GETEVENTMSG",
+        0x4202: "PTRACE_GETSIGINFO",
+        0x4203: "PTRACE_SETSIGINFO",
+        0x4204: "PTRACE_GETREGSET",
+        0x4205: "PTRACE_SETREGSET",
+        0x4206: "PTRACE_SEIZE",
+        0x4207: "PTRACE_INTERRUPT",
+        0x4208: "PTRACE_LISTEN",
+        0x4209: "PTRACE_PEEKSIGINFO",
+        0x420a: "PTRACE_GETSIGMASK",
+        0x420b: "PTRACE_SETSIGMASK",
+        0x420c: "PTRACE_SECCOMP_GET_FILTER",
+        0x420d: "PTRACE_SECCOMP_GET_METADATA",
+        0x420e: "PTRACE_GET_SYSCALL_INFO",
+        0x420f: "PTRACE_GET_RSEQ_CONFIGURATION",
+        0x4210: "PTRACE_SET_SYSCALL_USER_DISPATCH_CONFIG",
+        0x4211: "PTRACE_GET_SYSCALL_USER_DISPATCH_CONFIG",
+        "parsing_mode": "sequential",
+    },
     #unsigned long data
-    3: {},
+    3: {
+        "parsing_mode": "custom",
+        "parser": parse_ptrace_data,
+    },
 },
 #syslog
 103:{
