@@ -26,6 +26,7 @@ from libdebug.architectures.call_utilities_provider import call_utilities_provid
 from libdebug.architectures.syscall_hijacker import SyscallHijacker
 from libdebug.builtin.antidebug_syscall_handler import on_enter_ptrace, on_exit_ptrace
 from libdebug.builtin.pretty_print_syscall_handler import (
+    negate_value,
     pprint_on_enter,
     pprint_on_exit,
 )
@@ -1916,9 +1917,28 @@ class InternalDebugger:
         )
         self._join_and_check_status()
 
+        # Compute architectural constants to normalize arguments.
+        max_arg_t_size = get_platform_gp_register_size(self.arch)
+        max_reg_t = 2 ** (max_arg_t_size * 8) - 1
+        min_signed_reg_t = -(2 ** (max_arg_t_size * 8 - 1))
+
         # Set the syscall arguments according to the argument count.
         for i, arg in enumerate(args):
-            setattr(thread, f"syscall_arg{i}", arg)
+            if arg < min_signed_reg_t:
+                raise ValueError(
+                    f"Argument {i} is out of bounds. Negative value cannot be less than {min_signed_reg_t}.",
+                )
+            elif arg < 0:
+                # Compute twos complement
+                normalized_arg = negate_value(-arg, max_arg_t_size)
+            elif arg > max_reg_t:
+                raise ValueError(
+                    f"Argument {i} is out of bounds. Positive value cannot be greater than {max_reg_t}.",
+                )
+            else:
+                normalized_arg = arg
+
+            setattr(thread, f"syscall_arg{i}", normalized_arg)
 
         call_utils = call_utilities_provider(self.arch)
 
@@ -1942,7 +1962,13 @@ class InternalDebugger:
         self.__polling_thread_command_queue.put((self.__threaded_cont_to_syscall, (thread,)))
         self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
 
-        if syscall_number not in self.handled_syscalls:
+        # If not handled or handled syncronously, the status handler will not resume the process
+        # Note: the process stops first on syscall entry, then on syscall exit, thus we need
+        # two continuations
+        if syscall_number not in self.handled_syscalls or (
+            self.handled_syscalls[syscall_number].on_enter_user is None
+            and self.handled_syscalls[syscall_number].on_exit_user is None
+        ):
             self.__polling_thread_command_queue.put((self.__threaded_cont_to_syscall, (thread,)))
             self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
 
@@ -1956,7 +1982,13 @@ class InternalDebugger:
         thread.syscall_number = syscall_number
 
         # Restore the original code.
-        thread.memory[ip, len_patch, "absolute"] = backup_code
+        try:
+            thread.memory[ip, len_patch, "absolute"] = backup_code
+        except RuntimeError as e:
+            raise RuntimeError(
+                "Failed to restore the original instruction after syscall invocation. "
+                "The process likely died during the syscall invocation.",
+            ) from e
 
         # Restore the registers
         self.__polling_thread_command_queue.put(
