@@ -15,6 +15,8 @@ from fcntl import F_GETFL, F_SETFL, fcntl
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from elftools.common.exceptions import ELFError
+
 from libdebug.architectures.call_utilities_provider import call_utilities_provider
 from libdebug.architectures.register_helper import register_holder_provider
 from libdebug.architectures.thread_context_helper import thread_context_class_provider
@@ -466,17 +468,21 @@ class PtraceInterface(DebuggingInterface):
 
         if continue_to_entry_point:
             # Now that the process is running, we must continue until we have reached the entry point
-            entry_point = get_entry_point(self._internal_debugger.path)
+            try:
+                entry_point = get_entry_point(self._internal_debugger.path)
 
-            # For PIE binaries, the entry point is a relative address
-            entry_point = normalize_and_validate_address(entry_point, self.get_maps())
-
-            bp = Breakpoint(entry_point, hardware=True)
-            self.set_breakpoint(bp)
-            self.cont()
-            self.wait()
-
-            self.unset_breakpoint(bp)
+                # For PIE binaries, the entry point is a relative address
+                entry_point = normalize_and_validate_address(entry_point, self.get_maps())
+            except (ValueError, ELFError) as e:
+                # Possibly the ELF is corrupt, or something else went wrong
+                liblog.error(f"Failed to get the entry point for the given binary: {e}")
+            else:
+                # Only if we think we have found a valid entry point location, we attempt to reach it
+                bp = Breakpoint(entry_point, hardware=True)
+                self.set_breakpoint(bp)
+                self.cont()
+                self.wait()
+                self.unset_breakpoint(bp)
 
         invalidate_process_cache()
 
