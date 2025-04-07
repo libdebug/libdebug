@@ -467,11 +467,7 @@ class InternalDebugger:
     @background_alias(_background_invalid_call)
     @change_state_function_process
     def cont(self: InternalDebugger) -> None:
-        """Continues the process.
-
-        Args:
-            auto_wait (bool, optional): Whether to automatically wait for the process to stop after continuing. Defaults to True.
-        """
+        """Continues the process."""
         self.__polling_thread_command_queue.put((self.__threaded_cont, ()))
 
         self._join_and_check_status()
@@ -517,7 +513,6 @@ class InternalDebugger:
     @change_state_function_process
     def maps(self: InternalDebugger) -> MemoryMapList[MemoryMap]:
         """Returns the memory maps of the process."""
-        self._ensure_process_stopped()
         return self.debugging_interface.get_maps()
 
     @property
@@ -528,7 +523,6 @@ class InternalDebugger:
 
     def pprint_maps(self: InternalDebugger) -> None:
         """Prints the memory maps of the process."""
-        self._ensure_process_stopped()
         pprint_maps_util(self.maps)
 
     def pprint_memory(
@@ -888,7 +882,13 @@ class InternalDebugger:
         open_in_new_process: bool = True,
         blocking: bool = True,
     ) -> GdbResumeEvent:
-        """Migrates the current debugging session to GDB."""
+        """Migrates the current debugging session to GDB.
+
+        Args:
+            migrate_breakpoints (bool): Whether to migrate over the breakpoints set in libdebug to GDB.
+            open_in_new_process (bool): Whether to attempt to open GDB in a new process instead of the current one.
+            blocking (bool): Whether to block the script until GDB is closed.
+        """
         # TODO: not needed?
         self.interrupt()
 
@@ -1125,7 +1125,6 @@ class InternalDebugger:
         Args:
             thread (ThreadContext): The thread to step. Defaults to None.
         """
-        self._ensure_process_stopped()
         self.__polling_thread_command_queue.put((self.__threaded_step, (thread,)))
         self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
         self._join_and_check_status()
@@ -1240,7 +1239,6 @@ class InternalDebugger:
     @change_state_function_thread
     def next(self: InternalDebugger, thread: ThreadContext) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
-        self._ensure_process_stopped()
         self.__polling_thread_command_queue.put((self.__threaded_next, (thread,)))
         self._join_and_check_status()
 
@@ -1455,7 +1453,6 @@ class InternalDebugger:
     @property
     def symbols(self: InternalDebugger) -> SymbolList[Symbol]:
         """Get the symbols of the process."""
-        self._ensure_process_stopped()
         backing_files = {vmap.backing_file for vmap in self.maps}
         with extend_internal_debugger(self):
             return get_all_symbols(backing_files)
