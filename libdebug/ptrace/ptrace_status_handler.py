@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
     from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
-    from libdebug.interfaces.debugging_interface import DebuggingInterface
+    from libdebug.ptrace.ptrace_interface import PtraceInterface
     from libdebug.state.thread_context import ThreadContext
 
 
@@ -34,7 +34,7 @@ class PtraceStatusHandler:
     def __init__(self: PtraceStatusHandler) -> None:
         """Initializes the PtraceStatusHandler class."""
         self.internal_debugger = provide_internal_debugger(self)
-        self.ptrace_interface: DebuggingInterface = self.internal_debugger.debugging_interface
+        self.ptrace_interface: PtraceInterface = self.internal_debugger.debugging_interface
         self.forward_signal: bool = True
         self._assume_race_sigstop: bool = (
             True  # Assume the stop is due to a race condition with SIGSTOP sent by the debugger
