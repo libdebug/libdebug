@@ -382,7 +382,7 @@ class CallbackTest(TestCase):
 
         d.breakpoint("option_1", callback=callback)
         d.catch_signal(50, callback=callback)
-        d.handle_syscall("tgkill", on_enter=callback, on_exit=callback)
+        d.handle_syscall("write", on_enter=callback, on_exit=callback)
 
         d.cont()
 
@@ -408,9 +408,9 @@ class CallbackTest(TestCase):
         # We should have printed "Test Exception for SignalCatcher"
         self.assertIn("Test Exception for Signal", log_output)
 
-        # We should have printed "Test Exception for SyscallHandler" twice
+        # We should have printed "Test Exception for SyscallHandler" 82 times
         self.assertIn("Test Exception for Syscall", log_output)
-        self.assertEqual(log_output.count("Test Exception for Syscall"), 2)
+        self.assertEqual(log_output.count("Test Exception for Syscall"), 82)
 
     def test_interrupt_inside_callback(self):
         d = debugger(RESOLVE_EXE("multiple_calls"))
