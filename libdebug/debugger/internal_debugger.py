@@ -29,6 +29,7 @@ from libdebug.builtin.pretty_print_syscall_handler import (
     pprint_on_exit,
 )
 from libdebug.data.breakpoint import Breakpoint
+from libdebug.data.gdb_migration_signal import GdbMigrationSignal
 from libdebug.data.gdb_resume_event import GdbResumeEvent
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
@@ -889,7 +890,38 @@ class InternalDebugger:
 
         return handler
 
-    @background_alias(_background_invalid_call)
+    def _background_gdb(
+        self: InternalDebugger,
+        migrate_breakpoints: bool = True,
+        open_in_new_process: bool = True,
+        blocking: bool = True,
+    ) -> None:
+        """Migrates the current debugging session to GDB.
+
+        Args:
+            migrate_breakpoints (bool): Whether to migrate over the breakpoints set in libdebug to GDB.
+            open_in_new_process (bool): Whether to attempt to open GDB in a new process instead of the current one.
+            blocking (bool): Whether to block the script until GDB is closed.
+        """
+        if not blocking:
+            raise RuntimeError("Non-blocking GDB migration is not supported inside callbacks.")
+
+        liblog.warning("Migrating to GDB from a callback. Execution will not resume automatically after GDB is closed.")
+        self.resume_context.resume = False
+
+        # We are forced to raise a custom exception here, otherwise the rest of the code in the
+        # callback will be executed before the GDB migration happens.
+        raise GdbMigrationSignal(migrate_breakpoints, open_in_new_process)
+
+    def _handle_gdb_migration_signal(self: InternalDebugger, signal: GdbMigrationSignal) -> None:
+        """Handles the GDB migration signal raised by a callback.
+
+        Args:
+            signal (GdbMigrationSignal): The signal to handle.
+        """
+        self.gdb(signal.migrate_breakpoints, signal.open_in_new_process)
+
+    @background_alias(_background_gdb)
     @change_state_function_process
     def gdb(
         self: InternalDebugger,
@@ -1502,7 +1534,10 @@ class InternalDebugger:
             response = self.__polling_thread_response_queue.get()
             self.__polling_thread_response_queue.task_done()
             if response is not None:
-                raise response
+                if isinstance(response, GdbMigrationSignal):
+                    self._handle_gdb_migration_signal(response)
+                else:
+                    raise response
 
     @functools.cached_property
     def _process_full_path(self: InternalDebugger) -> str:
@@ -1581,11 +1616,19 @@ class InternalDebugger:
                 liblog.debugger("All threads dead")
                 break
             self.resume_context.resume = True
-            self.debugging_interface.wait()
+
+            try:
+                self.debugging_interface.wait()
+            except GdbMigrationSignal as e:
+                # We must set the process as stopped before re-raising the exception
+                self.set_stopped()
+                raise e # noqa: TRY201
+
             if self.resume_context.resume:
                 self.debugging_interface.cont()
             else:
                 break
+
         self.set_stopped()
 
     def __threaded_breakpoint(self: InternalDebugger, bp: Breakpoint) -> None:
