@@ -113,3 +113,52 @@ d.gdb()
 assert len([t for t in d.threads if t.dead]) > 1
 
 d.kill()
+
+
+"""
+Test for GDB migration inside a callback.
+"""
+d = debugger("../binaries/amd64/backtrace_test")
+
+d.run()
+
+line_called = False
+
+def callback_1(_, __):
+    global line_called
+
+    d.gdb()
+
+    # If we ever hit this line, the behavior is wrong
+    line_called = True
+
+line_called_2 = False
+
+def callback_2(_, __):
+    global line_called_2
+
+    # We expect this callback to be hit
+    line_called_2 = True
+
+bp1 = d.bp("function1", callback=callback_1)
+bp2 = d.bp("function3", callback=callback_2)
+
+d.cont()
+
+d.wait()
+
+# d.gdb() should have been called from the callback.
+# Do steps, anything, before reaching function3
+
+assert bp1.hit_count == 1
+assert bp2.hit_count == 0
+
+# We now issue a continue again
+d.cont()
+
+d.wait()
+
+assert bp1.hit_count == 1
+assert bp2.hit_count == 1
+
+d.kill()
