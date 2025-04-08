@@ -349,7 +349,7 @@ class CallbackTest(TestCase):
 
         self.assertEqual(bp.hit_count, 1)
 
-    def test_raise_exception_in_callback(self):
+    def test_raise_exception_in_bp_callback(self):
         d = debugger(RESOLVE_EXE("basic_test"))
 
         d.run()
@@ -371,6 +371,46 @@ class CallbackTest(TestCase):
         log_output = self.log_capture_string.getvalue()
         self.assertIn("Test exception", log_output)
         self.assertIn("ERROR", log_output)
+
+    def test_raise_exception_in_all_callbacks(self):
+        d = debugger(RESOLVE_EXE("run_pipes_test"))
+
+        r = d.run()
+
+        def callback(_, x):
+            raise Exception(f"Test Exception for {type(x).__name__}")
+
+        d.breakpoint("option_1", callback=callback)
+        d.catch_signal(50, callback=callback)
+        d.handle_syscall("tgkill", on_enter=callback, on_exit=callback)
+
+        d.cont()
+
+        r.sendline(b"3")
+        r.sendline(b"1")
+        r.sendline(b"4")
+
+        d.wait()
+
+        while not d.dead:
+            d.cont()
+            d.wait()
+
+        d.kill()
+        d.terminate()
+
+        self.log_handler.flush()
+        log_output = self.log_capture_string.getvalue()
+
+        # We should have printed "Test Exception for Breakpoint"
+        self.assertIn("Test Exception for Breakpoint", log_output)
+
+        # We should have printed "Test Exception for SignalCatcher"
+        self.assertIn("Test Exception for Signal", log_output)
+
+        # We should have printed "Test Exception for SyscallHandler" twice
+        self.assertIn("Test Exception for Syscall", log_output)
+        self.assertEqual(log_output.count("Test Exception for Syscall"), 2)
 
     def test_interrupt_inside_callback(self):
         d = debugger(RESOLVE_EXE("multiple_calls"))
