@@ -2957,9 +2957,11 @@ I386_SYSCALL_PARSER_MAP = \
 #arch_prctl
 384:{
     #int option
-    0: {},
-    #unsigned long arg2
-    1: {},
+    0: {
+        0x1011: "ARCH_GET_CPUID",
+        0x1012: "ARCH_SET_CPUID",
+        "parsing_mode": "sequential",
+    },
 },
 #io_pgetevents
 385:{

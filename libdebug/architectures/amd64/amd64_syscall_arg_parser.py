@@ -193,6 +193,7 @@ AMD64_SYSCALL_PARSER_MAP = \
         29: "SIGIO / SIGPOLL",
         30: "SIGPWR",
         31: "SIGSYS",
+        "parsing_mode": "sequential",
     },
 },
 #rt_sigprocmask
@@ -626,6 +627,7 @@ AMD64_SYSCALL_PARSER_MAP = \
         29: "SIGIO / SIGPOLL",
         30: "SIGPWR",
         31: "SIGSYS",
+        "parsing_mode": "sequential",
     },
 },
 # #semget
@@ -916,668 +918,678 @@ AMD64_SYSCALL_PARSER_MAP = \
 #syslog
 103:{
     #int type
-    0: {},
-    #char *buf
-    1: {},
-    #int len
-    2: {},
-},
-#capget
-125:{
-    #cap_user_header_t header
-    0: {},
-    #cap_user_data_t dataptr
-    1: {},
-},
-#capset
-126:{
-    #cap_user_header_t header
-    0: {},
-    #const cap_user_data_t data
-    1: {},
-},
-#rt_sigpending
-127:{
-    #sigset_t *uset
-    0: {},
-    #size_t sigsetsize
-    1: {},
-},
-#rt_sigtimedwait
-128:{
-    #const sigset_t *uthese
-    0: {},
-    #siginfo_t *uinfo
-    1: {},
-    #const struct __kernel_timespec *uts
-    2: {},
-    #size_t sigsetsize
-    3: {},
+    0: {
+        0: "SYSLOG_ACTION_CLOSE",
+        1: "SYSLOG_ACTION_OPEN",
+        2: "SYSLOG_ACTION_READ",
+        3: "SYSLOG_ACTION_READ_ALL",
+        4: "SYSLOG_ACTION_READ_CLEAR",
+        5: "SYSLOG_ACTION_CLEAR",
+        6: "SYSLOG_ACTION_CONSOLE_OFF",
+        7: "SYSLOG_ACTION_CONSOLE_ON",
+        8: "SYSLOG_ACTION_CONSOLE_LEVEL",
+        9: "SYSLOG_ACTION_SIZE_UNREAD",
+        10: "SYSLOG_ACTION_SIZE_BUFFER",
+        "parsing_mode": "sequential",
+    },
 },
 #rt_sigqueueinfo
 129:{
-    #pid_t pid
-    0: {},
     #int sig
-    1: {},
-    #siginfo_t *uinfo
-    2: {},
-},
-#rt_sigsuspend
-130:{
-    #sigset_t *unewset
-    0: {},
-    #size_t sigsetsize
-    1: {},
-},
-#sigaltstack
-131:{
-    #const stack_t *uss
-    0: {},
-    #stack_t *uoss
-    1: {},
+    1: {
+        1: "SIGHUP",
+        2: "SIGINT",
+        3: "SIGQUIT",
+        4: "SIGILL",
+        5: "SIGTRAP",
+        6: "SIGABRT / SIGIOT",
+        7: "SIGBUS",
+        8: "SIGFPE",
+        9: "SIGKILL",
+        10: "SIGUSR1",
+        11: "SIGSEGV",
+        12: "SIGUSR2",
+        13: "SIGPIPE",
+        14: "SIGALRM",
+        15: "SIGTERM",
+        16: "SIGSTKFLT",
+        17: "SIGCHLD",
+        18: "SIGCONT",
+        19: "SIGSTOP",
+        20: "SIGTSTP",
+        21: "SIGTTIN",
+        22: "SIGTTOU",
+        23: "SIGURG",
+        24: "SIGXCPU",
+        25: "SIGXFSZ",
+        26: "SIGVTALRM",
+        27: "SIGPROF",
+        28: "SIGWINCH",
+        29: "SIGIO / SIGPOLL",
+        30: "SIGPWR",
+        31: "SIGSYS",
+        "parsing_mode": "sequential",
+    },
 },
 #mknod
 133:{
-    #const char *filename
-    0: {},
     #umode_t mode
-    1: {},
-    #unsigned dev
-    2: {},
+    1: {
+        # Permissions
+        0o00700: "S_IRWXU",
+        0o00400: "S_IRUSR",
+        0o00200: "S_IWUSR",
+        0o00100: "S_IXUSR",
+        0o00070: "S_IRWXG",
+        0o00040: "S_IRGRP",
+        0o00020: "S_IWGRP",
+        0o00010: "S_IXGRP",
+        0o00007: "S_IRWXO",
+        0o00004: "S_IROTH",
+        0o00002: "S_IWOTH",
+        0o00001: "S_IXOTH",
+        0o0004000: "S_ISUID",
+        0o0002000: "S_ISGID",
+        0o0001000: "S_ISVTX",
+        # File type
+        0o100000: "S_IFREG",
+        0o020000: "S_IFCHR",
+        0o060000: "S_IFBLK",
+        0o010000: "S_IFIFO",
+        0o140000: "S_IFSOCK",
+    },
 },
 #personality
 135:{
     #unsigned int personality
-    0: {},
-},
-#ustat
-136:{
-    #unsigned dev
-    0: {},
-    #struct ustat *ubuf
-    1: {},
-},
-#sysfs
-139:{
-    #int option
-    0: {},
-    #unsigned long arg1
-    1: {},
-    #unsigned long arg2
-    2: {},
+    0: {
+        0x0200000: "ADDR_COMPAT_LAYOUT",
+        0x0040000: "ADDR_NO_RANDOMIZE",
+        0x0800000: "PER_LINUX_32BIT | ADDR_LIMIT_32BIT",
+        0x8000000: "ADDR_LIMIT_3GB",
+        0x0080000: "PER_LINUX_FDPIC | FDPIC_FUNCPTRS", # TODO: Applies only to ARM and SuperH
+        0x0100000: "MMAP_PAGE_ZERO",
+        0x0400000: "READ_IMPLIES_EXEC",
+        0x1000000: "SHORT_INODE",
+        0x4000000: "STICKY_TIMEOUTS",
+        0x0020000: "UNAME26",
+        0x2000000: "WHOLE_SECONDS",
+        0x0006: "PER_BSD",
+        0x0010: "PER_HPUX",
+        0x4000009: "PER_IRIX32",
+        0x400000b: "PER_IRIX64",
+        0x400000a: "PER_IRIXN32",
+        0x4000005: "PER_ISCR4",
+        0x0000000: "PER_LINUX",
+        0x0000008: "PER_LINUX32",
+        0x8000008: "PER_LINUX32_3GB",
+        0x000f: "PER_OSF4",
+        0x0000000c: "PER_RISCOS",
+        0x07000003: "PER_SCOSVR3",
+        0x0400000d: "PER_SOLARIS",
+        0x04000006: "PER_SUNOS",
+        0x05000002: "PER_SVR3",
+        0x04100001: "PER_SVR4",
+        0x0410000e: "PER_UW7",
+        0x05000004: "PER_WYSEV386",
+        0x05000007: "PER_XENIX",
+    },
 },
 #getpriority
 140:{
     #int which
-    0: {},
-    #int who
-    1: {},
+    0: {
+        0: "PRIO_PROCESS",
+        1: "PRIO_PGRP",
+        2: "PRIO_USER",
+        "parsing_mode": "sequential",
+    },
 },
 #setpriority
 141:{
     #int which
-    0: {},
-    #int who
-    1: {},
-    #int niceval
-    2: {},
-},
-#sched_setparam
-142:{
-    #pid_t pid
-    0: {},
-    #struct sched_param *param
-    1: {},
-},
-#sched_getparam
-143:{
-    #pid_t pid
-    0: {},
-    #struct sched_param *param
-    1: {},
+    0: {
+        0: "PRIO_PROCESS",
+        1: "PRIO_PGRP",
+        2: "PRIO_USER",
+        "parsing_mode": "sequential",
+    },
 },
 #sched_setscheduler
 144:{
-    #pid_t pid
-    0: {},
     #int policy
-    1: {},
-    #struct sched_param *param
-    2: {},
-},
-#sched_getscheduler
-145:{
-    #pid_t pid
-    0: {},
+    1: {
+        0: "SCHED_NORMAL",
+        1: "SCHED_FIFO",
+        2: "SCHED_RR",
+        3: "SCHED_BATCH",
+        5: "SCHED_IDLE",
+        6: "SCHED_DEADLINE",
+        7: "SCHED_EXT",
+        "parsing_mode": "sequential",
+    },
 },
 #sched_get_priority_max
 146:{
     #int policy
-    0: {},
+    0: {
+        0: "SCHED_NORMAL",
+        1: "SCHED_FIFO",
+        2: "SCHED_RR",
+        3: "SCHED_BATCH",
+        5: "SCHED_IDLE",
+        6: "SCHED_DEADLINE",
+        7: "SCHED_EXT",
+        "parsing_mode": "sequential",
+    },
 },
 #sched_get_priority_min
 147:{
     #int policy
-    0: {},
-},
-#sched_rr_get_interval
-148:{
-    #pid_t pid
-    0: {},
-    #struct __kernel_timespec *interval
-    1: {},
+    0: {
+        0: "SCHED_NORMAL",
+        1: "SCHED_FIFO",
+        2: "SCHED_RR",
+        3: "SCHED_BATCH",
+        5: "SCHED_IDLE",
+        6: "SCHED_DEADLINE",
+        7: "SCHED_EXT",
+        "parsing_mode": "sequential",
+    },
 },
 #mlockall
 151:{
     #int flags
-    0: {},
-},
-#modify_ldt
-154:{
-    #int func
-    0: {},
-    #void *ptr
-    1: {},
-    #unsigned long bytecount
-    2: {},
+    0: {
+        0x00000001: "MCL_CURRENT",
+        0x00000002: "MCL_FUTURE",
+        0x00000004: "MCL_ONFAULT",
+    },
 },
 #prctl
 157:{
     #int option
-    0: {},
-    #unsigned long arg2
-    1: {},
-    #unsigned long arg3
-    2: {},
-    #unsigned long arg4
-    3: {},
-    #unsigned long arg5
-    4: {},
+    0: {
+        0x0000002F: "PR_CAP_AMBIENT",
+        0x00000017: "PR_CAPBSET_READ",
+        0x00000018: "PR_CAPBSET_DROP",
+        0x00000024: "PR_SET_CHILD_SUBREAPER",
+        0x00000025: "PR_GET_CHILD_SUBREAPER",
+        0x00000004: "PR_SET_DUMPABLE",
+        0x00000003: "PR_GET_DUMPABLE",
+        0x00000014: "PR_SET_ENDIAN",
+        0x00000013: "PR_GET_ENDIAN",
+        0x0000002D: "PR_SET_FP_MODE",
+        0x0000002E: "PR_GET_FP_MODE",
+        0x0000000A: "PR_SET_FPEMU",
+        0x00000009: "PR_GET_FPEMU",
+        0x0000000C: "PR_SET_FPEXC",
+        0x0000000B: "PR_GET_FPEXC",
+        0x00000039: "PR_SET_IO_FLUSHER",
+        0x0000003A: "PR_GET_IO_FLUSHER",
+        0x00000008: "PR_SET_KEEPCAPS",
+        0x00000007: "PR_GET_KEEPCAPS",
+        0x00000021: "PR_MCE_KILL",
+        0x00000022: "PR_MCE_KILL_GET",
+        0x00000023: "PR_SET_MM",
+        0x53564D41: "PR_SET_VMA",
+        0x0000002B: "PR_MPX_ENABLE_MANAGEMENT",
+        0x0000002C: "PR_MPX_DISABLE_MANAGEMENT",
+        0x0000000F: "PR_SET_NAME",
+        0x00000010: "PR_GET_NAME",
+        0x00000026: "PR_SET_NO_NEW_PRIVS",
+        0x00000027: "PR_GET_NO_NEW_PRIVS",
+        0x00000036: "PR_PAC_RESET_KEYS",
+        0x00000001: "PR_SET_PDEATHSIG",
+        0x00000002: "PR_GET_PDEATHSIG",
+        0x59616D61: "PR_SET_PTRACER",
+        0x00000016: "PR_SET_SECCOMP",
+        0x00000015: "PR_GET_SECCOMP",
+        0x0000001C: "PR_SET_SECUREBITS",
+        0x0000001B: "PR_GET_SECUREBITS",
+        0x00000034: "PR_GET_SPECULATION_CTRL",
+        0x00000035: "PR_SET_SPECULATION_CTRL",
+        0x00000032: "PR_SVE_SET_VL",
+        0x00000033: "PR_SVE_GET_VL",
+        0x0000003B: "PR_SET_SYSCALL_USER_DISPATCH",
+        0x00000037: "PR_SET_TAGGED_ADDR_CTRL",
+        0x00000038: "PR_GET_TAGGED_ADDR_CTRL",
+        0x0000001F: "PR_TASK_PERF_EVENTS_DISABLE",
+        0x00000020: "PR_TASK_PERF_EVENTS_ENABLE",
+        0x00000029: "PR_SET_THP_DISABLE",
+        0x0000002A: "PR_GET_THP_DISABLE",
+        0x00000028: "PR_GET_TID_ADDRESS",
+        0x0000001D: "PR_SET_TIMERSLACK",
+        0x0000001E: "PR_GET_TIMERSLACK",
+        0x0000000E: "PR_SET_TIMING",
+        0x0000000D: "PR_GET_TIMING",
+        0x0000001A: "PR_SET_TSC",
+        0x00000019: "PR_GET_TSC",
+        0x00000006: "PR_SET_UNALIGN",
+        0x00000005: "PR_GET_UNALIGN",
+        0x41555856: "PR_GET_AUXV",
+        0x00000041: "PR_SET_MDWE",
+        0x00000042: "PR_GET_MDWE",
+        0x00000047: "PR_RISCV_SET_ICACHE_FLUSH_CTX",
+        "parsing_mode": "sequential",
+    },
 },
 #arch_prctl
 158:{
     #int option
-    0: {},
-    #unsigned long arg2
-    1: {},
+    0: {
+        0x1001: "ARCH_SET_GS",
+        0x1002: "ARCH_SET_FS",
+        0x1003: "ARCH_GET_FS",
+        0x1004: "ARCH_GET_GS",
+        0x1011: "ARCH_GET_CPUID",
+        0x1012: "ARCH_SET_CPUID",
+        # From linux / arch / x86 / include / uapi / asm / prctl.h
+        # Undocumented, unsure if they should be included
+        #define ARCH_GET_XCOMP_SUPP		0x1021
+        #define ARCH_GET_XCOMP_PERM		0x1022
+        #define ARCH_REQ_XCOMP_PERM		0x1023
+        #define ARCH_GET_XCOMP_GUEST_PERM	0x1024
+        #define ARCH_REQ_XCOMP_GUEST_PERM	0x1025
+
+        #define ARCH_XCOMP_TILECFG		17
+        #define ARCH_XCOMP_TILEDATA		18
+
+        #define ARCH_MAP_VDSO_X32		0x2001
+        #define ARCH_MAP_VDSO_32		0x2002
+        #define ARCH_MAP_VDSO_64		0x2003
+
+        # /* Don't use 0x3001-0x3004 because of old glibcs */
+
+        #define ARCH_GET_UNTAG_MASK		0x4001
+        #define ARCH_ENABLE_TAGGED_ADDR		0x4002
+        #define ARCH_GET_MAX_TAG_BITS		0x4003
+        #define ARCH_FORCE_TAGGED_SVA		0x4004
+
+        #define ARCH_SHSTK_ENABLE		0x5001
+        #define ARCH_SHSTK_DISABLE		0x5002
+        #define ARCH_SHSTK_LOCK			0x5003
+        #define ARCH_SHSTK_UNLOCK		0x5004
+        #define ARCH_SHSTK_STATUS		0x5005
+    },
 },
 #setrlimit
 160:{
     #unsigned int resource
-    0: {},
-    #struct rlimit *rlim
-    1: {},
+    0: {
+        0: "RLIMIT_CPU",
+        1: "RLIMIT_FSIZE",
+        2: "RLIMIT_DATA",
+        3: "RLIMIT_STACK",
+        4: "RLIMIT_CORE",
+        5: "RLIMIT_RSS",
+        6: "RLIMIT_NPROC",
+        7: "RLIMIT_NOFILE",
+        8: "RLIMIT_MEMLOCK",
+        9: "RLIMIT_AS",
+        10: "RLIMIT_LOCKS",
+        11: "RLIMIT_SIGPENDING",
+        12: "RLIMIT_MSGQUEUE",
+        13: "RLIMIT_NICE",
+        14: "RLIMIT_RTPRIO",
+        15: "RLIMIT_RTTIME",
+    },
 },
 #mount
 165:{
-    #char *dev_name
-    0: {},
-    #char *dir_name
-    1: {},
-    #char *type
-    2: {},
     #unsigned long flags
-    3: {},
-    #void *data
-    4: {},
+    3: {
+        0x00000001: "MS_RDONLY",
+        0x00000002: "MS_NOSUID",
+        0x00000004: "MS_NODEV",
+        0x00000008: "MS_NOEXEC",
+        0x00000010: "MS_SYNCHRONOUS",
+        0x00000020: "MS_REMOUNT",
+        0x00000040: "MS_MANDLOCK",
+        0x00000080: "MS_DIRSYNC",
+        0x00000100: "MS_NOSYMFOLLOW",
+        0x00000400: "MS_NOATIME",
+        0x00000800: "MS_NODIRATIME",
+        0x00001000: "MS_BIND",
+        0x00002000: "MS_MOVE",
+        0x00004000: "MS_REC",
+        # 0x00008000: "MS_VERBOSE", /* War is peace. Verbosity is silence. MS_VERBOSE is deprecated. */
+        0x00008000: "MS_SILENT",
+        0x00010000: "MS_POSIXACL",
+        0x00020000: "MS_UNBINDABLE",
+        0x00040000: "MS_PRIVATE",
+        0x00080000: "MS_SLAVE",
+        0x00100000: "MS_SHARED",
+        0x00200000: "MS_RELATIME",
+        0x00400000: "MS_KERNMOUNT",
+        0x00800000: "MS_I_VERSION",
+        0x01000000: "MS_STRICTATIME",
+        0x02000000: "MS_LAZYTIME",
+    },
 },
 #umount
 166:{
-    #char *name
-    0: {},
     #int flags
-    1: {},
+    1: {
+        0x00000001: "MNT_FORCE",
+        0x00000002: "MNT_DETACH",
+        0x00000004: "MNT_EXPIRE",
+        0x00000008: "UMOUNT_NOFOLLOW",
+        0x80000000: "UMOUNT_UNUSED",
+    },
 },
 #swapon
 167:{
-    #const char *specialfile
-    0: {},
     #int swap_flags
-    1: {},
-},
-#swapoff
-168:{
-    #const char *specialfile
-    0: {},
+    1: {
+        0x8000: "SWAP_FLAG_PREFER",
+        0x10000: "SWAP_FLAG_DISCARD",
+    },
 },
 #reboot
 169:{
     #int magic1
-    0: {},
+    0: {
+        0xfee1dead: "LINUX_REBOOT_MAGIC1",
+        "parsing_mode": "sequential",
+    },
     #int magic2
-    1: {},
+    1: {
+        672274793: "LINUX_REBOOT_MAGIC2",
+        85072278: "LINUX_REBOOT_MAGIC2A",
+        369367448: "LINUX_REBOOT_MAGIC2B",
+        537993216: "LINUX_REBOOT_MAGIC2C",
+        "parsing_mode": "sequential",
+    },
     #unsigned int cmd
-    2: {},
-    #void *arg
-    3: {},
-},
-#iopl
-172:{
-    #unsigned int level
-    0: {},
-},
-#ioperm
-173:{
-    #unsigned long from
-    0: {},
-    #unsigned long num
-    1: {},
-    #int turn_on
-    2: {},
-},
-#init_module
-175:{
-    #void *umod
-    0: {},
-    #unsigned long len
-    1: {},
-    #const char *uargs
-    2: {},
+    2: {
+        0x01234567: "LINUX_REBOOT_CMD_RESTART",
+        0xCDEF0123: "LINUX_REBOOT_CMD_HALT",
+        0x89ABCDEF: "LINUX_REBOOT_CMD_CAD_ON",
+        0x00000000: "LINUX_REBOOT_CMD_CAD_OFF",
+        0x4321FEDC: "LINUX_REBOOT_CMD_POWER_OFF",
+        0xA1B2C3D4: "LINUX_REBOOT_CMD_RESTART2",
+        0xD000FCE2: "LINUX_REBOOT_CMD_SW_SUSPEND",
+        0x45584543: "LINUX_REBOOT_CMD_KEXEC",
+        "parsing_mode": "sequential",
+    },
 },
 #delete_module
 176:{
-    #const char *name_user
-    0: {},
     #unsigned int flags
-    1: {},
+    1: {
+        0o0004000: "O_NONBLOCK",
+        0o0001000: "O_TRUNC",
+    },
 },
 #quotactl
 179:{
     #unsigned int cmd
-    0: {},
-    #const char *special
-    1: {},
-    #qid_t id
-    2: {},
-    #void *addr
-    3: {},
-},
-#readahead
-187:{
-    #int fd
-    0: {},
-    #loff_t offset
-    1: {},
-    #size_t count
-    2: {},
+    0: {
+        0: "USRQUOTA",
+        1: "GRPQUOTA",
+        2: "PRJQUOTA",
+        0x80000100: "Q_SYNC",
+        0x80000200: "Q_QUOTAON",
+        0x80000300: "Q_QUOTAOFF",
+        0x80000400: "Q_GETFMT",
+        0x80000500: "Q_GETINFO",
+        0x80000600: "Q_SETINFO",
+        0x80000700: "Q_GETQUOTA",
+        0x80000800: "Q_SETQUOTA",
+        0x80000900: "Q_GETNEXTQUOTA",
+    },
+    # Technically if cmd is Q_QUOTAON,
+    # we could parse the ID with QFMT defines but
+    # it's likely not worth it
 },
 #setxattr
 188:{
-    #const char *pathname
-    0: {},
-    #const char *name
-    1: {},
-    #const void *value
-    2: {},
-    #size_t size
-    3: {},
     #int flags
-    4: {},
+    4: {
+        0x00000001: "XATTR_CREATE",
+        0x00000002: "XATTR_REPLACE",
+        "parsing_mode": "sequential",
+    },
 },
 #lsetxattr
 189:{
-    #const char *pathname
-    0: {},
-    #const char *name
-    1: {},
-    #const void *value
-    2: {},
-    #size_t size
-    3: {},
     #int flags
-    4: {},
+    4: {
+        0x00000001: "XATTR_CREATE",
+        0x00000002: "XATTR_REPLACE",
+        "parsing_mode": "sequential",
+    },
 },
 #fsetxattr
 190:{
-    #int fd
-    0: {},
-    #const char *name
-    1: {},
-    #const void *value
-    2: {},
-    #size_t size
-    3: {},
     #int flags
-    4: {},
-},
-#getxattr
-191:{
-    #const char *pathname
-    0: {},
-    #const char *name
-    1: {},
-    #void *value
-    2: {},
-    #size_t size
-    3: {},
-},
-#lgetxattr
-192:{
-    #const char *pathname
-    0: {},
-    #const char *name
-    1: {},
-    #void *value
-    2: {},
-    #size_t size
-    3: {},
-},
-#fgetxattr
-193:{
-    #int fd
-    0: {},
-    #const char *name
-    1: {},
-    #void *value
-    2: {},
-    #size_t size
-    3: {},
-},
-#listxattr
-194:{
-    #const char *pathname
-    0: {},
-    #char *list
-    1: {},
-    #size_t size
-    2: {},
-},
-#llistxattr
-195:{
-    #const char *pathname
-    0: {},
-    #char *list
-    1: {},
-    #size_t size
-    2: {},
-},
-#flistxattr
-196:{
-    #int fd
-    0: {},
-    #char *list
-    1: {},
-    #size_t size
-    2: {},
-},
-#removexattr
-197:{
-    #const char *pathname
-    0: {},
-    #const char *name
-    1: {},
-},
-#lremovexattr
-198:{
-    #const char *pathname
-    0: {},
-    #const char *name
-    1: {},
-},
-#fremovexattr
-199:{
-    #int fd
-    0: {},
-    #const char *name
-    1: {},
+    4: {
+        0x00000001: "XATTR_CREATE",
+        0x00000002: "XATTR_REPLACE",
+        "parsing_mode": "sequential",
+    },
 },
 #tkill
 200:{
-    #pid_t pid
-    0: {},
     #int sig
-    1: {},
-},
-#time
-201:{
-    #__kernel_old_time_t *tloc
-    0: {},
-},
+    1: {
+        1: "SIGHUP",
+        2: "SIGINT",
+        3: "SIGQUIT",
+        4: "SIGILL",
+        5: "SIGTRAP",
+        6: "SIGABRT / SIGIOT",
+        7: "SIGBUS",
+        8: "SIGFPE",
+        9: "SIGKILL",
+        10: "SIGUSR1",
+        11: "SIGSEGV",
+        12: "SIGUSR2",
+        13: "SIGPIPE",
+        14: "SIGALRM",
+        15: "SIGTERM",
+        16: "SIGSTKFLT",
+        17: "SIGCHLD",
+        18: "SIGCONT",
+        19: "SIGSTOP",
+        20: "SIGTSTP",
+        21: "SIGTTIN",
+        22: "SIGTTOU",
+        23: "SIGURG",
+        24: "SIGXCPU",
+        25: "SIGXFSZ",
+        26: "SIGVTALRM",
+        27: "SIGPROF",
+        28: "SIGWINCH",
+        29: "SIGIO / SIGPOLL",
+        30: "SIGPWR",
+        31: "SIGSYS",
+        "parsing_mode": "sequential",
+    },
 #futex
 202:{
-    #u32 *uaddr
-    0: {},
     #int op
-    1: {},
-    #u32 val
-    2: {},
-    #const struct __kernel_timespec *utime
-    3: {},
-    #u32 *uaddr2
-    4: {},
-    #u32 val3
-    5: {},
-},
-#sched_setaffinity
-203:{
-    #pid_t pid
-    0: {},
-    #unsigned int len
-    1: {},
-    #unsigned long *user_mask_ptr
-    2: {},
-},
-#sched_getaffinity
-204:{
-    #pid_t pid
-    0: {},
-    #unsigned int len
-    1: {},
-    #unsigned long *user_mask_ptr
-    2: {},
-},
-#io_setup
-206:{
-    #unsigned nr_events
-    0: {},
-    #aio_context_t *ctxp
-    1: {},
-},
-#io_destroy
-207:{
-    #aio_context_t ctx
-    0: {},
-},
-#io_getevents
-208:{
-    #aio_context_t ctx_id
-    0: {},
-    #long min_nr
-    1: {},
-    #long nr
-    2: {},
-    #struct io_event *events
-    3: {},
-    #struct __kernel_timespec *timeout
-    4: {},
-},
-#io_submit
-209:{
-    #aio_context_t ctx_id
-    0: {},
-    #long nr
-    1: {},
-    #struct iocb **iocbpp
-    2: {},
-},
-#io_cancel
-210:{
-    #aio_context_t ctx_id
-    0: {},
-    #struct iocb *iocb
-    1: {},
-    #struct io_event *result
-    2: {},
-},
-#epoll_create
-213:{
-    #int size
-    0: {},
+    1: {
+        "sequential_flags": {
+            0: "FUTEX_WAIT",
+            1: "FUTEX_WAKE",
+            2: "FUTEX_FD",
+            3: "FUTEX_REQUEUE",
+            4: "FUTEX_CMP_REQUEUE",
+            5: "FUTEX_WAKE_OP",
+            6: "FUTEX_LOCK_PI",
+            7: "FUTEX_UNLOCK_PI",
+            8: "FUTEX_TRYLOCK_PI",
+            9: "FUTEX_WAIT_BITSET",
+            10: "FUTEX_WAKE_BITSET",
+            11: "FUTEX_WAIT_REQUEUE_PI",
+            12: "FUTEX_CMP_REQUEUE_PI",
+            13: "FUTEX_LOCK_PI2",
+        },
+        "or_flags": {
+            128: "FUTEX_PRIVATE_FLAG",
+            256: "FUTEX_CLOCK_REALTIME",
+        },
+        "parsing_mode": "mixed",
+    },
 },
 #remap_file_pages
 216:{
-    #unsigned long start
-    0: {},
-    #unsigned long size
-    1: {},
-    #unsigned long prot
-    2: {},
-    #unsigned long pgoff
-    3: {},
     #unsigned long flags
-    4: {},
-},
-#getdents64
-217:{
-    #unsigned int fd
-    0: {},
-    #struct linux_dirent64 *dirent
-    1: {},
-    #unsigned int count
-    2: {},
-},
-#set_tid_address
-218:{
-    #int *tidptr
-    0: {},
-},
-#restart_syscall
-219:{
-},
-#semtimedop
-220:{
-    #int semid
-    0: {},
-    #struct sembuf *tsops
-    1: {},
-    #unsigned int nsops
-    2: {},
-    #const struct __kernel_timespec *timeout
-    3: {},
+    4: {
+        # All flags other that MAP_NONBLOCK are ignored
+        0x00010000: "MAP_NONBLOCK",
+    },
 },
 #fadvise64
 221:{
-    #int fd
-    0: {},
-    #loff_t offset
-    1: {},
-    #size_t len
-    2: {},
-    #int advice
-    3: {},
-},
-#timer_create
-222:{
-    #const clockid_t which_clock
-    0: {},
-    #struct sigevent *timer_event_spec
-    1: {},
-    #timer_t *created_timer_id
-    2: {},
+    3: {
+        0: "POSIX_FADV_NORMAL",
+        1: "POSIX_FADV_RANDOM",
+        2: "POSIX_FADV_SEQUENTIAL",
+        3: "POSIX_FADV_WILLNEED",
+        4: "POSIX_FADV_DONTNEED",
+        5: "POSIX_FADV_NOREUSE",
+    },
 },
 #timer_settime
 223:{
-    #timer_t timer_id
-    0: {},
     #int flags
-    1: {},
-    #const struct __kernel_itimerspec *new_setting
-    2: {},
-    #struct __kernel_itimerspec *old_setting
-    3: {},
-},
-#timer_gettime
-224:{
-    #timer_t timer_id
-    0: {},
-    #struct __kernel_itimerspec *setting
-    1: {},
-},
-#timer_getoverrun
-225:{
-    #timer_t timer_id
-    0: {},
-},
-#timer_delete
-226:{
-    #timer_t timer_id
-    0: {},
+    1: {
+        1: "TIMER_ABSTIME",
+    },
 },
 #clock_settime
 227:{
     #const clockid_t which_clock
-    0: {},
-    #const struct __kernel_timespec *tp
-    1: {},
+    0: {
+        0: "CLOCK_REALTIME",
+        1: "CLOCK_MONOTONIC",
+        2: "CLOCK_PROCESS_CPUTIME_ID",
+        3: "CLOCK_THREAD_CPUTIME_ID",
+        4: "CLOCK_MONOTONIC_RAW",
+        5: "CLOCK_REALTIME_COARSE",
+        6: "CLOCK_MONOTONIC_COARSE",
+        7: "CLOCK_BOOTTIME",
+        8: "CLOCK_REALTIME_ALARM",
+        9: "CLOCK_BOOTTIME_ALARM",
+        10: "CLOCK_SGI_CYCLE",
+        11: "CLOCK_TAI",
+        "parsing_mode": "sequential",
+    },
 },
 #clock_gettime
 228:{
     #const clockid_t which_clock
-    0: {},
-    #struct __kernel_timespec *tp
-    1: {},
+    0: {
+        0: "CLOCK_REALTIME",
+        1: "CLOCK_MONOTONIC",
+        2: "CLOCK_PROCESS_CPUTIME_ID",
+        3: "CLOCK_THREAD_CPUTIME_ID",
+        4: "CLOCK_MONOTONIC_RAW",
+        5: "CLOCK_REALTIME_COARSE",
+        6: "CLOCK_MONOTONIC_COARSE",
+        7: "CLOCK_BOOTTIME",
+        8: "CLOCK_REALTIME_ALARM",
+        9: "CLOCK_BOOTTIME_ALARM",
+        10: "CLOCK_SGI_CYCLE",
+        11: "CLOCK_TAI",
+        "parsing_mode": "sequential",
+    },
 },
 #clock_getres
 229:{
     #const clockid_t which_clock
-    0: {},
-    #struct __kernel_timespec *tp
-    1: {},
+    0: {
+        0: "CLOCK_REALTIME",
+        1: "CLOCK_MONOTONIC",
+        2: "CLOCK_PROCESS_CPUTIME_ID",
+        3: "CLOCK_THREAD_CPUTIME_ID",
+        4: "CLOCK_MONOTONIC_RAW",
+        5: "CLOCK_REALTIME_COARSE",
+        6: "CLOCK_MONOTONIC_COARSE",
+        7: "CLOCK_BOOTTIME",
+        8: "CLOCK_REALTIME_ALARM",
+        9: "CLOCK_BOOTTIME_ALARM",
+        10: "CLOCK_SGI_CYCLE",
+        11: "CLOCK_TAI",
+        "parsing_mode": "sequential",
+    },
 },
 #clock_nanosleep
 230:{
     #const clockid_t which_clock
-    0: {},
+    0: {
+        0: "CLOCK_REALTIME",
+        1: "CLOCK_MONOTONIC",
+        2: "CLOCK_PROCESS_CPUTIME_ID",
+        3: "CLOCK_THREAD_CPUTIME_ID",
+        4: "CLOCK_MONOTONIC_RAW",
+        5: "CLOCK_REALTIME_COARSE",
+        6: "CLOCK_MONOTONIC_COARSE",
+        7: "CLOCK_BOOTTIME",
+        8: "CLOCK_REALTIME_ALARM",
+        9: "CLOCK_BOOTTIME_ALARM",
+        10: "CLOCK_SGI_CYCLE",
+        11: "CLOCK_TAI",
+        "parsing_mode": "sequential",
+    },
     #int flags
-    1: {},
-    #const struct __kernel_timespec *rqtp
-    2: {},
-    #struct __kernel_timespec *rmtp
-    3: {},
-},
-#exit_group
-231:{
-    #int error_code
-    0: {},
-},
-#epoll_wait
-232:{
-    #int epfd
-    0: {},
-    #struct epoll_event *events
-    1: {},
-    #int maxevents
-    2: {},
-    #int timeout
-    3: {},
+    1: {
+        1: "TIMER_ABSTIME",
+    },
 },
 #epoll_ctl
 233:{
-    #int epfd
-    0: {},
     #int op
-    1: {},
-    #int fd
-    2: {},
-    #struct epoll_event *event
-    3: {},
+    1: {
+        1: "EPOLL_CTL_ADD",
+        2: "EPOLL_CTL_DEL",
+        3: "EPOLL_CTL_MOD",
+        "parsing_mode": "sequential",
+    },
 },
 #tgkill
 234:{
-    #pid_t tgid
-    0: {},
-    #pid_t pid
-    1: {},
     #int sig
-    2: {},
+    2: {
+        1: "SIGHUP",
+        2: "SIGINT",
+        3: "SIGQUIT",
+        4: "SIGILL",
+        5: "SIGTRAP",
+        6: "SIGABRT / SIGIOT",
+        7: "SIGBUS",
+        8: "SIGFPE",
+        9: "SIGKILL",
+        10: "SIGUSR1",
+        11: "SIGSEGV",
+        12: "SIGUSR2",
+        13: "SIGPIPE",
+        14: "SIGALRM",
+        15: "SIGTERM",
+        16: "SIGSTKFLT",
+        17: "SIGCHLD",
+        18: "SIGCONT",
+        19: "SIGSTOP",
+        20: "SIGTSTP",
+        21: "SIGTTIN",
+        22: "SIGTTOU",
+        23: "SIGURG",
+        24: "SIGXCPU",
+        25: "SIGXFSZ",
+        26: "SIGVTALRM",
+        27: "SIGPROF",
+        28: "SIGWINCH",
+        29: "SIGIO / SIGPOLL",
+        30: "SIGPWR",
+        31: "SIGSYS",
+        "parsing_mode": "sequential",
+    },
 },
 #mbind
 237:{
-    #unsigned long start
-    0: {},
-    #unsigned long len
-    1: {},
     #unsigned long mode
     2: {},
     #const unsigned long *nmask
