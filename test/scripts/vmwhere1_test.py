@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2023-2025 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -27,7 +27,7 @@ class Vmwhere1Test(TestCase):
         while not stop:
             for el in string.printable:
                 r = d.run()
-                bp = d.breakpoint(0x1587, hardware=True)
+                bp = d.breakpoint(0x1587, hardware=True, file="binary")
                 d.cont()
 
                 r.recvline()
@@ -75,7 +75,7 @@ class Vmwhere1Test(TestCase):
         while not stop:
             for el in string.printable:
                 r = d.run()
-                bp = d.breakpoint(0x1587, hardware=True, callback=callback)
+                bp = d.breakpoint(0x1587, hardware=True, callback=callback, file="binary")
                 d.cont()
 
                 r.recvline()

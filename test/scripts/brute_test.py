@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Gabriele Digregorio, Francesco Panebianco, Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2023-2025 Gabriele Digregorio, Francesco Panebianco, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -34,7 +34,7 @@ class BruteTest(TestCase):
         while not flag or flag != "BRUTINOBRUTONE":
             for c in string.printable:
                 r = d.run()
-                bp = d.breakpoint(ADDRESS, hardware=True)
+                bp = d.breakpoint(ADDRESS, hardware=True, file="binary")
                 d.cont()
 
                 r.sendlineafter(b"chars\n", (flag + c).encode())
@@ -83,7 +83,7 @@ class BruteTest(TestCase):
             for c in string.printable:
                 r = d.run()
 
-                d.breakpoint(ADDRESS, callback=brute_force, hardware=True)
+                d.breakpoint(ADDRESS, callback=brute_force, hardware=True, file="binary")
                 d.cont()
 
                 r.sendlineafter(b"chars\n", (flag + c).encode())
