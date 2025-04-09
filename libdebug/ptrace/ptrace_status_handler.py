@@ -467,10 +467,16 @@ class PtraceStatusHandler:
         # This is a workaround for some race conditions that may happen
         self._assume_race_sigstop = True
 
+        # We declare in the ResumeContext that we are executing a few callbacks
+        self.internal_debugger.resume_context.is_in_callback = True
+
         for pid, status in result:
             if pid != -1:
                 # Otherwise, this is a spurious trap
                 self._handle_change(pid, status, result)
+
+        # Callbacks are done
+        self.internal_debugger.resume_context.is_in_callback = False
 
         if self._assume_race_sigstop:
             # Resume the process if the stop was due to a race condition with SIGSTOP sent by the debugger
