@@ -1200,10 +1200,11 @@ class InternalDebugger:
                 ),
             )
             self._join_and_check_status()
+            self.set_stopped()
         else:
             self.__threaded_step_until(thread, address, max_steps)
 
-            # At this point, we need to continue the execution of the callback from which the step was called
+            # At this point, we need to continue the execution of the callback from which the step_until was called
             self.resume_context.resume = True
 
     @change_state_function_thread
@@ -1223,10 +1224,11 @@ class InternalDebugger:
                 (self.__threaded_finish, (thread, heuristic)),
             )
             self._join_and_check_status()
+            self.set_stopped()
         else:
             self.__threaded_finish(thread, heuristic)
 
-            # At this point, we need to continue the execution of the callback from which the step was called
+            # At this point, we need to continue the execution of the callback from which the finish was called
             self.resume_context.resume = True
 
     @change_state_function_thread
@@ -1235,10 +1237,11 @@ class InternalDebugger:
         if not self._is_in_background():
             self.__polling_thread_command_queue.put((self.__threaded_next, (thread,)))
             self._join_and_check_status()
+            self.set_stopped()
         else:
             self.__threaded_next(thread)
 
-            # At this point, we need to continue the execution of the callback from which the step was called
+            # At this point, we need to continue the execution of the callback from which the next was called
             self.resume_context.resume = True
 
     def enable_pretty_print(
@@ -1622,7 +1625,7 @@ class InternalDebugger:
             except GdbMigrationSignal as e:
                 # We must set the process as stopped before re-raising the exception
                 self.set_stopped()
-                raise e # noqa: TRY201
+                raise e  # noqa: TRY201
 
             if self.resume_context.resume:
                 self.debugging_interface.cont()
@@ -1652,7 +1655,6 @@ class InternalDebugger:
     def __threaded_step(self: InternalDebugger, thread: ThreadContext) -> None:
         liblog.debugger("Stepping thread %s.", thread.thread_id)
         self.debugging_interface.step(thread)
-        self.set_running()
 
     def __threaded_step_until(
         self: InternalDebugger,
@@ -1662,20 +1664,15 @@ class InternalDebugger:
     ) -> None:
         liblog.debugger("Stepping thread %s until 0x%x.", thread.thread_id, address)
         self.debugging_interface.step_until(thread, address, max_steps)
-        self.set_stopped()
 
     def __threaded_finish(self: InternalDebugger, thread: ThreadContext, heuristic: str) -> None:
         prefix = heuristic.capitalize()
-
         liblog.debugger(f"{prefix} finish on thread %s", thread.thread_id)
         self.debugging_interface.finish(thread, heuristic=heuristic)
-
-        self.set_stopped()
 
     def __threaded_next(self: InternalDebugger, thread: ThreadContext) -> None:
         liblog.debugger("Next on thread %s.", thread.thread_id)
         self.debugging_interface.next(thread)
-        self.set_stopped()
 
     def __threaded_gdb(self: InternalDebugger) -> None:
         self.debugging_interface.migrate_to_gdb()
