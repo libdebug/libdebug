@@ -429,6 +429,7 @@ class CallbackTest(TestCase):
         # We should be interrupted here
         self.assertEqual(bp.hit_count, 5)
         self.assertFalse(d.dead)
+        self.assertTrue(bp.hit_on(d))
 
         bp.callback = None
 
@@ -437,6 +438,7 @@ class CallbackTest(TestCase):
 
         self.assertEqual(bp.hit_count, 6)
         self.assertFalse(d.dead)
+        self.assertTrue(bp.hit_on(d))
 
         bp.callback = callback
 
