@@ -23,10 +23,11 @@ def fast_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.BreakpointTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.CallbackTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.ControlFlowTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.CorruptedELFTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.DeathTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.FinishTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.FloatingPointTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.JumpstartTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.CursedBinariesTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.LargeBinarySymTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.MemoryTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.MemoryNoFastTest))
@@ -56,6 +57,7 @@ def full_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.DeepDiveDivisionTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.JumpoutTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SpeedTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.TimeoutTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.Vmwhere1Test))
 
     return suite

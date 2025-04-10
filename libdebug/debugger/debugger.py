@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024  Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
+# Copyright (c) 2023-2025  Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -58,13 +58,14 @@ class Debugger:
         self._internal_debugger = internal_debugger
         self._internal_debugger.start_up()
 
-    def run(self: Debugger, redirect_pipes: bool = True) -> PipeManager | None:
+    def run(self: Debugger, timeout: float = -1, redirect_pipes: bool = True) -> PipeManager | None:
         """Starts the process and waits for it to stop.
 
         Args:
+            timeout (float): The timeout for the process to run. If -1, the process will run indefinitely.
             redirect_pipes (bool): Whether to hook and redirect the pipes of the process to a PipeManager.
         """
-        return self._internal_debugger.run(redirect_pipes)
+        return self._internal_debugger.run(timeout, redirect_pipes)
 
     def attach(self: Debugger, pid: int) -> None:
         """Attaches to an existing process."""
@@ -933,6 +934,7 @@ class Debugger:
         """Return the string representation of the `Debugger` object."""
         repr_str = "Debugger("
         repr_str += f"argv = {self._internal_debugger.argv}, "
+        repr_str += f"path = {self._internal_debugger.path}, "
         repr_str += f"aslr = {self._internal_debugger.aslr_enabled}, "
         repr_str += f"env = {self._internal_debugger.env}, "
         repr_str += f"escape_antidebug = {self._internal_debugger.escape_antidebug}, "

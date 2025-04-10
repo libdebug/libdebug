@@ -15,6 +15,8 @@ from fcntl import F_GETFL, F_SETFL, fcntl
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from elftools.common.exceptions import ELFError
+
 from libdebug.architectures.call_utilities_provider import call_utilities_provider
 from libdebug.architectures.register_helper import register_holder_provider
 from libdebug.architectures.thread_context_helper import thread_context_class_provider
@@ -22,6 +24,7 @@ from libdebug.commlink.pipe_manager import PipeManager
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.debugger.internal_debugger_instance_manager import (
     extend_internal_debugger,
+    link_to_internal_debugger,
     provide_internal_debugger,
 )
 from libdebug.interfaces.debugging_interface import DebuggingInterface
@@ -96,6 +99,7 @@ class PtraceInterface(DebuggingInterface):
             disable_self_aslr()
             self._disabled_aslr = True
 
+        path = self._internal_debugger.path
         argv = self._internal_debugger.argv
         env = self._internal_debugger.env
 
@@ -152,6 +156,8 @@ class PtraceInterface(DebuggingInterface):
             JUMPSTART_LOCATION,
             str(env_len),
             *[f"{key}={value}" for key, value in env.items()],
+            "NULL",
+            path,
             "NULL",
             *argv,
         ]
@@ -367,6 +373,7 @@ class PtraceInterface(DebuggingInterface):
                 install_hw_bp = self.lib_trace.get_remaining_hw_breakpoint_count(thread.thread_id) > 0
 
                 ip_breakpoint = Breakpoint(last_saved_instruction_pointer, hardware=install_hw_bp)
+                link_to_internal_debugger(ip_breakpoint, self._internal_debugger)
                 self.set_breakpoint(ip_breakpoint)
             elif not ip_breakpoint.enabled:
                 self._enable_breakpoint(ip_breakpoint)
@@ -416,6 +423,7 @@ class PtraceInterface(DebuggingInterface):
                 # Otherwise we use a software breakpoint
                 install_hw_bp = self.lib_trace.get_remaining_hw_breakpoint_count(thread.thread_id) > 0
                 ip_breakpoint = Breakpoint(skip_address, hardware=install_hw_bp)
+                link_to_internal_debugger(ip_breakpoint, self._internal_debugger)
                 self.set_breakpoint(ip_breakpoint)
             elif not ip_breakpoint.enabled:
                 self._enable_breakpoint(ip_breakpoint)
@@ -463,17 +471,23 @@ class PtraceInterface(DebuggingInterface):
 
         if continue_to_entry_point:
             # Now that the process is running, we must continue until we have reached the entry point
-            entry_point = get_entry_point(self._internal_debugger.argv[0])
+            try:
+                entry_point = get_entry_point(self._internal_debugger.path)
 
-            # For PIE binaries, the entry point is a relative address
-            entry_point = normalize_and_validate_address(entry_point, self.get_maps())
-
-            bp = Breakpoint(entry_point, hardware=True)
-            self.set_breakpoint(bp)
-            self.cont()
-            self.wait()
-
-            self.unset_breakpoint(bp)
+                # For PIE binaries, the entry point is a relative address
+                entry_point = normalize_and_validate_address(entry_point, self.get_maps())
+            except (ValueError, ELFError) as e:
+                # Possibly the ELF is corrupt, or something else went wrong
+                liblog.error(f"Failed to get the entry point for the given binary: {e}")
+            else:
+                # Only if we think we have found a valid entry point location, we attempt to reach it
+                bp = Breakpoint(entry_point, hardware=True)
+                # Link the breakpoint to self
+                link_to_internal_debugger(bp, self._internal_debugger)
+                self.set_breakpoint(bp)
+                self.cont()
+                self.wait()
+                self.unset_breakpoint(bp)
 
         invalidate_process_cache()
 
@@ -757,7 +771,7 @@ class PtraceInterface(DebuggingInterface):
             raise RuntimeError("Unexpected error") from e
 
         liblog.debugger(
-            "POKEDATA at address %d returned with result %d",
+            "POKEDATA at address %d returned with result %s",
             address,
             result,
         )
