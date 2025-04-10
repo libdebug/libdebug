@@ -20,11 +20,10 @@ from libdebug.liblog import liblog
 
 try:
     from rich.console import Console
-    from rich.traceback import Traceback, install
+    from rich.traceback import Traceback
 except ImportError:
     console = None
 else:
-    install()
     console = Console()
 
 
