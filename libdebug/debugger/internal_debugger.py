@@ -16,7 +16,7 @@ from queue import Queue
 from signal import SIGKILL, SIGSTOP, SIGTRAP
 from subprocess import DEVNULL, CalledProcessError, Popen, check_call
 from tempfile import NamedTemporaryFile
-from threading import Thread, current_thread
+from threading import Event, Thread, current_thread
 from typing import TYPE_CHECKING
 
 from psutil import STATUS_ZOMBIE, Error, Process, ZombieProcess, process_iter
@@ -191,6 +191,15 @@ class InternalDebugger:
     __polling_thread_response_queue: Queue | None
     """The queue used to receive responses from the background thread."""
 
+    __timeout_thread: Thread | None
+    """The thread used to kill the debuggee on timeout."""
+
+    __timeout_thread_command_queue: Queue | None
+    """The queue used to send commands to the timeout thread."""
+
+    __timeout_thread_conditional: Event | None
+    """The condition variable the timeout thread waits on."""
+
     _is_running: bool
     """The overall state of the debugged process. True if the process is running, False otherwise."""
 
@@ -236,6 +245,7 @@ class InternalDebugger:
         self.fast_memory = True
         self.__polling_thread_command_queue = Queue()
         self.__polling_thread_response_queue = Queue()
+        self.__timeout_thread = None
         self._snapshot_count = 0
         self.serialization_helper = SerializationHelper()
         self.children = []
@@ -293,14 +303,20 @@ class InternalDebugger:
         """Raises an error when an invalid call is made in background mode."""
         raise RuntimeError("This method is not available in a callback.")
 
-    def run(self: InternalDebugger, redirect_pipes: bool = True) -> PipeManager | None:
+    def run(self: InternalDebugger, timeout: float = -1, redirect_pipes: bool = True) -> PipeManager | None:
         """Starts the process and waits for it to stop.
 
         Args:
+            timeout (float): The timeout in seconds. If -1, no timeout is set.
             redirect_pipes (bool): Whether to hook and redirect the pipes of the process to a PipeManager.
         """
         if not self.argv:
             raise RuntimeError("No binary file specified.")
+
+        if timeout <= 0 and timeout != -1:
+            raise ValueError("Timeout must be a positive number or -1.")
+        if 0 < timeout <= 0.01:
+            liblog.warning("Timeout is set to a very low value. This may cause issues.")
 
         ensure_file_executable(self.path)
 
@@ -325,6 +341,9 @@ class InternalDebugger:
         if self.escape_antidebug:
             liblog.debugger("Enabling anti-debugging escape mechanism.")
             self._enable_antidebug_escaping()
+
+        if timeout > 0:
+            self.enqueue_timeout_command(timeout)
 
         if redirect_pipes and not self.pipe_manager:
             raise RuntimeError("Something went wrong during pipe initialization.")
@@ -409,11 +428,8 @@ class InternalDebugger:
         """Kills the process."""
         if not self.is_debugging:
             raise RuntimeError("No process currently debugged, cannot kill.")
-        try:
-            self._ensure_process_stopped()
-        except (OSError, RuntimeError):
-            # This exception might occur if the process has already died
-            liblog.debugger("OSError raised during kill")
+
+        self._ensure_process_stopped()
 
         self._process_memory_manager.close()
 
@@ -457,6 +473,8 @@ class InternalDebugger:
             self.__polling_thread.join()
             del self.__polling_thread
             self.__polling_thread = None
+
+        self.cleanup_timeout_thread()
 
         # Remove elemement from internal_debugger_holder to avoid memleaks
         remove_internal_debugger_refs(self)
@@ -1335,10 +1353,15 @@ class InternalDebugger:
                 thread._exit_signal = exit_signal
                 break
 
+        if self.threads[0].dead:
+            self.notify_timeout_thread_debuggee_died()
+
     def set_all_threads_as_dead(self: InternalDebugger) -> None:
         """Set all threads as dead."""
         for thread in self.threads:
             thread.set_as_dead()
+
+        self.notify_timeout_thread_debuggee_died()
 
     def get_thread_by_id(self: InternalDebugger, thread_id: int) -> ThreadContext:
         """Get a thread by its ID.
@@ -1474,7 +1497,7 @@ class InternalDebugger:
         if not self.running:
             return
 
-        if self.auto_interrupt_on_command:
+        if self.auto_interrupt_on_command and not self.threads[0].zombie:
             self.interrupt()
 
         self._join_and_check_status()
@@ -1493,7 +1516,7 @@ class InternalDebugger:
         if not self.running:
             return
 
-        if self.auto_interrupt_on_command:
+        if self.auto_interrupt_on_command and not self.threads[0].zombie:
             self.interrupt()
 
         self._join_and_check_status()
@@ -1880,3 +1903,124 @@ class InternalDebugger:
     def notify_snaphot_taken(self: InternalDebugger) -> None:
         """Notify the debugger that a snapshot has been taken."""
         self._snapshot_count += 1
+
+    def lazily_inflate_timeout_thread(self: InternalDebugger) -> None:
+        """Inflates the timeout thread and all the linked objects, if needed."""
+        # Check if the timeout thread is already inflated
+        if self.__timeout_thread is None:
+            # Inflate the command queue
+            self.__timeout_thread_command_queue = Queue()
+
+            # Inflate the conditional variable
+            self.__timeout_thread_conditional = Event()
+
+            # Inflate the timeout thread
+            self.__timeout_thread = Thread(
+                name="libdebug__timeout_thread",
+                target=self.__timeout_thread_function,
+                daemon=True,
+            )
+            self.__timeout_thread.start()
+            liblog.debugger("Timeout thread created.")
+
+    def enqueue_timeout_command(self: InternalDebugger, timeout: float) -> None:
+        """Enqueue a timeout command to the timeout thread."""
+        self.lazily_inflate_timeout_thread()
+
+        # Ensure that the command queue is empty
+        if not self.__timeout_thread_command_queue.empty():
+            raise RuntimeError("Timeout thread command queue is not empty.")
+
+        # Unset the conditional variable
+        self.__timeout_thread_conditional.clear()
+
+        # Enqueue the timeout
+        self.__timeout_thread_command_queue.put(timeout)
+
+        liblog.debugger(
+            "Timeout thread command enqueued. Timeout set to %f seconds.",
+            timeout,
+        )
+
+    def notify_timeout_thread_debuggee_died(self: InternalDebugger) -> None:
+        """If the timeout thread is active, we must let it know that the debuggee died."""
+        if self.__timeout_thread is not None:
+            # Notify the timeout thread that the debuggee died
+            self.__timeout_thread_conditional.set()
+
+            # Check that the timeout thread has signaled "task done"
+            self.__timeout_thread_command_queue.join()
+
+    def cleanup_timeout_thread(self: InternalDebugger) -> None:
+        """Cleans up the timeout thread and all the linked objects."""
+        if self.__timeout_thread is not None:
+            # Notify the timeout thread to terminate
+            self.__timeout_thread_command_queue.put(THREAD_TERMINATE)
+
+            # Wait for the timeout thread to terminate
+            self.__timeout_thread.join()
+
+            # Cleanup the command queue
+            self.__timeout_thread_command_queue = None
+
+            # Cleanup the conditional variable
+            self.__timeout_thread_conditional = None
+
+            # Cleanup the timeout thread
+            self.__timeout_thread = None
+
+            liblog.debugger("Timeout thread cleaned up.")
+
+    def __timeout_thread_function(self: InternalDebugger) -> None:
+        """This function continously checks for timeouts and kills the debuggee if needed."""
+        while True:
+            # Wait for the main thread to signal a command to execute
+            timeout_amount = self.__timeout_thread_command_queue.get()
+
+            if timeout_amount == THREAD_TERMINATE:
+                # Signal that the command has been executed
+                self.__timeout_thread_command_queue.task_done()
+                return
+
+            debuggee_died = self.__timeout_thread_conditional.wait(timeout_amount)
+
+            if not debuggee_died:
+                # This is racy, but the side-effect is us printing a warning
+                # and not much else
+                if self.resume_context.is_in_callback:
+                    # We have no way to stop the callback, let's notify the user
+                    liblog.warning(
+                        "Timeout occurred while executing a callback. "
+                        "Asynchronous callbacks cannot be interrupted.",
+                    )
+
+                # Kill it
+                try:
+                    os.kill(self.process_id, signal.SIGKILL)
+                    liblog.debugger(
+                        "Debuggee process %s (%d) killed due to timeout.",
+                        self.path,
+                        self.process_id,
+                    )
+                except ProcessLookupError:
+                    liblog.debugger(
+                        "Debuggee process %s (%d) already dead.",
+                        self.path,
+                        self.process_id,
+                    )
+                except Exception as e: # noqa: BLE001
+                    liblog.debugger(
+                        "Error while killing timed out debuggee process %s (%d): %s",
+                        self.path,
+                        self.process_id,
+                        e,
+                    )
+
+                # We manually stop the background wait-cont loop, just to make sure
+                self.resume_context.resume = False
+
+                # Wait for the main thread to notice it has died
+                self.__timeout_thread_conditional.wait()
+
+            # Signal that the command has been executed
+            self.__timeout_thread_command_queue.task_done()

@@ -766,7 +766,7 @@ class PtraceInterface(DebuggingInterface):
             raise RuntimeError("Unexpected error") from e
 
         liblog.debugger(
-            "POKEDATA at address %d returned with result %d",
+            "POKEDATA at address %d returned with result %s",
             address,
             result,
         )

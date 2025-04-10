@@ -179,7 +179,7 @@ class LibTerminal:
 
             # Update the output field with the messages in the queue
             msg = b""
-            if not self._app_message_queue.empty():
+            while not self._app_message_queue.empty():
                 msg += self._app_message_queue.get()
 
             if msg:
