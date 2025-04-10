@@ -206,6 +206,9 @@ class InternalDebugger:
     _is_migrated_to_gdb: bool
     """A flag that indicates if the debuggee was migrated to GDB."""
 
+    _gdb_resume_event: GdbResumeEvent
+    """The GDB resume event used to migrate the debugged process back from GDB."""
+
     _fast_memory: DirectMemoryView
     """The memory view of the debugged process using the fast memory access method."""
 
@@ -237,6 +240,7 @@ class InternalDebugger:
         self.is_debugging = False
         self._is_running = False
         self._is_migrated_to_gdb = False
+        self._gdb_resume_event = None
         self.resume_context = ResumeContext()
         self.stdin_settings_backup = []
         self.arch = map_arch(libcontext.platform)
@@ -908,7 +912,8 @@ class InternalDebugger:
 
         return handler
 
-    def _background_gdb(
+    @change_state_function_process
+    def gdb(
         self: InternalDebugger,
         migrate_breakpoints: bool = True,
         open_in_new_process: bool = True,
@@ -921,41 +926,14 @@ class InternalDebugger:
             open_in_new_process (bool): Whether to attempt to open GDB in a new process instead of the current one.
             blocking (bool): Whether to block the script until GDB is closed.
         """
-        if not blocking:
-            raise RuntimeError("Non-blocking GDB migration is not supported inside callbacks.")
+        if self._gdb_resume_event:
+            raise RuntimeError("Unexpected state while migrating to GDB.")
 
-        liblog.warning("Migrating to GDB from a callback. Execution will not resume automatically after GDB is closed.")
-        self.resume_context.resume = False
-
-        # We are forced to raise a custom exception here, otherwise the rest of the code in the
-        # callback will be executed before the GDB migration happens.
-        raise GdbMigrationSignal(migrate_breakpoints, open_in_new_process)
-
-    def _handle_gdb_migration_signal(self: InternalDebugger, signal: GdbMigrationSignal) -> None:
-        """Handles the GDB migration signal raised by a callback.
-
-        Args:
-            signal (GdbMigrationSignal): The signal to handle.
-        """
-        self.gdb(signal.migrate_breakpoints, signal.open_in_new_process)
-
-    @background_alias(_background_gdb)
-    @change_state_function_process
-    def gdb(
-        self: InternalDebugger,
-        migrate_breakpoints: bool = True,
-        open_in_new_process: bool = True,
-        blocking: bool = True,
-    ) -> GdbResumeEvent:
-        """Migrates the current debugging session to GDB.
-
-        Args:
-            migrate_breakpoints (bool): Whether to migrate over the breakpoints set in libdebug to GDB.
-            open_in_new_process (bool): Whether to attempt to open GDB in a new process instead of the current one.
-            blocking (bool): Whether to block the script until GDB is closed.
-        """
-        # TODO: not needed?
-        self.interrupt()
+        if not blocking and self._is_in_background():
+            # Special handling for d.gdb(blocking=False) inside callbacks
+            # Trust the process
+            self.resume_context.resume = False
+            raise GdbMigrationSignal(migrate_breakpoints, open_in_new_process)
 
         # Create the command file
         command_file = self._craft_gdb_migration_file(migrate_breakpoints)
@@ -974,15 +952,32 @@ class InternalDebugger:
         else:
             lambda_fun = self._open_gdb_in_shell(command_file)
 
-        resume_event = GdbResumeEvent(self, lambda_fun)
-
         self._is_migrated_to_gdb = True
+        self._gdb_resume_event = GdbResumeEvent(self, lambda_fun)
 
         if blocking:
-            resume_event.join()
-            return None
-        else:
-            return resume_event
+            self.wait_for_gdb()
+
+    def wait_for_gdb(self: InternalDebugger) -> None:
+        """Waits for the GDB process to migrate back to libdebug."""
+        if not self._is_migrated_to_gdb:
+            raise RuntimeError("Process is not in GDB.")
+
+        if not self._gdb_resume_event:
+            raise RuntimeError("GDB resume event is not set.")
+
+        # Wait for the GDB process to terminate
+        self._gdb_resume_event.join()
+        self._gdb_resume_event = None
+
+    def _handle_gdb_migration_signal(self: InternalDebugger, signal: GdbMigrationSignal) -> None:
+        """Handles the GDB migration signal raised by a callback when the blocking option is set to False.
+
+        Args:
+            signal (GdbMigrationSignal): The signal to handle.
+        """
+        self.set_stopped()
+        self.gdb(signal.migrate_breakpoints, signal.open_in_new_process, blocking=False)
 
     def _auto_detect_terminal(self: InternalDebugger) -> None:
         """Auto-detects the terminal."""
@@ -1063,8 +1058,11 @@ class InternalDebugger:
                 "Failed to open GDB in terminal. Check the terminal configuration in libcontext.terminal.",
             ) from err
 
-        self.__polling_thread_command_queue.put((self.__threaded_gdb, ()))
-        self._join_and_check_status()
+        if not self._is_in_background():
+            self.__polling_thread_command_queue.put((self.__threaded_gdb, ()))
+            self._join_and_check_status()
+        else:
+            self.__threaded_gdb()
 
         # Create the command to open the terminal and run the script
         command = [*libcontext.terminal, script_path]
@@ -1164,9 +1162,11 @@ class InternalDebugger:
 
     def _resume_from_gdb(self: InternalDebugger) -> None:
         """Resumes the process after migrating from GDB."""
-        self.__polling_thread_command_queue.put((self.__threaded_migrate_from_gdb, ()))
-
-        self._join_and_check_status()
+        if not self._is_in_background():
+            self.__polling_thread_command_queue.put((self.__threaded_migrate_from_gdb, ()))
+            self._join_and_check_status()
+        else:
+            self.__threaded_migrate_from_gdb()
 
         self._is_migrated_to_gdb = False
 

@@ -263,6 +263,15 @@ class Debugger:
         """
         return self._internal_debugger.gdb(migrate_breakpoints, open_in_new_process, blocking)
 
+    @property
+    def is_in_gdb(self: Debugger) -> bool:
+        """Returns whether the process is in GDB."""
+        return self._internal_debugger._is_migrated_to_gdb
+
+    def wait_for_gdb(self: Debugger) -> None:
+        """Waits for the GDB process to migrate back to libdebug."""
+        self._internal_debugger.wait_for_gdb()
+
     def r(self: Debugger, redirect_pipes: bool = True) -> PipeManager | None:
         """Alias for the `run` method.
 
