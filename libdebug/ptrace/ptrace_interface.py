@@ -24,6 +24,7 @@ from libdebug.commlink.pipe_manager import PipeManager
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.debugger.internal_debugger_instance_manager import (
     extend_internal_debugger,
+    link_to_internal_debugger,
     provide_internal_debugger,
 )
 from libdebug.interfaces.debugging_interface import DebuggingInterface
@@ -372,6 +373,7 @@ class PtraceInterface(DebuggingInterface):
                 install_hw_bp = self.lib_trace.get_remaining_hw_breakpoint_count(thread.thread_id) > 0
 
                 ip_breakpoint = Breakpoint(last_saved_instruction_pointer, hardware=install_hw_bp)
+                link_to_internal_debugger(ip_breakpoint, self._internal_debugger)
                 self.set_breakpoint(ip_breakpoint)
             elif not ip_breakpoint.enabled:
                 self._enable_breakpoint(ip_breakpoint)
@@ -421,6 +423,7 @@ class PtraceInterface(DebuggingInterface):
                 # Otherwise we use a software breakpoint
                 install_hw_bp = self.lib_trace.get_remaining_hw_breakpoint_count(thread.thread_id) > 0
                 ip_breakpoint = Breakpoint(skip_address, hardware=install_hw_bp)
+                link_to_internal_debugger(ip_breakpoint, self._internal_debugger)
                 self.set_breakpoint(ip_breakpoint)
             elif not ip_breakpoint.enabled:
                 self._enable_breakpoint(ip_breakpoint)
@@ -479,6 +482,8 @@ class PtraceInterface(DebuggingInterface):
             else:
                 # Only if we think we have found a valid entry point location, we attempt to reach it
                 bp = Breakpoint(entry_point, hardware=True)
+                # Link the breakpoint to self
+                link_to_internal_debugger(bp, self._internal_debugger)
                 self.set_breakpoint(bp)
                 self.cont()
                 self.wait()
