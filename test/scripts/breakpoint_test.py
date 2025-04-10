@@ -277,6 +277,53 @@ class BreakpointTest(TestCase):
         d.kill()
         d.terminate()
 
+    def test_bp_disable_reenable_2(self):
+        d = debugger(RESOLVE_EXE("breakpoint_test"))
+
+        d.run()
+
+        bp1 = d.breakpoint("random_function")
+        bp2 = d.breakpoint(TEST_BPS_ADDRESS_1)
+        bp4 = d.breakpoint(TEST_BPS_ADDRESS_3)
+        bp3 = d.breakpoint(TEST_BPS_ADDRESS_2)
+
+        counter = 1
+
+        d.cont()
+
+        while True:
+            if d.instruction_pointer == bp1.address:
+                self.assertTrue(bp1.hit_count == 1)
+                self.assertTrue(bp1.hit_on(d))
+                self.assertFalse(bp2.hit_on(d))
+                self.assertFalse(bp3.hit_on(d))
+            elif d.instruction_pointer == bp2.address:
+                self.assertTrue(bp2.hit_count == counter)
+                self.assertTrue(bp2.hit_on(d))
+                self.assertFalse(bp1.hit_on(d))
+                self.assertFalse(bp3.hit_on(d))
+                if bp4.enabled:
+                    bp4.enabled = False
+                else:
+                    bp4.enabled = True
+                counter += 1
+            elif d.instruction_pointer == bp3.address:
+                self.assertTrue(bp3.hit_count == 1)
+                CHECK_REGISTERS(self, d)
+                self.assertTrue(bp3.hit_on(d))
+                self.assertFalse(bp1.hit_on(d))
+                self.assertFalse(bp2.hit_on(d))
+                break
+            elif bp4.hit_on(d):
+                pass
+
+            d.cont()
+
+        self.assertEqual(bp4.hit_count, bp2.hit_count // 2 + 1)
+
+        d.kill()
+        d.terminate()
+
     def test_bp_disable_reenable_hw(self):
         d = debugger(RESOLVE_EXE("breakpoint_test"))
 
