@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2024-2025 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -223,6 +223,68 @@ class SyscallHandleTest(TestCase):
 
         self.assertEqual(d.instruction_pointer, bp.address)
         handler1.disable()
+
+        d.cont()
+
+        d.kill()
+        d.terminate()
+
+        self.assertEqual(write_count, 1)
+        self.assertEqual(handler1.hit_count, 1)
+        self.assertEqual(handler2.hit_count, 1)
+        self.assertEqual(handler3.hit_count, 1)
+
+    def test_handle_disabling_2(self):
+        d = debugger(RESOLVE_EXE("handle_syscall_test"))
+
+        r = d.run()
+
+        ptr = 0
+        write_count = 0
+
+        def on_enter_write(d, sh):
+            nonlocal write_count
+
+            if write_count == 0:
+                self.assertTrue(sh.syscall_number == WRITE_NUM)
+                self.assertEqual(d.memory[d.syscall_arg1, 13], b"Hello, World!")
+                self.assertEqual(d.syscall_arg0, 1)
+                write_count += 1
+            else:
+                self.assertTrue(sh.syscall_number == WRITE_NUM)
+                self.assertEqual(d.memory[d.syscall_arg1, 7], b"provola")
+                self.assertEqual(d.syscall_arg0, 1)
+                write_count += 1
+
+        def on_exit_mmap(d, sh):
+            self.assertTrue(sh.syscall_number == MMAP_NUM)
+
+            nonlocal ptr
+
+            ptr = FUN_RET_VAL(d)
+
+        def on_enter_getcwd(d, sh):
+            self.assertTrue(sh.syscall_number == GETCWD_NUM)
+            self.assertEqual(d.syscall_arg0, ptr)
+
+        def on_exit_getcwd(d, sh):
+            self.assertTrue(sh.syscall_number == GETCWD_NUM)
+            self.assertEqual(d.memory[ptr, 8], os.getcwd()[:8].encode())
+
+        handler1 = d.handle_syscall(WRITE_NUM, on_enter_write, None)
+        handler2 = d.handle_syscall(MMAP_NUM, None, on_exit_mmap)
+        handler3 = d.handle_syscall(GETCWD_NUM, on_enter_getcwd, on_exit_getcwd)
+
+        r.sendline(b"provola")
+
+        bp = d.breakpoint(BP_ADDRESS)
+
+        d.cont()
+
+        d.wait()
+
+        self.assertEqual(d.instruction_pointer, bp.address)
+        handler1.enabled = False
 
         d.cont()
 
