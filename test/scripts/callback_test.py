@@ -513,6 +513,36 @@ class CallbackTest(TestCase):
         d.kill()
         d.terminate()
 
+    def test_disable_self_inside_callback_2(self):
+        d = debugger(RESOLVE_EXE("run_pipes_test"))
+
+        r = d.run()
+
+        def callback(_, x):
+            x.enabled = False
+
+        bp = d.bp("option_1", callback=callback)
+        sc = d.catch_signal(50, callback=callback)
+        sh1 = d.handle_syscall("rt_sigaction", on_enter=callback)
+        sh2 = d.handle_syscall("write", on_exit=callback)
+
+        d.cont()
+
+        r.sendline(b"3")
+        r.sendline(b"1")
+        r.sendline(b"4")
+
+        d.wait()
+
+        self.assertEqual(bp.hit_count, 1)
+        self.assertEqual(sc.hit_count, 1)
+        self.assertEqual(sh1.hit_count, 1)
+        self.assertEqual(sh2.hit_count, 1)
+        self.assertTrue(d.dead)
+
+        d.kill()
+        d.terminate()
+
     def test_signal_and_syscalls_inside_callback(self):
         d = debugger(RESOLVE_EXE("run_pipes_test"))
 
