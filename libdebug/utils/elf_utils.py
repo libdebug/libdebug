@@ -73,21 +73,26 @@ def _debuginfod(buildid: str) -> Path:
 
 
 @functools.cache
-def _collect_external_info(path: str) -> SymbolList[Symbol]:
+def _collect_external_info(debug_path: str, reference_path: str, build_id: str) -> SymbolList[Symbol]:
     """Returns a dictionary containing the symbols taken from the external debuginfo file.
 
     Args:
-        path (str): The path to the ELF file.
+        debug_path (str): The path to the external debuginfo file.
+        reference_path (str): The path to the ELF file.
+        build_id (str): The buildid of the ELF file.
 
     Returns:
         SymbolList[Symbol]: A list containing the symbols taken from the external debuginfo file.
     """
-    liblog.debugger("Collecting external symbols from %s", path)
+    liblog.debugger("Collecting external symbols from %s", debug_path)
 
-    ext_symbols = libdebug_debug_sym_parser.collect_external_symbols(path, libcontext.sym_lvl)
+    ext_symbols = libdebug_debug_sym_parser.collect_external_symbols(debug_path, libcontext.sym_lvl)
 
     return SymbolList(
-        [Symbol(symbol.low_pc, symbol.high_pc, symbol.name, path) for symbol in ext_symbols],
+        [
+            Symbol(symbol.low_pc, symbol.high_pc, symbol.name, debug_path, reference_path, build_id, True)
+            for symbol in ext_symbols
+        ],
         get_global_internal_debugger(),
     )
 
@@ -109,7 +114,10 @@ def _parse_elf_file(path: str, debug_info_level: int) -> tuple[SymbolList[Symbol
 
     elfinfo = libdebug_debug_sym_parser.read_elf_info(path, debug_info_level)
 
-    symbols = [Symbol(symbol.low_pc, symbol.high_pc, symbol.name, path) for symbol in elfinfo.symbols]
+    symbols = [
+        Symbol(symbol.low_pc, symbol.high_pc, symbol.name, path, path, elfinfo.build_id, False)
+        for symbol in elfinfo.symbols
+    ]
 
     return SymbolList(symbols, get_global_internal_debugger()), elfinfo.build_id, elfinfo.debuglink
 
@@ -140,7 +148,7 @@ def resolve_symbol(path: str, symbol: str) -> int:
     if buildid and debug_file and libcontext.sym_lvl > 2:
         folder = buildid[:2]
         absolute_debug_path_str = str((LOCAL_DEBUG_PATH / folder / debug_file).resolve())
-        symbols = _collect_external_info(absolute_debug_path_str)
+        symbols = _collect_external_info(absolute_debug_path_str, path, buildid)
         symbols = [sym for sym in symbols if sym.name == symbol]
         if symbols:
             return symbols[0].start
@@ -149,7 +157,7 @@ def resolve_symbol(path: str, symbol: str) -> int:
     if buildid and libcontext.sym_lvl > 4:
         absolute_debug_path = _debuginfod(buildid)
         if absolute_debug_path.exists():
-            symbols = _collect_external_info(str(absolute_debug_path))
+            symbols = _collect_external_info(str(absolute_debug_path), path, buildid)
             symbols = [sym for sym in symbols if sym.name == symbol]
             if symbols:
                 return symbols[0].start
@@ -188,13 +196,13 @@ def get_all_symbols(backing_files: set[str]) -> SymbolList[Symbol]:
         if buildid and debug_file and libcontext.sym_lvl > 2:
             folder = buildid[:2]
             absolute_debug_path_str = str((LOCAL_DEBUG_PATH / folder / debug_file).resolve())
-            symbols += _collect_external_info(absolute_debug_path_str)
+            symbols += _collect_external_info(absolute_debug_path_str, file, buildid)
 
         # Retrieve the symbols from debuginfod
         if buildid and libcontext.sym_lvl > 4:
             absolute_debug_path = _debuginfod(buildid)
             if absolute_debug_path.exists():
-                symbols += _collect_external_info(str(absolute_debug_path))
+                symbols += _collect_external_info(str(absolute_debug_path), file, buildid)
 
     return symbols
 
@@ -224,7 +232,7 @@ def resolve_address(path: str, address: int) -> str:
     if buildid and debug_file and libcontext.sym_lvl > 2:
         folder = buildid[:2]
         absolute_debug_path_str = str((LOCAL_DEBUG_PATH / folder / debug_file).resolve())
-        symbols = _collect_external_info(absolute_debug_path_str)
+        symbols = _collect_external_info(absolute_debug_path_str, path, buildid)
         symbols = [symbol for symbol in symbols if symbol.start <= address < symbol.end]
         if symbols:
             symbol = symbols[0]
@@ -234,7 +242,7 @@ def resolve_address(path: str, address: int) -> str:
     if buildid and libcontext.sym_lvl > 4:
         absolute_debug_path = _debuginfod(buildid)
         if absolute_debug_path.exists():
-            symbols = _collect_external_info(str(absolute_debug_path))
+            symbols = _collect_external_info(str(absolute_debug_path), path, buildid)
             symbols = [symbol for symbol in symbols if symbol.start <= address < symbol.end]
             if symbols:
                 symbol = symbols[0]
