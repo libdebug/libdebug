@@ -69,7 +69,7 @@ def _cleanup_internal_debugger() -> None:
                     os.kill(debugger.process_id, 9)
                     os.waitpid(debugger.process_id, 0)
                 except Exception as e:  # noqa: BLE001
-                    liblog.debugger(f"Error while interrupting debuggee: {e}")
+                    liblog.debugger("Error while interrupting debuggee: %s", e)
 
             # The background thread might have raised an exception that we are unaware of.
             # We want to capture it and notify the user. If the user has issued a Control-C, the traceback will be
