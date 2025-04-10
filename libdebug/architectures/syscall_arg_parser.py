@@ -15,7 +15,7 @@ from libdebug.architectures.i386.i386_syscall_arg_parser import (
 )
 
 
-def parse_syscall_arg(
+def syscall_arg_parser(
     architecture: str,
     syscall_number: int,
     syscall_arg_index: int,
@@ -41,27 +41,23 @@ def parse_syscall_arg(
     else:
         raise ValueError(f"Unsupported architecture: {architecture}")
 
-    # Get the syscall parser for the given syscall number
-    sys_args = syscall_parser_map.get(syscall_number)
+    default_val = f"{syscall_arg_value:#x}"
 
-    if sys_args is None:
-        return hex(syscall_arg_value)
+    # Get the syscall parser map for the given syscall number
+    specific_syscall_map = syscall_parser_map.get(syscall_number)
 
-    # Get the syscall argument parser for the given syscall argument index
-    sys_arg_alternatives = sys_args.get(syscall_arg_index)
+    # If the syscall has not defined constants, return the default value
+    if specific_syscall_map is None:
+        return default_val
 
-    if sys_arg_alternatives is None:
-        return hex(syscall_arg_value)
+    specific_arg_map = specific_syscall_map.get(syscall_arg_index)
 
-    # If the syscall argument value is 0, return the value corresponding to 0 if it exists
-    if syscall_arg_value == 0:
-        if sys_arg_alternatives.get(0) is not None:
-            return sys_arg_alternatives[0]
-        else:
-            return hex(syscall_arg_value)
+    # If the syscall argument has not defined constants, return the default value
+    if specific_arg_map is None:
+        return default_val
 
     # Retrieve the parsing mode (default is OR)
-    parsing_mode = sys_arg_alternatives.get("parsing_mode", "or")
+    parsing_mode = specific_arg_map.get("parsing_mode", "or")
 
     if parsing_mode == "or":
         # At this point than one mnemonic is likely
@@ -69,15 +65,18 @@ def parse_syscall_arg(
 
         masked_bits = 0x000000000000000000
 
-        for mnemonic_mask, mnemonic in sys_arg_alternatives.items():
+        for mnemonic_mask, mnemonic in specific_arg_map.items():
 
             if not isinstance(mnemonic_mask, int):
                 # If the mask is not an integer, skip it
                 # it's string metadata
                 continue
+            if mnemonic_mask == 0 and syscall_arg_value != 0:
+                # If the mask is 0 and the syscall argument value is not 0, skip it
+                continue
 
             # Check if the syscall argument value matches the mnemonic mask
-            if mnemonic_mask & syscall_arg_value:
+            if mnemonic_mask & syscall_arg_value == mnemonic_mask:
                 if len(out_mnemonic) == 0:
                     out_mnemonic = mnemonic
                 else:
@@ -86,30 +85,38 @@ def parse_syscall_arg(
                 masked_bits |= mnemonic_mask
 
         # If not all bits are masked, add the remaining bits to the mnemonic in OR
-        if ~masked_bits & syscall_arg_value != 0:
-            out_mnemonic += f" | {syscall_arg_value & ~masked_bits:#08x}"
-    elif parsing_mode == "sequential":
-        candidate = sys_arg_alternatives.get(syscall_arg_value)
+        if ~masked_bits & syscall_arg_value != 0 and len(out_mnemonic) > 0:
+            out_mnemonic += " | " + f"{syscall_arg_value & ~masked_bits:#08x}"
 
-        if candidate is not None:
-            out_mnemonic = candidate
+        if out_mnemonic != "":
+            out_mnemonic += f" ({syscall_arg_value:#x})"
+    elif parsing_mode == "sequential":
+        out_mnemonic = specific_arg_map.get(syscall_arg_value, default_val)
+
+        if out_mnemonic != default_val:
+            out_mnemonic += f" ({syscall_arg_value:#x})"
     elif parsing_mode == "mixed":
         out_mnemonic = ""
 
         # Handle "sequential_flags" if present
-        sequential_flags = sys_arg_alternatives.get("sequential_flags", {})
+        sequential_flags = specific_arg_map.get("sequential_flags", {})
         candidate = sequential_flags.get(syscall_arg_value)
-        if candidate is not None:
-            out_mnemonic = candidate
+        if candidate is None:
+            # If we don't find a base sequential let's not bother parsing ORed flags
+            return default_val
 
         # Handle "or_flags" if present
-        or_flags = sys_arg_alternatives.get("or_flags", {})
+        or_flags = specific_arg_map.get("or_flags", {})
         if or_flags:
             masked_bits = 0x000000000000000000
             or_mnemonic = ""
 
             for mnemonic_mask, mnemonic in or_flags.items():
-                if mnemonic_mask & syscall_arg_value:
+                if mnemonic_mask == 0 and syscall_arg_value != 0:
+                    # If the mask is 0 and the syscall argument value is not 0, skip it
+                    continue
+
+                if mnemonic_mask & syscall_arg_value == mnemonic_mask:
                     if len(or_mnemonic) == 0:
                         or_mnemonic = mnemonic
                     else:
@@ -127,7 +134,34 @@ def parse_syscall_arg(
             elif len(or_mnemonic) > 0:
                 out_mnemonic = or_mnemonic
 
-    if len(out_mnemonic) == 0:
-        return hex(syscall_arg_value)
+        if out_mnemonic == "":
+            out_mnemonic = candidate + f" ({syscall_arg_value:#x})"
+        else:
+            out_mnemonic += f" | {candidate} ({syscall_arg_value:#x})"
+    elif parsing_mode == "custom":
+        parser_func = specific_arg_map.get("parser")
 
+        if parser_func is None:
+            raise ValueError(
+                f"Custom parser function not defined for syscall number {syscall_number}",
+            )
+
+        # Call the custom parser function
+        out_mnemonic = parser_func(syscall_arg_value)
+
+        if out_mnemonic is None or len(out_mnemonic) == 0:
+            # If the custom parser returns None, use the default value
+            out_mnemonic = default_val
+        else:
+            out_mnemonic += f" ({syscall_arg_value:#x})"
+    else:
+        raise ValueError(
+            f"Unsupported parsing mode '{parsing_mode}' for syscall number {syscall_number}",
+        )
+
+    if len(out_mnemonic) == 0:
+        return default_val
+
+    # Before returning, escape the special characters
     return out_mnemonic
+

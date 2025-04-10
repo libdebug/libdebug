@@ -1983,6 +1983,12 @@ class InternalDebugger:
 
         # Restore the original code.
         try:
+            print(f"Original RIP: {ip:#x}, len_patch: {len_patch}, backup_code: {backup_code}")
+            print(f"Restoring code: {syscall_instruction}")
+            print(f"New RIP: {thread.regs.rip:#x}, len_patch: {len_patch}, backup_code: {backup_code}")
+
+            if self.children:
+                print(f"Child RIP: {self.children[0].regs.rip:#x}, len_patch: {len_patch}, backup_code: {backup_code}")
             thread.memory[ip, len_patch, "absolute"] = backup_code
         except RuntimeError as e:
             raise RuntimeError(
@@ -1995,6 +2001,37 @@ class InternalDebugger:
             (self.__threaded_quick_regs_restore, (thread,)),
         )
         self._join_and_check_status()
+
+        syscall_name = (
+            syscall_identifier
+            if isinstance(syscall_identifier, str)
+            else resolve_syscall_name(self.arch, syscall_number)
+        )
+
+        if syscall_name in ["fork", "vfork"]:
+            # If the syscall is a fork, we need to fix the state of the new process
+            new_pid = retval
+
+            child = None
+
+            for candidate in self.children:
+                if candidate.process_id == new_pid:
+                    child = candidate
+                    break
+
+            if child is None:
+                raise RuntimeError(
+                    f"Failed to find the child process {new_pid} after syscall invocation.",
+                )
+
+            # - Restore the original code in the child process
+            child.memory[ip, len_patch, "absolute"] = syscall_instruction
+            child.syscall_number = syscall_number
+
+            # - Restore registers
+            for reg_name in thread.registers:
+                if isinstance(getattr(thread.regs, reg_name), int | float):
+                    setattr(child.registers, reg_name, getattr(thread.registers, reg_name))
 
         return retval
 

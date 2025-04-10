@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from libdebug.architectures.syscall_arg_parser import syscall_arg_parser
 from libdebug.utils.ansi_escape_codes import ANSIColors
 from libdebug.utils.gnu_constants import err_code
 from libdebug.utils.libcontext import libcontext
@@ -20,6 +21,7 @@ from libdebug.utils.syscall_utils import (
 if TYPE_CHECKING:
     from libdebug.state.thread_context import ThreadContext
 
+MAX_STR_SHOW_LEN = 32
 
 def negate_value(value: int, word_size: int) -> int:
     """Negate a value.
@@ -74,18 +76,19 @@ def numeric_or_mnemonic(
     return mnemonic
 
 
-def parse_syscall_arg(t: ThreadContext, syscall_name: str, arg_name: str, arg_val: int) -> str:
+def parse_syscall_arg(t: ThreadContext, sycall_num: int, arg_num: int, arg_val: int, is_string: bool = False) -> str:
     """Parse a syscall argument.
 
     Args:
         t (ThreadContext): the thread context.
-        syscall_name (str): the syscall name.
-        arg_name (str): the syscall argument name.
-        arg_val (int): the syscall argument value.
+        sycall_num (int): the syscall number.
+        arg_num (int): the argument number.
+        arg_val (int): the argument value.
+        is_string (bool): if True, the argument is a string. Defaults to False.
     """
     if not libcontext.parse_pprint_constants:
         return f"{arg_val:#x}"
-    elif "char *" in arg_name:
+    elif is_string:
         string_content = ""
 
         curr_char = ""
@@ -93,12 +96,28 @@ def parse_syscall_arg(t: ThreadContext, syscall_name: str, arg_name: str, arg_va
 
         while curr_char != "\0":
             string_content += curr_char
-            curr_char = t.memory[cursor, 1, "absolute"]
+            curr_char = chr(int.from_bytes(t.memory[cursor, 1, "absolute"]))
             cursor += 1
 
-        return f'"{string_content}"'
+            if cursor - arg_val > MAX_STR_SHOW_LEN:
+                string_content += f"...[truncated] ({MAX_STR_SHOW_LEN} bytes)"
+                break
+
+        return (f'"{string_content}" ({arg_val:#x})'.replace("\n", "\\n")
+            .replace("\r", "\\r")
+            .replace("\t", "\\t")
+            .replace("\b", "\\b")
+            .replace("\f", "\\f")
+            .replace("\a", "\\a")
+            .replace("\v", "\\v")
+        )
     else:
-        return f"{arg_val:#x}"
+        return syscall_arg_parser(
+            t._internal_debugger.arch,
+            sycall_num,
+            arg_num,
+            arg_val,
+        )
 
 
 def pprint_on_enter(t: ThreadContext, syscall_number: int, **kwargs: int) -> None:
@@ -121,22 +140,38 @@ def pprint_on_enter(t: ThreadContext, syscall_number: int, **kwargs: int) -> Non
         t.syscall_arg5,
     ]
 
+    values_str = []
+
+    # Parse the arguments
+    for arg_index, value, name in zip(range(len(values)), values, syscall_args, strict=False):
+        is_string = "char" in name
+
+        values_str.append(parse_syscall_arg(t, syscall_number, arg_index, value, is_string))
+
     # Print the thread id
     header = f"{ANSIColors.BOLD}{t.tid}{ANSIColors.RESET} "
 
     if "old_args" in kwargs:
         old_args = kwargs["old_args"]
+        old_args_str = []
+
+        # Parse the old arguments
+        for arg_index, value, name in zip(range(len(old_args)), old_args, syscall_args, strict=False):
+            is_string = "char" in name
+
+            old_args_str[arg_index] = parse_syscall_arg(t, syscall_number, arg_index, value, is_string)
+
         entries = [
-            f"{arg} = {ANSIColors.BRIGHT_YELLOW}0x{value:x}{ANSIColors.DEFAULT_COLOR}"
+            f"{arg} = {ANSIColors.BRIGHT_YELLOW}{value}{ANSIColors.DEFAULT_COLOR}"
             if old_value == value
-            else f"{arg} = {ANSIColors.STRIKE}{ANSIColors.BRIGHT_YELLOW}0x{old_value:x}{ANSIColors.RESET} {ANSIColors.BRIGHT_YELLOW}0x{value:x}{ANSIColors.DEFAULT_COLOR}"
-            for arg, value, old_value in zip(syscall_args, values, old_args, strict=False)
+            else f"{arg} = {ANSIColors.STRIKE}{ANSIColors.BRIGHT_YELLOW}{old_value}{ANSIColors.RESET} {ANSIColors.BRIGHT_YELLOW}0x{value:x}{ANSIColors.DEFAULT_COLOR}"
+            for arg, value, old_value in zip(syscall_args, values_str, old_args_str, strict=False)
             if arg is not None
         ]
     else:
         entries = [
-            f"{arg} = {ANSIColors.BRIGHT_YELLOW}0x{value:x}{ANSIColors.DEFAULT_COLOR}"
-            for arg, value in zip(syscall_args, values, strict=False)
+            f"{arg} = {ANSIColors.BRIGHT_YELLOW}{value}{ANSIColors.DEFAULT_COLOR}"
+            for arg, value in zip(syscall_args, values_str, strict=False)
             if arg is not None
         ]
 

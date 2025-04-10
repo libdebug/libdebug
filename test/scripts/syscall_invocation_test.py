@@ -326,9 +326,9 @@ class SyscallInvocationTest(TestCase):
         d.terminate()
 
     def test_fork(self):
-        d = debugger(RESOLVE_EXE("dummy_binary"))
+        d = debugger(RESOLVE_EXE("dummy_binary"), aslr=False)
         d.run()
-
+        
         # Set a breakpoint to <main>
         d.breakpoint(BP_ADDRESS, hardware=True, file="binary")
 
