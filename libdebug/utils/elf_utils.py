@@ -77,7 +77,9 @@ def _collect_external_info(debug_path: str, reference_path: str, build_id: str) 
     """Returns a dictionary containing the symbols taken from the external debuginfo file.
 
     Args:
-        path (str): The path to the ELF file.
+        debug_path (str): The path to the external debuginfo file.
+        reference_path (str): The path to the ELF file.
+        build_id (str): The buildid of the ELF file.
 
     Returns:
         SymbolList[Symbol]: A list containing the symbols taken from the external debuginfo file.
