@@ -92,7 +92,7 @@ def _cleanup_internal_debugger() -> None:
             try:
                 debugger.atexit_terminate()
             except Exception as e:  # noqa: BLE001
-                liblog.debugger(f"Error while terminating the internal debugger: {e}")
+                liblog.debugger("Error while terminating the internal debugger: %s", e)
 
 
 atexit.register(_cleanup_internal_debugger)
