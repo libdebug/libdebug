@@ -76,7 +76,7 @@ class TimeoutTest(TestCase):
         # callback. This will print a warning
         d = debugger(RESOLVE_EXE("basic_test"))
 
-        r = d.run(timeout=2)
+        r = d.run(timeout=1)
 
         def callback(_, __):
             sleep(2)

@@ -71,6 +71,35 @@ Please consider a few requirements when opening GDB in a new process. For this m
 !!! WARNING "Migrating from a running process"
     Remember that GDB Migration is meant to be used when the process is stopped. If the process is running, the command will wait for a [stopping event](../../stopping_events/stopping_events). To forcibly stop the process, you can use the `interrupt()` method before migrating.
 
+Migrating to GDB is possible even inside callbacks, albeit with a few caveats:
+
+* The `blocking` parameter is forced to be `True`.
+* The migration interrupts the execution of the callback, but it won't resume from that point when migrating back from GDB.
+* The debugging is interrupted, as if a synchronous event had been hit, and it has to be resumed with a `cont()` after migrating back.
+
+!!! ABSTRACT "Example of GDB migration inside a callback"
+    ```python
+    def important_check(t, bp):
+        if t.regs.rax == 0:
+            d.gdb()
+            print("This will never be printed!") # (4)!
+        print(hex(r.regs.rbx)) # (1)!
+
+    d.bp("important_function", callback=important_check)
+
+    d.cont()
+    d.wait()
+
+    print("Migrated back from GDB") # (2)!
+
+    d.cont() # (3)!
+    ```
+
+    1. This line will never be executed whenever a migration happens.
+    2. This will be printed once **libdebug** migrates back from GDB.
+    3. A new `cont()` must be issued to resume the debugging.
+    4. The execution of the callback will be interrupted at `d.gdb()`.
+
 ## :material-power: Graceful Termination
 If you are finished working with a [Debugger](../../from_pydoc/generated/debugger/debugger/) object and wish to deallocate it, you can terminate it using the `terminate()` command.
 

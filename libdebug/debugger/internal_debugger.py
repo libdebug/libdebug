@@ -29,6 +29,7 @@ from libdebug.builtin.pretty_print_syscall_handler import (
     pprint_on_exit,
 )
 from libdebug.data.breakpoint import Breakpoint
+from libdebug.data.gdb_migration_signal import GdbMigrationSignal
 from libdebug.data.gdb_resume_event import GdbResumeEvent
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
@@ -71,6 +72,7 @@ from libdebug.utils.syscall_utils import (
     resolve_syscall_name,
     resolve_syscall_number,
 )
+from libdebug.utils.thread_exceptions import raise_exception_to_main_thread
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -205,6 +207,9 @@ class InternalDebugger:
     _is_migrated_to_gdb: bool
     """A flag that indicates if the debuggee was migrated to GDB."""
 
+    _gdb_resume_event: GdbResumeEvent
+    """The GDB resume event used to migrate the debugged process back from GDB."""
+
     _fast_memory: DirectMemoryView
     """The memory view of the debugged process using the fast memory access method."""
 
@@ -236,6 +241,7 @@ class InternalDebugger:
         self.is_debugging = False
         self._is_running = False
         self._is_migrated_to_gdb = False
+        self._gdb_resume_event = None
         self.resume_context = ResumeContext()
         self.stdin_settings_backup = []
         self.arch = map_arch(libcontext.platform)
@@ -511,18 +517,18 @@ class InternalDebugger:
     @background_alias(_background_invalid_call)
     @change_state_function_process
     def cont(self: InternalDebugger) -> None:
-        """Continues the process.
-
-        Args:
-            auto_wait (bool, optional): Whether to automatically wait for the process to stop after continuing. Defaults to True.
-        """
+        """Continues the process."""
         self.__polling_thread_command_queue.put((self.__threaded_cont, ()))
 
         self._join_and_check_status()
 
         self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
 
-    @background_alias(_background_invalid_call)
+    def _background_interrupt(self: InternalDebugger) -> None:
+        """Interrupts the process in the background."""
+        self.resume_context.resume = False
+
+    @background_alias(_background_interrupt)
     def interrupt(self: InternalDebugger) -> None:
         """Interrupts the process."""
         if not self.is_debugging:
@@ -561,7 +567,6 @@ class InternalDebugger:
     @change_state_function_process
     def maps(self: InternalDebugger) -> MemoryMapList[MemoryMap]:
         """Returns the memory maps of the process."""
-        self._ensure_process_stopped()
         return self.debugging_interface.get_maps()
 
     @property
@@ -572,7 +577,6 @@ class InternalDebugger:
 
     def pprint_maps(self: InternalDebugger) -> None:
         """Prints the memory maps of the process."""
-        self._ensure_process_stopped()
         pprint_maps_util(self.maps)
 
     def pprint_memory(
@@ -629,7 +633,6 @@ class InternalDebugger:
             integer_mode=integer_mode,
         )
 
-    @background_alias(_background_invalid_call)
     @change_state_function_process
     def breakpoint(
         self: InternalDebugger,
@@ -671,9 +674,13 @@ class InternalDebugger:
 
         link_to_internal_debugger(bp, self)
 
-        self.__polling_thread_command_queue.put((self.__threaded_breakpoint, (bp,)))
-
-        self._join_and_check_status()
+        if not self._is_in_background():
+            # Go through the queue and wait for it to be done
+            self.__polling_thread_command_queue.put((self.__threaded_breakpoint, (bp,)))
+            self._join_and_check_status()
+        else:
+            # Let's do this ourselves and move on
+            self.__threaded_breakpoint(bp)
 
         # the breakpoint should have been set by interface
         if address not in self.breakpoints:
@@ -681,7 +688,6 @@ class InternalDebugger:
 
         return bp
 
-    @background_alias(_background_invalid_call)
     @change_state_function_process
     def catch_signal(
         self: InternalDebugger,
@@ -737,13 +743,16 @@ class InternalDebugger:
 
         link_to_internal_debugger(catcher, self)
 
-        self.__polling_thread_command_queue.put((self.__threaded_catch_signal, (catcher,)))
-
-        self._join_and_check_status()
+        if not self._is_in_background():
+            # Go through the queue and wait for it to be done
+            self.__polling_thread_command_queue.put((self.__threaded_catch_signal, (catcher,)))
+            self._join_and_check_status()
+        else:
+            # Let's do this ourselves and move on
+            self.__threaded_catch_signal(catcher)
 
         return catcher
 
-    @background_alias(_background_invalid_call)
     @change_state_function_process
     def hijack_signal(
         self: InternalDebugger,
@@ -782,7 +791,6 @@ class InternalDebugger:
 
         return self.catch_signal(original_signal_number, callback, recursive)
 
-    @background_alias(_background_invalid_call)
     @change_state_function_process
     def handle_syscall(
         self: InternalDebugger,
@@ -840,15 +848,18 @@ class InternalDebugger:
 
             link_to_internal_debugger(handler, self)
 
-            self.__polling_thread_command_queue.put(
-                (self.__threaded_handle_syscall, (handler,)),
-            )
-
-            self._join_and_check_status()
+            if not self._is_in_background():
+                # Go through the queue and wait for it to be done
+                self.__polling_thread_command_queue.put(
+                    (self.__threaded_handle_syscall, (handler,)),
+                )
+                self._join_and_check_status()
+            else:
+                # Let's do this ourselves and move on
+                self.__threaded_handle_syscall(handler)
 
         return handler
 
-    @background_alias(_background_invalid_call)
     @change_state_function_process
     def hijack_syscall(
         self: InternalDebugger,
@@ -916,25 +927,40 @@ class InternalDebugger:
 
             link_to_internal_debugger(handler, self)
 
-            self.__polling_thread_command_queue.put(
-                (self.__threaded_handle_syscall, (handler,)),
-            )
-
-            self._join_and_check_status()
+            if not self._is_in_background():
+                # Go through the queue and wait for it to be done
+                self.__polling_thread_command_queue.put(
+                    (self.__threaded_handle_syscall, (handler,)),
+                )
+                self._join_and_check_status()
+            else:
+                # Let's do this ourselves and move on
+                self.__threaded_handle_syscall(handler)
 
         return handler
 
-    @background_alias(_background_invalid_call)
     @change_state_function_process
     def gdb(
         self: InternalDebugger,
         migrate_breakpoints: bool = True,
         open_in_new_process: bool = True,
         blocking: bool = True,
-    ) -> GdbResumeEvent:
-        """Migrates the current debugging session to GDB."""
-        # TODO: not needed?
-        self.interrupt()
+    ) -> None:
+        """Migrates the current debugging session to GDB.
+
+        Args:
+            migrate_breakpoints (bool): Whether to migrate over the breakpoints set in libdebug to GDB.
+            open_in_new_process (bool): Whether to attempt to open GDB in a new process instead of the current one.
+            blocking (bool): Whether to block the script until GDB is closed.
+        """
+        if self._gdb_resume_event:
+            raise RuntimeError("Unexpected state while migrating to GDB.")
+
+        if not blocking and self._is_in_background():
+            # Special handling for d.gdb(blocking=False) inside callbacks
+            # Trust the process
+            self.resume_context.resume = False
+            raise GdbMigrationSignal(migrate_breakpoints, open_in_new_process)
 
         # Create the command file
         command_file = self._craft_gdb_migration_file(migrate_breakpoints)
@@ -953,15 +979,32 @@ class InternalDebugger:
         else:
             lambda_fun = self._open_gdb_in_shell(command_file)
 
-        resume_event = GdbResumeEvent(self, lambda_fun)
-
         self._is_migrated_to_gdb = True
+        self._gdb_resume_event = GdbResumeEvent(self, lambda_fun)
 
         if blocking:
-            resume_event.join()
-            return None
-        else:
-            return resume_event
+            self.wait_for_gdb()
+
+    def wait_for_gdb(self: InternalDebugger) -> None:
+        """Waits for the GDB process to migrate back to libdebug."""
+        if not self._is_migrated_to_gdb:
+            raise RuntimeError("Process is not in GDB.")
+
+        if not self._gdb_resume_event:
+            raise RuntimeError("GDB resume event is not set.")
+
+        # Wait for the GDB process to terminate
+        self._gdb_resume_event.join()
+        self._gdb_resume_event = None
+
+    def _handle_gdb_migration_signal(self: InternalDebugger, signal: GdbMigrationSignal) -> None:
+        """Handles the GDB migration signal raised by a callback when the blocking option is set to False.
+
+        Args:
+            signal (GdbMigrationSignal): The signal to handle.
+        """
+        self.set_stopped()
+        self.gdb(signal.migrate_breakpoints, signal.open_in_new_process, blocking=False)
 
     def _auto_detect_terminal(self: InternalDebugger) -> None:
         """Auto-detects the terminal."""
@@ -1042,8 +1085,11 @@ class InternalDebugger:
                 "Failed to open GDB in terminal. Check the terminal configuration in libcontext.terminal.",
             ) from err
 
-        self.__polling_thread_command_queue.put((self.__threaded_gdb, ()))
-        self._join_and_check_status()
+        if not self._is_in_background():
+            self.__polling_thread_command_queue.put((self.__threaded_gdb, ()))
+            self._join_and_check_status()
+        else:
+            self.__threaded_gdb()
 
         # Create the command to open the terminal and run the script
         command = [*libcontext.terminal, script_path]
@@ -1143,25 +1189,14 @@ class InternalDebugger:
 
     def _resume_from_gdb(self: InternalDebugger) -> None:
         """Resumes the process after migrating from GDB."""
-        self.__polling_thread_command_queue.put((self.__threaded_migrate_from_gdb, ()))
-
-        self._join_and_check_status()
+        if not self._is_in_background():
+            self.__polling_thread_command_queue.put((self.__threaded_migrate_from_gdb, ()))
+            self._join_and_check_status()
+        else:
+            self.__threaded_migrate_from_gdb()
 
         self._is_migrated_to_gdb = False
 
-    def _background_step(self: InternalDebugger, thread: ThreadContext) -> None:
-        """Executes a single instruction of the process.
-
-        Args:
-            thread (ThreadContext): The thread to step. Defaults to None.
-        """
-        self.__threaded_step(thread)
-        self.__threaded_wait()
-
-        # At this point, we need to continue the execution of the callback from which the step was called
-        self.resume_context.resume = True
-
-    @background_alias(_background_step)
     @change_state_function_thread
     def step(self: InternalDebugger, thread: ThreadContext) -> None:
         """Executes a single instruction of the process.
@@ -1169,37 +1204,18 @@ class InternalDebugger:
         Args:
             thread (ThreadContext): The thread to step. Defaults to None.
         """
-        self._ensure_process_stopped()
-        self.__polling_thread_command_queue.put((self.__threaded_step, (thread,)))
-        self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
-        self._join_and_check_status()
-
-    def _background_step_until(
-        self: InternalDebugger,
-        thread: ThreadContext,
-        position: int | str,
-        max_steps: int = -1,
-        file: str = "hybrid",
-    ) -> None:
-        """Executes instructions of the process until the specified location is reached.
-
-        Args:
-            thread (ThreadContext): The thread to step. Defaults to None.
-            position (int | bytes): The location to reach.
-            max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
-        """
-        if isinstance(position, str):
-            address = self.resolve_symbol(position, file)
+        if not self._is_in_background():
+            self.__polling_thread_command_queue.put((self.__threaded_step, (thread,)))
+            self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
+            self._join_and_check_status()
         else:
-            address = self.resolve_address(position, file)
+            # Let's do this ourselves and move on
+            self.__threaded_step(thread)
+            self.__threaded_wait()
 
-        self.__threaded_step_until(thread, address, max_steps)
+            # At this point, we need to continue the execution of the callback from which the step was called
+            self.resume_context.resume = True
 
-        # At this point, we need to continue the execution of the callback from which the step was called
-        self.resume_context.resume = True
-
-    @background_alias(_background_step_until)
     @change_state_function_thread
     def step_until(
         self: InternalDebugger,
@@ -1221,37 +1237,21 @@ class InternalDebugger:
         else:
             address = self.resolve_address(position, file)
 
-        arguments = (
-            thread,
-            address,
-            max_steps,
-        )
+        if not self._is_in_background():
+            self.__polling_thread_command_queue.put(
+                (
+                    self.__threaded_step_until,
+                    (thread, address, max_steps),
+                ),
+            )
+            self._join_and_check_status()
+            self.set_stopped()
+        else:
+            self.__threaded_step_until(thread, address, max_steps)
 
-        self.__polling_thread_command_queue.put((self.__threaded_step_until, arguments))
+            # At this point, we need to continue the execution of the callback from which the step_until was called
+            self.resume_context.resume = True
 
-        self._join_and_check_status()
-
-    def _background_finish(
-        self: InternalDebugger,
-        thread: ThreadContext,
-        heuristic: str = "backtrace",
-    ) -> None:
-        """Continues execution until the current function returns or the process stops.
-
-        The command requires a heuristic to determine the end of the function. The available heuristics are:
-        - `backtrace`: The debugger will place a breakpoint on the saved return address found on the stack and continue execution on all threads.
-        - `step-mode`: The debugger will step on the specified thread until the current function returns. This will be slower.
-
-        Args:
-            thread (ThreadContext): The thread to finish.
-            heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
-        """
-        self.__threaded_finish(thread, heuristic)
-
-        # At this point, we need to continue the execution of the callback from which the step was called
-        self.resume_context.resume = True
-
-    @background_alias(_background_finish)
     @change_state_function_thread
     def finish(self: InternalDebugger, thread: ThreadContext, heuristic: str = "backtrace") -> None:
         """Continues execution until the current function returns or the process stops.
@@ -1264,29 +1264,30 @@ class InternalDebugger:
             thread (ThreadContext): The thread to finish.
             heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
         """
-        self.__polling_thread_command_queue.put(
-            (self.__threaded_finish, (thread, heuristic)),
-        )
+        if not self._is_in_background():
+            self.__polling_thread_command_queue.put(
+                (self.__threaded_finish, (thread, heuristic)),
+            )
+            self._join_and_check_status()
+            self.set_stopped()
+        else:
+            self.__threaded_finish(thread, heuristic)
 
-        self._join_and_check_status()
+            # At this point, we need to continue the execution of the callback from which the finish was called
+            self.resume_context.resume = True
 
-    def _background_next(
-        self: InternalDebugger,
-        thread: ThreadContext,
-    ) -> None:
-        """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
-        self.__threaded_next(thread)
-
-        # At this point, we need to continue the execution of the callback from which the step was called
-        self.resume_context.resume = True
-
-    @background_alias(_background_next)
     @change_state_function_thread
     def next(self: InternalDebugger, thread: ThreadContext) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
-        self._ensure_process_stopped()
-        self.__polling_thread_command_queue.put((self.__threaded_next, (thread,)))
-        self._join_and_check_status()
+        if not self._is_in_background():
+            self.__polling_thread_command_queue.put((self.__threaded_next, (thread,)))
+            self._join_and_check_status()
+            self.set_stopped()
+        else:
+            self.__threaded_next(thread)
+
+            # At this point, we need to continue the execution of the callback from which the next was called
+            self.resume_context.resume = True
 
     def enable_pretty_print(
         self: InternalDebugger,
@@ -1504,7 +1505,6 @@ class InternalDebugger:
     @property
     def symbols(self: InternalDebugger) -> SymbolList[Symbol]:
         """Get the symbols of the process."""
-        self._ensure_process_stopped()
         backing_files = {vmap.backing_file for vmap in self.maps}
         with extend_internal_debugger(self):
             return get_all_symbols(backing_files)
@@ -1565,8 +1565,10 @@ class InternalDebugger:
             # Execute the command
             try:
                 return_value = command(*args)
-            except BaseException as e:
+            except GdbMigrationSignal as e:
                 return_value = e
+            except BaseException as e:
+                raise_exception_to_main_thread(e)
 
             if return_value is not None:
                 self.__polling_thread_response_queue.put(return_value)
@@ -1583,7 +1585,10 @@ class InternalDebugger:
             response = self.__polling_thread_response_queue.get()
             self.__polling_thread_response_queue.task_done()
             if response is not None:
-                raise response
+                if isinstance(response, GdbMigrationSignal):
+                    self._handle_gdb_migration_signal(response)
+                else:
+                    raise response
 
     def _join_and_check_status(self: InternalDebugger) -> None:
         """Wait for the background thread to signal "task done" before returning."""
@@ -1668,11 +1673,17 @@ class InternalDebugger:
                 liblog.debugger("All threads dead")
                 break
             self.resume_context.resume = True
-            self.debugging_interface.wait()
+
+            try:
+                self.debugging_interface.wait()
+            except GdbMigrationSignal as e:  # noqa: TRY203
+                raise e  # noqa: TRY201
+
             if self.resume_context.resume:
                 self.debugging_interface.cont()
             else:
                 break
+
         self.set_stopped()
 
     def __threaded_breakpoint(self: InternalDebugger, bp: Breakpoint) -> None:
@@ -1696,7 +1707,6 @@ class InternalDebugger:
     def __threaded_step(self: InternalDebugger, thread: ThreadContext) -> None:
         liblog.debugger("Stepping thread %s.", thread.thread_id)
         self.debugging_interface.step(thread)
-        self.set_running()
 
     def __threaded_step_until(
         self: InternalDebugger,
@@ -1706,20 +1716,15 @@ class InternalDebugger:
     ) -> None:
         liblog.debugger("Stepping thread %s until 0x%x.", thread.thread_id, address)
         self.debugging_interface.step_until(thread, address, max_steps)
-        self.set_stopped()
 
     def __threaded_finish(self: InternalDebugger, thread: ThreadContext, heuristic: str) -> None:
         prefix = heuristic.capitalize()
-
         liblog.debugger(f"{prefix} finish on thread %s", thread.thread_id)
         self.debugging_interface.finish(thread, heuristic=heuristic)
-
-        self.set_stopped()
 
     def __threaded_next(self: InternalDebugger, thread: ThreadContext) -> None:
         liblog.debugger("Next on thread %s.", thread.thread_id)
         self.debugging_interface.next(thread)
-        self.set_stopped()
 
     def __threaded_gdb(self: InternalDebugger) -> None:
         self.debugging_interface.migrate_to_gdb()
@@ -1727,13 +1732,20 @@ class InternalDebugger:
     def __threaded_migrate_from_gdb(self: InternalDebugger) -> None:
         self.debugging_interface.migrate_from_gdb()
 
-    def __threaded_peek_memory(self: InternalDebugger, address: int) -> bytes | BaseException:
-        value = self.debugging_interface.peek_memory(address)
-        return value.to_bytes(get_platform_gp_register_size(libcontext.platform), sys.byteorder)
+    def __threaded_peek_memory(self: InternalDebugger, address: int) -> bytes | Exception:
+        try:
+            value = self.debugging_interface.peek_memory(address)
+            result = value.to_bytes(get_platform_gp_register_size(libcontext.platform), sys.byteorder)
+        except Exception as e:  # noqa:BLE001
+            result = e
+        return result
 
-    def __threaded_poke_memory(self: InternalDebugger, address: int, data: bytes) -> None:
+    def __threaded_poke_memory(self: InternalDebugger, address: int, data: bytes) -> None | Exception:
         int_data = int.from_bytes(data, sys.byteorder)
-        self.debugging_interface.poke_memory(address, int_data)
+        try:
+            self.debugging_interface.poke_memory(address, int_data)
+        except Exception as e:
+            return e
 
     def __threaded_fetch_fp_registers(self: InternalDebugger, registers: Registers) -> None:
         self.debugging_interface.fetch_fp_registers(registers)

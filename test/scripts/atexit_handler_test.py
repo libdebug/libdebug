@@ -41,7 +41,7 @@ class AtexitHandlerTest(TestCase):
         pid = q.get()
         if pid in psutil.pids():
             # This might be a false positive due to some race conditions
-            sleep(0.5)
+            sleep(1)
             self.assertNotIn(pid, psutil.pids())
 
     def test_run_2(self):
@@ -83,7 +83,7 @@ class AtexitHandlerTest(TestCase):
         # The process should not have been killed
         if pid in psutil.pids():
             # This might be a false positive due to some race conditions
-            sleep(0.5)
+            sleep(1)
             self.assertNotIn(pid, psutil.pids())
 
     def test_run_3(self):
@@ -110,7 +110,7 @@ class AtexitHandlerTest(TestCase):
         pid = q.get()
         if pid in psutil.pids():
             # This might be a false positive due to some race conditions
-            sleep(0.5)
+            sleep(1)
             self.assertNotIn(pid, psutil.pids())
 
     def test_run_4(self):
@@ -154,7 +154,7 @@ class AtexitHandlerTest(TestCase):
         # The process should not have been killed
         if pid in psutil.pids():
             # This might be a false positive due to some race conditions
-            sleep(0.5)
+            sleep(1)
             self.assertNotIn(pid, psutil.pids())
 
     def test_attach_detach_1(self):
@@ -205,7 +205,7 @@ class AtexitHandlerTest(TestCase):
         # The process should not have been killed
         if pid in psutil.pids():
             # This might be a false positive due to some race conditions
-            sleep(0.5)
+            sleep(1)
             self.assertNotIn(pid, psutil.pids())
 
     def test_attach_detach_2(self):
@@ -256,7 +256,7 @@ class AtexitHandlerTest(TestCase):
         # The process should not have been killed
         if pid in psutil.pids():
             # This might be a false positive due to some race conditions
-            sleep(0.5)
+            sleep(1)
             self.assertNotIn(pid, psutil.pids())
 
     def test_attach_1(self):
@@ -289,7 +289,7 @@ class AtexitHandlerTest(TestCase):
 
         if pid in psutil.pids():
             # This might be a false positive due to some race conditions
-            sleep(0.5)
+            sleep(1)
             self.assertNotIn(pid, psutil.pids())
     
     def test_attach_2(self):

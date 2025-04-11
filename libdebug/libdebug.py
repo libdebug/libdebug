@@ -12,6 +12,7 @@ from libdebug.debugger.internal_debugger import InternalDebugger
 from libdebug.liblog import liblog
 from libdebug.utils.elf_utils import elf_architecture, resolve_argv_path
 from libdebug.utils.libcontext import libcontext
+from libdebug.utils.thread_exceptions import setup_signal_handler
 
 
 def debugger(
@@ -79,3 +80,7 @@ def debugger(
             debugger.arch = libcontext.platform
 
     return debugger
+
+
+# At import time, we register a signal handler for exceptions
+setup_signal_handler()
