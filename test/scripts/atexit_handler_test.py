@@ -10,6 +10,8 @@ import os
 from unittest import TestCase
 from utils.binary_utils import RESOLVE_EXE
 from time import sleep
+from pwn import process
+
 
 from libdebug import debugger
 from libdebug.debugger.internal_debugger_holder import _cleanup_internal_debugger
@@ -39,7 +41,7 @@ class AtexitHandlerTest(TestCase):
         pid = q.get()
         if pid in psutil.pids():
             # This might be a false positive due to some race conditions
-            sleep(1)
+            sleep(0.5)
             self.assertNotIn(pid, psutil.pids())
 
     def test_run_2(self):
@@ -69,11 +71,20 @@ class AtexitHandlerTest(TestCase):
         # We can actually kill the process
         os.kill(pid, 9)
         
-
-            
+        while True:
+            try:
+                pid, status = os.waitpid(pid, os.WNOHANG)
+                if pid == 0:
+                    continue
+            except OSError:
+                break
+            sleep(0.1)
         
         # The process should not have been killed
-        self.assertNotIn(pid, psutil.pids())
+        if pid in psutil.pids():
+            # This might be a false positive due to some race conditions
+            sleep(0.5)
+            self.assertNotIn(pid, psutil.pids())
 
     def test_run_3(self):
         def provola(queue):
@@ -99,7 +110,7 @@ class AtexitHandlerTest(TestCase):
         pid = q.get()
         if pid in psutil.pids():
             # This might be a false positive due to some race conditions
-            sleep(1)
+            sleep(0.5)
             self.assertNotIn(pid, psutil.pids())
 
     def test_run_4(self):
@@ -234,5 +245,27 @@ class AtexitHandlerTest(TestCase):
 
         if pid in psutil.pids():
             # This might be a false positive due to some race conditions
-            sleep(1)
+            sleep(0.5)
             self.assertNotIn(pid, psutil.pids())
+    
+    def test_attach_2(self):
+        p = process(RESOLVE_EXE("infinite_loop_test"))
+
+        d = debugger()
+
+        d.attach(p.pid)
+
+        p.sendline(b"3")
+
+        d.step()
+        
+        d.step()
+
+        p.kill()
+
+        # The process should now be stopped in tracing stop. We are stealing some signal to 
+        # libdebug.
+        self.assertIsNotNone(p.poll(block=False))
+        
+        # Even if we kill the process, the next call should not raise an exception
+        _cleanup_internal_debugger()
