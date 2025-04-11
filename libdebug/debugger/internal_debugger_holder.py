@@ -67,7 +67,6 @@ def _cleanup_internal_debugger() -> None:
                 # process without relying on the background thread.
                 try:
                     os.kill(debugger.process_id, 9)
-                    os.waitpid(debugger.process_id, 0)
                 except Exception as e:  # noqa: BLE001
                     liblog.debugger("Error while interrupting debuggee: %s", e)
 
