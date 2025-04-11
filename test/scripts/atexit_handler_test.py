@@ -1,15 +1,15 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2025 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2024-2025 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+import subprocess
 import psutil
+import os
 from unittest import TestCase
 from utils.binary_utils import RESOLVE_EXE
 from time import sleep
-import os
-import subprocess
 
 from libdebug import debugger
 from libdebug.debugger.internal_debugger_holder import _cleanup_internal_debugger
@@ -68,6 +68,12 @@ class AtexitHandlerTest(TestCase):
         
         # We can actually kill the process
         os.kill(pid, 9)
+        
+
+            
+        
+        # The process should not have been killed
+        self.assertNotIn(pid, psutil.pids())
 
     def test_run_3(self):
         def provola(queue):
@@ -124,6 +130,7 @@ class AtexitHandlerTest(TestCase):
         
         # We can actually kill the process
         os.kill(pid, 9)
+        
 
     def test_attach_detach_1(self):
         def provola(queue):
