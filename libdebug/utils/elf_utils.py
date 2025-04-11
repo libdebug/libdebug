@@ -183,6 +183,10 @@ def get_all_symbols(backing_files: set[str]) -> SymbolList[Symbol]:
         )
 
     for file in backing_files:
+        # Do not parse non-ELF files
+        if not is_elf(file):
+            continue
+
         # Retrieve the symbols from the SymbolTableSection
         try:
             new_symbols, buildid, debug_file = _parse_elf_file(file, libcontext.sym_lvl)
@@ -330,3 +334,20 @@ def resolve_argv_path(argv_path: str) -> str:
         # Try to resolve the path using shutil
         resolved_path = abs_path if (abs_path := shutil.which(argv_path_expanded)) else argv_path_expanded
     return str(resolved_path)
+
+@functools.cache
+def is_elf(path: str) -> bool:
+    """Check if the file at the given path is an ELF file.
+
+    Args:
+        path (str): The path to the file.
+
+    Returns:
+        bool: True if the file is an ELF file, False otherwise.
+    """
+    try:
+        with Path(path).open("rb") as f:
+            magic = f.read(4)
+            return magic == b"\x7fELF"
+    except OSError:
+        return False
