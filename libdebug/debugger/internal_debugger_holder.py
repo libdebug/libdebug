@@ -89,7 +89,7 @@ def _cleanup_internal_debugger() -> None:
             # Now we can try to terminate both the polling thread and the timeout thread, if any. Again, we cannot
             # trust them, so we just try to notify them that the process is terminating.
             try:
-                debugger.atexit_terminate()
+                debugger._atexit_terminate()
             except Exception as e:  # noqa: BLE001
                 liblog.debugger("Error while terminating the internal debugger: %s", e)
 

@@ -444,7 +444,7 @@ class InternalDebugger:
 
         self._join_and_check_status()
 
-    def atexit_terminate(self: InternalDebugger) -> None:
+    def _atexit_terminate(self: InternalDebugger) -> None:
         """Terminate the background threads with an aggressive approach. This is meant to be used in atexit handlers."""
         if self.__polling_thread is not None:
             # When the main thread terminates, the polling thread will be terminated as well in any case,
