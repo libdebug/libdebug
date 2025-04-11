@@ -1588,11 +1588,6 @@ class InternalDebugger:
                 if isinstance(response, GdbMigrationSignal):
                     self._handle_gdb_migration_signal(response)
                 else:
-                    # We should never reach this
-                    liblog.error(
-                        "Ouch, we should never reach this. Please file an issue on GitHub if you see this",
-                        response,
-                    )
                     raise response
 
     def _join_and_check_status(self: InternalDebugger) -> None:
