@@ -9,7 +9,6 @@ from __future__ import annotations
 import atexit
 import os
 import sys
-import traceback
 from dataclasses import dataclass, field
 from termios import TCSANOW, tcsetattr
 from threading import Lock
@@ -17,15 +16,6 @@ from typing import TYPE_CHECKING
 from weakref import WeakKeyDictionary
 
 from libdebug.liblog import liblog
-
-try:
-    from rich import get_console
-    from rich.traceback import Traceback
-except ImportError:
-    console = None
-else:
-    console = get_console()
-
 
 if TYPE_CHECKING:
     from libdebug.debugger.internal_debugger import InternalDebugger
