@@ -142,6 +142,20 @@ class AtexitHandlerTest(TestCase):
         # We can actually kill the process
         os.kill(pid, 9)
         
+        while True:
+            try:
+                pid, status = os.waitpid(pid, os.WNOHANG)
+                if pid == 0:
+                    continue
+            except OSError:
+                break
+            sleep(0.1)
+        
+        # The process should not have been killed
+        if pid in psutil.pids():
+            # This might be a false positive due to some race conditions
+            sleep(0.5)
+            self.assertNotIn(pid, psutil.pids())
 
     def test_attach_detach_1(self):
         def provola(queue):
@@ -178,6 +192,21 @@ class AtexitHandlerTest(TestCase):
         
         # We can actually kill the process
         os.kill(pid, 9)
+        
+        while True:
+            try:
+                pid, status = os.waitpid(pid, os.WNOHANG)
+                if pid == 0:
+                    continue
+            except OSError:
+                break
+            sleep(0.1)
+        
+        # The process should not have been killed
+        if pid in psutil.pids():
+            # This might be a false positive due to some race conditions
+            sleep(0.5)
+            self.assertNotIn(pid, psutil.pids())
 
     def test_attach_detach_2(self):
         def provola(queue):
@@ -214,6 +243,21 @@ class AtexitHandlerTest(TestCase):
         
         # We can actually kill the process
         os.kill(pid, 9)
+        
+        while True:
+            try:
+                pid, status = os.waitpid(pid, os.WNOHANG)
+                if pid == 0:
+                    continue
+            except OSError:
+                break
+            sleep(0.1)
+        
+        # The process should not have been killed
+        if pid in psutil.pids():
+            # This might be a false positive due to some race conditions
+            sleep(0.5)
+            self.assertNotIn(pid, psutil.pids())
 
     def test_attach_1(self):
         def provola(queue):
