@@ -72,6 +72,7 @@ from libdebug.utils.syscall_utils import (
     resolve_syscall_name,
     resolve_syscall_number,
 )
+from libdebug.utils.thread_exceptions import raise_exception_to_main_thread
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -1564,8 +1565,10 @@ class InternalDebugger:
             # Execute the command
             try:
                 return_value = command(*args)
-            except BaseException as e:
+            except GdbMigrationSignal as e:
                 return_value = e
+            except BaseException as e:
+                raise_exception_to_main_thread(e)
 
             if return_value is not None:
                 self.__polling_thread_response_queue.put(return_value)
@@ -1731,13 +1734,20 @@ class InternalDebugger:
     def __threaded_migrate_from_gdb(self: InternalDebugger) -> None:
         self.debugging_interface.migrate_from_gdb()
 
-    def __threaded_peek_memory(self: InternalDebugger, address: int) -> bytes | BaseException:
-        value = self.debugging_interface.peek_memory(address)
-        return value.to_bytes(get_platform_gp_register_size(libcontext.platform), sys.byteorder)
+    def __threaded_peek_memory(self: InternalDebugger, address: int) -> bytes | Exception:
+        try:
+            value = self.debugging_interface.peek_memory(address)
+            result = value.to_bytes(get_platform_gp_register_size(libcontext.platform), sys.byteorder)
+        except Exception as e:  # noqa:BLE001
+            result = e
+        return result
 
-    def __threaded_poke_memory(self: InternalDebugger, address: int, data: bytes) -> None:
+    def __threaded_poke_memory(self: InternalDebugger, address: int, data: bytes) -> None | Exception:
         int_data = int.from_bytes(data, sys.byteorder)
-        self.debugging_interface.poke_memory(address, int_data)
+        try:
+            self.debugging_interface.poke_memory(address, int_data)
+        except Exception as e:
+            return e
 
     def __threaded_fetch_fp_registers(self: InternalDebugger, registers: Registers) -> None:
         self.debugging_interface.fetch_fp_registers(registers)

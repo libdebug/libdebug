@@ -118,7 +118,7 @@ class PtraceStatusHandler:
                     bp.callback(thread, bp)
                 except Exception as e:  # noqa: BLE001
                     liblog.error('Exception raised while executing callback for breakpoint at "%s": %s', bp.symbol, e)
-                    self.internal_debugger.resume_context.resume = False
+                    raise RuntimeError("Unhandled exception in breakpoint callback") from e
             else:
                 # If the breakpoint has no callback, we need to stop the process despite the other signals
                 self.internal_debugger.resume_context.resume = False
@@ -145,7 +145,7 @@ class PtraceStatusHandler:
                 handler.on_enter_user(thread, handler)
             except Exception as e:  # noqa: BLE001
                 liblog.error("Exception raised in on-enter callback for syscall %d: %s", handler.syscall_number, e)
-                self.internal_debugger.resume_context.resume = False
+                raise RuntimeError("Unhandled exception in syscall callback") from e
 
             if not handler.enabled:
                 # The syscall has been disabled by the user, we will never hit the on_exit
@@ -267,7 +267,7 @@ class PtraceStatusHandler:
                     handler.on_exit_user(thread, handler)
                 except Exception as e: # noqa: BLE001
                     liblog.error("Exception raised in on-exit callback for syscall %d: %s", handler.syscall_number, e)
-                    self.internal_debugger.resume_context.resume = False
+                    raise RuntimeError("Unhandled exception in syscall callback") from e
 
                 if handler.on_exit_pprint:
                     return_value_after_callback = thread.syscall_return
@@ -313,7 +313,7 @@ class PtraceStatusHandler:
                         resolve_signal_name(signal_number),
                         e,
                     )
-                    self.internal_debugger.resume_context.resume = False
+                    raise RuntimeError("Unhandled exception in signal callback") from e
 
                 new_signal_number = thread._signal_number
 

@@ -19,12 +19,12 @@ from weakref import WeakKeyDictionary
 from libdebug.liblog import liblog
 
 try:
-    from rich.console import Console
+    from rich import get_console
     from rich.traceback import Traceback
 except ImportError:
     console = None
 else:
-    console = Console()
+    console = get_console()
 
 
 if TYPE_CHECKING:
@@ -69,22 +69,6 @@ def _cleanup_internal_debugger() -> None:
                     os.kill(debugger.process_id, 9)
                 except Exception as e:  # noqa: BLE001
                     liblog.debugger("Error while interrupting debuggee: %s", e)
-
-            # The background thread might have raised an exception that we are unaware of.
-            # We want to capture it and notify the user. If the user has issued a Control-C, the traceback will be
-            # printed after the one for the KeyboardInterrupt.
-            try:
-                debugger._check_status()
-            except Exception as e:  # noqa: BLE001
-                if console:
-                    tb = Traceback.from_exception(
-                        exc_type=type(e),
-                        exc_value=e,
-                        traceback=e.__traceback__,
-                    )
-                    console.print(tb)
-                else:
-                    traceback.print_exc()
 
             # Now we can try to terminate both the polling thread and the timeout thread, if any. Again, we cannot
             # trust them, so we just try to notify them that the process is terminating.
