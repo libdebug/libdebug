@@ -1676,9 +1676,7 @@ class InternalDebugger:
 
             try:
                 self.debugging_interface.wait()
-            except GdbMigrationSignal as e:
-                # We must set the process as stopped before re-raising the exception
-                self.set_stopped()
+            except GdbMigrationSignal as e:  # noqa: TRY203
                 raise e  # noqa: TRY201
 
             if self.resume_context.resume:
