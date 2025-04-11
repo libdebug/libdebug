@@ -150,20 +150,31 @@ const ElfInfo read_elf_info(const std::string &elf_file_path, const int debug_in
     }
 
     if ((elf = elf_begin(fd, ELF_C_READ, NULL)) == NULL) {
+        close(fd);
         throw std::runtime_error("Error reading ELF file: " + elf_file_path);
     }
 
-    // Read the symbol table
-    process_symbol_tables(elf, symbols);
+    std::pair<std::string, std::string> build_id_and_debug_file_path;
+    std::string build_id;
+    std::string debug_file_path;
 
-    // Read the build ID
-    std::pair<std::string, std::string> build_id_and_debug_file_path = read_build_id_and_filename(elf);
-    std::string build_id = build_id_and_debug_file_path.first;
-    std::string debug_file_path = build_id_and_debug_file_path.second;
+    try {
+        // Read the symbol table
+        process_symbol_tables(elf, symbols);
 
-    if (debug_info_level > 1) {
-        // Read the dwarf info
-        process_dwarf_info(fd, symbols);
+        // Read the build ID
+        build_id_and_debug_file_path = read_build_id_and_filename(elf);
+        build_id = build_id_and_debug_file_path.first;
+        debug_file_path = build_id_and_debug_file_path.second;
+
+        if (debug_info_level > 1) {
+            // Read the dwarf info
+            process_dwarf_info(fd, symbols);
+        }
+    } catch (const std::exception &e) {
+        elf_end(elf);
+        close(fd);
+        throw;
     }
 
     elf_end(elf);
@@ -203,15 +214,22 @@ SymbolVector collect_external_symbols(const std::string &debug_file_path, const 
 
     // Read the ELF file
     if ((elf = elf_begin(fd, ELF_C_READ, NULL)) == NULL) {
+        close(fd);
         throw std::runtime_error("Error reading ELF file: " + debug_file_path);
     }
 
     // Read the symbol table
-    process_symbol_tables(elf, symbols);
+    try {
+        process_symbol_tables(elf, symbols);
 
-    if (debug_info_level > 3) {
-        // Read the dwarf info
-        process_dwarf_info(fd, symbols);
+        if (debug_info_level > 3) {
+            // Read the dwarf info
+            process_dwarf_info(fd, symbols);
+        }
+    } catch (const std::exception &e) {
+        elf_end(elf);
+        close(fd);
+        throw;
     }
 
     elf_end(elf);

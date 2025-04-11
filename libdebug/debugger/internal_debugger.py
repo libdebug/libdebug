@@ -449,6 +449,32 @@ class InternalDebugger:
 
         self._join_and_check_status()
 
+    def _atexit_terminate(self: InternalDebugger) -> None:
+        """Terminate the background threads with an aggressive approach. This is meant to be used in atexit handlers."""
+        if self.__polling_thread is not None:
+            # When the main thread terminates, the polling thread will be terminated as well in any case,
+            # as it is a daemon thread. However, the nanobind C++ exit handler might race with the Python
+            # atexit handler defined by us. In that case, we might see an error message of the type
+            # `terminate called without an active exception` with a consequent core dump.
+            # This has no real consequences, but it is annoying and inelegant. To avoid, as much as possible,
+            # this behavior, we send a command to the polling thread to terminate. However, the polling thread
+            # might be stuck in an endless callback or waiting for an event that will never happen due to some
+            # edge cases we missed. Since we MUST finish the execution of the script as soon as possible, we call
+            # join() on it with a reasonable timeout. If it does terminate in time, we are sure that everything is
+            # fine and we will have no race. If not, the other thread is probably stuck. The race might still happen,
+            # but it is less likely.
+            self.__polling_thread_command_queue.put((THREAD_TERMINATE, ()))
+            self.__polling_thread.join(0.5)
+            if self.__polling_thread.is_alive():
+                liblog.debugger("Polling thread is still alive after THREAD_TERMINATE. It might be stuck.")
+
+        if self.__timeout_thread is not None:
+            # It is unlikely that the timeout thread gets stuck, but we use the same approach here. Just to be sure.
+            self.__timeout_thread_command_queue.put(THREAD_TERMINATE)
+            self.__timeout_thread.join(0.5)
+            if self.__timeout_thread.is_alive():
+                liblog.debugger("Timeout thread is still alive after THREAD_TERMINATE. It might be stuck.")
+
     def terminate(self: InternalDebugger) -> None:
         """Interrupts the process, kills it and then terminates the background thread.
 
@@ -1550,12 +1576,8 @@ class InternalDebugger:
             if return_value is not None:
                 self.__polling_thread_response_queue.join()
 
-    def _join_and_check_status(self: InternalDebugger) -> None:
-        # Wait for the background thread to signal "task done" before returning
-        # We don't want any asynchronous behaviour here
-        self.__polling_thread_command_queue.join()
-
-        # Check for any exceptions raised by the background thread
+    def _check_status(self: InternalDebugger) -> None:
+        """Check for any exceptions raised by the background thread."""
         if not self.__polling_thread_response_queue.empty():
             response = self.__polling_thread_response_queue.get()
             self.__polling_thread_response_queue.task_done()
@@ -1564,6 +1586,12 @@ class InternalDebugger:
                     self._handle_gdb_migration_signal(response)
                 else:
                     raise response
+
+    def _join_and_check_status(self: InternalDebugger) -> None:
+        """Wait for the background thread to signal "task done" before returning."""
+        # We don't want any asynchronous behaviour here
+        self.__polling_thread_command_queue.join()
+        self._check_status()
 
     @functools.cached_property
     def _process_full_path(self: InternalDebugger) -> str:
@@ -1990,8 +2018,7 @@ class InternalDebugger:
                 if self.resume_context.is_in_callback:
                     # We have no way to stop the callback, let's notify the user
                     liblog.warning(
-                        "Timeout occurred while executing a callback. "
-                        "Asynchronous callbacks cannot be interrupted.",
+                        "Timeout occurred while executing a callback. Asynchronous callbacks cannot be interrupted.",
                     )
 
                 # Kill it
@@ -2008,7 +2035,7 @@ class InternalDebugger:
                         self.path,
                         self.process_id,
                     )
-                except Exception as e: # noqa: BLE001
+                except Exception as e:  # noqa: BLE001
                     liblog.debugger(
                         "Error while killing timed out debuggee process %s (%d): %s",
                         self.path,
