@@ -460,11 +460,15 @@ class InternalDebugger:
             # but it is less likely.
             self.__polling_thread_command_queue.put((THREAD_TERMINATE, ()))
             self.__polling_thread.join(0.5)
+            if self.__polling_thread.is_alive():
+                liblog.debugger("Polling thread is still alive after THREAD_TERMINATE. It might be stuck.")
 
         if self.__timeout_thread is not None:
             # It is unlikely that the timeout thread gets stuck, but we use the same approach here. Just to be sure.
             self.__timeout_thread_command_queue.put(THREAD_TERMINATE)
-            self.__polling_thread.join(0.5)
+            self.__timeout_thread.join(0.5)
+            if self.__timeout_thread.is_alive():
+                liblog.debugger("Timeout thread is still alive after THREAD_TERMINATE. It might be stuck.")
 
     def terminate(self: InternalDebugger) -> None:
         """Interrupts the process, kills it and then terminates the background thread.
