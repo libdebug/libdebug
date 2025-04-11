@@ -58,13 +58,14 @@ class Debugger:
         self._internal_debugger = internal_debugger
         self._internal_debugger.start_up()
 
-    def run(self: Debugger, redirect_pipes: bool = True) -> PipeManager | None:
+    def run(self: Debugger, timeout: float = -1, redirect_pipes: bool = True) -> PipeManager | None:
         """Starts the process and waits for it to stop.
 
         Args:
+            timeout (float): The timeout for the process to run. If -1, the process will run indefinitely.
             redirect_pipes (bool): Whether to hook and redirect the pipes of the process to a PipeManager.
         """
-        return self._internal_debugger.run(redirect_pipes)
+        return self._internal_debugger.run(timeout, redirect_pipes)
 
     def attach(self: Debugger, pid: int) -> None:
         """Attaches to an existing process."""
