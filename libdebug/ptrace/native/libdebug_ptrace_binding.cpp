@@ -123,6 +123,10 @@ Thread& LibdebugPtraceInterface::try_get_thread(const pid_t tid)
     auto it = threads.find(tid);
 
     if (it == threads.end()) {
+        for (auto &t : threads) {
+            printf("Thread %d is not registered\n", t.first);
+            printf("SEarch for %d\n", tid);
+        }
         throw std::runtime_error("Thread not found");
     }
 

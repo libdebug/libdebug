@@ -1147,7 +1147,7 @@ class InternalDebugger:
         """
         self._ensure_process_stopped()
         self.__polling_thread_command_queue.put((self.__threaded_step, (thread,)))
-        self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
+        # self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
         self._join_and_check_status()
 
     def _background_step_until(
@@ -1965,6 +1965,7 @@ class InternalDebugger:
 
         call_utils = call_utilities_provider(self.arch)
 
+        thread.instruction_pointer -= 2
         ip = thread.instruction_pointer
         syscall_instruction = call_utils.get_syscall_instruction()
 
@@ -2006,12 +2007,13 @@ class InternalDebugger:
 
         # Restore the original code.
         try:
-            print(f"Original RIP: {ip:#x}, len_patch: {len_patch}, backup_code: {backup_code}")
-            print(f"Restoring code: {syscall_instruction}")
-            print(f"New RIP: {thread.regs.rip:#x}, len_patch: {len_patch}, backup_code: {backup_code}")
+            # print(f"Original RIP: {ip:#x}, len_patch: {len_patch}, backup_code: {backup_code}")
+            # print(f"Restoring code: {syscall_instruction}")
+            # print(f"New RIP: {thread.regs.rip:#x}, len_patch: {len_patch}, backup_code: {backup_code}")
 
             if self.children:
-                print(f"Child RIP: {self.children[0].regs.rip:#x}, len_patch: {len_patch}, backup_code: {backup_code}")
+                pass
+                # print(f"Child RIP: {self.children[0].regs.rip:#x}, len_patch: {len_patch}, backup_code: {backup_code}")
             thread.memory[ip, len_patch, "absolute"] = backup_code
         except RuntimeError as e:
             raise RuntimeError(
@@ -2048,13 +2050,19 @@ class InternalDebugger:
                 )
 
             # - Restore the original code in the child process
-            child.memory[ip, len_patch, "absolute"] = syscall_instruction
+            liblog.debugger("doing stuff on thread child %d", child.thread_id)
+            child.memory[ip, len_patch, "absolute"] = backup_code
             child.syscall_number = syscall_number
 
             # - Restore registers
-            for reg_name in thread.registers:
-                if isinstance(getattr(thread.regs, reg_name), int | float):
-                    setattr(child.registers, reg_name, getattr(thread.registers, reg_name))
+            child.step()
+            child.interrupt()
+            # from time import sleep
+            # sleep(1000)
+            for reg_name in dir(thread.regs):
+                if isinstance(getattr(thread.regs, reg_name), int | float) and reg_name != "_thread_id":
+                    # print(f"Reg name: {reg_name}")
+                    setattr(child.regs, reg_name, getattr(thread.regs, reg_name))
 
         return retval
 
