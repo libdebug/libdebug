@@ -335,8 +335,12 @@ class SyscallInvocationTest(TestCase):
         d.cont()
         d.wait()
 
+        ip = d.instruction_pointer
+
         # Invoke the syscall
         ret = d.invoke_syscall("fork")
+
+        self.assertEqual(d.regs.rip, ip)
 
         # Check the return value
         self.assertGreater(ret, 0)

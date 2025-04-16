@@ -1965,16 +1965,16 @@ class InternalDebugger:
 
         call_utils = call_utilities_provider(self.arch)
 
-        thread.instruction_pointer -= 2
-        ip = thread.instruction_pointer
         syscall_instruction = call_utils.get_syscall_instruction()
+        thread.instruction_pointer -= len(syscall_instruction)
+        patch_ip = thread.instruction_pointer
 
         len_patch = len(syscall_instruction)
 
-        backup_code = thread.memory[ip, len_patch, "absolute"]
+        backup_code = thread.memory[patch_ip, len_patch, "absolute"]
 
         # Patch the syscall instruction.
-        thread.memory[ip, len_patch, "absolute"] = syscall_instruction
+        thread.memory[patch_ip, len_patch, "absolute"] = syscall_instruction
 
         # Set the syscall number in both the architectural register
         # and the corresponding kernel copy register (e.g., orig_rax on x86_64).
@@ -2007,7 +2007,7 @@ class InternalDebugger:
 
         # Restore the original code.
         try:
-            thread.memory[ip, len_patch, "absolute"] = backup_code
+            thread.memory[patch_ip, len_patch, "absolute"] = backup_code
         except RuntimeError as e:
             raise RuntimeError(
                 "Failed to restore the original instruction after syscall invocation. "
@@ -2075,7 +2075,7 @@ class InternalDebugger:
 
                 # - Restore the original code in the child process
                 liblog.debugger("Restoring state on child process %d", child.process_id)
-                child.memory[ip, len_patch, "absolute"] = backup_code
+                child.memory[patch_ip, len_patch, "absolute"] = backup_code
                 child.syscall_number = syscall_number
 
                 # - Restore registers

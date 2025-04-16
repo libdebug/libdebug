@@ -66,4 +66,4 @@ class Amd64CallUtilities(CallUtilitiesManager):
 
     def get_syscall_instruction(self: CallUtilitiesManager) -> bytes:
         """Return the bytes of the syscall instruction."""
-        return b"\x0F\x05"  # syscall
+        return b"\x90\x0F\x05\x90"  # syscall + NOPs
