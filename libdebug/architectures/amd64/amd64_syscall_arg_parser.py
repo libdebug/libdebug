@@ -587,8 +587,13 @@ AMD64_SYSCALL_PARSER_MAP = \
         #int options
         2: {
             0x00000001: "WNOHANG",
-            0x00000002: "WUNTRACED",
-            0x00000004: "WCONTINUED",
+            0x00000002: "WUNTRACED / WSTOPPED",
+            0x00000004: "WEXITED",
+            0x00000008: "WCONTINUED",
+            0x01000000: "WNOWAIT",
+            0x20000000: "__WNOTHREAD",
+            0x40000000: "__WALL",
+            0x80000000: "__WCLONE",
         },
     },
     #kill
@@ -642,66 +647,27 @@ AMD64_SYSCALL_PARSER_MAP = \
             0o0004000: "IPC_NOWAIT",
         },
     },
-    #semop
-    # 65:{
-    #     #int semid
-    #     0: {},
-    #     #struct sembuf *tsops
-    #     1: {},
-    #     #unsigned nsops
-    #     2: {},
-    # },
-    #semctl
-    # 66:{
-    #     #int semid
-    #     0: {},
-    #     #int semnum
-    #     1: {},
-    #     #int cmd
-    #     2: {},
-    #     #unsigned long arg
-    #     3: {},
-    # },
-    #msgget
-    # 68:{
-    #     #key_t key
-    #     0: {},
-    #     #int msgflg
-    #     1: {},
-    # },
-    # #msgsnd
-    # 69:{
-    #     #int msqid
-    #     0: {},
-    #     #struct msgbuf *msgp
-    #     1: {},
-    #     #size_t msgsz
-    #     2: {},
-    #     #int msgflg
-    #     3: {},
-    # },
-    # #msgrcv
-    # 70:{
-    #     #int msqid
-    #     0: {},
-    #     #struct msgbuf *msgp
-    #     1: {},
-    #     #size_t msgsz
-    #     2: {},
-    #     #long msgtyp
-    #     3: {},
-    #     #int msgflg
-    #     4: {},
-    # },
-    # #msgctl
-    # 71:{
-    #     #int msqid
-    #     0: {},
-    #     #int cmd
-    #     1: {},
-    #     #struct msqid_ds *buf
-    #     2: {},
-    # },
+    # semctl
+    66:{
+        #int cmd
+        2: {
+            0: "IPC_RMID",
+            1: "IPC_SET",
+            2: "IPC_STAT",
+            3: "IPC_INFO",
+            18: "SEM_STAT",
+            19: "SEM_INFO",
+            20: "SEM_STAT_ANY",
+            11: "GETPID",
+            12: "GETVAL",
+            13: "GETALL",
+            14: "GETNCNT",
+            15: "GETZCNT",
+            16: "SETVAL",
+            17: "SETALL",
+            "parsing_mode": "sequential",
+        },
+    },
     # TODO: Crazy complex parsing, future work
     # # fcntl
     # 72:{
@@ -1655,163 +1621,179 @@ AMD64_SYSCALL_PARSER_MAP = \
     },
     #mq_open
     240:{
-        #const char *u_name
-        0: {},
         #int oflag
-        1: {},
+        1: {
+            0o02000000: "O_CLOEXEC",
+            0o00000100: "O_CREAT",
+            0o00000200: "O_EXCL",
+            0o00004000: "O_NOFOLLOW / O_NONBLOCK",
+            0o00000000: "O_RDONLY",
+            0o00000002: "O_RDWR",
+            0o00000001: "O_WRONLY",
+        },
         #umode_t mode
-        2: {},
-        #struct mq_attr *u_attr
-        3: {},
-    },
-    #mq_timedsend
-    242:{
-        #mqd_t mqdes
-        0: {},
-        #const char *u_msg_ptr
-        1: {},
-        #size_t msg_len
-        2: {},
-        #unsigned int msg_prio
-        3: {},
-        #const struct __kernel_timespec *u_abs_timeout
-        4: {},
-    },
-    #mq_timedreceive
-    243:{
-        #mqd_t mqdes
-        0: {},
-        #char *u_msg_ptr
-        1: {},
-        #size_t msg_len
-        2: {},
-        #unsigned int *u_msg_prio
-        3: {},
-        #const struct __kernel_timespec *u_abs_timeout
-        4: {},
-    },
-    #mq_notify
-    244:{
-        #mqd_t mqdes
-        0: {},
-        #const struct sigevent *u_notification
-        1: {},
-    },
-    #mq_getsetattr
-    245:{
-        #mqd_t mqdes
-        0: {},
-        #const struct mq_attr *u_mqstat
-        1: {},
-        #struct mq_attr *u_omqstat
-        2: {},
+        2: {
+            0o00700: "S_IRWXU",
+            0o00400: "S_IRUSR",
+            0o00200: "S_IWUSR",
+            0o00100: "S_IXUSR",
+            0o00070: "S_IRWXG",
+            0o00040: "S_IRGRP",
+            0o00020: "S_IWGRP",
+            0o00010: "S_IXGRP",
+            0o00007: "S_IRWXO",
+            0o00004: "S_IROTH",
+            0o00002: "S_IWOTH",
+            0o00001: "S_IXOTH",
+            0o0004000: "S_ISUID",
+            0o0002000: "S_ISGID",
+            0o0001000: "S_ISVTX",
+        },
     },
     #kexec_load
     246:{
-        #unsigned long entry
-        0: {},
-        #unsigned long nr_segments
-        1: {},
-        #struct kexec_segment *segments
-        2: {},
         #unsigned long flags
-        3: {},
+        3: {
+            "or_flags": {
+                0x00000001: "KEXEC_ON_CRASH",
+                0x00000002: "KEXEC_PRESERVE_CONTEXT",
+                0x00000004: "KEXEC_UPDATE_ELFCOREHDR",
+                0x00000008: "KEXEC_CRASH_HOTPLUG_SUPPORT",
+                0xffff0000: "KEXEC_ARCH_MASK",
+            },
+            "sequential_flags": {
+                0x0: "KEXEC_ARCH_DEFAULT",
+                0x30000: "KEXEC_ARCH_386",
+                0x40000: "KEXEC_ARCH_68K",
+                0xf0000: "KEXEC_ARCH_PARISC",
+                0x3e0000: "KEXEC_ARCH_X86_64",
+                0x140000: "KEXEC_ARCH_PPC",
+                0x150000: "KEXEC_ARCH_PPC64",
+                0x320000: "KEXEC_ARCH_IA_64",
+                0x280000: "KEXEC_ARCH_ARM",
+                0x160000: "KEXEC_ARCH_S390",
+                0x2a0000: "KEXEC_ARCH_SH",
+                0xa0000: "KEXEC_ARCH_MIPS_LE",
+                0x80000: "KEXEC_ARCH_MIPS",
+                0xb70000: "KEXEC_ARCH_AARCH64",
+                0xf30000: "KEXEC_ARCH_RISCV",
+                0x1020000: "KEXEC_ARCH_LOONGARCH",
+            },
+            "parsing_mode": "mixed",
+        },
     },
     #waitid
     247:{
         #int which
-        0: {},
-        #pid_t upid
-        1: {},
-        #struct siginfo *infop
-        2: {},
+        0: {
+            0: "P_ALL",
+            1: "P_PID",
+            2: "P_PGID",
+            "parsing_mode": "sequential",
+        },
         #int options
-        3: {},
-        #struct rusage *ru
-        4: {},
+        3: {
+            0x00000001: "WNOHANG",
+            0x00000002: "WUNTRACED / WSTOPPED",
+            0x00000004: "WEXITED",
+            0x00000008: "WCONTINUED",
+            0x01000000: "WNOWAIT",
+            0x20000000: "__WNOTHREAD",
+            0x40000000: "__WALL",
+            0x80000000: "__WCLONE",
+        },
     },
     #add_key
     248:{
-        #const char *_type
-        0: {},
-        #const char *_description
-        1: {},
-        #const void *_payload
-        2: {},
-        #size_t plen
-        3: {},
         #key_serial_t ringid
-        4: {},
+        4: {
+            0xffffffffffffffff: "KEY_SPEC_THREAD_KEYRING",
+            0xfffffffffffffffe: "KEY_SPEC_PROCESS_KEYRING",
+            0xfffffffffffffffd: "KEY_SPEC_SESSION_KEYRING",
+            0xfffffffffffffffc: "KEY_SPEC_USER_KEYRING",
+            0xfffffffffffffffb: "KEY_SPEC_USER_SESSION_KEYRING",
+            0xfffffffffffffffa: "KEY_SPEC_GROUP_KEYRING",
+            0xffffffffffffff9f: "KEY_SPEC_REQKEY_AUTH_KEY",
+            0xffffffffffffff9e: "KEY_SPEC_REQUESTOR_KEYRING",
+            "parsing_mode": "sequential",
+        },
     },
     #request_key
     249:{
-        #const char *_type
-        0: {},
-        #const char *_description
-        1: {},
-        #const char *_callout_info
-        2: {},
         #key_serial_t destringid
-        3: {},
+        3: {
+            0xffffffffffffffff: "KEY_SPEC_THREAD_KEYRING",
+            0xfffffffffffffffe: "KEY_SPEC_PROCESS_KEYRING",
+            0xfffffffffffffffd: "KEY_SPEC_SESSION_KEYRING",
+            0xfffffffffffffffc: "KEY_SPEC_USER_KEYRING",
+            0xfffffffffffffffb: "KEY_SPEC_USER_SESSION_KEYRING",
+            0xfffffffffffffffa: "KEY_SPEC_GROUP_KEYRING",
+            0xffffffffffffff9f: "KEY_SPEC_REQKEY_AUTH_KEY",
+            0xffffffffffffff9e: "KEY_SPEC_REQUESTOR_KEYRING",
+            "parsing_mode": "sequential",
+        },
     },
     #keyctl
     250:{
         #int option
-        0: {},
-        #unsigned long arg2
-        1: {},
-        #unsigned long arg3
-        2: {},
-        #unsigned long arg4
-        3: {},
-        #unsigned long arg5
-        4: {},
+        0: {
+            {
+                0: "KEYCTL_GET_KEYRING_ID",
+                1: "KEYCTL_JOIN_SESSION_KEYRING",
+                2: "KEYCTL_UPDATE",
+                3: "KEYCTL_REVOKE",
+                4: "KEYCTL_CHOWN",
+                5: "KEYCTL_SETPERM",
+                6: "KEYCTL_DESCRIBE",
+                7: "KEYCTL_CLEAR",
+                8: "KEYCTL_LINK",
+                9: "KEYCTL_UNLINK",
+                10: "KEYCTL_SEARCH",
+                11: "KEYCTL_READ",
+                12: "KEYCTL_INSTANTIATE",
+                13: "KEYCTL_NEGATE",
+                14: "KEYCTL_SET_REQKEY_KEYRING",
+                15: "KEYCTL_SET_TIMEOUT",
+                16: "KEYCTL_ASSUME_AUTHORITY",
+                17: "KEYCTL_GET_SECURITY",
+                18: "KEYCTL_SESSION_TO_PARENT",
+                19: "KEYCTL_REJECT",
+                20: "KEYCTL_INSTANTIATE_IOV",
+                21: "KEYCTL_INVALIDATE",
+                22: "KEYCTL_GET_PERSISTENT",
+                23: "KEYCTL_DH_COMPUTE",
+                24: "KEYCTL_PKEY_QUERY",
+                25: "KEYCTL_PKEY_ENCRYPT",
+                26: "KEYCTL_PKEY_DECRYPT",
+                27: "KEYCTL_PKEY_SIGN",
+                28: "KEYCTL_PKEY_VERIFY",
+                29: "KEYCTL_RESTRICT_KEYRING",
+                30: "KEYCTL_MOVE",
+                31: "KEYCTL_CAPABILITIES",
+                32: "KEYCTL_WATCH_KEY",
+                "parsing_mode": "sequential",
+            }
+        },
     },
     #ioprio_set
     251:{
         #int which
-        0: {},
-        #int who
-        1: {},
-        #int ioprio
-        2: {},
+        0: {
+            1: "IOPRIO_WHO_PROCESS",
+            2: "IOPRIO_WHO_PGRP",
+            3: "IOPRIO_WHO_USER",
+            "parsing_mode": "sequential",
+        },
     },
     #ioprio_get
     252:{
         #int which
-        0: {},
-        #int who
-        1: {},
-    },
-    #inotify_init
-    253:{
-    },
-    #inotify_add_watch
-    254:{
-        #int fd
-        0: {},
-        #const char *pathname
-        1: {},
-        #u32 mask
-        2: {},
-    },
-    #inotify_rm_watch
-    255:{
-        #int fd
-        0: {},
-        #__s32 wd
-        1: {},
-    },
-    #migrate_pages
-    256:{
-        #pid_t pid
-        0: {},
-        #unsigned long maxnode
-        1: {},
-        #const unsigned long *old_nodes
-        2: {},
-        #const unsigned long *new_nodes
-        3: {},
+        0: {
+            1: "IOPRIO_WHO_PROCESS",
+            2: "IOPRIO_WHO_PGRP",
+            3: "IOPRIO_WHO_USER",
+            "parsing_mode": "sequential",
+        },
     },
     #openat
     257:{
@@ -2467,7 +2449,19 @@ AMD64_SYSCALL_PARSER_MAP = \
         #const char *cmdline_ptr
         3: {},
         #unsigned long flags
-        4: {},
+        4: {
+            # /*
+            # * Kexec file load interface flags.
+            # * KEXEC_FILE_UNLOAD : Unload already loaded kexec/kdump image.
+            # * KEXEC_FILE_ON_CRASH : Load/unload operation belongs to kdump image.
+            # * KEXEC_FILE_NO_INITRAMFS : No initramfs is being loaded. Ignore the initrd
+            # *                           fd field.
+            # */
+            #define KEXEC_FILE_UNLOAD	0x00000001
+            #define KEXEC_FILE_ON_CRASH	0x00000002
+            #define KEXEC_FILE_NO_INITRAMFS	0x00000004
+            #define KEXEC_FILE_DEBUG	0x00000008
+        },
     },
     #bpf
     321:{
