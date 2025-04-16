@@ -346,3 +346,45 @@ class SyscallInvocationTest(TestCase):
 
         d.children[0].terminate()
         d.terminate()
+
+    def test_thread_spawn(self):
+        d = debugger(RESOLVE_EXE("dummy_binary"), aslr=False)
+        d.run()
+
+        # Set a breakpoint to <main>
+        d.breakpoint(BP_ADDRESS, hardware=True, file="binary")
+
+        d.cont()
+        d.wait()
+
+        # Allocate stack for the thread
+        MAP_PRIVATE = 0x0000002
+        MAP_ANON = 0x0000020
+
+        PROT_READ = 0x1
+        PROT_WRITE = 0x2
+
+        new_stack = d.invoke_syscall("mmap", 0x13377000, 0x20000, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, 0, 0)
+        new_tls = d.invoke_syscall("mmap",0xc0de0000, 0x1000, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, 0, 0)
+
+        self.assertEqual(new_stack, 0x13377000)
+        self.assertEqual(new_tls, 0xc0de0000)
+
+        CLONE_VM = 0x00000100
+        CLONE_THREAD = 0x00010000
+        CLONE_FS = 0x00000200
+        CLONE_SIGHAND = 0x00000800
+        CLONE_FILES = 0x00000400
+
+        flags = CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_THREAD
+
+        # Invoke the syscall
+        ret = d.invoke_syscall("clone", flags, new_stack, d.regs.rsp + 0x100, d.regs.rsp + 0x108, new_tls)
+
+        # Check the return value
+        self.assertGreater(ret, 0)
+
+        # Check that the child process is registered
+        self.assertGreater(len(d.threads), 1)
+
+        d.terminate()
