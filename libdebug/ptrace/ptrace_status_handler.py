@@ -204,6 +204,7 @@ class PtraceStatusHandler:
     def handle_syscall(self: PtraceStatusHandler, thread_id: int) -> bool:
         """Handle a syscall trap."""
         thread = self.internal_debugger.get_thread_by_id(thread_id)
+
         if not hasattr(thread, "syscall_number"):
             # This is another spurious trap, we don't know what to do with it
             return

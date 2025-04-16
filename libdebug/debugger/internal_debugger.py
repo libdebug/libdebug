@@ -2007,13 +2007,6 @@ class InternalDebugger:
 
         # Restore the original code.
         try:
-            # print(f"Original RIP: {ip:#x}, len_patch: {len_patch}, backup_code: {backup_code}")
-            # print(f"Restoring code: {syscall_instruction}")
-            # print(f"New RIP: {thread.regs.rip:#x}, len_patch: {len_patch}, backup_code: {backup_code}")
-
-            if self.children:
-                pass
-                # print(f"Child RIP: {self.children[0].regs.rip:#x}, len_patch: {len_patch}, backup_code: {backup_code}")
             thread.memory[ip, len_patch, "absolute"] = backup_code
         except RuntimeError as e:
             raise RuntimeError(
@@ -2033,37 +2026,97 @@ class InternalDebugger:
             else resolve_syscall_name(self.arch, syscall_number)
         )
 
-        if syscall_name in ["fork", "vfork"]:
-            # If the syscall is a fork, we need to fix the state of the new process
-            new_pid = retval
+        is_cloning_event = syscall_name in ["fork", "vfork", "clone", "clone3"]
 
-            child = None
-
-            for candidate in self.children:
-                if candidate.process_id == new_pid:
-                    child = candidate
-                    break
-
-            if child is None:
-                raise RuntimeError(
-                    f"Failed to find the child process {new_pid} after syscall invocation.",
+        if is_cloning_event:
+            # Complex handling of struct, maybe future work, but for an arbitrary call likely not necessary
+            if syscall_name == "clone3":
+                liblog.warning(
+                    "clone3 syscall invocation is experimental, check state of the new process / thread manually or use the base clone syscall"
                 )
+                return retval
 
-            # - Restore the original code in the child process
-            liblog.debugger("doing stuff on thread child %d", child.thread_id)
-            child.memory[ip, len_patch, "absolute"] = backup_code
-            child.syscall_number = syscall_number
+            CLONE_VM = 0x00000100
+            CLONE_THREAD = 0x00010000
 
-            # - Restore registers
-            child.step()
-            child.interrupt()
-            # from time import sleep
-            # sleep(1000)
-            for reg_name in dir(thread.regs):
-                if isinstance(getattr(thread.regs, reg_name), int | float) and reg_name != "_thread_id":
-                    # print(f"Reg name: {reg_name}")
-                    setattr(child.regs, reg_name, getattr(thread.regs, reg_name))
+            thread_flags = thread.syscall_arg2
 
+            compatible_thread_flags = (
+                thread_flags & CLONE_VM == CLONE_VM
+                ) or (
+                thread_flags & CLONE_THREAD == CLONE_THREAD
+            )
+
+            is_process = syscall_name in ["fork", "vfork"] or not compatible_thread_flags
+
+            if is_process:
+                # If the syscall is a fork, we need to fix the state of the new process
+                new_pid = retval
+
+                reg_bit_count = get_platform_gp_register_size(self.arch) * 8
+                negative_threshold = 2 ** (reg_bit_count - 1)
+
+                if new_pid >= negative_threshold:
+                    raise RuntimeError(
+                        f"{syscall_name} syscall returned a negative value: {new_pid:#x}. This is not a valid PID.",
+                    )
+
+                child = None
+
+                for candidate in self.children:
+                    if candidate.process_id == new_pid:
+                        child = candidate
+                        break
+
+                if child is None:
+                    raise RuntimeError(
+                        f"Failed to find the child process {new_pid} after syscall invocation.",
+                    )
+
+                # - Restore the original code in the child process
+                liblog.debugger("Restoring state on child process %d", child.process_id)
+                child.memory[ip, len_patch, "absolute"] = backup_code
+                child.syscall_number = syscall_number
+
+                # - Restore registers
+                child.step()
+                child.interrupt()
+                for reg_name in dir(thread.regs):
+                    if isinstance(getattr(thread.regs, reg_name), int | float) and reg_name != "_thread_id":
+                        setattr(child.regs, reg_name, getattr(thread.regs, reg_name))
+            else:
+                # If the syscall is a fork, we need to fix the state of the new process
+                new_tid = retval
+
+                reg_bit_count = get_platform_gp_register_size(self.arch) * 8
+                negative_threshold = 2 ** (reg_bit_count - 1)
+
+                if new_tid >= negative_threshold:
+                    raise RuntimeError(
+                        f"{syscall_name} syscall returned a negative value: {new_tid:#x}. This is not a valid PID.",
+                    )
+
+                child = None
+
+                for candidate in self.threads:
+                    if candidate.thread_id == new_tid:
+                        child = candidate
+                        break
+
+                if child is None:
+                    raise RuntimeError(
+                        f"Failed to find the child thread {new_tid} after syscall invocation.",
+                    )
+
+                # - The thread only needs to restore registers
+                liblog.debugger("Restoring state on child thread %d", child.thread_id)
+
+                # - Restore registers
+                child.step()
+
+                for reg_name in dir(thread.regs):
+                    if isinstance(getattr(thread.regs, reg_name), int | float) and reg_name != "_thread_id":
+                        setattr(child.regs, reg_name, getattr(thread.regs, reg_name))
         return retval
 
     @change_state_function_process
@@ -2191,8 +2244,7 @@ class InternalDebugger:
                 if self.resume_context.is_in_callback:
                     # We have no way to stop the callback, let's notify the user
                     liblog.warning(
-                        "Timeout occurred while executing a callback. "
-                        "Asynchronous callbacks cannot be interrupted.",
+                        "Timeout occurred while executing a callback. Asynchronous callbacks cannot be interrupted.",
                     )
 
                 # Kill it
@@ -2209,7 +2261,7 @@ class InternalDebugger:
                         self.path,
                         self.process_id,
                     )
-                except Exception as e: # noqa: BLE001
+                except Exception as e:  # noqa: BLE001
                     liblog.debugger(
                         "Error while killing timed out debuggee process %s (%d): %s",
                         self.path,
