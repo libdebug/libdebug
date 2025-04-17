@@ -117,34 +117,33 @@ class SyscallInvocationTest(TestCase):
         d.terminate()
 
     # TODO: Decide the final behavior of the hijack
-    def test_hijack_nullification(self):
-        return
-        d = debugger(RESOLVE_EXE("dummy_binary"))
-        pipe = d.run()
+    # def test_hijack_nullification(self):
+    #     d = debugger(RESOLVE_EXE("dummy_binary"))
+    #     pipe = d.run()
 
-        # Set a breakpoint to <main>
-        d.breakpoint(BP_ADDRESS, hardware=True, file="binary")
+    #     # Set a breakpoint to <main>
+    #     d.breakpoint(BP_ADDRESS, hardware=True, file="binary")
 
-        d.hijack_syscall("write", "alarm")
+    #     d.hijack_syscall("write", "alarm")
 
-        d.cont()
-        d.wait()
+    #     d.cont()
+    #     d.wait()
 
-        # Retrieve binary map
-        binary_map = d.maps.filter("binary")[0]
+    #     # Retrieve binary map
+    #     binary_map = d.maps.filter("binary")[0]
 
-        # Invoke the syscall
-        ret = d.invoke_syscall("write", 1, binary_map.start, 0x10)
+    #     # Invoke the syscall
+    #     ret = d.invoke_syscall("write", 1, binary_map.start, 0x10)
 
-        # Check the return value
-        self.assertEqual(ret, 0x10)
+    #     # Check the return value
+    #     self.assertEqual(ret, 0x10)
 
-        out = pipe.recv(4)
+    #     out = pipe.recv(4)
 
-        # Check the output
-        self.assertIn(b"\x7fELF", out)
+    #     # Check the output
+    #     self.assertIn(b"\x7fELF", out)
 
-        d.terminate()
+    #     d.terminate()
 
     def test_verify_correct_resume(self):
         d = debugger(RESOLVE_EXE("dummy_binary"))
@@ -390,5 +389,52 @@ class SyscallInvocationTest(TestCase):
 
         # Check that the child process is registered
         self.assertGreater(len(d.threads), 1)
+
+        d.terminate()
+
+    def test_invocation_in_callback(self):
+        d = debugger(RESOLVE_EXE("dummy_binary"))
+        pipe = d.run()
+
+        def main_callback(t, bp):
+            # Retrieve binary map
+            binary_map = d.maps.filter("binary")[0]
+
+            # Invoke the syscall
+            ret = d.invoke_syscall("write", 1, binary_map.start, 0x10)
+
+            # Check the return value
+            self.assertEqual(ret, 0x10)
+
+        # Set a breakpoint to <main>
+        d.breakpoint(BP_ADDRESS, hardware=True, callback=main_callback, file="binary")
+
+        d.cont()
+        out = pipe.recv(4)
+        d.wait()
+
+        # Check the output
+        self.assertIn(b"\x7fELF", out)
+
+        d.terminate()
+
+    def invocation_callback_exception(self):
+        d = debugger(RESOLVE_EXE("dummy_binary"))
+        d.run()
+
+        def sys_callback(t, h):
+            binary_map = d.maps.filter("binary")[0]
+            
+            self.assertRaises(RuntimeError, d.invoke_syscall("write", 1, binary_map.start, 0x10))
+
+        d.breakpoint(BP_ADDRESS, hardware=True, file="binary")
+
+        d.cont()
+        d.wait()
+
+        d.handle_syscall("write", on_enter=sys_callback)
+
+        d.cont()
+        d.wait()
 
         d.terminate()
