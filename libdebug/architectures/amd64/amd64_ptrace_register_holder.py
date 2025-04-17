@@ -218,7 +218,7 @@ def _get_property_fp_ymm1(name: str, index: int) -> property:
         self._internal_debugger._ensure_process_stopped_regs()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        previous_value = int.from_bytes(self._fp_register_file.zmm1[index].data, "little")
+        previous_value = int.from_bytes(self._fp_register_file.zmm1[index], "little")
 
         new_value = (previous_value & ~((1 << 256) - 1)) | (value & ((1 << 256) - 1))
         self._fp_register_file.zmm1[index].data = new_value.to_bytes(64, "little")

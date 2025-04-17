@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2023-2025 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -83,8 +83,8 @@ class JumpoutTest(TestCase):
         d = debugger(RESOLVE_EXE("CTF/jumpout"))
         r = d.run()
 
-        d.breakpoint(0x140B, callback=second, hardware=True)
-        d.breakpoint(0x157C, callback=third, hardware=True)
+        d.breakpoint(0x140B, callback=second, hardware=True, file="binary")
+        d.breakpoint(0x157C, callback=third, hardware=True, file="binary")
         d.cont()
 
         r.sendline(b"A" * 0x1D)
@@ -115,8 +115,8 @@ class JumpoutTest(TestCase):
             except Exception as e:
                 self.exceptions.append(e)
 
-        d.breakpoint(0x140B, callback=second, hardware=True)
-        bp = d.breakpoint(0x157C, hardware=True)
+        d.breakpoint(0x140B, callback=second, hardware=True, file="binary")
+        bp = d.breakpoint(0x157C, hardware=True, file="binary")
 
         d.cont()
 

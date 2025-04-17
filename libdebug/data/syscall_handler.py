@@ -23,18 +23,18 @@ class SyscallHandler:
 
     Attributes:
         syscall_number (int): The syscall number to handle.
-        on_enter_user (Callable[[ThreadContext, int], None]): The callback defined by the user to execute when the syscall is entered.
-        on_exit_user (Callable[[ThreadContext, int], None]): The callback defined by the user to execute when the syscall is exited.
-        on_enter_pprint (Callable[[ThreadContext, int], None]): The callback defined by the pretty print to execute when the syscall is entered.
-        on_exit_pprint (Callable[[ThreadContext, int], None]): The callback defined by the pretty print to execute when the syscall is exited.
+        on_enter_user (Callable[[ThreadContext, SyscallHandler], None]): The callback defined by the user to execute when the syscall is entered.
+        on_exit_user (Callable[[ThreadContext, SyscallHandler], None]): The callback defined by the user to execute when the syscall is exited.
+        on_enter_pprint (Callable[[ThreadContext, int, Any], None]): The callback defined by the pretty print to execute when the syscall is entered.
+        on_exit_pprint (Callable[[int | tuple[int, int]], None]): The callback defined by the pretty print to execute when the syscall is exited.
         recursive (bool): Whether, when the syscall is hijacked with another one, the syscall handler associated with the new syscall should be considered as well. Defaults to False.
         enabled (bool): Whether the syscall will be handled or not.
         hit_count (int): The number of times the syscall has been handled.
     """
 
     syscall_number: int
-    on_enter_user: Callable[[ThreadContext, int], None]
-    on_exit_user: Callable[[ThreadContext, int], None]
+    on_enter_user: Callable[[ThreadContext, SyscallHandler], None]
+    on_exit_user: Callable[[ThreadContext, SyscallHandler], None]
     on_enter_pprint: Callable[[ThreadContext, int, Any], None]
     on_exit_pprint: Callable[[ThreadContext, int | tuple[int, int]], None]
     recursive: bool = False

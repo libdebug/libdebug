@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
     from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
-    from libdebug.interfaces.debugging_interface import DebuggingInterface
+    from libdebug.ptrace.ptrace_interface import PtraceInterface
     from libdebug.state.thread_context import ThreadContext
 
 
@@ -34,7 +34,7 @@ class PtraceStatusHandler:
     def __init__(self: PtraceStatusHandler) -> None:
         """Initializes the PtraceStatusHandler class."""
         self.internal_debugger = provide_internal_debugger(self)
-        self.ptrace_interface: DebuggingInterface = self.internal_debugger.debugging_interface
+        self.ptrace_interface: PtraceInterface = self.internal_debugger.debugging_interface
         self.forward_signal: bool = True
         self._assume_race_sigstop: bool = (
             True  # Assume the stop is due to a race condition with SIGSTOP sent by the debugger
@@ -115,7 +115,11 @@ class PtraceStatusHandler:
             bp.hit_count += 1
 
             if bp.callback:
-                bp.callback(thread, bp)
+                try:
+                    bp.callback(thread, bp)
+                except Exception as e:  # noqa: BLE001
+                    liblog.error('Exception raised while executing callback for breakpoint at "%s": %s', bp.symbol, e)
+                    raise RuntimeError("Unhandled exception in breakpoint callback") from e
             else:
                 # If the breakpoint has no callback, we need to stop the process despite the other signals
                 self.internal_debugger.resume_context.resume = False
@@ -138,7 +142,16 @@ class PtraceStatusHandler:
                 thread.syscall_arg4,
                 thread.syscall_arg5,
             ]
-            handler.on_enter_user(thread, handler)
+            try:
+                handler.on_enter_user(thread, handler)
+            except Exception as e:  # noqa: BLE001
+                liblog.error("Exception raised in on-enter callback for syscall %d: %s", handler.syscall_number, e)
+                raise RuntimeError("Unhandled exception in syscall callback") from e
+
+            if not handler.enabled:
+                # The syscall has been disabled by the user, we will never hit the on_exit
+                # so we have to increment the hit count here
+                handler.hit_count += 1
 
             # Check if the syscall number has changed
             syscall_number_after_callback = thread.syscall_number
@@ -258,7 +271,13 @@ class PtraceStatusHandler:
                 # Pretty print the return value before the callback
                 if handler.on_exit_pprint:
                     return_value_before_callback = thread.syscall_return
-                handler.on_exit_user(thread, handler)
+
+                try:
+                    handler.on_exit_user(thread, handler)
+                except Exception as e: # noqa: BLE001
+                    liblog.error("Exception raised in on-exit callback for syscall %d: %s", handler.syscall_number, e)
+                    raise RuntimeError("Unhandled exception in syscall callback") from e
+
                 if handler.on_exit_pprint:
                     return_value_after_callback = thread.syscall_return
                     if return_value_after_callback != return_value_before_callback:
@@ -298,7 +317,15 @@ class PtraceStatusHandler:
             )
             if catcher.callback:
                 # Execute the user-defined callback
-                catcher.callback(thread, catcher)
+                try:
+                    catcher.callback(thread, catcher)
+                except Exception as e:
+                    liblog.error(
+                        "Exception raised in callback for signal %s: %s",
+                        resolve_signal_name(signal_number),
+                        e,
+                    )
+                    raise RuntimeError("Unhandled exception in signal callback") from e
 
                 new_signal_number = thread._signal_number
 
