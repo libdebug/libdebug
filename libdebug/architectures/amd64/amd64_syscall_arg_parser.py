@@ -55,50 +55,122 @@ def parse_ptrace_data(*args) -> str:
     else:
         return f"{data:#x}"
 
+# Common flags flags across syscalls
+OPEN_FLAGS = \
+{
+    0o00002000: "O_APPEND",
+    0o00020000: "O_ASYNC",
+    0o02000000: "O_CLOEXEC",
+    0o00000100: "O_CREAT",
+    0o00040000: "O_DIRECT",
+    0o00200000: "O_DIRECTORY",
+    0o00010000: "O_DSYNC",
+    0o00000200: "O_EXCL",
+    0o00100000: "O_LARGEFILE",
+    0o00000400: "O_NOCTTY",
+    0o00004000: "O_NOFOLLOW / O_NONBLOCK",
+    0o010000000: "O_PATH",
+    0o00000000: "O_RDONLY",
+    0o00000002: "O_RDWR",
+    0o04000000: "O_SYNC",
+    0o01000000: "O_TMPFILE / O_NOATIME",
+    0o00001000: "O_TRUNC",
+    0o00000001: "O_WRONLY",
+}
+
+OPEN_MODES = \
+{
+    0o00700: "S_IRWXU",
+    0o00400: "S_IRUSR",
+    0o00200: "S_IWUSR",
+    0o00100: "S_IXUSR",
+    0o00070: "S_IRWXG",
+    0o00040: "S_IRGRP",
+    0o00020: "S_IWGRP",
+    0o00010: "S_IXGRP",
+    0o00007: "S_IRWXO",
+    0o00004: "S_IROTH",
+    0o00002: "S_IWOTH",
+    0o00001: "S_IXOTH",
+    0o0004000: "S_ISUID",
+    0o0002000: "S_ISGID",
+    0o0001000: "S_ISVTX",
+}
+
+SIGNALS = \
+{
+    1: "SIGHUP",
+    2: "SIGINT",
+    3: "SIGQUIT",
+    4: "SIGILL",
+    5: "SIGTRAP",
+    6: "SIGABRT / SIGIOT",
+    7: "SIGBUS",
+    8: "SIGFPE",
+    9: "SIGKILL",
+    10: "SIGUSR1",
+    11: "SIGSEGV",
+    12: "SIGUSR2",
+    13: "SIGPIPE",
+    14: "SIGALRM",
+    15: "SIGTERM",
+    16: "SIGSTKFLT",
+    17: "SIGCHLD",
+    18: "SIGCONT",
+    19: "SIGSTOP",
+    20: "SIGTSTP",
+    21: "SIGTTIN",
+    22: "SIGTTOU",
+    23: "SIGURG",
+    24: "SIGXCPU",
+    25: "SIGXFSZ",
+    26: "SIGVTALRM",
+    27: "SIGPROF",
+    28: "SIGWINCH",
+    29: "SIGIO / SIGPOLL",
+    30: "SIGPWR",
+    31: "SIGSYS",
+    "parsing_mode": "sequential",
+}
+
+WHICH_CLOCK = \
+{
+    0: "CLOCK_REALTIME",
+    1: "CLOCK_MONOTONIC",
+    2: "CLOCK_PROCESS_CPUTIME_ID",
+    3: "CLOCK_THREAD_CPUTIME_ID",
+    4: "CLOCK_MONOTONIC_RAW",
+    5: "CLOCK_REALTIME_COARSE",
+    6: "CLOCK_MONOTONIC_COARSE",
+    7: "CLOCK_BOOTTIME",
+    8: "CLOCK_REALTIME_ALARM",
+    9: "CLOCK_BOOTTIME_ALARM",
+    10: "CLOCK_SGI_CYCLE",
+    11: "CLOCK_TAI",
+    "parsing_mode": "sequential",
+}
+
+OPENAT_DFD = \
+{
+    0xffffff9c: "AT_FDCWD",
+}
+
+SPLICE_FLAGS = \
+{
+    0x01: "SPLICE_F_MOVE",
+    0x02: "SPLICE_F_NONBLOCK",
+    0x04: "SPLICE_F_MORE",
+    0x08: "SPLICE_F_GIFT",
+}
 
 AMD64_SYSCALL_PARSER_MAP = \
 {
     #open
     2:{
         #int flags
-        1: {
-            0o00002000: "O_APPEND",
-            0o00020000: "O_ASYNC",
-            0o02000000: "O_CLOEXEC",
-            0o00000100: "O_CREAT",
-            0o00040000: "O_DIRECT",
-            0o00200000: "O_DIRECTORY",
-            0o00010000: "O_DSYNC",
-            0o00000200: "O_EXCL",
-            0o00100000: "O_LARGEFILE",
-            0o00000400: "O_NOCTTY",
-            0o00004000: "O_NOFOLLOW / O_NONBLOCK",
-            0o010000000: "O_PATH",
-            0o00000000: "O_RDONLY",
-            0o00000002: "O_RDWR",
-            0o04000000: "O_SYNC",
-            0o01000000: "O_TMPFILE / O_NOATIME",
-            0o00001000: "O_TRUNC",
-            0o00000001: "O_WRONLY",
-        },
+        1: OPEN_FLAGS,
         #umode_t mode
-        2: {
-            0o00700: "S_IRWXU",
-            0o00400: "S_IRUSR",
-            0o00200: "S_IWUSR",
-            0o00100: "S_IXUSR",
-            0o00070: "S_IRWXG",
-            0o00040: "S_IRGRP",
-            0o00020: "S_IWGRP",
-            0o00010: "S_IXGRP",
-            0o00007: "S_IRWXO",
-            0o00004: "S_IROTH",
-            0o00002: "S_IWOTH",
-            0o00001: "S_IXOTH",
-            0o0004000: "S_ISUID",
-            0o0002000: "S_ISGID",
-            0o0001000: "S_ISVTX",
-        },
+        2: OPEN_MODES,
     },
     #lseek
     8:{
@@ -161,40 +233,7 @@ AMD64_SYSCALL_PARSER_MAP = \
     #rt_sigaction
     13:{
         #int sig
-        0: {
-            1: "SIGHUP",
-            2: "SIGINT",
-            3: "SIGQUIT",
-            4: "SIGILL",
-            5: "SIGTRAP",
-            6: "SIGABRT / SIGIOT",
-            7: "SIGBUS",
-            8: "SIGFPE",
-            9: "SIGKILL",
-            10: "SIGUSR1",
-            11: "SIGSEGV",
-            12: "SIGUSR2",
-            13: "SIGPIPE",
-            14: "SIGALRM",
-            15: "SIGTERM",
-            16: "SIGSTKFLT",
-            17: "SIGCHLD",
-            18: "SIGCONT",
-            19: "SIGSTOP",
-            20: "SIGTSTP",
-            21: "SIGTTIN",
-            22: "SIGTTOU",
-            23: "SIGURG",
-            24: "SIGXCPU",
-            25: "SIGXFSZ",
-            26: "SIGVTALRM",
-            27: "SIGPROF",
-            28: "SIGWINCH",
-            29: "SIGIO / SIGPOLL",
-            30: "SIGPWR",
-            31: "SIGSYS",
-            "parsing_mode": "sequential",
-        },
+        0: SIGNALS,
     },
     #rt_sigprocmask
     14:{
@@ -599,40 +638,7 @@ AMD64_SYSCALL_PARSER_MAP = \
     #kill
     62:{
         #int sig
-        1: {
-            1: "SIGHUP",
-            2: "SIGINT",
-            3: "SIGQUIT",
-            4: "SIGILL",
-            5: "SIGTRAP",
-            6: "SIGABRT / SIGIOT",
-            7: "SIGBUS",
-            8: "SIGFPE",
-            9: "SIGKILL",
-            10: "SIGUSR1",
-            11: "SIGSEGV",
-            12: "SIGUSR2",
-            13: "SIGPIPE",
-            14: "SIGALRM",
-            15: "SIGTERM",
-            16: "SIGSTKFLT",
-            17: "SIGCHLD",
-            18: "SIGCONT",
-            19: "SIGSTOP",
-            20: "SIGTSTP",
-            21: "SIGTTIN",
-            22: "SIGTTOU",
-            23: "SIGURG",
-            24: "SIGXCPU",
-            25: "SIGXFSZ",
-            26: "SIGVTALRM",
-            27: "SIGPROF",
-            28: "SIGWINCH",
-            29: "SIGIO / SIGPOLL",
-            30: "SIGPWR",
-            31: "SIGSYS",
-            "parsing_mode": "sequential",
-        },
+        1: SIGNALS,
     },
     #semget
     64:{
@@ -691,107 +697,27 @@ AMD64_SYSCALL_PARSER_MAP = \
     #mkdir
     83:{
         #umode_t mode
-        1: {
-            0o00700: "S_IRWXU",
-            0o00400: "S_IRUSR",
-            0o00200: "S_IWUSR",
-            0o00100: "S_IXUSR",
-            0o00070: "S_IRWXG",
-            0o00040: "S_IRGRP",
-            0o00020: "S_IWGRP",
-            0o00010: "S_IXGRP",
-            0o00007: "S_IRWXO",
-            0o00004: "S_IROTH",
-            0o00002: "S_IWOTH",
-            0o00001: "S_IXOTH",
-            0o0004000: "S_ISUID",
-            0o0002000: "S_ISGID",
-            0o0001000: "S_ISVTX",
-        },
+        1: OPEN_MODES,
     },
     #creat
     85:{
         #umode_t mode
-        1: {
-            0o00700: "S_IRWXU",
-            0o00400: "S_IRUSR",
-            0o00200: "S_IWUSR",
-            0o00100: "S_IXUSR",
-            0o00070: "S_IRWXG",
-            0o00040: "S_IRGRP",
-            0o00020: "S_IWGRP",
-            0o00010: "S_IXGRP",
-            0o00007: "S_IRWXO",
-            0o00004: "S_IROTH",
-            0o00002: "S_IWOTH",
-            0o00001: "S_IXOTH",
-            0o0004000: "S_ISUID",
-            0o0002000: "S_ISGID",
-            0o0001000: "S_ISVTX",
-        },
+        1: OPEN_MODES,
     },
     #chmod
     90:{
         #umode_t mode
-        1: {
-            0o00700: "S_IRWXU",
-            0o00400: "S_IRUSR",
-            0o00200: "S_IWUSR",
-            0o00100: "S_IXUSR",
-            0o00070: "S_IRWXG",
-            0o00040: "S_IRGRP",
-            0o00020: "S_IWGRP",
-            0o00010: "S_IXGRP",
-            0o00007: "S_IRWXO",
-            0o00004: "S_IROTH",
-            0o00002: "S_IWOTH",
-            0o00001: "S_IXOTH",
-            0o0004000: "S_ISUID",
-            0o0002000: "S_ISGID",
-            0o0001000: "S_ISVTX",
-        },
+        1: OPEN_MODES,
     },
     #fchmod
     91:{
         #umode_t mode
-        1: {
-            0o00700: "S_IRWXU",
-            0o00400: "S_IRUSR",
-            0o00200: "S_IWUSR",
-            0o00100: "S_IXUSR",
-            0o00070: "S_IRWXG",
-            0o00040: "S_IRGRP",
-            0o00020: "S_IWGRP",
-            0o00010: "S_IXGRP",
-            0o00007: "S_IRWXO",
-            0o00004: "S_IROTH",
-            0o00002: "S_IWOTH",
-            0o00001: "S_IXOTH",
-            0o0004000: "S_ISUID",
-            0o0002000: "S_ISGID",
-            0o0001000: "S_ISVTX",
-        },
+        1: OPEN_MODES,
     },
     #umask
     95:{
         #int mask
-        0: {
-            0o00700: "S_IRWXU",
-            0o00400: "S_IRUSR",
-            0o00200: "S_IWUSR",
-            0o00100: "S_IXUSR",
-            0o00070: "S_IRWXG",
-            0o00040: "S_IRGRP",
-            0o00020: "S_IWGRP",
-            0o00010: "S_IXGRP",
-            0o00007: "S_IRWXO",
-            0o00004: "S_IROTH",
-            0o00002: "S_IWOTH",
-            0o00001: "S_IXOTH",
-            0o0004000: "S_ISUID",
-            0o0002000: "S_ISGID",
-            0o0001000: "S_ISVTX",
-        },
+        0: OPEN_MODES,
     },
     #getrlimit
     97:{
@@ -821,8 +747,8 @@ AMD64_SYSCALL_PARSER_MAP = \
         #int who
         0: {
             0: "RUSAGE_SELF",
-            -1: "RUSAGE_CHILDREN",
-            -2: "RUSAGE_BOTH",
+            0xffffffff: "RUSAGE_CHILDREN",
+            0xfffffffe: "RUSAGE_BOTH",
             1: "RUSAGE_THREAD",
             "parsing_mode": "sequential",
         },
@@ -906,40 +832,7 @@ AMD64_SYSCALL_PARSER_MAP = \
     #rt_sigqueueinfo
     129:{
         #int sig
-        1: {
-            1: "SIGHUP",
-            2: "SIGINT",
-            3: "SIGQUIT",
-            4: "SIGILL",
-            5: "SIGTRAP",
-            6: "SIGABRT / SIGIOT",
-            7: "SIGBUS",
-            8: "SIGFPE",
-            9: "SIGKILL",
-            10: "SIGUSR1",
-            11: "SIGSEGV",
-            12: "SIGUSR2",
-            13: "SIGPIPE",
-            14: "SIGALRM",
-            15: "SIGTERM",
-            16: "SIGSTKFLT",
-            17: "SIGCHLD",
-            18: "SIGCONT",
-            19: "SIGSTOP",
-            20: "SIGTSTP",
-            21: "SIGTTIN",
-            22: "SIGTTOU",
-            23: "SIGURG",
-            24: "SIGXCPU",
-            25: "SIGXFSZ",
-            26: "SIGVTALRM",
-            27: "SIGPROF",
-            28: "SIGWINCH",
-            29: "SIGIO / SIGPOLL",
-            30: "SIGPWR",
-            31: "SIGSYS",
-            "parsing_mode": "sequential",
-        },
+        1: SIGNALS,
     },
     #mknod
     133:{
@@ -1342,40 +1235,7 @@ AMD64_SYSCALL_PARSER_MAP = \
     #tkill
     200:{
         #int sig
-        1: {
-            1: "SIGHUP",
-            2: "SIGINT",
-            3: "SIGQUIT",
-            4: "SIGILL",
-            5: "SIGTRAP",
-            6: "SIGABRT / SIGIOT",
-            7: "SIGBUS",
-            8: "SIGFPE",
-            9: "SIGKILL",
-            10: "SIGUSR1",
-            11: "SIGSEGV",
-            12: "SIGUSR2",
-            13: "SIGPIPE",
-            14: "SIGALRM",
-            15: "SIGTERM",
-            16: "SIGSTKFLT",
-            17: "SIGCHLD",
-            18: "SIGCONT",
-            19: "SIGSTOP",
-            20: "SIGTSTP",
-            21: "SIGTTIN",
-            22: "SIGTTOU",
-            23: "SIGURG",
-            24: "SIGXCPU",
-            25: "SIGXFSZ",
-            26: "SIGVTALRM",
-            27: "SIGPROF",
-            28: "SIGWINCH",
-            29: "SIGIO / SIGPOLL",
-            30: "SIGPWR",
-            31: "SIGSYS",
-            "parsing_mode": "sequential",
-        },
+        1: SIGNALS,
     },
     #futex
     202:{
@@ -1433,78 +1293,22 @@ AMD64_SYSCALL_PARSER_MAP = \
     #clock_settime
     227:{
         #const clockid_t which_clock
-        0: {
-            0: "CLOCK_REALTIME",
-            1: "CLOCK_MONOTONIC",
-            2: "CLOCK_PROCESS_CPUTIME_ID",
-            3: "CLOCK_THREAD_CPUTIME_ID",
-            4: "CLOCK_MONOTONIC_RAW",
-            5: "CLOCK_REALTIME_COARSE",
-            6: "CLOCK_MONOTONIC_COARSE",
-            7: "CLOCK_BOOTTIME",
-            8: "CLOCK_REALTIME_ALARM",
-            9: "CLOCK_BOOTTIME_ALARM",
-            10: "CLOCK_SGI_CYCLE",
-            11: "CLOCK_TAI",
-            "parsing_mode": "sequential",
-        },
+        0: WHICH_CLOCK,
     },
     #clock_gettime
     228:{
         #const clockid_t which_clock
-        0: {
-            0: "CLOCK_REALTIME",
-            1: "CLOCK_MONOTONIC",
-            2: "CLOCK_PROCESS_CPUTIME_ID",
-            3: "CLOCK_THREAD_CPUTIME_ID",
-            4: "CLOCK_MONOTONIC_RAW",
-            5: "CLOCK_REALTIME_COARSE",
-            6: "CLOCK_MONOTONIC_COARSE",
-            7: "CLOCK_BOOTTIME",
-            8: "CLOCK_REALTIME_ALARM",
-            9: "CLOCK_BOOTTIME_ALARM",
-            10: "CLOCK_SGI_CYCLE",
-            11: "CLOCK_TAI",
-            "parsing_mode": "sequential",
-        },
+        0: WHICH_CLOCK,
     },
     #clock_getres
     229:{
         #const clockid_t which_clock
-        0: {
-            0: "CLOCK_REALTIME",
-            1: "CLOCK_MONOTONIC",
-            2: "CLOCK_PROCESS_CPUTIME_ID",
-            3: "CLOCK_THREAD_CPUTIME_ID",
-            4: "CLOCK_MONOTONIC_RAW",
-            5: "CLOCK_REALTIME_COARSE",
-            6: "CLOCK_MONOTONIC_COARSE",
-            7: "CLOCK_BOOTTIME",
-            8: "CLOCK_REALTIME_ALARM",
-            9: "CLOCK_BOOTTIME_ALARM",
-            10: "CLOCK_SGI_CYCLE",
-            11: "CLOCK_TAI",
-            "parsing_mode": "sequential",
-        },
+        0: WHICH_CLOCK,
     },
     #clock_nanosleep
     230:{
         #const clockid_t which_clock
-        0: {
-            0: "CLOCK_REALTIME",
-            1: "CLOCK_MONOTONIC",
-            2: "CLOCK_PROCESS_CPUTIME_ID",
-            3: "CLOCK_THREAD_CPUTIME_ID",
-            4: "CLOCK_MONOTONIC_RAW",
-            5: "CLOCK_REALTIME_COARSE",
-            6: "CLOCK_MONOTONIC_COARSE",
-            7: "CLOCK_BOOTTIME",
-            8: "CLOCK_REALTIME_ALARM",
-            9: "CLOCK_BOOTTIME_ALARM",
-            10: "CLOCK_SGI_CYCLE",
-            11: "CLOCK_TAI",
-            "parsing_mode": "sequential",
-        },
+        0: WHICH_CLOCK,
         #int flags
         1: {
             1: "TIMER_ABSTIME",
@@ -1523,40 +1327,7 @@ AMD64_SYSCALL_PARSER_MAP = \
     #tgkill
     234:{
         #int sig
-        2: {
-            1: "SIGHUP",
-            2: "SIGINT",
-            3: "SIGQUIT",
-            4: "SIGILL",
-            5: "SIGTRAP",
-            6: "SIGABRT / SIGIOT",
-            7: "SIGBUS",
-            8: "SIGFPE",
-            9: "SIGKILL",
-            10: "SIGUSR1",
-            11: "SIGSEGV",
-            12: "SIGUSR2",
-            13: "SIGPIPE",
-            14: "SIGALRM",
-            15: "SIGTERM",
-            16: "SIGSTKFLT",
-            17: "SIGCHLD",
-            18: "SIGCONT",
-            19: "SIGSTOP",
-            20: "SIGTSTP",
-            21: "SIGTTIN",
-            22: "SIGTTOU",
-            23: "SIGURG",
-            24: "SIGXCPU",
-            25: "SIGXFSZ",
-            26: "SIGVTALRM",
-            27: "SIGPROF",
-            28: "SIGWINCH",
-            29: "SIGIO / SIGPOLL",
-            30: "SIGPWR",
-            31: "SIGSYS",
-            "parsing_mode": "sequential",
-        },
+        2: SIGNALS,
     },
     #mbind
     237:{
@@ -1632,23 +1403,7 @@ AMD64_SYSCALL_PARSER_MAP = \
             0o00000001: "O_WRONLY",
         },
         #umode_t mode
-        2: {
-            0o00700: "S_IRWXU",
-            0o00400: "S_IRUSR",
-            0o00200: "S_IWUSR",
-            0o00100: "S_IXUSR",
-            0o00070: "S_IRWXG",
-            0o00040: "S_IRGRP",
-            0o00020: "S_IWGRP",
-            0o00010: "S_IXGRP",
-            0o00007: "S_IRWXO",
-            0o00004: "S_IROTH",
-            0o00002: "S_IWOTH",
-            0o00001: "S_IXOTH",
-            0o0004000: "S_ISUID",
-            0o0002000: "S_ISGID",
-            0o0001000: "S_ISVTX",
-        },
+        2: OPEN_MODES,
     },
     #kexec_load
     246:{
@@ -1798,284 +1553,177 @@ AMD64_SYSCALL_PARSER_MAP = \
     #openat
     257:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
+        0: OPENAT_DFD,
         #int flags
-        2: {},
+        2: OPEN_FLAGS,
         #umode_t mode
-        3: {},
+        3: OPEN_MODES,
     },
     #mkdirat
     258:{
         #int dfd
-        0: {},
-        #const char *pathname
-        1: {},
+        0: OPENAT_DFD,
         #umode_t mode
-        2: {},
+        2: OPEN_MODES,
     },
     #mknodat
     259:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
+        0: OPENAT_DFD,
         #umode_t mode
-        2: {},
-        #unsigned int dev
-        3: {},
+        2: {
+            # Permissions
+            0o00700: "S_IRWXU",
+            0o00400: "S_IRUSR",
+            0o00200: "S_IWUSR",
+            0o00100: "S_IXUSR",
+            0o00070: "S_IRWXG",
+            0o00040: "S_IRGRP",
+            0o00020: "S_IWGRP",
+            0o00010: "S_IXGRP",
+            0o00007: "S_IRWXO",
+            0o00004: "S_IROTH",
+            0o00002: "S_IWOTH",
+            0o00001: "S_IXOTH",
+            0o0004000: "S_ISUID",
+            0o0002000: "S_ISGID",
+            0o0001000: "S_ISVTX",
+            # File type
+            0o100000: "S_IFREG",
+            0o020000: "S_IFCHR",
+            0o060000: "S_IFBLK",
+            0o010000: "S_IFIFO",
+            0o140000: "S_IFSOCK",
+        },
     },
     #fchownat
     260:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
-        #uid_t user
-        2: {},
-        #gid_t group
-        3: {},
+        0: OPENAT_DFD,
         #int flag
-        4: {},
-    },
-    #futimesat
-    261:{
-        #int dfd
-        0: {},
-        #const char *filename
-        1: {},
-        #struct __kernel_old_timeval *utimes
-        2: {},
+        4: {
+            0x1000: "AT_EMPTY_PATH",
+            0x100: "AT_SYMLINK_NOFOLLOW",
+        },
     },
     #newfstatat
     262:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
-        #struct stat *statbuf
-        2: {},
+        0: OPENAT_DFD,
         #int flag
-        3: {},
+        3: {
+            0x1000: "AT_EMPTY_PATH",
+            0x100: "AT_SYMLINK_NOFOLLOW",
+            0x800: "AT_NO_AUTOMOUNT",
+        },
     },
     #unlinkat
     263:{
         #int dfd
-        0: {},
-        #const char *pathname
-        1: {},
+        0: OPENAT_DFD,
         #int flag
-        2: {},
+        2: {
+            0x200: "AT_REMOVEDIR",
+        },
     },
     #renameat
     264:{
         #int olddfd
-        0: {},
-        #const char *oldname
-        1: {},
-        #int newdfd
-        2: {},
-        #const char *newname
-        3: {},
+        0: OPENAT_DFD,
     },
     #linkat
     265:{
         #int olddfd
-        0: {},
-        #const char *oldname
-        1: {},
-        #int newdfd
-        2: {},
-        #const char *newname
-        3: {},
+        0: OPENAT_DFD,
         #int flags
-        4: {},
+        4: {
+            0x1000: "AT_EMPTY_PATH",
+            0x400: "AT_SYMLINK_FOLLOW",
+        },
     },
     #symlinkat
     266:{
-        #const char *oldname
-        0: {},
         #int newdfd
-        1: {},
-        #const char *newname
-        2: {},
+        1: OPENAT_DFD,
     },
     #readlinkat
     267:{
         #int dfd
-        0: {},
-        #const char *pathname
-        1: {},
-        #char *buf
-        2: {},
-        #int bufsiz
-        3: {},
+        0: OPENAT_DFD,
     },
     #fchmodat
     268:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
+        0: OPENAT_DFD,
         #umode_t mode
-        2: {},
+        2: OPEN_MODES,
     },
     #faccessat
     269:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
+        0: OPENAT_DFD,
         #int mode
-        2: {},
-    },
-    #pselect6
-    270:{
-        #int n
-        0: {},
-        #fd_set *inp
-        1: {},
-        #fd_set *outp
-        2: {},
-        #fd_set *exp
-        3: {},
-        #struct __kernel_timespec *tsp
-        4: {},
-        #void *sig
-        5: {},
-    },
-    #ppoll
-    271:{
-        #struct pollfd *ufds
-        0: {},
-        #unsigned int nfds
-        1: {},
-        #struct __kernel_timespec *tsp
-        2: {},
-        #const sigset_t *sigmask
-        3: {},
-        #size_t sigsetsize
-        4: {},
+        2: OPEN_MODES,
     },
     #unshare
     272:{
         #unsigned long unshare_flags
-        0: {},
-    },
-    #set_robust_list
-    273:{
-        #struct robust_list_head *head
-        0: {},
-        #size_t len
-        1: {},
-    },
-    #get_robust_list
-    274:{
-        #int pid
-        0: {},
-        #struct robust_list_head **head_ptr
-        1: {},
-        #size_t *len_ptr
-        2: {},
+        0: {
+            0x00000400: "CLONE_FILES",
+            0x00000200: "CLONE_FS",
+            0x02000000: "CLONE_NEWCGROUP",
+            0x08000000: "CLONE_NEWIPC",
+            0x40000000: "CLONE_NEWNET",
+            0x00020000: "CLONE_NEWNS",
+            0x20000000: "CLONE_NEWPID",
+            0x00000080: "CLONE_NEWTIME",
+            0x10000000: "CLONE_NEWUSER",
+            0x04000000: "CLONE_NEWUTS",
+            0x00040000: "CLONE_SYSVSEM",
+            0x00000100: "CLONE_VM",
+            0x00010000: "CLONE_THREAD",
+            0x00000800: "CLONE_SIGHAND",
+        },
     },
     #splice
     275:{
-        #int fd_in
-        0: {},
-        #loff_t *off_in
-        1: {},
-        #int fd_out
-        2: {},
-        #loff_t *off_out
-        3: {},
-        #size_t len
-        4: {},
         #unsigned int flags
-        5: {},
+        5: SPLICE_FLAGS,
     },
     #tee
     276:{
-        #int fdin
-        0: {},
-        #int fdout
-        1: {},
-        #size_t len
-        2: {},
         #unsigned int flags
-        3: {},
+        3: SPLICE_FLAGS,
     },
     #sync_file_range
     277:{
-        #int fd
-        0: {},
-        #loff_t offset
-        1: {},
-        #loff_t nbytes
-        2: {},
         #unsigned int flags
-        3: {},
+        3: {
+            1: "SYNC_FILE_RANGE_WAIT_BEFORE",
+            2: "SYNC_FILE_RANGE_WRITE",
+            4: "SYNC_FILE_RANGE_WAIT_AFTER",
+        },
     },
     #vmsplice
     278:{
-        #int fd
-        0: {},
-        #const struct iovec *uiov
-        1: {},
-        #unsigned long nr_segs
-        2: {},
         #unsigned int flags
-        3: {},
+        3: SPLICE_FLAGS,
     },
     #move_pages
     279:{
-        #pid_t pid
-        0: {},
-        #unsigned long nr_pages
-        1: {},
-        #const void **pages
-        2: {},
-        #const int *nodes
-        3: {},
-        #int *status
-        4: {},
         #int flags
-        5: {},
+        5: {
+            0b10: "MPOL_MF_MOVE",
+            0b100: "MPOL_MF_MOVE_ALL",
+        },
     },
     #utimensat
     280:{
-        #int dfd
-        0: {},
-        #const char *filename
-        1: {},
-        #struct __kernel_timespec *utimes
-        2: {},
         #int flags
-        3: {},
-    },
-    #epoll_pwait
-    281:{
-        #int epfd
-        0: {},
-        #struct epoll_event *events
-        1: {},
-        #int maxevents
-        2: {},
-        #int timeout
-        3: {},
-        #const sigset_t *sigmask
-        4: {},
-        #size_t sigsetsize
-        5: {},
-    },
-    #signalfd
-    282:{
-        #int ufd
-        0: {},
-        #sigset_t *user_mask
-        1: {},
-        #size_t sizemask
-        2: {},
+        3: {
+            0x1000: "AT_EMPTY_PATH",
+            0x100: "AT_SYMLINK_NOFOLLOW",
+        },
     },
     #timerfd_create
     283:{
@@ -2131,130 +1779,166 @@ AMD64_SYSCALL_PARSER_MAP = \
     },
     #signalfd4
     289:{
-        #int ufd
-        0: {},
-        #sigset_t *user_mask
-        1: {},
-        #size_t sizemask
-        2: {},
         #int flags
-        3: {},
+        3: {
+            0o02000000: "SFD_CLOEXEC",
+            0o00004000: "SFD_NONBLOCK",
+        },
     },
     #eventfd2
     290:{
-        #unsigned int count
-        0: {},
         #int flags
-        1: {},
+        1: {
+            0o00000001: "EFD_SEMAPHORE",
+            0o02000000: "EFD_CLOEXEC",
+            0o00004000: "EFD_NONBLOCK",
+        },
     },
     #epoll_create1
     291:{
         #int flags
-        0: {},
+        0: {
+            0o02000000: "EPOLL_CLOEXEC",
+        },
     },
     #dup3
     292:{
-        #unsigned int oldfd
-        0: {},
-        #unsigned int newfd
-        1: {},
         #int flags
-        2: {},
+        2: {
+            0o02000000: "O_CLOEXEC",
+        },
     },
     #pipe2
     293:{
-        #int *fildes
-        0: {},
         #int flags
-        1: {},
+        1: {
+            0o02000000: "O_CLOEXEC",
+            0o00004000: "O_NONBLOCK",
+            0o00040000: "O_DIRECT",
+            0o00000200: "O_EXCL",
+        },
     },
     #inotify_init1
     294:{
         #int flags
-        0: {},
-    },
-    #preadv
-    295:{
-        #unsigned long fd
-        0: {},
-        #const struct iovec *vec
-        1: {},
-        #unsigned long vlen
-        2: {},
-        #unsigned long pos_l
-        3: {},
-        #unsigned long pos_h
-        4: {},
-    },
-    #pwritev
-    296:{
-        #unsigned long fd
-        0: {},
-        #const struct iovec *vec
-        1: {},
-        #unsigned long vlen
-        2: {},
-        #unsigned long pos_l
-        3: {},
-        #unsigned long pos_h
-        4: {},
+        0: {
+            0o02000000: "IN_CLOEXEC",
+            0o00004000: "IN_NONBLOCK",
+        },
     },
     #rt_tgsigqueueinfo
     297:{
-        #pid_t tgid
-        0: {},
-        #pid_t pid
-        1: {},
         #int sig
-        2: {},
-        #siginfo_t *uinfo
-        3: {},
+        2: SIGNALS,
     },
     #perf_event_open
     298:{
-        #struct perf_event_attr *attr_uptr
-        0: {},
-        #pid_t pid
-        1: {},
-        #int cpu
-        2: {},
-        #int group_fd
-        3: {},
         #unsigned long flags
-        4: {},
+        4: {
+            0b0001: "PERF_FLAG_FD_NO_GROUP",
+            0b0010: "PERF_FLAG_FD_OUTPUT",
+            0b0100: "PERF_FLAG_PID_CGROUP",
+            0b1000: "PERF_FLAG_FD_CLOEXEC",
+        },
     },
     #recvmmsg
     299:{
-        #int fd
-        0: {},
-        #struct mmsghdr *mmsg
-        1: {},
-        #unsigned int vlen
-        2: {},
         #unsigned int flags
-        3: {},
-        #struct __kernel_timespec *timeout
-        4: {},
+        3: {
+            0x40000000: "MSG_CMSG_CLOEXEC",
+            0x00000040: "MSG_DONTWAIT",
+            0x00002000: "MSG_ERRQUEUE",
+            0x00000001: "MSG_OOB",
+            0x00000002: "MSG_PEEK",
+            0x00000020: "MSG_TRUNC",
+            0x00000100: "MSG_WAITALL",
+        },
     },
     #fanotify_init
     300:{
         #unsigned int flags
-        0: {},
+        0: {
+            "sequential_flags": {
+                0x00000000: "FAN_CLASS_NOTIF",
+                0x00000004: "FAN_CLASS_CONTENT",
+                0x00000008: "FAN_CLASS_PRE_CONTENT",
+            },
+            "or_flags": {
+                0x00000001: "FAN_CLOEXEC",
+                0x00000002: "FAN_NONBLOCK",
+                0x00000010: "FAN_UNLIMITED_QUEUE",
+                0x00000020: "FAN_UNLIMITED_MARKS",
+                0x00000040: "FAN_ENABLE_AUDIT",
+                0x00000100: "FAN_REPORT_TID",
+                0x00000200: "FAN_REPORT_FID",
+                0x00000400: "FAN_REPORT_DIR_FID",
+                0x00000800: "FAN_REPORT_NAME",
+                0x00001000: "FAN_REPORT_TARGET_FID",
+                0x00000080: "FAN_REPORT_PIDFD",
+            },
+            "parsing_mode": "mixed",
+        },
         #unsigned int event_f_flags
-        1: {},
+        1: OPEN_FLAGS,
     },
     #fanotify_mark
     301:{
-        #int fanotify_fd
-        0: {},
         #unsigned int flags
-        1: {},
+        1: {
+            "sequential_flags": {
+                0x00000001: "FAN_MARK_ADD",
+                0x00000002: "FAN_MARK_REMOVE",
+                0x00000080: "FAN_MARK_FLUSH",
+            },
+            "or_flags": {
+                0x00000004: "FAN_MARK_DONT_FOLLOW",
+                0x00000008: "FAN_MARK_ONLYDIR",
+                0x00000010: "FAN_MARK_MOUNT",
+                0x00000100: "FAN_MARK_FILESYSTEM",
+                0x00000020: "FAN_MARK_IGNORED_MASK",
+                0x00000400: "FAN_MARK_IGNORE",
+                0x00000040: "FAN_MARK_IGNORED_SURV_MODIFY",
+                0x00000200: "FAN_MARK_EVICTABLE",
+            },
+            "parsing_mode": "mixed",
+        },
         #__u64 mask
-        2: {},
+        2: {
+            #define FAN_ACCESS		0x00000001	/* File was accessed */
+            #define FAN_MODIFY		0x00000002	/* File was modified */
+            #define FAN_ATTRIB		0x00000004	/* Metadata changed */
+            #define FAN_CLOSE_WRITE		0x00000008	/* Writable file closed */
+            #define FAN_CLOSE_NOWRITE	0x00000010	/* Unwritable file closed */
+            #define FAN_OPEN		0x00000020	/* File was opened */
+            #define FAN_MOVED_FROM		0x00000040	/* File was moved from X */
+            #define FAN_MOVED_TO		0x00000080	/* File was moved to Y */
+            #define FAN_CREATE		0x00000100	/* Subfile was created */
+            #define FAN_DELETE		0x00000200	/* Subfile was deleted */
+            #define FAN_DELETE_SELF		0x00000400	/* Self was deleted */
+            #define FAN_MOVE_SELF		0x00000800	/* Self was moved */
+            #define FAN_OPEN_EXEC		0x00001000	/* File was opened for exec */
+            0x00000001: "FAN_ACCESS",
+            0x00000002: "FAN_MODIFY",
+            0x00000004: "FAN_ATTRIB",
+            0x00000008: "FAN_CLOSE_WRITE",
+            0x00000010: "FAN_CLOSE_NOWRITE",
+            0x00000020: "FAN_OPEN",
+            0x00000040: "FAN_MOVED_FROM",
+            0x00000080: "FAN_MOVED_TO",
+            0x00000100: "FAN_CREATE",
+            0x00000200: "FAN_DELETE",
+            0x00000400: "FAN_DELETE_SELF",
+            0x00000800: "FAN_MOVE_SELF",
+            0x00001000: "FAN_OPEN_EXEC",
+            0x00008000: "FAN_FS_ERROR",
+            0x10000000: "FAN_RENAME",
+            0x00020000: "FAN_ACCESS_PERM",
+            0x00040000: "FAN_OPEN_EXEC_PERM",
+            0x40000000: "FAN_ONDIR",
+            0x08000000: "FAN_EVENT_ON_CHILD",
+        },
         #int dfd
-        3: {},
-        #const char *pathname
-        4: {},
+        3: OPENAT_DFD,
     },
     #prlimit64
     302:{
@@ -2768,13 +2452,15 @@ AMD64_SYSCALL_PARSER_MAP = \
     #faccessat2
     439:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
+        0: OPENAT_DFD,
         #int mode
-        2: {},
+        2: OPEN_MODES,
         #int flags
-        3: {},
+        3: {
+            0x200: "AT_EACCESS",
+            0x1000: "AT_EMPTY_PATH",
+            0x100: "AT_SYMLINK_NOFOLLOW",
+        },
     },
     #process_madvise
     440:{
@@ -2905,13 +2591,13 @@ AMD64_SYSCALL_PARSER_MAP = \
     #fchmodat2
     452:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
+        0: OPENAT_DFD,
         #umode_t mode
-        2: {},
+        2: OPEN_MODES,
         #unsigned int flags
-        3: {},
+        3: {
+            0x100: "AT_SYMLINK_NOFOLLOW",
+        },
     },
     #map_shadow_stack
     453:{
