@@ -1938,7 +1938,6 @@ class InternalDebugger:
         """Set the state of the process to stopped."""
         self._is_running = False
 
-    @background_alias(_background_invalid_call)
     @change_state_function_thread
     def invoke_syscall(
         self: InternalDebugger,
