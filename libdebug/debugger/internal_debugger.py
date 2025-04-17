@@ -1916,6 +1916,8 @@ class InternalDebugger:
         Returns:
             int: The return value of the syscall.
         """
+        if self.debugging_interface.status_handler.is_in_syscall_callback(thread):
+            raise RuntimeError("Attempted to invoke syscall inside a syscall handling callback. This is unsupported.")
         if isinstance(syscall_identifier, str):
             syscall_number = resolve_syscall_number(self.arch, syscall_identifier)
         else:

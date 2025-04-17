@@ -144,6 +144,8 @@ class PtraceStatusHandler:
             syscall_number_after_callback = thread.syscall_number
 
             if syscall_number_after_callback != syscall_number:
+                if self.executing_arbitrary_syscall:
+                    liblog.warning("Syscall hijacking callback is active, syscall invocation will be changed accordingly")
                 # The syscall number has changed
                 # Pretty print the syscall number before the callback
                 if handler.on_enter_pprint:
@@ -504,3 +506,18 @@ class PtraceStatusHandler:
             if not thread.dead and thread.thread_id not in tids:
                 self.ptrace_interface.unregister_thread(thread.thread_id, None, None)
                 liblog.debugger("Manually unregistered thread %d" % thread.thread_id)
+
+    def is_in_syscall_callback(self: PtraceStatusHandler, thread: ThreadContext) -> bool:
+        """Check if we are in a syscall callback.
+
+        Args:
+            thread (ThreadContext): The thread to check.
+
+        Returns:
+            bool: True if we are in a syscall callback, False otherwise.
+        """
+        resume_context = self.internal_debugger.resume_context
+
+        return resume_context.is_in_callback and \
+        resume_context.event_type == EventType.SYSCALL and \
+        resume_context.event_hit_ref[thread.thread_id] is not None
