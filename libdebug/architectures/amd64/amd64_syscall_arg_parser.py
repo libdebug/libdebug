@@ -1726,54 +1726,49 @@ AMD64_SYSCALL_PARSER_MAP = \
     #timerfd_create
     283:{
         #int clockid
-        0: {},
+        0: {
+            0: "CLOCK_REALTIME",
+            1: "CLOCK_MONOTONIC",
+            7: "CLOCK_BOOTTIME",
+            8: "CLOCK_REALTIME_ALARM",
+            9: "CLOCK_BOOTTIME_ALARM",
+            "parsing_mode": "sequential",
+        },
         #int flags
-        1: {},
-    },
-    #eventfd
-    284:{
-        #unsigned int count
-        0: {},
+        1: {
+            0o02000000: "TFD_CLOEXEC",
+            0o00004000: "TFD_NONBLOCK",
+        },
     },
     #fallocate
     285:{
-        #int fd
-        0: {},
         #int mode
-        1: {},
-        #loff_t offset
-        2: {},
-        #loff_t len
-        3: {},
+        1: {
+            0x00: "FALLOC_FL_ALLOCATE_RANGE",
+            0x01: "FALLOC_FL_KEEP_SIZE",
+            0x02: "FALLOC_FL_PUNCH_HOLE",
+            0x04: "FALLOC_FL_NO_HIDE_STALE",
+            0x08: "FALLOC_FL_COLLAPSE_RANGE",
+            0x10: "FALLOC_FL_ZERO_RANGE",
+            0x20: "FALLOC_FL_INSERT_RANGE",
+            0x40: "FALLOC_FL_UNSHARE_RANGE",
+        },
     },
     #timerfd_settime
     286:{
-        #int ufd
-        0: {},
         #int flags
-        1: {},
-        #const struct __kernel_itimerspec *utmr
-        2: {},
-        #struct __kernel_itimerspec *otmr
-        3: {},
-    },
-    #timerfd_gettime
-    287:{
-        #int ufd
-        0: {},
-        #struct __kernel_itimerspec *otmr
-        1: {},
+        1: {
+            0x00000001: "TFD_TIMER_ABSTIME",
+            0x00000002: "TFD_TIMER_CANCEL_ON_SET",
+        },
     },
     #accept4
     288:{
-        #int fd
-        0: {},
-        #struct sockaddr *upeer_sockaddr
-        1: {},
-        #int *upeer_addrlen
-        2: {},
         #int flags
-        3: {},
+        3: {
+            0o02000000: "SOCK_CLOEXEC",
+            0o00004000: "SOCK_NONBLOCK",
+        },
     },
     #signalfd4
     289:{
@@ -1902,19 +1897,6 @@ AMD64_SYSCALL_PARSER_MAP = \
         },
         #__u64 mask
         2: {
-            #define FAN_ACCESS		0x00000001	/* File was accessed */
-            #define FAN_MODIFY		0x00000002	/* File was modified */
-            #define FAN_ATTRIB		0x00000004	/* Metadata changed */
-            #define FAN_CLOSE_WRITE		0x00000008	/* Writable file closed */
-            #define FAN_CLOSE_NOWRITE	0x00000010	/* Unwritable file closed */
-            #define FAN_OPEN		0x00000020	/* File was opened */
-            #define FAN_MOVED_FROM		0x00000040	/* File was moved from X */
-            #define FAN_MOVED_TO		0x00000080	/* File was moved to Y */
-            #define FAN_CREATE		0x00000100	/* Subfile was created */
-            #define FAN_DELETE		0x00000200	/* Subfile was deleted */
-            #define FAN_DELETE_SELF		0x00000400	/* Self was deleted */
-            #define FAN_MOVE_SELF		0x00000800	/* Self was moved */
-            #define FAN_OPEN_EXEC		0x00001000	/* File was opened for exec */
             0x00000001: "FAN_ACCESS",
             0x00000002: "FAN_MODIFY",
             0x00000004: "FAN_ATTRIB",
@@ -1940,169 +1922,131 @@ AMD64_SYSCALL_PARSER_MAP = \
     },
     #prlimit64
     302:{
-        #pid_t pid
-        0: {},
         #unsigned int resource
-        1: {},
-        #const struct rlimit64 *new_rlim
-        2: {},
-        #struct rlimit64 *old_rlim
-        3: {},
+        1: {
+            0: "RLIMIT_CPU",
+            1: "RLIMIT_FSIZE",
+            2: "RLIMIT_DATA",
+            3: "RLIMIT_STACK",
+            4: "RLIMIT_CORE",
+            5: "RLIMIT_RSS",
+            6: "RLIMIT_NPROC",
+            7: "RLIMIT_NOFILE",
+            8: "RLIMIT_MEMLOCK",
+            9: "RLIMIT_AS",
+            10: "RLIMIT_LOCKS",
+            11: "RLIMIT_SIGPENDING",
+            12: "RLIMIT_MSGQUEUE",
+            13: "RLIMIT_NICE",
+            14: "RLIMIT_RTPRIO",
+            15: "RLIMIT_RTTIME",
+            16: "RLIM_NLIMITS",
+            0xffffffff: "RLIM_INFINITY",
+            "parsing_mode": "sequential",
+        },
     },
     #name_to_handle_at
     303:{
         #int dfd
-        0: {},
-        #const char *name
-        1: {},
-        #struct file_handle *handle
-        2: {},
-        #void *mnt_id
-        3: {},
+        0: OPENAT_DFD,
         #int flag
-        4: {},
+        4: {
+            0x200: "AT_HANDLE_FID",
+            0x1000: "AT_EMPTY_PATH",
+            0x400: "AT_SYMLINK_FOLLOW",
+        },
     },
     #open_by_handle_at
     304:{
         #int mountdirfd
-        0: {},
-        #struct file_handle *handle
-        1: {},
+        0: OPENAT_DFD,
         #int flags
-        2: {},
+        2: OPEN_FLAGS,
     },
     #clock_adjtime
     305:{
         #const clockid_t which_clock
-        0: {},
-        #struct __kernel_timex *utx
-        1: {},
-    },
-    #syncfs
-    306:{
-        #int fd
-        0: {},
+        0: WHICH_CLOCK,
     },
     #sendmmsg
     307:{
-        #int fd
-        0: {},
-        #struct mmsghdr *mmsg
-        1: {},
-        #unsigned int vlen
-        2: {},
         #unsigned int flags
-        3: {},
+        3: {
+            0x00000800: "MSG_CONFIRM",
+            0x00000004: "MSG_DONTROUTE",
+            0x00000040: "MSG_DONTWAIT",
+            0x00000080: "MSG_EOR",
+            0x00008000: "MSG_MORE",
+            0x00004000: "MSG_NOSIGNAL",
+            0x00000001: "MSG_OOB",
+            0x20000000: "MSG_FASTOPEN",
+        },
     },
     #setns
     308:{
-        #int fd
-        0: {},
         #int flags
-        1: {},
-    },
-    #getcpu
-    309:{
-        #unsigned *cpup
-        0: {},
-        #unsigned *nodep
-        1: {},
-        #struct getcpu_cache *unused
-        2: {},
-    },
-    #process_vm_readv
-    310:{
-        #pid_t pid
-        0: {},
-        #const struct iovec *lvec
-        1: {},
-        #unsigned long liovcnt
-        2: {},
-        #const struct iovec *rvec
-        3: {},
-        #unsigned long riovcnt
-        4: {},
-        #unsigned long flags
-        5: {},
-    },
-    #process_vm_writev
-    311:{
-        #pid_t pid
-        0: {},
-        #const struct iovec *lvec
-        1: {},
-        #unsigned long liovcnt
-        2: {},
-        #const struct iovec *rvec
-        3: {},
-        #unsigned long riovcnt
-        4: {},
-        #unsigned long flags
-        5: {},
+        1: {
+            0x02000000: "CLONE_NEWCGROUP",
+            0x04000000: "CLONE_NEWUTS",
+            0x08000000: "CLONE_NEWIPC",
+            0x40000000: "CLONE_NEWNET",
+            0x00000080: "CLONE_NEWTIME",
+            0x00020000: "CLONE_NEWNS",
+            0x20000000: "CLONE_NEWPID",
+            0x10000000: "CLONE_NEWUSER",
+        },
     },
     #kcmp
     312:{
-        #pid_t pid1
-        0: {},
-        #pid_t pid2
-        1: {},
         #int type
-        2: {},
-        #unsigned long idx1
-        3: {},
-        #unsigned long idx2
-        4: {},
+        2: {
+            0: "KCMP_FILE",
+            1: "KCMP_VM",
+            2: "KCMP_FILES",
+            3: "KCMP_FS",
+            4: "KCMP_SIGHAND",
+            5: "KCMP_IO",
+            6: "KCMP_SYSVSEM",
+            7: "KCMP_EPOLL_TFD",
+            "parsing_mode": "sequential",
+        },
     },
     #finit_module
     313:{
-        #int fd
-        0: {},
-        #const char *uargs
-        1: {},
         #int flags
-        2: {},
-    },
-    #sched_setattr
-    314:{
-        #pid_t pid
-        0: {},
-        #struct sched_attr *uattr
-        1: {},
-        #unsigned int flags
-        2: {},
-    },
-    #sched_getattr
-    315:{
-        #pid_t pid
-        0: {},
-        #struct sched_attr *uattr
-        1: {},
-        #unsigned int usize
-        2: {},
-        #unsigned int flags
-        3: {},
+        2: {
+            1: "MODULE_INIT_IGNORE_MODVERSIONS",
+            2: "MODULE_INIT_IGNORE_VERMAGIC",
+            4: "MODULE_INIT_COMPRESSED_FILE",
+        },
     },
     #renameat2
     316:{
-        #int olddfd
-        0: {},
-        #const char *oldname
-        1: {},
-        #int newdfd
-        2: {},
-        #const char *newname
-        3: {},
         #unsigned int flags
-        4: {},
+        4: {
+            0b001: "RENAME_NOREPLACE",
+            0b010: "RENAME_EXCHANGE",
+            0b100: "RENAME_WHITEOUT",
+        },
     },
     #seccomp
     317:{
         #unsigned int op
-        0: {},
+        0: {
+            0: "SECCOMP_SET_MODE_STRICT",
+            1: "SECCOMP_SET_MODE_FILTER",
+            2: "SECCOMP_GET_ACTION_AVAIL",
+            3: "SECCOMP_GET_NOTIF_SIZES",
+        },
         #unsigned int flags
-        1: {},
-        #void *uargs
-        2: {},
+        1: {
+            0b000001: "SECCOMP_FILTER_FLAG_TSYNC",
+            0b000010: "SECCOMP_FILTER_FLAG_LOG",
+            0b000100: "SECCOMP_FILTER_FLAG_SPEC_ALLOW",
+            0b001000: "SECCOMP_FILTER_FLAG_NEW_LISTENER",
+            0b010000: "SECCOMP_FILTER_FLAG_TSYNC_ESRCH",
+            0b100000: "SECCOMP_FILTER_FLAG_WAIT_KILLABLE_RECV",
+        },
     },
     #getrandom
     318:{
