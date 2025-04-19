@@ -2050,294 +2050,286 @@ AMD64_SYSCALL_PARSER_MAP = \
     },
     #getrandom
     318:{
-        #char *ubuf
-        0: {},
-        #size_t len
-        1: {},
         #unsigned int flags
-        2: {},
+        2: {
+            0x0001: "GRND_NONBLOCK",
+            0x0002: "GRND_RANDOM",
+            0x0004: "GRND_INSECURE",
+        },
     },
     #memfd_create
     319:{
-        #const char *uname
-        0: {},
         #unsigned int flags
-        1: {},
+        1: {
+            0x1: "MFD_CLOEXEC",
+            0x2: "MFD_ALLOW_SEALING",
+            0x4: "MFD_HUGETLB",
+            0x8: "MFD_NOEXEC_SEAL",
+            0x10: "MFD_EXEC",
+            0x40000000: "MFD_HUGE_64KB",
+            0x4c000000: "MFD_HUGE_512KB",
+            0x50000000: "MFD_HUGE_1MB",
+            0x54000000: "MFD_HUGE_2MB",
+            0x5c000000: "MFD_HUGE_8MB",
+            0x60000000: "MFD_HUGE_16MB",
+            0x64000000: "MFD_HUGE_32MB",
+            0x70000000: "MFD_HUGE_256MB",
+            0x74000000: "MFD_HUGE_512MB",
+            0x78000000: "MFD_HUGE_1GB",
+            0x7c000000: "MFD_HUGE_2GB",
+            0x88000000: "MFD_HUGE_16GB",
+        },
     },
     #kexec_file_load
     320:{
-        #int kernel_fd
-        0: {},
-        #int initrd_fd
-        1: {},
-        #unsigned long cmdline_len
-        2: {},
-        #const char *cmdline_ptr
-        3: {},
         #unsigned long flags
         4: {
-            # /*
-            # * Kexec file load interface flags.
-            # * KEXEC_FILE_UNLOAD : Unload already loaded kexec/kdump image.
-            # * KEXEC_FILE_ON_CRASH : Load/unload operation belongs to kdump image.
-            # * KEXEC_FILE_NO_INITRAMFS : No initramfs is being loaded. Ignore the initrd
-            # *                           fd field.
-            # */
-            #define KEXEC_FILE_UNLOAD	0x00000001
-            #define KEXEC_FILE_ON_CRASH	0x00000002
-            #define KEXEC_FILE_NO_INITRAMFS	0x00000004
-            #define KEXEC_FILE_DEBUG	0x00000008
+            0x00000001: "KEXEC_FILE_UNLOAD",
+            0x00000002: "KEXEC_FILE_ON_CRASH",
+            0x00000004: "KEXEC_FILE_NO_INITRAMFS",
+            0x00000008: "KEXEC_FILE_DEBUG",
         },
     },
     #bpf
     321:{
         #int cmd
-        0: {},
-        #union bpf_attr *uattr
-        1: {},
-        #unsigned int size
-        2: {},
+        0: {
+            0: "BPF_MAP_CREATE",
+            1: "BPF_MAP_LOOKUP_ELEM",
+            2: "BPF_MAP_UPDATE_ELEM",
+            3: "BPF_MAP_DELETE_ELEM",
+            4: "BPF_MAP_GET_NEXT_KEY",
+            5: "BPF_PROG_LOAD",
+            6: "BPF_OBJ_PIN",
+            7: "BPF_OBJ_GET",
+            8: "BPF_PROG_ATTACH",
+            9: "BPF_PROG_DETACH",
+            10: "BPF_PROG_RUN",
+            11: "BPF_PROG_GET_NEXT_ID",
+            12: "BPF_MAP_GET_NEXT_ID",
+            13: "BPF_PROG_GET_FD_BY_ID",
+            14: "BPF_MAP_GET_FD_BY_ID",
+            15: "BPF_OBJ_GET_INFO_BY_FD",
+            16: "BPF_PROG_QUERY",
+            17: "BPF_RAW_TRACEPOINT_OPEN",
+            18: "BPF_BTF_LOAD",
+            19: "BPF_BTF_GET_FD_BY_ID",
+            20: "BPF_TASK_FD_QUERY",
+            21: "BPF_MAP_LOOKUP_AND_DELETE_ELEM",
+            22: "BPF_MAP_FREEZE",
+            23: "BPF_BTF_GET_NEXT_ID",
+            24: "BPF_MAP_LOOKUP_BATCH",
+            25: "BPF_MAP_LOOKUP_AND_DELETE_BATCH",
+            26: "BPF_MAP_UPDATE_BATCH",
+            27: "BPF_MAP_DELETE_BATCH",
+            28: "BPF_LINK_CREATE",
+            29: "BPF_LINK_UPDATE",
+            30: "BPF_LINK_GET_FD_BY_ID",
+            31: "BPF_LINK_GET_NEXT_ID",
+            32: "BPF_ENABLE_STATS",
+            33: "BPF_ITER_CREATE",
+            34: "BPF_LINK_DETACH",
+            35: "BPF_PROG_BIND_MAP",
+            36: "BPF_TOKEN_CREATE",
+            "parsing_mode": "sequential",
+        },
     },
     #execveat
     322:{
         #int fd
-        0: {},
-        #const char *filename
-        1: {},
-        #const char *const *argv
-        2: {},
-        #const char *const *envp
-        3: {},
+        0: OPENAT_DFD,
         #int flags
-        4: {},
+        4: {
+            0x1000: "AT_EMPTY_PATH",
+            0x100: "AT_SYMLINK_NOFOLLOW",
+        },
     },
     #userfaultfd
     323:{
         #int flags
-        0: {},
+        0: {
+            0x00000001: "UFFD_USER_MODE_ONLY",
+            0o02000000: "O_CLOEXEC",
+            0o00004000: "O_NONBLOCK",
+        },
     },
     #membarrier
     324:{
         #int cmd
-        0: {},
+        0: {
+            0b0000000000: "MEMBARRIER_CMD_QUERY",
+            0b0000000001: "MEMBARRIER_CMD_GLOBAL",
+            0b0000000010: "MEMBARRIER_CMD_GLOBAL_EXPEDITED",
+            0b0000000100: "MEMBARRIER_CMD_REGISTER_GLOBAL_EXPEDITED",
+            0b0000001000: "MEMBARRIER_CMD_PRIVATE_EXPEDITED",
+            0b0000010000: "MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED",
+            0b0000100000: "MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE",
+            0b0001000000: "MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE",
+            0b0010000000: "MEMBARRIER_CMD_PRIVATE_EXPEDITED_RSEQ",
+            0b0100000000: "MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_RSEQ",
+            0b1000000000: "MEMBARRIER_CMD_GET_REGISTRATIONS",
+        },
         #unsigned int flags
-        1: {},
-        #int cpu_id
-        2: {},
+        1: {
+            0x00000001: "MEMBARRIER_CMD_FLAG_CPU",
+        },
     },
     #mlock2
     325:{
-        #unsigned long start
-        0: {},
-        #size_t len
-        1: {},
         #int flags
-        2: {},
-    },
-    #copy_file_range
-    326:{
-        #int fd_in
-        0: {},
-        #loff_t *off_in
-        1: {},
-        #int fd_out
-        2: {},
-        #loff_t *off_out
-        3: {},
-        #size_t len
-        4: {},
-        #unsigned int flags
-        5: {},
+        2: {
+            1: "MCL_CURRENT",
+            2: "MCL_FUTURE",
+            4: "MCL_ONFAULT",
+        },
     },
     #preadv2
     327:{
-        #unsigned long fd
-        0: {},
-        #const struct iovec *vec
-        1: {},
-        #unsigned long vlen
-        2: {},
-        #unsigned long pos_l
-        3: {},
-        #unsigned long pos_h
-        4: {},
         #rwf_t flags
-        5: {},
+        5: {
+            0x00000001: "RWF_HIPRI",
+            0x00000002: "RWF_DSYNC",
+            0x00000004: "RWF_SYNC",
+            0x00000008: "RWF_NOWAIT",
+            0x00000010: "RWF_APPEND",
+            0x00000020: "RWF_NOAPPEND",
+            0x00000040: "RWF_ATOMIC",
+            0x00000080: "RWF_DONTCACHE",
+        },
     },
     #pwritev2
     328:{
-        #unsigned long fd
-        0: {},
-        #const struct iovec *vec
-        1: {},
-        #unsigned long vlen
-        2: {},
-        #unsigned long pos_l
-        3: {},
-        #unsigned long pos_h
-        4: {},
         #rwf_t flags
-        5: {},
+        5: {
+            0x00000001: "RWF_HIPRI",
+            0x00000002: "RWF_DSYNC",
+            0x00000004: "RWF_SYNC",
+            0x00000008: "RWF_NOWAIT",
+            0x00000010: "RWF_APPEND",
+            0x00000020: "RWF_NOAPPEND",
+            0x00000040: "RWF_ATOMIC",
+            0x00000080: "RWF_DONTCACHE",
+        },
     },
     #pkey_mprotect
     329:{
-        #unsigned long start
-        0: {},
-        #size_t len
-        1: {},
         #unsigned long prot
-        2: {},
-        #int pkey
-        3: {},
+        2: {
+            0x0: "PROT_NONE",
+            0x1: "PROT_READ",
+            0x2: "PROT_WRITE",
+            0x4: "PROT_EXEC",
+            0x8: "PROT_SEM",
+            0x10: "PROT_SAO",
+            0x01000000: "PROT_GROWSDOWN",
+            0x02000000: "PROT_GROWSUP",
+        },
     },
     #pkey_alloc
     330:{
-        #unsigned long flags
-        0: {},
         #unsigned long init_val
-        1: {},
-    },
-    #pkey_free
-    331:{
-        #int pkey
-        0: {},
+        1: {
+            0x1: "PKEY_DISABLE_ACCESS",
+            0x2: "PKEY_DISABLE_WRITE",
+        },
     },
     #statx
     332:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
+        0: OPENAT_DFD,
         #unsigned flags
-        2: {},
-        #unsigned int mask
-        3: {},
-        #struct statx *buffer
-        4: {},
-    },
-    #io_pgetevents
-    333:{
-        #aio_context_t ctx_id
-        0: {},
-        #long min_nr
-        1: {},
-        #long nr
-        2: {},
-        #struct io_event *events
-        3: {},
-        #struct __kernel_timespec *timeout
-        4: {},
-        #const struct __aio_sigset *usig
-        5: {},
+        2: {
+            0x1000: "AT_EMPTY_PATH",
+            0x800: "AT_NO_AUTOMOUNT",
+            0x100: "AT_SYMLINK_NOFOLLOW",
+            0x6000: "AT_STATX_SYNC_TYPE",
+            0x0000: "AT_STATX_SYNC_AS_STAT",
+            0x2000: "AT_STATX_FORCE_SYNC",
+            0x4000: "AT_STATX_DONT_SYNC",
+        },
     },
     #rseq
     334:{
-        #struct rseq *rseq
-        0: {},
-        #u32 rseq_len
-        1: {},
         #int flags
-        2: {},
-        #u32 sig
-        3: {},
-    },
-    #uretprobe
-    335:{
-    },
-    #pidfd_send_signal
-    424:{
-        #int pidfd
-        0: {},
-        #int sig
-        1: {},
-        #siginfo_t *info
-        2: {},
-        #unsigned int flags
-        3: {},
-    },
-    #io_uring_setup
-    425:{
-        #u32 entries
-        0: {},
-        #struct io_uring_params *params
-        1: {},
-    },
-    #io_uring_enter
-    426:{
-        #unsigned int fd
-        0: {},
-        #u32 to_submit
-        1: {},
-        #u32 min_complete
-        2: {},
-        #u32 flags
-        3: {},
-        #const void *argp
-        4: {},
-        #size_t argsz
-        5: {},
-    },
-    #io_uring_register
-    427:{
-        #unsigned int fd
-        0: {},
-        #unsigned int opcode
-        1: {},
-        #void *arg
-        2: {},
-        #unsigned int nr_args
-        3: {},
+        2: {
+            0x00000001: "RSEQ_FLAG_UNREGISTER",
+        },
     },
     #open_tree
     428:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
+        0: OPENAT_DFD,
         #unsigned flags
-        2: {},
+        2: {
+            0x1000: "AT_EMPTY_PATH",
+            0x800: "AT_NO_AUTOMOUNT",
+            0x8000: "AT_RECURSIVE",
+            0x100: "AT_SYMLINK_NOFOLLOW",
+            0x1: "OPEN_TREE_CLONE",
+            0o2000000: "OPEN_TREE_CLOEXEC",
+        },
     },
     #move_mount
     429:{
         #int from_dfd
-        0: {},
-        #const char *from_pathname
-        1: {},
+        0: OPENAT_DFD,
         #int to_dfd
-        2: {},
-        #const char *to_pathname
-        3: {},
+        2: OPENAT_DFD,
         #unsigned int flags
-        4: {},
+        4: {
+            0x00000001: "MOVE_MOUNT_F_SYMLINKS",
+            0x00000002: "MOVE_MOUNT_F_AUTOMOUNTS",
+            0x00000004: "MOVE_MOUNT_F_EMPTY_PATH",
+            0x00000010: "MOVE_MOUNT_T_SYMLINKS",
+            0x00000020: "MOVE_MOUNT_T_AUTOMOUNTS",
+            0x00000040: "MOVE_MOUNT_T_EMPTY_PATH",
+            0x00000100: "MOVE_MOUNT_SET_GROUP",
+            0x00000200: "MOVE_MOUNT_BENEATH",
+        },
     },
     #fsopen
     430:{
-        #const char *_fs_name
-        0: {},
         #unsigned int flags
-        1: {},
+        1: {
+            0x00000001: "FSOPEN_CLOEXEC",
+        },
     },
     #fsconfig
     431:{
-        #int fd
-        0: {},
         #unsigned int cmd
-        1: {},
-        #const char *_key
-        2: {},
-        #const void *_value
-        3: {},
-        #int aux
-        4: {},
+        1: {
+            0: "FSCONFIG_SET_FLAG",
+            1: "FSCONFIG_SET_STRING",
+            2: "FSCONFIG_SET_BINARY",
+            3: "FSCONFIG_SET_PATH",
+            4: "FSCONFIG_SET_PATH_EMPTY",
+            5: "FSCONFIG_SET_FD",
+            6: "FSCONFIG_CMD_CREATE",
+            7: "FSCONFIG_CMD_RECONFIGURE",
+            8: "FSCONFIG_CMD_CREATE_EXCL",
+            "parsing_mode": "sequential",
+        },
     },
     #fsmount
     432:{
-        #int fs_fd
-        0: {},
         #unsigned int flags
-        1: {},
+        1: {
+            0x00000001: "FSMOUNT_CLOEXEC",
+        },
         #unsigned int attr_flags
-        2: {},
+        2: {
+            0x00000001: "MOUNT_ATTR_RDONLY",
+            0x00000002: "MOUNT_ATTR_NOSUID",
+            0x00000004: "MOUNT_ATTR_NODEV",
+            0x00000008: "MOUNT_ATTR_NOEXEC",
+            0x00000070: "MOUNT_ATTR__ATIME",
+            0x00000000: "MOUNT_ATTR_RELATIME",
+            0x00000010: "MOUNT_ATTR_NOATIME",
+            0x00000020: "MOUNT_ATTR_STRICTATIME",
+            0x00000080: "MOUNT_ATTR_NODIRATIME",
+            0x00100000: "MOUNT_ATTR_IDMAP",
+            0x00200000: "MOUNT_ATTR_NOSYMFOLLOW",
+        },
     },
     #fspick
     433:{
@@ -2355,13 +2347,6 @@ AMD64_SYSCALL_PARSER_MAP = \
         #unsigned int flags
         1: {},
     },
-    #clone3
-    435:{
-        #struct clone_args *uargs
-        0: {},
-        #size_t size
-        1: {},
-    },
     #close_range
     436:{
         #unsigned int fd
@@ -2374,13 +2359,7 @@ AMD64_SYSCALL_PARSER_MAP = \
     #openat2
     437:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
-        #struct open_how *how
-        2: {},
-        #size_t usize
-        3: {},
+        0: OPENAT_DFD,
     },
     #pidfd_getfd
     438:{
@@ -2416,21 +2395,6 @@ AMD64_SYSCALL_PARSER_MAP = \
         3: {},
         #unsigned int flags
         4: {},
-    },
-    #epoll_pwait2
-    441:{
-        #int epfd
-        0: {},
-        #struct epoll_event *events
-        1: {},
-        #int maxevents
-        2: {},
-        #const struct __kernel_timespec *timeout
-        3: {},
-        #const sigset_t *sigmask
-        4: {},
-        #size_t sigsetsize
-        5: {},
     },
     #mount_setattr
     442:{
@@ -2649,58 +2613,58 @@ AMD64_SYSCALL_PARSER_MAP = \
         #unsigned long flags
         2: {},
     },
-    # #setxattrat
-    # 463:{
-    #     #int dfd
-    #     0: {},
-    #     #const char *pathname
-    #     1: {},
-    #     #unsigned int at_flags
-    #     2: {},
-    #     #const char *name
-    #     3: {},
-    #     #const struct xattr_args *uargs
-    #     4: {},
-    #     #size_t usize
-    #     5: {},
-    # },
-    # #getxattrat
-    # 464:{
-    #     #int dfd
-    #     0: {},
-    #     #const char *pathname
-    #     1: {},
-    #     #unsigned int at_flags
-    #     2: {},
-    #     #const char *name
-    #     3: {},
-    #     #struct xattr_args *uargs
-    #     4: {},
-    #     #size_t usize
-    #     5: {},
-    # },
-    # #listxattrat
-    # 465:{
-    #     #int dfd
-    #     0: {},
-    #     #const char *pathname
-    #     1: {},
-    #     #unsigned int at_flags
-    #     2: {},
-    #     #char *list
-    #     3: {},
-    #     #size_t size
-    #     4: {},
-    # },
-    # #removexattrat
-    # 466:{
-    #     #int dfd
-    #     0: {},
-    #     #const char *pathname
-    #     1: {},
-    #     #unsigned int at_flags
-    #     2: {},
-    #     #const char *name
-    #     3: {},
-    # },
+    #setxattrat
+    463:{
+        #int dfd
+        0: {},
+        #const char *pathname
+        1: {},
+        #unsigned int at_flags
+        2: {},
+        #const char *name
+        3: {},
+        #const struct xattr_args *uargs
+        4: {},
+        #size_t usize
+        5: {},
+    },
+    #getxattrat
+    464:{
+        #int dfd
+        0: {},
+        #const char *pathname
+        1: {},
+        #unsigned int at_flags
+        2: {},
+        #const char *name
+        3: {},
+        #struct xattr_args *uargs
+        4: {},
+        #size_t usize
+        5: {},
+    },
+    #listxattrat
+    465:{
+        #int dfd
+        0: {},
+        #const char *pathname
+        1: {},
+        #unsigned int at_flags
+        2: {},
+        #char *list
+        3: {},
+        #size_t size
+        4: {},
+    },
+    #removexattrat
+    466:{
+        #int dfd
+        0: {},
+        #const char *pathname
+        1: {},
+        #unsigned int at_flags
+        2: {},
+        #const char *name
+        3: {},
+    },
 }
