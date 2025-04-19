@@ -23,7 +23,6 @@ class LibContext:
     _debugger_logger_levels: list[str]
     _general_logger_levels: list[str]
     _debuginfod_server: str
-    _parse_pprint_constants: bool
 
     def __new__(cls: type):
         """Create a new instance of the class if it does not exist yet.
