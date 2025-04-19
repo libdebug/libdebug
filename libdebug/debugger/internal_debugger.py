@@ -1957,6 +1957,7 @@ class InternalDebugger:
         """
         if self.debugging_interface.status_handler.is_in_syscall_callback(thread):
             raise RuntimeError("Attempted to invoke syscall inside a syscall handling callback. This is unsupported.")
+
         if isinstance(syscall_identifier, str):
             syscall_number = resolve_syscall_number(self.arch, syscall_identifier)
         else:
@@ -1975,11 +1976,15 @@ class InternalDebugger:
 
         self._ensure_process_stopped()
 
-        # Backup registers.
-        self.__polling_thread_command_queue.put(
-            (self.__threaded_quick_regs_copy, (thread,)),
-        )
-        self._join_and_check_status()
+        if not self._is_in_background():
+            # Backup registers.
+            self.__polling_thread_command_queue.put(
+                (self.__threaded_quick_regs_copy, (thread,)),
+            )
+            self._join_and_check_status()
+        else:
+            # Backup registers.
+            self.__threaded_quick_regs_copy(thread)
 
         # Compute architectural constants to normalize arguments.
         max_arg_t_size = get_platform_gp_register_size(self.arch)
@@ -2024,8 +2029,12 @@ class InternalDebugger:
 
         self.debugging_interface.status_handler.executing_arbitrary_syscall = True
 
-        self.__polling_thread_command_queue.put((self.__threaded_cont_to_syscall, (thread,)))
-        self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
+        if not self._is_in_background():
+            self.__polling_thread_command_queue.put((self.__threaded_cont_to_syscall, (thread,)))
+            self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
+        else:
+            self.__threaded_cont_to_syscall(thread)
+            self.__threaded_wait()
 
         # If not handled or handled syncronously, the status handler will not resume the process
         # Note: the process stops first on syscall entry, then on syscall exit, thus we need
@@ -2034,10 +2043,16 @@ class InternalDebugger:
             self.handled_syscalls[syscall_number].on_enter_user is None
             and self.handled_syscalls[syscall_number].on_exit_user is None
         ):
-            self.__polling_thread_command_queue.put((self.__threaded_cont_to_syscall, (thread,)))
-            self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
+            if not self._is_in_background():
+                self.__polling_thread_command_queue.put((self.__threaded_cont_to_syscall, (thread,)))
+                self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
+            else:
+                self.__threaded_cont_to_syscall(thread)
+                self.__threaded_wait()
 
-        self._join_and_check_status()
+        if not self._is_in_background():
+            self._join_and_check_status()
+
 
         self.debugging_interface.status_handler.executing_arbitrary_syscall = False
 
@@ -2056,10 +2071,14 @@ class InternalDebugger:
             ) from e
 
         # Restore the registers
-        self.__polling_thread_command_queue.put(
-            (self.__threaded_quick_regs_restore, (thread,)),
-        )
-        self._join_and_check_status()
+
+        if not self._is_in_background():
+            self.__polling_thread_command_queue.put(
+                (self.__threaded_quick_regs_restore, (thread,)),
+            )
+            self._join_and_check_status()
+        else:
+            self.__threaded_quick_regs_restore(thread)
 
         syscall_name = (
             syscall_identifier

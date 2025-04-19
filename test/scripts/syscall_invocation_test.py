@@ -418,7 +418,7 @@ class SyscallInvocationTest(TestCase):
 
         d.terminate()
 
-    def invocation_callback_exception(self):
+    def test_invocation_callback_exception(self):
         d = debugger(RESOLVE_EXE("dummy_binary"))
         d.run()
 
