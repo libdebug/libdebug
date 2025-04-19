@@ -116,35 +116,6 @@ class SyscallInvocationTest(TestCase):
 
         d.terminate()
 
-    # TODO: Decide the final behavior of the hijack
-    # def test_hijack_nullification(self):
-    #     d = debugger(RESOLVE_EXE("dummy_binary"))
-    #     pipe = d.run()
-
-    #     # Set a breakpoint to <main>
-    #     d.breakpoint(BP_ADDRESS, hardware=True, file="binary")
-
-    #     d.hijack_syscall("write", "alarm")
-
-    #     d.cont()
-    #     d.wait()
-
-    #     # Retrieve binary map
-    #     binary_map = d.maps.filter("binary")[0]
-
-    #     # Invoke the syscall
-    #     ret = d.invoke_syscall("write", 1, binary_map.start, 0x10)
-
-    #     # Check the return value
-    #     self.assertEqual(ret, 0x10)
-
-    #     out = pipe.recv(4)
-
-    #     # Check the output
-    #     self.assertIn(b"\x7fELF", out)
-
-    #     d.terminate()
-
     def test_verify_correct_resume(self):
         d = debugger(RESOLVE_EXE("dummy_binary"))
         d.run()
@@ -425,7 +396,8 @@ class SyscallInvocationTest(TestCase):
         def sys_callback(t, h):
             binary_map = d.maps.filter("binary")[0]
             
-            self.assertRaises(RuntimeError, d.invoke_syscall("write", 1, binary_map.start, 0x10))
+            with self.assertRaises(RuntimeError):
+                d.invoke_syscall("write", 1, binary_map.start, 0x10)
 
         d.breakpoint(BP_ADDRESS, hardware=True, file="binary")
 
@@ -436,5 +408,23 @@ class SyscallInvocationTest(TestCase):
 
         d.cont()
         d.wait()
+
+        d.terminate()
+
+    def test_invocation_in_syscall_enter(self):
+        d = debugger("/bin/ls")
+
+        d.run()
+        d.handle_syscall("getrandom")
+
+        d.cont()
+        d.wait()
+
+        # Now we are stopped at the start of the syscall get_random
+        # Let's see if we are able to invoke a syscall here
+        binary_map = d.maps.filter("binary")[0]
+        
+        with self.assertRaises(RuntimeError):
+            d.invoke_syscall("write", 1, binary_map.start, 0x10)
 
         d.terminate()
