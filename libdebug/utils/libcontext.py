@@ -69,8 +69,6 @@ class LibContext:
 
         self._terminal = []
 
-        self._parse_pprint_constants = True
-
     def _set_debug_level_for_all(self: LibContext) -> None:
         """Set the debug level for all the loggers to DEBUG."""
         for logger in [
@@ -202,23 +200,6 @@ class LibContext:
         for key, value in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, value)
-
-    @property
-    def parse_pprint_constants(self: LibContext) -> bool:
-        """Property getter for parse_pprint_constants.
-
-        Returns:
-            _parse_pprint_constants (bool): the current parse_pprint_constants value.
-        """
-        return self._parse_pprint_constants
-
-    @parse_pprint_constants.setter
-    def parse_pprint_constants(self: LibContext, value: bool) -> None:
-        """Property setter for parse_pprint_constants, ensuring it's a boolean."""
-        if not isinstance(value, bool):
-            raise TypeError("parse_pprint_constants must be a boolean")
-
-        self._parse_pprint_constants = value
 
     @contextmanager
     def tmp(self: LibContext, **kwargs: ...) -> ...:
