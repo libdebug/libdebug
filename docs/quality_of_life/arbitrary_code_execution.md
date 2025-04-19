@@ -25,7 +25,9 @@ All of this is essentially live-patching the running code to perform arbitrary a
     The control flow of a binary is a delicate thing. When executing arbitrary code, **libdebug** cannot guarantee that the process won't crash or behave unexpectedly. Remember, you are changing things under the hood without the program's knowledge.
 
 ## :fontawesome-solid-terminal: Syscall Invocation
-Invoking a syscall is as simple as calling the [`invoke_syscall()`](../../from_pydoc/generated/state/thread_context/#libdebug.state.thread_context.ThreadContext.invoke_syscall) method of the [`ThreadContext`](../../from_pydoc/generated/state/thread_context/) class or the [`Debugger`](../../from_pydoc/generated/debugger/debugger/) object. In the latter case, the syscall will be invoked in the context of the main thread of the process. 
+Invoking a syscall is as simple as calling the [`invoke_syscall()`](../../from_pydoc/generated/state/thread_context/#libdebug.state.thread_context.ThreadContext.invoke_syscall) method of the [`ThreadContext`](../../from_pydoc/generated/state/thread_context/) class or the [`Debugger`](../../from_pydoc/generated/debugger/debugger/) object. In the latter case, the syscall will be invoked in the context of the main thread of the process.
+
+The invoked syscall will be treated just like any other syscall. This means that **libdebug** will show it when [pretty printing](../pretty_printing/#syscall-trace-pretty-printing) the syscall trace and callbacks will be triggered as expected.
 
 What exactly happens when you call this primitive?
 
@@ -69,7 +71,6 @@ invoke
 | Return | Type | Description |
 | --- | --- | --- |
 | `int` | `int` | The return value from the syscall invocation. |
-
 
 !!! QUESTION "Where can I call this?"
     You can invoke syscalls whenever the process is stopped. The invocation can happen both synchronously and asynchronously (in a callback). The only exception to that is when the process is stopped on another syscall's enter or inside a syscall handling callback.
