@@ -29,7 +29,7 @@ Hardware breakpoints are a more reliable way to set breakpoints. They are made p
     Hardware breakpoints have to be aligned to 4 bytes (which is the size of an ARM instruction).
 
 
-## **libdebug** API for Breakpoints
+## :octicons-code-24: API for Breakpoints
 
 The `breakpoint()` function in the [Debugger](../../from_pydoc/generated/debugger/debugger/) object sets a breakpoint at a specific address.
 

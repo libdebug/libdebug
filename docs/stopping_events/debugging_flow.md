@@ -39,7 +39,7 @@ When a **synchronous** event is hit, the process will stop, awaiting further com
 
   Internally, hijacks are considered callbacks, so you cannot have a callback and hijack registered for the same event.
 
-## Common APIs of Stopping Events
+## :octicons-code-24: Common APIs of Stopping Events
 All **libdebug** stopping events share some common attributes that can be employed in debugging scripts.
 
 ### :material-power: Enable/Disable
