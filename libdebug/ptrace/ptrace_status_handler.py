@@ -158,7 +158,9 @@ class PtraceStatusHandler:
 
             if syscall_number_after_callback != syscall_number:
                 if self.executing_arbitrary_syscall:
-                    liblog.warning("Syscall hijacking callback is active, syscall invocation will be changed accordingly")
+                    liblog.warning(
+                        "Syscall hijacking callback is active, syscall invocation will be changed accordingly"
+                    )
                 # The syscall number has changed
                 # Pretty print the syscall number before the callback
                 if handler.on_enter_pprint:
@@ -274,7 +276,7 @@ class PtraceStatusHandler:
 
                 try:
                     handler.on_exit_user(thread, handler)
-                except Exception as e: # noqa: BLE001
+                except Exception as e:  # noqa: BLE001
                     liblog.error("Exception raised in on-exit callback for syscall %d: %s", handler.syscall_number, e)
                     raise RuntimeError("Unhandled exception in syscall callback") from e
 
@@ -545,6 +547,22 @@ class PtraceStatusHandler:
         """
         resume_context = self.internal_debugger.resume_context
 
-        return resume_context.is_in_callback and \
-        resume_context.event_type == EventType.SYSCALL and \
-        resume_context.event_hit_ref[thread.thread_id] is not None
+        return (
+            resume_context.is_in_callback
+            and resume_context.event_type == EventType.SYSCALL
+            and resume_context.event_hit_ref[thread.thread_id] is not None
+        )
+
+    def is_inside_handled_syscall(self: PtraceStatusHandler, thread: ThreadContext) -> bool:
+        """Check if the thread in a handled syscall enter.
+
+        Args:
+            thread (ThreadContext): The thread to check.
+
+        Returns:
+            bool: True if we are in a syscall enter callback, False otherwise.
+        """
+        return any(
+            self.internal_debugger.handled_syscalls[syscall_number].hit_on_enter(thread)
+            for syscall_number in self.internal_debugger.handled_syscalls
+        )
