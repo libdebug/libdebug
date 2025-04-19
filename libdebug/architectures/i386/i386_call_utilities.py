@@ -64,4 +64,4 @@ class I386CallUtilities(CallUtilitiesManager):
 
     def get_syscall_instruction(self: CallUtilitiesManager) -> bytes:
         """Return the bytes of the syscall instruction."""
-        return b"\xCD\x80" # int 0x80
+        return b"\x90\xCD\x80\x90" # int 0x80 + NOPs

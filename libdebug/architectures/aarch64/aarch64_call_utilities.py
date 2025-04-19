@@ -36,4 +36,4 @@ class Aarch64CallUtilities(CallUtilitiesManager):
 
     def get_syscall_instruction(self: CallUtilitiesManager) -> bytes:
         """Return the bytes of the syscall instruction."""
-        return b"\x01\x00\x00\xD4" # SVC #0
+        return b"\x1f\x20\x03\xd5\x01\x00\x00\xD4\x1f\x20\x03\xd5" # SVC #0 + NOPs
