@@ -18,5 +18,8 @@ Visualizing the state of the process you are debugging can be a daunting task. *
 ### [:octicons-stack-24: Stack Frame Utils](../stack_frame_utils/)
 **libdebug** offers utilities to resolve the return addresses of a process.
 
+### [:fontawesome-solid-wand-magic-sparkles: Arbitrary Code Execution](../arbitrary_code_execution/)
+**libdebug** offers a few functions that will help you execute arbitrary code in the context of the process you are debugging. Beware though, this features can significantly change the intended behavior of the process and may cause unexpected behaviors.
+
 ### [:material-run-fast: Evasion of Anti-Debugging](../anti_debugging/)
 **libdebug** offers a few functions that will help you evade simple anti-debugging techniques. These functions can be used to bypass checks for the presence of a debugger.
