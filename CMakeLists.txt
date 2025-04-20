@@ -131,6 +131,7 @@ find_package(nanobind CONFIG REQUIRED)
 # Define the sources for the libdebug_ptrace_binding module
 set(LIBDEBUG_PTRACE_BINDING_SOURCES
   libdebug/ptrace/native/libdebug_ptrace_binding.cpp
+  libdebug/ptrace/native/utils.cpp
 )
 
 # Print the architecture
