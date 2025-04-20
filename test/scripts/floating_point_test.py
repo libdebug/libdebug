@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024-2025 Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2024 Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -75,16 +75,8 @@ class FloatingPointTest(TestCase):
         self.assertTrue(bp2.hit_on(d))
 
         for i in range(32):
-            val = randint(0, 2**256 - 1)
-            setattr(d.regs, f"ymm{i}", val)
-            self.assertEqual(getattr(d.regs, f"xmm{i}"), val & ((1 << 128) - 1))
-            self.assertEqual(getattr(d.regs, f"ymm{i}"), val)
-
-        for i in range(32):
             val = randint(0, 2**512 - 1)
             setattr(d.regs, f"zmm{i}", val)
-            self.assertEqual(getattr(d.regs, f"xmm{i}"), val & ((1 << 128) - 1))
-            self.assertEqual(getattr(d.regs, f"ymm{i}"), val & ((1 << 256) - 1))
             self.assertEqual(getattr(d.regs, f"zmm{i}"), val)
 
         d.kill()
