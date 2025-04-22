@@ -20,19 +20,19 @@ match PLATFORM:
         READ_PATCH_CODE = b"\x48\xC7\xC0\x3C\x00\x00\x00\x48\xC7\xC7\x7B\x00\x00\x00\x0F\x05"
         MAP_BASE_1 = 0xdead0000
         MAP_BASE_2 = 0x13370000
-        SYSCALL_HANDLE = "getrandom"
+        MMAP_SYSCALL_NAME = "mmap"
     case "aarch64":
         BP_ADDRESS = 0x714
         READ_PATCH_CODE = b"\xa8\x0b\x80\x52\x60\x0f\x80\xd2\x01\x00\x00\xd4"
         MAP_BASE_1 = 0xdead0000
         MAP_BASE_2 = 0x13370000
-        SYSCALL_HANDLE = "getrandom"
+        MMAP_SYSCALL_NAME = "mmap"
     case "i386":
         BP_ADDRESS = 0x117d
         READ_PATCH_CODE = b"\xB8\x01\x00\x00\x00\xBB\x7B\x00\x00\x00\xCD\x80"
         MAP_BASE_1 = 0x70000000
         MAP_BASE_2 = 0x13370000
-        SYSCALL_HANDLE = "fstat"
+        MMAP_SYSCALL_NAME = "mmap2"
     case _:
         raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
 
@@ -208,7 +208,7 @@ class SyscallInvocationTest(TestCase):
 
         patch_code = READ_PATCH_CODE
 
-        # First instruction of main
+        # First instruction of main on AMD64
         # <main>:	push   rbp
         # <main+1>:	mov    rbp,rsp
         # The syscall invocation will patch 2 bytes (0f 05) and restore them at the end
@@ -293,7 +293,7 @@ class SyscallInvocationTest(TestCase):
 
         # Invoke the syscall
         # unsigned long addr, unsigned long len, unsigned long prot, unsigned long flags, unsigned long fd, unsigned long off
-        ret = d.invoke_syscall("mmap", MAP_BASE_1, 0x1000, prot, flags, -1, 0)
+        ret = d.invoke_syscall(MMAP_SYSCALL_NAME, MAP_BASE_1, 0x1000, prot, flags, -1, 0)
 
         # Page aligned address should be returned
         self.assertEqual(ret, MAP_BASE_1)
@@ -350,8 +350,8 @@ class SyscallInvocationTest(TestCase):
         PROT_READ = 0x1
         PROT_WRITE = 0x2
 
-        new_stack = d.invoke_syscall("mmap", MAP_BASE_1, 0x20000, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, 0, 0)
-        new_tls = d.invoke_syscall("mmap",MAP_BASE_2, 0x1000, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, 0, 0)
+        new_stack = d.invoke_syscall(MMAP_SYSCALL_NAME, MAP_BASE_1, 0x20000, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, 0, 0)
+        new_tls = d.invoke_syscall(MMAP_SYSCALL_NAME,MAP_BASE_2, 0x1000, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, 0, 0)
 
         self.assertEqual(new_stack, MAP_BASE_1)
         self.assertEqual(new_tls, MAP_BASE_2)
@@ -424,10 +424,10 @@ class SyscallInvocationTest(TestCase):
         d.terminate()
 
     def test_invocation_in_syscall_enter(self):
-        d = debugger("/bin/ls")
+        d = debugger(RESOLVE_EXE("dummy_binary"), continue_to_binary_entrypoint=False)
 
         d.run()
-        d.handle_syscall(SYSCALL_HANDLE)
+        d.handle_syscall("access")
 
         d.cont()
         d.wait()
