@@ -17,10 +17,22 @@ from libdebug import debugger
 match PLATFORM:
     case "amd64":
         BP_ADDRESS = 0x1119
+        READ_PATCH_CODE = b"\x48\xC7\xC0\x3C\x00\x00\x00\x48\xC7\xC7\x7B\x00\x00\x00\x0F\x05"
+        MAP_BASE_1 = 0xdead0000
+        MAP_BASE_2 = 0x13370000
+        SYSCALL_HANDLE = "getrandom"
     case "aarch64":
         BP_ADDRESS = 0x714
+        READ_PATCH_CODE = b"\xa8\x0b\x80\x52\x60\x0f\x80\xd2\x01\x00\x00\xd4"
+        MAP_BASE_1 = 0xdead0000
+        MAP_BASE_2 = 0x13370000
+        SYSCALL_HANDLE = "getrandom"
     case "i386":
         BP_ADDRESS = 0x117d
+        READ_PATCH_CODE = b"\xB8\x01\x00\x00\x00\xBB\x7B\x00\x00\x00\xCD\x80"
+        MAP_BASE_1 = 0xdead0000
+        MAP_BASE_2 = 0x13370000
+        SYSCALL_HANDLE = "fstat"
     case _:
         raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
 
@@ -189,9 +201,9 @@ class SyscallInvocationTest(TestCase):
         # unsigned long start, size_t len, unsigned long prot
         d.invoke_syscall("mprotect", code_map.start, code_map.size, PROT_READ | PROT_WRITE | PROT_EXEC)
 
-        # Runtime patch
-        # 0:  48 c7 c0 3c 00 00 00    mov    rax, 0x3c
-        # 7:  48 c7 c7 7b 00 00 00    mov    rdi, 123
+        # Runtime patch (e.g. in AMD64...)
+        # 0:  48 c7 c0 3c 00 00 00    mov    rax, 0x3c; exit syscall
+        # 7:  48 c7 c7 7b 00 00 00    mov    rdi, 123 ; exit code
         # e:  0f 05                   syscall
 
         patch_code = b"\x48\xC7\xC0\x3C\x00\x00\x00\x48\xC7\xC7\x7B\x00\x00\x00\x0F\x05"
@@ -281,10 +293,10 @@ class SyscallInvocationTest(TestCase):
 
         # Invoke the syscall
         # unsigned long addr, unsigned long len, unsigned long prot, unsigned long flags, unsigned long fd, unsigned long off
-        ret = d.invoke_syscall("mmap", 0xdeadc0de, 0x1000, prot, flags, -1, 0)
+        ret = d.invoke_syscall("mmap", MAP_BASE_1, 0x1000, prot, flags, -1, 0)
 
         # Page aligned address should be returned
-        self.assertEqual(ret, 0xdeadc000)
+        self.assertEqual(ret, MAP_BASE_1)
 
         post_num_maps = len(d.maps)
         self.assertGreater(post_num_maps, prev_num_maps)
@@ -310,7 +322,7 @@ class SyscallInvocationTest(TestCase):
         # Invoke the syscall
         ret = d.invoke_syscall("fork")
 
-        self.assertEqual(d.regs.rip, ip)
+        self.assertEqual(d.instruction_pointer, ip)
 
         # Check the return value
         self.assertGreater(ret, 0)
@@ -338,11 +350,11 @@ class SyscallInvocationTest(TestCase):
         PROT_READ = 0x1
         PROT_WRITE = 0x2
 
-        new_stack = d.invoke_syscall("mmap", 0x13377000, 0x20000, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, 0, 0)
-        new_tls = d.invoke_syscall("mmap",0xc0de0000, 0x1000, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, 0, 0)
+        new_stack = d.invoke_syscall("mmap", MAP_BASE_1, 0x20000, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, 0, 0)
+        new_tls = d.invoke_syscall("mmap",MAP_BASE_2, 0x1000, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, 0, 0)
 
-        self.assertEqual(new_stack, 0x13377000)
-        self.assertEqual(new_tls, 0xc0de0000)
+        self.assertEqual(new_stack, MAP_BASE_1)
+        self.assertEqual(new_tls, MAP_BASE_2)
 
         CLONE_VM = 0x00000100
         CLONE_THREAD = 0x00010000
