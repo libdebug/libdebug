@@ -21,18 +21,21 @@ match PLATFORM:
         MAP_BASE_1 = 0xdead0000
         MAP_BASE_2 = 0x13370000
         MMAP_SYSCALL_NAME = "mmap"
+        PROLOGUE_SIZE = 4
     case "aarch64":
         BP_ADDRESS = 0x714
         READ_PATCH_CODE = b"\xa8\x0b\x80\x52\x60\x0f\x80\xd2\x01\x00\x00\xd4"
         MAP_BASE_1 = 0xdead0000
         MAP_BASE_2 = 0x13370000
         MMAP_SYSCALL_NAME = "mmap"
+        PROLOGUE_SIZE = 4
     case "i386":
         BP_ADDRESS = 0x117d
         READ_PATCH_CODE = b"\xB8\x01\x00\x00\x00\xBB\x7B\x00\x00\x00\xCD\x80"
         MAP_BASE_1 = 0x70000000
         MAP_BASE_2 = 0x13370000
-        MMAP_SYSCALL_NAME = "mmap2"
+        MMAP_SYSCALL_NAME = "mmap"
+        PROLOGUE_SIZE = 3
     case _:
         raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
 
