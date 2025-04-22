@@ -206,7 +206,7 @@ class SyscallInvocationTest(TestCase):
         # 7:  48 c7 c7 7b 00 00 00    mov    rdi, 123 ; exit code
         # e:  0f 05                   syscall
 
-        patch_code = b"\x48\xC7\xC0\x3C\x00\x00\x00\x48\xC7\xC7\x7B\x00\x00\x00\x0F\x05"
+        patch_code = READ_PATCH_CODE
 
         # First instruction of main
         # <main>:	push   rbp
