@@ -30,7 +30,7 @@ match PLATFORM:
     case "i386":
         BP_ADDRESS = 0x117d
         READ_PATCH_CODE = b"\xB8\x01\x00\x00\x00\xBB\x7B\x00\x00\x00\xCD\x80"
-        MAP_BASE_1 = 0xdead0000
+        MAP_BASE_1 = 0x70000000
         MAP_BASE_2 = 0x13370000
         SYSCALL_HANDLE = "fstat"
     case _:
@@ -427,7 +427,7 @@ class SyscallInvocationTest(TestCase):
         d = debugger("/bin/ls")
 
         d.run()
-        d.handle_syscall("getrandom")
+        d.handle_syscall(SYSCALL_HANDLE)
 
         d.cont()
         d.wait()
