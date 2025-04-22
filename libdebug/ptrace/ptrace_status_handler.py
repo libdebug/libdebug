@@ -284,14 +284,13 @@ class PtraceStatusHandler:
                     return_value_after_callback = thread.syscall_return
                     if return_value_after_callback != return_value_before_callback:
                         handler.on_exit_pprint(
-                            thread,
                             (return_value_before_callback, return_value_after_callback),
                         )
                     else:
-                        handler.on_exit_pprint(thread, return_value_after_callback)
+                        handler.on_exit_pprint(return_value_after_callback)
             elif handler.on_exit_pprint:
                 # Pretty print the return value
-                handler.on_exit_pprint(thread, thread.syscall_return)
+                handler.on_exit_pprint(thread.syscall_return)
 
             handler._has_entered = False
             handler._skip_exit = False
