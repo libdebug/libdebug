@@ -1994,6 +1994,8 @@ class InternalDebugger:
         max_reg_t = 2 ** (max_arg_t_size * 8) - 1
         min_signed_reg_t = -(2 ** (max_arg_t_size * 8 - 1))
 
+        effective_invocation_args = []
+
         # Set the syscall arguments according to the argument count.
         for i, arg in enumerate(args):
             if arg < min_signed_reg_t:
@@ -2011,6 +2013,7 @@ class InternalDebugger:
                 normalized_arg = arg
 
             setattr(thread, f"syscall_arg{i}", normalized_arg)
+            effective_invocation_args.append(normalized_arg)
 
         call_utils = call_utilities_provider(self.arch)
 
@@ -2102,7 +2105,7 @@ class InternalDebugger:
             CLONE_VM = 0x00000100
             CLONE_THREAD = 0x00010000
 
-            thread_flags = thread.syscall_arg2
+            thread_flags = effective_invocation_args[0] if len(effective_invocation_args) > 0 else 0
 
             compatible_thread_flags = (
                 thread_flags & CLONE_VM == CLONE_VM
