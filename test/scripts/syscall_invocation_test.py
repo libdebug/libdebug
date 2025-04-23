@@ -8,7 +8,7 @@ import io
 import sys
 import uuid
 import os
-from unittest import TestCase
+from unittest import TestCase, skipIf
 from utils.binary_utils import PLATFORM, RESOLVE_EXE
 
 from libdebug import debugger
@@ -217,7 +217,7 @@ class SyscallInvocationTest(TestCase):
         # The syscall invocation will patch 2 bytes (0f 05) and restore them at the end
         # so we need to patch after the first instructions
 
-        patch_offset = 4
+        patch_offset = PROLOGUE_SIZE
 
         pipe.send(patch_code)
 
@@ -309,7 +309,8 @@ class SyscallInvocationTest(TestCase):
         self.assertEqual(mmap_map.permissions, "rwxp")
 
         d.terminate()
-
+    
+    @skipIf(PLATFORM == "aarch64", "Fork not supported on aarch64")
     def test_fork(self):
         d = debugger(RESOLVE_EXE("dummy_binary"), aslr=False)
         d.run()
@@ -324,6 +325,45 @@ class SyscallInvocationTest(TestCase):
 
         # Invoke the syscall
         ret = d.invoke_syscall("fork")
+
+        self.assertEqual(d.instruction_pointer, ip)
+
+        # Check the return value
+        self.assertGreater(ret, 0)
+
+        # Check that the child process is registered
+        self.assertIsNotNone(d.children)
+
+        d.children[0].terminate()
+        d.terminate()
+
+    def test_clone_process(self):
+        d = debugger(RESOLVE_EXE("dummy_binary"), aslr=False)
+        d.run()
+        
+        # Set a breakpoint to <main>
+        d.breakpoint(BP_ADDRESS, hardware=True, file="binary")
+
+        d.cont()
+        d.wait()
+
+        ip = d.instruction_pointer
+
+        # Invoke the syscall
+        SIGCHLD = 17
+
+        # unsigned long clone_flags, unsigned long newsp, int *parent_tidptr, unsigned long tls, int *child_tidptr
+        clone_flags = SIGCHLD
+        stack_base = d.maps.filter("stack")[0].start
+
+        if PLATFORM == "amd64":
+            ret = d.invoke_syscall("clone", clone_flags, stack_base, stack_base + 0x08, stack_base + 0x10, d.regs.fs_base)
+        # For some obscure reason, the last two arguments are swapped in many architectures
+        elif PLATFORM == "i386":
+            ret = d.invoke_syscall("clone", clone_flags, stack_base, stack_base + 0x04, d.regs.gs_base, stack_base + 0x08)
+        elif PLATFORM == "aarch64":
+            ret = d.invoke_syscall("clone", clone_flags, stack_base, stack_base + 0x08, d.regs.tpidr_el0, stack_base + 0x10)
+        
 
         self.assertEqual(d.instruction_pointer, ip)
 
@@ -367,8 +407,15 @@ class SyscallInvocationTest(TestCase):
 
         flags = CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_THREAD
 
+        if PLATFORM == "amd64":
+            stack_pointer = d.regs.rsp
+        elif PLATFORM == "i386":
+            stack_pointer = d.regs.esp
+        elif PLATFORM == "aarch64":
+            stack_pointer = d.regs.sp
+
         # Invoke the syscall
-        ret = d.invoke_syscall("clone", flags, new_stack, d.regs.rsp + 0x100, d.regs.rsp + 0x108, new_tls)
+        ret = d.invoke_syscall("clone", flags, new_stack, stack_pointer + 0x100, stack_pointer + 0x108, new_tls)
 
         # Check the return value
         self.assertGreater(ret, 0)
