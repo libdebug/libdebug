@@ -20,21 +20,18 @@ match PLATFORM:
         READ_PATCH_CODE = b"\x48\xC7\xC0\x3C\x00\x00\x00\x48\xC7\xC7\x7B\x00\x00\x00\x0F\x05"
         MAP_BASE_1 = 0xdead0000
         MAP_BASE_2 = 0x13370000
-        MMAP_SYSCALL_NAME = "mmap"
         PROLOGUE_SIZE = 4
     case "aarch64":
         BP_ADDRESS = 0x714
         READ_PATCH_CODE = b"\xa8\x0b\x80\x52\x60\x0f\x80\xd2\x01\x00\x00\xd4"
         MAP_BASE_1 = 0xdead0000
         MAP_BASE_2 = 0x13370000
-        MMAP_SYSCALL_NAME = "mmap"
         PROLOGUE_SIZE = 4
     case "i386":
         BP_ADDRESS = 0x117d
         READ_PATCH_CODE = b"\xB8\x01\x00\x00\x00\xBB\x7B\x00\x00\x00\xCD\x80"
-        MAP_BASE_1 = 0x70000000
+        MAP_BASE_1 = 0xb00000
         MAP_BASE_2 = 0x13370000
-        MMAP_SYSCALL_NAME = "mmap"
         PROLOGUE_SIZE = 3
     case _:
         raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
@@ -295,8 +292,35 @@ class SyscallInvocationTest(TestCase):
         prev_num_maps = len(d.maps)
 
         # Invoke the syscall
-        # unsigned long addr, unsigned long len, unsigned long prot, unsigned long flags, unsigned long fd, unsigned long off
-        ret = d.invoke_syscall(MMAP_SYSCALL_NAME, MAP_BASE_1, 0x1000, prot, flags, -1, 0)
+        if PLATFORM == "i386":
+            # On i386, the mmap syscall has a different signature: it takes a struct instead of the arguments directly
+            # struct mmap_arg_struct {
+            #     unsigned long addr;
+            #     unsigned long len;
+            #     unsigned long prot;
+            #     unsigned long flags;
+            #     unsigned long fd;
+            #     unsigned long off;
+            # };
+            p32 = lambda x: int.to_bytes(x, 4, "little")
+    
+            struct_bytes = \
+                p32(MAP_BASE_1) + \
+                p32(0x1000) + \
+                p32(prot) + \
+                p32(flags) + \
+                p32(0xffffffff) + \
+                p32(0)
+            
+            # We are goint to write the struct to a stack address
+            stack = d.maps.filter("stack")[0]
+            d.memory[stack.start, len(struct_bytes), "absolute"] = struct_bytes
+
+            # Invoke the syscall
+            ret = d.invoke_syscall("mmap", stack.start)
+        else:
+            # unsigned long addr, unsigned long len, unsigned long prot, unsigned long flags, unsigned long fd, unsigned long off
+            ret = d.invoke_syscall("mmap", MAP_BASE_1, 0x1000, prot, flags, -1, 0)
 
         # Page aligned address should be returned
         self.assertEqual(ret, MAP_BASE_1)
@@ -360,10 +384,26 @@ class SyscallInvocationTest(TestCase):
             ret = d.invoke_syscall("clone", clone_flags, stack_base, stack_base + 0x08, stack_base + 0x10, d.regs.fs_base)
         # For some obscure reason, the last two arguments are swapped in many architectures
         elif PLATFORM == "i386":
-            ret = d.invoke_syscall("clone", clone_flags, stack_base, stack_base + 0x04, d.regs.gs_base, stack_base + 0x08)
+            ret = d.invoke_syscall("clone", clone_flags, stack_base, stack_base + 0x04, d.regs.gs, stack_base + 0x08)
         elif PLATFORM == "aarch64":
-            ret = d.invoke_syscall("clone", clone_flags, stack_base, stack_base + 0x08, d.regs.tpidr_el0, stack_base + 0x10)
-        
+            # To retrieve the TLS base, we need to use the TPIDR_EL0 register
+            # mrs x0, TPIDR_EL0
+            code_patch = b"\x40\xd0\x3b\xd5"
+            original_code = d.memory[d.instruction_pointer:d.instruction_pointer + len(code_patch), "absolute"]
+
+            old_x0 = d.regs.x0
+
+            d.instruction_pointer -= 4
+            d.memory[d.instruction_pointer:d.instruction_pointer + len(code_patch), "absolute"] = code_patch
+            # Execute the instruction
+            d.step()
+            tls = d.regs.x0
+
+            # Restore the original code and register
+            d.memory[d.instruction_pointer-4:d.instruction_pointer, "absolute"] = original_code
+            d.regs.x0 = old_x0
+
+            ret = d.invoke_syscall("clone", clone_flags, stack_base, stack_base + 0x08, tls, stack_base + 0x10)        
 
         self.assertEqual(d.instruction_pointer, ip)
 
@@ -393,8 +433,46 @@ class SyscallInvocationTest(TestCase):
         PROT_READ = 0x1
         PROT_WRITE = 0x2
 
-        new_stack = d.invoke_syscall(MMAP_SYSCALL_NAME, MAP_BASE_1, 0x20000, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, 0, 0)
-        new_tls = d.invoke_syscall(MMAP_SYSCALL_NAME,MAP_BASE_2, 0x1000, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, 0, 0)
+        prot = PROT_READ | PROT_WRITE
+        flags = MAP_PRIVATE | MAP_ANON
+
+        if PLATFORM == "i386":
+            p32 = lambda x: int.to_bytes(x, 4, "little")
+
+            # First page to mmap, new stack
+            struct_bytes = \
+                p32(MAP_BASE_1) + \
+                p32(0x20000) + \
+                p32(prot) + \
+                p32(flags) + \
+                p32(0xffffffff) + \
+                p32(0)
+            
+            # We are goint to write the struct to a stack address
+            stack = d.maps.filter("stack")[0]
+            d.memory[stack.start, len(struct_bytes), "absolute"] = struct_bytes
+
+            # Invoke the syscall
+            new_stack = d.invoke_syscall("mmap", stack.start)
+
+            # Second page to mmap, new TLS
+            struct_bytes = \
+                p32(MAP_BASE_2) + \
+                p32(0x1000) + \
+                p32(prot) + \
+                p32(flags) + \
+                p32(0xffffffff) + \
+                p32(0)
+            
+            # We are goint to write the struct to a stack address
+            stack = d.maps.filter("stack")[0]
+            d.memory[stack.start, len(struct_bytes), "absolute"] = struct_bytes
+
+            # Invoke the syscall
+            new_tls = d.invoke_syscall("mmap", stack.start)
+        else:
+            new_stack = d.invoke_syscall("mmap", MAP_BASE_1, 0x20000, prot, flags, -1, 0)
+            new_tls = d.invoke_syscall("mmap",MAP_BASE_2, 0x1000, prot, flags, -1, 0)
 
         self.assertEqual(new_stack, MAP_BASE_1)
         self.assertEqual(new_tls, MAP_BASE_2)
@@ -415,7 +493,11 @@ class SyscallInvocationTest(TestCase):
             stack_pointer = d.regs.sp
 
         # Invoke the syscall
-        ret = d.invoke_syscall("clone", flags, new_stack, stack_pointer + 0x100, stack_pointer + 0x108, new_tls)
+        if PLATFORM == "amd64":
+            ret = d.invoke_syscall("clone", flags, new_stack, stack_pointer + 0x100, stack_pointer + 0x108, new_tls)
+        # For some obscure reason, the last two arguments are swapped in many architectures
+        elif PLATFORM == "i386" or PLATFORM == "aarch64":
+            ret = d.invoke_syscall("clone", flags, new_stack, stack_pointer + 0x100, new_tls, stack_pointer + 0x108)  
 
         # Check the return value
         self.assertGreater(ret, 0)
