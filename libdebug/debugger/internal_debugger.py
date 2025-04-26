@@ -2015,6 +2015,12 @@ class InternalDebugger:
             setattr(thread, f"syscall_arg{i}", normalized_arg)
             effective_invocation_args.append(normalized_arg)
 
+        # Unset all breakpoints
+        for bp in list(self.breakpoints.values()):
+            if bp.enabled:
+                self.debugging_interface.unset_breakpoint(bp)
+
+        # Get syscall instruction patch.
         call_utils = call_utilities_provider(self.arch)
 
         syscall_instruction = call_utils.get_syscall_instruction()
@@ -2183,6 +2189,12 @@ class InternalDebugger:
                 for reg_name in dir(thread.regs):
                     if isinstance(getattr(thread.regs, reg_name), int | float) and reg_name != "_thread_id":
                         setattr(child.regs, reg_name, getattr(thread.regs, reg_name))
+
+        # Restore breakpoints
+        for bp in list(self.breakpoints.values()):
+            if bp.enabled:
+                self.debugging_interface.set_breakpoint(bp)
+
         return retval
 
     @change_state_function_process

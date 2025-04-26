@@ -21,18 +21,21 @@ match PLATFORM:
         MAP_BASE_1 = 0xdead0000
         MAP_BASE_2 = 0x13370000
         PROLOGUE_SIZE = 4
+        SYSCALL_TO_HANDLE = "access"
     case "aarch64":
         BP_ADDRESS = 0x714
-        READ_PATCH_CODE = b"\xa8\x0b\x80\x52\x60\x0f\x80\xd2\x01\x00\x00\xd4"
+        READ_PATCH_CODE = b"\xa8\x0b\x80\xd2\x60\x0f\x80\xd2\x01\x00\x00\xd4"
         MAP_BASE_1 = 0xdead0000
         MAP_BASE_2 = 0x13370000
         PROLOGUE_SIZE = 4
+        SYSCALL_TO_HANDLE = "faccessat"
     case "i386":
         BP_ADDRESS = 0x117d
         READ_PATCH_CODE = b"\xB8\x01\x00\x00\x00\xBB\x7B\x00\x00\x00\xCD\x80"
         MAP_BASE_1 = 0xb00000
         MAP_BASE_2 = 0x13370000
         PROLOGUE_SIZE = 3
+        SYSCALL_TO_HANDLE = "access"
     case _:
         raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
 
@@ -199,8 +202,11 @@ class SyscallInvocationTest(TestCase):
         PROT_EXEC = 0x4
 
         # unsigned long start, size_t len, unsigned long prot
-        d.invoke_syscall("mprotect", code_map.start, code_map.size, PROT_READ | PROT_WRITE | PROT_EXEC)
+        errno = d.invoke_syscall("mprotect", code_map.start, code_map.size, PROT_READ | PROT_WRITE | PROT_EXEC)
 
+        self.assertFalse(d.running)
+        self.assertEqual(errno, 0)
+        
         # Runtime patch (e.g. in AMD64...)
         # 0:  48 c7 c0 3c 00 00 00    mov    rax, 0x3c; exit syscall
         # 7:  48 c7 c7 7b 00 00 00    mov    rdi, 123 ; exit code
@@ -252,7 +258,10 @@ class SyscallInvocationTest(TestCase):
         O_RDWR = 0o0000002
         O_CREAT = 0o0000100
 
-        fd = d.invoke_syscall("open", stack.start, O_RDWR | O_CREAT, 0o666)
+        if PLATFORM == "aarch64":
+            fd = d.invoke_syscall("openat", 0, stack.start, O_RDWR | O_CREAT, 0o666)
+        elif PLATFORM == "i386" or PLATFORM == "amd64":
+            fd = d.invoke_syscall("open", stack.start, O_RDWR | O_CREAT, 0o666)
 
         self.assertEqual(fd, 3)
 
@@ -559,7 +568,8 @@ class SyscallInvocationTest(TestCase):
         d = debugger(RESOLVE_EXE("dummy_binary"), continue_to_binary_entrypoint=False)
 
         d.run()
-        d.handle_syscall("access")
+
+        d.handle_syscall(SYSCALL_TO_HANDLE)
 
         d.cont()
         d.wait()
