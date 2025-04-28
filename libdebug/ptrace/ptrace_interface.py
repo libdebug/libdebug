@@ -277,7 +277,7 @@ class PtraceInterface(DebuggingInterface):
                 self.unset_breakpoint(bp, delete=False)
 
         handle_syscalls = any(
-            handler.enabled or handler.on_enter_pprint or handler.on_exit_pprint
+            handler.enabled or handler.on_enter_pprint or handler.on_exit_pprint or handler.on_enter_invoked
             for handler in self._internal_debugger.handled_syscalls.values()
         )
 
@@ -833,3 +833,11 @@ class PtraceInterface(DebuggingInterface):
         self._internal_debugger.resume_context.event_hit_ref.clear()
 
         self.lib_trace.cont_to_syscall(thread.thread_id)
+
+    def wake_newborn(self: PtraceInterface, thread: ThreadContext) -> None:
+        """Wakes up a newborn thread.
+
+        Args:
+            thread (ThreadContext): The thread to wake up.
+        """
+        self.lib_trace.wake_newborn(thread.thread_id)

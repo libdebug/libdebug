@@ -25,8 +25,3 @@ class I386ThreadContext(ThreadContext):
 
         # Register the thread properties
         self._register_holder.apply_on_thread(self, I386ThreadContext)
-
-    @property
-    def num_syscall_args(self: I386ThreadContext) -> int:
-        """Returns the number of syscall arguments."""
-        return 6

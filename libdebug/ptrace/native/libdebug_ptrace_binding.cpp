@@ -123,10 +123,6 @@ Thread& LibdebugPtraceInterface::try_get_thread(const pid_t tid)
     auto it = threads.find(tid);
 
     if (it == threads.end()) {
-        for (auto &t : threads) {
-            printf("Thread %d is not registered\n", t.first);
-            printf("SEarch for %d\n", tid);
-        }
         throw std::runtime_error("Thread not found");
     }
 
@@ -796,9 +792,7 @@ void LibdebugPtraceInterface::poke_data(unsigned long addr, unsigned long data)
 void LibdebugPtraceInterface::make_fast_regs_backup(pid_t tid)
 {
     Thread &t = try_get_thread(tid);
-
-    int ret = getregs(t);
-    if (ret == -1) {
+    if (getregs(t)) {
         throw std::runtime_error("getregs failed");
     }
 

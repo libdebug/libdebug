@@ -985,7 +985,7 @@ class Debugger:
         return self._internal_debugger.load_snapshot(file_path)
 
     def invoke_syscall(self: Debugger, syscall_identifier: str | int, *args: int) -> int:
-        """Invokes a syscall with the specified arguments on this thread.
+        """Invokes a syscall with the specified arguments on the main thread.
 
         Args:
             syscall_identifier (str | int): The syscall identifier.

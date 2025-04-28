@@ -39,7 +39,7 @@ class PtraceStatusHandler:
         self._assume_race_sigstop: bool = (
             True  # Assume the stop is due to a race condition with SIGSTOP sent by the debugger
         )
-        self.executing_arbitrary_syscall: bool = False
+        self._thread_in_arbitrary_syscall: int | None = None
 
     def _handle_clone(self: PtraceStatusHandler, thread_id: int, results: list) -> None:
         # https://go.googlesource.com/debug/+/a09ead70f05c87ad67bd9a131ff8352cf39a6082/doc/ptrace-nptl.txt
@@ -132,6 +132,19 @@ class PtraceStatusHandler:
         hijacked_set: set[int],
     ) -> None:
         """Manage the on_enter callback of a syscall."""
+        if handler.on_enter_invoked:
+            # The syscall has been invoked
+            liblog.debugger(
+                "Syscall %d entering on thread %d (invocation)",
+                syscall_number,
+                thread.thread_id,
+            )
+            handler.on_enter_invoked(thread, handler)
+            self.internal_debugger.resume_context.event_type[thread.thread_id] = EventType.SYSCALL
+            self.internal_debugger.resume_context.event_hit_ref[thread.thread_id] = handler
+            handler._has_entered = True
+            self.internal_debugger.resume_context.resume = True
+
         # Call the user-defined callback if it exists
         if handler.on_enter_user and handler._enabled:
             old_args = [
@@ -156,11 +169,12 @@ class PtraceStatusHandler:
             # Check if the syscall number has changed
             syscall_number_after_callback = thread.syscall_number
 
-            if syscall_number_after_callback != syscall_number:
-                if self.executing_arbitrary_syscall:
+            if syscall_number_after_callback != syscall_number and thread._invoked_syscall == syscall_number:
                     liblog.warning(
-                        "Syscall hijacking callback is active, syscall invocation will be changed accordingly"
+                        "Syscall hijacking callback is active, syscall invocation will be changed accordingly",
                     )
+
+            if syscall_number_after_callback != syscall_number:
                 # The syscall number has changed
                 # Pretty print the syscall number before the callback
                 if handler.on_enter_pprint:
@@ -226,18 +240,13 @@ class PtraceStatusHandler:
             # This is another spurious trap, we don't know what to do with it
             return
 
-        syscall_number = thread.syscall_number
-
+        syscall_number = thread._invoked_syscall if thread._invoked_syscall is not None else thread.syscall_number
         if syscall_number in self.internal_debugger.handled_syscalls:
+            print("This should be before")
             handler = self.internal_debugger.handled_syscalls[syscall_number]
         elif -1 in self.internal_debugger.handled_syscalls:
             # Handle all syscalls is enabled
             handler = self.internal_debugger.handled_syscalls[-1]
-        elif self.executing_arbitrary_syscall:
-            self.internal_debugger.resume_context.event_type[thread_id] = EventType.SYSCALL
-            self.internal_debugger.resume_context.event_hit_ref[thread_id] = None
-            self.internal_debugger.resume_context.resume = False
-            return
         else:
             # This is a syscall we don't care about
             # Resume the execution
@@ -296,8 +305,8 @@ class PtraceStatusHandler:
             handler._skip_exit = False
             if (
                 not handler.on_enter_user and not handler.on_exit_user and handler.enabled
-            ) or self.executing_arbitrary_syscall:
-                # If the syscall has no callback, we need to stop the process despite the other signals
+            ) or handler.on_enter_invoked:
+                # If the syscall has no callback or is arbitrary, we need to stop the process despite the other signals
                 self.internal_debugger.resume_context.event_type[thread_id] = EventType.SYSCALL
                 self.internal_debugger.resume_context.resume = False
 
@@ -534,6 +543,9 @@ class PtraceStatusHandler:
             if not thread.dead and thread.thread_id not in tids:
                 self.ptrace_interface.unregister_thread(thread.thread_id, None, None)
                 liblog.debugger("Manually unregistered thread %d" % thread.thread_id)
+
+    def check_is_executing_arbitrary_syscall(self: PtraceStatusHandler, tid: int) -> bool:
+        return self._thread_in_arbitrary_syscall == tid
 
     def is_in_syscall_callback(self: PtraceStatusHandler, thread: ThreadContext) -> bool:
         """Check if we are in a syscall callback.

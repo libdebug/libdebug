@@ -164,7 +164,6 @@ class I386PtraceRegisterHolder(PtraceRegisterHolder):
 
         # setup generic syscall properties
         target_class.syscall_number = _get_property_32("orig_eax")
-        target_class.syscall_num_register = _get_property_32("eax")
         target_class.syscall_return = _get_property_32("eax")
         target_class.syscall_arg0 = _get_property_32("ebx")
         target_class.syscall_arg1 = _get_property_32("ecx")

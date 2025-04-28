@@ -48,7 +48,7 @@ graph TD
 </div>
 Additionally, when the syscall is a [`fork`](https://man7.org/linux/man-pages/man2/fork.2.html), [`vfork`](https://man7.org/linux/man-pages/man2/vfork.2.html) or [`clone`](https://man7.org/linux/man-pages/man2/clone.2.html), the function will also restore the state in the child process / thread. This is done by copying the registers from the parent process / thread to the child process / thread.
 
-As you can see, registers values are restored after the syscall is executed to reduce the chances of the process crashing. However, be mindful that the syscall is indeed executed. Thus, the state of the process will have changed.
+As you can see, registers values are restored after the syscall is executed to reduce the chances of the process crashing. However, be mindful that the syscall is indeed executed. Thus, the state of the process will have changed. Specifically, changes in the memory contents as a result of the syscall execution will not be reverted.
 
 ### :octicons-code-24: Syscall Invocation API
 

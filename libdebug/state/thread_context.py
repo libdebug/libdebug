@@ -52,10 +52,7 @@ class ThreadContext(ABC):
     """The thread's syscall argument 5."""
 
     syscall_number: int
-    """The thread's syscall number when the kernel has entered a syscall."""
-
-    syscall_num_register: int
-    """The thread's syscall number from the architectural register dedicated to syscalls."""
+    """The thread's syscall number when the kernel has entered a syscall. Valid only when the thread is stopped inside a syscall."""
 
     syscall_return: int
     """The thread's syscall return value."""
@@ -89,6 +86,9 @@ class ThreadContext(ABC):
 
     _zombie: bool = False
     """Whether the thread is a zombie."""
+
+    _invoked_syscall: int | None = None
+    """The syscall number invoked on the thread, if currently so."""
 
     def __init__(self: ThreadContext, thread_id: int, registers: RegisterHolder) -> None:
         """Initializes the Thread Context."""
@@ -393,6 +393,6 @@ class ThreadContext(ABC):
         self._snapshot_count += 1
 
     @property
-    @abstractmethod
     def num_syscall_args(self: ThreadContext) -> int:
         """The number of syscall arguments."""
+        return 6
