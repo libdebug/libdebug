@@ -1569,6 +1569,7 @@ class InternalDebugger:
                 return_value = e
             except BaseException as e:
                 raise_exception_to_main_thread(e)
+                return_value = None
 
             if return_value is not None:
                 self.__polling_thread_response_queue.put(return_value)
