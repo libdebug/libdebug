@@ -64,8 +64,7 @@ d = debugger("./test")
 io = d.run()
 
 my_breakpoint = d.breakpoint("function", hardware=True, file="binary")
-my_callback_breakpoint = d.breakpoint("function2", callback=my_callback, 
-										file="binary")
+my_callback_breakpoint = d.breakpoint("function2", callback=my_callback, file="binary")
 
 # Continue the execution
 d.cont()

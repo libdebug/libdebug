@@ -75,7 +75,7 @@ Now that you have **libdebug** installed, you can start using it in your scripts
 ```python title="libdebug's Hello World!"
 from libdebug import debugger
 
-def my_callback(thread, bp) -> None:
+def callback(thread, bp) -> None:
 	# This callback will be called when the breakpoint is hit
 	print(f"RDX is {hex(thread.regs.rdx)}")
 	print(f"This is the {bp.hit_count} time the breakpoint was hit")
@@ -86,7 +86,7 @@ d = debugger("./test") # (1)!
 io = d.run() # (2)!
 
 my_breakpoint = d.breakpoint("function", hardware=True, file="binary") # (3)!
-my_callback_breakpoint = d.breakpoint("function2", callback=my_callback, file="binary") # (4)!
+my_callback_breakpoint = d.bp("f2", callback=callback, file="binary") # (4)!
 
 # Continue the execution
 d.cont() # (5)!
@@ -105,14 +105,14 @@ d.memory[0x10ad, 8, "binary"] = b"Hello!\x00\x00" # (9)!
 1. A debugger is created for the `test` executable
 2. The process is spawned and the entry point is reached
 3. A breakpoint without a callback is set on the function `function` in the binary
-4. A breakpoint with a callback is set on the function `function2` in the binary
+4. A breakpoint with a callback is set on the function `f2` in the binary. Here, we use an alias for `d.breakpoint()`
 5. A continuation command is issued, execution resumes
 6. Send `Hello world!` to the standard input of the process
 7. Wait for the process to print `libdebug is like sushi` on the standard output
 8. The value of the RAX register is read and printed when the process is stopped at the `my_breakpoint` breakpoint
 9. A memory write is performed at address `0x10ad` in the binary
 
-The above script will run the binary `test` in the working directory and set two breakpoints: one at the function `function` and another at `function2`. 
+The above script will run the binary `test` in the working directory and set two breakpoints: one at the function `function` and another at `f2`. 
 
 The first breakpoint has no callback, so it will just stop the execution and wait for your script to interact with the process. When the process stops at this breakpoint, you can read and write memory, access registers, and so on. In the example, we print the value of the RAX register and write a string to memory. Then, we continue the execution of the process.
 
@@ -128,6 +128,49 @@ Examples of some known issues include:
 
 - `ptrace` not intercepting SIGTRAP signals when the process is run with pwntools. This behavior is described in [:octicons-issue-opened-24: Issue #48](https://github.com/libdebug/libdebug/issues/48).
 - Attaching **libdebug** to a process that was started with pwntools with `shell=True` will cause the process to attach to the shell process instead. This behavior is described in [:octicons-issue-opened-24: Issue #57](https://github.com/libdebug/libdebug/issues/57).
+
+!!! TIP "Using **libdebug** with pwntools"
+    <div class="grid cards" markdown>
+
+    -   :no_entry_sign: __DONT! (please just don't even try)__
+
+
+        ```python
+        from libdebug import debugger
+        from pwn import *
+
+        p = process("./provola") # (1)!
+        d.attach(p.pid)
+
+        leak = u64(p.recvline())
+        value = 0xbadf00d
+        fmtstr = fmtstr_payload(6, {leak: value})
+        p.sendline(fmtstr.encode()) # (2)!
+        ```
+
+        1. The process is started with pwntools, then **libdebug** is attached to it
+        2. The payload is sent to the process using **pwntools**
+
+    -   :white_check_mark: __DO (if you need to)__
+
+
+        ```python
+        from libdebug import debugger
+        from pwn import fmtstr_payload, u64
+
+        d = debugger("./provola") # (1)!
+        io = d.run()
+        
+        leak = u64(io.recvline())
+        value = 0xbadf00d
+        fmtstr = fmtstr_payload(6, {leak: value})
+        io.sendline(fmtstr.encode()) # (2)!
+        ```
+
+        1. The process is started with **libdebug**
+        2. The payload is sent to the process using **libdebug**
+
+    </div>
 
 ## :fontawesome-solid-clock-rotate-left: Older versions of the documentation
 The documentation for versions of **libdebug** older that 0.7.0 has to be accessed manually at [http://docs.libdebug.org/archive/VERSION](http://docs.libdebug.org/archive/VERSION), where `VERSION` is the version number you are looking for.
