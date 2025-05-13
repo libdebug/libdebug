@@ -64,9 +64,10 @@ d = debugger("./test")
 io = d.run()
 
 my_breakpoint = d.breakpoint("function", hardware=True, file="binary")
-my_callback_breakpoint = d.breakpoint("function2", callback=my_callback, file="binary")
+my_callback_breakpoint = d.breakpoint("function2", callback=my_callback, 
+										file="binary")
 
-# Continue the execution until the first breakpoint is hit
+# Continue the execution
 d.cont()
 
 # Interact with the process
@@ -87,7 +88,7 @@ The above script will run the binary `test` in the working directory and set two
 
 The first breakpoint has no callback, so it will just stop the execution and wait for your script to interact with the process. When the process stops at this breakpoint, you can read and write memory, access registers, and so on. In the example, we print the value of the RAX register and write a string to memory. Then, we continue the execution of the process.
 
-The second breakpoint has a callback that will be called when the breakpoint is hit. Into a callback, you can interact with the process, read and write memory, access registers, and so on. At the end of the callback, libdebug will automatically continue the execution of the process.
+The second breakpoint has a callback that will be called when the breakpoint is hit. Inside a callback, you can interact with the process, read and write memory, access registers, and so on. At the end of the callback, libdebug will automatically continue the execution of the process.
 
 There is so much more that can be done with libdebug. Please read the [documentation](https://docs.libdebug.org/) to find out more.
 
@@ -134,6 +135,9 @@ d.signals_to_block = ["SIGPOLL", "SIGIO", "SIGALRM"]
 
 # Register a syscall handler
 d.handle_syscall("geteuid", on_exit=handler_geteuid)
+
+# Register a breakpoint
+bp = d.breakpoint("function", hardware=True, file="binary")
 
 # Continue execution
 d.cont()

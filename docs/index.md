@@ -88,7 +88,7 @@ io = d.run() # (2)!
 my_breakpoint = d.breakpoint("function", hardware=True, file="binary") # (3)!
 my_callback_breakpoint = d.breakpoint("function2", callback=my_callback, file="binary") # (4)!
 
-# Continue the execution until the first breakpoint is hit
+# Continue the execution
 d.cont() # (5)!
 
 # Interact with the process
@@ -116,7 +116,7 @@ The above script will run the binary `test` in the working directory and set two
 
 The first breakpoint has no callback, so it will just stop the execution and wait for your script to interact with the process. When the process stops at this breakpoint, you can read and write memory, access registers, and so on. In the example, we print the value of the RAX register and write a string to memory. Then, we continue the execution of the process.
 
-The second breakpoint has a callback that will be called when the breakpoint is hit. Into a callback, you can interact with the process, read and write memory, access registers, and so on. At the end of the callback, libdebug will automatically continue the execution of the process.
+The second breakpoint has a callback that will be called when the breakpoint is hit. Inside a callback, you can interact with the process, read and write memory, access registers, and so on. At the end of the callback, libdebug will automatically continue the execution of the process.
 
 ## Conflicts with other Python packages
 !!! BUG "Using pwntools alongside **libdebug**"
