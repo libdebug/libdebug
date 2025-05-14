@@ -142,7 +142,7 @@ Examples of some known issues include:
 
         io = process("./provola") # (1)!
         d.attach(io.pid)
-        ...
+        [...]
         leak = u64(io.recvline())
         value = 0xbadf00d
         fmtstr = fmtstr_payload(6, {leak: value})
@@ -162,7 +162,7 @@ Examples of some known issues include:
 
         d = debugger("./provola") # (1)!
         io = d.run()
-        ...
+        [...]
         leak = u64(io.recvline())
         value = 0xbadf00d
         fmtstr = fmtstr_payload(6, {leak: value})
