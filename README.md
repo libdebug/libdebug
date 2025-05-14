@@ -13,7 +13,7 @@ With libdebug you have full control of your debugged executable. With it you can
 - Interact with stdin, stdout, and stderr of the debugged process
 - Debug multithreaded and multiprocess applications with ease
 - Seamlessly switch to GDB for interactive analysis
-- Multiarch: currently supports Linux AMD64, AArch64, and i386 (both native and in 32-bit compatibility mode)
+- Debug on Linux systems based on AMD64, AArch64, and i386
 
 When running the same executable multiple times, choosing efficient implementations can make the difference. For this reason, libdebug prioritizes performance.
 
