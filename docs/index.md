@@ -130,37 +130,39 @@ Examples of some known issues include:
 - Attaching **libdebug** to a process that was started with pwntools with `shell=True` will cause the process to attach to the shell process instead. This behavior is described in [:octicons-issue-opened-24: Issue #57](https://github.com/libdebug/libdebug/issues/57).
 
 !!! TIP "Using **libdebug** with pwntools"
-    <div class="grid cards" markdown>
+
+    <div class="grid cards" markdown">
 
     -   :no_entry_sign: __DONT! (please just don't even try)__
+        <div markdown style="--md-code-hl-color:#E55050; --md-code-hl-color--light: #4a2728">
 
-
-        ```python
+        ```python hl_lines="4 5" 
         from libdebug import debugger
         from pwn import *
 
-        p = process("./provola") # (1)!
-        d.attach(p.pid)
-
-        leak = u64(p.recvline())
+        io = process("./provola") # (1)!
+        d.attach(io.pid)
+        ...
+        leak = u64(io.recvline())
         value = 0xbadf00d
         fmtstr = fmtstr_payload(6, {leak: value})
-        p.sendline(fmtstr.encode()) # (2)!
+        io.sendline(fmtstr.encode()) # (2)!
         ```
 
         1. The process is started with pwntools, then **libdebug** is attached to it
         2. The payload is sent to the process using **pwntools**
+        </div>
 
     -   :white_check_mark: __DO (if you need to)__
+        <div markdown style="--md-code-hl-color:#129990; --md-code-hl-color--light: #274a39">
 
-
-        ```python
+        ```python hl_lines="4 5" 
         from libdebug import debugger
         from pwn import fmtstr_payload, u64
 
         d = debugger("./provola") # (1)!
         io = d.run()
-        
+        ...
         leak = u64(io.recvline())
         value = 0xbadf00d
         fmtstr = fmtstr_payload(6, {leak: value})
@@ -169,6 +171,7 @@ Examples of some known issues include:
 
         1. The process is started with **libdebug**
         2. The payload is sent to the process using **libdebug**
+        </div>
 
     </div>
 
