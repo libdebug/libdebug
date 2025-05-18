@@ -340,7 +340,7 @@ class AbstractMemoryView(MutableSequence, ABC):
                 size = right
                 file = "hybrid"
             else:
-                raise TypeError("Invalid type for the size. Expected int.")
+                raise TypeError("Invalid type for the size. Expected int or string.")
         else:
             raise TypeError("Tuple must have 2 or 3 elements.")
 
