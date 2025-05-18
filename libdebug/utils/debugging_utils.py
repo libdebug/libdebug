@@ -25,7 +25,7 @@ def normalize_and_validate_address(address: int, maps: MemoryMapList[MemoryMap])
         ValueError: If the specified address does not belong to any memory map.
     """
     if not maps:
-        raise ValueError("No memory maps available to resolve the address. Did you specified a valid backing file?")
+        raise ValueError("No memory maps available to resolve the address. Did you specify a valid backing file?")
     if address < maps[0].start:
         # The address is lower than the base address of the lowest map. Suppose it is a relative address for a PIE binary.
         address += maps[0].start
