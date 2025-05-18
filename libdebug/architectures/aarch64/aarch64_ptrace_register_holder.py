@@ -73,7 +73,7 @@ def _get_property_fp_8(name: str, index: int) -> property:
         # The binding expects the value to be a 16-byte array, so we can't rely on to_bytes
         # to fail if the value is too large. We need to check it manually and then dump it
         # to a 16-byte array.
-        if value.bit_length() > 8:  # noqa: PLR2004
+        if (value & 0xFF) != value:
             raise ValueError("Value is too large for 8-bit register")
 
         data = value.to_bytes(16, sys.byteorder)
@@ -98,7 +98,7 @@ def _get_property_fp_16(name: str, index: int) -> property:
         # The binding expects the value to be a 16-byte array, so we can't rely on to_bytes
         # to fail if the value is too large. We need to check it manually and then dump it
         # to a 16-byte array.
-        if value.bit_length() > 16:  # noqa: PLR2004
+        if (value & 0xFFFF) != value:
             raise ValueError("Value is too large for 16-bit register")
 
         data = value.to_bytes(16, sys.byteorder)
@@ -123,7 +123,7 @@ def _get_property_fp_32(name: str, index: int) -> property:
         # The binding expects the value to be a 16-byte array, so we can't rely on to_bytes
         # to fail if the value is too large. We need to check it manually and then dump it
         # to a 16-byte array.
-        if value.bit_length() > 32:  # noqa: PLR2004
+        if (value & 0xFFFFFFFF) != value:
             raise ValueError("Value is too large for 32-bit register")
 
         data = value.to_bytes(16, sys.byteorder)
@@ -148,7 +148,7 @@ def _get_property_fp_64(name: str, index: int) -> property:
         # The binding expects the value to be a 16-byte array, so we can't rely on to_bytes
         # to fail if the value is too large. We need to check it manually and then dump it
         # to a 16-byte array.
-        if value.bit_length() > 64:  # noqa: PLR2004
+        if (value & 0xFFFFFFFFFFFFFFFF) != value:
             raise ValueError("Value is too large for 64-bit register")
 
         data = value.to_bytes(16, sys.byteorder)
