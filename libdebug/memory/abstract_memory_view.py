@@ -339,6 +339,8 @@ class AbstractMemoryView(MutableSequence, ABC):
                 address = left
                 size = right
                 file = "hybrid"
+            else:
+                raise TypeError("Invalid type for the size. Expected int or string.")
         else:
             raise TypeError("Tuple must have 2 or 3 elements.")
 
@@ -435,6 +437,8 @@ class AbstractMemoryView(MutableSequence, ABC):
                 address = left
                 size = right
                 file = "hybrid"
+            else:
+                raise TypeError("Invalid type for the size. Expected int or string.")
         else:
             raise TypeError("Tuple must have 2 or 3 elements.")
 
@@ -493,7 +497,9 @@ class AbstractMemoryView(MutableSequence, ABC):
             ValueError: If the substring `backing_file` is present in multiple backing files.
         """
         return self._internal_debugger.resolve_address(
-            address, backing_file, skip_absolute_address_validation,
+            address,
+            backing_file,
+            skip_absolute_address_validation,
         )
 
     def resolve_symbol(self: AbstractMemoryView, symbol: str, backing_file: str) -> int:

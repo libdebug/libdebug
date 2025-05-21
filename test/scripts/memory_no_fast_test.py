@@ -6,6 +6,7 @@
 
 import io
 import logging
+import ctypes
 from pwn import process
 from unittest import TestCase
 from utils.binary_utils import RESOLVE_EXE, base_of
@@ -99,6 +100,31 @@ class MemoryNoFastTest(TestCase):
 
         # File should start with ELF magic number
         self.assertTrue(file.startswith(b"\x7fELF"))
+        
+        # The following commands should raise exceptions
+        with self.assertRaises(TypeError) as cm:
+            d.memory[0x0, ctypes.c_uint32(10)]
+        self.assertIn("Invalid type for the size", str(cm.exception))
+        
+        with self.assertRaises(TypeError) as cm:
+            d.memory[ctypes.c_uint32(0x0), 256]
+        self.assertIn("Invalid type for the address", str(cm.exception))
+        
+        with self.assertRaises(TypeError) as cm:
+            d.memory[0x0, 256, 0xff]
+        self.assertIn("Invalid type for the backing file", str(cm.exception))
+        
+        with self.assertRaises(TypeError) as cm:
+            d.memory[0x0, ctypes.c_uint32(10)] = b"abcd1234"
+        self.assertIn("Invalid type for the size", str(cm.exception))
+        
+        with self.assertRaises(TypeError) as cm:
+            d.memory[ctypes.c_uint32(0x0), 256] = b"abcd1234"
+        self.assertIn("Invalid type for the address", str(cm.exception))
+        
+        with self.assertRaises(TypeError) as cm:
+            d.memory[0x0, 256, 0xff] = b"abcd1234"
+        self.assertIn("Invalid type for the backing file", str(cm.exception))
 
         assert d.instruction_pointer == bp.address
 
