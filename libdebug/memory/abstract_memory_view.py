@@ -117,6 +117,8 @@ class AbstractMemoryView(MutableSequence, ABC):
             occurrences = find_all_overlapping_occurrences(value, memory_content, start)
         else:
             maps = self.maps.filter(file)
+            if not maps:
+                raise ValueError("No memory map found for the specified backing file.")
             start = self.resolve_address(start, file, True) if start is not None else maps[0].start
             end = self.resolve_address(end, file, True) if end is not None else maps[-1].end - 1
 

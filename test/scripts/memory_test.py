@@ -111,6 +111,10 @@ class MemoryTest(TestCase):
             d.memory[0x0, 256, 0xff]
         self.assertIn("Invalid type for the backing file", str(cm.exception))
         
+        with self.assertRaises(ValueError) as cm:
+            d.memory[0x0, 256, "invalid"]
+        self.assertIn("No memory maps available to resolve the address", str(cm.exception))
+        
         with self.assertRaises(TypeError) as cm:
             d.memory[0x0, ctypes.c_uint32(10)] = b"abcd1234"
         self.assertIn("Invalid type for the size", str(cm.exception))
@@ -122,6 +126,10 @@ class MemoryTest(TestCase):
         with self.assertRaises(TypeError) as cm:
             d.memory[0x0, 256, 0xff] = b"abcd1234"
         self.assertIn("Invalid type for the backing file", str(cm.exception))
+        
+        with self.assertRaises(ValueError) as cm:
+            d.memory[0x0, 256, "invalid"] = b"abcd1234"
+        self.assertIn("No memory maps available to resolve the address", str(cm.exception))
 
         # File should start with ELF magic number
         self.assertTrue(file.startswith(b"\x7fELF"))
@@ -489,6 +497,10 @@ class MemoryTest(TestCase):
         
         # Search for the string "abcd123456" in the heap using start and end
         self.assertTrue(d.memory.find(b"abcd123456", start=start, end=end) == [address + 128])
+        
+        with self.assertRaises(ValueError) as cm:
+            d.memory.find(b"abcd123456", file="invalid")
+        self.assertIn("No memory map found for the specified backing file", str(cm.exception))
 
         d.kill()
         d.terminate()
