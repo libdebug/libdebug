@@ -15,6 +15,70 @@ from libdebug.architectures.i386.i386_syscall_arg_parser import (
 )
 
 
+def or_parse(arg_map: dict, value: int) -> str:
+    """Parse the syscall argument value using OR logic.
+
+    Args:
+        arg_map (dict): The argument map containing mnemonics and masks.
+        value (int): The syscall argument value.
+
+    Returns:
+        str: The parsed syscall argument value.
+    """
+    # At this point than one mnemonic is likely
+    out_mnemonic = ""
+
+    masked_bits = 0x000000000000000000
+
+    for mnemonic_mask, mnemonic in arg_map.items():
+        if not isinstance(mnemonic_mask, int):
+            # If the mask is not an integer, skip it
+            # it's string metadata
+            continue
+        if mnemonic_mask == 0 and value != 0:
+            # If the mask is 0 and the syscall argument value is not 0, skip it
+            continue
+
+        # Check if the syscall argument value matches the mnemonic mask
+        if mnemonic_mask & value == mnemonic_mask:
+            if len(out_mnemonic) == 0:
+                out_mnemonic = mnemonic
+            else:
+                out_mnemonic += f" | {mnemonic}"
+
+            masked_bits |= mnemonic_mask
+
+    # If not all bits are masked, add the remaining bits to the mnemonic in OR
+    if ~masked_bits & value != 0 and len(out_mnemonic) > 0:
+        out_mnemonic += " | " + f"{value & ~masked_bits:#08x}"
+
+    if out_mnemonic != "":
+        out_mnemonic += f" ({value:#x})"
+
+    return out_mnemonic
+
+
+def sequential_parse(arg_map: dict, value: int) -> str:
+    """Parse the syscall argument value using sequential logic.
+
+    Args:
+        arg_map (dict): The argument map containing mnemonics and masks.
+        value (int): The syscall argument value.
+
+    Returns:
+        str: The parsed syscall argument value.
+    """
+    out_mnemonic = arg_map.get(value, None)
+
+    if out_mnemonic != None:
+        out_mnemonic += f" ({value:#x})"
+    else:
+        # If the value is not found in the map, return the default value
+        out_mnemonic = f"{value:#x}"
+
+    return out_mnemonic
+
+
 def syscall_arg_parser(
     architecture: str,
     syscall_number: int,
@@ -60,41 +124,9 @@ def syscall_arg_parser(
     parsing_mode = specific_arg_map.get("parsing_mode", "or")
 
     if parsing_mode == "or":
-        # At this point than one mnemonic is likely
-        out_mnemonic = ""
-
-        masked_bits = 0x000000000000000000
-
-        for mnemonic_mask, mnemonic in specific_arg_map.items():
-
-            if not isinstance(mnemonic_mask, int):
-                # If the mask is not an integer, skip it
-                # it's string metadata
-                continue
-            if mnemonic_mask == 0 and syscall_arg_value != 0:
-                # If the mask is 0 and the syscall argument value is not 0, skip it
-                continue
-
-            # Check if the syscall argument value matches the mnemonic mask
-            if mnemonic_mask & syscall_arg_value == mnemonic_mask:
-                if len(out_mnemonic) == 0:
-                    out_mnemonic = mnemonic
-                else:
-                    out_mnemonic += f" | {mnemonic}"
-
-                masked_bits |= mnemonic_mask
-
-        # If not all bits are masked, add the remaining bits to the mnemonic in OR
-        if ~masked_bits & syscall_arg_value != 0 and len(out_mnemonic) > 0:
-            out_mnemonic += " | " + f"{syscall_arg_value & ~masked_bits:#08x}"
-
-        if out_mnemonic != "":
-            out_mnemonic += f" ({syscall_arg_value:#x})"
+        out_mnemonic = or_parse(specific_arg_map, syscall_arg_value)
     elif parsing_mode == "sequential":
-        out_mnemonic = specific_arg_map.get(syscall_arg_value, default_val)
-
-        if out_mnemonic != default_val:
-            out_mnemonic += f" ({syscall_arg_value:#x})"
+        out_mnemonic = sequential_parse(specific_arg_map, syscall_arg_value)
     elif parsing_mode == "mixed":
         out_mnemonic = ""
 
@@ -164,4 +196,3 @@ def syscall_arg_parser(
 
     # Before returning, escape the special characters
     return out_mnemonic
-

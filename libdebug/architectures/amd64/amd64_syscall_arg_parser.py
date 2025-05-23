@@ -3,6 +3,10 @@
 # Copyright (c) 2025 Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
+from libdebug.architectures.syscall_arg_parser import or_parse, sequential_parse
+
+# !!! Parsing Values are up to date with Linux Kernel 6.15 !!!
+
 
 def parse_ptrace_data(*args) -> str:
     """
@@ -55,9 +59,82 @@ def parse_ptrace_data(*args) -> str:
     else:
         return f"{data:#x}"
 
+def parse_fcntl_arg(cmd: int, arg: int) -> str:
+    """
+    Parse the fcntl command.
+
+    Args:
+        cmd (int): The fcntl command.
+        arg (int): The argument to parse.
+
+    Returns:
+        str: The parsed command.
+    """
+    match cmd:
+        case 2:  # F_SETFD
+            if arg == 1:
+                return "FD_CLOEXEC"
+            return f"{arg:#x}"
+        case 4:  # F_SETFL
+            REDUCED_MAP = \
+            {
+                0o00002000: "O_APPEND",
+                0o00020000: "O_ASYNC",
+                0o00040000: "O_DIRECT",
+                0o01000000: "O_NOATIME",
+                0o00004000: "O_NONBLOCK",
+            }
+            return or_parse(REDUCED_MAP, arg)
+        case 10:  # F_SETSIG
+            return sequential_parse(SIGNALS, arg)
+        case 1024:  # F_SETLEASE
+            LEASES = \
+            {
+                0: "F_RDLCK",
+                1: "F_WRLCK",
+                2: "F_UNLCK",
+            }
+            return sequential_parse(LEASES, arg)
+        case 1026: # F_NOTIFY
+            NOTIFY_FLAGS = \
+            {
+                0x00000001: "DN_ACCESS",
+                0x00000002: "DN_MODIFY",
+                0x00000004: "DN_CREATE",
+                0x00000008: "DN_DELETE",
+                0x00000010: "DN_RENAME",
+                0x00000020: "DN_ATTRIB",
+                0x80000000: "DN_MULTISHOT",
+            }
+            return or_parse(NOTIFY_FLAGS, arg)
+        case 1033: # F_ADD_SEALS
+            SEALS = \
+            {
+                0x0001: "F_SEAL_SEAL",
+                0x0002: "F_SEAL_SHRINK",
+                0x0004: "F_SEAL_GROW",
+                0x0008: "F_SEAL_WRITE",
+                0x0010: "F_SEAL_FUTURE_WRITE",
+                0x0020: "F_SEAL_EXEC",
+            }
+            return or_parse(SEALS, arg)
+        case 1038: # F_SET_FILE_RW_HINT
+            RW_HINTS = \
+            {
+                0: "RWH_WRITE_LIFE_NOT_SET",
+                1: "RWH_WRITE_LIFE_NONE",
+                2: "RWH_WRITE_LIFE_SHORT",
+                3: "RWH_WRITE_LIFE_MEDIUM",
+                4: "RWH_WRITE_LIFE_LONG",
+                5: "RWH_WRITE_LIFE_EXTREME",
+            }
+            return sequential_parse(RW_HINTS, arg)
+        case _:
+            return f"{arg:#x}"
+
+
 # Common flags flags across syscalls
-OPEN_FLAGS = \
-{
+OPEN_FLAGS = {
     0o00002000: "O_APPEND",
     0o00020000: "O_ASYNC",
     0o02000000: "O_CLOEXEC",
@@ -78,8 +155,7 @@ OPEN_FLAGS = \
     0o00000001: "O_WRONLY",
 }
 
-OPEN_MODES = \
-{
+OPEN_MODES = {
     0o00700: "S_IRWXU",
     0o00400: "S_IRUSR",
     0o00200: "S_IWUSR",
@@ -97,8 +173,7 @@ OPEN_MODES = \
     0o0001000: "S_ISVTX",
 }
 
-SIGNALS = \
-{
+SIGNALS = {
     1: "SIGHUP",
     2: "SIGINT",
     3: "SIGQUIT",
@@ -133,8 +208,7 @@ SIGNALS = \
     "parsing_mode": "sequential",
 }
 
-WHICH_CLOCK = \
-{
+WHICH_CLOCK = {
     0: "CLOCK_REALTIME",
     1: "CLOCK_MONOTONIC",
     2: "CLOCK_PROCESS_CPUTIME_ID",
@@ -150,31 +224,99 @@ WHICH_CLOCK = \
     "parsing_mode": "sequential",
 }
 
-OPENAT_DFD = \
-{
-    0xffffff9c: "AT_FDCWD",
+OPENAT_DFD = {
+    0xFFFFFF9C: "AT_FDCWD",
 }
 
-SPLICE_FLAGS = \
-{
+SPLICE_FLAGS = {
     0x01: "SPLICE_F_MOVE",
     0x02: "SPLICE_F_NONBLOCK",
     0x04: "SPLICE_F_MORE",
     0x08: "SPLICE_F_GIFT",
 }
 
-AMD64_SYSCALL_PARSER_MAP = \
-{
-    #open
-    2:{
-        #int flags
+ADVISE_BEHAVIORS = {
+    0: "MADV_NORMAL",
+    1: "MADV_RANDOM",
+    2: "MADV_SEQUENTIAL",
+    3: "MADV_WILLNEED",
+    4: "MADV_DONTNEED",
+    8: "MADV_FREE",
+    9: "MADV_REMOVE",
+    10: "MADV_DONTFORK",
+    11: "MADV_DOFORK",
+    12: "MADV_MERGEABLE",
+    13: "MADV_UNMERGEABLE",
+    14: "MADV_HUGEPAGE",
+    15: "MADV_NOHUGEPAGE",
+    16: "MADV_DONTDUMP",
+    17: "MADV_DODUMP",
+    18: "MADV_WIPEONFORK",
+    19: "MADV_KEEPONFORK",
+    20: "MADV_COLD",
+    21: "MADV_PAGEOUT",
+    22: "MADV_POPULATE_READ",
+    23: "MADV_POPULATE_WRITE",
+    24: "MADV_DONTNEED_LOCKED",
+    25: "MADV_COLLAPSE",
+    100: "MADV_HWPOISON",
+    101: "MADV_SOFT_OFFLINE",
+    102: "MADV_GUARD_INSTALL",
+    103: "MADV_GUARD_REMOVE",
+    "parsing_mode": "sequential",
+}
+
+FCNTL_CMDS = {
+    0: "F_DUPFD",
+    1: "F_GETFD",
+    2: "F_SETFD",
+    3: "F_GETFL",
+    4: "F_SETFL",
+    5: "F_GETLK",
+    6: "F_SETLK",
+    7: "F_SETLKW",
+    8: "F_SETOWN",
+    9: "F_GETOWN",
+    10: "F_SETSIG",
+    11: "F_GETSIG",
+    12: "F_GETLK64",
+    13: "F_SETLK64",
+    14: "F_SETLKW64",
+    15: "F_SETOWN_EX",
+    16: "F_GETOWN_EX",
+    17: "F_GETOWNER_UIDS",
+    36: "F_OFD_GETLK",
+    37: "F_OFD_SETLK",
+    38: "F_OFD_SETLKW",
+    1024: "F_SETLEASE",
+    1025: "F_GETLEASE",
+    1026: "F_NOTIFY",
+    1027: "F_DUPFD_QUERY",
+    1028: "F_CREATED_QUERY",
+    1029: "F_CANCELLK",
+    1030: "F_DUPFD_CLOEXEC",
+    1031: "F_SETPIPE_SZ",
+    1032: "F_GETPIPE_SZ",
+    1033: "F_ADD_SEALS",
+    1034: "F_GET_SEALS",
+    1035: "F_GET_RW_HINT",
+    1036: "F_SET_RW_HINT",
+    1037: "F_GET_FILE_RW_HINT",
+    1038: "F_SET_FILE_RW_HINT",
+    "parsing_mode": "sequential",
+}
+
+AMD64_SYSCALL_PARSER_MAP = {
+    # open
+    2: {
+        # int flags
         1: OPEN_FLAGS,
-        #umode_t mode
+        # umode_t mode
         2: OPEN_MODES,
     },
-    #lseek
-    8:{
-        #unsigned int whence
+    # lseek
+    8: {
+        # unsigned int whence
         2: {
             0: "SEEK_SET",
             1: "SEEK_CUR",
@@ -183,16 +325,16 @@ AMD64_SYSCALL_PARSER_MAP = \
             4: "SEEK_HOLE",
         },
     },
-    #mmap
-    9:{
-        #unsigned long prot
+    # mmap
+    9: {
+        # unsigned long prot
         2: {
             0x0: "PROT_NONE",
             0x1: "PROT_READ",
             0x2: "PROT_WRITE",
             0x4: "PROT_EXEC",
         },
-        #unsigned long flags
+        # unsigned long flags
         3: {
             0x00000000: "MAP_FILE",
             0x00000001: "MAP_SHARED",
@@ -217,9 +359,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x04000000: "MAP_UNINITIALIZED",
         },
     },
-    #mprotect
-    10:{
-        #unsigned long prot
+    # mprotect
+    10: {
+        # unsigned long prot
         2: {
             0x0: "PROT_NONE",
             0x1: "PROT_READ",
@@ -230,14 +372,14 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x02000000: "PROT_GROWSUP",
         },
     },
-    #rt_sigaction
-    13:{
-        #int sig
+    # rt_sigaction
+    13: {
+        # int sig
         0: SIGNALS,
     },
-    #rt_sigprocmask
-    14:{
-        #int how
+    # rt_sigprocmask
+    14: {
+        # int how
         0: {
             0: "SIG_BLOCK",
             1: "SIG_UNBLOCK",
@@ -245,9 +387,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             "parsing_mode": "sequential",
         },
     },
-    #access
-    21:{
-        #int mode
+    # access
+    21: {
+        # int mode
         1: {
             0: "F_OK",
             1: "X_OK",
@@ -255,61 +397,32 @@ AMD64_SYSCALL_PARSER_MAP = \
             4: "R_OK",
         },
     },
-    #mremap
-    25:{
-        #unsigned long flags
+    # mremap
+    25: {
+        # unsigned long flags
         3: {
             1: "MREMAP_MAYMOVE",
             2: "MREMAP_FIXED",
             4: "MREMAP_DONTUNMAP",
         },
     },
-    #msync
-    26:{
-        #int flags
+    # msync
+    26: {
+        # int flags
         2: {
             1: "MS_ASYNC",
             2: "MS_INVALIDATE",
             4: "MS_SYNC",
         },
     },
-    #madvise
-    28:{
-        #int behavior
-        2: {
-            0: "MADV_NORMAL",
-            1: "MADV_RANDOM",
-            2: "MADV_SEQUENTIAL",
-            3: "MADV_WILLNEED",
-            4: "MADV_DONTNEED",
-            8: "MADV_FREE",
-            9: "MADV_REMOVE",
-            10: "MADV_DONTFORK",
-            11: "MADV_DOFORK",
-            12: "MADV_MERGEABLE",
-            13: "MADV_UNMERGEABLE",
-            14: "MADV_HUGEPAGE",
-            15: "MADV_NOHUGEPAGE",
-            16: "MADV_DONTDUMP",
-            17: "MADV_DODUMP",
-            18: "MADV_WIPEONFORK",
-            19: "MADV_KEEPONFORK",
-            20: "MADV_COLD",
-            21: "MADV_PAGEOUT",
-            22: "MADV_POPULATE_READ",
-            23: "MADV_POPULATE_WRITE",
-            24: "MADV_DONTNEED_LOCKED",
-            25: "MADV_COLLAPSE",
-            100: "MADV_HWPOISON",
-            101: "MADV_SOFT_OFFLINE",
-            102: "MADV_GUARD_INSTALL",
-            103: "MADV_GUARD_REMOVE",
-            "parsing_mode": "sequential",
-        },
+    # madvise
+    28: {
+        # int behavior
+        2: ADVISE_BEHAVIORS,
     },
-    #shmget
-    29:{
-        #int shmflg
+    # shmget
+    29: {
+        # int shmflg
         2: {
             0o00001000: "IPC_CREAT",
             0o00002000: "IPC_EXCL",
@@ -320,9 +433,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             0o0000032: "SHM_HUGE_SHIFT",
         },
     },
-    #shmat
-    30:{
-        #int shmflg
+    # shmat
+    30: {
+        # int shmflg
         2: {
             0o010000: "SHM_RDONLY",
             0o020000: "SHM_RND",
@@ -330,9 +443,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             0o0100000: "SHM_EXEC",
         },
     },
-    #shmctl
-    31:{
-        #int cmd
+    # shmctl
+    31: {
+        # int cmd
         1: {
             0: "IPC_RMID",
             1: "IPC_SET",
@@ -346,9 +459,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             "parsing_mode": "sequential",
         },
     },
-    #getitimer
-    36:{
-        #int which
+    # getitimer
+    36: {
+        # int which
         0: {
             0: "ITIMER_REAL",
             1: "ITIMER_VIRTUAL",
@@ -356,9 +469,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             "parsing_mode": "sequential",
         },
     },
-    #setitimer
-    38:{
-        #int which
+    # setitimer
+    38: {
+        # int which
         0: {
             0: "ITIMER_REAL",
             1: "ITIMER_VIRTUAL",
@@ -366,9 +479,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             "parsing_mode": "sequential",
         },
     },
-    #socket
-    41:{
-        #int family
+    # socket
+    41: {
+        # int family
         0: {
             0: "AF_UNSPEC",
             1: "AF_UNIX / AF_LOCAL",
@@ -418,7 +531,7 @@ AMD64_SYSCALL_PARSER_MAP = \
             45: "AF_MCTP",
             "parsing_mode": "sequential",
         },
-        #int type
+        # int type
         1: {
             "sequential_flags": {
                 0x000001: "SOCK_STREAM",
@@ -426,7 +539,7 @@ AMD64_SYSCALL_PARSER_MAP = \
                 0x000003: "SOCK_RAW",
                 0x000004: "SOCK_RDM",
                 0x000005: "SOCK_SEQPACKET",
-                0x00000a: "SOCK_PACKET",
+                0x00000A: "SOCK_PACKET",
             },
             "or_flags": {
                 0x000800: "SOCK_NONBLOCK",
@@ -434,12 +547,12 @@ AMD64_SYSCALL_PARSER_MAP = \
             },
             "parsing_mode": "mixed",
         },
-        #int protocol
+        # int protocol
         # 2: {},
     },
-    #sendto
-    44:{
-        #unsigned int flags
+    # sendto
+    44: {
+        # unsigned int flags
         3: {
             0x00000800: "MSG_CONFIRM",
             0x00000004: "MSG_DONTROUTE",
@@ -451,9 +564,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x20000000: "MSG_FASTOPEN",
         },
     },
-    #recvfrom
-    45:{
-        #unsigned int flags
+    # recvfrom
+    45: {
+        # unsigned int flags
         3: {
             0x40000000: "MSG_CMSG_CLOEXEC",
             0x00000040: "MSG_DONTWAIT",
@@ -464,9 +577,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x00000100: "MSG_WAITALL",
         },
     },
-    #sendmsg
-    46:{
-        #unsigned int flags
+    # sendmsg
+    46: {
+        # unsigned int flags
         2: {
             0x00000800: "MSG_CONFIRM",
             0x00000004: "MSG_DONTROUTE",
@@ -478,9 +591,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x20000000: "MSG_FASTOPEN",
         },
     },
-    #recvmsg
-    47:{
-        #unsigned int flags
+    # recvmsg
+    47: {
+        # unsigned int flags
         2: {
             0x40000000: "MSG_CMSG_CLOEXEC",
             0x00000040: "MSG_DONTWAIT",
@@ -491,9 +604,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x00000100: "MSG_WAITALL",
         },
     },
-    #shutdown
-    48:{
-        #int how
+    # shutdown
+    48: {
+        # int how
         1: {
             0: "SHUT_RD",
             1: "SHUT_WR",
@@ -501,9 +614,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             "parsing_mode": "sequential",
         },
     },
-    #socketpair
-    53:{
-        #int family
+    # socketpair
+    53: {
+        # int family
         0: {
             0: "AF_UNSPEC",
             1: "AF_UNIX / AF_LOCAL",
@@ -553,7 +666,7 @@ AMD64_SYSCALL_PARSER_MAP = \
             45: "AF_MCTP",
             "parsing_mode": "sequential",
         },
-        #int type
+        # int type
         1: {
             "sequential_flags": {
                 0x000001: "SOCK_STREAM",
@@ -561,7 +674,7 @@ AMD64_SYSCALL_PARSER_MAP = \
                 0x000003: "SOCK_RAW",
                 0x000004: "SOCK_RDM",
                 0x000005: "SOCK_SEQPACKET",
-                0x00000a: "SOCK_PACKET",
+                0x00000A: "SOCK_PACKET",
             },
             "or_flags": {
                 0x000800: "SOCK_NONBLOCK",
@@ -569,31 +682,31 @@ AMD64_SYSCALL_PARSER_MAP = \
             },
             "parsing_mode": "mixed",
         },
-        #int protocol
+        # int protocol
         # 2: {},
     },
-    #setsockopt
-    54:{
+    # setsockopt
+    54: {
         # TODO: Complex parsing, future work
-        #int level
+        # int level
         1: {},
         # SO_ACCEPTCONN, SO_ATTACH_FILTER, SO_ATTACH_BPF, SO_ATTACH_REUSEPORT_CBPF, SO_ATTACH_REUSEPORT_EBPF, SO_BINDTODEVICE, SO_BROADCAST, SO_BSDCOMPAT, SO_DEBUG, SO_DETACH_FILTER, SO_DETACH_BPF, SO_DOMAIN, SO_ERROR, SO_DONTROUTE,
         # SO_INCOMING_CPU, SO_INCOMING_NAPI_ID, SO_KEEPALIVE, SO_LINGER, SO_LOCK_FILTER, SO_MARK, SO_OOBINLINE, SO_PASSCRED, SO_PASSSEC, SO_PEEK_OFF, SO_PEERCRED, SO_PEERSEC, SO_PRIORITY, SO_RCVBUF, SO_RCVBUFFORCE, SO_RCVLOWAT,
         # SO_SNDLOWAT, SO_RCVTIMEO, SO_SNDTIMEO, SO_REUSEADDR, SO_REUSEPORT, SO_RXQ_OVFL, SO_SELECT_ERR_QUEUE, SO_SNDBUF, SO_SNDBUFFORCE, SO_TIMESTAMP, SO_TIMESTAMPNS, SO_TYPE, SO_BUSY_POLL
-        #int optname
+        # int optname
         2: {},
     },
-    #getsockopt
-    55:{
+    # getsockopt
+    55: {
         # TODO: Complex parsing, future work
-        #int level
+        # int level
         1: {},
-        #int optname
+        # int optname
         2: {},
     },
-    #clone
-    56:{
-        #unsigned long clone_flags
+    # clone
+    56: {
+        # unsigned long clone_flags
         0: {
             0x00000100: "CLONE_VM",
             0x00000200: "CLONE_FS",
@@ -621,9 +734,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x80000000: "CLONE_IO",
         },
     },
-    #wait4
-    61:{
-        #int options
+    # wait4
+    61: {
+        # int options
         2: {
             0x00000001: "WNOHANG",
             0x00000002: "WUNTRACED / WSTOPPED",
@@ -635,18 +748,18 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x80000000: "__WCLONE",
         },
     },
-    #kill
-    62:{
-        #int sig
+    # kill
+    62: {
+        # int sig
         1: SIGNALS,
     },
-    #semget
-    64:{
-        #key_t key
+    # semget
+    64: {
+        # key_t key
         0: {
             0: "IPC_PRIVATE",
         },
-        #int semflg
+        # int semflg
         2: {
             0o0001000: "IPC_CREAT",
             0o0002000: "IPC_EXCL",
@@ -654,8 +767,8 @@ AMD64_SYSCALL_PARSER_MAP = \
         },
     },
     # semctl
-    66:{
-        #int cmd
+    66: {
+        # int cmd
         2: {
             0: "IPC_RMID",
             1: "IPC_SET",
@@ -684,9 +797,9 @@ AMD64_SYSCALL_PARSER_MAP = \
     #     #unsigned long arg
     #     2: {},
     # },
-    #flock
-    73:{
-        #unsigned int cmd
+    # flock
+    73: {
+        # unsigned int cmd
         1: {
             1: "LOCK_SH",
             2: "LOCK_EX",
@@ -694,34 +807,34 @@ AMD64_SYSCALL_PARSER_MAP = \
             8: "LOCK_UN",
         },
     },
-    #mkdir
-    83:{
-        #umode_t mode
+    # mkdir
+    83: {
+        # umode_t mode
         1: OPEN_MODES,
     },
-    #creat
-    85:{
-        #umode_t mode
+    # creat
+    85: {
+        # umode_t mode
         1: OPEN_MODES,
     },
-    #chmod
-    90:{
-        #umode_t mode
+    # chmod
+    90: {
+        # umode_t mode
         1: OPEN_MODES,
     },
-    #fchmod
-    91:{
-        #umode_t mode
+    # fchmod
+    91: {
+        # umode_t mode
         1: OPEN_MODES,
     },
-    #umask
-    95:{
-        #int mask
+    # umask
+    95: {
+        # int mask
         0: OPEN_MODES,
     },
-    #getrlimit
-    97:{
-        #unsigned int resource
+    # getrlimit
+    97: {
+        # unsigned int resource
         0: {
             0: "RLIMIT_CPU",
             1: "RLIMIT_FSIZE",
@@ -742,20 +855,20 @@ AMD64_SYSCALL_PARSER_MAP = \
             "parsing_mode": "sequential",
         },
     },
-    #getrusage
-    98:{
-        #int who
+    # getrusage
+    98: {
+        # int who
         0: {
             0: "RUSAGE_SELF",
-            0xffffffff: "RUSAGE_CHILDREN",
-            0xfffffffe: "RUSAGE_BOTH",
+            0xFFFFFFFF: "RUSAGE_CHILDREN",
+            0xFFFFFFFE: "RUSAGE_BOTH",
             1: "RUSAGE_THREAD",
             "parsing_mode": "sequential",
         },
     },
-    #ptrace
-    101:{
-        #long request
+    # ptrace
+    101: {
+        # long request
         0: {
             # Arch-specific
             0: "PTRACE_TRACEME",
@@ -795,25 +908,25 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x4207: "PTRACE_INTERRUPT",
             0x4208: "PTRACE_LISTEN",
             0x4209: "PTRACE_PEEKSIGINFO",
-            0x420a: "PTRACE_GETSIGMASK",
-            0x420b: "PTRACE_SETSIGMASK",
-            0x420c: "PTRACE_SECCOMP_GET_FILTER",
-            0x420d: "PTRACE_SECCOMP_GET_METADATA",
-            0x420e: "PTRACE_GET_SYSCALL_INFO",
-            0x420f: "PTRACE_GET_RSEQ_CONFIGURATION",
+            0x420A: "PTRACE_GETSIGMASK",
+            0x420B: "PTRACE_SETSIGMASK",
+            0x420C: "PTRACE_SECCOMP_GET_FILTER",
+            0x420D: "PTRACE_SECCOMP_GET_METADATA",
+            0x420E: "PTRACE_GET_SYSCALL_INFO",
+            0x420F: "PTRACE_GET_RSEQ_CONFIGURATION",
             0x4210: "PTRACE_SET_SYSCALL_USER_DISPATCH_CONFIG",
             0x4211: "PTRACE_GET_SYSCALL_USER_DISPATCH_CONFIG",
             "parsing_mode": "sequential",
         },
-        #unsigned long data
+        # unsigned long data
         3: {
             "parsing_mode": "custom",
             "parser": parse_ptrace_data,
         },
     },
-    #syslog
-    103:{
-        #int type
+    # syslog
+    103: {
+        # int type
         0: {
             0: "SYSLOG_ACTION_CLOSE",
             1: "SYSLOG_ACTION_OPEN",
@@ -829,14 +942,14 @@ AMD64_SYSCALL_PARSER_MAP = \
             "parsing_mode": "sequential",
         },
     },
-    #rt_sigqueueinfo
-    129:{
-        #int sig
+    # rt_sigqueueinfo
+    129: {
+        # int sig
         1: SIGNALS,
     },
-    #mknod
-    133:{
-        #umode_t mode
+    # mknod
+    133: {
+        # umode_t mode
         1: {
             # Permissions
             0o00700: "S_IRWXU",
@@ -862,9 +975,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             0o140000: "S_IFSOCK",
         },
     },
-    #personality
-    135:{
-        #unsigned int personality
+    # personality
+    135: {
+        # unsigned int personality
         0: {
             0x0200000: "ADDR_COMPAT_LAYOUT",
             0x0040000: "ADDR_NO_RANDOMIZE",
@@ -879,27 +992,27 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x0006: "PER_BSD",
             0x0010: "PER_HPUX",
             0x4000009: "PER_IRIX32",
-            0x400000b: "PER_IRIX64",
-            0x400000a: "PER_IRIXN32",
+            0x400000B: "PER_IRIX64",
+            0x400000A: "PER_IRIXN32",
             0x4000005: "PER_ISCR4",
             0x0000000: "PER_LINUX",
             0x0000008: "PER_LINUX32",
             0x8000008: "PER_LINUX32_3GB",
-            0x000f: "PER_OSF4",
-            0x0000000c: "PER_RISCOS",
+            0x000F: "PER_OSF4",
+            0x0000000C: "PER_RISCOS",
             0x07000003: "PER_SCOSVR3",
-            0x0400000d: "PER_SOLARIS",
+            0x0400000D: "PER_SOLARIS",
             0x04000006: "PER_SUNOS",
             0x05000002: "PER_SVR3",
             0x04100001: "PER_SVR4",
-            0x0410000e: "PER_UW7",
+            0x0410000E: "PER_UW7",
             0x05000004: "PER_WYSEV386",
             0x05000007: "PER_XENIX",
         },
     },
-    #getpriority
-    140:{
-        #int which
+    # getpriority
+    140: {
+        # int which
         0: {
             0: "PRIO_PROCESS",
             1: "PRIO_PGRP",
@@ -907,9 +1020,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             "parsing_mode": "sequential",
         },
     },
-    #setpriority
-    141:{
-        #int which
+    # setpriority
+    141: {
+        # int which
         0: {
             0: "PRIO_PROCESS",
             1: "PRIO_PGRP",
@@ -917,9 +1030,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             "parsing_mode": "sequential",
         },
     },
-    #sched_setscheduler
-    144:{
-        #int policy
+    # sched_setscheduler
+    144: {
+        # int policy
         1: {
             0: "SCHED_NORMAL",
             1: "SCHED_FIFO",
@@ -931,9 +1044,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             "parsing_mode": "sequential",
         },
     },
-    #sched_get_priority_max
-    146:{
-        #int policy
+    # sched_get_priority_max
+    146: {
+        # int policy
         0: {
             0: "SCHED_NORMAL",
             1: "SCHED_FIFO",
@@ -945,9 +1058,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             "parsing_mode": "sequential",
         },
     },
-    #sched_get_priority_min
-    147:{
-        #int policy
+    # sched_get_priority_min
+    147: {
+        # int policy
         0: {
             0: "SCHED_NORMAL",
             1: "SCHED_FIFO",
@@ -959,18 +1072,18 @@ AMD64_SYSCALL_PARSER_MAP = \
             "parsing_mode": "sequential",
         },
     },
-    #mlockall
-    151:{
-        #int flags
+    # mlockall
+    151: {
+        # int flags
         0: {
             0x00000001: "MCL_CURRENT",
             0x00000002: "MCL_FUTURE",
             0x00000004: "MCL_ONFAULT",
         },
     },
-    #prctl
-    157:{
-        #int option
+    # prctl
+    157: {
+        # int option
         0: {
             0x0000002F: "PR_CAP_AMBIENT",
             0x00000017: "PR_CAPBSET_READ",
@@ -1036,9 +1149,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             "parsing_mode": "sequential",
         },
     },
-    #arch_prctl
-    158:{
-        #int option
+    # arch_prctl
+    158: {
+        # int option
         0: {
             0x1001: "ARCH_SET_GS",
             0x1002: "ARCH_SET_FS",
@@ -1048,36 +1161,31 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x1012: "ARCH_SET_CPUID",
             # From linux / arch / x86 / include / uapi / asm / prctl.h
             # Undocumented, unsure if they should be included
-            #define ARCH_GET_XCOMP_SUPP		0x1021
-            #define ARCH_GET_XCOMP_PERM		0x1022
-            #define ARCH_REQ_XCOMP_PERM		0x1023
-            #define ARCH_GET_XCOMP_GUEST_PERM	0x1024
-            #define ARCH_REQ_XCOMP_GUEST_PERM	0x1025
-
-            #define ARCH_XCOMP_TILECFG		17
-            #define ARCH_XCOMP_TILEDATA		18
-
-            #define ARCH_MAP_VDSO_X32		0x2001
-            #define ARCH_MAP_VDSO_32		0x2002
-            #define ARCH_MAP_VDSO_64		0x2003
-
+            # define ARCH_GET_XCOMP_SUPP		0x1021
+            # define ARCH_GET_XCOMP_PERM		0x1022
+            # define ARCH_REQ_XCOMP_PERM		0x1023
+            # define ARCH_GET_XCOMP_GUEST_PERM	0x1024
+            # define ARCH_REQ_XCOMP_GUEST_PERM	0x1025
+            # define ARCH_XCOMP_TILECFG		17
+            # define ARCH_XCOMP_TILEDATA		18
+            # define ARCH_MAP_VDSO_X32		0x2001
+            # define ARCH_MAP_VDSO_32		0x2002
+            # define ARCH_MAP_VDSO_64		0x2003
             # /* Don't use 0x3001-0x3004 because of old glibcs */
-
-            #define ARCH_GET_UNTAG_MASK		0x4001
-            #define ARCH_ENABLE_TAGGED_ADDR		0x4002
-            #define ARCH_GET_MAX_TAG_BITS		0x4003
-            #define ARCH_FORCE_TAGGED_SVA		0x4004
-
-            #define ARCH_SHSTK_ENABLE		0x5001
-            #define ARCH_SHSTK_DISABLE		0x5002
-            #define ARCH_SHSTK_LOCK			0x5003
-            #define ARCH_SHSTK_UNLOCK		0x5004
-            #define ARCH_SHSTK_STATUS		0x5005
+            # define ARCH_GET_UNTAG_MASK		0x4001
+            # define ARCH_ENABLE_TAGGED_ADDR		0x4002
+            # define ARCH_GET_MAX_TAG_BITS		0x4003
+            # define ARCH_FORCE_TAGGED_SVA		0x4004
+            # define ARCH_SHSTK_ENABLE		0x5001
+            # define ARCH_SHSTK_DISABLE		0x5002
+            # define ARCH_SHSTK_LOCK			0x5003
+            # define ARCH_SHSTK_UNLOCK		0x5004
+            # define ARCH_SHSTK_STATUS		0x5005
         },
     },
-    #setrlimit
-    160:{
-        #unsigned int resource
+    # setrlimit
+    160: {
+        # unsigned int resource
         0: {
             0: "RLIMIT_CPU",
             1: "RLIMIT_FSIZE",
@@ -1097,9 +1205,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             15: "RLIMIT_RTTIME",
         },
     },
-    #mount
-    165:{
-        #unsigned long flags
+    # mount
+    165: {
+        # unsigned long flags
         3: {
             0x00000001: "MS_RDONLY",
             0x00000002: "MS_NOSUID",
@@ -1129,9 +1237,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x02000000: "MS_LAZYTIME",
         },
     },
-    #umount
-    166:{
-        #int flags
+    # umount
+    166: {
+        # int flags
         1: {
             0x00000001: "MNT_FORCE",
             0x00000002: "MNT_DETACH",
@@ -1140,22 +1248,22 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x80000000: "UMOUNT_UNUSED",
         },
     },
-    #swapon
-    167:{
-        #int swap_flags
+    # swapon
+    167: {
+        # int swap_flags
         1: {
             0x8000: "SWAP_FLAG_PREFER",
             0x10000: "SWAP_FLAG_DISCARD",
         },
     },
-    #reboot
-    169:{
-        #int magic1
+    # reboot
+    169: {
+        # int magic1
         0: {
-            0xfee1dead: "LINUX_REBOOT_MAGIC1",
+            0xFEE1DEAD: "LINUX_REBOOT_MAGIC1",
             "parsing_mode": "sequential",
         },
-        #int magic2
+        # int magic2
         1: {
             672274793: "LINUX_REBOOT_MAGIC2",
             85072278: "LINUX_REBOOT_MAGIC2A",
@@ -1163,7 +1271,7 @@ AMD64_SYSCALL_PARSER_MAP = \
             537993216: "LINUX_REBOOT_MAGIC2C",
             "parsing_mode": "sequential",
         },
-        #unsigned int cmd
+        # unsigned int cmd
         2: {
             0x01234567: "LINUX_REBOOT_CMD_RESTART",
             0xCDEF0123: "LINUX_REBOOT_CMD_HALT",
@@ -1176,17 +1284,17 @@ AMD64_SYSCALL_PARSER_MAP = \
             "parsing_mode": "sequential",
         },
     },
-    #delete_module
-    176:{
-        #unsigned int flags
+    # delete_module
+    176: {
+        # unsigned int flags
         1: {
             0o0004000: "O_NONBLOCK",
             0o0001000: "O_TRUNC",
         },
     },
-    #quotactl
-    179:{
-        #unsigned int cmd
+    # quotactl
+    179: {
+        # unsigned int cmd
         0: {
             0: "USRQUOTA",
             1: "GRPQUOTA",
@@ -1205,41 +1313,41 @@ AMD64_SYSCALL_PARSER_MAP = \
         # we could parse the ID with QFMT defines but
         # it's likely not worth it
     },
-    #setxattr
-    188:{
-        #int flags
+    # setxattr
+    188: {
+        # int flags
         4: {
             0x00000001: "XATTR_CREATE",
             0x00000002: "XATTR_REPLACE",
             "parsing_mode": "sequential",
         },
     },
-    #lsetxattr
-    189:{
-        #int flags
+    # lsetxattr
+    189: {
+        # int flags
         4: {
             0x00000001: "XATTR_CREATE",
             0x00000002: "XATTR_REPLACE",
             "parsing_mode": "sequential",
         },
     },
-    #fsetxattr
-    190:{
-        #int flags
+    # fsetxattr
+    190: {
+        # int flags
         4: {
             0x00000001: "XATTR_CREATE",
             0x00000002: "XATTR_REPLACE",
             "parsing_mode": "sequential",
         },
     },
-    #tkill
-    200:{
-        #int sig
+    # tkill
+    200: {
+        # int sig
         1: SIGNALS,
     },
-    #futex
-    202:{
-        #int op
+    # futex
+    202: {
+        # int op
         1: {
             "sequential_flags": {
                 0: "FUTEX_WAIT",
@@ -1264,16 +1372,16 @@ AMD64_SYSCALL_PARSER_MAP = \
             "parsing_mode": "mixed",
         },
     },
-    #remap_file_pages
-    216:{
-        #unsigned long flags
+    # remap_file_pages
+    216: {
+        # unsigned long flags
         4: {
             # All flags other that MAP_NONBLOCK are ignored
             0x00010000: "MAP_NONBLOCK",
         },
     },
-    #fadvise64
-    221:{
+    # fadvise64
+    221: {
         3: {
             0: "POSIX_FADV_NORMAL",
             1: "POSIX_FADV_RANDOM",
@@ -1283,40 +1391,40 @@ AMD64_SYSCALL_PARSER_MAP = \
             5: "POSIX_FADV_NOREUSE",
         },
     },
-    #timer_settime
-    223:{
-        #int flags
+    # timer_settime
+    223: {
+        # int flags
         1: {
             1: "TIMER_ABSTIME",
         },
     },
-    #clock_settime
-    227:{
-        #const clockid_t which_clock
+    # clock_settime
+    227: {
+        # const clockid_t which_clock
         0: WHICH_CLOCK,
     },
-    #clock_gettime
-    228:{
-        #const clockid_t which_clock
+    # clock_gettime
+    228: {
+        # const clockid_t which_clock
         0: WHICH_CLOCK,
     },
-    #clock_getres
-    229:{
-        #const clockid_t which_clock
+    # clock_getres
+    229: {
+        # const clockid_t which_clock
         0: WHICH_CLOCK,
     },
-    #clock_nanosleep
-    230:{
-        #const clockid_t which_clock
+    # clock_nanosleep
+    230: {
+        # const clockid_t which_clock
         0: WHICH_CLOCK,
-        #int flags
+        # int flags
         1: {
             1: "TIMER_ABSTIME",
         },
     },
-    #epoll_ctl
-    233:{
-        #int op
+    # epoll_ctl
+    233: {
+        # int op
         1: {
             1: "EPOLL_CTL_ADD",
             2: "EPOLL_CTL_DEL",
@@ -1324,14 +1432,14 @@ AMD64_SYSCALL_PARSER_MAP = \
             "parsing_mode": "sequential",
         },
     },
-    #tgkill
-    234:{
-        #int sig
+    # tgkill
+    234: {
+        # int sig
         2: SIGNALS,
     },
-    #mbind
-    237:{
-        #unsigned long mode
+    # mbind
+    237: {
+        # unsigned long mode
         2: {
             "sequential_flags": {
                 0: "MPOL_DEFAULT",
@@ -1350,7 +1458,7 @@ AMD64_SYSCALL_PARSER_MAP = \
             },
             "parsing_mode": "mixed",
         },
-        #unsigned int flags
+        # unsigned int flags
         5: {
             0b00000001: "MPOL_MF_STRICT",
             0b00000010: "MPOL_MF_MOVE",
@@ -1359,9 +1467,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             0b00010000: "MPOL_MF_INTERNAL",
         },
     },
-    #set_mempolicy
-    238:{
-        #int mode
+    # set_mempolicy
+    238: {
+        # int mode
         0: {
             "sequential_flags": {
                 0: "MPOL_DEFAULT",
@@ -1381,18 +1489,18 @@ AMD64_SYSCALL_PARSER_MAP = \
             "parsing_mode": "mixed",
         },
     },
-    #get_mempolicy
-    239:{
-        #unsigned long flags
+    # get_mempolicy
+    239: {
+        # unsigned long flags
         4: {
             0b0001: "MPOL_F_NODE",
             0b0010: "MPOL_F_ADDR",
             0b0100: "MPOL_F_MEMS_ALLOWED",
         },
     },
-    #mq_open
-    240:{
-        #int oflag
+    # mq_open
+    240: {
+        # int oflag
         1: {
             0o02000000: "O_CLOEXEC",
             0o00000100: "O_CREAT",
@@ -1402,51 +1510,51 @@ AMD64_SYSCALL_PARSER_MAP = \
             0o00000002: "O_RDWR",
             0o00000001: "O_WRONLY",
         },
-        #umode_t mode
+        # umode_t mode
         2: OPEN_MODES,
     },
-    #kexec_load
-    246:{
-        #unsigned long flags
+    # kexec_load
+    246: {
+        # unsigned long flags
         3: {
             "or_flags": {
                 0x00000001: "KEXEC_ON_CRASH",
                 0x00000002: "KEXEC_PRESERVE_CONTEXT",
                 0x00000004: "KEXEC_UPDATE_ELFCOREHDR",
                 0x00000008: "KEXEC_CRASH_HOTPLUG_SUPPORT",
-                0xffff0000: "KEXEC_ARCH_MASK",
+                0xFFFF0000: "KEXEC_ARCH_MASK",
             },
             "sequential_flags": {
                 0x0: "KEXEC_ARCH_DEFAULT",
                 0x30000: "KEXEC_ARCH_386",
                 0x40000: "KEXEC_ARCH_68K",
-                0xf0000: "KEXEC_ARCH_PARISC",
-                0x3e0000: "KEXEC_ARCH_X86_64",
+                0xF0000: "KEXEC_ARCH_PARISC",
+                0x3E0000: "KEXEC_ARCH_X86_64",
                 0x140000: "KEXEC_ARCH_PPC",
                 0x150000: "KEXEC_ARCH_PPC64",
                 0x320000: "KEXEC_ARCH_IA_64",
                 0x280000: "KEXEC_ARCH_ARM",
                 0x160000: "KEXEC_ARCH_S390",
-                0x2a0000: "KEXEC_ARCH_SH",
-                0xa0000: "KEXEC_ARCH_MIPS_LE",
+                0x2A0000: "KEXEC_ARCH_SH",
+                0xA0000: "KEXEC_ARCH_MIPS_LE",
                 0x80000: "KEXEC_ARCH_MIPS",
-                0xb70000: "KEXEC_ARCH_AARCH64",
-                0xf30000: "KEXEC_ARCH_RISCV",
+                0xB70000: "KEXEC_ARCH_AARCH64",
+                0xF30000: "KEXEC_ARCH_RISCV",
                 0x1020000: "KEXEC_ARCH_LOONGARCH",
             },
             "parsing_mode": "mixed",
         },
     },
-    #waitid
-    247:{
-        #int which
+    # waitid
+    247: {
+        # int which
         0: {
             0: "P_ALL",
             1: "P_PID",
             2: "P_PGID",
             "parsing_mode": "sequential",
         },
-        #int options
+        # int options
         3: {
             0x00000001: "WNOHANG",
             0x00000002: "WUNTRACED / WSTOPPED",
@@ -1458,39 +1566,39 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x80000000: "__WCLONE",
         },
     },
-    #add_key
-    248:{
-        #key_serial_t ringid
+    # add_key
+    248: {
+        # key_serial_t ringid
         4: {
-            0xffffffffffffffff: "KEY_SPEC_THREAD_KEYRING",
-            0xfffffffffffffffe: "KEY_SPEC_PROCESS_KEYRING",
-            0xfffffffffffffffd: "KEY_SPEC_SESSION_KEYRING",
-            0xfffffffffffffffc: "KEY_SPEC_USER_KEYRING",
-            0xfffffffffffffffb: "KEY_SPEC_USER_SESSION_KEYRING",
-            0xfffffffffffffffa: "KEY_SPEC_GROUP_KEYRING",
-            0xffffffffffffff9f: "KEY_SPEC_REQKEY_AUTH_KEY",
-            0xffffffffffffff9e: "KEY_SPEC_REQUESTOR_KEYRING",
+            0xFFFFFFFFFFFFFFFF: "KEY_SPEC_THREAD_KEYRING",
+            0xFFFFFFFFFFFFFFFE: "KEY_SPEC_PROCESS_KEYRING",
+            0xFFFFFFFFFFFFFFFD: "KEY_SPEC_SESSION_KEYRING",
+            0xFFFFFFFFFFFFFFFC: "KEY_SPEC_USER_KEYRING",
+            0xFFFFFFFFFFFFFFFB: "KEY_SPEC_USER_SESSION_KEYRING",
+            0xFFFFFFFFFFFFFFFA: "KEY_SPEC_GROUP_KEYRING",
+            0xFFFFFFFFFFFFFF9F: "KEY_SPEC_REQKEY_AUTH_KEY",
+            0xFFFFFFFFFFFFFF9E: "KEY_SPEC_REQUESTOR_KEYRING",
             "parsing_mode": "sequential",
         },
     },
-    #request_key
-    249:{
-        #key_serial_t destringid
+    # request_key
+    249: {
+        # key_serial_t destringid
         3: {
-            0xffffffffffffffff: "KEY_SPEC_THREAD_KEYRING",
-            0xfffffffffffffffe: "KEY_SPEC_PROCESS_KEYRING",
-            0xfffffffffffffffd: "KEY_SPEC_SESSION_KEYRING",
-            0xfffffffffffffffc: "KEY_SPEC_USER_KEYRING",
-            0xfffffffffffffffb: "KEY_SPEC_USER_SESSION_KEYRING",
-            0xfffffffffffffffa: "KEY_SPEC_GROUP_KEYRING",
-            0xffffffffffffff9f: "KEY_SPEC_REQKEY_AUTH_KEY",
-            0xffffffffffffff9e: "KEY_SPEC_REQUESTOR_KEYRING",
+            0xFFFFFFFFFFFFFFFF: "KEY_SPEC_THREAD_KEYRING",
+            0xFFFFFFFFFFFFFFFE: "KEY_SPEC_PROCESS_KEYRING",
+            0xFFFFFFFFFFFFFFFD: "KEY_SPEC_SESSION_KEYRING",
+            0xFFFFFFFFFFFFFFFC: "KEY_SPEC_USER_KEYRING",
+            0xFFFFFFFFFFFFFFFB: "KEY_SPEC_USER_SESSION_KEYRING",
+            0xFFFFFFFFFFFFFFFA: "KEY_SPEC_GROUP_KEYRING",
+            0xFFFFFFFFFFFFFF9F: "KEY_SPEC_REQKEY_AUTH_KEY",
+            0xFFFFFFFFFFFFFF9E: "KEY_SPEC_REQUESTOR_KEYRING",
             "parsing_mode": "sequential",
         },
     },
-    #keyctl
-    250:{
-        #int option
+    # keyctl
+    250: {
+        # int option
         0: {
             0: "KEYCTL_GET_KEYRING_ID",
             1: "KEYCTL_JOIN_SESSION_KEYRING",
@@ -1528,9 +1636,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             "parsing_mode": "sequential",
         },
     },
-    #ioprio_set
-    251:{
-        #int which
+    # ioprio_set
+    251: {
+        # int which
         0: {
             1: "IOPRIO_WHO_PROCESS",
             2: "IOPRIO_WHO_PGRP",
@@ -1538,9 +1646,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             "parsing_mode": "sequential",
         },
     },
-    #ioprio_get
-    252:{
-        #int which
+    # ioprio_get
+    252: {
+        # int which
         0: {
             1: "IOPRIO_WHO_PROCESS",
             2: "IOPRIO_WHO_PGRP",
@@ -1548,27 +1656,27 @@ AMD64_SYSCALL_PARSER_MAP = \
             "parsing_mode": "sequential",
         },
     },
-    #openat
-    257:{
-        #int dfd
+    # openat
+    257: {
+        # int dfd
         0: OPENAT_DFD,
-        #int flags
+        # int flags
         2: OPEN_FLAGS,
-        #umode_t mode
+        # umode_t mode
         3: OPEN_MODES,
     },
-    #mkdirat
-    258:{
-        #int dfd
+    # mkdirat
+    258: {
+        # int dfd
         0: OPENAT_DFD,
-        #umode_t mode
+        # umode_t mode
         2: OPEN_MODES,
     },
-    #mknodat
-    259:{
-        #int dfd
+    # mknodat
+    259: {
+        # int dfd
         0: OPENAT_DFD,
-        #umode_t mode
+        # umode_t mode
         2: {
             # Permissions
             0o00700: "S_IRWXU",
@@ -1594,78 +1702,78 @@ AMD64_SYSCALL_PARSER_MAP = \
             0o140000: "S_IFSOCK",
         },
     },
-    #fchownat
-    260:{
-        #int dfd
+    # fchownat
+    260: {
+        # int dfd
         0: OPENAT_DFD,
-        #int flag
+        # int flag
         4: {
             0x1000: "AT_EMPTY_PATH",
             0x100: "AT_SYMLINK_NOFOLLOW",
         },
     },
-    #newfstatat
-    262:{
-        #int dfd
+    # newfstatat
+    262: {
+        # int dfd
         0: OPENAT_DFD,
-        #int flag
+        # int flag
         3: {
             0x1000: "AT_EMPTY_PATH",
             0x100: "AT_SYMLINK_NOFOLLOW",
             0x800: "AT_NO_AUTOMOUNT",
         },
     },
-    #unlinkat
-    263:{
-        #int dfd
+    # unlinkat
+    263: {
+        # int dfd
         0: OPENAT_DFD,
-        #int flag
+        # int flag
         2: {
             0x200: "AT_REMOVEDIR",
         },
     },
-    #renameat
-    264:{
-        #int olddfd
+    # renameat
+    264: {
+        # int olddfd
         0: OPENAT_DFD,
     },
-    #linkat
-    265:{
-        #int olddfd
+    # linkat
+    265: {
+        # int olddfd
         0: OPENAT_DFD,
-        #int flags
+        # int flags
         4: {
             0x1000: "AT_EMPTY_PATH",
             0x400: "AT_SYMLINK_FOLLOW",
         },
     },
-    #symlinkat
-    266:{
-        #int newdfd
+    # symlinkat
+    266: {
+        # int newdfd
         1: OPENAT_DFD,
     },
-    #readlinkat
-    267:{
-        #int dfd
+    # readlinkat
+    267: {
+        # int dfd
         0: OPENAT_DFD,
     },
-    #fchmodat
-    268:{
-        #int dfd
+    # fchmodat
+    268: {
+        # int dfd
         0: OPENAT_DFD,
-        #umode_t mode
+        # umode_t mode
         2: OPEN_MODES,
     },
-    #faccessat
-    269:{
-        #int dfd
+    # faccessat
+    269: {
+        # int dfd
         0: OPENAT_DFD,
-        #int mode
+        # int mode
         2: OPEN_MODES,
     },
-    #unshare
-    272:{
-        #unsigned long unshare_flags
+    # unshare
+    272: {
+        # unsigned long unshare_flags
         0: {
             0x00000400: "CLONE_FILES",
             0x00000200: "CLONE_FS",
@@ -1683,49 +1791,49 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x00000800: "CLONE_SIGHAND",
         },
     },
-    #splice
-    275:{
-        #unsigned int flags
+    # splice
+    275: {
+        # unsigned int flags
         5: SPLICE_FLAGS,
     },
-    #tee
-    276:{
-        #unsigned int flags
+    # tee
+    276: {
+        # unsigned int flags
         3: SPLICE_FLAGS,
     },
-    #sync_file_range
-    277:{
-        #unsigned int flags
+    # sync_file_range
+    277: {
+        # unsigned int flags
         3: {
             1: "SYNC_FILE_RANGE_WAIT_BEFORE",
             2: "SYNC_FILE_RANGE_WRITE",
             4: "SYNC_FILE_RANGE_WAIT_AFTER",
         },
     },
-    #vmsplice
-    278:{
-        #unsigned int flags
+    # vmsplice
+    278: {
+        # unsigned int flags
         3: SPLICE_FLAGS,
     },
-    #move_pages
-    279:{
-        #int flags
+    # move_pages
+    279: {
+        # int flags
         5: {
             0b10: "MPOL_MF_MOVE",
             0b100: "MPOL_MF_MOVE_ALL",
         },
     },
-    #utimensat
-    280:{
-        #int flags
+    # utimensat
+    280: {
+        # int flags
         3: {
             0x1000: "AT_EMPTY_PATH",
             0x100: "AT_SYMLINK_NOFOLLOW",
         },
     },
-    #timerfd_create
-    283:{
-        #int clockid
+    # timerfd_create
+    283: {
+        # int clockid
         0: {
             0: "CLOCK_REALTIME",
             1: "CLOCK_MONOTONIC",
@@ -1734,15 +1842,15 @@ AMD64_SYSCALL_PARSER_MAP = \
             9: "CLOCK_BOOTTIME_ALARM",
             "parsing_mode": "sequential",
         },
-        #int flags
+        # int flags
         1: {
             0o02000000: "TFD_CLOEXEC",
             0o00004000: "TFD_NONBLOCK",
         },
     },
-    #fallocate
-    285:{
-        #int mode
+    # fallocate
+    285: {
+        # int mode
         1: {
             0x00: "FALLOC_FL_ALLOCATE_RANGE",
             0x01: "FALLOC_FL_KEEP_SIZE",
@@ -1754,56 +1862,56 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x40: "FALLOC_FL_UNSHARE_RANGE",
         },
     },
-    #timerfd_settime
-    286:{
-        #int flags
+    # timerfd_settime
+    286: {
+        # int flags
         1: {
             0x00000001: "TFD_TIMER_ABSTIME",
             0x00000002: "TFD_TIMER_CANCEL_ON_SET",
         },
     },
-    #accept4
-    288:{
-        #int flags
+    # accept4
+    288: {
+        # int flags
         3: {
             0o02000000: "SOCK_CLOEXEC",
             0o00004000: "SOCK_NONBLOCK",
         },
     },
-    #signalfd4
-    289:{
-        #int flags
+    # signalfd4
+    289: {
+        # int flags
         3: {
             0o02000000: "SFD_CLOEXEC",
             0o00004000: "SFD_NONBLOCK",
         },
     },
-    #eventfd2
-    290:{
-        #int flags
+    # eventfd2
+    290: {
+        # int flags
         1: {
             0o00000001: "EFD_SEMAPHORE",
             0o02000000: "EFD_CLOEXEC",
             0o00004000: "EFD_NONBLOCK",
         },
     },
-    #epoll_create1
-    291:{
-        #int flags
+    # epoll_create1
+    291: {
+        # int flags
         0: {
             0o02000000: "EPOLL_CLOEXEC",
         },
     },
-    #dup3
-    292:{
-        #int flags
+    # dup3
+    292: {
+        # int flags
         2: {
             0o02000000: "O_CLOEXEC",
         },
     },
-    #pipe2
-    293:{
-        #int flags
+    # pipe2
+    293: {
+        # int flags
         1: {
             0o02000000: "O_CLOEXEC",
             0o00004000: "O_NONBLOCK",
@@ -1811,22 +1919,22 @@ AMD64_SYSCALL_PARSER_MAP = \
             0o00000200: "O_EXCL",
         },
     },
-    #inotify_init1
-    294:{
-        #int flags
+    # inotify_init1
+    294: {
+        # int flags
         0: {
             0o02000000: "IN_CLOEXEC",
             0o00004000: "IN_NONBLOCK",
         },
     },
-    #rt_tgsigqueueinfo
-    297:{
-        #int sig
+    # rt_tgsigqueueinfo
+    297: {
+        # int sig
         2: SIGNALS,
     },
-    #perf_event_open
-    298:{
-        #unsigned long flags
+    # perf_event_open
+    298: {
+        # unsigned long flags
         4: {
             0b0001: "PERF_FLAG_FD_NO_GROUP",
             0b0010: "PERF_FLAG_FD_OUTPUT",
@@ -1834,9 +1942,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             0b1000: "PERF_FLAG_FD_CLOEXEC",
         },
     },
-    #recvmmsg
-    299:{
-        #unsigned int flags
+    # recvmmsg
+    299: {
+        # unsigned int flags
         3: {
             0x40000000: "MSG_CMSG_CLOEXEC",
             0x00000040: "MSG_DONTWAIT",
@@ -1847,9 +1955,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x00000100: "MSG_WAITALL",
         },
     },
-    #fanotify_init
-    300:{
-        #unsigned int flags
+    # fanotify_init
+    300: {
+        # unsigned int flags
         0: {
             "sequential_flags": {
                 0x00000000: "FAN_CLASS_NOTIF",
@@ -1871,12 +1979,12 @@ AMD64_SYSCALL_PARSER_MAP = \
             },
             "parsing_mode": "mixed",
         },
-        #unsigned int event_f_flags
+        # unsigned int event_f_flags
         1: OPEN_FLAGS,
     },
-    #fanotify_mark
-    301:{
-        #unsigned int flags
+    # fanotify_mark
+    301: {
+        # unsigned int flags
         1: {
             "sequential_flags": {
                 0x00000001: "FAN_MARK_ADD",
@@ -1895,7 +2003,7 @@ AMD64_SYSCALL_PARSER_MAP = \
             },
             "parsing_mode": "mixed",
         },
-        #__u64 mask
+        # __u64 mask
         2: {
             0x00000001: "FAN_ACCESS",
             0x00000002: "FAN_MODIFY",
@@ -1917,12 +2025,12 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x40000000: "FAN_ONDIR",
             0x08000000: "FAN_EVENT_ON_CHILD",
         },
-        #int dfd
+        # int dfd
         3: OPENAT_DFD,
     },
-    #prlimit64
-    302:{
-        #unsigned int resource
+    # prlimit64
+    302: {
+        # unsigned int resource
         1: {
             0: "RLIMIT_CPU",
             1: "RLIMIT_FSIZE",
@@ -1941,36 +2049,36 @@ AMD64_SYSCALL_PARSER_MAP = \
             14: "RLIMIT_RTPRIO",
             15: "RLIMIT_RTTIME",
             16: "RLIM_NLIMITS",
-            0xffffffff: "RLIM_INFINITY",
+            0xFFFFFFFF: "RLIM_INFINITY",
             "parsing_mode": "sequential",
         },
     },
-    #name_to_handle_at
-    303:{
-        #int dfd
+    # name_to_handle_at
+    303: {
+        # int dfd
         0: OPENAT_DFD,
-        #int flag
+        # int flag
         4: {
             0x200: "AT_HANDLE_FID",
             0x1000: "AT_EMPTY_PATH",
             0x400: "AT_SYMLINK_FOLLOW",
         },
     },
-    #open_by_handle_at
-    304:{
-        #int mountdirfd
+    # open_by_handle_at
+    304: {
+        # int mountdirfd
         0: OPENAT_DFD,
-        #int flags
+        # int flags
         2: OPEN_FLAGS,
     },
-    #clock_adjtime
-    305:{
-        #const clockid_t which_clock
+    # clock_adjtime
+    305: {
+        # const clockid_t which_clock
         0: WHICH_CLOCK,
     },
-    #sendmmsg
-    307:{
-        #unsigned int flags
+    # sendmmsg
+    307: {
+        # unsigned int flags
         3: {
             0x00000800: "MSG_CONFIRM",
             0x00000004: "MSG_DONTROUTE",
@@ -1982,9 +2090,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x20000000: "MSG_FASTOPEN",
         },
     },
-    #setns
-    308:{
-        #int flags
+    # setns
+    308: {
+        # int flags
         1: {
             0x02000000: "CLONE_NEWCGROUP",
             0x04000000: "CLONE_NEWUTS",
@@ -1996,9 +2104,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x10000000: "CLONE_NEWUSER",
         },
     },
-    #kcmp
-    312:{
-        #int type
+    # kcmp
+    312: {
+        # int type
         2: {
             0: "KCMP_FILE",
             1: "KCMP_VM",
@@ -2011,34 +2119,34 @@ AMD64_SYSCALL_PARSER_MAP = \
             "parsing_mode": "sequential",
         },
     },
-    #finit_module
-    313:{
-        #int flags
+    # finit_module
+    313: {
+        # int flags
         2: {
             1: "MODULE_INIT_IGNORE_MODVERSIONS",
             2: "MODULE_INIT_IGNORE_VERMAGIC",
             4: "MODULE_INIT_COMPRESSED_FILE",
         },
     },
-    #renameat2
-    316:{
-        #unsigned int flags
+    # renameat2
+    316: {
+        # unsigned int flags
         4: {
             0b001: "RENAME_NOREPLACE",
             0b010: "RENAME_EXCHANGE",
             0b100: "RENAME_WHITEOUT",
         },
     },
-    #seccomp
-    317:{
-        #unsigned int op
+    # seccomp
+    317: {
+        # unsigned int op
         0: {
             0: "SECCOMP_SET_MODE_STRICT",
             1: "SECCOMP_SET_MODE_FILTER",
             2: "SECCOMP_GET_ACTION_AVAIL",
             3: "SECCOMP_GET_NOTIF_SIZES",
         },
-        #unsigned int flags
+        # unsigned int flags
         1: {
             0b000001: "SECCOMP_FILTER_FLAG_TSYNC",
             0b000010: "SECCOMP_FILTER_FLAG_LOG",
@@ -2048,18 +2156,18 @@ AMD64_SYSCALL_PARSER_MAP = \
             0b100000: "SECCOMP_FILTER_FLAG_WAIT_KILLABLE_RECV",
         },
     },
-    #getrandom
-    318:{
-        #unsigned int flags
+    # getrandom
+    318: {
+        # unsigned int flags
         2: {
             0x0001: "GRND_NONBLOCK",
             0x0002: "GRND_RANDOM",
             0x0004: "GRND_INSECURE",
         },
     },
-    #memfd_create
-    319:{
-        #unsigned int flags
+    # memfd_create
+    319: {
+        # unsigned int flags
         1: {
             0x1: "MFD_CLOEXEC",
             0x2: "MFD_ALLOW_SEALING",
@@ -2067,22 +2175,22 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x8: "MFD_NOEXEC_SEAL",
             0x10: "MFD_EXEC",
             0x40000000: "MFD_HUGE_64KB",
-            0x4c000000: "MFD_HUGE_512KB",
+            0x4C000000: "MFD_HUGE_512KB",
             0x50000000: "MFD_HUGE_1MB",
             0x54000000: "MFD_HUGE_2MB",
-            0x5c000000: "MFD_HUGE_8MB",
+            0x5C000000: "MFD_HUGE_8MB",
             0x60000000: "MFD_HUGE_16MB",
             0x64000000: "MFD_HUGE_32MB",
             0x70000000: "MFD_HUGE_256MB",
             0x74000000: "MFD_HUGE_512MB",
             0x78000000: "MFD_HUGE_1GB",
-            0x7c000000: "MFD_HUGE_2GB",
+            0x7C000000: "MFD_HUGE_2GB",
             0x88000000: "MFD_HUGE_16GB",
         },
     },
-    #kexec_file_load
-    320:{
-        #unsigned long flags
+    # kexec_file_load
+    320: {
+        # unsigned long flags
         4: {
             0x00000001: "KEXEC_FILE_UNLOAD",
             0x00000002: "KEXEC_FILE_ON_CRASH",
@@ -2090,9 +2198,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x00000008: "KEXEC_FILE_DEBUG",
         },
     },
-    #bpf
-    321:{
-        #int cmd
+    # bpf
+    321: {
+        # int cmd
         0: {
             0: "BPF_MAP_CREATE",
             1: "BPF_MAP_LOOKUP_ELEM",
@@ -2134,28 +2242,28 @@ AMD64_SYSCALL_PARSER_MAP = \
             "parsing_mode": "sequential",
         },
     },
-    #execveat
-    322:{
-        #int fd
+    # execveat
+    322: {
+        # int fd
         0: OPENAT_DFD,
-        #int flags
+        # int flags
         4: {
             0x1000: "AT_EMPTY_PATH",
             0x100: "AT_SYMLINK_NOFOLLOW",
         },
     },
-    #userfaultfd
-    323:{
-        #int flags
+    # userfaultfd
+    323: {
+        # int flags
         0: {
             0x00000001: "UFFD_USER_MODE_ONLY",
             0o02000000: "O_CLOEXEC",
             0o00004000: "O_NONBLOCK",
         },
     },
-    #membarrier
-    324:{
-        #int cmd
+    # membarrier
+    324: {
+        # int cmd
         0: {
             0b0000000000: "MEMBARRIER_CMD_QUERY",
             0b0000000001: "MEMBARRIER_CMD_GLOBAL",
@@ -2169,23 +2277,23 @@ AMD64_SYSCALL_PARSER_MAP = \
             0b0100000000: "MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_RSEQ",
             0b1000000000: "MEMBARRIER_CMD_GET_REGISTRATIONS",
         },
-        #unsigned int flags
+        # unsigned int flags
         1: {
             0x00000001: "MEMBARRIER_CMD_FLAG_CPU",
         },
     },
-    #mlock2
-    325:{
-        #int flags
+    # mlock2
+    325: {
+        # int flags
         2: {
             1: "MCL_CURRENT",
             2: "MCL_FUTURE",
             4: "MCL_ONFAULT",
         },
     },
-    #preadv2
-    327:{
-        #rwf_t flags
+    # preadv2
+    327: {
+        # rwf_t flags
         5: {
             0x00000001: "RWF_HIPRI",
             0x00000002: "RWF_DSYNC",
@@ -2197,9 +2305,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x00000080: "RWF_DONTCACHE",
         },
     },
-    #pwritev2
-    328:{
-        #rwf_t flags
+    # pwritev2
+    328: {
+        # rwf_t flags
         5: {
             0x00000001: "RWF_HIPRI",
             0x00000002: "RWF_DSYNC",
@@ -2211,9 +2319,9 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x00000080: "RWF_DONTCACHE",
         },
     },
-    #pkey_mprotect
-    329:{
-        #unsigned long prot
+    # pkey_mprotect
+    329: {
+        # unsigned long prot
         2: {
             0x0: "PROT_NONE",
             0x1: "PROT_READ",
@@ -2225,19 +2333,19 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x02000000: "PROT_GROWSUP",
         },
     },
-    #pkey_alloc
-    330:{
-        #unsigned long init_val
+    # pkey_alloc
+    330: {
+        # unsigned long init_val
         1: {
             0x1: "PKEY_DISABLE_ACCESS",
             0x2: "PKEY_DISABLE_WRITE",
         },
     },
-    #statx
-    332:{
-        #int dfd
+    # statx
+    332: {
+        # int dfd
         0: OPENAT_DFD,
-        #unsigned flags
+        # unsigned flags
         2: {
             0x1000: "AT_EMPTY_PATH",
             0x800: "AT_NO_AUTOMOUNT",
@@ -2248,18 +2356,30 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x4000: "AT_STATX_DONT_SYNC",
         },
     },
-    #rseq
-    334:{
-        #int flags
+    # rseq
+    334: {
+        # int flags
         2: {
             0x00000001: "RSEQ_FLAG_UNREGISTER",
         },
     },
-    #open_tree
-    428:{
-        #int dfd
+    # int pidfd, int sig, siginfo_t *info, unsigned int flags
+    # pidfd_send_signal
+    424: {
+        # int sig
+        1: SIGNALS,
+        # unsigned int flags
+        3: {
+            0b0001: "PIDFD_SIGNAL_THREAD",
+            0b0010: "PIDFD_SIGNAL_THREAD_GROUP",
+            0b0100: "PIDFD_SIGNAL_PROCESS_GROUP",
+        },
+    },
+    # open_tree
+    428: {
+        # int dfd
         0: OPENAT_DFD,
-        #unsigned flags
+        # unsigned flags
         2: {
             0x1000: "AT_EMPTY_PATH",
             0x800: "AT_NO_AUTOMOUNT",
@@ -2269,13 +2389,13 @@ AMD64_SYSCALL_PARSER_MAP = \
             0o2000000: "OPEN_TREE_CLOEXEC",
         },
     },
-    #move_mount
-    429:{
-        #int from_dfd
+    # move_mount
+    429: {
+        # int from_dfd
         0: OPENAT_DFD,
-        #int to_dfd
+        # int to_dfd
         2: OPENAT_DFD,
-        #unsigned int flags
+        # unsigned int flags
         4: {
             0x00000001: "MOVE_MOUNT_F_SYMLINKS",
             0x00000002: "MOVE_MOUNT_F_AUTOMOUNTS",
@@ -2287,16 +2407,16 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x00000200: "MOVE_MOUNT_BENEATH",
         },
     },
-    #fsopen
-    430:{
-        #unsigned int flags
+    # fsopen
+    430: {
+        # unsigned int flags
         1: {
             0x00000001: "FSOPEN_CLOEXEC",
         },
     },
-    #fsconfig
-    431:{
-        #unsigned int cmd
+    # fsconfig
+    431: {
+        # unsigned int cmd
         1: {
             0: "FSCONFIG_SET_FLAG",
             1: "FSCONFIG_SET_STRING",
@@ -2310,13 +2430,13 @@ AMD64_SYSCALL_PARSER_MAP = \
             "parsing_mode": "sequential",
         },
     },
-    #fsmount
-    432:{
-        #unsigned int flags
+    # fsmount
+    432: {
+        # unsigned int flags
         1: {
             0x00000001: "FSMOUNT_CLOEXEC",
         },
-        #unsigned int attr_flags
+        # unsigned int attr_flags
         2: {
             0x00000001: "MOUNT_ATTR_RDONLY",
             0x00000002: "MOUNT_ATTR_NOSUID",
@@ -2331,340 +2451,180 @@ AMD64_SYSCALL_PARSER_MAP = \
             0x00200000: "MOUNT_ATTR_NOSYMFOLLOW",
         },
     },
-    #fspick
-    433:{
-        #int dfd
-        0: {},
-        #const char *path
-        1: {},
-        #unsigned int flags
-        2: {},
+    # fspick
+    433: {
+        # int dfd
+        0: {
+            OPENAT_DFD,
+        },
+        # unsigned int flags
+        2: {
+            0x00000001: "FSPICK_CLOEXEC",
+            0x00000002: "FSPICK_SYMLINK_NOFOLLOW",
+            0x00000004: "FSPICK_NO_AUTOMOUNT",
+            0x00000008: "FSPICK_EMPTY_PATH",
+        },
     },
-    #pidfd_open
-    434:{
-        #pid_t pid
-        0: {},
-        #unsigned int flags
-        1: {},
+    # pidfd_open
+    434: {
+        # unsigned int flags
+        1: {
+            # define PIDFD_NONBLOCK	O_NONBLOCK
+            # define PIDFD_THREAD	O_EXCL
+            0o00004000: "PIDFD_NONBLOCK",
+            0o00000200: "PIDFD_THREAD",
+        },
     },
-    #close_range
-    436:{
-        #unsigned int fd
-        0: {},
-        #unsigned int max_fd
-        1: {},
-        #unsigned int flags
-        2: {},
+    # close_range
+    436: {
+        # unsigned int flags
+        2: {
+            0b000000010: "CLOSE_RANGE_UNSHARE",
+            0b000000100: "CLOSE_RANGE_CLOEXEC",
+        },
     },
-    #openat2
-    437:{
-        #int dfd
+    # openat2
+    437: {
+        # int dfd
         0: OPENAT_DFD,
     },
-    #pidfd_getfd
-    438:{
-        #int pidfd
-        0: {},
-        #int fd
-        1: {},
-        #unsigned int flags
-        2: {},
-    },
-    #faccessat2
-    439:{
-        #int dfd
+    # faccessat2
+    439: {
+        # int dfd
         0: OPENAT_DFD,
-        #int mode
+        # int mode
         2: OPEN_MODES,
-        #int flags
+        # int flags
         3: {
             0x200: "AT_EACCESS",
             0x1000: "AT_EMPTY_PATH",
             0x100: "AT_SYMLINK_NOFOLLOW",
         },
     },
-    #process_madvise
-    440:{
-        #int pidfd
-        0: {},
-        #const struct iovec *vec
-        1: {},
-        #size_t vlen
-        2: {},
-        #int behavior
-        3: {},
-        #unsigned int flags
-        4: {},
+    # process_madvise
+    440: {
+        # int behavior
+        3: {
+            ADVISE_BEHAVIORS,
+        },
     },
-    #mount_setattr
-    442:{
-        #int dfd
-        0: {},
-        #const char *path
-        1: {},
-        #unsigned int flags
-        2: {},
-        #struct mount_attr *uattr
-        3: {},
-        #size_t usize
-        4: {},
+    # mount_setattr
+    442: {
+        # int dfd
+        0: {
+            OPENAT_DFD,
+        },
+        # unsigned int flags
+        2: {
+            0x100: "AT_SYMLINK_NOFOLLOW",
+            0x800: "AT_NO_AUTOMOUNT",
+            0x1000: "AT_EMPTY_PATH",
+            0x8000: "AT_RECURSIVE",
+        },
     },
-    #quotactl_fd
-    443:{
-        #unsigned int fd
-        0: {},
-        #unsigned int cmd
-        1: {},
-        #qid_t id
-        2: {},
-        #void *addr
-        3: {},
+    # landlock_create_ruleset
+    444: {
+        # const __u32 flags
+        2: {
+            1: "LANDLOCK_CREATE_RULESET_VERSION",
+        },
     },
-    #landlock_create_ruleset
-    444:{
-        #const struct landlock_ruleset_attr *const attr
-        0: {},
-        #const size_t size
-        1: {},
-        #const __u32 flags
-        2: {},
+    # landlock_add_rule
+    445: {
+        # const enum landlock_rule_type rule_type
+        1: {
+            1: "LANDLOCK_RULE_PATH_BENEATH",
+            2: "LANDLOCK_RULE_NET_PORT",
+        },
     },
-    #landlock_add_rule
-    445:{
-        #const int ruleset_fd
-        0: {},
-        #const enum landlock_rule_type rule_type
-        1: {},
-        #const void *const rule_attr
-        2: {},
-        #const __u32 flags
-        3: {},
+    # memfd_secret
+    447: {
+        # unsigned int flags
+        0: {
+            0x00000001: "FD_CLOEXEC",
+        },
     },
-    #landlock_restrict_self
-    446:{
-        #const int ruleset_fd
-        0: {},
-        #const __u32 flags
-        1: {},
+    # futex_waitv
+    449: {
+        # clockid_t clockid
+        4: WHICH_CLOCK,
     },
-    #memfd_secret
-    447:{
-        #unsigned int flags
-        0: {},
-    },
-    #process_mrelease
-    448:{
-        #int pidfd
-        0: {},
-        #unsigned int flags
-        1: {},
-    },
-    #futex_waitv
-    449:{
-        #struct futex_waitv *waiters
-        0: {},
-        #unsigned int nr_futexes
-        1: {},
-        #unsigned int flags
-        2: {},
-        #struct __kernel_timespec *timeout
-        3: {},
-        #clockid_t clockid
-        4: {},
-    },
-    #set_mempolicy_home_node
-    450:{
-        #unsigned long start
-        0: {},
-        #unsigned long len
-        1: {},
-        #unsigned long home_node
-        2: {},
-        #unsigned long flags
-        3: {},
-    },
-    #cachestat
-    451:{
-        #unsigned int fd
-        0: {},
-        #struct cachestat_range *cstat_range
-        1: {},
-        #struct cachestat *cstat
-        2: {},
-        #unsigned int flags
-        3: {},
-    },
-    #fchmodat2
-    452:{
-        #int dfd
+    # cachestat
+    451: {
+        # unsigned int fd
         0: OPENAT_DFD,
-        #umode_t mode
+    },
+    # fchmodat2
+    452: {
+        # int dfd
+        0: OPENAT_DFD,
+        # umode_t mode
         2: OPEN_MODES,
-        #unsigned int flags
+        # unsigned int flags
         3: {
             0x100: "AT_SYMLINK_NOFOLLOW",
         },
     },
-    #map_shadow_stack
-    453:{
-        #unsigned long addr
-        0: {},
-        #unsigned long size
-        1: {},
-        #unsigned int flags
-        2: {},
+    # map_shadow_stack
+    453: {
+        # unsigned int flags
+        2: {
+            1: "SHADOW_STACK_SET_TOKEN",
+            2: "SHADOW_STACK_SET_MARKER",
+        },
     },
-    #futex_wake
-    454:{
-        #void *uaddr
-        0: {},
-        #unsigned long mask
-        1: {},
-        #int nr
-        2: {},
-        #unsigned int flags
-        3: {},
+    # futex_wait
+    455: {
+        # clockid_t clockid
+        5: WHICH_CLOCK,
     },
-    #futex_wait
-    455:{
-        #void *uaddr
-        0: {},
-        #unsigned long val
-        1: {},
-        #unsigned long mask
-        2: {},
-        #unsigned int flags
-        3: {},
-        #struct __kernel_timespec *timeout
-        4: {},
-        #clockid_t clockid
-        5: {},
+    # listmount
+    458: {
+        # unsigned int flags
+        3: {
+            1: "LISTMOUNT_REVERSE",
+        },
     },
-    #futex_requeue
-    456:{
-        #struct futex_waitv *waiters
-        0: {},
-        #unsigned int flags
-        1: {},
-        #int nr_wake
-        2: {},
-        #int nr_requeue
-        3: {},
+    # lsm_get_self_attr
+    459: {
+        # u32 flags
+        3: {
+            0x0001: "LSM_FLAG_SINGLE",
+        },
     },
-    #statmount
-    457:{
-        #const struct mnt_id_req *req
-        0: {},
-        #struct statmount *buf
-        1: {},
-        #size_t bufsize
-        2: {},
-        #unsigned int flags
-        3: {},
+    # setxattrat
+    463: {
+        # int dfd
+        0: OPENAT_DFD,
+        # unsigned int at_flags
+        2: {
+            0x100: "AT_SYMLINK_NOFOLLOW",
+            0x1000: "AT_EMPTY_PATH",
+        },
     },
-    #listmount
-    458:{
-        #const struct mnt_id_req *req
-        0: {},
-        #u64 *mnt_ids
-        1: {},
-        #size_t nr_mnt_ids
-        2: {},
-        #unsigned int flags
-        3: {},
+    # getxattrat
+    464: {
+        # int dfd
+        0: OPENAT_DFD,
     },
-    #lsm_get_self_attr
-    459:{
-        #unsigned int attr
-        0: {},
-        #struct lsm_ctx *ctx
-        1: {},
-        #u32 *size
-        2: {},
-        #u32 flags
-        3: {},
+    # listxattrat
+    465: {
+        # int dfd
+        0: OPENAT_DFD,
+        # unsigned int at_flags
+        2: {
+            0x100: "AT_SYMLINK_NOFOLLOW",
+            0x1000: "AT_EMPTY_PATH",
+        },
     },
-    #lsm_set_self_attr
-    460:{
-        #unsigned int attr
-        0: {},
-        #struct lsm_ctx *ctx
-        1: {},
-        #u32 size
-        2: {},
-        #u32 flags
-        3: {},
-    },
-    #lsm_list_modules
-    461:{
-        #u64 *ids
-        0: {},
-        #u32 *size
-        1: {},
-        #u32 flags
-        2: {},
-    },
-    #mseal
-    462:{
-        #unsigned long start
-        0: {},
-        #size_t len
-        1: {},
-        #unsigned long flags
-        2: {},
-    },
-    #setxattrat
-    463:{
-        #int dfd
-        0: {},
-        #const char *pathname
-        1: {},
-        #unsigned int at_flags
-        2: {},
-        #const char *name
-        3: {},
-        #const struct xattr_args *uargs
-        4: {},
-        #size_t usize
-        5: {},
-    },
-    #getxattrat
-    464:{
-        #int dfd
-        0: {},
-        #const char *pathname
-        1: {},
-        #unsigned int at_flags
-        2: {},
-        #const char *name
-        3: {},
-        #struct xattr_args *uargs
-        4: {},
-        #size_t usize
-        5: {},
-    },
-    #listxattrat
-    465:{
-        #int dfd
-        0: {},
-        #const char *pathname
-        1: {},
-        #unsigned int at_flags
-        2: {},
-        #char *list
-        3: {},
-        #size_t size
-        4: {},
-    },
-    #removexattrat
-    466:{
-        #int dfd
-        0: {},
-        #const char *pathname
-        1: {},
-        #unsigned int at_flags
-        2: {},
-        #const char *name
-        3: {},
+    # removexattrat
+    466: {
+        # int dfd
+        0: OPENAT_DFD,
+        # unsigned int at_flags
+        2: {
+            0x100: "AT_SYMLINK_NOFOLLOW",
+            0x1000: "AT_EMPTY_PATH",
+        },
     },
 }
