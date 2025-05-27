@@ -10,8 +10,10 @@
 
 #include "debug_sym_parser.h"
 
-#define HAVE_DECL_BASENAME 1
-#include <demangle.h>
+#ifdef HAS_LIBIBERTY
+    #define HAVE_DECL_BASENAME 1
+    #include <demangle.h>
+#endif
 
 #include <fcntl.h>
 #include <gelf.h>
@@ -25,11 +27,21 @@ void add_symbol_info(SymbolVector &symbols, const char *name, const Dwarf_Addr l
 {
     SymbolInfo symbol_info;
 
-    char *demangled_name = cplus_demangle_v3(name, DMGL_PARAMS | DMGL_ANSI | DMGL_TYPES);
-    symbol_info.name = demangled_name ? demangled_name : name;
     symbol_info.low_pc = low_pc;
     symbol_info.high_pc = high_pc;
 
+#ifdef HAS_LIBIBERTY
+    char *demangled_name = cplus_demangle_v3(name, DMGL_PARAMS | DMGL_ANSI | DMGL_TYPES);
+
+    if (demangled_name) {
+        // We push both the demangled name and the original name
+        symbol_info.name = demangled_name;
+        symbols.push_back(symbol_info);
+    }
+#endif
+
+    // Push the original name
+    symbol_info.name = name;
     symbols.push_back(symbol_info);
 };
 
