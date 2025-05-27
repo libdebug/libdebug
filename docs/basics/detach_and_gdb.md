@@ -80,7 +80,7 @@ Migrating to GDB is possible even inside callbacks:
     def important_check(t, bp):
         if t.regs.rax == 0:
             d.gdb()
-        print(hex(r.regs.rbx)) # (1)!
+            print(hex(r.regs.rbx)) # (1)!
 
     d.bp("important_function", callback=important_check)
 
@@ -97,7 +97,7 @@ Migrating to GDB is possible even inside callbacks:
             d.gdb(blocking = False)
             io.sendline(b"1234")
             d.wait_for_gdb() # (1)!
-        print(hex(r.regs.rbx)) # (2)!
+            print(hex(r.regs.rbx)) # (2)!
 
     d.bp("important_function", callback=important_check)
 
@@ -105,7 +105,7 @@ Migrating to GDB is possible even inside callbacks:
     d.wait()
     ```
 
-    1. This method must be called inside the callback, otherwise an exception will be raised.
+    1. This method must be called inside the callback, otherwise an exception will be raised. It will block until the GDB session is finished.
     2. This line will be executed once the debugging has resumed.
 
 ## :material-power: Graceful Termination
