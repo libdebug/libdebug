@@ -294,6 +294,11 @@ install(TARGETS libdebug_ptrace_binding LIBRARY DESTINATION libdebug/ptrace/nati
 install(TARGETS libdebug_linux_binding LIBRARY DESTINATION libdebug/native)
 install(TARGETS libdebug_debug_sym_parser LIBRARY DESTINATION libdebug/native)
 
+# Install the Python stubs
+install(FILES ${CMAKE_BINARY_DIR}/libdebug_ptrace_binding.pyi DESTINATION libdebug/ptrace/native)
+install(FILES ${CMAKE_BINARY_DIR}/libdebug_linux_binding.pyi DESTINATION libdebug/native)
+install(FILES ${CMAKE_BINARY_DIR}/libdebug_debug_sym_parser.pyi DESTINATION libdebug/native/symbols)
+
 # Include the jumpstart.c file and add it as an executable
 set(SRC_DIR "${CMAKE_SOURCE_DIR}/libdebug/ptrace/jumpstart")
 set(SOURCES "${SRC_DIR}/jumpstart.c")
