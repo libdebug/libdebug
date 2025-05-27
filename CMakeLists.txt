@@ -54,6 +54,19 @@ if(LibDwarf_FOUND)
     include(cmake/DetectLibDwarfAPI.cmake)
 endif()
 
+# Check if we can actually compile with libiberty
+# (Alpine Linux doesn't work here)
+if(LibIberty_FOUND)
+    include(cmake/CheckLibIberty.cmake)
+endif()
+
+# If we can use libiberty, we can set a define flag to enable C++ demangling
+if(LibIberty_CPLUS_DEMANGLE_V3_COMPILES)
+  add_definitions(-DHAS_LIBIBERTY)
+else()
+  message(WARNING "Cannot use libiberty to demangle C++ symbols.")
+endif()
+
 # Global include directories based on variables set by Find modules
 # These are for code that might not directly link the targets or for specific checks.
 # Targets LibDwarf::LibDwarf etc. will carry their own include directories.
