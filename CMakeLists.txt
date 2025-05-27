@@ -253,6 +253,9 @@ if (CMAKE_SYSTEM_PROCESSOR MATCHES "i386"
     # Register the xsave layout generator executable
     add_executable(autogenerate_xsave_layout libdebug/ptrace/native/shared/x86_autogenerate_xsave_layout.c)
 
+    # Create the generated directory if it doesn't exist
+    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/generated)
+
     # Define the path to the output file
     set(XSAVE_LAYOUT_OUTPUT ${CMAKE_BINARY_DIR}/generated/x86_fpregs_xsave_layout.h)
 
