@@ -35,7 +35,9 @@ If at any time during your script you want to take a more traditional approach t
 
 Setting the `blocking` to `False` is useful when you want to continue using the pipe interaction and other parts of your script as you take control of the debugging process.
 
-When `blocking` is set to `False`, the `gdb()` method will return a [GdbResumeEvent](../../from_pydoc/generated/data/gdb_resume_event/) object. This object can be used to wait for the GDB session to finish before continuing the script.
+When `blocking` is set to `False`, the `gdb()` method will return instantly, and allow you to continue executing your script while GDB is running.
+To wait for the GDB session to finish, you can use the `wait_for_gdb()` method of the Debugger.
+When in non-blocking mode, executing any debugger-related commands will raise an exception, as the debugger is not in control of the process anymore.
 
 !!! ABSTRACT "Example of using non-blocking GDB migration"
     ```python
@@ -46,14 +48,14 @@ When `blocking` is set to `False`, the `gdb()` method will return a [GdbResumeEv
     # Reach interesting point in the program
     [...]
 
-    gdb_event = d.gdb(blocking = False)
+    d.gdb(blocking = False)
 
     pipe.sendline(b"dump interpret")
 
     with open("dump.bin", "r") as f:
         pipe.send(f.read())
 
-    gdb_event.join() # (1)!
+    d.wait_for_gdb() # (1)!
 
     ```
     
@@ -71,34 +73,40 @@ Please consider a few requirements when opening GDB in a new process. For this m
 !!! WARNING "Migrating from a running process"
     Remember that GDB Migration is meant to be used when the process is stopped. If the process is running, the command will wait for a [stopping event](../../stopping_events/stopping_events). To forcibly stop the process, you can use the `interrupt()` method before migrating.
 
-Migrating to GDB is possible even inside callbacks, albeit with a few caveats:
-
-* The `blocking` parameter is forced to be `True`.
-* The migration interrupts the execution of the callback, but it won't resume from that point when migrating back from GDB.
-* The debugging is interrupted, as if a synchronous event had been hit, and it has to be resumed with a `cont()` after migrating back.
+Migrating to GDB is possible even inside callbacks:
 
 !!! ABSTRACT "Example of GDB migration inside a callback"
     ```python
     def important_check(t, bp):
         if t.regs.rax == 0:
             d.gdb()
-            print("This will never be printed!") # (4)!
         print(hex(r.regs.rbx)) # (1)!
 
     d.bp("important_function", callback=important_check)
 
     d.cont()
     d.wait()
-
-    print("Migrated back from GDB") # (2)!
-
-    d.cont() # (3)!
     ```
 
-    1. This line will never be executed whenever a migration happens.
-    2. This will be printed once **libdebug** migrates back from GDB.
-    3. A new `cont()` must be issued to resume the debugging.
-    4. The execution of the callback will be interrupted at `d.gdb()`.
+    1. This line will be executed once the GDB session is finished, as the `gdb()` method is blocking by default.
+
+!!! ABSTRACT "Example of non-blocking GDB migration inside a callback"
+    ```python
+    def important_check(t, bp):
+        if t.regs.rax == 0:
+            d.gdb(blocking = False)
+            io.sendline(b"1234")
+            d.wait_for_gdb() # (1)!
+        print(hex(r.regs.rbx)) # (2)!
+
+    d.bp("important_function", callback=important_check)
+
+    d.cont()
+    d.wait()
+    ```
+
+    1. This method must be called inside the callback, otherwise an exception will be raised.
+    2. This line will be executed once the debugging has resumed.
 
 ## :material-power: Graceful Termination
 If you are finished working with a [Debugger](../../from_pydoc/generated/debugger/debugger/) object and wish to deallocate it, you can terminate it using the `terminate()` command.
