@@ -84,6 +84,9 @@ def _collect_external_info(path: str) -> SymbolList[Symbol]:
     """
     liblog.debugger("Collecting external symbols from %s", path)
 
+    if not libdebug_debug_sym_parser.HAS_SYMBOL_SUPPORT:
+        return SymbolList([], get_global_internal_debugger())
+
     ext_symbols = libdebug_debug_sym_parser.collect_external_symbols(path, libcontext.sym_lvl)
 
     return SymbolList(
@@ -106,6 +109,9 @@ def _parse_elf_file(path: str, debug_info_level: int) -> tuple[SymbolList[Symbol
         debug_file_path (str): The path to the external debuginfo file corresponding.
     """
     liblog.debugger("Searching for symbols in %s", path)
+
+    if not libdebug_debug_sym_parser.HAS_SYMBOL_SUPPORT:
+        return SymbolList([], get_global_internal_debugger()), None, None
 
     elfinfo = libdebug_debug_sym_parser.read_elf_info(path, debug_info_level)
 
