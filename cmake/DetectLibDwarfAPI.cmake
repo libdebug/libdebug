@@ -72,10 +72,44 @@ else()
     message(STATUS "DetectLibDwarfAPI: Did not find symbol: dwarf_init_b")
 endif()
 
+# --- 2. Test if dwarf_finish(NULL) compiles ---
+# In new API versions, dwarf_finish takes just a single argument
+# Old versions take multiple arguments, so we check if it compiles with NULL.
+set(TEST_DWARF_FINISH_NULL_SOURCE "
+#include <libdwarf.h>
+#include <dwarf.h>
+#include <stdio.h>
+
+int main(void) {
+    /* We only care if this specific call compiles. */
+    dwarf_finish( NULL );
+    return 0;
+}")
+
+file(WRITE "${CMAKE_BINARY_DIR}/CMakeTmp/test_dwarf_finish_null.c" "${TEST_DWARF_FINISH_NULL_SOURCE}")
+
+try_compile(
+    INTERNAL_DWARF_FINISH_NULL_COMPILES
+    "${CMAKE_BINARY_DIR}/CMakeTmp" # Binary directory
+    "${CMAKE_BINARY_DIR}/CMakeTmp/test_dwarf_finish_null.c" # Source file
+    CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${CMAKE_REQUIRED_INCLUDES}" # Propagate includes
+    LINK_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES} # Link with libdwarf
+    OUTPUT_VARIABLE TRY_COMPILE_OUTPUT_FINISH_NULL
+)
+
+if(INTERNAL_DWARF_FINISH_NULL_COMPILES)
+    set(LibDwarf_FINISH_NULL_COMPILES TRUE)
+    message(STATUS "DetectLibDwarfAPI: dwarf_finish takes a single parameter.")
+else()
+    # LibDwarf_FINISH_NULL_COMPILES remains FALSE (its default)
+    message(STATUS "DetectLibDwarfAPI: dwarf_finish takes multiple parameters.")
+endif()
+
 # Set LibDwarf_HAS_NEW_API to TRUE only if all three symbols are present
 if(INTERNAL_HAS_dwarf_next_cu_header_d AND
    INTERNAL_HAS_dwarf_siblingof_b      AND
-   INTERNAL_HAS_dwarf_init_b)
+   INTERNAL_HAS_dwarf_init_b           AND
+   INTERNAL_DWARF_FINISH_NULL_COMPILES)
     set(LibDwarf_HAS_NEW_API TRUE)
     message(STATUS "DetectLibDwarfAPI: Detected new libdwarf API.")
 else()
