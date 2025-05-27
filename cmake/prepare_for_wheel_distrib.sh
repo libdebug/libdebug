@@ -16,7 +16,7 @@ dnf install -y gcc gcc-c++ make autoconf automake libtool pkg-config libzstd-dev
 cd libdwarf-code
 
 # Run the autogen script to generate the configure script
-sh autogen.sh
+env -i sh autogen.sh
 
 # Configure the build system
 ./configure --enable-static
@@ -34,13 +34,13 @@ cd ..
 git clone git://sourceware.org/git/elfutils.git
 
 # Install the required packages for building libelf
-dnf install -y bzip2-devel xz-devel libarchive gettext-devel
+dnf install -y bzip2-devel xz-devel libarchive gettext-devel flex bison libcurl-devel json-c-devel
 
 # Change to the libelf directory
 cd elfutils
 
 # Configure the build system
-autoreconf -fvi
+env -i autoreconf -fvi
 ./configure --enable-libdebuginfod --enable-maintainer-mode
 
 # Build the library
