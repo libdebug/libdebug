@@ -31,6 +31,7 @@ jobs:
           CIBW_MANYLINUX_AARCH64_IMAGE: "manylinux_2_28"
           CIBW_TEST_REQUIRES: "pytest pwntools"
           CIBW_TEST_COMMAND: "cd test && pytest --ignore=other_tests"
+          CIBW_BEFORE_ALL: "sh cmake/prepare_for_wheel_distrib.sh"
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
