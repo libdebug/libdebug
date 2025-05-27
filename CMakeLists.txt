@@ -7,6 +7,10 @@ project(libdebug LANGUAGES CXX C)
 # Add the cmake directory to the module path so Find<LibName>.cmake can be found
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+# Add the options to disable libdwarf and libelf
+option(USE_LIBDWARF "Disable usage of libdwarf and its features" ON)
+option(USE_LIBELF "Disable usage of libelf and its features" ON)
+
 # Warn if the user invokes CMake directly
 if (NOT SKBUILD)
   message(WARNING "\
@@ -43,54 +47,64 @@ find_package(Python 3.10
   REQUIRED COMPONENTS Interpreter ${DEV_MODULE}
   OPTIONAL_COMPONENTS Development.SABIModule)
 
-
-# Find required libraries using the custom Find modules
-find_package(LibDwarf REQUIRED)
-find_package(LibElf REQUIRED)
-find_package(LibIberty REQUIRED)
-
-# Check which API version of libdwarf is available
-if(LibDwarf_FOUND)
-    include(cmake/DetectLibDwarfAPI.cmake)
-endif()
-
-# Check if we can actually compile with libiberty
-# (Alpine Linux doesn't work here)
-if(LibIberty_FOUND)
-    include(cmake/CheckLibIberty.cmake)
-endif()
-
-# If we can use libiberty, we can set a define flag to enable C++ demangling
-if(LibIberty_CPLUS_DEMANGLE_V3_COMPILES)
-  add_definitions(-DHAS_LIBIBERTY)
+if (NOT USE_LIBELF OR NOT USE_LIBDWARF)
+  message(WARNING "Disabling libdwarf and/or libelf will disable all features that depend on them, including symbol parsing and C++ demangling.")
+  set(BUILD_SYMBOLS OFF CACHE BOOL "Build symbol parsing features" FORCE)
 else()
-  message(WARNING "Cannot use libiberty to demangle C++ symbols.")
+  set(BUILD_SYMBOLS ON CACHE BOOL "Build symbol parsing features" FORCE)
+  message(STATUS "Building with libdwarf and libelf support enabled.")
 endif()
 
-# Global include directories based on variables set by Find modules
-# These are for code that might not directly link the targets or for specific checks.
-# Targets LibDwarf::LibDwarf etc. will carry their own include directories.
-if(LibDwarf_HEADER_DIR)
-    message(STATUS "Adding global include directory for libdwarf: ${LibDwarf_HEADER_DIR}")
-    include_directories(${LibDwarf_HEADER_DIR})
-else()
-    # This should have been caught by REQUIRED_VARS in FindLibDwarf.cmake if find_package was REQUIRED
-    message(FATAL_ERROR "LibDwarf_HEADER_DIR was not set by FindLibDwarf.cmake.")
-endif()
+if(BUILD_SYMBOLS)
+  # Find required libraries using the custom Find modules
+  find_package(LibDwarf REQUIRED)
+  find_package(LibElf REQUIRED)
+  find_package(LibIberty REQUIRED)
 
-if(LibIberty_DEMANGLE_HEADER_DIR)
-    message(STATUS "Adding global include directory for demangle.h (libiberty): ${LibIberty_DEMANGLE_HEADER_DIR}")
-    include_directories(${LibIberty_DEMANGLE_HEADER_DIR})
-    find_file(DEMANGLE_H_FULL_PATH_CHECK demangle.h HINTS ${LibIberty_DEMANGLE_HEADER_DIR} NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)
-    if(NOT DEMANGLE_H_FULL_PATH_CHECK)
-       message(WARNING "demangle.h was not confirmed at the resolved LibIberty_DEMANGLE_HEADER_DIR path: ${LibIberty_DEMANGLE_HEADER_DIR}.")
-    else()
-        message(STATUS "demangle.h confirmed at ${DEMANGLE_H_FULL_PATH_CHECK}")
-    endif()
-else()
-    message(FATAL_ERROR "LibIberty_DEMANGLE_HEADER_DIR was not set by FindLibIberty.cmake.")
-endif()
+  # Check which API version of libdwarf is available
+  if(LibDwarf_FOUND)
+      include(cmake/DetectLibDwarfAPI.cmake)
+  endif()
 
+  # Check if we can actually compile with libiberty
+  # (Alpine Linux doesn't work here)
+  if(LibIberty_FOUND)
+      include(cmake/CheckLibIberty.cmake)
+  endif()
+
+  # If we can use libiberty, we can set a define flag to enable C++ demangling
+  if(LibIberty_CPLUS_DEMANGLE_V3_COMPILES)
+    add_definitions(-DHAS_LIBIBERTY)
+  else()
+    message(WARNING "Cannot use libiberty to demangle C++ symbols.")
+  endif()
+
+  # Global include directories based on variables set by Find modules
+  # These are for code that might not directly link the targets or for specific checks.
+  # Targets LibDwarf::LibDwarf etc. will carry their own include directories.
+  if(LibDwarf_HEADER_DIR)
+      message(STATUS "Adding global include directory for libdwarf: ${LibDwarf_HEADER_DIR}")
+      include_directories(${LibDwarf_HEADER_DIR})
+  else()
+      # This should have been caught by REQUIRED_VARS in FindLibDwarf.cmake if find_package was REQUIRED
+      message(FATAL_ERROR "LibDwarf_HEADER_DIR was not set by FindLibDwarf.cmake.")
+  endif()
+
+  if(LibIberty_DEMANGLE_HEADER_DIR)
+      message(STATUS "Adding global include directory for demangle.h (libiberty): ${LibIberty_DEMANGLE_HEADER_DIR}")
+      include_directories(${LibIberty_DEMANGLE_HEADER_DIR})
+      find_file(DEMANGLE_H_FULL_PATH_CHECK demangle.h HINTS ${LibIberty_DEMANGLE_HEADER_DIR} NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)
+      if(NOT DEMANGLE_H_FULL_PATH_CHECK)
+        message(WARNING "demangle.h was not confirmed at the resolved LibIberty_DEMANGLE_HEADER_DIR path: ${LibIberty_DEMANGLE_HEADER_DIR}.")
+      else()
+          message(STATUS "demangle.h confirmed at ${DEMANGLE_H_FULL_PATH_CHECK}")
+      endif()
+  else()
+      message(FATAL_ERROR "LibIberty_DEMANGLE_HEADER_DIR was not set by FindLibIberty.cmake.")
+  endif()
+
+  add_definitions(-DHAS_SYMBOL_SUPPORT)
+endif()
 
 # Set the C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -184,26 +198,40 @@ nanobind_add_stub(
   PYTHON_PATH "."
 )
 
-# Check if the new libdwarf API is available
-if (LibDwarf_HAS_NEW_API)
-  message(STATUS "Using new libdwarf API")
-  nanobind_add_module(
-    libdebug_debug_sym_parser
-    NOMINSIZE
-    NOSTRIP
-    LTO
-    libdebug/native/symbols/debug_sym_parser.cpp
-    libdebug/native/symbols/debug_sym_parser_new.cpp
-  )
+if(BUILD_SYMBOLS)
+  # Check if the new libdwarf API is available
+  if (LibDwarf_HAS_NEW_API)
+    message(STATUS "Using new libdwarf API")
+    nanobind_add_module(
+      libdebug_debug_sym_parser
+      NOMINSIZE
+      NOSTRIP
+      LTO
+      libdebug/native/symbols/debug_sym_parser.cpp
+      libdebug/native/symbols/debug_sym_parser_new.cpp
+      libdebug/native/symbols/debug_sym_parser_shared.cpp
+    )
+  else()
+    message(STATUS "Using legacy libdwarf API")
+    nanobind_add_module(
+      libdebug_debug_sym_parser
+      NOMINSIZE
+      NOSTRIP
+      LTO
+      libdebug/native/symbols/debug_sym_parser.cpp
+      libdebug/native/symbols/debug_sym_parser_legacy.cpp
+      libdebug/native/symbols/debug_sym_parser_shared.cpp
+    )
+  endif()
 else()
-  message(STATUS "Using legacy libdwarf API")
+  # We build a dummy module that does not depend on libdwarf or libelf
   nanobind_add_module(
     libdebug_debug_sym_parser
     NOMINSIZE
     NOSTRIP
     LTO
-    libdebug/native/symbols/debug_sym_parser.cpp
-    libdebug/native/symbols/debug_sym_parser_legacy.cpp
+    libdebug/native/symbols/debug_sym_parser_dummy.cpp
+    libdebug/native/symbols/debug_sym_parser_shared.cpp
   )
 endif()
 
@@ -254,7 +282,9 @@ endif()
 target_include_directories(libdebug_ptrace_binding PRIVATE libdebug/ptrace/native)
 
 # Link required libraries using the imported targets from Find modules
-target_link_libraries(libdebug_debug_sym_parser PRIVATE LibElf::LibElf LibDwarf::LibDwarf LibIberty::LibIberty)
+if(BUILD_SYMBOLS)
+  target_link_libraries(libdebug_debug_sym_parser PRIVATE LibElf::LibElf LibDwarf::LibDwarf LibIberty::LibIberty)
+endif()
 
 # Install the binding libraries
 install(TARGETS libdebug_ptrace_binding LIBRARY DESTINATION libdebug/ptrace/native)
