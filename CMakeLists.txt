@@ -1,8 +1,11 @@
 # Set the minimum CMake version and policies for the highest tested version
-cmake_minimum_required(VERSION 3.15...3.27)
+cmake_minimum_required(VERSION 3.15)
 
 # Set the project name and version
 project(libdebug LANGUAGES CXX C)
+
+# Add the cmake directory to the module path so Find<LibName>.cmake can be found
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # Warn if the user invokes CMake directly
 if (NOT SKBUILD)
@@ -40,71 +43,41 @@ find_package(Python 3.10
   REQUIRED COMPONENTS Interpreter ${DEV_MODULE}
   OPTIONAL_COMPONENTS Development.SABIModule)
 
-# Look for libiberty
-find_library(IBERTY_LIBRARY NAMES iberty)
 
-# Look for libelf
-find_library(ELF_LIBRARY NAMES elf)
+# Find required libraries using the custom Find modules
+find_package(LibDwarf REQUIRED)
+find_package(LibElf REQUIRED)
+find_package(LibIberty REQUIRED)
 
-# Look for libdwarf
-find_library(DWARF_LIBRARY NAMES dwarf)
-
-# Check if the required libraries were found
-if (NOT IBERTY_LIBRARY)
-  message(FATAL_ERROR "libiberty not found")
-else()
-  message(STATUS "libiberty found at ${IBERTY_LIBRARY}")
+# Check which API version of libdwarf is available
+if(LibDwarf_FOUND)
+    include(cmake/DetectLibDwarfAPI.cmake)
 endif()
 
-if (NOT ELF_LIBRARY)
-  message(FATAL_ERROR "libelf not found")
+# Global include directories based on variables set by Find modules
+# These are for code that might not directly link the targets or for specific checks.
+# Targets LibDwarf::LibDwarf etc. will carry their own include directories.
+if(LibDwarf_HEADER_DIR)
+    message(STATUS "Adding global include directory for libdwarf: ${LibDwarf_HEADER_DIR}")
+    include_directories(${LibDwarf_HEADER_DIR})
 else()
-  message(STATUS "libelf found at ${ELF_LIBRARY}")
+    # This should have been caught by REQUIRED_VARS in FindLibDwarf.cmake if find_package was REQUIRED
+    message(FATAL_ERROR "LibDwarf_HEADER_DIR was not set by FindLibDwarf.cmake.")
 endif()
 
-if (NOT DWARF_LIBRARY)
-  message(FATAL_ERROR "libdwarf not found")
+if(LibIberty_DEMANGLE_HEADER_DIR)
+    message(STATUS "Adding global include directory for demangle.h (libiberty): ${LibIberty_DEMANGLE_HEADER_DIR}")
+    include_directories(${LibIberty_DEMANGLE_HEADER_DIR})
+    find_file(DEMANGLE_H_FULL_PATH_CHECK demangle.h HINTS ${LibIberty_DEMANGLE_HEADER_DIR} NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)
+    if(NOT DEMANGLE_H_FULL_PATH_CHECK)
+       message(WARNING "demangle.h was not confirmed at the resolved LibIberty_DEMANGLE_HEADER_DIR path: ${LibIberty_DEMANGLE_HEADER_DIR}.")
+    else()
+        message(STATUS "demangle.h confirmed at ${DEMANGLE_H_FULL_PATH_CHECK}")
+    endif()
 else()
-  message(STATUS "libdwarf found at ${DWARF_LIBRARY}")
+    message(FATAL_ERROR "LibIberty_DEMANGLE_HEADER_DIR was not set by FindLibIberty.cmake.")
 endif()
 
-# Look for the demangle.h header
-# It could be under libiberty/demangle.h
-find_path(DEMANGLE_HEADER NAMES demangle.h PATHS /usr/include/libiberty)
-
-# Look for the libdwarf.h header
-# It could be under libdwarf/libdwarf.h or libdwarf-0/libdwarf.h
-# or libdwarf/libdwarf-0/libdwarf.h
-find_path(DWARF_HEADER NAMES libdwarf.h PATHS /usr/include/libdwarf /usr/include/libdwarf-0 /usr/include/libdwarf/libdwarf-0)
-
-# Check if the required header was found
-if (NOT DEMANGLE_HEADER)
-  message(FATAL_ERROR "demangle.h not found")
-else()
-  message(STATUS "demangle.h found at ${DEMANGLE_HEADER}")
-endif()
-
-if (NOT DWARF_HEADER)
-  message(FATAL_ERROR "libdwarf.h not found")
-else()
-  message(STATUS "libdwarf.h found at ${DWARF_HEADER}")
-endif()
-
-# Add the libiberty, libelf, and libdwarf libraries
-add_library(iberty UNKNOWN IMPORTED)
-set_target_properties(iberty PROPERTIES IMPORTED_LOCATION "${IBERTY_LIBRARY}")
-
-add_library(elf UNKNOWN IMPORTED)
-set_target_properties(elf PROPERTIES IMPORTED_LOCATION "${ELF_LIBRARY}")
-
-add_library(dwarf UNKNOWN IMPORTED)
-set_target_properties(dwarf PROPERTIES IMPORTED_LOCATION "${DWARF_LIBRARY}")
-
-# Add the demangle.h header
-include_directories(${DEMANGLE_HEADER})
-
-# Add the libdwarf.h header
-include_directories(${DWARF_HEADER})
 
 # Set the C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -198,9 +171,9 @@ nanobind_add_stub(
   PYTHON_PATH "."
 )
 
-# Check if in the libdwarf include path we find the substring libwarf-0
-if (DWARF_HEADER MATCHES "libdwarf-0")
-  # Add the libdebug_debug_sym_parser module, using the new libdwarf-0
+# Check if the new libdwarf API is available
+if (LibDwarf_HAS_NEW_API)
+  message(STATUS "Using new libdwarf API")
   nanobind_add_module(
     libdebug_debug_sym_parser
     NOMINSIZE
@@ -210,7 +183,7 @@ if (DWARF_HEADER MATCHES "libdwarf-0")
     libdebug/native/symbols/debug_sym_parser_new.cpp
   )
 else()
-  # Add the libdebug_debug_sym_parser module, using the old libdwarf
+  message(STATUS "Using legacy libdwarf API")
   nanobind_add_module(
     libdebug_debug_sym_parser
     NOMINSIZE
@@ -255,21 +228,20 @@ if (CMAKE_SYSTEM_PROCESSOR MATCHES "i386"
     # Create a custom target to generate the xsave layout header
     add_custom_target(generate_xsave_layout ALL DEPENDS ${XSAVE_LAYOUT_OUTPUT})
 
-    # Make sure your main target depends on the generated file
+    # Make sure that the main target depends on the generated header
     add_dependencies(libdebug_ptrace_binding generate_xsave_layout)
 
-    # Ensure the path to the generated file is included in the target's include directories
+    # Ensure the generated header is included in the target
     target_include_directories(libdebug_ptrace_binding PRIVATE ${CMAKE_BINARY_DIR}/generated)
 
-    # Print a message to the user
     message(STATUS "Generated xsave layout header at ${XSAVE_LAYOUT_OUTPUT}")
 endif()
 
 # Add libdebug/ptrace/native to the include directories
 target_include_directories(libdebug_ptrace_binding PRIVATE libdebug/ptrace/native)
 
-# Link required libraries
-target_link_libraries(libdebug_debug_sym_parser PRIVATE elf dwarf iberty)
+# Link required libraries using the imported targets from Find modules
+target_link_libraries(libdebug_debug_sym_parser PRIVATE LibElf::LibElf LibDwarf::LibDwarf LibIberty::LibIberty)
 
 # Install the binding libraries
 install(TARGETS libdebug_ptrace_binding LIBRARY DESTINATION libdebug/ptrace/native)
