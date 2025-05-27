@@ -5,6 +5,8 @@ name: Wheels
 on:
   release:
     types: [published]
+  push:
+    branches: [enable-wheel-distrib]
   workflow_dispatch:
 
 jobs:
@@ -21,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build Wheels
-        uses: pypa/cibuildwheel@2.23.3
+        uses: pypa/cibuildwheel@v2.23.3
         env:
           CIBW_BUILD: "cp310-* cp311-* cp312-* cp313-*"
           CIBW_MANYLINUX_X86_64_IMAGE: "manylinux_2_28"
