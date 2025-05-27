@@ -62,7 +62,7 @@ if(PC_LibDwarf_FOUND)
     endif()
     set(LibDwarf_FOUND TRUE)
 else()
-    message(STATUS "FindLibDwarf: libdwarf not found via pkg-config. Trying manual find.")
+    message(STATUS "FindLibDwarf: libdwarf not found via pkg-config. Trying manual search.")
     find_path(LibDwarf_MANUAL_INCLUDE_DIR NAMES libdwarf.h
               PATHS /usr/include/libdwarf-2 /usr/include/libdwarf/libdwarf-2 /usr/include/libdwarf-0 /usr/include/libdwarf/libdwarf-0 /usr/include/libdwarf
               HINTS ENV CPATH ENV C_INCLUDE_PATH ENV CPLUS_INCLUDE_PATH

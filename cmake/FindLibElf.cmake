@@ -64,7 +64,7 @@ if(PC_LibElf_FOUND)
     endif()
     set(LibElf_FOUND TRUE)
 else()
-    message(STATUS "FindLibElf: libelf not found via pkg-config. Trying manual find.")
+    message(STATUS "FindLibElf: libelf not found via pkg-config. Trying manual search.")
     find_path(LibElf_MANUAL_INCLUDE_DIR NAMES gelf.h libelf.h # Common headers for libelf
               PATHS /usr/include /usr/include/elfutils
               HINTS ENV CPATH ENV C_INCLUDE_PATH ENV CPLUS_INCLUDE_PATH

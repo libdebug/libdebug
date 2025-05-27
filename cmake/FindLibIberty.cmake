@@ -67,7 +67,7 @@ if(PC_LibIberty_FOUND)
     endif()
     set(LibIberty_FOUND TRUE)
 else()
-    message(STATUS "FindLibIberty: libiberty not found via pkg-config. Trying manual find.")
+    message(STATUS "FindLibIberty: libiberty not found via pkg-config. Trying manual search.")
     find_path(LibIberty_MANUAL_INCLUDE_DIR NAMES demangle.h
               PATHS /usr/include/libiberty
               HINTS ENV CPATH ENV C_INCLUDE_PATH ENV CPLUS_INCLUDE_PATH
