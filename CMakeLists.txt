@@ -10,6 +10,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # Add the options to disable libdwarf and libelf
 option(USE_LIBDWARF "Disable usage of libdwarf and its features" ON)
 option(USE_LIBELF "Disable usage of libelf and its features" ON)
+option(STATIC_LINK_SYM_LIBS "Link libelf and libdwarf statically" OFF)
 
 # Warn if the user invokes CMake directly
 if (NOT SKBUILD)
@@ -201,27 +202,36 @@ if(BUILD_SYMBOLS)
   # Check if the new libdwarf API is available
   if (LibDwarf_HAS_NEW_API)
     message(STATUS "Using new libdwarf API")
-    nanobind_add_module(
-      libdebug_debug_sym_parser
-      NOMINSIZE
-      NOSTRIP
-      LTO
+
+    add_library(libdebug_sym_parser_lib STATIC 
       libdebug/native/symbols/debug_sym_parser.cpp
       libdebug/native/symbols/debug_sym_parser_new.cpp
-      libdebug/native/symbols/debug_sym_parser_shared.cpp
     )
   else()
     message(STATUS "Using legacy libdwarf API")
-    nanobind_add_module(
-      libdebug_debug_sym_parser
-      NOMINSIZE
-      NOSTRIP
-      LTO
+
+    add_library(libdebug_sym_parser_lib STATIC 
       libdebug/native/symbols/debug_sym_parser.cpp
       libdebug/native/symbols/debug_sym_parser_legacy.cpp
-      libdebug/native/symbols/debug_sym_parser_shared.cpp
     )
   endif()
+
+  set_target_properties(libdebug_sym_parser_lib PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+  )
+
+  target_link_libraries(libdebug_sym_parser_lib PRIVATE LibElf::LibElf LibDwarf::LibDwarf LibIberty::LibIberty)
+
+  nanobind_add_module(
+    libdebug_debug_sym_parser
+    NOMINSIZE
+    NOSTRIP
+    LTO
+    libdebug/native/symbols/debug_sym_parser_shared.cpp
+  )
 else()
   # We build a dummy module that does not depend on libdwarf or libelf
   nanobind_add_module(
@@ -285,7 +295,7 @@ target_include_directories(libdebug_ptrace_binding PRIVATE libdebug/ptrace/nativ
 
 # Link required libraries using the imported targets from Find modules
 if(BUILD_SYMBOLS)
-  target_link_libraries(libdebug_debug_sym_parser PRIVATE LibElf::LibElf LibDwarf::LibDwarf LibIberty::LibIberty)
+  target_link_libraries(libdebug_debug_sym_parser PRIVATE libdebug_sym_parser_lib)
 endif()
 
 # Install the binding libraries

@@ -6,12 +6,31 @@
 
 #pragma once
 
-#include "debug_sym_parser_shared.h"
-
+#include <string>
+#include <vector>
+#include <stdexcept>
+#include <cstring>
 #include <dwarf.h>
+#include <unistd.h>
 #include <gelf.h>
 #include <libdwarf.h>
 #include <libelf.h>
+
+struct SymbolInfo
+{
+    std::string name;
+    unsigned long long high_pc;
+    unsigned long low_pc;
+};
+
+using SymbolVector = std::vector<SymbolInfo>;
+
+struct ElfInfo
+{
+    std::string build_id;
+    std::string debuglink;
+    SymbolVector symbols;
+};
 
 void add_symbol_info(SymbolVector &, const char *, const Dwarf_Addr, const Dwarf_Addr);
 void process_symbol_tables(Elf *, SymbolVector &);
