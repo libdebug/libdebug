@@ -10,7 +10,6 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # Add the options to disable libdwarf and libelf
 option(USE_LIBDWARF "Disable usage of libdwarf and its features" ON)
 option(USE_LIBELF "Disable usage of libelf and its features" ON)
-option(STATIC_LINK_SYM_LIBS "Link libelf and libdwarf statically" OFF)
 
 # Warn if the user invokes CMake directly
 if (NOT SKBUILD)
@@ -204,14 +203,14 @@ if(BUILD_SYMBOLS)
   if (LibDwarf_HAS_NEW_API)
     message(STATUS "Using new libdwarf API")
 
-    add_library(libdebug_sym_parser_lib STATIC 
+    add_library(libdebug_sym_parser_lib STATIC
       libdebug/native/symbols/debug_sym_parser.cpp
       libdebug/native/symbols/debug_sym_parser_new.cpp
     )
   else()
     message(STATUS "Using legacy libdwarf API")
 
-    add_library(libdebug_sym_parser_lib STATIC 
+    add_library(libdebug_sym_parser_lib STATIC
       libdebug/native/symbols/debug_sym_parser.cpp
       libdebug/native/symbols/debug_sym_parser_legacy.cpp
     )
