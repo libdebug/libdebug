@@ -1,10 +1,69 @@
 //
 // This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-// Copyright (c) 2023-2024 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
+// Copyright (c) 2023-2025 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for details.
 //
 
 #include "debug_sym_parser.h"
+
+void process_subprogram(Dwarf_Debug dbg, Dwarf_Die die, SymbolVector &symbols)
+{
+    Dwarf_Error error = nullptr;
+    char *die_name = nullptr;
+    Dwarf_Addr lowpc = 0, highpc = 0;
+    Dwarf_Half dw_return_form = 0;
+    enum Dwarf_Form_Class dw_return_class = DW_FORM_CLASS_UNKNOWN;
+
+    if (dwarf_diename(die, &die_name, &error) == DW_DLV_OK) {
+        if (dwarf_lowpc(die, &lowpc, &error) == DW_DLV_OK &&
+            dwarf_highpc_b(die, &highpc, &dw_return_form, &dw_return_class, &error) == DW_DLV_OK) {
+            // Check if the highpc is in address form or unit data form
+            if (dw_return_class == DW_FORM_CLASS_CONSTANT){
+                // If highpc is a constant, it is an offset from lowpc
+                highpc += lowpc;
+            }
+                // Add the symbol to the symbols vector
+                add_symbol_info(symbols, die_name, lowpc, highpc);
+            }
+    }
+    if (die_name) {
+        dwarf_dealloc(dbg, die_name, DW_DLA_STRING);
+    }
+}
+
+void process_variable(Dwarf_Debug dbg, Dwarf_Die die, SymbolVector &symbols)
+{
+    Dwarf_Error error = nullptr;
+    char *die_name = nullptr;
+    Dwarf_Addr lowpc = 0, highpc = 0;
+    Dwarf_Half dw_return_form = 0;
+    enum Dwarf_Form_Class dw_return_class = DW_FORM_CLASS_UNKNOWN;
+    Dwarf_Attribute loc_attr = nullptr;
+
+    if (dwarf_diename(die, &die_name, &error) == DW_DLV_OK) {
+        // Some variables, like the global variables, may still have a lowpc and highpc
+        // Other variables, like local variables, may not have a lowpc and highpc but an at_location attribute
+        if (dwarf_lowpc(die, &lowpc, &error) == DW_DLV_OK &&
+            dwarf_highpc_b(die, &highpc, &dw_return_form, &dw_return_class, &error) == DW_DLV_OK) {
+                // Check if the highpc is in address form or unit data form
+                if (dw_return_class == DW_FORM_CLASS_CONSTANT){
+                    // If highpc is a constant, it is an offset from lowpc
+                    highpc += lowpc;
+                }
+                    // Add the symbol to the symbols vector
+                    add_symbol_info(symbols, die_name, lowpc, highpc);
+        } else if (dwarf_attr(die, DW_AT_location, &loc_attr, &error) == DW_DLV_OK){
+            add_symbol_info(symbols, die_name, 0, 0);
+        }
+    }
+    if (die_name) {
+        dwarf_dealloc(dbg, die_name, DW_DLA_STRING);
+    }
+    if (loc_attr) {
+        dwarf_dealloc(dbg, loc_attr, DW_DLA_ATTR);
+    }
+}
+
 
 void process_die(Dwarf_Debug dbg, Dwarf_Die the_die, SymbolVector &symbols)
 {
@@ -21,84 +80,69 @@ void process_die(Dwarf_Debug dbg, Dwarf_Die the_die, SymbolVector &symbols)
     }
 
     // Check if the DIE is a subprogram (function) or a variable
-    if (tag == DW_TAG_subprogram || tag == DW_TAG_variable) {
-        if (dwarf_diename(the_die, &die_name, &error) == DW_DLV_OK) {
-            // Getting attributes of the DIE
-            if (dwarf_attrlist(the_die, &attrs, &attrcount, &error) == DW_DLV_OK) {
-                for (i = 0; i < attrcount; ++i) {
-                    Dwarf_Half attrcode;
+    if (tag == DW_TAG_subprogram) {
+        process_subprogram(dbg, the_die, symbols);
+    } else if (tag == DW_TAG_variable || tag == DW_TAG_formal_parameter) {
+        process_variable(dbg, the_die, symbols);
+    } 
+}
 
-                    if (dwarf_whatattr(attrs[i], &attrcode, &error) == DW_DLV_OK) {
-                        if (attrcode == DW_AT_low_pc && dwarf_formaddr(attrs[i], &lowpc, &error) == DW_DLV_OK) {
-                            continue;
-                        }
+void traverse_die_and_siblings(Dwarf_Debug dbg, Dwarf_Die die, SymbolVector &symbols) 
+{
+    // Traverse the tree in a depth-first manner
+    Dwarf_Error err = nullptr;
 
-                        if (attrcode == DW_AT_high_pc) {
-                            if (dwarf_formaddr(attrs[i], &highpc, &error) == DW_DLV_OK) {
-                                is_formaddr = 1;
-                            } else {
-                                if (dwarf_formudata(attrs[i], &highpc, &error) == DW_DLV_OK) {
-                                    is_formaddr = 0;
-                                }
-                            }
-                        }
-                    }
+    for (; die != nullptr; ) {
+        // Process the current DIE before recursing into its children
+        process_die(dbg, die, symbols);
 
-                    dwarf_dealloc(dbg, attrs[i], DW_DLA_ATTR);
-                }
-
-                dwarf_dealloc(dbg, attrs, DW_DLA_LIST);
-            }
+        Dwarf_Die child = nullptr;
+        
+        // Recurse into its children
+        switch (dwarf_child(die, &child, &err)) {
+            case DW_DLV_OK:
+                // Recursive call to traverse the tree in depth-first manner
+                traverse_die_and_siblings(dbg, child, symbols);
+                break;
+            case DW_DLV_ERROR:
+                throw std::runtime_error(dwarf_errmsg(err));
+            default: ;   // no child
         }
 
-        if (lowpc != 0 && highpc != 0 && die_name) {
-            if (is_formaddr == 0) {
-                highpc += lowpc;
-            }
+        // Now that we are done with the children (deepest level), we can get all the siblings
+        Dwarf_Die next = nullptr;
+        int res = dwarf_siblingof(dbg, die, &next, &err);
 
-            add_symbol_info(symbols, die_name, lowpc, highpc);
-        }
+        dwarf_dealloc(dbg, die, DW_DLA_DIE);
 
-        if (die_name) {
-            dwarf_dealloc(dbg, die_name, DW_DLA_STRING);
-        }
+        if (res == DW_DLV_OK)
+            die = next; // move to sibling
+        else if (res == DW_DLV_NO_ENTRY)
+            break; // end of this sibling chain
+        else
+            throw std::runtime_error(dwarf_errmsg(err));
     }
 }
 
 void dwarf_retrieve_symbol_names(Dwarf_Debug dbg, SymbolVector &symbols)
 {
-    Dwarf_Error err;
-    Dwarf_Unsigned cu_header_length, abbrev_offset, next_cu_header;
-    Dwarf_Half version_stamp, address_size;
-    Dwarf_Die no_die = 0, cu_die, child_die, sibling_die;
+    Dwarf_Error err = nullptr;
+    Dwarf_Unsigned cu_header_length = 0, abbrev_offset = 0, next_cu_header = 0;
+    Dwarf_Half version_stamp = 0, address_size = 0;
+    Dwarf_Die cu_die = nullptr, child_die = nullptr, sibling_die = nullptr;
 
-    // Loop through all the compilation units
-    while (dwarf_next_cu_header(dbg, &cu_header_length, &version_stamp,
-                                &abbrev_offset, &address_size, &next_cu_header,
-                                &err) == DW_DLV_OK) {
-        // Get the DIE for the current compilation unit
-        if (dwarf_siblingof(dbg, no_die, &cu_die, &err) != DW_DLV_OK) {
+    // Loop through all the compilation units. This call will set the inner cursor to the first CU.
+    while (dwarf_next_cu_header(dbg, &cu_header_length, &version_stamp, &abbrev_offset, &address_size, 
+                                &next_cu_header, &err) == DW_DLV_OK) {
+
+        // Get the DIE for the current compilation unit. 
+        // We pass NULL as the first argument to get the first DIE in the current compilation unit.
+        if (dwarf_siblingof(dbg, NULL, &cu_die, &err) != DW_DLV_OK) {
             throw std::runtime_error("Failed to get the DIE for the current compilation unit");
         }
 
-        if (dwarf_child(cu_die, &child_die, &err) == DW_DLV_OK) {
-            while (child_die != NULL) {
-                process_die(dbg, child_die, symbols);
-
-                // Get the next DIE (sibling)
-                if (dwarf_siblingof(dbg, child_die, &sibling_die, &err) != DW_DLV_OK) {
-                    // If there's no sibling, we're done with this level
-                    dwarf_dealloc(dbg, child_die, DW_DLA_DIE);
-                    break;
-                }
-
-                // Deallocate the current DIE and move to the sibling
-                dwarf_dealloc(dbg, child_die, DW_DLA_DIE);
-                child_die = sibling_die;
-            }
-        }
-
-        dwarf_dealloc(dbg, cu_die, DW_DLA_DIE);
+        // Traverse the DIE and its siblings
+        traverse_die_and_siblings(dbg, cu_die, symbols);
     }
 }
 
