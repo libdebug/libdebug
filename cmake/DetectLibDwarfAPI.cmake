@@ -30,30 +30,141 @@ set(CMAKE_REQUIRED_INCLUDES_OLD ${CMAKE_REQUIRED_INCLUDES})
 
 set(CMAKE_REQUIRED_INCLUDES ${LibDwarf_INCLUDE_DIRS})
 
-# Determine the correct linker flags/libraries for the checks
-set(CMAKE_REQUIRED_LIBRARIES_FOR_CHECK "")
-if(DEFINED LibDwarf_LDFLAGS AND LibDwarf_LDFLAGS) # LDFLAGS is comprehensive if pkg-config was used
-    set(CMAKE_REQUIRED_LIBRARIES_FOR_CHECK ${LibDwarf_LDFLAGS})
-elseif(DEFINED LibDwarf_LIBRARIES AND LibDwarf_LIBRARIES) # Full path if manual, or bare names
-    set(CMAKE_REQUIRED_LIBRARIES_FOR_CHECK ${LibDwarf_LIBRARIES})
-else()
-    message(WARNING "DetectLibDwarfAPI: Could not determine linker items for libdwarf API check (LibDwarf_LDFLAGS and LibDwarf_LIBRARIES are empty). API detection may fail or be inaccurate.")
-endif()
-set(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES_FOR_CHECK})
-
-
+# Initialize CMAKE_REQUIRED_FLAGS with CFLAGS from pkg-config if available
 if(DEFINED LibDwarf_CFLAGS_OTHER AND LibDwarf_CFLAGS_OTHER)
     set(CMAKE_REQUIRED_FLAGS "${LibDwarf_CFLAGS_OTHER}")
 else()
     set(CMAKE_REQUIRED_FLAGS "")
 endif()
 
-message(STATUS "DetectLibDwarfAPI: Performing API symbol checks for libdwarf.")
+# Determine the correct linker flags/libraries for the checks
+set(CMAKE_REQUIRED_LIBRARIES "")
 
-# Perform individual symbol checks
-check_symbol_exists(dwarf_next_cu_header_d "libdwarf.h;dwarf.h" INTERNAL_HAS_dwarf_next_cu_header_d)
-check_symbol_exists(dwarf_siblingof_b      "libdwarf.h;dwarf.h" INTERNAL_HAS_dwarf_siblingof_b)
-check_symbol_exists(dwarf_init_b           "libdwarf.h;dwarf.h" INTERNAL_HAS_dwarf_init_b)
+if(DEFINED LibDwarf_LDFLAGS AND LibDwarf_LDFLAGS)
+    # Parse LDFLAGS to separate compile flags from link flags
+    string(REGEX MATCHALL "-L[^ ]+" LINK_DIRS "${LibDwarf_LDFLAGS}")
+    string(REGEX MATCHALL "-l[^ ]+" LINK_LIBS "${LibDwarf_LDFLAGS}")
+    string(REGEX MATCHALL "-[^Ll][^ ]*" COMPILE_FLAGS "${LibDwarf_LDFLAGS}")
+
+    # Add compile flags to CMAKE_REQUIRED_FLAGS
+    if(COMPILE_FLAGS)
+        set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${COMPILE_FLAGS}")
+    endif()
+
+    # Add library directories to CMAKE_REQUIRED_FLAGS (they need to be compile flags)
+    foreach(link_dir ${LINK_DIRS})
+        set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${link_dir}")
+    endforeach()
+
+    # Add libraries to CMAKE_REQUIRED_LIBRARIES
+    if(LINK_LIBS)
+        list(APPEND CMAKE_REQUIRED_LIBRARIES ${LINK_LIBS})
+    endif()
+
+    # Clean up CMAKE_REQUIRED_FLAGS
+    string(STRIP "${CMAKE_REQUIRED_FLAGS}" CMAKE_REQUIRED_FLAGS)
+
+elseif(DEFINED LibDwarf_LIBRARIES AND LibDwarf_LIBRARIES)
+    # Manual configuration, LibDwarf_LIBRARIES might be full paths or just names
+    set(CMAKE_REQUIRED_LIBRARIES ${LibDwarf_LIBRARIES})
+else()
+    message(WARNING "DetectLibDwarfAPI: Could not determine linker items for libdwarf API check (LibDwarf_LDFLAGS and LibDwarf_LIBRARIES are empty). API detection may fail or be inaccurate.")
+endif()
+
+# Add required dependencies for libdwarf (zlib and zstd are commonly needed)
+find_package(PkgConfig QUIET)
+if(PKG_CONFIG_FOUND)
+    pkg_check_modules(ZLIB QUIET zlib)
+    if(ZLIB_FOUND)
+        list(APPEND CMAKE_REQUIRED_LIBRARIES ${ZLIB_LIBRARIES})
+        set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${ZLIB_LDFLAGS}")
+    else()
+        # Fallback to standard library names
+        list(APPEND CMAKE_REQUIRED_LIBRARIES -lz)
+    endif()
+
+    pkg_check_modules(ZSTD QUIET libzstd)
+    if(ZSTD_FOUND)
+        list(APPEND CMAKE_REQUIRED_LIBRARIES ${ZSTD_LIBRARIES})
+        set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${ZSTD_LDFLAGS}")
+    else()
+        # Fallback to standard library names
+        list(APPEND CMAKE_REQUIRED_LIBRARIES -lzstd)
+    endif()
+else()
+    # Fallback when pkg-config is not available
+    list(APPEND CMAKE_REQUIRED_LIBRARIES -lz -lzstd)
+endif()
+
+# Clean up CMAKE_REQUIRED_FLAGS
+string(STRIP "${CMAKE_REQUIRED_FLAGS}" CMAKE_REQUIRED_FLAGS)
+
+# Remove duplicates and clean up
+if(CMAKE_REQUIRED_LIBRARIES)
+    list(REMOVE_DUPLICATES CMAKE_REQUIRED_LIBRARIES)
+endif()
+
+message(STATUS "DetectLibDwarfAPI: Performing API symbol checks for libdwarf.")
+message(STATUS "DetectLibDwarfAPI: CMAKE_REQUIRED_INCLUDES = ${CMAKE_REQUIRED_INCLUDES}")
+message(STATUS "DetectLibDwarfAPI: CMAKE_REQUIRED_LIBRARIES = ${CMAKE_REQUIRED_LIBRARIES}")
+message(STATUS "DetectLibDwarfAPI: CMAKE_REQUIRED_FLAGS = ${CMAKE_REQUIRED_FLAGS}")
+
+# Debug: Check if headers exist
+foreach(include_dir ${CMAKE_REQUIRED_INCLUDES})
+    if(EXISTS "${include_dir}/libdwarf.h")
+        message(STATUS "DetectLibDwarfAPI: Found libdwarf.h in ${include_dir}")
+    endif()
+    if(EXISTS "${include_dir}/dwarf.h")
+        message(STATUS "DetectLibDwarfAPI: Found dwarf.h in ${include_dir}")
+    endif()
+endforeach()
+
+# Debug: Test basic compilation
+file(WRITE "${CMAKE_BINARY_DIR}/CMakeTmp/test_basic.c" "
+#include <libdwarf.h>
+int main() { return 0; }
+")
+
+try_compile(BASIC_COMPILE_TEST
+    "${CMAKE_BINARY_DIR}/CMakeTmp"
+    "${CMAKE_BINARY_DIR}/CMakeTmp/test_basic.c"
+    COMPILE_DEFINITIONS ${CMAKE_REQUIRED_FLAGS}
+    CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${CMAKE_REQUIRED_INCLUDES}"
+    OUTPUT_VARIABLE BASIC_TEST_OUTPUT
+)
+
+message(STATUS "DetectLibDwarfAPI: Basic libdwarf compile test: ${BASIC_COMPILE_TEST}")
+if(NOT BASIC_COMPILE_TEST)
+    message(STATUS "DetectLibDwarfAPI: Basic test failed: ${BASIC_TEST_OUTPUT}")
+endif()
+
+# Try different header combinations for different libdwarf versions
+set(HEADER_COMBINATIONS
+    "libdwarf.h"
+    "dwarf.h"
+    "libdwarf.h;dwarf.h"
+    "dwarf.h;libdwarf.h"
+)
+
+set(FOUND_WORKING_HEADERS "")
+foreach(headers ${HEADER_COMBINATIONS})
+    check_symbol_exists(dwarf_next_cu_header_d "${headers}" TEST_HEADERS_${headers})
+    if(TEST_HEADERS_${headers})
+        set(FOUND_WORKING_HEADERS "${headers}")
+        message(STATUS "DetectLibDwarfAPI: Using headers: ${headers}")
+        break()
+    endif()
+endforeach()
+
+if(NOT FOUND_WORKING_HEADERS)
+    message(STATUS "DetectLibDwarfAPI: Could not find working header combination, using default")
+    set(FOUND_WORKING_HEADERS "libdwarf.h;dwarf.h")
+endif()
+
+# Perform individual symbol checks with the working headers
+check_symbol_exists(dwarf_next_cu_header_d "${FOUND_WORKING_HEADERS}" INTERNAL_HAS_dwarf_next_cu_header_d)
+check_symbol_exists(dwarf_siblingof_b      "${FOUND_WORKING_HEADERS}" INTERNAL_HAS_dwarf_siblingof_b)
+check_symbol_exists(dwarf_init_b           "${FOUND_WORKING_HEADERS}" INTERNAL_HAS_dwarf_init_b)
 
 # Log individual findings (optional, but good for debugging)
 if(INTERNAL_HAS_dwarf_next_cu_header_d)
@@ -75,10 +186,15 @@ endif()
 # --- 2. Test if dwarf_finish(NULL) compiles ---
 # In new API versions, dwarf_finish takes just a single argument
 # Old versions take multiple arguments, so we check if it compiles with NULL.
+
+# Build the header include string properly
+set(HEADER_INCLUDES "")
+foreach(header ${FOUND_WORKING_HEADERS})
+    set(HEADER_INCLUDES "${HEADER_INCLUDES}#include <${header}>\n")
+endforeach()
+
 set(TEST_DWARF_FINISH_NULL_SOURCE "
-#include <libdwarf.h>
-#include <dwarf.h>
-#include <stdio.h>
+${HEADER_INCLUDES}#include <stdio.h>
 
 int main(void) {
     /* We only care if this specific call compiles. */
@@ -92,8 +208,10 @@ try_compile(
     INTERNAL_DWARF_FINISH_NULL_COMPILES
     "${CMAKE_BINARY_DIR}/CMakeTmp" # Binary directory
     "${CMAKE_BINARY_DIR}/CMakeTmp/test_dwarf_finish_null.c" # Source file
-    CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${CMAKE_REQUIRED_INCLUDES}" # Propagate includes
-    LINK_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES} # Link with libdwarf
+    COMPILE_DEFINITIONS ${CMAKE_REQUIRED_FLAGS}
+    CMAKE_FLAGS
+        "-DINCLUDE_DIRECTORIES=${CMAKE_REQUIRED_INCLUDES}"
+        "-DLINK_LIBRARIES=${CMAKE_REQUIRED_LIBRARIES}"
     OUTPUT_VARIABLE TRY_COMPILE_OUTPUT_FINISH_NULL
 )
 
@@ -103,6 +221,7 @@ if(INTERNAL_DWARF_FINISH_NULL_COMPILES)
 else()
     # LibDwarf_FINISH_NULL_COMPILES remains FALSE (its default)
     message(STATUS "DetectLibDwarfAPI: dwarf_finish takes multiple parameters.")
+    message(STATUS "DetectLibDwarfAPI: Compile output: ${TRY_COMPILE_OUTPUT_FINISH_NULL}")
 endif()
 
 # Set LibDwarf_HAS_NEW_API to TRUE only if all three symbols are present
