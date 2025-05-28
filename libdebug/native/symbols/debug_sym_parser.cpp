@@ -4,10 +4,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for details.
 //
 
-#include <nanobind/nanobind.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/bind_vector.h>
-
 #include "debug_sym_parser.h"
 
 #ifdef HAS_LIBIBERTY
@@ -20,8 +16,6 @@
 #include <dwarf.h>
 #include <libdwarf.h>
 #include <libelf.h>
-
-namespace nb = nanobind;
 
 void add_symbol_info(SymbolVector &symbols, const char *name, const Dwarf_Addr low_pc, const Dwarf_Addr high_pc)
 {
