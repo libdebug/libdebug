@@ -6,6 +6,38 @@
 
 #include "debug_sym_parser.h"
 
+//────────────────────────────  RAII guards  ─────────────────────────────────//
+struct FileDescriptorGuard {
+    int fd{-1};
+    explicit FileDescriptorGuard(int f) noexcept : fd(f) {}
+    FileDescriptorGuard             (const FileDescriptorGuard&) = delete;
+    FileDescriptorGuard& operator = (const FileDescriptorGuard&) = delete;
+    ~FileDescriptorGuard() noexcept { if (fd >= 0) ::close(fd); }
+};
+
+struct DwarfHandle {
+    Dwarf_Debug dbg{nullptr};
+    explicit DwarfHandle(int fd) {
+        if (dwarf_init(fd, DW_DLC_READ, nullptr, nullptr, &dbg, nullptr) != DW_DLV_OK)
+        throw std::runtime_error("Failed to initialize the DWARF library");
+    }
+    DwarfHandle             (const DwarfHandle&) = delete;
+    DwarfHandle& operator = (const DwarfHandle&) = delete;
+    ~DwarfHandle() noexcept { if (dbg) dwarf_finish(dbg, nullptr); }
+};
+
+template <typename T, int Kind>
+class DwarfAutoFree {
+    Dwarf_Debug dbg;
+    T          obj;
+public:
+    DwarfAutoFree(Dwarf_Debug d, T o) : dbg(d), obj(o) {}
+    ~DwarfAutoFree(){ if (obj) dwarf_dealloc(dbg, obj, Kind); }
+    T get() const noexcept { return obj; }
+};
+
+
+//─────────────────────────── Code Implementation ──────────────────────────//
 void process_subprogram(Dwarf_Debug dbg, Dwarf_Die die, SymbolVector &symbols)
 {
     Dwarf_Error error = nullptr;
@@ -15,6 +47,7 @@ void process_subprogram(Dwarf_Debug dbg, Dwarf_Die die, SymbolVector &symbols)
     enum Dwarf_Form_Class dw_return_class = DW_FORM_CLASS_UNKNOWN;
 
     if (dwarf_diename(die, &die_name, &error) == DW_DLV_OK) {
+        DwarfAutoFree<char*, DW_DLA_STRING> name_guard(dbg, die_name); // RAII
         if (dwarf_lowpc(die, &lowpc, &error) == DW_DLV_OK &&
             dwarf_highpc_b(die, &highpc, &dw_return_form, &dw_return_class, &error) == DW_DLV_OK) {
             // Check if the highpc is in address form or unit data form
@@ -25,9 +58,6 @@ void process_subprogram(Dwarf_Debug dbg, Dwarf_Die die, SymbolVector &symbols)
                 // Add the symbol to the symbols vector
                 add_symbol_info(symbols, die_name, lowpc, highpc);
             }
-    }
-    if (die_name) {
-        dwarf_dealloc(dbg, die_name, DW_DLA_STRING);
     }
 }
 
@@ -41,6 +71,8 @@ void process_variable(Dwarf_Debug dbg, Dwarf_Die die, SymbolVector &symbols)
     Dwarf_Attribute loc_attr = nullptr;
 
     if (dwarf_diename(die, &die_name, &error) == DW_DLV_OK) {
+        DwarfAutoFree<char*, DW_DLA_STRING> name_guard(dbg, die_name); // RAII
+
         // Some variables, like the global variables, may still have a lowpc and highpc
         // Other variables, like local variables, may not have a lowpc and highpc but an at_location attribute
         if (dwarf_lowpc(die, &lowpc, &error) == DW_DLV_OK &&
@@ -53,14 +85,9 @@ void process_variable(Dwarf_Debug dbg, Dwarf_Die die, SymbolVector &symbols)
                     // Add the symbol to the symbols vector
                     add_symbol_info(symbols, die_name, lowpc, highpc);
         } else if (dwarf_attr(die, DW_AT_location, &loc_attr, &error) == DW_DLV_OK){
+            DwarfAutoFree<Dwarf_Attribute, DW_DLA_ATTR> attr_guard(dbg, loc_attr); // RAII
             add_symbol_info(symbols, die_name, 0, 0);
         }
-    }
-    if (die_name) {
-        dwarf_dealloc(dbg, die_name, DW_DLA_STRING);
-    }
-    if (loc_attr) {
-        dwarf_dealloc(dbg, loc_attr, DW_DLA_ATTR);
     }
 }
 
@@ -93,6 +120,8 @@ void traverse_die_and_siblings(Dwarf_Debug dbg, Dwarf_Die die, SymbolVector &sym
     Dwarf_Error err = nullptr;
 
     for (; die != nullptr; ) {
+        DwarfAutoFree<Dwarf_Die, DW_DLA_DIE> die_guard(dbg, die); // RAII
+
         // Process the current DIE before recursing into its children
         process_die(dbg, die, symbols);
 
@@ -112,8 +141,6 @@ void traverse_die_and_siblings(Dwarf_Debug dbg, Dwarf_Die die, SymbolVector &sym
         // Now that we are done with the children (deepest level), we can get all the siblings
         Dwarf_Die next = nullptr;
         int res = dwarf_siblingof(dbg, die, &next, &err);
-
-        dwarf_dealloc(dbg, die, DW_DLA_DIE);
 
         if (res == DW_DLV_OK)
             die = next; // move to sibling
@@ -141,6 +168,8 @@ void dwarf_retrieve_symbol_names(Dwarf_Debug dbg, SymbolVector &symbols)
             throw std::runtime_error("Failed to get the DIE for the current compilation unit");
         }
 
+        DwarfAutoFree<Dwarf_Die, DW_DLA_DIE> cu_die_guard(dbg, cu_die); // RAII
+
         // Traverse the DIE and its siblings
         traverse_die_and_siblings(dbg, cu_die, symbols);
     }
@@ -148,15 +177,8 @@ void dwarf_retrieve_symbol_names(Dwarf_Debug dbg, SymbolVector &symbols)
 
 void process_dwarf_info(const int fd, SymbolVector &symbols)
 {
-    Dwarf_Debug dbg;
-    Dwarf_Error err;
+    FileDescriptorGuard fd_guard(fd);  // automatically closes fd
+    DwarfHandle         dwarf(fd);     // automatically dwarf_finish()
 
-    // Initialize the DWARF library
-    if (dwarf_init(fd, DW_DLC_READ, NULL, NULL, &dbg, &err) != DW_DLV_OK) {
-        throw std::runtime_error("Failed to initialize the DWARF library");
-    }
-
-    dwarf_retrieve_symbol_names(dbg, symbols);
-
-    dwarf_finish(dbg, &err);
+    dwarf_retrieve_symbol_names(dwarf.dbg, symbols);
 }
