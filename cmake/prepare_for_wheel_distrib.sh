@@ -19,7 +19,7 @@ cd libdwarf-code
 env -i sh autogen.sh
 
 # Configure the build system
-./configure --enable-static
+CFLAGS="-fPIC -g -O2" ./configure --enable-static
 
 # Build the library
 make -j$(nproc)
