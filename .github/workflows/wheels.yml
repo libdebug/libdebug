@@ -29,7 +29,7 @@ jobs:
           CIBW_MANYLINUX_X86_64_IMAGE: "manylinux_2_28"
           CIBW_MANYLINUX_I686_IMAGE: "manylinux2014"
           CIBW_MANYLINUX_AARCH64_IMAGE: "manylinux_2_28"
-          CIBW_TEST_REQUIRES: "pytest pwntools"
+          CIBW_TEST_REQUIRES: "pytest pwntools objgraph"
           CIBW_TEST_COMMAND: "cd {project}/test && pytest --ignore=other_tests"
           CIBW_BEFORE_ALL: "sh cmake/prepare_for_wheel_distrib.sh"
           CIBW_CONTAINER_ENGINE: "docker; create_args: --privileged"
