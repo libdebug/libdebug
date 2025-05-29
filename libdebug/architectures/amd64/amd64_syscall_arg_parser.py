@@ -787,16 +787,16 @@ AMD64_SYSCALL_PARSER_MAP = {
             "parsing_mode": "sequential",
         },
     },
-    # TODO: Crazy complex parsing, future work
-    # # fcntl
-    # 72:{
-    #     #unsigned int fd
-    #     0: {},
-    #     #unsigned int cmd
-    #     1: {},
-    #     #unsigned long arg
-    #     2: {},
-    # },
+    # fcntl
+    72:{
+        #unsigned int cmd
+        1: FCNTL_CMDS,
+        #unsigned long arg
+        2: {
+            "parsing_mode": "custom",
+            "parser": parse_fcntl_arg,
+        }
+    },
     # flock
     73: {
         # unsigned int cmd

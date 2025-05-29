@@ -711,532 +711,364 @@ I386_SYSCALL_PARSER_MAP = \
     },
     #wait4
     114:{
-        #pid_t upid
-        0: {},
-        #int *stat_addr
-        1: {},
         #int options
-        2: {},
-        #struct rusage *ru
-        3: {},
+        2: {
+            0x00000001: "WNOHANG",
+            0x00000002: "WUNTRACED / WSTOPPED",
+            0x00000004: "WEXITED",
+            0x00000008: "WCONTINUED",
+            0x01000000: "WNOWAIT",
+            0x20000000: "__WNOTHREAD",
+            0x40000000: "__WALL",
+            0x80000000: "__WCLONE",
+        },
     },
     #ipc
     117:{
         #unsigned int call
-        0: {},
-        #int first
-        1: {},
-        #unsigned long second
-        2: {},
-        #unsigned long third
-        3: {},
-        #void *ptr
-        4: {},
-        #long fifth
-        5: {},
-    },
-    #fsync
-    118:{
-        #unsigned int fd
-        0: {},
-    },
-    #sigreturn
-    119:{
+        0: {
+            1: "SEMOP",
+            2: "SEMGET",
+            3: "SEMCTL",
+            4: "SEMTIMEDOP",
+            11: "MSGSND",
+            12: "MSGRCV",
+            13: "MSGGET",
+            14: "MSGCTL",
+            21: "SHMAT",
+            22: "SHMDT",
+            23: "SHMGET",
+            24: "SHMCTL",
+            "parsing_mode": "sequential",
+        },
     },
     #clone
     120:{
         #unsigned long clone_flags
-        0: {},
-        #unsigned long newsp
-        1: {},
-        #int *parent_tidptr
-        2: {},
-        #unsigned long tls
-        3: {},
-        #int *child_tidptr
-        4: {},
-    },
-    #setdomainname
-    121:{
-        #char *name
-        0: {},
-        #int len
-        1: {},
-    },
-    #newuname
-    122:{
-        #struct new_utsname *name
-        0: {},
-    },
-    #modify_ldt
-    123:{
-        #int func
-        0: {},
-        #void *ptr
-        1: {},
-        #unsigned long bytecount
-        2: {},
-    },
-    #adjtimex
-    124:{
-        #struct old_timex32 *utp
-        0: {},
+        0: {
+            0x00000100: "CLONE_VM",
+            0x00000200: "CLONE_FS",
+            0x00000400: "CLONE_FILES",
+            0x00000800: "CLONE_SIGHAND",
+            0x00001000: "CLONE_PIDFD",
+            0x00002000: "CLONE_PTRACE",
+            0x00004000: "CLONE_VFORK",
+            0x00008000: "CLONE_PARENT",
+            0x00010000: "CLONE_THREAD",
+            0x00020000: "CLONE_NEWNS",
+            0x00040000: "CLONE_SYSVSEM",
+            0x00080000: "CLONE_SETTLS",
+            0x00100000: "CLONE_PARENT_SETTID",
+            0x00200000: "CLONE_CHILD_CLEARTID",
+            0x00400000: "CLONE_DETACHED",
+            0x00800000: "CLONE_UNTRACED",
+            0x01000000: "CLONE_CHILD_SETTID",
+            0x02000000: "CLONE_NEWCGROUP",
+            0x04000000: "CLONE_NEWUTS",
+            0x08000000: "CLONE_NEWIPC",
+            0x10000000: "CLONE_NEWUSER",
+            0x20000000: "CLONE_NEWPID",
+            0x40000000: "CLONE_NEWNET",
+            0x80000000: "CLONE_IO",
+        },
     },
     #mprotect
     125:{
-        #unsigned long start
-        0: {},
-        #size_t len
-        1: {},
         #unsigned long prot
-        2: {},
+        2: {
+            0x0: "PROT_NONE",
+            0x1: "PROT_READ",
+            0x2: "PROT_WRITE",
+            0x4: "PROT_EXEC",
+            0x8: "PROT_SEM",
+            0x01000000: "PROT_GROWSDOWN",
+            0x02000000: "PROT_GROWSUP",
+        },
     },
     #sigprocmask
     126:{
         #int how
-        0: {},
-        #old_sigset_t *nset
-        1: {},
-        #old_sigset_t *oset
-        2: {},
-    },
-    #init_module
-    128:{
-        #void *umod
-        0: {},
-        #unsigned long len
-        1: {},
-        #const char *uargs
-        2: {},
+        0: {
+            0: "SIG_BLOCK",
+            1: "SIG_UNBLOCK",
+            2: "SIG_SETMASK",
+            "parsing_mode": "sequential",
+        },
     },
     #delete_module
     129:{
-        #const char *name_user
-        0: {},
         #unsigned int flags
-        1: {},
+        1: {
+            0o0004000: "O_NONBLOCK",
+            0o0001000: "O_TRUNC",
+        },
     },
     #quotactl
     131:{
         #unsigned int cmd
-        0: {},
-        #const char *special
-        1: {},
-        #qid_t id
-        2: {},
-        #void *addr
-        3: {},
-    },
-    #getpgid
-    132:{
-        #pid_t pid
-        0: {},
+        0: {
+            0: "USRQUOTA",
+            1: "GRPQUOTA",
+            2: "PRJQUOTA",
+            0x80000100: "Q_SYNC",
+            0x80000200: "Q_QUOTAON",
+            0x80000300: "Q_QUOTAOFF",
+            0x80000400: "Q_GETFMT",
+            0x80000500: "Q_GETINFO",
+            0x80000600: "Q_SETINFO",
+            0x80000700: "Q_GETQUOTA",
+            0x80000800: "Q_SETQUOTA",
+            0x80000900: "Q_GETNEXTQUOTA",
+        },
     },
     #fchdir
     133:{
         #unsigned int fd
-        0: {},
-    },
-    #sysfs
-    135:{
-        #int option
-        0: {},
-        #unsigned long arg1
-        1: {},
-        #unsigned long arg2
-        2: {},
+        0: OPENAT_DFD,
     },
     #personality
     136:{
         #unsigned int personality
-        0: {},
-    },
-    #setfsuid16
-    138:{
-        #old_uid_t uid
-        0: {},
-    },
-    #setfsgid16
-    139:{
-        #old_gid_t gid
-        0: {},
+        0: {
+            0x0200000: "ADDR_COMPAT_LAYOUT",
+            0x0040000: "ADDR_NO_RANDOMIZE",
+            0x0800000: "PER_LINUX_32BIT | ADDR_LIMIT_32BIT",
+            0x8000000: "ADDR_LIMIT_3GB",
+            0x0100000: "MMAP_PAGE_ZERO",
+            0x0400000: "READ_IMPLIES_EXEC",
+            0x1000000: "SHORT_INODE",
+            0x4000000: "STICKY_TIMEOUTS",
+            0x0020000: "UNAME26",
+            0x2000000: "WHOLE_SECONDS",
+            0x0006: "PER_BSD",
+            0x0010: "PER_HPUX",
+            0x4000009: "PER_IRIX32",
+            0x400000B: "PER_IRIX64",
+            0x400000A: "PER_IRIXN32",
+            0x4000005: "PER_ISCR4",
+            0x0000000: "PER_LINUX",
+            0x0000008: "PER_LINUX32",
+            0x8000008: "PER_LINUX32_3GB",
+            0x000F: "PER_OSF4",
+            0x0000000C: "PER_RISCOS",
+            0x07000003: "PER_SCOSVR3",
+            0x0400000D: "PER_SOLARIS",
+            0x04000006: "PER_SUNOS",
+            0x05000002: "PER_SVR3",
+            0x04100001: "PER_SVR4",
+            0x0410000E: "PER_UW7",
+            0x05000004: "PER_WYSEV386",
+            0x05000007: "PER_XENIX",
+        },
     },
     #llseek
     140:{
-        #unsigned int fd
-        0: {},
-        #unsigned long offset_high
-        1: {},
-        #unsigned long offset_low
-        2: {},
-        #loff_t *result
-        3: {},
         #unsigned int whence
-        4: {},
-    },
-    #getdents
-    141:{
-        #unsigned int fd
-        0: {},
-        #struct linux_dirent *dirent
-        1: {},
-        #unsigned int count
-        2: {},
-    },
-    #select
-    142:{
-        #int n
-        0: {},
-        #fd_set *inp
-        1: {},
-        #fd_set *outp
-        2: {},
-        #fd_set *exp
-        3: {},
-        #struct __kernel_old_timeval *tvp
-        4: {},
+        4: {
+            0: "SEEK_SET",
+            1: "SEEK_CUR",
+            2: "SEEK_END",
+            "parsing_mode": "sequential",
+        },
     },
     #flock
     143:{
-        #unsigned int fd
-        0: {},
         #unsigned int cmd
-        1: {},
+        1: {
+            1: "LOCK_SH",
+            2: "LOCK_EX",
+            4: "LOCK_NB",
+            8: "LOCK_UN",
+        },
     },
     #msync
     144:{
-        #unsigned long start
-        0: {},
-        #size_t len
-        1: {},
         #int flags
-        2: {},
-    },
-    #readv
-    145:{
-        #unsigned long fd
-        0: {},
-        #const struct iovec *vec
-        1: {},
-        #unsigned long vlen
-        2: {},
-    },
-    #writev
-    146:{
-        #unsigned long fd
-        0: {},
-        #const struct iovec *vec
-        1: {},
-        #unsigned long vlen
-        2: {},
-    },
-    #getsid
-    147:{
-        #pid_t pid
-        0: {},
-    },
-    #fdatasync
-    148:{
-        #unsigned int fd
-        0: {},
-    },
-    #mlock
-    150:{
-        #unsigned long start
-        0: {},
-        #size_t len
-        1: {},
-    },
-    #munlock
-    151:{
-        #unsigned long start
-        0: {},
-        #size_t len
-        1: {},
+        2: {
+            1: "MS_ASYNC",
+            2: "MS_INVALIDATE",
+            4: "MS_SYNC",
+        },
     },
     #mlockall
     152:{
         #int flags
-        0: {},
-    },
-    #munlockall
-    153:{
-    },
-    #sched_setparam
-    154:{
-        #pid_t pid
-        0: {},
-        #struct sched_param *param
-        1: {},
-    },
-    #sched_getparam
-    155:{
-        #pid_t pid
-        0: {},
-        #struct sched_param *param
-        1: {},
+        0: {
+            0x00000001: "MCL_CURRENT",
+            0x00000002: "MCL_FUTURE",
+            0x00000004: "MCL_ONFAULT",
+        },
     },
     #sched_setscheduler
     156:{
-        #pid_t pid
-        0: {},
         #int policy
-        1: {},
-        #struct sched_param *param
-        2: {},
-    },
-    #sched_getscheduler
-    157:{
-        #pid_t pid
-        0: {},
-    },
-    #sched_yield
-    158:{
+        1: {
+            0: "SCHED_NORMAL",
+            1: "SCHED_FIFO",
+            2: "SCHED_RR",
+            3: "SCHED_BATCH",
+            5: "SCHED_IDLE",
+            6: "SCHED_DEADLINE",
+            7: "SCHED_EXT",
+            "parsing_mode": "sequential",
+        },
     },
     #sched_get_priority_max
     159:{
         #int policy
-        0: {},
+        0: {
+            0: "SCHED_NORMAL",
+            1: "SCHED_FIFO",
+            2: "SCHED_RR",
+            3: "SCHED_BATCH",
+            5: "SCHED_IDLE",
+            6: "SCHED_DEADLINE",
+            7: "SCHED_EXT",
+            "parsing_mode": "sequential",
+        },
     },
     #sched_get_priority_min
     160:{
         #int policy
-        0: {},
-    },
-    #sched_rr_get_interval
-    161:{
-        #pid_t pid
-        0: {},
-        #struct old_timespec32 *interval
-        1: {},
-    },
-    #nanosleep
-    162:{
-        #struct old_timespec32 *rqtp
-        0: {},
-        #struct old_timespec32 *rmtp
-        1: {},
+        0: {
+            0: "SCHED_NORMAL",
+            1: "SCHED_FIFO",
+            2: "SCHED_RR",
+            3: "SCHED_BATCH",
+            5: "SCHED_IDLE",
+            6: "SCHED_DEADLINE",
+            7: "SCHED_EXT",
+            "parsing_mode": "sequential",
+        },
     },
     #mremap
     163:{
-        #unsigned long addr
-        0: {},
-        #unsigned long old_len
-        1: {},
-        #unsigned long new_len
-        2: {},
         #unsigned long flags
-        3: {},
-        #unsigned long new_addr
-        4: {},
-    },
-    #setresuid16
-    164:{
-        #old_uid_t ruid
-        0: {},
-        #old_uid_t euid
-        1: {},
-        #old_uid_t suid
-        2: {},
-    },
-    #getresuid16
-    165:{
-        #old_uid_t *ruidp
-        0: {},
-        #old_uid_t *euidp
-        1: {},
-        #old_uid_t *suidp
-        2: {},
+        3: {
+            1: "MREMAP_MAYMOVE",
+            2: "MREMAP_FIXED",
+            4: "MREMAP_DONTUNMAP",
+        },
     },
     #vm86
     166:{
         #unsigned long cmd
-        0: {},
-        #unsigned long arg
-        1: {},
-    },
-    #poll
-    168:{
-        #struct pollfd *ufds
-        0: {},
-        #unsigned int nfds
-        1: {},
-        #int timeout_msecs
-        2: {},
-    },
-    #setresgid16
-    170:{
-        #old_gid_t rgid
-        0: {},
-        #old_gid_t egid
-        1: {},
-        #old_gid_t sgid
-        2: {},
-    },
-    #getresgid16
-    171:{
-        #old_gid_t *rgidp
-        0: {},
-        #old_gid_t *egidp
-        1: {},
-        #old_gid_t *sgidp
-        2: {},
+        0: {
+            0: "VM86_PLUS_INSTALL_CHECK",
+            1: "VM86_ENTER",
+            2: "VM86_ENTER_NO_BYPASS",
+            3: "VM86_REQUEST_IRQ",
+            4: "VM86_FREE_IRQ",
+            5: "VM86_GET_IRQ_BITS",
+            6: "VM86_GET_AND_RESET_IRQ",
+            "parsing_mode": "sequential",
+        },
     },
     #prctl
     172:{
         #int option
-        0: {},
-        #unsigned long arg2
-        1: {},
-        #unsigned long arg3
-        2: {},
-        #unsigned long arg4
-        3: {},
-        #unsigned long arg5
-        4: {},
-    },
-    #rt_sigreturn
-    173:{
+        0: {
+            0x0000002F: "PR_CAP_AMBIENT",
+            0x00000017: "PR_CAPBSET_READ",
+            0x00000018: "PR_CAPBSET_DROP",
+            0x00000024: "PR_SET_CHILD_SUBREAPER",
+            0x00000025: "PR_GET_CHILD_SUBREAPER",
+            0x00000004: "PR_SET_DUMPABLE",
+            0x00000003: "PR_GET_DUMPABLE",
+            0x00000014: "PR_SET_ENDIAN",
+            0x00000013: "PR_GET_ENDIAN",
+            0x0000002D: "PR_SET_FP_MODE",
+            0x0000002E: "PR_GET_FP_MODE",
+            0x0000000A: "PR_SET_FPEMU",
+            0x00000009: "PR_GET_FPEMU",
+            0x0000000C: "PR_SET_FPEXC",
+            0x0000000B: "PR_GET_FPEXC",
+            0x00000039: "PR_SET_IO_FLUSHER",
+            0x0000003A: "PR_GET_IO_FLUSHER",
+            0x00000008: "PR_SET_KEEPCAPS",
+            0x00000007: "PR_GET_KEEPCAPS",
+            0x00000021: "PR_MCE_KILL",
+            0x00000022: "PR_MCE_KILL_GET",
+            0x00000023: "PR_SET_MM",
+            0x53564D41: "PR_SET_VMA",
+            0x0000002B: "PR_MPX_ENABLE_MANAGEMENT",
+            0x0000002C: "PR_MPX_DISABLE_MANAGEMENT",
+            0x0000000F: "PR_SET_NAME",
+            0x00000010: "PR_GET_NAME",
+            0x00000026: "PR_SET_NO_NEW_PRIVS",
+            0x00000027: "PR_GET_NO_NEW_PRIVS",
+            0x00000036: "PR_PAC_RESET_KEYS",
+            0x00000001: "PR_SET_PDEATHSIG",
+            0x00000002: "PR_GET_PDEATHSIG",
+            0x59616D61: "PR_SET_PTRACER",
+            0x00000016: "PR_SET_SECCOMP",
+            0x00000015: "PR_GET_SECCOMP",
+            0x0000001C: "PR_SET_SECUREBITS",
+            0x0000001B: "PR_GET_SECUREBITS",
+            0x00000034: "PR_GET_SPECULATION_CTRL",
+            0x00000035: "PR_SET_SPECULATION_CTRL",
+            0x00000032: "PR_SVE_SET_VL",
+            0x00000033: "PR_SVE_GET_VL",
+            0x0000003B: "PR_SET_SYSCALL_USER_DISPATCH",
+            0x00000037: "PR_SET_TAGGED_ADDR_CTRL",
+            0x00000038: "PR_GET_TAGGED_ADDR_CTRL",
+            0x0000001F: "PR_TASK_PERF_EVENTS_DISABLE",
+            0x00000020: "PR_TASK_PERF_EVENTS_ENABLE",
+            0x00000029: "PR_SET_THP_DISABLE",
+            0x0000002A: "PR_GET_THP_DISABLE",
+            0x00000028: "PR_GET_TID_ADDRESS",
+            0x0000001D: "PR_SET_TIMERSLACK",
+            0x0000001E: "PR_GET_TIMERSLACK",
+            0x0000000E: "PR_SET_TIMING",
+            0x0000000D: "PR_GET_TIMING",
+            0x0000001A: "PR_SET_TSC",
+            0x00000019: "PR_GET_TSC",
+            0x00000006: "PR_SET_UNALIGN",
+            0x00000005: "PR_GET_UNALIGN",
+            0x41555856: "PR_GET_AUXV",
+            0x00000041: "PR_SET_MDWE",
+            0x00000042: "PR_GET_MDWE",
+            0x00000047: "PR_RISCV_SET_ICACHE_FLUSH_CTX",
+            "parsing_mode": "sequential",
+        },
     },
     #rt_sigaction
     174:{
         #int sig
-        0: {},
-        #const struct sigaction *act
-        1: {},
-        #struct sigaction *oact
-        2: {},
-        #size_t sigsetsize
-        3: {},
+        0: SIGNALS,
     },
     #rt_sigprocmask
     175:{
         #int how
-        0: {},
-        #sigset_t *nset
-        1: {},
-        #sigset_t *oset
-        2: {},
-        #size_t sigsetsize
-        3: {},
-    },
-    #rt_sigpending
-    176:{
-        #sigset_t *uset
-        0: {},
-        #size_t sigsetsize
-        1: {},
-    },
-    #rt_sigtimedwait
-    177:{
-        #const sigset_t *uthese
-        0: {},
-        #siginfo_t *uinfo
-        1: {},
-        #const struct old_timespec32 *uts
-        2: {},
-        #size_t sigsetsize
-        3: {},
-    },
-    #rt_sigqueueinfo
-    178:{
-        #pid_t pid
-        0: {},
-        #int sig
-        1: {},
-        #siginfo_t *uinfo
-        2: {},
-    },
-    #rt_sigsuspend
-    179:{
-        #sigset_t *unewset
-        0: {},
-        #size_t sigsetsize
-        1: {},
-    },
-    #pread64
-    180:{
-        #unsigned int fd
-        0: {},
-        #char *ubuf
-        1: {},
-        #u32 count
-        2: {},
-        #u32 poslo
-        3: {},
-        #u32 poshi
-        4: {},
-    },
-    #pwrite64
-    181:{
-        #unsigned int fd
-        0: {},
-        #const char *ubuf
-        1: {},
-        #u32 count
-        2: {},
-        #u32 poslo
-        3: {},
-        #u32 poshi
-        4: {},
-    },
-    #chown16
-    182:{
-        #const char *filename
-        0: {},
-        #old_uid_t user
-        1: {},
-        #old_gid_t group
-        2: {},
-    },
-    #getcwd
-    183:{
-        #char *buf
-        0: {},
-        #unsigned long size
-        1: {},
-    },
-    #capget
-    184:{
-        #cap_user_header_t header
-        0: {},
-        #cap_user_data_t dataptr
-        1: {},
-    },
-    #capset
-    185:{
-        #cap_user_header_t header
-        0: {},
-        #const cap_user_data_t data
-        1: {},
-    },
-    #sigaltstack
-    186:{
-        #const stack_t *uss
-        0: {},
-        #stack_t *uoss
-        1: {},
-    },
-    #sendfile
-    187:{
-        #int out_fd
-        0: {},
-        #int in_fd
-        1: {},
-        #off_t *offset
-        2: {},
-        #size_t count
-        3: {},
-    },
-    #vfork
-    190:{
+        0: {
+            0: "SIG_BLOCK",
+            1: "SIG_UNBLOCK",
+            2: "SIG_SETMASK",
+            "parsing_mode": "sequential",
+        },
     },
     #getrlimit
     191:{
         #unsigned int resource
-        0: {},
-        #struct rlimit *rlim
-        1: {},
+        0: {
+            0: "RLIMIT_CPU",
+            1: "RLIMIT_FSIZE",
+            2: "RLIMIT_DATA",
+            3: "RLIMIT_STACK",
+            4: "RLIMIT_CORE",
+            5: "RLIMIT_RSS",
+            6: "RLIMIT_NPROC",
+            7: "RLIMIT_NOFILE",
+            8: "RLIMIT_MEMLOCK",
+            9: "RLIMIT_AS",
+            10: "RLIMIT_LOCKS",
+            11: "RLIMIT_SIGPENDING",
+            12: "RLIMIT_MSGQUEUE",
+            13: "RLIMIT_NICE",
+            14: "RLIMIT_RTPRIO",
+            15: "RLIMIT_RTTIME",
+            "parsing_mode": "sequential",
+        },
     },
     #mmap_pgoff
     192:{
