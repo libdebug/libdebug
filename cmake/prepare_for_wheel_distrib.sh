@@ -7,7 +7,7 @@
 dnf install -y git
 
 # Clone the libdwarf code repository
-git clone https://github.com/davea42/libdwarf-code.git
+git clone https://github.com/davea42/libdwarf-code.git --depth 1
 
 # Install the required packages for building libdwarf
 dnf install -y gcc gcc-c++ make autoconf automake libtool pkg-config libzstd-devel zlib-devel
@@ -19,7 +19,7 @@ cd libdwarf-code
 env -i sh autogen.sh
 
 # Configure the build system
-CFLAGS="-fPIC -g -O2" ./configure --enable-static
+CFLAGS="-O2" ./configure --enable-shared --disable-dependency-tracking
 
 # Build the library
 make -j$(nproc)
@@ -31,7 +31,7 @@ make install
 cd ..
 
 # Clone the libelf repository
-git clone git://sourceware.org/git/elfutils.git
+git clone git://sourceware.org/git/elfutils.git  --depth 1
 
 # Install the required packages for building libelf
 dnf install -y bzip2-devel xz-devel libarchive gettext-devel flex bison libcurl-devel json-c-devel
@@ -41,7 +41,7 @@ cd elfutils
 
 # Configure the build system
 env -i autoreconf -fvi
-./configure --enable-libdebuginfod --enable-maintainer-mode
+CFLAGS="-O2" ./configure --enable-libdebuginfod --enable-maintainer-mode
 
 # Build the library
 make -j$(nproc)
