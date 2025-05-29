@@ -39,5 +39,5 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: libdebug-manylinux-wheels
+          name: libdebug-manylinux-wheels-${{ runner.arch }}
           path: ./wheelhouse/*.whl
