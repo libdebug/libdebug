@@ -164,9 +164,8 @@ endif()
 # Add the libdebug_ptrace_binding module
 nanobind_add_module(
   libdebug_ptrace_binding
-  NOMINSIZE
-  NOSTRIP
   LTO
+  STABLE_ABI
   ${LIBDEBUG_PTRACE_BINDING_SOURCES}
 )
 
@@ -182,9 +181,8 @@ nanobind_add_stub(
 # Add the libdebug_linux_binding module
 nanobind_add_module(
   libdebug_linux_binding
-  NOMINSIZE
-  NOSTRIP
   LTO
+  STABLE_ABI
   libdebug/native/linux_interface.cpp
 )
 
@@ -226,18 +224,16 @@ if(BUILD_SYMBOLS)
 
   nanobind_add_module(
     libdebug_debug_sym_parser
-    NOMINSIZE
-    NOSTRIP
     LTO
+    STABLE_ABI
     libdebug/native/symbols/debug_sym_parser_shared.cpp
   )
 else()
   # We build a dummy module that does not depend on libdwarf or libelf
   nanobind_add_module(
     libdebug_debug_sym_parser
-    NOMINSIZE
-    NOSTRIP
     LTO
+    STABLE_ABI
     libdebug/native/symbols/debug_sym_parser_dummy.cpp
     libdebug/native/symbols/debug_sym_parser_shared.cpp
   )
