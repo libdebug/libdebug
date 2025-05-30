@@ -1072,215 +1072,43 @@ I386_SYSCALL_PARSER_MAP = \
     },
     #mmap_pgoff
     192:{
-        #unsigned long addr
-        0: {},
-        #unsigned long len
-        1: {},
         #unsigned long prot
-        2: {},
+        2: {
+            0x0: "PROT_NONE",
+            0x1: "PROT_READ",
+            0x2: "PROT_WRITE",
+            0x4: "PROT_EXEC",
+        },
         #unsigned long flags
-        3: {},
-        #unsigned long fd
-        4: {},
-        #unsigned long pgoff
-        5: {},
-    },
-    #truncate64
-    193:{
-        #const char *filename
-        0: {},
-        #unsigned long offset_low
-        1: {},
-        #unsigned long offset_high
-        2: {},
-    },
-    #ftruncate64
-    194:{
-        #unsigned int fd
-        0: {},
-        #unsigned long offset_low
-        1: {},
-        #unsigned long offset_high
-        2: {},
-    },
-    #stat64
-    195:{
-        #const char *filename
-        0: {},
-        #struct stat64 *statbuf
-        1: {},
-    },
-    #lstat64
-    196:{
-        #const char *filename
-        0: {},
-        #struct stat64 *statbuf
-        1: {},
-    },
-    #fstat64
-    197:{
-        #unsigned long fd
-        0: {},
-        #struct stat64 *statbuf
-        1: {},
-    },
-    #lchown
-    198:{
-        #const char *filename
-        0: {},
-        #uid_t user
-        1: {},
-        #gid_t group
-        2: {},
-    },
-    #getuid
-    199:{
-    },
-    #getgid
-    200:{
-    },
-    #geteuid
-    201:{
-    },
-    #getegid
-    202:{
-    },
-    #setreuid
-    203:{
-        #uid_t ruid
-        0: {},
-        #uid_t euid
-        1: {},
-    },
-    #setregid
-    204:{
-        #gid_t rgid
-        0: {},
-        #gid_t egid
-        1: {},
-    },
-    #getgroups
-    205:{
-        #int gidsetsize
-        0: {},
-        #gid_t *grouplist
-        1: {},
-    },
-    #setgroups
-    206:{
-        #int gidsetsize
-        0: {},
-        #gid_t *grouplist
-        1: {},
-    },
-    #fchown
-    207:{
-        #unsigned int fd
-        0: {},
-        #uid_t user
-        1: {},
-        #gid_t group
-        2: {},
-    },
-    #setresuid
-    208:{
-        #uid_t ruid
-        0: {},
-        #uid_t euid
-        1: {},
-        #uid_t suid
-        2: {},
-    },
-    #getresuid
-    209:{
-        #uid_t *ruidp
-        0: {},
-        #uid_t *euidp
-        1: {},
-        #uid_t *suidp
-        2: {},
-    },
-    #setresgid
-    210:{
-        #gid_t rgid
-        0: {},
-        #gid_t egid
-        1: {},
-        #gid_t sgid
-        2: {},
-    },
-    #getresgid
-    211:{
-        #gid_t *rgidp
-        0: {},
-        #gid_t *egidp
-        1: {},
-        #gid_t *sgidp
-        2: {},
-    },
-    #chown
-    212:{
-        #const char *filename
-        0: {},
-        #uid_t user
-        1: {},
-        #gid_t group
-        2: {},
-    },
-    #setuid
-    213:{
-        #uid_t uid
-        0: {},
-    },
-    #setgid
-    214:{
-        #gid_t gid
-        0: {},
-    },
-    #setfsuid
-    215:{
-        #uid_t uid
-        0: {},
-    },
-    #setfsgid
-    216:{
-        #gid_t gid
-        0: {},
-    },
-    #pivot_root
-    217:{
-        #const char *new_root
-        0: {},
-        #const char *put_old
-        1: {},
-    },
-    #mincore
-    218:{
-        #unsigned long start
-        0: {},
-        #size_t len
-        1: {},
-        #unsigned char *vec
-        2: {},
+        3: {
+            0x00000000: "MAP_FILE",
+            0x00000001: "MAP_SHARED",
+            0x00000003: "MAP_SHARED_VALIDATE",
+            0x00000002: "MAP_PRIVATE",
+            0x00000020: "MAP_ANONYMOUS",
+            0x00000800: "MAP_DENYWRITE",
+            0x00001000: "MAP_EXECUTABLE",
+            0x00000010: "MAP_FIXED",
+            0x00100000: "MAP_FIXED_NOREPLACE",
+            0x00000100: "MAP_GROWSDOWN",
+            0x00040000: "MAP_HUGETLB",
+            0x54000000: "MAP_HUGE_2MB",
+            0x78000000: "MAP_HUGE_1GB",
+            0x00002000: "MAP_LOCKED",
+            0x00010000: "MAP_NONBLOCK",
+            0x00004000: "MAP_NORESERVE",
+            0x00008000: "MAP_POPULATE",
+            0x00020000: "MAP_STACK",
+            0x00080000: "MAP_SYNC",
+            0x04000000: "MAP_UNINITIALIZED",
+        },
     },
     #madvise
     219:{
-        #unsigned long start
-        0: {},
-        #size_t len_in
-        1: {},
         #int behavior
-        2: {},
+        2: ADVISE_BEHAVIORS,
     },
-    #getdents64
-    220:{
-        #unsigned int fd
-        0: {},
-        #struct linux_dirent64 *dirent
-        1: {},
-        #unsigned int count
-        2: {},
-    },
+    #TODO: Fill
     #fcntl64
     221:{
         #unsigned int fd
@@ -1290,615 +1118,378 @@ I386_SYSCALL_PARSER_MAP = \
         #unsigned long arg
         2: {},
     },
-    #gettid
-    224:{
-    },
-    #readahead
-    225:{
-        #int fd
-        0: {},
-        #unsigned int off_lo
-        1: {},
-        #unsigned int off_hi
-        2: {},
-        #size_t count
-        3: {},
-    },
     #setxattr
     226:{
-        #const char *pathname
-        0: {},
-        #const char *name
-        1: {},
-        #const void *value
-        2: {},
-        #size_t size
-        3: {},
         #int flags
-        4: {},
+        4: {
+            0x00000001: "XATTR_CREATE",
+            0x00000002: "XATTR_REPLACE",
+            "parsing_mode": "sequential",
+        },
     },
     #lsetxattr
     227:{
-        #const char *pathname
-        0: {},
-        #const char *name
-        1: {},
-        #const void *value
-        2: {},
-        #size_t size
-        3: {},
         #int flags
-        4: {},
+        4: {
+            0x00000001: "XATTR_CREATE",
+            0x00000002: "XATTR_REPLACE",
+            "parsing_mode": "sequential",
+        },
     },
     #fsetxattr
     228:{
-        #int fd
-        0: {},
-        #const char *name
-        1: {},
-        #const void *value
-        2: {},
-        #size_t size
-        3: {},
         #int flags
-        4: {},
-    },
-    #getxattr
-    229:{
-        #const char *pathname
-        0: {},
-        #const char *name
-        1: {},
-        #void *value
-        2: {},
-        #size_t size
-        3: {},
-    },
-    #lgetxattr
-    230:{
-        #const char *pathname
-        0: {},
-        #const char *name
-        1: {},
-        #void *value
-        2: {},
-        #size_t size
-        3: {},
-    },
-    #fgetxattr
-    231:{
-        #int fd
-        0: {},
-        #const char *name
-        1: {},
-        #void *value
-        2: {},
-        #size_t size
-        3: {},
-    },
-    #listxattr
-    232:{
-        #const char *pathname
-        0: {},
-        #char *list
-        1: {},
-        #size_t size
-        2: {},
-    },
-    #llistxattr
-    233:{
-        #const char *pathname
-        0: {},
-        #char *list
-        1: {},
-        #size_t size
-        2: {},
-    },
-    #flistxattr
-    234:{
-        #int fd
-        0: {},
-        #char *list
-        1: {},
-        #size_t size
-        2: {},
-    },
-    #removexattr
-    235:{
-        #const char *pathname
-        0: {},
-        #const char *name
-        1: {},
-    },
-    #lremovexattr
-    236:{
-        #const char *pathname
-        0: {},
-        #const char *name
-        1: {},
-    },
-    #fremovexattr
-    237:{
-        #int fd
-        0: {},
-        #const char *name
-        1: {},
+        4: {
+            0x00000001: "XATTR_CREATE",
+            0x00000002: "XATTR_REPLACE",
+            "parsing_mode": "sequential",
+        },
     },
     #tkill
     238:{
-        #pid_t pid
-        0: {},
         #int sig
-        1: {},
-    },
-    #sendfile64
-    239:{
-        #int out_fd
-        0: {},
-        #int in_fd
-        1: {},
-        #loff_t *offset
-        2: {},
-        #size_t count
-        3: {},
+        1: SIGNALS,
     },
     #futex
     240:{
-        #u32 *uaddr
-        0: {},
         #int op
-        1: {},
-        #u32 val
-        2: {},
-        #const struct old_timespec32 *utime
-        3: {},
-        #u32 *uaddr2
-        4: {},
-        #u32 val3
-        5: {},
-    },
-    #sched_setaffinity
-    241:{
-        #pid_t pid
-        0: {},
-        #unsigned int len
-        1: {},
-        #unsigned long *user_mask_ptr
-        2: {},
-    },
-    #sched_getaffinity
-    242:{
-        #pid_t pid
-        0: {},
-        #unsigned int len
-        1: {},
-        #unsigned long *user_mask_ptr
-        2: {},
-    },
-    #set_thread_area
-    243:{
-        #struct user_desc *u_info
-        0: {},
-    },
-    #get_thread_area
-    244:{
-        #struct user_desc *u_info
-        0: {},
-    },
-    #io_setup
-    245:{
-        #unsigned nr_events
-        0: {},
-        #aio_context_t *ctxp
-        1: {},
-    },
-    #io_destroy
-    246:{
-        #aio_context_t ctx
-        0: {},
-    },
-    #io_getevents
-    247:{
-        #__u32 ctx_id
-        0: {},
-        #__s32 min_nr
-        1: {},
-        #__s32 nr
-        2: {},
-        #struct io_event *events
-        3: {},
-        #struct old_timespec32 *timeout
-        4: {},
-    },
-    #io_submit
-    248:{
-        #aio_context_t ctx_id
-        0: {},
-        #long nr
-        1: {},
-        #struct iocb **iocbpp
-        2: {},
-    },
-    #io_cancel
-    249:{
-        #aio_context_t ctx_id
-        0: {},
-        #struct iocb *iocb
-        1: {},
-        #struct io_event *result
-        2: {},
+        1: {
+            "sequential_flags": {
+                0: "FUTEX_WAIT",
+                1: "FUTEX_WAKE",
+                2: "FUTEX_FD",
+                3: "FUTEX_REQUEUE",
+                4: "FUTEX_CMP_REQUEUE",
+                5: "FUTEX_WAKE_OP",
+                6: "FUTEX_LOCK_PI",
+                7: "FUTEX_UNLOCK_PI",
+                8: "FUTEX_TRYLOCK_PI",
+                9: "FUTEX_WAIT_BITSET",
+                10: "FUTEX_WAKE_BITSET",
+                11: "FUTEX_WAIT_REQUEUE_PI",
+                12: "FUTEX_CMP_REQUEUE_PI",
+                13: "FUTEX_LOCK_PI2",
+            },
+            "or_flags": {
+                128: "FUTEX_PRIVATE_FLAG",
+                256: "FUTEX_CLOCK_REALTIME",
+            },
+            "parsing_mode": "mixed",
+        },
     },
     #fadvise64
     250:{
-        #int fd
-        0: {},
-        #unsigned int offset_lo
-        1: {},
-        #unsigned int offset_hi
-        2: {},
-        #size_t len
-        3: {},
         #int advice
-        4: {},
-    },
-    #exit_group
-    252:{
-        #int error_code
-        0: {},
-    },
-    #epoll_create
-    254:{
-        #int size
-        0: {},
+        4: {
+            0: "POSIX_FADV_NORMAL",
+            1: "POSIX_FADV_RANDOM",
+            2: "POSIX_FADV_SEQUENTIAL",
+            3: "POSIX_FADV_WILLNEED",
+            4: "POSIX_FADV_DONTNEED",
+            5: "POSIX_FADV_NOREUSE",
+            "parsing_mode": "sequential",
+        },
     },
     #epoll_ctl
     255:{
-        #int epfd
-        0: {},
         #int op
-        1: {},
-        #int fd
-        2: {},
-        #struct epoll_event *event
-        3: {},
-    },
-    #epoll_wait
-    256:{
-        #int epfd
-        0: {},
-        #struct epoll_event *events
-        1: {},
-        #int maxevents
-        2: {},
-        #int timeout
-        3: {},
+        1: {
+            1: "EPOLL_CTL_ADD",
+            2: "EPOLL_CTL_DEL",
+            3: "EPOLL_CTL_MOD",
+            "parsing_mode": "sequential",
+        },
     },
     #remap_file_pages
     257:{
-        #unsigned long start
-        0: {},
-        #unsigned long size
-        1: {},
-        #unsigned long prot
-        2: {},
-        #unsigned long pgoff
-        3: {},
         #unsigned long flags
-        4: {},
-    },
-    #set_tid_address
-    258:{
-        #int *tidptr
-        0: {},
+        4: {
+            # All flags other that MAP_NONBLOCK are ignored
+            0x00010000: "MAP_NONBLOCK",
+        },
     },
     #timer_create
     259:{
         #const clockid_t which_clock
-        0: {},
-        #struct sigevent *timer_event_spec
-        1: {},
-        #timer_t *created_timer_id
-        2: {},
+        0: {
+            0: "CLOCK_REALTIME",
+            1: "CLOCK_MONOTONIC",
+            2: "CLOCK_PROCESS_CPUTIME_ID",
+            3: "CLOCK_THREAD_CPUTIME_ID",
+            5: "CLOCK_REALTIME_COARSE",
+            7: "CLOCK_BOOTTIME",
+            8: "CLOCK_REALTIME_ALARM",
+            9: "CLOCK_BOOTTIME_ALARM",
+            11: "CLOCK_TAI",
+            "parsing_mode": "sequential",
+        },
     },
     #timer_settime
     260:{
-        #timer_t timer_id
-        0: {},
         #int flags
-        1: {},
-        #struct old_itimerspec32 *new
-        2: {},
-        #struct old_itimerspec32 *old
-        3: {},
-    },
-    #timer_gettime
-    261:{
-        #timer_t timer_id
-        0: {},
-        #struct old_itimerspec32 *setting
-        1: {},
-    },
-    #timer_getoverrun
-    262:{
-        #timer_t timer_id
-        0: {},
-    },
-    #timer_delete
-    263:{
-        #timer_t timer_id
-        0: {},
+        1: {
+            1: "TIMER_ABSTIME",
+        },
     },
     #clock_settime
     264:{
         #clockid_t which_clock
-        0: {},
-        #struct old_timespec32 *tp
-        1: {},
+        0: WHICH_CLOCK,
     },
     #clock_gettime
     265:{
         #clockid_t which_clock
-        0: {},
-        #struct old_timespec32 *tp
-        1: {},
+        0: WHICH_CLOCK,
     },
     #clock_getres
     266:{
         #clockid_t which_clock
-        0: {},
-        #struct old_timespec32 *tp
-        1: {},
+        0: WHICH_CLOCK,
     },
     #clock_nanosleep
     267:{
         #clockid_t which_clock
-        0: {},
+        0: WHICH_CLOCK,
         #int flags
-        1: {},
-        #struct old_timespec32 *rqtp
-        2: {},
-        #struct old_timespec32 *rmtp
-        3: {},
-    },
-    #statfs64
-    268:{
-        #const char *pathname
-        0: {},
-        #size_t sz
-        1: {},
-        #struct statfs64 *buf
-        2: {},
-    },
-    #fstatfs64
-    269:{
-        #unsigned int fd
-        0: {},
-        #size_t sz
-        1: {},
-        #struct statfs64 *buf
-        2: {},
+        1: {
+            1: "TIMER_ABSTIME",
+        },
     },
     #tgkill
     270:{
-        #pid_t tgid
-        0: {},
-        #pid_t pid
-        1: {},
         #int sig
-        2: {},
-    },
-    #utimes
-    271:{
-        #const char *filename
-        0: {},
-        #struct old_timeval32 *t
-        1: {},
+        2: SIGNALS,
     },
     #fadvise64_64
     272:{
-        #int fd
-        0: {},
-        #__u32 offset_low
-        1: {},
-        #__u32 offset_high
-        2: {},
-        #__u32 len_low
-        3: {},
-        #__u32 len_high
-        4: {},
         #int advice
-        5: {},
+        5: {
+            0: "POSIX_FADV_NORMAL",
+            1: "POSIX_FADV_RANDOM",
+            2: "POSIX_FADV_SEQUENTIAL",
+            3: "POSIX_FADV_WILLNEED",
+            4: "POSIX_FADV_DONTNEED",
+            5: "POSIX_FADV_NOREUSE",
+            "parsing_mode": "sequential",
+        },
     },
     #mbind
     274:{
-        #unsigned long start
-        0: {},
-        #unsigned long len
-        1: {},
         #unsigned long mode
-        2: {},
-        #const unsigned long *nmask
-        3: {},
-        #unsigned long maxnode
-        4: {},
+        2: {
+            "sequential_flags": {
+                0: "MPOL_DEFAULT",
+                1: "MPOL_PREFERRED",
+                2: "MPOL_BIND",
+                3: "MPOL_INTERLEAVE",
+                4: "MPOL_LOCAL",
+                5: "MPOL_PREFERRED_MANY",
+                6: "MPOL_WEIGHTED_INTERLEAVE",
+                7: "MPOL_MAX",
+            },
+            "or_flags": {
+                0b1000000000000000: "MPOL_F_STATIC_NODES",
+                0b0100000000000000: "MPOL_F_RELATIVE_NODES",
+                0b0010000000000000: "MPOL_F_NUMA_BALANCING",
+            },
+            "parsing_mode": "mixed",
+        },
         #unsigned int flags
-        5: {},
+        5: {
+            0b00000001: "MPOL_MF_STRICT",
+            0b00000010: "MPOL_MF_MOVE",
+            0b00000100: "MPOL_MF_MOVE_ALL",
+            0b00001000: "MPOL_MF_LAZY",
+            0b00010000: "MPOL_MF_INTERNAL",
+        },
     },
     #get_mempolicy
     275:{
-        #int *policy
-        0: {},
-        #unsigned long *nmask
-        1: {},
-        #unsigned long maxnode
-        2: {},
-        #unsigned long addr
-        3: {},
         #unsigned long flags
-        4: {},
+        4: {
+            0b0001: "MPOL_F_NODE",
+            0b0010: "MPOL_F_ADDR",
+            0b0100: "MPOL_F_MEMS_ALLOWED",
+        },
     },
     #set_mempolicy
     276:{
         #int mode
-        0: {},
-        #const unsigned long *nmask
-        1: {},
-        #unsigned long maxnode
-        2: {},
-    },
+        0: {
+            "sequential_flags": {
+                0: "MPOL_DEFAULT",
+                1: "MPOL_PREFERRED",
+                2: "MPOL_BIND",
+                3: "MPOL_INTERLEAVE",
+                4: "MPOL_LOCAL",
+                5: "MPOL_PREFERRED_MANY",
+                6: "MPOL_WEIGHTED_INTERLEAVE",
+                7: "MPOL_MAX",
+            },
+            "or_flags": {
+                0b1000000000000000: "MPOL_F_STATIC_NODES",
+                0b0100000000000000: "MPOL_F_RELATIVE_NODES",
+                0b0010000000000000: "MPOL_F_NUMA_BALANCING",
+            },
+            "parsing_mode": "mixed",
+        },
     #mq_open
     277:{
-        #const char *u_name
-        0: {},
         #int oflag
-        1: {},
+        1: {
+            0o02000000: "O_CLOEXEC",
+            0o00000100: "O_CREAT",
+            0o00000200: "O_EXCL",
+            0o00004000: "O_NOFOLLOW / O_NONBLOCK",
+            0o00000000: "O_RDONLY",
+            0o00000002: "O_RDWR",
+            0o00000001: "O_WRONLY",
+        },
         #umode_t mode
-        2: {},
-        #struct mq_attr *u_attr
-        3: {},
-    },
-    #mq_unlink
-    278:{
-        #const char *u_name
-        0: {},
-    },
-    #mq_timedsend
-    279:{
-        #mqd_t mqdes
-        0: {},
-        #const char *u_msg_ptr
-        1: {},
-        #unsigned int msg_len
-        2: {},
-        #unsigned int msg_prio
-        3: {},
-        #const struct old_timespec32 *u_abs_timeout
-        4: {},
-    },
-    #mq_timedreceive
-    280:{
-        #mqd_t mqdes
-        0: {},
-        #char *u_msg_ptr
-        1: {},
-        #unsigned int msg_len
-        2: {},
-        #unsigned int *u_msg_prio
-        3: {},
-        #const struct old_timespec32 *u_abs_timeout
-        4: {},
-    },
-    #mq_notify
-    281:{
-        #mqd_t mqdes
-        0: {},
-        #const struct sigevent *u_notification
-        1: {},
-    },
-    #mq_getsetattr
-    282:{
-        #mqd_t mqdes
-        0: {},
-        #const struct mq_attr *u_mqstat
-        1: {},
-        #struct mq_attr *u_omqstat
-        2: {},
+        2: OPEN_MODES,
     },
     #kexec_load
     283:{
-        #unsigned long entry
-        0: {},
-        #unsigned long nr_segments
-        1: {},
-        #struct kexec_segment *segments
-        2: {},
         #unsigned long flags
-        3: {},
+        3: {
+            "or_flags": {
+                0x00000001: "KEXEC_ON_CRASH",
+                0x00000002: "KEXEC_PRESERVE_CONTEXT",
+                0x00000004: "KEXEC_UPDATE_ELFCOREHDR",
+                0x00000008: "KEXEC_CRASH_HOTPLUG_SUPPORT",
+                0xFFFF0000: "KEXEC_ARCH_MASK",
+            },
+            "sequential_flags": {
+                0x0: "KEXEC_ARCH_DEFAULT",
+                0x30000: "KEXEC_ARCH_386",
+                0x40000: "KEXEC_ARCH_68K",
+                0xF0000: "KEXEC_ARCH_PARISC",
+                0x3E0000: "KEXEC_ARCH_X86_64",
+                0x140000: "KEXEC_ARCH_PPC",
+                0x150000: "KEXEC_ARCH_PPC64",
+                0x320000: "KEXEC_ARCH_IA_64",
+                0x280000: "KEXEC_ARCH_ARM",
+                0x160000: "KEXEC_ARCH_S390",
+                0x2A0000: "KEXEC_ARCH_SH",
+                0xA0000: "KEXEC_ARCH_MIPS_LE",
+                0x80000: "KEXEC_ARCH_MIPS",
+                0xB70000: "KEXEC_ARCH_AARCH64",
+                0xF30000: "KEXEC_ARCH_RISCV",
+                0x1020000: "KEXEC_ARCH_LOONGARCH",
+            },
+            "parsing_mode": "mixed",
+        },
     },
     #waitid
     284:{
         #int which
-        0: {},
-        #pid_t upid
-        1: {},
-        #struct siginfo *infop
-        2: {},
+        0: {
+            0: "P_ALL",
+            1: "P_PID",
+            2: "P_PGID",
+            "parsing_mode": "sequential",
+        },
         #int options
-        3: {},
-        #struct rusage *ru
-        4: {},
+        3: {
+            0x00000001: "WNOHANG",
+            0x00000002: "WUNTRACED / WSTOPPED",
+            0x00000004: "WEXITED",
+            0x00000008: "WCONTINUED",
+            0x01000000: "WNOWAIT",
+            0x20000000: "__WNOTHREAD",
+            0x40000000: "__WALL",
+            0x80000000: "__WCLONE",
+        },
     },
     #add_key
     286:{
-        #const char *_type
-        0: {},
-        #const char *_description
-        1: {},
-        #const void *_payload
-        2: {},
-        #size_t plen
-        3: {},
         #key_serial_t ringid
-        4: {},
+        4: {
+            0xFFFFFFFFFFFFFFFF: "KEY_SPEC_THREAD_KEYRING",
+            0xFFFFFFFFFFFFFFFE: "KEY_SPEC_PROCESS_KEYRING",
+            0xFFFFFFFFFFFFFFFD: "KEY_SPEC_SESSION_KEYRING",
+            0xFFFFFFFFFFFFFFFC: "KEY_SPEC_USER_KEYRING",
+            0xFFFFFFFFFFFFFFFB: "KEY_SPEC_USER_SESSION_KEYRING",
+            0xFFFFFFFFFFFFFFFA: "KEY_SPEC_GROUP_KEYRING",
+            0xFFFFFFFFFFFFFF9F: "KEY_SPEC_REQKEY_AUTH_KEY",
+            0xFFFFFFFFFFFFFF9E: "KEY_SPEC_REQUESTOR_KEYRING",
+            "parsing_mode": "sequential",
+        },
     },
     #request_key
     287:{
-        #const char *_type
-        0: {},
-        #const char *_description
-        1: {},
-        #const char *_callout_info
-        2: {},
         #key_serial_t destringid
-        3: {},
+        3: {
+            0xFFFFFFFFFFFFFFFF: "KEY_SPEC_THREAD_KEYRING",
+            0xFFFFFFFFFFFFFFFE: "KEY_SPEC_PROCESS_KEYRING",
+            0xFFFFFFFFFFFFFFFD: "KEY_SPEC_SESSION_KEYRING",
+            0xFFFFFFFFFFFFFFFC: "KEY_SPEC_USER_KEYRING",
+            0xFFFFFFFFFFFFFFFB: "KEY_SPEC_USER_SESSION_KEYRING",
+            0xFFFFFFFFFFFFFFFA: "KEY_SPEC_GROUP_KEYRING",
+            0xFFFFFFFFFFFFFF9F: "KEY_SPEC_REQKEY_AUTH_KEY",
+            0xFFFFFFFFFFFFFF9E: "KEY_SPEC_REQUESTOR_KEYRING",
+            "parsing_mode": "sequential",
+        },
     },
     #keyctl
     288:{
         #int option
-        0: {},
-        #unsigned long arg2
-        1: {},
-        #unsigned long arg3
-        2: {},
-        #unsigned long arg4
-        3: {},
-        #unsigned long arg5
-        4: {},
+        0: {
+            0: "KEYCTL_GET_KEYRING_ID",
+            1: "KEYCTL_JOIN_SESSION_KEYRING",
+            2: "KEYCTL_UPDATE",
+            3: "KEYCTL_REVOKE",
+            4: "KEYCTL_CHOWN",
+            5: "KEYCTL_SETPERM",
+            6: "KEYCTL_DESCRIBE",
+            7: "KEYCTL_CLEAR",
+            8: "KEYCTL_LINK",
+            9: "KEYCTL_UNLINK",
+            10: "KEYCTL_SEARCH",
+            11: "KEYCTL_READ",
+            12: "KEYCTL_INSTANTIATE",
+            13: "KEYCTL_NEGATE",
+            14: "KEYCTL_SET_REQKEY_KEYRING",
+            15: "KEYCTL_SET_TIMEOUT",
+            16: "KEYCTL_ASSUME_AUTHORITY",
+            17: "KEYCTL_GET_SECURITY",
+            18: "KEYCTL_SESSION_TO_PARENT",
+            19: "KEYCTL_REJECT",
+            20: "KEYCTL_INSTANTIATE_IOV",
+            21: "KEYCTL_INVALIDATE",
+            22: "KEYCTL_GET_PERSISTENT",
+            23: "KEYCTL_DH_COMPUTE",
+            24: "KEYCTL_PKEY_QUERY",
+            25: "KEYCTL_PKEY_ENCRYPT",
+            26: "KEYCTL_PKEY_DECRYPT",
+            27: "KEYCTL_PKEY_SIGN",
+            28: "KEYCTL_PKEY_VERIFY",
+            29: "KEYCTL_RESTRICT_KEYRING",
+            30: "KEYCTL_MOVE",
+            31: "KEYCTL_CAPABILITIES",
+            32: "KEYCTL_WATCH_KEY",
+            "parsing_mode": "sequential",
+        },
     },
     #ioprio_set
     289:{
         #int which
-        0: {},
-        #int who
-        1: {},
-        #int ioprio
-        2: {},
+        0: {
+            1: "IOPRIO_WHO_PROCESS",
+            2: "IOPRIO_WHO_PGRP",
+            3: "IOPRIO_WHO_USER",
+            "parsing_mode": "sequential",
+        },
     },
     #ioprio_get
     290:{
         #int which
-        0: {},
-        #int who
-        1: {},
-    },
-    #inotify_init
-    291:{
-    },
-    #inotify_add_watch
-    292:{
-        #int fd
-        0: {},
-        #const char *pathname
-        1: {},
-        #u32 mask
-        2: {},
-    },
-    #inotify_rm_watch
-    293:{
-        #int fd
-        0: {},
-        #__s32 wd
-        1: {},
+        0: {
+            1: "IOPRIO_WHO_PROCESS",
+            2: "IOPRIO_WHO_PGRP",
+            3: "IOPRIO_WHO_USER",
+            "parsing_mode": "sequential",
+        },
     },
     #migrate_pages
     294:{

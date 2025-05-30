@@ -1382,6 +1382,7 @@ AMD64_SYSCALL_PARSER_MAP = {
     },
     # fadvise64
     221: {
+        # int advice
         3: {
             0: "POSIX_FADV_NORMAL",
             1: "POSIX_FADV_RANDOM",
@@ -1389,6 +1390,7 @@ AMD64_SYSCALL_PARSER_MAP = {
             3: "POSIX_FADV_WILLNEED",
             4: "POSIX_FADV_DONTNEED",
             5: "POSIX_FADV_NOREUSE",
+            "parsing_mode": "sequential",
         },
     },
     # timer_settime
