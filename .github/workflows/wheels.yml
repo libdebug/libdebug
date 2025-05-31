@@ -1,4 +1,4 @@
-# This workflow will build wheels for the major Python versions
+# This workflow will build wheels for the major Python versions and test them on multiple distros
 
 name: Wheels
 
@@ -18,7 +18,6 @@ jobs:
         os: [ubuntu-24.04, ubuntu-24.04-arm]
 
     steps:
-
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -31,13 +30,243 @@ jobs:
           CIBW_MANYLINUX_I686_IMAGE: "manylinux2014"
           CIBW_MANYLINUX_AARCH64_IMAGE: "manylinux_2_28"
           CIBW_REPAIR_WHEEL_COMMAND: "auditwheel repair --strip -w {dest_dir} {wheel}"
-          # CIBW_TEST_REQUIRES: "pytest pwntools objgraph"
-          # CIBW_TEST_COMMAND: "cd {project}/test && pytest --ignore=other_tests"
           CIBW_BEFORE_ALL: "python cmake/prepare_for_wheel_distrib.py"
-          # CIBW_CONTAINER_ENGINE: "docker; create_args: --privileged"
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: libdebug-manylinux-wheels-${{ runner.arch }}
           path: ./wheelhouse/*.whl
+
+  test_wheels:
+    needs: build_wheels
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+        distro:
+          - ubuntu:20.04
+          - ubuntu:22.04
+          - ubuntu:24.04
+          - debian:11
+          - debian:12
+          - fedora:40
+          - fedora:41
+          - fedora:42
+          - archlinux:latest
+          - opensuse/leap:15.5
+          - alpine:3.18
+          - alpine:3.19
+        python_version: ["3.10", "3.11", "3.12", "3.13"]
+        exclude:
+          - distro: alpine:3.18
+            python_version: "3.13"
+          - distro: alpine:3.19
+            python_version: "3.13"
+          - distro: debian:11
+            python_version: "3.13"
+          - distro: ubuntu:20.04
+            python_version: "3.12"
+          - distro: ubuntu:20.04
+            python_version: "3.13"
+
+    container:
+      image: ${{ matrix.distro }}
+      options: --privileged
+
+    steps:
+      - name: Download Build Artifacts (x64)
+        if: matrix.os == 'ubuntu-24.04'
+        uses: actions/download-artifact@v4
+        with:
+          name: libdebug-manylinux-wheels-X64
+          path: ./wheels
+
+      - name: Download Build Artifacts (ARM64)
+        if: matrix.os == 'ubuntu-24.04-arm'
+        uses: actions/download-artifact@v4
+        with:
+          name: libdebug-manylinux-wheels-ARM64
+          path: ./wheels
+
+      - name: Install bash on Alpine Linux
+        if: contains(matrix.distro, 'alpine')
+        shell: sh
+        run: |
+          echo "Alpine detected. Installing bash..."
+          apk add --no-cache --quiet bash gcc python3-dev musl-dev linux-headers
+
+      - name: Install Python and dependencies (Ubuntu/Debian)
+        shell: bash
+        if: contains(matrix.distro, 'ubuntu') || contains(matrix.distro, 'debian')
+        run: |
+          apt-get update
+          apt-get install -y software-properties-common curl
+          # Install Python from deadsnakes PPA for newer versions
+          if [[ "${{ matrix.distro }}" == "ubuntu"* ]]; then
+            add-apt-repository ppa:deadsnakes/ppa -y
+            apt-get update
+          fi
+          apt-get install -y python${{ matrix.python_version }} python${{ matrix.python_version }}-venv
+          python${{ matrix.python_version }} -m ensurepip
+          python${{ matrix.python_version }} -m pip install --upgrade pip wheel
+
+      - name: Install Python and dependencies (Fedora)
+        if: contains(matrix.distro, 'fedora')
+        run: |
+          dnf update -y
+          dnf install -y python${{ matrix.python_version }}
+          python${{ matrix.python_version }} -m ensurepip
+          python${{ matrix.python_version }} -m pip install --upgrade pip wheel
+
+      - name: Install Python and dependencies (Arch Linux)
+        if: contains(matrix.distro, 'archlinux')
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm python python-pip
+
+      - name: Install Python and dependencies (openSUSE)
+        if: contains(matrix.distro, 'opensuse')
+        run: |
+          zypper refresh
+          zypper install -y python${{ matrix.python_version }} python${{ matrix.python_version }}-pip
+          python${{ matrix.python_version }} -m pip install --upgrade pip wheel
+
+      - name: Install Python and dependencies (Alpine)
+        if: contains(matrix.distro, 'alpine')
+        run: |
+          apk update
+          apk add python3 py3-pip
+
+      - name: List available wheels
+        run: |
+          ls -la ./wheels/
+          echo "Available wheel files:"
+          find ./wheels/ -name "*.whl" -type f
+
+      - name: Create a Virtual Environment
+        shell: bash
+        run: |
+          python${{ matrix.python_version }} -m venv venv
+
+      - name: Install and test wheel (All other distros - manylinux)
+        shell: bash
+        if: "!contains(matrix.distro, 'alpine')"
+        run: |
+          source venv/bin/activate
+          #
+          # Get Python version without dot (e.g., "3.11" -> "311")
+          PY_VER_NODOT=$(echo "${{ matrix.python_version }}" | tr -d '.')
+          #
+          # Get architecture mapping
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "x86_64" ]; then
+            WHEEL_ARCH="x86_64"
+          elif [ "$ARCH" = "i686" ] || [ "$ARCH" = "i386" ]; then
+            WHEEL_ARCH="i686"
+          elif [ "$ARCH" = "aarch64" ]; then
+            WHEEL_ARCH="aarch64"
+          else
+            echo "Unsupported architecture: $ARCH"
+            exit 1
+          fi
+          #
+          echo "Looking for wheel with Python ${{ matrix.python_version }} (${PY_VER_NODOT}) on ${WHEEL_ARCH}"
+          #
+          # Try to find specific Python version wheel first (cp310, cp311, etc.)
+          WHEEL_FILE=$(find ./wheels/ -name "*manylinux*" -name "*cp${PY_VER_NODOT}-cp${PY_VER_NODOT}*" -name "*${WHEEL_ARCH}*" -type f | head -1)
+          #
+          # If not found, try to find abi3 wheel that's compatible (cp312-abi3 works for Python 3.12+)
+          if [ -z "$WHEEL_FILE" ] && [ "${{ matrix.python_version }}" != "3.10" ] && [ "${{ matrix.python_version }}" != "3.11" ]; then
+            echo "Specific wheel not found, trying abi3 wheel..."
+            WHEEL_FILE=$(find ./wheels/ -name "*manylinux*" -name "*cp312-abi3*" -name "*${WHEEL_ARCH}*" -type f | head -1)
+          fi
+          #
+          if [ -z "$WHEEL_FILE" ]; then
+            echo "No compatible manylinux wheel found for Python ${{ matrix.python_version }} on ${WHEEL_ARCH}"
+            echo "Available wheels:"
+            ls -la ./wheels/
+            exit 1
+          fi
+          #
+          echo "Installing manylinux wheel: $WHEEL_FILE"
+          python${{ matrix.python_version }} -m pip install "$WHEEL_FILE"
+          #
+          # Basic import test
+          python${{ matrix.python_version }} -c "import libdebug; print('libdebug imported successfully on glibc-based distro')"
+
+      - name: Install and test wheel (Alpine - musllinux)
+        shell: bash
+        if: contains(matrix.distro, 'alpine')
+        run: |
+          source venv/bin/activate
+          #
+          # Get Python version without dot (e.g., "3.11" -> "311")
+          PY_VER_NODOT=$(echo "${{ matrix.python_version }}" | tr -d '.')
+          #
+          # Get architecture mapping
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "x86_64" ]; then
+            WHEEL_ARCH="x86_64"
+          elif [ "$ARCH" = "i686" ] || [ "$ARCH" = "i386" ]; then
+            WHEEL_ARCH="i686"
+          elif [ "$ARCH" = "aarch64" ]; then
+            WHEEL_ARCH="aarch64"
+          else
+            echo "Unsupported architecture: $ARCH"
+            exit 1
+          fi
+          #
+          echo "Looking for musllinux wheel with Python ${{ matrix.python_version }} (${PY_VER_NODOT}) on ${WHEEL_ARCH}"
+          #
+          # Try to find specific Python version wheel first (cp310, cp311, etc.)
+          WHEEL_FILE=$(find ./wheels/ -name "*musllinux*" -name "*cp${PY_VER_NODOT}-cp${PY_VER_NODOT}*" -name "*${WHEEL_ARCH}*" -type f | head -1)
+          #
+          # If not found, try to find abi3 wheel that's compatible (cp312-abi3 works for Python 3.12+)
+          if [ -z "$WHEEL_FILE" ] && [ "${{ matrix.python_version }}" != "3.10" ] && [ "${{ matrix.python_version }}" != "3.11" ]; then
+            echo "Specific wheel not found, trying abi3 wheel..."
+            WHEEL_FILE=$(find ./wheels/ -name "*musllinux*" -name "*cp312-abi3*" -name "*${WHEEL_ARCH}*" -type f | head -1)
+          fi
+          #
+          if [ -z "$WHEEL_FILE" ]; then
+            echo "No compatible musllinux wheel found for Python ${{ matrix.python_version }} on ${WHEEL_ARCH}"
+            echo "Available wheels:"
+            ls -la ./wheels/
+            exit 1
+          fi
+          #
+          echo "Installing musllinux wheel: $WHEEL_FILE"
+          python3 -m pip install "$WHEEL_FILE"
+          #
+          # Basic import test
+          python3 -c "import libdebug; print('libdebug imported successfully on Alpine/musl')"
+
+      - name: Checkout code
+        if: matrix.distro != 'alpine:3.18' && matrix.distro != 'alpine:3.19' && matrix.distro != 'ubuntu:20.04'
+        uses: actions/checkout@v4
+
+      - name: Install Python build tools and test dependencies
+        shell: bash
+        run: |
+          source venv/bin/activate
+          python3 -m pip install pytest pwntools requests objgraph
+          if [[ "${{ matrix.distro_image }}" == "opensuse/tumbleweed:latest" ]]; then
+            zypper --non-interactive install -y python313-curses
+          fi
+
+      - name: Run comprehensive tests
+        shell: bash
+        if: matrix.distro != 'alpine:3.18' && matrix.distro != 'alpine:3.19' && matrix.distro != 'ubuntu:20.04'
+        run: |
+          source venv/bin/activate
+          echo "Testing on ${{ matrix.distro }} with Python ${{ matrix.python_version }} (${{ matrix.os }})"
+          echo "Kernel version: $(uname -r)"
+          echo "Architecture: $(uname -m)"
+          echo "Distribution info:"
+          if command -v lsb_release &> /dev/null; then
+            lsb_release -a
+          elif [ -f /etc/os-release ]; then
+            cat /etc/os-release
+          fi
+          cd test && python3 -m pytest --ignore=other_tests --ignore scripts/atexit_handler_test.py
