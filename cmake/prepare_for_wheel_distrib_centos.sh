@@ -10,7 +10,8 @@ yum install -y git
 git clone https://github.com/davea42/libdwarf-code.git --depth 1
 
 # Install the required packages for building libdwarf
-yum install -y gcc gcc-c++ make autoconf automake libtool pkgconfig libzstd-devel zlib-devel
+yum install -y https://archives.fedoraproject.org/pub/archive/epel/6/i386/Packages/l/libzstd-devel-1.4.5-3.el6.i686.rpm https://archives.fedoraproject.org/pub/archive/epel/6/i386/Packages/l/libzstd-1.4.5-3.el6.i686.rpm
+yum install -y gcc gcc-c++ make autoconf automake libtool pkgconfig zlib-devel
 
 # Change to the libdwarf directory
 cd libdwarf-code
