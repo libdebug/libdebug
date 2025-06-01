@@ -56,7 +56,8 @@ jobs:
           - fedora:41
           - fedora:42
           - archlinux:latest
-          - opensuse/leap:15.5
+          - opensuse/leap:15.6
+          - opensuse/tumbleweed:latest
           - alpine:3.18
           - alpine:3.20
           - alpine:3.22
@@ -85,11 +86,11 @@ jobs:
           - distro: alpine:3.22
             python_version: "3.13" 
           # Alpine Latest, only test with Python 3.12
-          - distro: alpine:3.22
+          - distro: alpine:latest
             python_version: "3.10"
-          - distro: alpine:3.22
+          - distro: alpine:latest
             python_version: "3.11"
-          - distro: alpine:3.22
+          - distro: alpine:latest
             python_version: "3.13" 
           # Debian 12, only test with Python 3.11
           - distro: debian:12
@@ -103,6 +104,9 @@ jobs:
             python_version: "3.10"
           - distro: debian:sid
             python_version: "3.11"
+          # OpenSUSE Leap 15.6 does not support Python 3.13
+          - distro: opensuse/leap:15.6
+            python_version: "3.13"
           # Arch Linux is not available on Arm
           - distro: archlinux:latest
             os: ubuntu-24.04-arm
@@ -191,8 +195,13 @@ jobs:
         if: contains(matrix.distro, 'opensuse')
         run: |
           zypper refresh
-          zypper install -y python${{ matrix.python_version }} python${{ matrix.python_version }}-pip
-          python${{ matrix.python_version }} -m pip install --upgrade pip wheel
+          zypper install -y python$(echo "${{ matrix.python_version }}" | tr -d '.') python$(echo "${{ matrix.python_version }}" | tr -d '.')-curses
+          if [[ "${{ matrix.distro }}" == "opensuse/leap:15.6" ]]; then
+            python${{ matrix.python_version }} -m ensurepip
+            python${{ matrix.python_version }} -m pip install --upgrade pip wheel
+          else
+            zypper install -y python$(echo "${{ matrix.python_version }}" | tr -d '.')-pip
+          fi
 
       - name: Install Python and dependencies (Alpine)
         if: contains(matrix.distro, 'alpine')
