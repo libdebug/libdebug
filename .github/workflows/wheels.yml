@@ -122,7 +122,7 @@ jobs:
 
     steps:
       - name: Install tar if needed
-        if: contains(matrix.distro_image, 'opensuse')
+        if: contains(matrix.distro, 'opensuse')
         run: |
           zypper --non-interactive --gpg-auto-import-keys refresh
           zypper --non-interactive install -y tar gzip
@@ -322,7 +322,7 @@ jobs:
 
       - name: Run comprehensive tests
         shell: bash
-        if: matrix.distro != 'alpine:3.18' && matrix.distro != 'alpine:3.19' && matrix.distro != 'ubuntu:20.04'
+        if: "!contains(matrix.distro, 'alpine') && matrix.distro != 'ubuntu:20.04'"
         run: |
           source venv/bin/activate
           echo "Testing on ${{ matrix.distro }} with Python ${{ matrix.python_version }} (${{ matrix.os }})"
