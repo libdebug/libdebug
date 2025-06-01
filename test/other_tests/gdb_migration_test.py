@@ -174,15 +174,17 @@ def callback_1(_, __):
 
     d.gdb(blocking=False)
 
-    # We expect this line not to be hit
+    # We expect this line to be hit
     line_called = True
+
+    d.wait_for_gdb()
 
 line_called_2 = False
 
 def callback_2(_, __):
     global line_called_2
 
-    # We expect this callback to be hit
+    # We expect this line to be hit
     line_called_2 = True
 
 bp1 = d.bp("function1", callback=callback_1)
@@ -192,14 +194,10 @@ d.cont()
 
 d.wait()
 
-assert not line_called
-assert not line_called_2
+assert line_called
+assert line_called_2
 
 assert bp1.hit_count == 1
-assert bp2.hit_count == 0
-
-d.wait_for_gdb()
-
-d.cont()
+assert bp2.hit_count == 1
 
 d.kill()

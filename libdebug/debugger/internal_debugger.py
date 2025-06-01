@@ -29,7 +29,6 @@ from libdebug.builtin.pretty_print_syscall_handler import (
     pprint_on_exit,
 )
 from libdebug.data.breakpoint import Breakpoint
-from libdebug.data.gdb_migration_signal import GdbMigrationSignal
 from libdebug.data.gdb_resume_event import GdbResumeEvent
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
@@ -956,12 +955,6 @@ class InternalDebugger:
         if self._gdb_resume_event:
             raise RuntimeError("Unexpected state while migrating to GDB.")
 
-        if not blocking and self._is_in_background():
-            # Special handling for d.gdb(blocking=False) inside callbacks
-            # Trust the process
-            self.resume_context.resume = False
-            raise GdbMigrationSignal(migrate_breakpoints, open_in_new_process)
-
         # Create the command file
         command_file = self._craft_gdb_migration_file(migrate_breakpoints)
 
@@ -996,15 +989,6 @@ class InternalDebugger:
         # Wait for the GDB process to terminate
         self._gdb_resume_event.join()
         self._gdb_resume_event = None
-
-    def _handle_gdb_migration_signal(self: InternalDebugger, signal: GdbMigrationSignal) -> None:
-        """Handles the GDB migration signal raised by a callback when the blocking option is set to False.
-
-        Args:
-            signal (GdbMigrationSignal): The signal to handle.
-        """
-        self.set_stopped()
-        self.gdb(signal.migrate_breakpoints, signal.open_in_new_process, blocking=False)
 
     def _auto_detect_terminal(self: InternalDebugger) -> None:
         """Auto-detects the terminal."""
@@ -1565,9 +1549,7 @@ class InternalDebugger:
             # Execute the command
             try:
                 return_value = command(*args)
-            except GdbMigrationSignal as e:
-                return_value = e
-            except BaseException as e:
+            except BaseException as e:  # noqa: BLE001
                 raise_exception_to_main_thread(e)
                 return_value = None
 
@@ -1586,10 +1568,7 @@ class InternalDebugger:
             response = self.__polling_thread_response_queue.get()
             self.__polling_thread_response_queue.task_done()
             if response is not None:
-                if isinstance(response, GdbMigrationSignal):
-                    self._handle_gdb_migration_signal(response)
-                else:
-                    raise response
+                raise response
 
     def _join_and_check_status(self: InternalDebugger) -> None:
         """Wait for the background thread to signal "task done" before returning."""
@@ -1675,10 +1654,7 @@ class InternalDebugger:
                 break
             self.resume_context.resume = True
 
-            try:
-                self.debugging_interface.wait()
-            except GdbMigrationSignal as e:  # noqa: TRY203
-                raise e  # noqa: TRY201
+            self.debugging_interface.wait()
 
             if self.resume_context.resume:
                 self.debugging_interface.cont()
