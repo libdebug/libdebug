@@ -7,13 +7,16 @@
 dnf install -y git
 
 # Clone the libdwarf code repository
-git clone https://github.com/davea42/libdwarf-code.git --depth 1
+git clone https://github.com/davea42/libdwarf-code.git
 
 # Install the required packages for building libdwarf
 dnf install -y gcc gcc-c++ make autoconf automake libtool pkg-config libzstd-devel zlib-devel
 
 # Change to the libdwarf directory
 cd libdwarf-code
+
+# Checkout the specific commit for consistency
+git checkout 442cd4f9b094a92ac7b8f493507cd0d4f3e7947a
 
 # Run the autogen script to generate the configure script
 env -i sh autogen.sh
@@ -31,7 +34,7 @@ make install
 cd ..
 
 # Clone the libelf repository
-git clone git://sourceware.org/git/elfutils.git  --depth 1
+git clone git://sourceware.org/git/elfutils.git  --branch elfutils-0.193 --depth 1
 
 # Install the required packages for building libelf
 dnf install -y bzip2-devel xz-devel libarchive gettext-devel flex bison libcurl-devel json-c-devel

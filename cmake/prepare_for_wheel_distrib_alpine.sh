@@ -7,13 +7,16 @@
 apk add git
 
 # Clone the libdwarf code repository
-git clone https://github.com/davea42/libdwarf-code.git --depth 1
+git clone https://github.com/davea42/libdwarf-code.git
 
 # Install the required packages for building libdwarf
 apk add gcc g++ make autoconf automake libtool pkgconf zstd-dev zlib-dev
 
 # Change to the libdwarf directory
 cd libdwarf-code
+
+# Checkout the specific commit for consistency
+git checkout 442cd4f9b094a92ac7b8f493507cd0d4f3e7947a
 
 # Run the autogen script to generate the configure script
 env -i sh autogen.sh
