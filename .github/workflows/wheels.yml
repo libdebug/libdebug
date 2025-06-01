@@ -125,6 +125,22 @@ jobs:
       options: --privileged
 
     steps:
+      - name: Cache package managers
+        uses: actions/cache@v4
+        with:
+          path: |
+            /var/cache/apt
+            /var/lib/apt
+            /var/cache/dnf
+            /var/cache/yum
+            /var/cache/zypp
+            /var/cache/apk
+            ~/.cache/pip
+          key: ${{ matrix.os}}-${{ matrix.distro }}-${{ matrix.python_version }}-packages-${{ github.sha }}
+          restore-keys: |
+            ${{ matrix.os}}-${{ matrix.distro }}-${{ matrix.python_version }}-packages-
+            ${{ matrix.os}}-${{ matrix.distro }}-packages-
+
       - name: Install tar if needed
         if: contains(matrix.distro, 'opensuse')
         run: |
@@ -187,8 +203,8 @@ jobs:
         run: |
           pacman -Syu --noconfirm
           pacman -S --noconfirm --needed sudo git base-devel pyenv
-          pyenv install ${{ matrix.python_version }}
           eval "$(pyenv init -)"
+          pyenv install ${{ matrix.python_version }}
           pyenv global ${{ matrix.python_version }}
 
       - name: Install Python and dependencies (openSUSE)
