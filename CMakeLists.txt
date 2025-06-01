@@ -8,8 +8,11 @@ project(libdebug LANGUAGES CXX C)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # Add the options to disable libdwarf and libelf
-option(USE_LIBDWARF "Disable usage of libdwarf and its features" ON)
-option(USE_LIBELF "Disable usage of libelf and its features" ON)
+option(USE_LIBDWARF "Enable usage of libdwarf and its features" ON)
+option(USE_LIBELF "Enable usage of libelf and its features" ON)
+
+# Add the option to disable libiberty
+option(USE_LIBIBERTY "Enable usage of libiberty and its features" ON)
 
 # Warn if the user invokes CMake directly
 if (NOT SKBUILD)
@@ -73,7 +76,7 @@ if(BUILD_SYMBOLS)
   endif()
 
   # If we can use libiberty, we can set a define flag to enable C++ demangling
-  if(LibIberty_CPLUS_DEMANGLE_V3_COMPILES)
+  if(USE_LIBIBERTY AND LibIberty_CPLUS_DEMANGLE_V3_COMPILES)
     add_definitions(-DHAS_LIBIBERTY)
   else()
     message(WARNING "Cannot use libiberty to demangle C++ symbols.")
