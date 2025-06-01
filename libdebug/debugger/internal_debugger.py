@@ -340,7 +340,7 @@ class InternalDebugger:
 
         self.__polling_thread_command_queue.put((self.__threaded_run, (redirect_pipes,)))
 
-        self._join_and_check_status()
+        self.__polling_thread_command_queue.join()
 
         if self.escape_antidebug:
             liblog.debugger("Enabling anti-debugging escape mechanism.")
@@ -373,7 +373,7 @@ class InternalDebugger:
 
         self.__polling_thread_command_queue.put((self.__threaded_attach, (pid,)))
 
-        self._join_and_check_status()
+        self.__polling_thread_command_queue.join()
 
         self._process_memory_manager.open(self.process_id)
 
@@ -388,7 +388,7 @@ class InternalDebugger:
 
         self.is_debugging = False
 
-        self._join_and_check_status()
+        self.__polling_thread_command_queue.join()
 
         self._process_memory_manager.close()
 
@@ -447,7 +447,7 @@ class InternalDebugger:
         if self.pipe_manager:
             self.pipe_manager.close()
 
-        self._join_and_check_status()
+        self.__polling_thread_command_queue.join()
 
     def _atexit_terminate(self: InternalDebugger) -> None:
         """Terminate the background threads with an aggressive approach. This is meant to be used in atexit handlers."""
@@ -519,7 +519,7 @@ class InternalDebugger:
         """Continues the process."""
         self.__polling_thread_command_queue.put((self.__threaded_cont, ()))
 
-        self._join_and_check_status()
+        self.__polling_thread_command_queue.join()
 
         self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
 
@@ -551,7 +551,7 @@ class InternalDebugger:
         if not self.is_debugging:
             raise RuntimeError("Process not running, cannot wait.")
 
-        self._join_and_check_status()
+        self.__polling_thread_command_queue.join()
 
         if self.threads[0].dead or not self.running:
             # Most of the time the function returns here, as there was a wait already
@@ -560,7 +560,7 @@ class InternalDebugger:
 
         self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
 
-        self._join_and_check_status()
+        self.__polling_thread_command_queue.join()
 
     @property
     @change_state_function_process
@@ -676,7 +676,7 @@ class InternalDebugger:
         if not self._is_in_background():
             # Go through the queue and wait for it to be done
             self.__polling_thread_command_queue.put((self.__threaded_breakpoint, (bp,)))
-            self._join_and_check_status()
+            self.__polling_thread_command_queue.join()
         else:
             # Let's do this ourselves and move on
             self.__threaded_breakpoint(bp)
@@ -745,7 +745,7 @@ class InternalDebugger:
         if not self._is_in_background():
             # Go through the queue and wait for it to be done
             self.__polling_thread_command_queue.put((self.__threaded_catch_signal, (catcher,)))
-            self._join_and_check_status()
+            self.__polling_thread_command_queue.join()
         else:
             # Let's do this ourselves and move on
             self.__threaded_catch_signal(catcher)
@@ -852,7 +852,7 @@ class InternalDebugger:
                 self.__polling_thread_command_queue.put(
                     (self.__threaded_handle_syscall, (handler,)),
                 )
-                self._join_and_check_status()
+                self.__polling_thread_command_queue.join()
             else:
                 # Let's do this ourselves and move on
                 self.__threaded_handle_syscall(handler)
@@ -931,7 +931,7 @@ class InternalDebugger:
                 self.__polling_thread_command_queue.put(
                     (self.__threaded_handle_syscall, (handler,)),
                 )
-                self._join_and_check_status()
+                self.__polling_thread_command_queue.join()
             else:
                 # Let's do this ourselves and move on
                 self.__threaded_handle_syscall(handler)
@@ -1071,7 +1071,7 @@ class InternalDebugger:
 
         if not self._is_in_background():
             self.__polling_thread_command_queue.put((self.__threaded_gdb, ()))
-            self._join_and_check_status()
+            self.__polling_thread_command_queue.join()
         else:
             self.__threaded_gdb()
 
@@ -1116,7 +1116,7 @@ class InternalDebugger:
             script_path (str): The path to the script to run in the terminal.
         """
         self.__polling_thread_command_queue.put((self.__threaded_gdb, ()))
-        self._join_and_check_status()
+        self.__polling_thread_command_queue.join()
 
         gdb_pid = os.fork()
 
@@ -1175,7 +1175,7 @@ class InternalDebugger:
         """Resumes the process after migrating from GDB."""
         if not self._is_in_background():
             self.__polling_thread_command_queue.put((self.__threaded_migrate_from_gdb, ()))
-            self._join_and_check_status()
+            self.__polling_thread_command_queue.join()
         else:
             self.__threaded_migrate_from_gdb()
 
@@ -1191,7 +1191,7 @@ class InternalDebugger:
         if not self._is_in_background():
             self.__polling_thread_command_queue.put((self.__threaded_step, (thread,)))
             self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
-            self._join_and_check_status()
+            self.__polling_thread_command_queue.join()
         else:
             # Let's do this ourselves and move on
             self.__threaded_step(thread)
@@ -1228,7 +1228,7 @@ class InternalDebugger:
                     (thread, address, max_steps),
                 ),
             )
-            self._join_and_check_status()
+            self.__polling_thread_command_queue.join()
             self.set_stopped()
         else:
             self.__threaded_step_until(thread, address, max_steps)
@@ -1252,7 +1252,7 @@ class InternalDebugger:
             self.__polling_thread_command_queue.put(
                 (self.__threaded_finish, (thread, heuristic)),
             )
-            self._join_and_check_status()
+            self.__polling_thread_command_queue.join()
             self.set_stopped()
         else:
             self.__threaded_finish(thread, heuristic)
@@ -1265,7 +1265,7 @@ class InternalDebugger:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         if not self._is_in_background():
             self.__polling_thread_command_queue.put((self.__threaded_next, (thread,)))
-            self._join_and_check_status()
+            self.__polling_thread_command_queue.join()
             self.set_stopped()
         else:
             self.__threaded_next(thread)
@@ -1314,7 +1314,7 @@ class InternalDebugger:
                     (self.__threaded_handle_syscall, (handler,)),
                 )
 
-        self._join_and_check_status()
+        self.__polling_thread_command_queue.join()
 
     def disable_pretty_print(self: InternalDebugger) -> None:
         """Disable the handler for all the syscalls that are pretty printed."""
@@ -1331,7 +1331,7 @@ class InternalDebugger:
                         (self.__threaded_unhandle_syscall, (handler,)),
                     )
 
-        self._join_and_check_status()
+        self.__polling_thread_command_queue.join()
 
     def insert_new_thread(self: InternalDebugger, thread: ThreadContext) -> None:
         """Insert a new thread in the context.
@@ -1511,7 +1511,7 @@ class InternalDebugger:
         if self.auto_interrupt_on_command and not self.threads[0].zombie:
             self.interrupt()
 
-        self._join_and_check_status()
+        self.__polling_thread_command_queue.join()
 
     @background_alias(_background_ensure_process_stopped)
     def _ensure_process_stopped_regs(self: InternalDebugger) -> None:
@@ -1530,7 +1530,7 @@ class InternalDebugger:
         if self.auto_interrupt_on_command and not self.threads[0].zombie:
             self.interrupt()
 
-        self._join_and_check_status()
+        self.__polling_thread_command_queue.join()
 
     def _is_in_background(self: InternalDebugger) -> None:
         return current_thread() == self.__polling_thread
@@ -1561,20 +1561,6 @@ class InternalDebugger:
 
             if return_value is not None:
                 self.__polling_thread_response_queue.join()
-
-    def _check_status(self: InternalDebugger) -> None:
-        """Check for any exceptions raised by the background thread."""
-        if not self.__polling_thread_response_queue.empty():
-            response = self.__polling_thread_response_queue.get()
-            self.__polling_thread_response_queue.task_done()
-            if response is not None:
-                raise response
-
-    def _join_and_check_status(self: InternalDebugger) -> None:
-        """Wait for the background thread to signal "task done" before returning."""
-        # We don't want any asynchronous behaviour here
-        self.__polling_thread_command_queue.join()
-        self._check_status()
 
     @functools.cached_property
     def _process_full_path(self: InternalDebugger) -> str:
@@ -1709,20 +1695,13 @@ class InternalDebugger:
     def __threaded_migrate_from_gdb(self: InternalDebugger) -> None:
         self.debugging_interface.migrate_from_gdb()
 
-    def __threaded_peek_memory(self: InternalDebugger, address: int) -> bytes | Exception:
-        try:
-            value = self.debugging_interface.peek_memory(address)
-            result = value.to_bytes(get_platform_gp_register_size(libcontext.platform), sys.byteorder)
-        except Exception as e:  # noqa:BLE001
-            result = e
-        return result
+    def __threaded_peek_memory(self: InternalDebugger, address: int) -> bytes:
+        value = self.debugging_interface.peek_memory(address)
+        return value.to_bytes(get_platform_gp_register_size(libcontext.platform), sys.byteorder)
 
-    def __threaded_poke_memory(self: InternalDebugger, address: int, data: bytes) -> None | Exception:
+    def __threaded_poke_memory(self: InternalDebugger, address: int, data: bytes) -> None:
         int_data = int.from_bytes(data, sys.byteorder)
-        try:
-            self.debugging_interface.poke_memory(address, int_data)
-        except Exception as e:
-            return e
+        self.debugging_interface.poke_memory(address, int_data)
 
     def __threaded_fetch_fp_registers(self: InternalDebugger, registers: Registers) -> None:
         self.debugging_interface.fetch_fp_registers(registers)
@@ -1749,14 +1728,11 @@ class InternalDebugger:
             (self.__threaded_peek_memory, (address,)),
         )
 
-        # We cannot call _join_and_check_status here, as we need the return value which might not be an exception
+        # Here we need the return value
         self.__polling_thread_command_queue.join()
 
         value = self.__polling_thread_response_queue.get()
         self.__polling_thread_response_queue.task_done()
-
-        if isinstance(value, BaseException):
-            raise value
 
         return value
 
@@ -1795,7 +1771,7 @@ class InternalDebugger:
             (self.__threaded_poke_memory, (address, data)),
         )
 
-        self._join_and_check_status()
+        self.__polling_thread_command_queue.join()
 
     def _fast_write_memory(self: InternalDebugger, address: int, data: bytes) -> None:
         """Writes memory to the process."""
@@ -1825,7 +1801,7 @@ class InternalDebugger:
             (self.__threaded_fetch_fp_registers, (registers,)),
         )
 
-        self._join_and_check_status()
+        self.__polling_thread_command_queue.join()
 
     @background_alias(__threaded_flush_fp_registers)
     def _flush_fp_registers(self: InternalDebugger, registers: Registers) -> None:
@@ -1839,7 +1815,7 @@ class InternalDebugger:
             (self.__threaded_flush_fp_registers, (registers,)),
         )
 
-        self._join_and_check_status()
+        self.__polling_thread_command_queue.join()
 
     def _enable_antidebug_escaping(self: InternalDebugger) -> None:
         """Enables the anti-debugging escape mechanism."""
@@ -1855,7 +1831,7 @@ class InternalDebugger:
 
         self.__polling_thread_command_queue.put((self.__threaded_handle_syscall, (handler,)))
 
-        self._join_and_check_status()
+        self.__polling_thread_command_queue.join()
 
         # Seutp hidden state for the handler
         handler._traceme_called = False
