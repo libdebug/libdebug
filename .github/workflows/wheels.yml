@@ -49,6 +49,7 @@ jobs:
           - ubuntu:20.04
           - ubuntu:22.04
           - ubuntu:24.04
+          - ubuntu:latest
           - debian:12
           - debian:sid
           - fedora:40
@@ -57,31 +58,76 @@ jobs:
           - archlinux:latest
           - opensuse/leap:15.5
           - alpine:3.18
-          - alpine:3.19
+          - alpine:3.20
+          - alpine:3.22
+          - alpine:latest
         python_version: ["3.10", "3.11", "3.12", "3.13"]
         exclude:
+          # Alpine 3.18, only test with Python 3.11
+          - distro: alpine:3.18
+            python_version: "3.10"
+          - distro: alpine:3.18
+            python_version: "3.12"
           - distro: alpine:3.18
             python_version: "3.13"
-          - distro: alpine:3.19
+          # Alpine 3.20, only test with Python 3.12
+          - distro: alpine:3.20
+            python_version: "3.10"
+          - distro: alpine:3.20
+            python_version: "3.11"
+          - distro: alpine:3.20
             python_version: "3.13"
+          # Alpine 3.22, only test with Python 3.12
+          - distro: alpine:3.22
+            python_version: "3.10"
+          - distro: alpine:3.22
+            python_version: "3.11"
+          - distro: alpine:3.22
+            python_version: "3.13" 
+          # Alpine Latest, only test with Python 3.12
+          - distro: alpine:3.22
+            python_version: "3.10"
+          - distro: alpine:3.22
+            python_version: "3.11"
+          - distro: alpine:3.22
+            python_version: "3.13" 
+          # Debian 12, only test with Python 3.11
           - distro: debian:12
-            python_version: "3.13"
+            python_version: "3.10"
           - distro: debian:12
             python_version: "3.12"
           - distro: debian:12
-            python_version: "3.10"
+            python_version: "3.13"
+          # Debian Sid, only test with Python 3.12 and 3.13
           - distro: debian:sid
             python_version: "3.10"
           - distro: debian:sid
             python_version: "3.11"
+          # Arch Linux is not available on Arm
+          - distro: archlinux:latest
+            os: ubuntu-24.04-arm
+          # GitHub's CI doesn't work with Alpine on Arm
+          - distro: alpine:3.18
+            os: ubuntu-24.04-arm
+          - distro: alpine:3.20
+            os: ubuntu-24.04-arm
+          - distro: alpine:3.22
+            os: ubuntu-24.04-arm
+          - distro: alpine:latest
+            os: ubuntu-24.04-arm
 
     container:
       image: ${{ matrix.distro }}
       options: --privileged
 
     steps:
+      - name: Install tar if needed
+        if: contains(matrix.distro_image, 'opensuse')
+        run: |
+          zypper --non-interactive --gpg-auto-import-keys refresh
+          zypper --non-interactive install -y tar gzip
+
       - name: Checkout code
-        if: matrix.distro != 'alpine:3.18' && matrix.distro != 'alpine:3.19' && matrix.distro != 'ubuntu:20.04'
         uses: actions/checkout@v4
 
       - name: Download Build Artifacts (x64)
@@ -112,7 +158,7 @@ jobs:
         if: contains(matrix.distro, 'ubuntu') || contains(matrix.distro, 'debian')
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends software-properties-common curl gpg-agent
+          apt-get install -y --no-install-recommends software-properties-common curl gpg-agent libc6-dbg
           # Install Python from deadsnakes PPA for newer versions
           if [[ "${{ matrix.distro }}" == "ubuntu"* ]]; then
             add-apt-repository ppa:deadsnakes/ppa -y
@@ -164,6 +210,7 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ matrix.distro }}" == "arch"* ]]; then
+            eval "$(pyenv init -)"
             pyenv global ${{ matrix.python_version }}
           fi
           python${{ matrix.python_version }} -m venv venv
