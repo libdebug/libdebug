@@ -20,51 +20,23 @@ Welcome to **libdebug**! This powerful Python library can be used to debug your 
 !!! INFO "Supported Systems"
     **libdebug** currently supports Linux under the x86_64, x86 and ARM64 architectures. Other operating systems and architectures are not supported at this time.
 
-## Dependencies
-To install **libdebug**, you first need to have some dependencies that will not be automatically resolved. These dependencies are libraries, utilities and development headers which are required by **libdebug** to compile its internals during installation.
-
-=== ":material-ubuntu: Ubuntu"
-    ```bash
-    sudo apt install -y python3 python3-dev g++ libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg
-    ```
-
-=== ":material-arch: Arch Linux"
-    ```bash
-    sudo pacman -S python libelf libdwarf gcc make debuginfod
-    ```
-
-=== ":material-fedora: Fedora"
-    ```bash
-    sudo dnf install -y python3 python3-devel kernel-devel g++ binutils-devel libdwarf-devel
-    ```
-
-=== ":material-debian: Debian"
-    ```bash
-    sudo apt install -y python3 python3-dev g++ libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg
-    ```
-
-!!! QUESTION "Is your distro missing?"
-    If you are using a Linux distribution that is not included in this section, you can search for equivalent packages for your distro. Chances are the naming convention of your system's repository will only change a prefix or suffix.
-
-
 ## Installation
-Installing **libdebug** once you have dependencies is as simple as running the following command:
+Installing **libdebug** is as simple as running the following command:
 
 === "stable"
     ```bash
     python3 -m pip install libdebug
     ```
-=== "development"
-    ```bash
-    python3 -m pip install git+https://github.com/libdebug/libdebug.git@dev
-    ```
 
 If you want to test your installation when installing from source, we provide a suite of tests that you can run:
 
 ```bash title="Testing your installation"
-cd test
+git clone https://github.com/libdebug/libdebug
+cd libdebug/test
 python run_suite.py
 ```
+
+For more advanced users, you can also build **libdebug** from source. Please refer to the [Building libdebug from source](development/building_libdebug.md) page for more information.
 
 ## Your First Script
 Now that you have **libdebug** installed, you can start using it in your scripts. Here is a simple example of how to use **libdebug** to debug an executable:
