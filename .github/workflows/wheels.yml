@@ -129,7 +129,7 @@ jobs:
         if: contains(matrix.distro, 'opensuse')
         run: |
           zypper --non-interactive --gpg-auto-import-keys refresh
-          zypper --non-interactive install -y tar gzip
+          zypper --non-interactive install -y tar gzip findutils
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -197,6 +197,10 @@ jobs:
           zypper refresh
           zypper install -y python$(echo "${{ matrix.python_version }}" | tr -d '.') python$(echo "${{ matrix.python_version }}" | tr -d '.')-curses
           if [[ "${{ matrix.distro }}" == "opensuse/leap:15.6" ]]; then
+            python${{ matrix.python_version }} -m ensurepip
+            python${{ matrix.python_version }} -m pip install --upgrade pip wheel
+          elif [[ "${{ matrix.python_version }}" == "3.10" ]]; then
+            # On tumbleweed, distro-managed Python packages is enabled from >= 3.11 for some reason
             python${{ matrix.python_version }} -m ensurepip
             python${{ matrix.python_version }} -m pip install --upgrade pip wheel
           else
