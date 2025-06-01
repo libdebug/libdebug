@@ -6,11 +6,21 @@
 
 #pragma once
 
-#include <nanobind/nanobind.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/bind_vector.h>
+#include <string>
+#include <vector>
 
-#include "debug_sym_structs.h"
+struct SymbolInfo
+{
+    std::string name;
+    unsigned long long high_pc;
+    unsigned long low_pc;
+};
 
-const ElfInfo read_elf_info(const std::string &, const int);
-SymbolVector collect_external_symbols(const std::string &, const int);
+using SymbolVector = std::vector<SymbolInfo>;
+
+struct ElfInfo
+{
+    std::string build_id;
+    std::string debuglink;
+    SymbolVector symbols;
+};
