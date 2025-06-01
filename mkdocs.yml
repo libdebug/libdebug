@@ -85,6 +85,8 @@ nav:
       - Save States: save_states/save_states.md
       - Snapshots: save_states/snapshots.md
       - Snapshot Diffs: save_states/snapshot_diffs.md
+  - Development:
+      - Building libdebug: development/building_libdebug.md
   - Blog:
     - blog/index.md
     
