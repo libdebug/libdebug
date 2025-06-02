@@ -1248,12 +1248,11 @@ class InternalDebugger:
             thread (ThreadContext): The thread to finish.
             heuristic (str, optional): The heuristic to use. Defaults to "backtrace".
         """
+        self.set_running()
         if not self._is_in_background():
             self.__polling_thread_command_queue.put(
                 (self.__threaded_finish, (thread, heuristic)),
             )
-            self.__polling_thread_command_queue.join()
-            self.set_stopped()
         else:
             self.__threaded_finish(thread, heuristic)
 

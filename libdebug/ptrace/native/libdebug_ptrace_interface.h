@@ -73,7 +73,7 @@ public:
     void cont_all_and_set_bps(const bool);
     void step(const pid_t);
     void step_until(const pid_t, const unsigned long, const int);
-    void stepping_finish(const pid_t, const bool);
+    std::vector<std::pair<pid_t, int>> stepping_finish(const pid_t, const bool);
 
     // Debugger status and signal methods
     std::vector<std::pair<pid_t, int>> wait_all_and_update_regs(const bool);

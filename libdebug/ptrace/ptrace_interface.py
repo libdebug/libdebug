@@ -346,9 +346,10 @@ class PtraceInterface(DebuggingInterface):
         self._internal_debugger.resume_context.event_hit_ref.clear()
 
         if heuristic == "step-mode":
-            self.lib_trace.stepping_finish(thread.thread_id, self._internal_debugger.arch == "i386")
+            status = self.lib_trace.stepping_finish(thread.thread_id, self._internal_debugger.arch == "i386")
             # As the wait is done internally, we must invalidate the cache
             invalidate_process_cache()
+            self.status_handler.manage_change(status)
         elif heuristic == "backtrace":
             # Breakpoint to return address
             last_saved_instruction_pointer = thread.saved_ip

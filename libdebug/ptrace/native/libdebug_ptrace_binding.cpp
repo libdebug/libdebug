@@ -392,7 +392,7 @@ void LibdebugPtraceInterface::step_until(const pid_t tid, const unsigned long ad
     }
 }
 
-void LibdebugPtraceInterface::stepping_finish(const pid_t tid, const bool use_trampoline_heuristic)
+std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::stepping_finish(const pid_t tid, const bool use_trampoline_heuristic)
 {
     Thread &stepping_thread = try_get_thread(tid);
 
@@ -400,16 +400,19 @@ void LibdebugPtraceInterface::stepping_finish(const pid_t tid, const bool use_tr
 
     unsigned long previous_ip, current_ip;
     unsigned long opcode_window, opcode;
+    std::vector<std::pair<pid_t, int>> thread_status;
 
     // We need to keep track of the nested calls
     int nested_call_counter = 1;
+    int status;
 
     do {
         step_thread(stepping_thread);
 
         // Wait for the child
-        int status;
         waitpid(tid, &status, 0);
+
+        if (status != 1407) goto cleanup;
 
         previous_ip = INSTRUCTION_POINTER(stepping_thread.regs);
 
@@ -429,7 +432,22 @@ void LibdebugPtraceInterface::stepping_finish(const pid_t tid, const bool use_tr
         // because we hit a hardware breakpoint
         // we do the same if we hit a software breakpoint
         if (current_ip == previous_ip || IS_SW_BREAKPOINT(opcode))
-            goto cleanup;
+        {   
+            // We might have hit a hardware breakpoint
+            unsigned long address = hit_hardware_breakpoint_address(tid);
+            if (address){
+                goto cleanup;
+            }
+            
+            // We might have hit a software breakpoint
+            for (auto &b : software_breakpoints) {
+                if (b.first == current_ip) {
+                    // We hit a software breakpoint, cleanup
+                    goto cleanup;
+                }
+            }
+
+        }
 
         if (IS_CALL_INSTRUCTION((uint8_t *) &opcode_window)) {
             nested_call_counter++;
@@ -444,21 +462,22 @@ void LibdebugPtraceInterface::stepping_finish(const pid_t tid, const bool use_tr
 
     // We are in a return instruction, do the last step
     step_thread(stepping_thread);
-
+    
     // Wait for the child
-    int status;
     waitpid(tid, &status, 0);
-
+    
     // Update the registers
     getregs(stepping_thread);
-
-cleanup:
+    
+    cleanup:
     // Remove any installed breakpoint
     for (auto &b : software_breakpoints) {
         if (b.second.enabled) {
             poke_data(b.first, b.second.instruction);
         }
     }
+    thread_status.push_back({tid, status});
+    return thread_status;
 }
 
 unsigned long LibdebugPtraceInterface::get_thread_event_msg(const pid_t tid)
@@ -958,6 +977,7 @@ NB_MODULE(libdebug_ptrace_binding, m)
             &LibdebugPtraceInterface::stepping_finish,
             nb::arg("tid"),
             nb::arg("use_trampoline_heuristic"),
+            nb::call_guard<nb::gil_scoped_release>(),
             "Runs a thread until the end of the current function call, by single-stepping it.\n"
             "\n"
             "Args:\n"
