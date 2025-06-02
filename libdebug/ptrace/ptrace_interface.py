@@ -392,6 +392,9 @@ class PtraceInterface(DebuggingInterface):
         else:
             raise ValueError(f"Unimplemented heuristic {heuristic}")
 
+        # Set the stopped state in the internal debugger
+        self._internal_debugger.set_stopped()
+
     def next(self: PtraceInterface, thread: ThreadContext) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         # Reset the event type
