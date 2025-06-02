@@ -23,6 +23,8 @@ match PLATFORM:
         RETURN_POINT_FROM_A = 0x4011e0
 
         BREAKPOINT_LOCATION = 0x4011f1
+        
+        MULTIPLE_CALLS_MIDDLE_ADDRESS = 0x1167
     case "aarch64":
         # Addresses of the dummy functions
         C_ADDRESS = BASE + 0x914
@@ -34,6 +36,8 @@ match PLATFORM:
         RETURN_POINT_FROM_A = BASE + 0x908
 
         BREAKPOINT_LOCATION = BASE + 0x920
+        
+        MULTIPLE_CALLS_MIDDLE_ADDRESS = 0x768
     case "i386":
         # Addresses of the dummy functions
         C_ADDRESS = BASE + 0x1262
@@ -45,6 +49,8 @@ match PLATFORM:
         RETURN_POINT_FROM_A = BASE + 0x125f
 
         BREAKPOINT_LOCATION = BASE + 0x1277
+        
+        MULTIPLE_CALLS_MIDDLE_ADDRESS = 0x11bb
     case _:
         raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
 
@@ -190,6 +196,8 @@ class FinishTest(TestCase):
         # Finish function c
         d.finish(heuristic="backtrace")
 
+        # Wait for the finish to complete
+        d.wait() 
         self.assertEqual(d.instruction_pointer, RETURN_POINT_FROM_C)
 
         d.kill()
@@ -209,6 +217,8 @@ class FinishTest(TestCase):
         # Finish function a
         d.finish(heuristic="backtrace")
 
+        # Wait for the finish to complete
+        d.wait() 
         self.assertEqual(d.instruction_pointer, RETURN_POINT_FROM_A)
 
         d.kill()
@@ -348,13 +358,177 @@ class FinishTest(TestCase):
         d.finish(heuristic="backtrace")
 
         self.assertEqual(d.instruction_pointer, RETURN_POINT_FROM_C)
-        self.assertFalse(d.running)
 
         d.step()
 
-        # Check that the execution is still running and nothing has broken
-        self.assertFalse(d.running)
+        # Check that nothing has broken
         self.assertFalse(d.dead)
 
+        d.kill()
+        d.terminate()
+
+    def breakpoint_during_finish_backtrace_no_callbacks(self):        
+        d = debugger(RESOLVE_EXE("multiple_calls"))
+        d.run()
+
+        # Put a breakpoint at the beginning of printMessage
+        bp = d.bp("printMessage", hardware=True)
+        
+        # Put a breakpoint in the middle of printMessage
+        bp2 = d.bp(MULTIPLE_CALLS_MIDDLE_ADDRESS, hardware=True, file="binary")
+
+        d.cont()
+
+        # We are now in printMessage
+        self.assertTrue(bp.hit_on(d))
+        instruction_pointer = d.regs.rip
+        
+        # Let's finish the function
+        d.finish(heuristic="backtrace")
+        
+        # We expect to be at the second breakpoint
+        self.assertTrue(bp2.hit_on(d))
+        
+        instruction_pointer_2 = d.regs.rip
+
+        self.assertNotEqual(instruction_pointer, instruction_pointer_2)
+        
+        d.kill()
+        d.terminate()
+        
+    def breakpoint_during_finish_step_no_callbacks(self):        
+        d = debugger(RESOLVE_EXE("multiple_calls"))
+        d.run()
+
+        # Put a breakpoint at the beginning of printMessage
+        bp = d.bp("printMessage", hardware=True)
+        
+        # Put a breakpoint in the middle of printMessage
+        bp2 = d.bp(MULTIPLE_CALLS_MIDDLE_ADDRESS, hardware=True, file="binary")
+
+        d.cont()
+
+        # We are now in printMessage
+        self.assertTrue(bp.hit_on(d))
+        instruction_pointer = d.regs.rip
+        
+        # Let's finish the function
+        d.finish(heuristic="step-mode")
+        
+        # We expect to be at the second breakpoint
+        self.assertTrue(bp2.hit_on(d))
+        
+        instruction_pointer_2 = d.regs.rip
+
+        self.assertNotEqual(instruction_pointer, instruction_pointer_2)
+        
+        d.kill()
+        d.terminate()
+        
+    def breakpoint_during_finish_step_callback(self):
+        entered = False
+        def callback(t, bp):
+            nonlocal entered
+            entered = True
+                
+        d = debugger(RESOLVE_EXE("multiple_calls"))
+        d.run()
+
+        # Put a breakpoint at the beginning of printMessage
+        bp = d.bp("printMessage", hardware=True)
+        
+        # Put a breakpoint in the middle of printMessage
+        bp2 = d.bp(MULTIPLE_CALLS_MIDDLE_ADDRESS, hardware=True, file="binary", callback=callback)
+
+        d.cont()
+
+        # We are now in printMessage
+        self.assertTrue(bp.hit_on(d))
+        instruction_pointer = d.regs.rip
+        
+        # Let's finish the function
+        d.finish(heuristic="step-mode")
+        
+        # We expect to be at the second breakpoint
+        self.assertTrue(bp2.hit_on(d))
+        
+        # Check that the callback was called
+        self.assertTrue(entered)
+        
+        instruction_pointer_2 = d.regs.rip
+
+        self.assertNotEqual(instruction_pointer, instruction_pointer_2)
+        
+        d.kill()
+        d.terminate()
+        
+    def breakpoint_during_finish_backtrace_callback(self):
+        entered = False
+        def callback(t, bp):
+            nonlocal entered
+            entered = True
+                
+        d = debugger(RESOLVE_EXE("multiple_calls"))
+        d.run()
+
+        # Put a breakpoint at the beginning of printMessage
+        bp = d.bp("printMessage", hardware=True)
+        
+        # Put a breakpoint in the middle of printMessage
+        bp2 = d.bp(MULTIPLE_CALLS_MIDDLE_ADDRESS, hardware=True, file="binary", callback=callback)
+
+        d.cont()
+
+        # We are now in printMessage
+        self.assertTrue(bp.hit_on(d))
+        instruction_pointer = d.regs.rip
+        
+        # Let's finish the function
+        d.finish(heuristic="backtrace")
+        
+        # We expect to be at the second breakpoint
+        self.assertTrue(bp2.hit_on(d))
+        
+        # Check that the callback was called
+        self.assertTrue(entered)
+        
+        instruction_pointer_2 = d.regs.rip
+
+        self.assertNotEqual(instruction_pointer, instruction_pointer_2)
+        
+        d.kill()
+        d.terminate()
+        
+    def breakpoint_during_finish_backtrace_callback_both(self):
+        entered = False
+        def callback(t, bp):
+            nonlocal entered
+            entered = True
+        
+        def callback_finish(t, bp):
+            global instruction_pointer, instruction_pointer_2
+            instruction_pointer = t.regs.rip
+            t.finish(heuristic="backtrace")
+            instruction_pointer_2 = t.regs.rip
+                
+        d = debugger(RESOLVE_EXE("multiple_calls"))
+        d.run()
+
+        # Put a breakpoint at the beginning of printMessage
+        bp = d.bp("printMessage", hardware=True, callback=callback_finish)
+        
+        # Put a breakpoint in the middle of printMessage
+        bp2 = d.bp(MULTIPLE_CALLS_MIDDLE_ADDRESS, hardware=True, file="binary", callback=callback)
+
+        d.cont()
+        
+        # We expect to be at the second breakpoint
+        self.assertTrue(bp2.hit_on(d))
+        
+        # Check that the callback was called
+        self.assertTrue(entered)
+        
+        self.assertNotEqual(instruction_pointer, instruction_pointer_2)
+        
         d.kill()
         d.terminate()
