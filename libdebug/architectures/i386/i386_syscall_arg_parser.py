@@ -1962,26 +1962,6 @@ I386_SYSCALL_PARSER_MAP = \
             4: "MODULE_INIT_COMPRESSED_FILE",
         },
     },
-    #sched_setattr
-    351:{
-        #pid_t pid
-        0: {},
-        #struct sched_attr *uattr
-        1: {},
-        #unsigned int flags
-        2: {},
-    },
-    #sched_getattr
-    352:{
-        #pid_t pid
-        0: {},
-        #struct sched_attr *uattr
-        1: {},
-        #unsigned int usize
-        2: {},
-        #unsigned int flags
-        3: {},
-    },
     #renameat2
     353:{
         # int olddfd
@@ -1995,50 +1975,108 @@ I386_SYSCALL_PARSER_MAP = \
     },
     #seccomp
     354:{
-        #unsigned int op
-        0: {},
-        #unsigned int flags
-        1: {},
-        #void *uargs
-        2: {},
+        # unsigned int op
+        0: {
+            0: "SECCOMP_SET_MODE_STRICT",
+            1: "SECCOMP_SET_MODE_FILTER",
+            2: "SECCOMP_GET_ACTION_AVAIL",
+            3: "SECCOMP_GET_NOTIF_SIZES",
+        },
+        # unsigned int flags
+        1: {
+            0b000001: "SECCOMP_FILTER_FLAG_TSYNC",
+            0b000010: "SECCOMP_FILTER_FLAG_LOG",
+            0b000100: "SECCOMP_FILTER_FLAG_SPEC_ALLOW",
+            0b001000: "SECCOMP_FILTER_FLAG_NEW_LISTENER",
+            0b010000: "SECCOMP_FILTER_FLAG_TSYNC_ESRCH",
+            0b100000: "SECCOMP_FILTER_FLAG_WAIT_KILLABLE_RECV",
+        },
     },
     #getrandom
     355:{
-        #char *ubuf
-        0: {},
-        #size_t len
-        1: {},
         #unsigned int flags
-        2: {},
+        2: {
+            0x0001: "GRND_NONBLOCK",
+            0x0002: "GRND_RANDOM",
+            0x0004: "GRND_INSECURE",
+        },
     },
     #memfd_create
     356:{
-        #const char *uname
-        0: {},
         #unsigned int flags
-        1: {},
+        1: {
+            0x1: "MFD_CLOEXEC",
+            0x2: "MFD_ALLOW_SEALING",
+            0x4: "MFD_HUGETLB",
+            0x8: "MFD_NOEXEC_SEAL",
+            0x10: "MFD_EXEC",
+            0x40000000: "MFD_HUGE_64KB",
+            0x4C000000: "MFD_HUGE_512KB",
+            0x50000000: "MFD_HUGE_1MB",
+            0x54000000: "MFD_HUGE_2MB",
+            0x5C000000: "MFD_HUGE_8MB",
+            0x60000000: "MFD_HUGE_16MB",
+            0x64000000: "MFD_HUGE_32MB",
+            0x70000000: "MFD_HUGE_256MB",
+            0x74000000: "MFD_HUGE_512MB",
+            0x78000000: "MFD_HUGE_1GB",
+            0x7C000000: "MFD_HUGE_2GB",
+            0x88000000: "MFD_HUGE_16GB",
+        },
     },
     #bpf
     357:{
         #int cmd
-        0: {},
-        #union bpf_attr *uattr
-        1: {},
-        #unsigned int size
-        2: {},
+        0: {
+            0: "BPF_MAP_CREATE",
+            1: "BPF_MAP_LOOKUP_ELEM",
+            2: "BPF_MAP_UPDATE_ELEM",
+            3: "BPF_MAP_DELETE_ELEM",
+            4: "BPF_MAP_GET_NEXT_KEY",
+            5: "BPF_PROG_LOAD",
+            6: "BPF_OBJ_PIN",
+            7: "BPF_OBJ_GET",
+            8: "BPF_PROG_ATTACH",
+            9: "BPF_PROG_DETACH",
+            10: "BPF_PROG_RUN",
+            11: "BPF_PROG_GET_NEXT_ID",
+            12: "BPF_MAP_GET_NEXT_ID",
+            13: "BPF_PROG_GET_FD_BY_ID",
+            14: "BPF_MAP_GET_FD_BY_ID",
+            15: "BPF_OBJ_GET_INFO_BY_FD",
+            16: "BPF_PROG_QUERY",
+            17: "BPF_RAW_TRACEPOINT_OPEN",
+            18: "BPF_BTF_LOAD",
+            19: "BPF_BTF_GET_FD_BY_ID",
+            20: "BPF_TASK_FD_QUERY",
+            21: "BPF_MAP_LOOKUP_AND_DELETE_ELEM",
+            22: "BPF_MAP_FREEZE",
+            23: "BPF_BTF_GET_NEXT_ID",
+            24: "BPF_MAP_LOOKUP_BATCH",
+            25: "BPF_MAP_LOOKUP_AND_DELETE_BATCH",
+            26: "BPF_MAP_UPDATE_BATCH",
+            27: "BPF_MAP_DELETE_BATCH",
+            28: "BPF_LINK_CREATE",
+            29: "BPF_LINK_UPDATE",
+            30: "BPF_LINK_GET_FD_BY_ID",
+            31: "BPF_LINK_GET_NEXT_ID",
+            32: "BPF_ENABLE_STATS",
+            33: "BPF_ITER_CREATE",
+            34: "BPF_LINK_DETACH",
+            35: "BPF_PROG_BIND_MAP",
+            36: "BPF_TOKEN_CREATE",
+            "parsing_mode": "sequential",
+        },
     },
     #execveat
     358:{
         #int fd
-        0: {},
-        #const char *filename
-        1: {},
-        #const char *const *argv
-        2: {},
-        #const char *const *envp
-        3: {},
+        0: OPENAT_DFD,
         #int flags
-        4: {},
+        4: {
+            0x1000: "AT_EMPTY_PATH",
+            0x100: "AT_SYMLINK_NOFOLLOW",
+        },
     },
     #socket
     359:{
