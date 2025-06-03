@@ -1743,6 +1743,8 @@ AMD64_SYSCALL_PARSER_MAP = {
     265: {
         # int olddfd
         0: OPENAT_DFD,
+        # int newdfd
+        2: OPENAT_DFD,
         # int flags
         4: {
             0x1000: "AT_EMPTY_PATH",
@@ -2132,6 +2134,8 @@ AMD64_SYSCALL_PARSER_MAP = {
     },
     # renameat2
     316: {
+        # int olddfd
+        0: OPENAT_DFD,
         # unsigned int flags
         4: {
             0b001: "RENAME_NOREPLACE",

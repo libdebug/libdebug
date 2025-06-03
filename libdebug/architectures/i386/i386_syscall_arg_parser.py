@@ -1491,600 +1491,476 @@ I386_SYSCALL_PARSER_MAP = \
             "parsing_mode": "sequential",
         },
     },
-    #migrate_pages
-    294:{
-        #pid_t pid
-        0: {},
-        #unsigned long maxnode
-        1: {},
-        #const unsigned long *old_nodes
-        2: {},
-        #const unsigned long *new_nodes
-        3: {},
-    },
     #openat
     295:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
+        0: OPENAT_DFD,
         #int flags
-        2: {},
+        2: OPEN_FLAGS,
         #umode_t mode
-        3: {},
+        3: OPEN_MODES,
     },
     #mkdirat
     296:{
         #int dfd
-        0: {},
-        #const char *pathname
-        1: {},
+        0: OPENAT_DFD,
         #umode_t mode
-        2: {},
+        2: OPEN_MODES,
     },
     #mknodat
     297:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
+        0: OPENAT_DFD,
         #umode_t mode
-        2: {},
-        #unsigned int dev
-        3: {},
+        2: {
+            # Permissions
+            0o00700: "S_IRWXU",
+            0o00400: "S_IRUSR",
+            0o00200: "S_IWUSR",
+            0o00100: "S_IXUSR",
+            0o00070: "S_IRWXG",
+            0o00040: "S_IRGRP",
+            0o00020: "S_IWGRP",
+            0o00010: "S_IXGRP",
+            0o00007: "S_IRWXO",
+            0o00004: "S_IROTH",
+            0o00002: "S_IWOTH",
+            0o00001: "S_IXOTH",
+            0o0004000: "S_ISUID",
+            0o0002000: "S_ISGID",
+            0o0001000: "S_ISVTX",
+            # File type
+            0o100000: "S_IFREG",
+            0o020000: "S_IFCHR",
+            0o060000: "S_IFBLK",
+            0o010000: "S_IFIFO",
+            0o140000: "S_IFSOCK",
+        },
     },
     #fchownat
     298:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
-        #uid_t user
-        2: {},
-        #gid_t group
-        3: {},
+        0: OPENAT_DFD,
         #int flag
-        4: {},
+        4: {
+            0x1000: "AT_EMPTY_PATH",
+            0x100: "AT_SYMLINK_NOFOLLOW",
+        },
     },
     #futimesat
     299:{
         #unsigned int dfd
-        0: {},
-        #const char *filename
-        1: {},
-        #struct old_timeval32 *t
-        2: {},
+        0: OPENAT_DFD,
     },
     #fstatat64
     300:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
-        #struct stat64 *statbuf
-        2: {},
+        0: OPENAT_DFD,
         #int flag
-        3: {},
+        3: {
+            0x1000: "AT_EMPTY_PATH",
+            0x100: "AT_SYMLINK_NOFOLLOW",
+            0x800: "AT_NO_AUTOMOUNT",
+        },
     },
     #unlinkat
     301:{
         #int dfd
-        0: {},
-        #const char *pathname
-        1: {},
+        0: OPENAT_DFD,
         #int flag
-        2: {},
+        2: {
+            0x200: "AT_REMOVEDIR",
+        },
     },
     #renameat
     302:{
         #int olddfd
-        0: {},
-        #const char *oldname
-        1: {},
-        #int newdfd
-        2: {},
-        #const char *newname
-        3: {},
+        0: OPENAT_DFD,
     },
     #linkat
     303:{
         #int olddfd
-        0: {},
-        #const char *oldname
-        1: {},
+        0: OPENAT_DFD,
         #int newdfd
-        2: {},
-        #const char *newname
-        3: {},
+        2: OPENAT_DFD,
         #int flags
-        4: {},
+        4: {
+            0x1000: "AT_EMPTY_PATH",
+            0x400: "AT_SYMLINK_FOLLOW",
+        },
     },
     #symlinkat
     304:{
-        #const char *oldname
-        0: {},
         #int newdfd
-        1: {},
-        #const char *newname
-        2: {},
+        1: OPENAT_DFD,
     },
     #readlinkat
     305:{
         #int dfd
-        0: {},
-        #const char *pathname
-        1: {},
-        #char *buf
-        2: {},
-        #int bufsiz
-        3: {},
+        0: OPENAT_DFD,
     },
     #fchmodat
     306:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
+        0: OPENAT_DFD,
         #umode_t mode
-        2: {},
+        2: OPEN_MODES,
     },
     #faccessat
     307:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
+        0: OPENAT_DFD,
         #int mode
-        2: {},
-    },
-    #pselect6
-    308:{
-        #int n
-        0: {},
-        #fd_set *inp
-        1: {},
-        #fd_set *outp
-        2: {},
-        #fd_set *exp
-        3: {},
-        #struct old_timespec32 *tsp
-        4: {},
-        #void *sig
-        5: {},
-    },
-    #ppoll
-    309:{
-        #struct pollfd *ufds
-        0: {},
-        #unsigned int nfds
-        1: {},
-        #struct old_timespec32 *tsp
-        2: {},
-        #const sigset_t *sigmask
-        3: {},
-        #size_t sigsetsize
-        4: {},
+        2: OPEN_MODES,
     },
     #unshare
     310:{
         #unsigned long unshare_flags
-        0: {},
-    },
-    #set_robust_list
-    311:{
-        #struct robust_list_head *head
-        0: {},
-        #size_t len
-        1: {},
-    },
-    #get_robust_list
-    312:{
-        #int pid
-        0: {},
-        #struct robust_list_head **head_ptr
-        1: {},
-        #size_t *len_ptr
-        2: {},
+        0: {
+            0x00000400: "CLONE_FILES",
+            0x00000200: "CLONE_FS",
+            0x02000000: "CLONE_NEWCGROUP",
+            0x08000000: "CLONE_NEWIPC",
+            0x40000000: "CLONE_NEWNET",
+            0x00020000: "CLONE_NEWNS",
+            0x20000000: "CLONE_NEWPID",
+            0x00000080: "CLONE_NEWTIME",
+            0x10000000: "CLONE_NEWUSER",
+            0x04000000: "CLONE_NEWUTS",
+            0x00040000: "CLONE_SYSVSEM",
+            0x00000100: "CLONE_VM",
+            0x00010000: "CLONE_THREAD",
+            0x00000800: "CLONE_SIGHAND",
+        },
     },
     #splice
     313:{
-        #int fd_in
-        0: {},
-        #loff_t *off_in
-        1: {},
-        #int fd_out
-        2: {},
-        #loff_t *off_out
-        3: {},
-        #size_t len
-        4: {},
         #unsigned int flags
-        5: {},
+        5: SPLICE_FLAGS,
     },
     #sync_file_range
     314:{
-        #int fd
-        0: {},
-        #unsigned int off_low
-        1: {},
-        #unsigned int off_hi
-        2: {},
-        #unsigned int n_low
-        3: {},
-        #unsigned int n_hi
-        4: {},
         #int flags
-        5: {},
+        5: {
+            1: "SYNC_FILE_RANGE_WAIT_BEFORE",
+            2: "SYNC_FILE_RANGE_WRITE",
+            4: "SYNC_FILE_RANGE_WAIT_AFTER",
+        },
     },
     #tee
     315:{
-        #int fdin
-        0: {},
-        #int fdout
-        1: {},
-        #size_t len
-        2: {},
         #unsigned int flags
-        3: {},
+        3: SPLICE_FLAGS,
     },
     #vmsplice
     316:{
-        #int fd
-        0: {},
-        #const struct iovec *uiov
-        1: {},
-        #unsigned long nr_segs
-        2: {},
         #unsigned int flags
-        3: {},
+        3: SPLICE_FLAGS,
     },
     #move_pages
     317:{
-        #pid_t pid
-        0: {},
-        #unsigned long nr_pages
-        1: {},
-        #const void **pages
-        2: {},
-        #const int *nodes
-        3: {},
-        #int *status
-        4: {},
         #int flags
-        5: {},
-    },
-    #getcpu
-    318:{
-        #unsigned *cpup
-        0: {},
-        #unsigned *nodep
-        1: {},
-        #struct getcpu_cache *unused
-        2: {},
-    },
-    #epoll_pwait
-    319:{
-        #int epfd
-        0: {},
-        #struct epoll_event *events
-        1: {},
-        #int maxevents
-        2: {},
-        #int timeout
-        3: {},
-        #const sigset_t *sigmask
-        4: {},
-        #size_t sigsetsize
-        5: {},
+        5: {
+            0b10: "MPOL_MF_MOVE",
+            0b100: "MPOL_MF_MOVE_ALL",
+        },
     },
     #utimensat
     320:{
-        #unsigned int dfd
-        0: {},
-        #const char *filename
-        1: {},
-        #struct old_timespec32 *t
-        2: {},
         #int flags
-        3: {},
-    },
-    #signalfd
-    321:{
-        #int ufd
-        0: {},
-        #sigset_t *user_mask
-        1: {},
-        #size_t sizemask
-        2: {},
+        3: {
+            0x1000: "AT_EMPTY_PATH",
+            0x100: "AT_SYMLINK_NOFOLLOW",
+        },
     },
     #timerfd_create
     322:{
         #int clockid
-        0: {},
+        0: {
+            0: "CLOCK_REALTIME",
+            1: "CLOCK_MONOTONIC",
+            7: "CLOCK_BOOTTIME",
+            8: "CLOCK_REALTIME_ALARM",
+            9: "CLOCK_BOOTTIME_ALARM",
+            "parsing_mode": "sequential",
+        },
         #int flags
-        1: {},
-    },
-    #eventfd
-    323:{
-        #unsigned int count
-        0: {},
+        1: {
+            0o02000000: "TFD_CLOEXEC",
+            0o00004000: "TFD_NONBLOCK",
+        },
     },
     #fallocate
     324:{
-        #int fd
-        0: {},
         #int mode
-        1: {},
-        #unsigned int offset_lo
-        2: {},
-        #unsigned int offset_hi
-        3: {},
-        #unsigned int len_lo
-        4: {},
-        #unsigned int len_hi
-        5: {},
+        1: {
+            0x00: "FALLOC_FL_ALLOCATE_RANGE",
+            0x01: "FALLOC_FL_KEEP_SIZE",
+            0x02: "FALLOC_FL_PUNCH_HOLE",
+            0x04: "FALLOC_FL_NO_HIDE_STALE",
+            0x08: "FALLOC_FL_COLLAPSE_RANGE",
+            0x10: "FALLOC_FL_ZERO_RANGE",
+            0x20: "FALLOC_FL_INSERT_RANGE",
+            0x40: "FALLOC_FL_UNSHARE_RANGE",
+        },
     },
     #timerfd_settime
     325:{
-        #int ufd
-        0: {},
         #int flags
-        1: {},
-        #const struct old_itimerspec32 *utmr
-        2: {},
-        #struct old_itimerspec32 *otmr
-        3: {},
-    },
-    #timerfd_gettime
-    326:{
-        #int ufd
-        0: {},
-        #struct old_itimerspec32 *otmr
-        1: {},
+        1: {
+            0x00000001: "TFD_TIMER_ABSTIME",
+            0x00000002: "TFD_TIMER_CANCEL_ON_SET",
+        },
     },
     #signalfd4
     327:{
-        #int ufd
-        0: {},
-        #sigset_t *user_mask
-        1: {},
-        #size_t sizemask
-        2: {},
         #int flags
-        3: {},
+        3: {
+            0o02000000: "SFD_CLOEXEC",
+            0o00004000: "SFD_NONBLOCK",
+        },
     },
     #eventfd2
     328:{
-        #unsigned int count
-        0: {},
         #int flags
-        1: {},
+        1: {
+            0o00000001: "EFD_SEMAPHORE",
+            0o02000000: "EFD_CLOEXEC",
+            0o00004000: "EFD_NONBLOCK",
+        },
     },
     #epoll_create1
     329:{
         #int flags
-        0: {},
+        0: {
+            0o02000000: "EPOLL_CLOEXEC",
+        },
     },
     #dup3
     330:{
-        #unsigned int oldfd
-        0: {},
-        #unsigned int newfd
-        1: {},
         #int flags
-        2: {},
+        2: {
+            0o02000000: "O_CLOEXEC",
+        },
     },
     #pipe2
     331:{
-        #int *fildes
-        0: {},
         #int flags
-        1: {},
+        1: {
+            0o02000000: "O_CLOEXEC",
+            0o00004000: "O_NONBLOCK",
+            0o00040000: "O_DIRECT",
+            0o00000200: "O_EXCL",
+        },
     },
     #inotify_init1
     332:{
         #int flags
-        0: {},
-    },
-    #preadv
-    333:{
-        #unsigned long fd
-        0: {},
-        #const struct iovec *vec
-        1: {},
-        #unsigned long vlen
-        2: {},
-        #unsigned long pos_l
-        3: {},
-        #unsigned long pos_h
-        4: {},
-    },
-    #pwritev
-    334:{
-        #unsigned long fd
-        0: {},
-        #const struct iovec *vec
-        1: {},
-        #unsigned long vlen
-        2: {},
-        #unsigned long pos_l
-        3: {},
-        #unsigned long pos_h
-        4: {},
+        0: {
+            0o02000000: "IN_CLOEXEC",
+            0o00004000: "IN_NONBLOCK",
+        },
     },
     #rt_tgsigqueueinfo
     335:{
-        #pid_t tgid
-        0: {},
-        #pid_t pid
-        1: {},
         #int sig
-        2: {},
-        #siginfo_t *uinfo
-        3: {},
+        2: SIGNALS,
     },
     #perf_event_open
     336:{
-        #struct perf_event_attr *attr_uptr
-        0: {},
-        #pid_t pid
-        1: {},
-        #int cpu
-        2: {},
-        #int group_fd
-        3: {},
         #unsigned long flags
-        4: {},
+        4: {
+            0b0001: "PERF_FLAG_FD_NO_GROUP",
+            0b0010: "PERF_FLAG_FD_OUTPUT",
+            0b0100: "PERF_FLAG_PID_CGROUP",
+            0b1000: "PERF_FLAG_FD_CLOEXEC",
+        },
     },
     #recvmmsg
     337:{
-        #int fd
-        0: {},
-        #struct mmsghdr *mmsg
-        1: {},
-        #unsigned int vlen
-        2: {},
         #unsigned int flags
-        3: {},
-        #struct old_timespec32 *timeout
-        4: {},
+        3: {
+            0x40000000: "MSG_CMSG_CLOEXEC",
+            0x00000040: "MSG_DONTWAIT",
+            0x00002000: "MSG_ERRQUEUE",
+            0x00000001: "MSG_OOB",
+            0x00000002: "MSG_PEEK",
+            0x00000020: "MSG_TRUNC",
+            0x00000100: "MSG_WAITALL",
+        },
     },
     #fanotify_init
     338:{
         #unsigned int flags
-        0: {},
+        0: {
+            "sequential_flags": {
+                0x00000000: "FAN_CLASS_NOTIF",
+                0x00000004: "FAN_CLASS_CONTENT",
+                0x00000008: "FAN_CLASS_PRE_CONTENT",
+            },
+            "or_flags": {
+                0x00000001: "FAN_CLOEXEC",
+                0x00000002: "FAN_NONBLOCK",
+                0x00000010: "FAN_UNLIMITED_QUEUE",
+                0x00000020: "FAN_UNLIMITED_MARKS",
+                0x00000040: "FAN_ENABLE_AUDIT",
+                0x00000100: "FAN_REPORT_TID",
+                0x00000200: "FAN_REPORT_FID",
+                0x00000400: "FAN_REPORT_DIR_FID",
+                0x00000800: "FAN_REPORT_NAME",
+                0x00001000: "FAN_REPORT_TARGET_FID",
+                0x00000080: "FAN_REPORT_PIDFD",
+            },
+            "parsing_mode": "mixed",
+        },
         #unsigned int event_f_flags
-        1: {},
+        1: OPEN_FLAGS,
     },
     #fanotify_mark
     339:{
-        #int fanotify_fd
-        0: {},
         #unsigned int flags
-        1: {},
+        1: {
+            "sequential_flags": {
+                0x00000001: "FAN_MARK_ADD",
+                0x00000002: "FAN_MARK_REMOVE",
+                0x00000080: "FAN_MARK_FLUSH",
+            },
+            "or_flags": {
+                0x00000004: "FAN_MARK_DONT_FOLLOW",
+                0x00000008: "FAN_MARK_ONLYDIR",
+                0x00000010: "FAN_MARK_MOUNT",
+                0x00000100: "FAN_MARK_FILESYSTEM",
+                0x00000020: "FAN_MARK_IGNORED_MASK",
+                0x00000400: "FAN_MARK_IGNORE",
+                0x00000040: "FAN_MARK_IGNORED_SURV_MODIFY",
+                0x00000200: "FAN_MARK_EVICTABLE",
+            },
+            "parsing_mode": "mixed",
+        },
         #u32 mask_lo
-        2: {},
-        #u32 mask_hi
-        3: {},
+        2: {
+            0x00000001: "FAN_ACCESS",
+            0x00000002: "FAN_MODIFY",
+            0x00000004: "FAN_ATTRIB",
+            0x00000008: "FAN_CLOSE_WRITE",
+            0x00000010: "FAN_CLOSE_NOWRITE",
+            0x00000020: "FAN_OPEN",
+            0x00000040: "FAN_MOVED_FROM",
+            0x00000080: "FAN_MOVED_TO",
+            0x00000100: "FAN_CREATE",
+            0x00000200: "FAN_DELETE",
+            0x00000400: "FAN_DELETE_SELF",
+            0x00000800: "FAN_MOVE_SELF",
+            0x00001000: "FAN_OPEN_EXEC",
+            0x00008000: "FAN_FS_ERROR",
+            0x10000000: "FAN_RENAME",
+            0x00020000: "FAN_ACCESS_PERM",
+            0x00040000: "FAN_OPEN_EXEC_PERM",
+            0x40000000: "FAN_ONDIR",
+            0x08000000: "FAN_EVENT_ON_CHILD",
+        },
         #int dfd
-        4: {},
-        #const char *pathname
-        5: {},
+        4: OPENAT_DFD,
     },
     #prlimit64
     340:{
-        #pid_t pid
-        0: {},
         #unsigned int resource
-        1: {},
-        #const struct rlimit64 *new_rlim
-        2: {},
-        #struct rlimit64 *old_rlim
-        3: {},
+        1: {
+            0: "RLIMIT_CPU",
+            1: "RLIMIT_FSIZE",
+            2: "RLIMIT_DATA",
+            3: "RLIMIT_STACK",
+            4: "RLIMIT_CORE",
+            5: "RLIMIT_RSS",
+            6: "RLIMIT_NPROC",
+            7: "RLIMIT_NOFILE",
+            8: "RLIMIT_MEMLOCK",
+            9: "RLIMIT_AS",
+            10: "RLIMIT_LOCKS",
+            11: "RLIMIT_SIGPENDING",
+            12: "RLIMIT_MSGQUEUE",
+            13: "RLIMIT_NICE",
+            14: "RLIMIT_RTPRIO",
+            15: "RLIMIT_RTTIME",
+            16: "RLIM_NLIMITS",
+            0xFFFFFFFF: "RLIM_INFINITY",
+            "parsing_mode": "sequential",
+        },
     },
     #name_to_handle_at
     341:{
         #int dfd
-        0: {},
-        #const char *name
-        1: {},
-        #struct file_handle *handle
-        2: {},
-        #void *mnt_id
-        3: {},
+        0: OPENAT_DFD,
         #int flag
-        4: {},
+        4: {
+            0x200: "AT_HANDLE_FID",
+            0x1000: "AT_EMPTY_PATH",
+            0x400: "AT_SYMLINK_FOLLOW",
+        },
     },
     #open_by_handle_at
     342:{
         #int mountdirfd
-        0: {},
-        #struct file_handle *handle
-        1: {},
+        0: OPENAT_DFD,
         #int flags
-        2: {},
+        2: OPEN_FLAGS,
     },
     #clock_adjtime
     343:{
         #clockid_t which_clock
-        0: {},
-        #struct old_timex32 *utp
-        1: {},
-    },
-    #syncfs
-    344:{
-        #int fd
-        0: {},
+        0: WHICH_CLOCK,
     },
     #sendmmsg
     345:{
-        #int fd
-        0: {},
-        #struct mmsghdr *mmsg
-        1: {},
-        #unsigned int vlen
-        2: {},
         #unsigned int flags
-        3: {},
+        3: {
+            0x00000800: "MSG_CONFIRM",
+            0x00000004: "MSG_DONTROUTE",
+            0x00000040: "MSG_DONTWAIT",
+            0x00000080: "MSG_EOR",
+            0x00008000: "MSG_MORE",
+            0x00004000: "MSG_NOSIGNAL",
+            0x00000001: "MSG_OOB",
+            0x20000000: "MSG_FASTOPEN",
+        },
     },
     #setns
     346:{
-        #int fd
-        0: {},
         #int flags
-        1: {},
-    },
-    #process_vm_readv
-    347:{
-        #pid_t pid
-        0: {},
-        #const struct iovec *lvec
-        1: {},
-        #unsigned long liovcnt
-        2: {},
-        #const struct iovec *rvec
-        3: {},
-        #unsigned long riovcnt
-        4: {},
-        #unsigned long flags
-        5: {},
-    },
-    #process_vm_writev
-    348:{
-        #pid_t pid
-        0: {},
-        #const struct iovec *lvec
-        1: {},
-        #unsigned long liovcnt
-        2: {},
-        #const struct iovec *rvec
-        3: {},
-        #unsigned long riovcnt
-        4: {},
-        #unsigned long flags
-        5: {},
+        1: {
+            0x02000000: "CLONE_NEWCGROUP",
+            0x04000000: "CLONE_NEWUTS",
+            0x08000000: "CLONE_NEWIPC",
+            0x40000000: "CLONE_NEWNET",
+            0x00000080: "CLONE_NEWTIME",
+            0x00020000: "CLONE_NEWNS",
+            0x20000000: "CLONE_NEWPID",
+            0x10000000: "CLONE_NEWUSER",
+        },
     },
     #kcmp
     349:{
-        #pid_t pid1
-        0: {},
-        #pid_t pid2
-        1: {},
         #int type
-        2: {},
-        #unsigned long idx1
-        3: {},
-        #unsigned long idx2
-        4: {},
+        2: {
+            0: "KCMP_FILE",
+            1: "KCMP_VM",
+            2: "KCMP_FILES",
+            3: "KCMP_FS",
+            4: "KCMP_SIGHAND",
+            5: "KCMP_IO",
+            6: "KCMP_SYSVSEM",
+            7: "KCMP_EPOLL_TFD",
+            "parsing_mode": "sequential",
+        },
     },
     #finit_module
     350:{
-        #int fd
-        0: {},
-        #const char *uargs
-        1: {},
         #int flags
-        2: {},
+        2: {
+            1: "MODULE_INIT_IGNORE_MODVERSIONS",
+            2: "MODULE_INIT_IGNORE_VERMAGIC",
+            4: "MODULE_INIT_COMPRESSED_FILE",
+        },
     },
     #sched_setattr
     351:{
@@ -2108,16 +1984,14 @@ I386_SYSCALL_PARSER_MAP = \
     },
     #renameat2
     353:{
-        #int olddfd
-        0: {},
-        #const char *oldname
-        1: {},
-        #int newdfd
-        2: {},
-        #const char *newname
-        3: {},
+        # int olddfd
+        0: OPENAT_DFD,
         #unsigned int flags
-        4: {},
+        4: {
+            0b001: "RENAME_NOREPLACE",
+            0b010: "RENAME_EXCHANGE",
+            0b100: "RENAME_WHITEOUT",
+        },
     },
     #seccomp
     354:{
