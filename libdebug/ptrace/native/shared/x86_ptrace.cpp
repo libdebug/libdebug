@@ -105,7 +105,11 @@ void LibdebugPtraceInterface::arch_getfpregs(Thread &t)
         throw std::runtime_error("ptrace getregset xstate failed");
     }
 #else
-    if (ptrace(PTRACE_GETFPREGS, t.tid, NULL, t.fpregs.get()) == -1) {
+    void *base = t.fpregs.get();
+
+    base += offsetof(PtraceFPRegsStruct, padding0);
+
+    if (ptrace(PTRACE_GETFPREGS, t.tid, NULL, base) == -1) {
         throw std::runtime_error("ptrace getfpregs failed");
     }
 #endif
