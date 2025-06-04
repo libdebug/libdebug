@@ -128,7 +128,11 @@ void LibdebugPtraceInterface::arch_setfpregs(Thread &t)
         throw std::runtime_error("ptrace setregset xstate failed");
     }
 #else
-    if (ptrace(PTRACE_SETFPREGS, t.tid, NULL, t.fpregs.get()) == -1) {
+    void *base = t.fpregs.get();
+
+    base += offsetof(PtraceFPRegsStruct, padding0);
+
+    if (ptrace(PTRACE_SETFPREGS, t.tid, NULL, base) == -1) {
         throw std::runtime_error("ptrace setfpregs failed");
     }
 #endif
