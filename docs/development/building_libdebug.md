@@ -3,11 +3,11 @@ icon: material/wrench
 search:
     boost: 4
 ---
-# :material-wrench: Building libdebug from source
+# :material-wrench: Building **libdebug** from source
 
 Manually building **libdebug** from source is a straightforward process. This guide will walk you through the steps required to compile and install **libdebug** on your system.
 
-## Resolving Dependencies
+## :chains: Resolving Dependencies
 To install **libdebug**, you first need to have some dependencies that will not be automatically resolved. These dependencies are libraries, utilities and development headers which are required by **libdebug** to compile its internals during installation.
 
 === ":material-ubuntu: Ubuntu"
@@ -43,7 +43,7 @@ To install **libdebug**, you first need to have some dependencies that will not 
 !!! QUESTION "Is your distro missing?"
     If you are using a Linux distribution that is not included in this section, you can search for equivalent packages for your distro. Chances are the naming convention of your system's repository will only change a prefix or suffix.
 
-## Building
+## :construction_site: Building
 
 To build **libdebug** from source, from the root directory of the repository, simply run the following command:
 
@@ -67,7 +67,7 @@ Replace `<branch_or_commit>` with the desired branch or commit hash you want to 
 
     This will ensure that every time you make changes to the source code, they will be immediately available without needing to reinstall the package, even for the compiled C++ extensions.
 
-### Build Options
+### :octicons-gear-24: Build Options
 
 There are some configurable build options that can be set during the installation process, to avoid linking against certain libraries or to enable/disable specific features. These options can be set using environment variables before running the installation command.
 
@@ -83,11 +83,12 @@ Changing these options can be done by setting the environment variable before ru
 CMAKE_ARGS=-USE_LIBDWARF=OFF python3 -m pip install .
 ```
 
-## Testing Your Installation
+## :fontawesome-solid-helmet-safety: Testing Your Installation
 
-We provide a comprehensive suite of tests to ensure that your installation is working correctly. To run the tests, navigate to the `test` directory and execute the following command:
+We provide a comprehensive suite of tests to ensure that your installation is working correctly. Here's how you can run the tests:
 
 ```bash
+cd test
 python3 run_suite.py <suite>
 ```
 
