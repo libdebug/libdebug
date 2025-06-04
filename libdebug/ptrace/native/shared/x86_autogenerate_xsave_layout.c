@@ -320,14 +320,16 @@ no_xsave:
     puts("        .def_ro(\"type\", &PtraceFPRegsStruct::type)");
     puts("        .def_rw(\"dirty\", &PtraceFPRegsStruct::dirty)");
     puts("        .def_rw(\"fresh\", &PtraceFPRegsStruct::fresh)");
-    puts("        .def_ro(\"mmx\", &PtraceFPRegsStruct::mmx);");
-    puts("        .def_ro(\"xmm0\", &PtraceFPRegsStruct::xmm0)");
+    puts("        .def_ro(\"mmx\", &PtraceFPRegsStruct::mmx)");
 
-    if (has_avx) {
+    if (!has_avx) {
+        puts("        .def_ro(\"xmm0\", &PtraceFPRegsStruct::xmm0);");
+    } else if (has_avx && !has_avx512) {
+        puts("        .def_ro(\"xmm0\", &PtraceFPRegsStruct::xmm0)");
         puts("        .def_ro(\"ymm0\", &PtraceFPRegsStruct::ymm0);");
-    }
-
-    if (has_avx512) {
+    } else if (has_avx && has_avx512) {
+        puts("        .def_ro(\"xmm0\", &PtraceFPRegsStruct::xmm0)");
+        puts("        .def_ro(\"ymm0\", &PtraceFPRegsStruct::ymm0)");
         puts("        .def_ro(\"zmm0\", &PtraceFPRegsStruct::zmm0)");
         puts("        .def_ro(\"zmm1\", &PtraceFPRegsStruct::zmm1);");
     }
