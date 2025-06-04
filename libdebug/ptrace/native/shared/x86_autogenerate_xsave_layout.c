@@ -131,10 +131,9 @@ int main(int argc, char *argv[])
         // this probably means that the CPU (or kernel) doesn't support xsave
         // we can still get the fp regs through GETFPREGS
         has_avx = has_avx512 = has_xsave = 0;
-
+    } else {
         // get xcr0
         xcr0 = xsave_struct[464 / 4];
-    } else {
         has_xsave = 1;
     }
 
