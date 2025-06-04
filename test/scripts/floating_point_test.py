@@ -228,8 +228,8 @@ class FloatingPointTest(TestCase):
 
         d.run()
 
-        bp1 = d.bp(0x401372)
-        bp2 = d.bp(0x401399)
+        bp1 = d.bp(0x4006ba)
+        bp2 = d.bp(0x4006e1)
 
         d.cont()
 
@@ -294,8 +294,8 @@ class FloatingPointTest(TestCase):
 
         d.run()
 
-        d.bp(0x401372, callback=callback)
-        bp = d.bp(0x401399)
+        d.bp(0x4006ba, callback=callback)
+        bp = d.bp(0x4006e1)
 
         d.cont()
 
