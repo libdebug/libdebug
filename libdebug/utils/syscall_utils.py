@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2024-2025 Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -12,6 +12,7 @@ import requests
 
 SYSCALLS_REMOTE = "https://syscalls.mebeim.net/db"
 LOCAL_FOLDER_PATH = (Path.home() / ".cache" / "libdebug" / "syscalls").resolve()
+STATIC_FOLDER_PATH = Path(__file__).parent / "syscall_data"
 
 
 def get_remote_definition_url(arch: str) -> str:
@@ -41,6 +42,17 @@ def fetch_remote_syscall_definition(arch: str) -> dict:
     return response.json()
 
 
+def fetch_static_syscall_definition(arch: str) -> dict:
+    """Fetch the syscall definition file from the local cache."""
+    local_file_path = STATIC_FOLDER_PATH / f"{arch}.json"
+
+    if not local_file_path.exists():
+        raise FileNotFoundError(f"Local syscall definition for {arch} not found")
+
+    with local_file_path.open() as f:
+        return json.load(f)
+
+
 @functools.cache
 def get_syscall_definitions(arch: str) -> dict:
     """Get the syscall definitions for the specified architecture."""
@@ -53,7 +65,13 @@ def get_syscall_definitions(arch: str) -> dict:
         except json.decoder.JSONDecodeError:
             pass
 
-    return fetch_remote_syscall_definition(arch)
+    try:
+        syscall_definition = fetch_remote_syscall_definition(arch)
+    except:  # noqa: E722
+        # Internet is probably not available
+        syscall_definition = fetch_static_syscall_definition(arch)
+
+    return syscall_definition
 
 
 @functools.cache
