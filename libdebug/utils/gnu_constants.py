@@ -1295,7 +1295,6 @@ class GnuConstants:
         13: "RLIMIT_NICE",
         14: "RLIMIT_RTPRIO",
         15: "RLIMIT_RTTIME",
-        16: "RLIM_NLIMITS",
         0xFFFFFFFF: "RLIM_INFINITY",
         "parsing_mode": "sequential",
     }
@@ -1317,7 +1316,7 @@ class GnuConstants:
         0x10000000: "CLONE_NEWUSER",
     }
 
-    KCMP_FLAGS = {
+    KCMP_TYPES = {
         0: "KCMP_FILE",
         1: "KCMP_VM",
         2: "KCMP_FILES",
@@ -1503,6 +1502,28 @@ class GnuConstants:
         0x4000: "AT_STATX_DONT_SYNC",
     }
 
+    STATX_MASKS = {
+        0x00000001: "STATX_TYPE",
+        0x00000002: "STATX_MODE",
+        0x00000004: "STATX_NLINK",
+        0x00000008: "STATX_UID",
+        0x00000010: "STATX_GID",
+        0x00000020: "STATX_ATIME",
+        0x00000040: "STATX_MTIME",
+        0x00000080: "STATX_CTIME",
+        0x00000100: "STATX_INO",
+        0x00000200: "STATX_SIZE",
+        0x00000400: "STATX_BLOCKS",
+        0x000007FF: "STATX_BASIC_STATS",
+        0x00000800: "STATX_BTIME",
+        0x00001000: "STATX_MNT_ID",
+        0x00002000: "STATX_DIOALIGN",
+        0x00004000: "STATX_MNT_ID_UNIQUE",
+        0x00008000: "STATX_SUBVOL",
+        0x00010000: "STATX_WRITE_ATOMIC",
+        0x00020000: "STATX_DIO_READ_ALIGN",
+    }
+
     RSEQ_FLAGS = {
         0x00000001: "RSEQ_FLAG_UNREGISTER",
     }
@@ -1631,4 +1652,88 @@ class GnuConstants:
     XATTRAT_FLAGS = {
         0x100: "AT_SYMLINK_NOFOLLOW",
         0x1000: "AT_EMPTY_PATH",
+    }
+
+    MSGGET_KEYS = {
+        0: "IPC_PRIVATE",
+    }
+
+    MSGGET_FLAGS = {
+        0o0001000: "IPC_CREAT",
+        0o0002000: "IPC_EXCL",
+    }
+
+    MSGSND_FLAGS = {
+        0o0004000: "IPC_NOWAIT",
+    }
+
+    MSGRCV_FLAGS = {
+        0o010000: "MSG_NOERROR",
+        0o020000: "MSG_EXCEPT",
+        0o040000: "MSG_COPY",
+        0o0004000: "IPC_NOWAIT",
+    }
+
+    MSGCTL_CMDS = {
+        0: "IPC_RMID",
+        1: "IPC_SET",
+        2: "IPC_STAT",
+        3: "IPC_INFO",
+        11: "MSG_STAT",
+        12: "MSG_INFO",
+        13: "MSG_STAT_ANY",
+        "parsing_mode": "sequential",
+    }
+
+    IO_URING_ENTER_FLAGS = {
+        0b00000001: "IORING_ENTER_GETEVENTS",
+        0b00000010: "IORING_ENTER_SQ_WAKEUP",
+        0b00000100: "IORING_ENTER_SQ_WAIT",
+        0b00001000: "IORING_ENTER_EXT_ARG",
+        0b00010000: "IORING_ENTER_REGISTERED_RING",
+        0b00100000: "IORING_ENTER_ABS_TIMER",
+        0b01000000: "IORING_ENTER_EXT_ARG_REG",
+        0b10000000: "IORING_ENTER_NO_IOWAIT",
+    }
+
+    IO_URING_REGISTER_OPCODES = {
+        "sequential_flags": {
+            0: "IORING_REGISTER_BUFFERS",
+            1: "IORING_UNREGISTER_BUFFERS",
+            2: "IORING_REGISTER_FILES",
+            3: "IORING_UNREGISTER_FILES",
+            4: "IORING_REGISTER_EVENTFD",
+            5: "IORING_UNREGISTER_EVENTFD",
+            6: "IORING_REGISTER_FILES_UPDATE",
+            7: "IORING_REGISTER_EVENTFD_ASYNC",
+            8: "IORING_REGISTER_PROBE",
+            9: "IORING_REGISTER_PERSONALITY",
+            10: "IORING_UNREGISTER_PERSONALITY",
+            11: "IORING_REGISTER_RESTRICTIONS",
+            12: "IORING_REGISTER_ENABLE_RINGS",
+            13: "IORING_REGISTER_FILES2",
+            14: "IORING_REGISTER_FILES_UPDATE2",
+            15: "IORING_REGISTER_BUFFERS2",
+            16: "IORING_REGISTER_BUFFERS_UPDATE",
+            17: "IORING_REGISTER_IOWQ_AFF",
+            18: "IORING_UNREGISTER_IOWQ_AFF",
+            19: "IORING_REGISTER_IOWQ_MAX_WORKERS",
+            20: "IORING_REGISTER_RING_FDS",
+            21: "IORING_UNREGISTER_RING_FDS",
+            22: "IORING_REGISTER_PBUF_RING",
+            23: "IORING_UNREGISTER_PBUF_RING",
+            24: "IORING_REGISTER_SYNC_CANCEL",
+            25: "IORING_REGISTER_FILE_ALLOC_RANGE",
+            26: "IORING_REGISTER_PBUF_STATUS",
+            27: "IORING_REGISTER_NAPI",
+            28: "IORING_UNREGISTER_NAPI",
+            29: "IORING_REGISTER_CLOCK",
+            30: "IORING_REGISTER_CLONE_BUFFERS",
+            31: "IORING_REGISTER_SEND_MSG_RING",
+            32: "IORING_REGISTER_ZCRX_IFQ",
+            33: "IORING_REGISTER_RESIZE_RINGS",
+            34: "IORING_REGISTER_MEM_REGION",
+        },
+        "or_flags": {0x80000000: "IORING_REGISTER_USE_REGISTERED_RING"},
+        "parsing_mode": "mixed",
     }

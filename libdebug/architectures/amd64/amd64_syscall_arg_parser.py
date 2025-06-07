@@ -301,6 +301,28 @@ AMD64_SYSCALL_PARSER_MAP = {
         # int cmd
         2: GnuConstants.SEMCTL_CMDS,
     },
+    # msgget
+    68: {
+        # key_t key
+        0: GnuConstants.MSGGET_KEYS,
+        # int msgflg
+        2: GnuConstants.MSGGET_FLAGS,
+    },
+    # msgsnd
+    69: {
+        # int msgflg
+        3: GnuConstants.MSGSND_FLAGS,
+    },
+    # msgrcv
+    70: {
+        # int msgflg
+        4: GnuConstants.MSGRCV_FLAGS,
+    },
+    # msgctl
+    71: {
+        # int cmd
+        1: GnuConstants.MSGCTL_CMDS,
+    },
     # fcntl
     72: {
         # unsigned int cmd
@@ -911,7 +933,7 @@ AMD64_SYSCALL_PARSER_MAP = {
     # kcmp
     312: {
         # int type
-        2: GnuConstants.KCMP_FLAGS,
+        2: GnuConstants.KCMP_TYPES,
     },
     # finit_module
     313: {
@@ -1002,6 +1024,8 @@ AMD64_SYSCALL_PARSER_MAP = {
         0: GnuConstants.OPENAT_DFD,
         # unsigned flags
         2: GnuConstants.STATX_FLAGS,
+        #unsigned int mask
+        3: GnuConstants.STATX_MASKS,
     },
     # rseq
     334: {
@@ -1014,6 +1038,16 @@ AMD64_SYSCALL_PARSER_MAP = {
         1: GnuConstants.SIGNALS,
         # unsigned int flags
         3: GnuConstants.PIDFD_SEND_SIGNAL_FLAGS,
+    },
+    # io_uring_enter
+    426: {
+        #u32 flags
+        2: GnuConstants.IO_URING_ENTER_FLAGS,
+    },
+    # io_uring_register
+    427: {
+        # unsigned int opcode
+        1: GnuConstants.IO_URING_REGISTER_OPCODES,
     },
     # open_tree
     428: {
