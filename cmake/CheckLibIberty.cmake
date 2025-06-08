@@ -41,9 +41,9 @@ message(STATUS "CheckLibIberty: Using binary directory ${SUBPROJECT_BINARY_DIR}"
 # Perform the try_compile for the subproject
 try_compile(
     INTERNAL_CPLUS_DEMANGLE_V3_COMPILES_RESULT # This will be TRUE if successful
-    PROJECT LibIbertyDemangleTest
     SOURCE_DIR ${SUBPROJECT_SOURCE_DIR}
     BINARY_DIR ${SUBPROJECT_BINARY_DIR}
+    PROJECT LibIbertyDemangleTest
 )
 
 if(INTERNAL_CPLUS_DEMANGLE_V3_COMPILES_RESULT)
