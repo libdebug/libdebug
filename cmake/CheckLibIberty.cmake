@@ -39,12 +39,22 @@ message(STATUS "CheckLibIberty: Attempting to compile test project in ${SUBPROJE
 message(STATUS "CheckLibIberty: Using binary directory ${SUBPROJECT_BINARY_DIR}")
 
 # Perform the try_compile for the subproject
-try_compile(
-    INTERNAL_CPLUS_DEMANGLE_V3_COMPILES_RESULT # This will be TRUE if successful
-    SOURCE_DIR ${SUBPROJECT_SOURCE_DIR}
-    BINARY_DIR ${SUBPROJECT_BINARY_DIR}
-    PROJECT LibIbertyDemangleTest
-)
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.27)
+    try_compile(
+        INTERNAL_CPLUS_DEMANGLE_V3_COMPILES_RESULT
+        SOURCE_DIR "${SUBPROJECT_SOURCE_DIR}"
+        BINARY_DIR "${SUBPROJECT_BINARY_DIR}"
+        PROJECT    LibIbertyDemangleTest
+    )
+else()
+    # Older CMake:     try_compile(<result> <binary-dir> <source-dir> [<project> …])
+    try_compile(
+        INTERNAL_CPLUS_DEMANGLE_V3_COMPILES_RESULT
+        "${SUBPROJECT_BINARY_DIR}"
+        "${SUBPROJECT_SOURCE_DIR}"
+        LibIbertyDemangleTest
+    )
+endif()
 
 if(INTERNAL_CPLUS_DEMANGLE_V3_COMPILES_RESULT)
     set(LibIberty_CPLUS_DEMANGLE_V3_COMPILES TRUE)
