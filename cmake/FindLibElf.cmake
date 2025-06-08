@@ -23,6 +23,12 @@ set(LibElf_HEADER_DIR "") # Specific directory for gelf.h
 
 if(PkgConfig_FOUND)
     pkg_check_modules(PC_LibElf QUIET libelf)
+    if(PC_LibElf_FOUND)
+        if(NOT PC_LibElf_INCLUDE_DIRS)
+            message(STATUS "FindLibElf: pkg-config output is incomplete — falling back to manual search.")
+            set(PC_LibElf_FOUND FALSE)
+        endif()
+    endif()
 endif()
 
 if(PC_LibElf_FOUND)

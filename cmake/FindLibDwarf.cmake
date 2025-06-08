@@ -23,6 +23,12 @@ set(LibDwarf_HEADER_DIR "")
 
 if(PkgConfig_FOUND)
     pkg_check_modules(PC_LibDwarf QUIET libdwarf)
+    if(PC_LibDwarf_FOUND)
+        if(NOT PC_LibDwarf_INCLUDE_DIRS)
+            message(STATUS "FindLibDwarf: pkg-config output is incomplete — falling back to manual search.")
+            set(PC_LibDwarf_FOUND FALSE)
+        endif()
+    endif()
 endif()
 
 if(PC_LibDwarf_FOUND)
