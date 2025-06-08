@@ -42,9 +42,9 @@ message(STATUS "CheckLibIberty: Using binary directory ${SUBPROJECT_BINARY_DIR}"
 if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.27)
     try_compile(
         INTERNAL_CPLUS_DEMANGLE_V3_COMPILES_RESULT
+        PROJECT    LibIbertyDemangleTest
         SOURCE_DIR "${SUBPROJECT_SOURCE_DIR}"
         BINARY_DIR "${SUBPROJECT_BINARY_DIR}"
-        PROJECT    LibIbertyDemangleTest
     )
 else()
     # Older CMake:     try_compile(<result> <binary-dir> <source-dir> [<project> …])
