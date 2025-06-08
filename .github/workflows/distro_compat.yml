@@ -4,7 +4,7 @@ name: Distro Build Check
 
 on:
   push:
-    branches: [ "main", "dev", "enable-wheel-distrib" ]
+    branches: [ "main", "dev", "build-patch-main" ]
   workflow_dispatch:
 
 permissions:
