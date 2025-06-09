@@ -21,7 +21,7 @@ When running the same executable multiple times, choosing efficient implementati
 Homepage: https://libdebug.org  \
 Documentation: https://docs.libdebug.org
 
-### Installation Requirements:
+## Installation Requirements:
 Ubuntu: \
 `sudo apt install -y python3 python3-dev g++ libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg` \
 Debian: \
@@ -36,13 +36,7 @@ Fedora: \
 python3 -m pip install libdebug
 ```
 
-PyPy3 is supported but not recommended, as it performs worse on most of our tests.
-
-If you want to stay up to date with the most cutting-edge features (and you don't mind being on an unstable branch) you can install from a different branch (e.g., dev).
-
-```bash
-python3 -m pip install git+https://github.com/libdebug/libdebug.git@dev
-```
+Please visit the [build guide](https://docs.libdebug.org/development/building_libdebug/) for more information on how to manually build libdebug from source.
 
 ## Your first script
 

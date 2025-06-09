@@ -1,6 +1,6 @@
 //
 // This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-// Copyright (c) 2024 Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
+// Copyright (c) 2024-2025 Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for details.
 //
 
@@ -105,7 +105,11 @@ void LibdebugPtraceInterface::arch_getfpregs(Thread &t)
         throw std::runtime_error("ptrace getregset xstate failed");
     }
 #else
-    if (ptrace(PTRACE_GETFPREGS, t.tid, NULL, t.fpregs.get()) == -1) {
+    void *base = t.fpregs.get();
+
+    base += offsetof(PtraceFPRegsStruct, padding0);
+
+    if (ptrace(PTRACE_GETFPREGS, t.tid, NULL, base) == -1) {
         throw std::runtime_error("ptrace getfpregs failed");
     }
 #endif
@@ -124,7 +128,11 @@ void LibdebugPtraceInterface::arch_setfpregs(Thread &t)
         throw std::runtime_error("ptrace setregset xstate failed");
     }
 #else
-    if (ptrace(PTRACE_SETFPREGS, t.tid, NULL, t.fpregs.get()) == -1) {
+    void *base = t.fpregs.get();
+
+    base += offsetof(PtraceFPRegsStruct, padding0);
+
+    if (ptrace(PTRACE_SETFPREGS, t.tid, NULL, base) == -1) {
         throw std::runtime_error("ptrace setfpregs failed");
     }
 #endif
