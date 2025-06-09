@@ -10,7 +10,7 @@
 #include <sys/user.h>
 
 #include "amd64/amd64_ptrace.h"
-#include "x86_fpregs_xsave_layout.h"
+#include "x86_fp_regs.h"
 #include "libdebug_ptrace_interface.h"
 #include "shared/x86_ptrace.h"
 
@@ -94,48 +94,42 @@ int LibdebugPtraceInterface::setregs(Thread &t)
 
 void LibdebugPtraceInterface::arch_getfpregs(Thread &t)
 {
-#if HAS_XSAVE
-    iovec iov;
-    PtraceFPRegsStruct *fpregs = t.fpregs.get();
+    if (t.fpregs->has_xsave()) {
+        iovec iov;
 
-    iov.iov_base = (unsigned char *)(fpregs) + offsetof(PtraceFPRegsStruct, padding0);
-    iov.iov_len = sizeof(PtraceFPRegsStruct) - offsetof(PtraceFPRegsStruct, padding0);
+        iov.iov_base = t.fpregs->get_area();
+        iov.iov_len = t.fpregs->get_size();
 
-    if (ptrace(PTRACE_GETREGSET, t.tid, NT_X86_XSTATE, &iov) == -1) {
-        throw std::runtime_error("ptrace getregset xstate failed");
+        if (ptrace(PTRACE_GETREGSET, t.tid, NT_X86_XSTATE, &iov) == -1) {
+            throw std::runtime_error("ptrace getregset xstate failed");
+        }
+    } else {
+        void *base = t.fpregs->get_area();
+
+        if (ptrace(PTRACE_GETFPREGS, t.tid, NULL, base) == -1) {
+            throw std::runtime_error("ptrace getfpregs failed");
+        }
     }
-#else
-    void *base = t.fpregs.get();
-
-    base += offsetof(PtraceFPRegsStruct, padding0);
-
-    if (ptrace(PTRACE_GETFPREGS, t.tid, NULL, base) == -1) {
-        throw std::runtime_error("ptrace getfpregs failed");
-    }
-#endif
 }
 
 void LibdebugPtraceInterface::arch_setfpregs(Thread &t)
 {
-#if HAS_XSAVE
-    iovec iov;
-    PtraceFPRegsStruct *fpregs = t.fpregs.get();
+    if (t.fpregs->has_xsave()) {
+        iovec iov;
 
-    iov.iov_base = (unsigned char *)(fpregs) + offsetof(PtraceFPRegsStruct, padding0);
-    iov.iov_len = sizeof(PtraceFPRegsStruct) - offsetof(PtraceFPRegsStruct, padding0);
+        iov.iov_base = t.fpregs->get_area();
+        iov.iov_len = t.fpregs->get_size();
 
-    if (ptrace(PTRACE_SETREGSET, t.tid, NT_X86_XSTATE, &iov) == -1) {
-        throw std::runtime_error("ptrace setregset xstate failed");
+        if (ptrace(PTRACE_SETREGSET, t.tid, NT_X86_XSTATE, &iov) == -1) {
+            throw std::runtime_error("ptrace setregset xstate failed");
+        }
+    } else {
+        void *base = t.fpregs->get_area();
+
+        if (ptrace(PTRACE_SETFPREGS, t.tid, NULL, base) == -1) {
+            throw std::runtime_error("ptrace setfpregs failed");
+        }
     }
-#else
-    void *base = t.fpregs.get();
-
-    base += offsetof(PtraceFPRegsStruct, padding0);
-
-    if (ptrace(PTRACE_SETFPREGS, t.tid, NULL, base) == -1) {
-        throw std::runtime_error("ptrace setfpregs failed");
-    }
-#endif
 }
 
 void LibdebugPtraceInterface::install_hardware_breakpoint(const HardwareBreakpoint &bp)

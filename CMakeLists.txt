@@ -144,6 +144,7 @@ message(STATUS "Detected Architecture: ${CMAKE_SYSTEM_PROCESSOR}")
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64" OR CMAKE_SYSTEM_PROCESSOR MATCHES "amd64")
   list(APPEND LIBDEBUG_PTRACE_BINDING_SOURCES libdebug/ptrace/native/amd64/amd64_ptrace.cpp)
   list(APPEND LIBDEBUG_PTRACE_BINDING_SOURCES libdebug/ptrace/native/shared/x86_ptrace.cpp)
+  list(APPEND LIBDEBUG_PTRACE_BINDING_SOURCES libdebug/ptrace/native/shared/x86_fp_regs.h)
 
   # Add a definition for the x86_64 architecture
   add_definitions(-DARCH_X86_64)
@@ -153,6 +154,7 @@ endif()
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "i386" OR CMAKE_SYSTEM_PROCESSOR MATCHES "i686" OR CMAKE_SYSTEM_PROCESSOR MATCHES "x86" AND NOT CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
   list(APPEND LIBDEBUG_PTRACE_BINDING_SOURCES libdebug/ptrace/native/i386/i386_ptrace.cpp)
   list(APPEND LIBDEBUG_PTRACE_BINDING_SOURCES libdebug/ptrace/native/shared/x86_ptrace.cpp)
+  list(APPEND LIBDEBUG_PTRACE_BINDING_SOURCES libdebug/ptrace/native/shared/x86_fp_regs.h)
 
   # Add a definition for the i386 architecture
   add_definitions(-DARCH_X86)
@@ -252,45 +254,11 @@ nanobind_add_stub(
   PYTHON_PATH "."
 )
 
-# If architecture is amd64 or i386
-if (CMAKE_SYSTEM_PROCESSOR MATCHES "i386"
-    OR CMAKE_SYSTEM_PROCESSOR MATCHES "x86"
-    OR CMAKE_SYSTEM_PROCESSOR MATCHES "i686"
-    OR CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64"
-    OR CMAKE_SYSTEM_PROCESSOR MATCHES "amd64")
-
-    # Register the xsave layout generator executable
-    add_executable(autogenerate_xsave_layout libdebug/ptrace/native/shared/x86_autogenerate_xsave_layout.c)
-
-    # Create the generated directory if it doesn't exist
-    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/generated)
-
-    # Define the path to the output file
-    set(XSAVE_LAYOUT_OUTPUT ${CMAKE_BINARY_DIR}/generated/x86_fpregs_xsave_layout.h)
-
-    # Define the custom command that runs the generator and writes the output
-    add_custom_command(
-        OUTPUT ${XSAVE_LAYOUT_OUTPUT}
-        COMMAND autogenerate_xsave_layout > ${XSAVE_LAYOUT_OUTPUT}
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        COMMENT "Generating fpregs_xsave_layout.h using autogenerate_xsave_layout"
-        VERBATIM
-    )
-
-    # Create a custom target to generate the xsave layout header
-    add_custom_target(generate_xsave_layout ALL DEPENDS ${XSAVE_LAYOUT_OUTPUT})
-
-    # Make sure that the main target depends on the generated header
-    add_dependencies(libdebug_ptrace_binding generate_xsave_layout)
-
-    # Ensure the generated header is included in the target
-    target_include_directories(libdebug_ptrace_binding PRIVATE ${CMAKE_BINARY_DIR}/generated)
-
-    message(STATUS "Generated xsave layout header at ${XSAVE_LAYOUT_OUTPUT}")
-endif()
-
 # Add libdebug/ptrace/native to the include directories
 target_include_directories(libdebug_ptrace_binding PRIVATE libdebug/ptrace/native)
+
+# Add libdebug/ptrace/native/shared to the include directories
+target_include_directories(libdebug_ptrace_binding PRIVATE libdebug/ptrace/native/shared)
 
 # Link required libraries using the imported targets from Find modules
 if(BUILD_SYMBOLS)
@@ -311,9 +279,32 @@ install(FILES ${CMAKE_BINARY_DIR}/libdebug_debug_sym_parser.pyi DESTINATION libd
 set(SRC_DIR "${CMAKE_SOURCE_DIR}/libdebug/ptrace/jumpstart")
 set(SOURCES "${SRC_DIR}/jumpstart.c")
 
+# If architecture is amd64 or i386
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "i386"
+    OR CMAKE_SYSTEM_PROCESSOR MATCHES "x86"
+    OR CMAKE_SYSTEM_PROCESSOR MATCHES "i686"
+    OR CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64"
+    OR CMAKE_SYSTEM_PROCESSOR MATCHES "amd64")
+  # Build and include x86_autodetect_fpregs_layout.c
+  set(X86_SRC_DIR "${CMAKE_SOURCE_DIR}/libdebug/ptrace/native/shared/")
+  set(X86_SOURCES "${X86_SRC_DIR}/x86_autodetect_fpregs_layout.c")
+  add_executable(autodetect_fpregs_layout ${X86_SOURCES})
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+  # We build and include aarch64_autodetect_fpregs_layout.c, which does nothing
+  set(AARCH64_SRC_DIR "${CMAKE_SOURCE_DIR}/libdebug/ptrace/native/aarch64/")
+  set(AARCH64_SOURCES "${AARCH64_SRC_DIR}/aarch64_autodetect_fpregs_layout.c")
+  add_executable(autodetect_fpregs_layout ${AARCH64_SOURCES})
+else()
+  # What architecture is this? We don't know how to handle it.
+  message(FATAL_ERROR "Unsupported architecture: ${CMAKE_SYSTEM_PROCESSOR}. Please open an issue on GitHub if you see this.")
+endif()
+
 # Add the jumpstart executable
 add_executable(jumpstart ${SOURCES})
 target_link_libraries(jumpstart)
 
 # Install the jumpstart executable
 install(TARGETS jumpstart DESTINATION libdebug/ptrace/jumpstart)
+
+# Install the autodetect_fpregs_layout executable
+install(TARGETS autodetect_fpregs_layout DESTINATION libdebug/ptrace/native)
