@@ -15,6 +15,7 @@
 
 #include "libdebug_ptrace_base.h"
 #include "libdebug_ptrace_interface.h"
+#include "utils.h"
 
 #ifdef ARCH_X86_64
 #include "shared/x86_ptrace.h"
@@ -203,7 +204,7 @@ void LibdebugPtraceInterface::detach_for_migration()
         if (setregs(it->second) == -1) {
             // if we can't read the registers, the thread is probably still running
             // ensure that the thread is stopped
-            tgkill(process_id, it->first, SIGSTOP);
+            thread_kill(process_id, it->first, SIGSTOP);
 
             // wait for it to stop
             waitpid(it->first, NULL, 0);
@@ -220,7 +221,7 @@ void LibdebugPtraceInterface::detach_for_migration()
         }
 
         // be sure that the thread will not run during gdb reattachment
-        tgkill(process_id, it->first, SIGSTOP);
+        thread_kill(process_id, it->first, SIGSTOP);
 
         // detach from it
         if (ptrace(PTRACE_DETACH, it->first, NULL, NULL) == -1) {
@@ -284,7 +285,7 @@ void LibdebugPtraceInterface::detach_for_kill()
         if (getregs(it->second)) {
             // the thread is probably still running
             // ensure that the thread is stopped
-            tgkill(process_id, it->first, SIGSTOP);
+            thread_kill(process_id, it->first, SIGSTOP);
 
             // wait for it to stop
             waitpid(it->first, NULL, 0);
@@ -296,7 +297,7 @@ void LibdebugPtraceInterface::detach_for_kill()
         }
 
         // kill it
-        tgkill(process_id, it->first, SIGKILL);
+        thread_kill(process_id, it->first, SIGKILL);
     }
 
     // final waitpid for the zombie process
@@ -513,7 +514,7 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_
             // not "stop" it again
             if (getregs(t.second) == -1) {
                 // Stop the thread with a SIGSTOP
-                tgkill(process_id, t.first, SIGSTOP);
+                thread_kill(process_id, t.first, SIGSTOP);
                 // Wait for the thread to stop
                 temp_tid = waitpid(t.first, &temp_status, 0);
 

@@ -1,6 +1,6 @@
 //
 // This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-// Copyright (c) 2024 Roberto Alessandro Bertolini. All rights reserved.
+// Copyright (c) 2024-2025 Roberto Alessandro Bertolini. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for details.
 //
 
@@ -122,6 +122,8 @@ int main(int argc, char *argv[])
         .iov_len = 4088
     };
 
+    int xcr0 = 0;
+
     // get the xsave area
     if (ptrace(PTRACE_GETREGSET, pid, NT_X86_XSTATE, &iov) == -1) {
         fprintf(stderr, "Failed to get xsave area\n");
@@ -129,10 +131,13 @@ int main(int argc, char *argv[])
         // this probably means that the CPU (or kernel) doesn't support xsave
         // we can still get the fp regs through GETFPREGS
         has_avx = has_avx512 = has_xsave = 0;
-        goto no_xsave;
     } else {
+        // get xcr0
+        xcr0 = xsave_struct[464 / 4];
         has_xsave = 1;
     }
+
+    free(xsave_struct);
 
     // kill the child
     kill(pid, SIGKILL);
@@ -142,9 +147,6 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Failed to wait for child\n");
         return 1;
     }
-
-    // get xcr0
-    int xcr0 = xsave_struct[464 / 4];
 
     dump_file_header();
 
@@ -317,22 +319,18 @@ no_xsave:
     puts("        .def_ro(\"type\", &PtraceFPRegsStruct::type)");
     puts("        .def_rw(\"dirty\", &PtraceFPRegsStruct::dirty)");
     puts("        .def_rw(\"fresh\", &PtraceFPRegsStruct::fresh)");
+    puts("        .def_ro(\"mmx\", &PtraceFPRegsStruct::mmx)");
 
-    if (!has_avx && !has_avx512) {
-        puts("        .def_ro(\"mmx\", &PtraceFPRegsStruct::mmx);");
+    if (!has_avx) {
+        puts("        .def_ro(\"xmm0\", &PtraceFPRegsStruct::xmm0);");
     } else if (has_avx && !has_avx512) {
-        puts("        .def_ro(\"mmx\", &PtraceFPRegsStruct::mmx)");
         puts("        .def_ro(\"xmm0\", &PtraceFPRegsStruct::xmm0)");
         puts("        .def_ro(\"ymm0\", &PtraceFPRegsStruct::ymm0);");
     } else if (has_avx && has_avx512) {
-        puts("        .def_ro(\"mmx\", &PtraceFPRegsStruct::mmx)");
         puts("        .def_ro(\"xmm0\", &PtraceFPRegsStruct::xmm0)");
         puts("        .def_ro(\"ymm0\", &PtraceFPRegsStruct::ymm0)");
         puts("        .def_ro(\"zmm0\", &PtraceFPRegsStruct::zmm0)");
         puts("        .def_ro(\"zmm1\", &PtraceFPRegsStruct::zmm1);");
-    } else {
-        printf("Bad state detected!\n");
-        return 1;
     }
 
     puts("}");

@@ -4,14 +4,12 @@
 // Licensed under the MIT license. See LICENSE file in the project root for details.
 //
 
-#include <nanobind/nanobind.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/bind_vector.h>
-
 #include "debug_sym_parser.h"
 
-#define HAVE_DECL_BASENAME 1
-#include <demangle.h>
+#ifdef HAS_LIBIBERTY
+    #define HAVE_DECL_BASENAME 1
+    #include <demangle.h>
+#endif
 
 #include <fcntl.h>
 #include <gelf.h>
@@ -19,17 +17,25 @@
 #include <libdwarf.h>
 #include <libelf.h>
 
-namespace nb = nanobind;
-
 void add_symbol_info(SymbolVector &symbols, const char *name, const Dwarf_Addr low_pc, const Dwarf_Addr high_pc)
 {
     SymbolInfo symbol_info;
 
-    char *demangled_name = cplus_demangle_v3(name, DMGL_PARAMS | DMGL_ANSI | DMGL_TYPES);
-    symbol_info.name = demangled_name ? demangled_name : name;
     symbol_info.low_pc = low_pc;
     symbol_info.high_pc = high_pc;
 
+#ifdef HAS_LIBIBERTY
+    char *demangled_name = cplus_demangle_v3(name, DMGL_PARAMS | DMGL_ANSI | DMGL_TYPES);
+
+    if (demangled_name) {
+        // We push both the demangled name and the original name
+        symbol_info.name = demangled_name;
+        symbols.push_back(symbol_info);
+    }
+#endif
+
+    // Push the original name
+    symbol_info.name = name;
     symbols.push_back(symbol_info);
 };
 
@@ -218,49 +224,4 @@ SymbolVector collect_external_symbols(const std::string &debug_file_path, const 
     close(fd);
 
     return symbols;
-}
-
-NB_MODULE(libdebug_debug_sym_parser, m)
-{
-    nb::bind_vector<SymbolVector>(m, "SymbolVector", "A vector of symbols");
-
-    nb::class_<SymbolInfo>(m, "SymbolInfo", "Symbol information")
-        .def_ro("name", &SymbolInfo::name, "The name of the symbol")
-        .def_ro("low_pc", &SymbolInfo::low_pc, "The low address of the symbol")
-        .def_ro("high_pc", &SymbolInfo::high_pc, "The high address of the symbol");
-
-    nb::class_<ElfInfo>(m, "ElfInfo", "Information about an ELF file")
-        .def_ro("build_id", &ElfInfo::build_id, "The build ID of the ELF file")
-        .def_ro("debuglink", &ElfInfo::debuglink, "The debug link of the ELF file")
-        .def_ro("symbols", &ElfInfo::symbols, "The symbols of the ELF file");
-
-    m.def(
-        "read_elf_info",
-        &read_elf_info,
-        nb::arg("elf_file_path"),
-        nb::arg("debug_info_level"),
-        "Read the symbol table and the build ID from an ELF file\n"
-        "\n"
-        "Args:\n"
-        "    elf_file_path (str): The path to the ELF file\n"
-        "    debug_info_level (int): The debug info level for parsing.\n"
-        "\n"
-        "Returns:\n"
-        "    tuple: A tuple containing the symbol table, the build ID and the debug file path"
-    );
-
-    m.def(
-        "collect_external_symbols",
-        &collect_external_symbols,
-        nb::arg("debug_file_path"),
-        nb::arg("debug_info_level"),
-        "Collect the external symbols from a debug file\n"
-        "\n"
-        "Args:\n"
-        "    debug_file_path (str): The path to the debug file\n"
-        "    debug_info_level (int): The debug info level for parsing.\n"
-        "\n"
-        "Returns:\n"
-        "    list: A list of external symbols"
-    );
 }
