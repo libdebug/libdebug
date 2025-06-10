@@ -26,7 +26,7 @@
 #ifdef ARCH_X86
 #include "shared/x86_ptrace.h"
 #include "i386/i386_ptrace.h"
-#include "x86_fpregs_xsave_layout.h"
+#include "x86_fp_regs.h"
 #endif
 
 #ifdef ARCH_AARCH64
