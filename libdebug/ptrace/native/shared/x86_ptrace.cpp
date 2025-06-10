@@ -9,7 +9,12 @@
 #include <sys/uio.h>
 #include <sys/user.h>
 
+#ifdef ARCH_X86_64
 #include "amd64/amd64_ptrace.h"
+#else
+#include "i386/i386_ptrace.h"
+#endif
+
 #include "x86_fp_regs.h"
 #include "libdebug_ptrace_interface.h"
 #include "shared/x86_ptrace.h"

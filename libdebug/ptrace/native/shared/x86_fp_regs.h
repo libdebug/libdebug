@@ -14,11 +14,8 @@
 
 namespace nb = nanobind;
 
-#ifdef ARCH_X86_64
 #define MMX_OFFSET 32 // 32 bytes before the st_space
-#else
-#define MMX_OFFSET 28 // 7 long ints before the st_space
-#endif
+#define MMX_LEGACY_OFFSET 28 // see sys/user.h
 
 #define XMM0_OFFSET (32 + 16 * 8)
 
@@ -96,6 +93,12 @@ class PtraceFPRegsStruct
             return *reinterpret_cast<std::array<Reg128, 8>*>(static_cast<char*>(fpregs_area) + MMX_OFFSET);
         }
 
+        std::array<Reg80, 10> &legacy_st_space()
+        {
+            // The st_space is located at the start of the fpregs area
+            return *reinterpret_cast<std::array<Reg80, 10>*>(static_cast<char*>(fpregs_area) + MMX_LEGACY_OFFSET);
+        }
+
         std::array<Reg128, 16> &xmm0()
         {
             return *reinterpret_cast<std::array<Reg128, 16>*>(static_cast<char*>(fpregs_area) + XMM0_OFFSET);
@@ -137,6 +140,8 @@ void init_fpregs_struct(nanobind::module_ &m)
         .def_prop_rw("dirty", &PtraceFPRegsStruct::is_dirty, &PtraceFPRegsStruct::set_dirty, "Whether the fpregs struct is dirty (needs to be written back).")
         .def_prop_rw("fresh", &PtraceFPRegsStruct::is_fresh, &PtraceFPRegsStruct::set_fresh, "Whether the fpregs struct is fresh (has been read from the process).")
         .def_prop_ro("mmx", &PtraceFPRegsStruct::mmx, "The MMX registers as an array of Reg128.")
+        .def_prop_ro("legacy_st_space", &PtraceFPRegsStruct::legacy_st_space, "The legacy ST space as an array of Reg80.")
+        .def_prop_ro("has_xsave", &PtraceFPRegsStruct::has_xsave, "Whether the current CPU supports XSAVE.")
         .def_prop_ro("xmm0", &PtraceFPRegsStruct::xmm0, "The XMM0 registers as an array of Reg128.")
         .def_prop_ro("ymm0", &PtraceFPRegsStruct::ymm0, "The YMM0 registers as an array of Reg128.")
         .def_prop_ro("zmm0", &PtraceFPRegsStruct::zmm0, "The ZMM0 registers as an array of Reg256.")

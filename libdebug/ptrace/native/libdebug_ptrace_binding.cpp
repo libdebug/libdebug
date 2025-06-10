@@ -789,6 +789,13 @@ NB_MODULE(libdebug_ptrace_binding, m)
 {
     init_libdebug_ptrace_registers(m);
 
+    nb::class_<Reg80>(m, "Reg80", "An 80-bit register.")
+        .def_rw(
+            "data",
+            &Reg80::bytes,
+            "The data of the register, as a byte array."
+        );
+
     nb::class_<Reg128>(m, "Reg128", "A 128-bit register.")
         .def_rw(
             "data",
