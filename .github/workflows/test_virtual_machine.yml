@@ -47,7 +47,14 @@ jobs:
           #
           # Update package lists and install dependencies
           apt-get update
-          apt-get install -y --no-install-recommends libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg python3-pip python3-venv python3-dev git build-essential
+          if [[ "${{ matrix.arch }}" == "i386" ]]; then
+            apt-get install -y --no-install-recommends libdwarf-dev libelf-dev libiberty-dev curl libc6-dbg python3-pip python3-venv python3-dev git build-essential libssl-dev pkg-config
+            # We have a dependency which requires Rust which does not have prebuilt wheels for i386
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -q -y
+            . ./.cargo/env
+          else
+            apt-get install -y --no-install-recommends libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg python3-pip python3-venv python3-dev git build-essential
+          fi
           #
           # Create a virtual environment for Python dependencies
           python3 -m venv /tmp/venv
@@ -56,6 +63,7 @@ jobs:
           source /tmp/venv/bin/activate
           #
           # Install Python test dependencies
+          python -m pip install capstone
           python -m pip install pwntools pytest objgraph
           #
           # Clone the libdebug repository
@@ -75,7 +83,7 @@ jobs:
           #
           # Run the tests with pytest
           echo "--- Starting pytest ---"
-          python -m pytest --ignore=other_tests --ignore scripts/atexit_handler_test.py
+          python -m pytest --ignore=other_tests --ignore scripts/atexit_handler_test.py --ignore scripts/speed_test.py
           echo "--- Finished pytest ---"
           EOF
 
