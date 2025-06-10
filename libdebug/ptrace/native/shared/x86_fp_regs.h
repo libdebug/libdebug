@@ -14,7 +14,12 @@
 
 namespace nb = nanobind;
 
-#define MMX_OFFSET 32
+#ifdef ARCH_X86_64
+#define MMX_OFFSET 32 // 32 bytes before the st_space
+#else
+#define MMX_OFFSET 28 // 7 long ints before the st_space
+#endif
+
 #define XMM0_OFFSET (32 + 16 * 8)
 
 class PtraceFPRegsStruct
