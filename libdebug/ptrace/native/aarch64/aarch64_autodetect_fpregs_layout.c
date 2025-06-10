@@ -7,6 +7,8 @@
 // The purpose of this script is to do nothing, as on aarch64 the FP registers layout is fixed
 // and does not require any autodetection. It is used to maintain consistency with other architectures.
 
+#include <stdio.h>
+
 int main()
 {
     // We create a dummy json with just the option we need.
