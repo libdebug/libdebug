@@ -5,7 +5,7 @@ search:
 ---
 # :material-wrench: Building **libdebug** from source
 
-Building **libdebug** from source is a straightforward process. This guide will walk you through the steps required to compile and install **libdebug** on your system.
+Manually building **libdebug** from source is a straightforward process. This guide will walk you through the steps required to compile and install **libdebug** on your system.
 
 ## :chains: Resolving Dependencies
 To install **libdebug**, you first need to have some dependencies that will not be automatically resolved. These dependencies are libraries, utilities and development headers which are required by **libdebug** to compile its internals during installation.
