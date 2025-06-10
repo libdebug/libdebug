@@ -9,7 +9,7 @@ from pathlib import Path
 from subprocess import check_output
 
 from libdebug.liblog import liblog
-from libdebug.ptrace.native import libdebug_ptrace_binding
+from libdebug.ptrace.native.libdebug_ptrace_binding import LibdebugPtraceInterface, PtraceFPRegsStructDefinition
 
 PTRACE_FPREGS_DEFINITION_LOCATION = (Path.home() / ".cache" / "libdebug" / "fpregs.json").resolve()
 PTRACE_FPREGS_AUTODETECT_LOCATION = Path(__file__).parent / "native" / "autodetect_fpregs_layout"
@@ -33,13 +33,14 @@ if not (PTRACE_FPREGS_AUTODETECT_LOCATION.exists() and PTRACE_FPREGS_AUTODETECT_
         "If you are using a pre-built package, please report this issue on GitHub.",
     )
 
-def get_ptrace_fpregs_definition() -> libdebug_ptrace_binding.PtraceFPRegsStructDefinition:
+
+def get_ptrace_fpregs_definition() -> PtraceFPRegsStructDefinition:
     """Get the ptrace_fpregs definition from the local cache."""
     global PTRACE_FPREGS_DEFINITION
 
     if PTRACE_FPREGS_DEFINITION is not None:
         try:
-            return libdebug_ptrace_binding.PtraceFPRegsStructDefinition(
+            return PtraceFPRegsStructDefinition(
                 struct_size=PTRACE_FPREGS_DEFINITION["struct_size"],
                 type=PTRACE_FPREGS_DEFINITION["type"],
                 has_xsave=PTRACE_FPREGS_DEFINITION["has_xsave"],
@@ -49,9 +50,11 @@ def get_ptrace_fpregs_definition() -> libdebug_ptrace_binding.PtraceFPRegsStruct
             )
         except Exception as e:  # noqa: BLE001
             # If the definition is invalid, we can log the error or handle it as needed
-            liblog.error(f"Failed to parse ptrace fpregs definition: {e}"
-                        "The definition file might be corrupted or outdated,"
-                        " and will be regenerated.")
+            liblog.error(
+                f"Failed to parse ptrace fpregs definition: {e}"
+                "The definition file might be corrupted or outdated,"
+                " and will be regenerated."
+            )
 
     # We must generate a definition file
     try:
@@ -73,11 +76,13 @@ def get_ptrace_fpregs_definition() -> libdebug_ptrace_binding.PtraceFPRegsStruct
         with PTRACE_FPREGS_DEFINITION_LOCATION.open("w") as f:
             json.dump(PTRACE_FPREGS_DEFINITION, f, indent=4)
     except OSError as e:
-        liblog.error(f"Failed to write ptrace fpregs definition to {PTRACE_FPREGS_DEFINITION_LOCATION}: {e}",
-                     "This script will try to regenerate the definition on next run.")
+        liblog.error(
+            f"Failed to write ptrace fpregs definition to {PTRACE_FPREGS_DEFINITION_LOCATION}: {e}",
+            "This script will try to regenerate the definition on next run.",
+        )
 
     try:
-        return libdebug_ptrace_binding.PtraceFPRegsStructDefinition(
+        return PtraceFPRegsStructDefinition(
             struct_size=PTRACE_FPREGS_DEFINITION["struct_size"],
             type=PTRACE_FPREGS_DEFINITION["type"],
             has_xsave=PTRACE_FPREGS_DEFINITION["has_xsave"],
@@ -90,8 +95,8 @@ def get_ptrace_fpregs_definition() -> libdebug_ptrace_binding.PtraceFPRegsStruct
         raise RuntimeError("Failed to generate ptrace fpregs definition") from e
 
 
-def provide_new_interface() -> libdebug_ptrace_binding.LibdebugPtraceInterface:
+def provide_new_interface() -> LibdebugPtraceInterface:
     """Provide a new instance of the LibdebugPtraceBinding interface."""
-    return libdebug_ptrace_binding.LibdebugPtraceInterface(
+    return LibdebugPtraceInterface(
         get_ptrace_fpregs_definition(),
     )
