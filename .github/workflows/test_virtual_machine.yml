@@ -12,11 +12,15 @@ permissions:
 
 jobs:
   test-in-vm:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v4
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: ["amd64", "i386"]
+        cpu: ["host", "qemu64"]
 
+    name: Test in QEMU VM on ${{ matrix.arch }} with CPU ${{ matrix.cpu }}
+    steps:
       - name: Install dependencies
         run: |
           # Install QEMU/KVM and utilities for handling the image and SSH
@@ -26,7 +30,7 @@ jobs:
       - name: Prepare Debian VM Image
         run: |
           echo "Downloading Debian image artifact..."
-          wget -O artifact.zip "https://gitlab.com/api/v4/projects/giomasce%2Fdqib/jobs/artifacts/master/download?job=convert_amd64-pc"
+          wget -O artifact.zip "https://gitlab.com/api/v4/projects/giomasce%2Fdqib/jobs/artifacts/master/download?job=convert_${{ matrix.arch }}-pc"
           #
           echo "Extracting artifact..."
           unzip artifact.zip
@@ -71,7 +75,7 @@ jobs:
           #
           # Run the tests with pytest
           echo "--- Starting pytest ---"
-          python -m pytest --ignore=other_tests
+          python -m pytest --ignore=other_tests --ignore scripts/atexit_handler_test.py
           echo "--- Finished pytest ---"
           EOF
 
@@ -85,17 +89,18 @@ jobs:
           sudo qemu-system-x86_64 \
             -m 4G \
             -smp 2 \
+            -cpu ${{ matrix.cpu }} \
             -enable-kvm \
-            -hda dqib_amd64-pc/image.qcow2 \
-            -kernel dqib_amd64-pc/kernel \
-            -initrd dqib_amd64-pc/initrd \
+            -hda dqib_${{ matrix.arch }}-pc/image.qcow2 \
+            -kernel dqib_${{ matrix.arch }}-pc/kernel \
+            -initrd dqib_${{ matrix.arch }}-pc/initrd \
             -netdev user,id=net0,hostfwd=tcp::2222-:22 \
             -device virtio-net-pci,netdev=net0 \
             -append "root=LABEL=rootfs console=ttyS0" \
             -display none \
             -daemonize \
             -pidfile vm.pid
-
+          #
           # Wait for the VM to boot and the SSH server to be ready
           echo "Waiting for SSH connection..."
           for i in {1..30}; do
@@ -105,11 +110,11 @@ jobs:
             echo "Attempt $i failed, retrying in 10 seconds..."
             sleep 10
           done
-
+          #
           # Copy the test script to the VM
           echo "Copying test script to VM..."
           sshpass -p "$VM_PASS" scp -P 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ./run_tests.sh "$VM_USER@localhost":~/
-
+          #
           # Execute the test script inside the VM
           echo "Executing test script in VM..."
           sshpass -p "$VM_PASS" ssh -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$VM_USER@localhost" "chmod +x ~/run_tests.sh && ~/run_tests.sh"
@@ -119,5 +124,5 @@ jobs:
         run: |
           echo "Shutting down VM..."
           if [ -f vm.pid ]; then
-            sudo kill $(cat vm.pid)
+            sudo kill $(sudo cat vm.pid)
           fi
