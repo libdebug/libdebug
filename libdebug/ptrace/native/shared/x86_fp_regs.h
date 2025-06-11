@@ -14,11 +14,6 @@
 
 namespace nb = nanobind;
 
-#define MMX_OFFSET 32 // 32 bytes before the st_space
-#define MMX_LEGACY_OFFSET 28 // see sys/user.h
-
-#define XMM0_OFFSET (32 + 16 * 8)
-
 class PtraceFPRegsStruct
 {
     private:
@@ -28,108 +23,27 @@ class PtraceFPRegsStruct
         PtraceFPRegsStructDefinition definition;
 
     public:
-        PtraceFPRegsStruct(PtraceFPRegsStructDefinition def)
-            :   fpregs_area(nullptr),
-                dirty(false),
-                fresh(false),
-                definition(def)
-        {
-            // Allocate memory for the fpregs area based on the definition size
-            fpregs_area = calloc(definition.struct_size, 1);
-            if (!fpregs_area) {
-                throw std::runtime_error("Failed to allocate memory for fpregs area");
-            }
-        }
+        PtraceFPRegsStruct(PtraceFPRegsStructDefinition def);
+        ~PtraceFPRegsStruct();
 
-        ~PtraceFPRegsStruct()
-        {
-            if (fpregs_area) {
-                free(fpregs_area);
-            }
-        }
+        void* get_area();
+        size_t get_size();
+        unsigned long get_type();
 
-        void* get_area() const
-        {
-            return fpregs_area;
-        }
+        bool is_dirty();
+        void set_dirty(bool value);
 
-        size_t get_size() const
-        {
-            return definition.struct_size;
-        }
+        bool is_fresh();
+        void set_fresh(bool value);
 
-        unsigned long get_type() const
-        {
-            return definition.type;
-        }
+        bool has_xsave();
 
-        bool is_dirty() const
-        {
-            return dirty;
-        }
-
-        void set_dirty(bool value)
-        {
-            dirty = value;
-        }
-
-        bool is_fresh() const
-        {
-            return fresh;
-        }
-
-        void set_fresh(bool value)
-        {
-            fresh = value;
-        }
-
-        bool has_xsave() const
-        {
-            return definition.has_xsave;
-        }
-
-        std::array<Reg128, 8> &mmx()
-        {
-            return *reinterpret_cast<std::array<Reg128, 8>*>(static_cast<char*>(fpregs_area) + MMX_OFFSET);
-        }
-
-        std::array<Reg80, 10> &legacy_st_space()
-        {
-            // The st_space is located at the start of the fpregs area
-            return *reinterpret_cast<std::array<Reg80, 10>*>(static_cast<char*>(fpregs_area) + MMX_LEGACY_OFFSET);
-        }
-
-        std::array<Reg128, 16> &xmm0()
-        {
-            return *reinterpret_cast<std::array<Reg128, 16>*>(static_cast<char*>(fpregs_area) + XMM0_OFFSET);
-        }
-
-        std::array<Reg128, 16> &ymm0()
-        {
-            if (definition.avx_ymm0_offset == 0) {
-                throw std::runtime_error("AVX YMM0 offset is not defined in the fpregs struct definition");
-            }
-
-            return *reinterpret_cast<std::array<Reg128, 16>*>(static_cast<char*>(fpregs_area) + definition.avx_ymm0_offset);
-        }
-
-        std::array<Reg256, 16> &zmm0()
-        {
-            if (definition.avx512_zmm0_offset == 0) {
-                throw std::runtime_error("AVX512 ZMM0 offset is not defined in the fpregs struct definition");
-            }
-
-            return *reinterpret_cast<std::array<Reg256, 16>*>(static_cast<char*>(fpregs_area) + definition.avx512_zmm0_offset);
-        }
-
-        std::array<Reg512, 16> &zmm1()
-        {
-            if (definition.avx512_zmm1_offset == 0) {
-                throw std::runtime_error("AVX512 ZMM1 offset is not defined in the fpregs struct definition");
-            }
-
-            return *reinterpret_cast<std::array<Reg512, 16>*>(static_cast<char*>(fpregs_area) + definition.avx512_zmm1_offset);
-        }
+        std::array<Reg128, 8> &mmx();
+        std::array<Reg80, 10> &legacy_st_space();
+        std::array<Reg128, 16> &xmm0();
+        std::array<Reg128, 16> &ymm0();
+        std::array<Reg256, 16> &zmm0();
+        std::array<Reg512, 16> &zmm1();
 };
 
 #ifdef DECLARE_NANOBIND

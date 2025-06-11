@@ -225,7 +225,7 @@ int main(int argc, char *argv[])
     }
 
     if (has_xsave) {
-        size_t xsave_size = xsave_area_size();
+        int xsave_size = xsave_area_size();
         printf("    \"struct_size\": %d,\n", xsave_size > current_size ? xsave_size : current_size);
         printf("    \"has_xsave\": true,\n");
     } else {
