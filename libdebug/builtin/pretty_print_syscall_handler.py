@@ -18,6 +18,18 @@ if TYPE_CHECKING:
     from libdebug.state.thread_context import ThreadContext
 
 
+def negate_value(value: int, word_size: int) -> int:
+    """Negate a value.
+
+    Args:
+        value (int): the value.
+        word_size (int): the word size.
+
+    Returns:
+        int: the negated value.
+    """
+    return (1 << word_size * 8) - value
+
 def pprint_on_enter(t: ThreadContext, syscall_number: int, **kwargs: int) -> None:
     """Function that will be called when a syscall is entered in pretty print mode.
 

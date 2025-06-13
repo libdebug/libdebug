@@ -49,6 +49,12 @@ struct HardwareBreakpoint
     int len;
 };
 
+struct RegisterBackup
+{
+    std::shared_ptr<PtraceRegsStruct> regs;
+    std::shared_ptr<PtraceFPRegsStruct> fpregs;
+};
+
 struct Thread
 {
     pid_t tid;
@@ -56,6 +62,7 @@ struct Thread
     std::shared_ptr<PtraceRegsStruct> regs;
     std::shared_ptr<PtraceFPRegsStruct> fpregs;
     int signal_to_forward;
+    RegisterBackup regs_backup;
 };
 
 struct ThreadStatus

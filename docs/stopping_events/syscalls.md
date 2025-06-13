@@ -42,7 +42,7 @@ Syscall handlers can be created to register [stopping events](../stopping_events
 !!! QUESTION "Do I have to handle both on enter and on exit?"
     When using [asynchronous](../debugging_flow) syscall handlers, you can choose to handle both or only one of the two events. However, when using synchronous handlers, both events will stop the process.
 
-## **libdebug** API for Syscall Handlers
+## :octicons-code-24: API for Syscall Handlers
 The `handle_syscall()` function in the [Debugger](../../from_pydoc/generated/debugger/debugger/) object registers a handler for the specified syscall.
 
 !!! ABSTRACT "Function Signature"
@@ -230,3 +230,5 @@ For your convenience, you can also easily provide the syscall parameters to be u
 
     Again, the secret will be leaked to the standard output.
 
+## :fontawesome-solid-wand-magic-sparkles: Arbitrary Syscall Invocation
+Did you know? Since **libdebug** 0.9.0 NAME_TO_BE_DETERMINED you can also invoke an arbitrary syscall on a thread of your choice. Read more on this feature in the page dedicated to [Arbitrary Code Execution](../../quality_of_life/arbitrary_code_execution#arbitrary-syscall-invocation). 

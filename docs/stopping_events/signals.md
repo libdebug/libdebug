@@ -19,7 +19,7 @@ Signal catchers can be created to register [stopping events](../stopping_events/
 !!! INFO "Multiple catchers for the same signal"
     Please note that there can be at most **one** user-defined catcher or hijack for each signal. If a new catcher is defined for a signal that is already caught or hijacked, the new catcher will replace the old one, and a warning will be printed.
 
-## **libdebug** API for Signal Catching
+## :octicons-code-24: API for Signal Catching
 The `catch_signal()` function in the [Debugger](../../from_pydoc/generated/debugger/debugger/) object registers a catcher for the specified signal.
 
 !!! ABSTRACT "Function Signature"

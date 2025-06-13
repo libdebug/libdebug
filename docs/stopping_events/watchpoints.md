@@ -8,7 +8,7 @@ Watchpoints are a special type of [hardware breakpoint](../breakpoints#hardware-
 
 Features of watchpoints are shared with breakpoints, so you can set [asynchronous](../debugging_flow) watchpoints and use properties in the same way.
 
-## **libdebug** API for Watchpoints
+## :octicons-code-24: API for Watchpoints
 The `watchpoint()` function in the [Debugger](../../from_pydoc/generated/debugger/debugger/) object sets a watchpoint at a specific address. While you can also use the [breakpoint API](../breakpoints/#libdebug-api-for-breakpoints) to set up a watchpoint, a specific API is provided for your convenience:
 
 !!! ABSTRACT "Function Signature"

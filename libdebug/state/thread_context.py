@@ -1,11 +1,11 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
+# Copyright (c) 2024-2025 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 from __future__ import annotations
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
@@ -52,7 +52,7 @@ class ThreadContext(ABC):
     """The thread's syscall argument 5."""
 
     syscall_number: int
-    """The thread's syscall number."""
+    """The thread's syscall number when the kernel has entered a syscall. Valid only when the thread is stopped inside a syscall."""
 
     syscall_return: int
     """The thread's syscall return value."""
@@ -86,6 +86,9 @@ class ThreadContext(ABC):
 
     _zombie: bool = False
     """Whether the thread is a zombie."""
+
+    _invoked_syscall: int | None = None
+    """The syscall number invoked on the thread, if currently so."""
 
     def __init__(self: ThreadContext, thread_id: int, registers: RegisterHolder) -> None:
         """Initializes the Thread Context."""
@@ -348,6 +351,16 @@ class ThreadContext(ABC):
         """Alias for the `next` method. Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._internal_debugger.next(self)
 
+    def invoke_syscall(self: ThreadContext, syscall_identifier: str | int, *args: int) -> int:
+        """Invokes a syscall with the specified arguments on this thread.
+
+        Args:
+            syscall_identifier (str | int): The syscall identifier.
+            *args (int): The syscall arguments.
+        """
+        liblog.debugger(f"Invoking syscall {syscall_identifier} on thread {self.tid} with args {args}")
+        return self._internal_debugger.invoke_syscall(self, syscall_identifier, *args)
+
     def __repr__(self: ThreadContext) -> str:
         """Returns a string representation of the object."""
         repr_str = "ThreadContext()\n"
@@ -378,3 +391,8 @@ class ThreadContext(ABC):
     def notify_snapshot_taken(self: ThreadContext) -> None:
         """Notify the thread that a snapshot has been taken."""
         self._snapshot_count += 1
+
+    @property
+    def num_syscall_args(self: ThreadContext) -> int:
+        """The number of syscall arguments."""
+        return 6

@@ -80,6 +80,7 @@ nav:
       - Symbol Resolution: quality_of_life/symbols.md
       - Memory Maps: quality_of_life/memory_maps.md
       - Stack Frame Utils: quality_of_life/stack_frame_utils.md
+      - Arbitrary Code Execution: quality_of_life/arbitrary_code_execution.md
       - Evasion of Anti-Debugging: quality_of_life/anti_debugging.md
   - Save States:
       - Save States: save_states/save_states.md

@@ -61,3 +61,7 @@ class I386CallUtilities(CallUtilitiesManager):
     def get_call_and_skip_amount(self: I386CallUtilities, opcode_window: bytes) -> tuple[bool, int]:
         skip = self.compute_call_skip(opcode_window)
         return skip != 0, skip
+
+    def get_syscall_instruction(self: CallUtilitiesManager) -> bytes:
+        """Return the bytes of the syscall instruction."""
+        return b"\x90\xCD\x80\x90" # int 0x80 + NOPs
