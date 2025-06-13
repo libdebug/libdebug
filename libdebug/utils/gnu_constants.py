@@ -12,6 +12,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from libdebug.architectures.syscall_arg_parser import or_parse, sequential_parse
+
 
 @dataclass(frozen=True)
 class GnuConstants:
@@ -247,9 +249,6 @@ class GnuConstants:
         9: "F_GETOWN",
         10: "F_SETSIG",
         11: "F_GETSIG",
-        12: "F_GETLK64",
-        13: "F_SETLK64",
-        14: "F_SETLKW64",
         15: "F_SETOWN_EX",
         16: "F_GETOWN_EX",
         17: "F_GETOWNER_UIDS",
@@ -272,6 +271,12 @@ class GnuConstants:
         1037: "F_GET_FILE_RW_HINT",
         1038: "F_SET_FILE_RW_HINT",
         "parsing_mode": "sequential",
+    }
+
+    FCNTL64_CMDS = FCNTL_CMDS + {
+        12: "F_GETLK64",
+        13: "F_SETLK64",
+        14: "F_SETLKW64",
     }
 
     LSEEK_WHENCE = {
@@ -1737,3 +1742,76 @@ class GnuConstants:
         "or_flags": {0x80000000: "IORING_REGISTER_USE_REGISTERED_RING"},
         "parsing_mode": "mixed",
     }
+
+    FUTEX2_FLAGS = {
+        128: "FUTEX_PRIVATE_FLAG",
+        "parsing_mode": "sequential",
+    }
+
+    def parse_fcntl_arg(self: GnuConstants, cmd: int, arg: int) -> str:
+        """
+        Parse the fcntl command.
+
+        Args:
+            cmd (int): The fcntl command.
+            arg (int): The argument to parse.
+
+        Returns:
+            str: The parsed command.
+        """
+        match cmd:
+            case 2:  # F_SETFD
+                if arg == 1:
+                    return "FD_CLOEXEC"
+                return f"{arg:#x}"
+            case 4:  # F_SETFL
+                REDUCED_MAP = {
+                    0o00002000: "O_APPEND",
+                    0o00020000: "O_ASYNC",
+                    0o00040000: "O_DIRECT",
+                    0o01000000: "O_NOATIME",
+                    0o00004000: "O_NONBLOCK",
+                }
+                return or_parse(REDUCED_MAP, arg)
+            case 10:  # F_SETSIG
+                return sequential_parse(GnuConstants.SIGNALS, arg)
+            case 1024:  # F_SETLEASE
+                LEASES = {
+                    0: "F_RDLCK",
+                    1: "F_WRLCK",
+                    2: "F_UNLCK",
+                }
+                return sequential_parse(LEASES, arg)
+            case 1026:  # F_NOTIFY
+                NOTIFY_FLAGS = {
+                    0x00000001: "DN_ACCESS",
+                    0x00000002: "DN_MODIFY",
+                    0x00000004: "DN_CREATE",
+                    0x00000008: "DN_DELETE",
+                    0x00000010: "DN_RENAME",
+                    0x00000020: "DN_ATTRIB",
+                    0x80000000: "DN_MULTISHOT",
+                }
+                return or_parse(NOTIFY_FLAGS, arg)
+            case 1033:  # F_ADD_SEALS
+                SEALS = {
+                    0x0001: "F_SEAL_SEAL",
+                    0x0002: "F_SEAL_SHRINK",
+                    0x0004: "F_SEAL_GROW",
+                    0x0008: "F_SEAL_WRITE",
+                    0x0010: "F_SEAL_FUTURE_WRITE",
+                    0x0020: "F_SEAL_EXEC",
+                }
+                return or_parse(SEALS, arg)
+            case 1038:  # F_SET_FILE_RW_HINT
+                RW_HINTS = {
+                    0: "RWH_WRITE_LIFE_NOT_SET",
+                    1: "RWH_WRITE_LIFE_NONE",
+                    2: "RWH_WRITE_LIFE_SHORT",
+                    3: "RWH_WRITE_LIFE_MEDIUM",
+                    4: "RWH_WRITE_LIFE_LONG",
+                    5: "RWH_WRITE_LIFE_EXTREME",
+                }
+                return sequential_parse(RW_HINTS, arg)
+            case _:
+                return f"{arg:#x}"

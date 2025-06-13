@@ -60,127 +60,13 @@ def parse_ptrace_data(*args) -> str:
     else:
         return f"{data:#x}"
 
-# def parse_fcntl_arg(cmd: int, arg: int) -> str:
-#     """
-#     Parse the fcntl command.
-
-#     Args:
-#         cmd (int): The fcntl command.
-#         arg (int): The argument to parse.
-
-#     Returns:
-#         str: The parsed command.
-#     """
-#     match cmd:
-#         case 2:  # F_SETFD
-#             if arg == 1:
-#                 return "FD_CLOEXEC"
-#             return f"{arg:#x}"
-#         case 4:  # F_SETFL
-#             REDUCED_MAP = \
-#             {
-#                 0o00002000: "O_APPEND",
-#                 0o00020000: "O_ASYNC",
-#                 0o00040000: "O_DIRECT",
-#                 0o01000000: "O_NOATIME",
-#                 0o00004000: "O_NONBLOCK",
-#             }
-#             return or_parse(REDUCED_MAP, arg)
-#         case 10:  # F_SETSIG
-#             return sequential_parse(SIGNALS, arg)
-#         case 1024:  # F_SETLEASE
-#             LEASES = \
-#             {
-#                 0: "F_RDLCK",
-#                 1: "F_WRLCK",
-#                 2: "F_UNLCK",
-#             }
-#             return sequential_parse(LEASES, arg)
-#         case 1026: # F_NOTIFY
-#             NOTIFY_FLAGS = \
-#             {
-#                 0x00000001: "DN_ACCESS",
-#                 0x00000002: "DN_MODIFY",
-#                 0x00000004: "DN_CREATE",
-#                 0x00000008: "DN_DELETE",
-#                 0x00000010: "DN_RENAME",
-#                 0x00000020: "DN_ATTRIB",
-#                 0x80000000: "DN_MULTISHOT",
-#             }
-#             return or_parse(NOTIFY_FLAGS, arg)
-#         case 1033: # F_ADD_SEALS
-#             SEALS = \
-#             {
-#                 0x0001: "F_SEAL_SEAL",
-#                 0x0002: "F_SEAL_SHRINK",
-#                 0x0004: "F_SEAL_GROW",
-#                 0x0008: "F_SEAL_WRITE",
-#                 0x0010: "F_SEAL_FUTURE_WRITE",
-#                 0x0020: "F_SEAL_EXEC",
-#             }
-#             return or_parse(SEALS, arg)
-#         case 1038: # F_SET_FILE_RW_HINT
-#             RW_HINTS = \
-#             {
-#                 0: "RWH_WRITE_LIFE_NOT_SET",
-#                 1: "RWH_WRITE_LIFE_NONE",
-#                 2: "RWH_WRITE_LIFE_SHORT",
-#                 3: "RWH_WRITE_LIFE_MEDIUM",
-#                 4: "RWH_WRITE_LIFE_LONG",
-#                 5: "RWH_WRITE_LIFE_EXTREME",
-#             }
-#             return sequential_parse(RW_HINTS, arg)
-#         case _:
-#             return f"{arg:#x}"=
-
-# Copied from AMD64, to check
-# FCNTL_CMDS = {
-#     0: "F_DUPFD",
-#     1: "F_GETFD",
-#     2: "F_SETFD",
-#     3: "F_GETFL",
-#     4: "F_SETFL",
-#     5: "F_GETLK",
-#     6: "F_SETLK",
-#     7: "F_SETLKW",
-#     8: "F_SETOWN",
-#     9: "F_GETOWN",
-#     10: "F_SETSIG",
-#     11: "F_GETSIG",
-#     12: "F_GETLK64",
-#     13: "F_SETLK64",
-#     14: "F_SETLKW64",
-#     15: "F_SETOWN_EX",
-#     16: "F_GETOWN_EX",
-#     17: "F_GETOWNER_UIDS",
-#     36: "F_OFD_GETLK",
-#     37: "F_OFD_SETLK",
-#     38: "F_OFD_SETLKW",
-#     1024: "F_SETLEASE",
-#     1025: "F_GETLEASE",
-#     1026: "F_NOTIFY",
-#     1027: "F_DUPFD_QUERY",
-#     1028: "F_CREATED_QUERY",
-#     1029: "F_CANCELLK",
-#     1030: "F_DUPFD_CLOEXEC",
-#     1031: "F_SETPIPE_SZ",
-#     1032: "F_GETPIPE_SZ",
-#     1033: "F_ADD_SEALS",
-#     1034: "F_GET_SEALS",
-#     1035: "F_GET_RW_HINT",
-#     1036: "F_SET_RW_HINT",
-#     1037: "F_GET_FILE_RW_HINT",
-#     1038: "F_SET_FILE_RW_HINT",
-#     "parsing_mode": "sequential",
-# }
-
 I386_SYSCALL_PARSER_MAP = {
     #open
     5:{
         #int flags
         1: GnuConstants.OPEN_FLAGS,
         #umode_t mode
-        2: GnuConstants.OPEN_MODES
+        2: GnuConstants.OPEN_MODES,
     },
     #waitpid
     7:{
@@ -272,15 +158,15 @@ I386_SYSCALL_PARSER_MAP = {
         #int flags
         1: GnuConstants.UMOUNT_FLAGS,
     },
-    #TODO: Fill
     #fcntl
     55:{
-        #unsigned int fd
-        0: {},
         #unsigned int cmd
-        1: {},
+        1: GnuConstants.FCNTL_CMDS,
         #unsigned long arg
-        2: {},
+        2: {
+            "parsing_mode": "custom",
+            "parser": GnuConstants.parse_fcntl_arg,
+        },
     },
     #umask
     60:{
@@ -609,15 +495,15 @@ I386_SYSCALL_PARSER_MAP = {
         #int behavior
         2: GnuConstants.ADVISE_BEHAVIORS,
     },
-    #TODO: Fill
     #fcntl64
     221:{
-        #unsigned int fd
-        0: {},
         #unsigned int cmd
-        1: {},
+        1: GnuConstants.FCNTL64_CMDS,
         #unsigned long arg
-        2: {},
+        2: {
+            "parsing_mode": "custom",
+            "parser": GnuConstants.parse_fcntl_arg,
+        },
     },
     #setxattr
     226:{
@@ -1267,7 +1153,6 @@ I386_SYSCALL_PARSER_MAP = {
     409:{
         #int flags
         1: GnuConstants.TIMER_SETTIME_FLAGS,
-        #const struct __kernel_itimerspec *
     },
     #timerfd_settime
     411:{
@@ -1374,283 +1259,99 @@ I386_SYSCALL_PARSER_MAP = {
     },
     #process_madvise
     440:{
-        #int pidfd
-        0: {},
-        #const struct iovec *vec
-        1: {},
-        #size_t vlen
-        2: {},
         #int behavior
-        3: {},
-        #unsigned int flags
-        4: {},
-    },
-    #epoll_pwait2
-    441:{
-        #int epfd
-        0: {},
-        #struct epoll_event *events
-        1: {},
-        #int maxevents
-        2: {},
-        #const struct __kernel_timespec *timeout
-        3: {},
-        #const sigset_t *sigmask
-        4: {},
-        #size_t sigsetsize
-        5: {},
+        3: GnuConstants.ADVISE_BEHAVIORS,
     },
     #mount_setattr
     442:{
         #int dfd
-        0: {},
-        #const char *path
-        1: {},
+        0: GnuConstants.OPENAT_DFD,
         #unsigned int flags
-        2: {},
-        #struct mount_attr *uattr
-        3: {},
-        #size_t usize
-        4: {},
+        2: GnuConstants.MOUNT_SETATTR_FLAGS,
     },
     #quotactl_fd
     443:{
-        #unsigned int fd
-        0: {},
         #unsigned int cmd
-        1: {},
-        #qid_t id
-        2: {},
-        #void *addr
-        3: {},
+        1: GnuConstants.QUOTACTL_CMDS,
     },
     #landlock_create_ruleset
     444:{
-        #const struct landlock_ruleset_attr *const attr
-        0: {},
-        #const size_t size
-        1: {},
         #const __u32 flags
-        2: {},
+        2: GnuConstants.LANDLOCK_CREATE_RULESET_FLAGS,
     },
     #landlock_add_rule
     445:{
-        #const int ruleset_fd
-        0: {},
-        #const enum landlock_rule_type rule_type
-        1: {},
-        #const void *const rule_attr
-        2: {},
         #const __u32 flags
-        3: {},
-    },
-    #landlock_restrict_self
-    446:{
-        #const int ruleset_fd
-        0: {},
-        #const __u32 flags
-        1: {},
+        3: GnuConstants.LANDLOCK_ADD_RULE_FLAGS,
     },
     #memfd_secret
     447:{
         #unsigned int flags
-        0: {},
-    },
-    #process_mrelease
-    448:{
-        #int pidfd
-        0: {},
-        #unsigned int flags
-        1: {},
+        0: GnuConstants.MEMFD_SECRET_FLAGS,
     },
     #futex_waitv
     449:{
-        #struct futex_waitv *waiters
-        0: {},
-        #unsigned int nr_futexes
-        1: {},
-        #unsigned int flags
-        2: {},
-        #struct __kernel_timespec *timeout
-        3: {},
         #clockid_t clockid
-        4: {},
-    },
-    #set_mempolicy_home_node
-    450:{
-        #unsigned long start
-        0: {},
-        #unsigned long len
-        1: {},
-        #unsigned long home_node
-        2: {},
-        #unsigned long flags
-        3: {},
+        4: GnuConstants.WHICH_CLOCK,
     },
     #cachestat
     451:{
         #unsigned int fd
-        0: {},
-        #struct cachestat_range *cstat_range
-        1: {},
-        #struct cachestat *cstat
-        2: {},
-        #unsigned int flags
-        3: {},
+        0: GnuConstants.OPENAT_DFD,
     },
     #fchmodat2
     452:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
+        0: GnuConstants.OPENAT_DFD,
         #umode_t mode
-        2: {},
+        2: GnuConstants.OPEN_MODES,
         #unsigned int flags
-        3: {},
+        3: GnuConstants.FCHMODAT_FLAGS,
     },
     #futex_wake
     454:{
-        #void *uaddr
-        0: {},
-        #unsigned long mask
-        1: {},
-        #int nr
-        2: {},
         #unsigned int flags
-        3: {},
+        3: GnuConstants.FUTEX2_FLAGS,
     },
     #futex_wait
     455:{
-        #void *uaddr
-        0: {},
-        #unsigned long val
-        1: {},
-        #unsigned long mask
-        2: {},
-        #unsigned int flags
-        3: {},
-        #struct __kernel_timespec *timeout
-        4: {},
         #clockid_t clockid
-        5: {},
-    },
-    #futex_requeue
-    456:{
-        #struct futex_waitv *waiters
-        0: {},
-        #unsigned int flags
-        1: {},
-        #int nr_wake
-        2: {},
-        #int nr_requeue
-        3: {},
-    },
-    #statmount
-    457:{
-        #const struct mnt_id_req *req
-        0: {},
-        #struct statmount *buf
-        1: {},
-        #size_t bufsize
-        2: {},
-        #unsigned int flags
-        3: {},
+        5: GnuConstants.WHICH_CLOCK,
     },
     #listmount
     458:{
-        #const struct mnt_id_req *req
-        0: {},
-        #u64 *mnt_ids
-        1: {},
-        #size_t nr_mnt_ids
-        2: {},
         #unsigned int flags
-        3: {},
+        3: GnuConstants.LISTMOUNT_FLAGS,
     },
     #lsm_get_self_attr
     459:{
-        #unsigned int attr
-        0: {},
-        #struct lsm_ctx *ctx
-        1: {},
-        #u32 *size
-        2: {},
         #u32 flags
-        3: {},
-    },
-    #lsm_set_self_attr
-    460:{
-        #unsigned int attr
-        0: {},
-        #struct lsm_ctx *ctx
-        1: {},
-        #u32 size
-        2: {},
-        #u32 flags
-        3: {},
-    },
-    #lsm_list_modules
-    461:{
-        #u64 *ids
-        0: {},
-        #u32 *size
-        1: {},
-        #u32 flags
-        2: {},
+        3: GnuConstants.LSM_GET_SELF_ATTR_FLAGS,
     },
     #setxattrat
     463:{
         #int dfd
-        0: {},
-        #const char *pathname
-        1: {},
+        0: GnuConstants.OPENAT_DFD,
         #unsigned int at_flags
-        2: {},
-        #const char *name
-        3: {},
-        #const struct xattr_args *uargs
-        4: {},
-        #size_t usize
-        5: {},
+        2: GnuConstants.XATTRAT_FLAGS,
     },
     #getxattrat
     464:{
         #int dfd
-        0: {},
-        #const char *pathname
-        1: {},
-        #unsigned int at_flags
-        2: {},
-        #const char *name
-        3: {},
-        #struct xattr_args *uargs
-        4: {},
-        #size_t usize
-        5: {},
+        0: GnuConstants.OPENAT_DFD,
     },
     #listxattrat
     465:{
         #int dfd
-        0: {},
-        #const char *pathname
-        1: {},
+        0: GnuConstants.OPENAT_DFD,
         #unsigned int at_flags
-        2: {},
-        #char *list
-        3: {},
-        #size_t size
-        4: {},
+        2: GnuConstants.XATTRAT_FLAGS,
     },
     #removexattrat
     466:{
         #int dfd
-        0: {},
-        #const char *pathname
-        1: {},
+        0: GnuConstants.OPENAT_DFD,
         #unsigned int at_flags
-        2: {},
-        #const char *name
-        3: {},
+        2: GnuConstants.XATTRAT_FLAGS,
     },
 }

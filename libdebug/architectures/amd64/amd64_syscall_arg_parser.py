@@ -61,75 +61,6 @@ def parse_ptrace_data(*args) -> str:
         return f"{data:#x}"
 
 
-def parse_fcntl_arg(cmd: int, arg: int) -> str:
-    """
-    Parse the fcntl command.
-
-    Args:
-        cmd (int): The fcntl command.
-        arg (int): The argument to parse.
-
-    Returns:
-        str: The parsed command.
-    """
-    match cmd:
-        case 2:  # F_SETFD
-            if arg == 1:
-                return "FD_CLOEXEC"
-            return f"{arg:#x}"
-        case 4:  # F_SETFL
-            REDUCED_MAP = {
-                0o00002000: "O_APPEND",
-                0o00020000: "O_ASYNC",
-                0o00040000: "O_DIRECT",
-                0o01000000: "O_NOATIME",
-                0o00004000: "O_NONBLOCK",
-            }
-            return or_parse(REDUCED_MAP, arg)
-        case 10:  # F_SETSIG
-            return sequential_parse(GnuConstants.SIGNALS, arg)
-        case 1024:  # F_SETLEASE
-            LEASES = {
-                0: "F_RDLCK",
-                1: "F_WRLCK",
-                2: "F_UNLCK",
-            }
-            return sequential_parse(LEASES, arg)
-        case 1026:  # F_NOTIFY
-            NOTIFY_FLAGS = {
-                0x00000001: "DN_ACCESS",
-                0x00000002: "DN_MODIFY",
-                0x00000004: "DN_CREATE",
-                0x00000008: "DN_DELETE",
-                0x00000010: "DN_RENAME",
-                0x00000020: "DN_ATTRIB",
-                0x80000000: "DN_MULTISHOT",
-            }
-            return or_parse(NOTIFY_FLAGS, arg)
-        case 1033:  # F_ADD_SEALS
-            SEALS = {
-                0x0001: "F_SEAL_SEAL",
-                0x0002: "F_SEAL_SHRINK",
-                0x0004: "F_SEAL_GROW",
-                0x0008: "F_SEAL_WRITE",
-                0x0010: "F_SEAL_FUTURE_WRITE",
-                0x0020: "F_SEAL_EXEC",
-            }
-            return or_parse(SEALS, arg)
-        case 1038:  # F_SET_FILE_RW_HINT
-            RW_HINTS = {
-                0: "RWH_WRITE_LIFE_NOT_SET",
-                1: "RWH_WRITE_LIFE_NONE",
-                2: "RWH_WRITE_LIFE_SHORT",
-                3: "RWH_WRITE_LIFE_MEDIUM",
-                4: "RWH_WRITE_LIFE_LONG",
-                5: "RWH_WRITE_LIFE_EXTREME",
-            }
-            return sequential_parse(RW_HINTS, arg)
-        case _:
-            return f"{arg:#x}"
-
-
 AMD64_SYSCALL_PARSER_MAP = {
     # open
     2: {
@@ -330,7 +261,7 @@ AMD64_SYSCALL_PARSER_MAP = {
         # unsigned long arg
         2: {
             "parsing_mode": "custom",
-            "parser": parse_fcntl_arg,
+            "parser": GnuConstants.parse_fcntl_arg,
         },
     },
     # flock
@@ -1165,6 +1096,11 @@ AMD64_SYSCALL_PARSER_MAP = {
     453: {
         # unsigned int flags
         2: GnuConstants.MAP_SHADOW_STACK_FLAGS,
+    },
+    # futex_wake
+    454: {
+        # unsigned int flags
+        3: GnuConstants.FUTEX2_FLAGS,
     },
     # futex_wait
     455: {
