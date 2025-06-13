@@ -9,7 +9,14 @@ import json
 import os
 from pathlib import Path
 
-import requests
+try:
+    # requests is used to fetch syscall definitions from a remote server
+    # if available, otherwise we silently fall back to static definitions
+    import requests
+
+    HAS_REQUESTS = True
+except ImportError:
+    HAS_REQUESTS = False
 
 SYSCALLS_REMOTE = "https://syscalls.mebeim.net/db"
 LOCAL_FOLDER_PATH = (Path.home() / ".cache" / "libdebug" / "syscalls").resolve()
@@ -71,7 +78,7 @@ def get_syscall_definitions(arch: str) -> dict:
         pass
 
     # Let's check if LOCAL_FOLDER_PATH is even writable
-    if not LOCAL_FOLDER_PATH.is_dir() or not os.access(LOCAL_FOLDER_PATH, os.W_OK):
+    if not HAS_REQUESTS or not LOCAL_FOLDER_PATH.is_dir() or not os.access(LOCAL_FOLDER_PATH, os.W_OK):
         # Even if we attempt to fetch the remote definition, we won't be able to save them,
         # so let's fallback to the static definitions directly
         syscall_definition = fetch_static_syscall_definition(arch)
