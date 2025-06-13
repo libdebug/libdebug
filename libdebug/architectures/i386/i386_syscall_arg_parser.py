@@ -616,6 +616,7 @@ I386_SYSCALL_PARSER_MAP = {
     276:{
         #int mode
         0: GnuConstants.SETMEMPOLICY_MODES,
+    },
     #mq_open
     277:{
         #int oflag
