@@ -102,36 +102,57 @@ You can specify which test suite to run using the `suite` option. The available 
 | `stress` | Runs a set of tests designed to detect issues in multithreaded processes. |
 | `memory` | Runs a set of tests designed to detect memory leaks in **libdebug**. |
 
-## Common Build Errors
+## :material-hammer-wrench: Troubleshooting
 
 Here we list some common build errors you might encounter when building **libdebug** from source, along with their solutions.
-If you encounter any of these errors while installing **libdebug** from PyPI, please open an issue on the [GitHub repository](https://github.com/libdebug/libdebug/issues) to help us improve the installation process.
+If you encounter any of these errors while installing **libdebug** from PyPI, please open an [:octicons-issue-opened-24: Issue](https://github.com/libdebug/libdebug/issues) to help us improve the installation process.
 
-### FileNotFoundError: No such file or directory: '[...]/jumpstart'
-`jumpstart` is the executable that is used to bootstrap the debugging process, by calling `PTRACE_TRACEME` before exeuting the target program.
-If building **libdebug** from source in editable mode, it might not be automatically installed in the correct location.
+----
+
+**:fontawesome-solid-circle-exclamation: FileNotFoundError**{style="color:#ff7070"} : No such file or directory: `'[...]/jumpstart'`
+
+!!! QUESTION "What's jumpstart?"
+    `jumpstart` is the executable that is used to bootstrap the debugging process, by calling `PTRACE_TRACEME` before exeuting the target program.
+    If building **libdebug** from source in editable mode, it might not be automatically installed in the correct location.<br><br>
+
 To resolve this issue, you can manually install `jumpstart` by running the following command from the root directory of the repository:
 
 ```bash
-gcc -o ERROR_PATH libdebug/ptrace/jumpstart/jumpstart.c -O3
+gcc -o [ERROR_PATH] libdebug/ptrace/jumpstart/jumpstart.c -O3
 ```
 
-Replace `ERROR_PATH` with the path where the `jumpstart` executable should be installed, as indicated in the error message.
+**Parameters**
 
-### RuntimeError: Autodetect executable for ptrace_fpregs layout not found at [...]/autodetect_fpregs_layout.
-This error indicates that the `autodetect_fpregs_layout` executable is missing.
-This executable is used to automatically detect the layout of the floating-point registers for the target architecture.
-If building **libdebug** from source in editable mode, it might not be automatically installed in the correct location.
+- Replace `[ERROR_PATH]` with the path where the `jumpstart` executable should be installed, as indicated in the error message.
+<br><br>
+
+----
+
+**:fontawesome-solid-circle-exclamation: RuntimeError**{style="color:#ff7070"} : Autodetect executable for `ptrace_fpregs` layout not found at `[...]/autodetect_fpregs_layout`.
+
+!!! QUESTION "What's going on?"
+    This error indicates that the `autodetect_fpregs_layout` executable is missing. This executable is used to automatically detect the layout of the floating-point registers for the target architecture. If you are building **libdebug** from source in editable mode, it might not be automatically installed in the correct location.
+
 To resolve this issue, you can manually install `autodetect_fpregs_layout` by running the following command from the root directory of the repository:
 
 ```bash
-gcc -o ERROR_PATH SRC_PATH -O3
+gcc -o [ERROR_PATH] [SRC_PATH] -O3
 ```
-Replace `ERROR_PATH` with the path where the `autodetect_fpregs_layout` executable should be installed, as indicated in the error message.
 
-Choose `SRC_PATH` based on your architecture:
+**Parameters**
 
-* For x86_64 and i686: `libdebug/ptrace/native/shared/x86_autodetect_fpregs_layout.c`
-* For aarch64: `libdebug/ptrace/native/aarch64/aarch64_autodetect_fpregs_layout.c`
+- Replace `[ERROR_PATH]` with the path where the `autodetect_fpregs_layout` executable should be installed, as indicated in the error message.
+- Choose `[SRC_PATH]` based on your architecture:
 
-Please note that for aarch64 this is just a dummy file, as the layout is fixed and does not require autodetection for the current implementation.
+    === "<span style="font-size: 2em; vertical-align: middle;">:simple-intel:</span> (i386 / AMD64)"
+
+        ``` 
+        libdebug/ptrace/native/shared/x86_autodetect_fpregs_layout.c
+        ```
+
+    === "<span style="font-size: 2em; vertical-align: middle;">:simple-arm:</span> (AArch64)"
+
+        ``` 
+        libdebug/ptrace/native/aarch64/aarch64_autodetect_fpregs_layout.c
+        ```
+        Please note that for AArch64 this is just a dummy file, as the layout is fixed and does not require autodetection for the current implementation.
