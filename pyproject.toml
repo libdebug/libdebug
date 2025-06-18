@@ -51,7 +51,6 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "rich",
-    "requests",
 ]
 
 [project.urls]

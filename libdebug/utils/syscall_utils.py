@@ -6,52 +6,14 @@
 
 import functools
 import json
-import os
 from pathlib import Path
 
-try:
-    # requests is used to fetch syscall definitions from a remote server
-    # if available, otherwise we silently fall back to static definitions
-    import requests
-
-    HAS_REQUESTS = True
-except ImportError:
-    HAS_REQUESTS = False
-
-SYSCALLS_REMOTE = "https://syscalls.mebeim.net/db"
-LOCAL_FOLDER_PATH = (Path.home() / ".cache" / "libdebug" / "syscalls").resolve()
 STATIC_FOLDER_PATH = Path(__file__).parent / "syscall_data"
 
 
-def get_remote_definition_url(arch: str) -> str:
-    """Get the URL of the remote syscall definition file."""
-    match arch:
-        case "amd64":
-            return f"{SYSCALLS_REMOTE}/x86/64/x64/latest/table.json"
-        case "aarch64":
-            return f"{SYSCALLS_REMOTE}/arm64/64/aarch64/latest/table.json"
-        case "i386":
-            return f"{SYSCALLS_REMOTE}/x86/32/ia32/latest/table.json"
-        case _:
-            raise ValueError(f"Architecture {arch} not supported")
-
-
-def fetch_remote_syscall_definition(arch: str) -> dict:
-    """Fetch the syscall definition file from the remote server."""
-    url = get_remote_definition_url(arch)
-
-    response = requests.get(url, timeout=1)
-    response.raise_for_status()
-
-    # Save the response to a local file
-    with Path(f"{LOCAL_FOLDER_PATH}/{arch}.json").open("w") as f:
-        f.write(response.text)
-
-    return response.json()
-
-
-def fetch_static_syscall_definition(arch: str) -> dict:
-    """Fetch the syscall definition file from the local cache."""
+@functools.cache
+def get_syscall_definitions(arch: str) -> dict:
+    """Get the syscall definitions for the specified architecture."""
     local_file_path = STATIC_FOLDER_PATH / f"{arch}.json"
 
     if not local_file_path.exists():
@@ -59,37 +21,6 @@ def fetch_static_syscall_definition(arch: str) -> dict:
 
     with local_file_path.open() as f:
         return json.load(f)
-
-
-@functools.cache
-def get_syscall_definitions(arch: str) -> dict:
-    """Get the syscall definitions for the specified architecture."""
-    try:
-        LOCAL_FOLDER_PATH.mkdir(parents=True, exist_ok=True)
-
-        if (LOCAL_FOLDER_PATH / f"{arch}.json").exists():
-            try:
-                with (LOCAL_FOLDER_PATH / f"{arch}.json").open() as f:
-                    return json.load(f)
-            except json.decoder.JSONDecodeError:
-                pass
-    except OSError:
-        # If we cannot create the directory, we will not be able to cache the syscall definitions
-        pass
-
-    # Let's check if LOCAL_FOLDER_PATH is even writable
-    if not HAS_REQUESTS or not LOCAL_FOLDER_PATH.is_dir() or not os.access(LOCAL_FOLDER_PATH, os.W_OK):
-        # Even if we attempt to fetch the remote definition, we won't be able to save them,
-        # so let's fallback to the static definitions directly
-        syscall_definition = fetch_static_syscall_definition(arch)
-    else:
-        try:
-            syscall_definition = fetch_remote_syscall_definition(arch)
-        except:  # noqa: E722
-            # Internet is probably not available
-            syscall_definition = fetch_static_syscall_definition(arch)
-
-    return syscall_definition
 
 
 @functools.cache
