@@ -1,10 +1,10 @@
-#!/bin/bash
+#!/bin/sh
 
 # Check if the system is Debian
 if [ "$(uname -s)" = "Linux" ] && [ -f /etc/os-release ]; then
     if grep -q "^ID=debian" /etc/os-release; then
         cd /test
-        source venv/bin/activate
+        . venv/bin/activate
         cd test
         echo "Running Python3 tests..."
         python3 run_suite.py
@@ -17,7 +17,7 @@ fi
 if [ "$(uname -s)" = "Linux" ] && [ -f /etc/os-release ]; then
     if grep -q "^ID=ubuntu" /etc/os-release; then
         cd /test
-        source venv/bin/activate
+        . venv/bin/activate
         cd test
         echo "Running Python3 tests..."
         python3 run_suite.py
@@ -30,12 +30,12 @@ fi
 if [ "$(uname -s)" = "Linux" ] && [ -f /etc/os-release ]; then
     if grep -q "^ID=arch" /etc/os-release; then
         cd /test
-        source venv_python/bin/activate
+        . venv_python/bin/activate
         cd test
         echo "Running Python3 tests..."
         python3 run_suite.py
         deactivate
-        source ../venv_pypy/bin/activate
+        . ../venv_pypy/bin/activate
         echo "Running PyPy3 tests..."
         pypy3 run_suite.py
         deactivate
