@@ -49,8 +49,8 @@ echo "Running Python3 tests..."
 python3 run_suite.py slow
 echo "Running PyPy3 tests..."
 pypy3 run_suite.py slow
-echo "Running Python3 thread stress tests..."
-python3 run_suite.py thread_stress
-echo "Running PyPy3 thread stress tests..."
-pypy3 run_suite.py thread_stress
+echo "Running Python3 stress tests..."
+python3 run_suite.py stress
+echo "Running PyPy3 stress tests..."
+pypy3 run_suite.py stress
 exit 0
