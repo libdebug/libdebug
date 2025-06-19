@@ -42,24 +42,18 @@ set(CMAKE_REQUIRED_LIBRARIES "")
 
 if(DEFINED LibDwarf_LDFLAGS AND LibDwarf_LDFLAGS)
     # Parse LDFLAGS to separate compile flags from link flags
-    string(REGEX MATCHALL "-L[^ ]+" LINK_DIRS "${LibDwarf_LDFLAGS}")
-    string(REGEX MATCHALL "-l[^ ]+" LINK_LIBS "${LibDwarf_LDFLAGS}")
-    string(REGEX MATCHALL "-[^Ll][^ ]*" COMPILE_FLAGS "${LibDwarf_LDFLAGS}")
-
-    # Add compile flags to CMAKE_REQUIRED_FLAGS
-    if(COMPILE_FLAGS)
-        set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${COMPILE_FLAGS}")
-    endif()
-
-    # Add library directories to CMAKE_REQUIRED_FLAGS (they need to be compile flags)
-    foreach(link_dir ${LINK_DIRS})
-        set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${link_dir}")
+    foreach(flag ${LibDwarf_LDFLAGS})
+        if(flag MATCHES ^-L)
+            # Add library directories to CMAKE_REQUIRED_FLAGS (they need to be compile flags)
+            set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${flag}")
+        elseif(flag MATCHES "^-l(.*)")
+            # Add libraries to CMAKE_REQUIRED_LIBRARIES
+            list(APPEND CMAKE_REQUIRED_LIBRARIES ${CMAKE_MATCH_1})
+        else()
+            # Add compile flags to CMAKE_REQUIRED_FLAGS
+            set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${flag}")
+        endif()
     endforeach()
-
-    # Add libraries to CMAKE_REQUIRED_LIBRARIES
-    if(LINK_LIBS)
-        list(APPEND CMAKE_REQUIRED_LIBRARIES ${LINK_LIBS})
-    endif()
 
     # Clean up CMAKE_REQUIRED_FLAGS
     string(STRIP "${CMAKE_REQUIRED_FLAGS}" CMAKE_REQUIRED_FLAGS)
@@ -77,23 +71,25 @@ if(PKG_CONFIG_FOUND)
     pkg_check_modules(ZLIB QUIET zlib)
     if(ZLIB_FOUND)
         list(APPEND CMAKE_REQUIRED_LIBRARIES ${ZLIB_LIBRARIES})
-        set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${ZLIB_LDFLAGS}")
+        list(JOIN ZLIB_LDFLAGS " " ZLIB_REQUIRED_FLAGS)
+        set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${ZLIB_REQUIRED_FLAGS}")
     else()
         # Fallback to standard library names
-        list(APPEND CMAKE_REQUIRED_LIBRARIES -lz)
+        list(APPEND CMAKE_REQUIRED_LIBRARIES z)
     endif()
 
     pkg_check_modules(ZSTD QUIET libzstd)
     if(ZSTD_FOUND)
         list(APPEND CMAKE_REQUIRED_LIBRARIES ${ZSTD_LIBRARIES})
-        set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${ZSTD_LDFLAGS}")
+        list(JOIN ZSTD_LDFLAGS " " ZSTD_REQUIRED_FLAGS)
+        set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${ZSTD_REQUIRED_FLAGS}")
     else()
         # Fallback to standard library names
-        list(APPEND CMAKE_REQUIRED_LIBRARIES -lzstd)
+        list(APPEND CMAKE_REQUIRED_LIBRARIES zstd)
     endif()
 else()
     # Fallback when pkg-config is not available
-    list(APPEND CMAKE_REQUIRED_LIBRARIES -lz -lzstd)
+    list(APPEND CMAKE_REQUIRED_LIBRARIES z zstd)
 endif()
 
 # Clean up CMAKE_REQUIRED_FLAGS
