@@ -1,0 +1,43 @@
+name: Deploy Documentation
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-docs:
+    name: Deploy Docs Site
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install mike
+
+      - name: Generate Documentation
+        working-directory: docs
+        run: python scrape_code.py
+
+      - name: Deploy with mike
+        run: mike deploy rolling --push
+
+      - name: Trigger Workflow in Docs Repository
+        run: |
+          curl -L \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.PAT }}" \
+            https://api.github.com/repos/libdebug/docs.libdebug.github.io/dispatches \
+            -d '{"event_type": "refresh_rolling"}'
