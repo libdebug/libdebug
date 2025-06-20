@@ -29,7 +29,7 @@ from libdebug.debugger.internal_debugger_instance_manager import (
 )
 from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.liblog import liblog
-from libdebug.ptrace.native import libdebug_ptrace_binding
+from libdebug.ptrace.ptrace_native_interface_provider import provide_new_interface
 from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
 from libdebug.utils.debugging_utils import normalize_and_validate_address
 from libdebug.utils.elf_utils import get_entry_point
@@ -44,6 +44,7 @@ from libdebug.utils.process_utils import (
 JUMPSTART_LOCATION = str(
     (Path(__file__) / ".." / ".." / "ptrace" / "jumpstart" / "jumpstart").resolve(),
 )
+
 
 if hasattr(os, "posix_spawn"):
     from os import POSIX_SPAWN_CLOSE, POSIX_SPAWN_DUP2, posix_spawn
@@ -78,7 +79,7 @@ class PtraceInterface(DebuggingInterface):
 
     def __init__(self: PtraceInterface) -> None:
         """Initializes the PtraceInterface."""
-        self.lib_trace = libdebug_ptrace_binding.LibdebugPtraceInterface()
+        self.lib_trace = provide_new_interface()
 
         self._internal_debugger = provide_internal_debugger(self)
         self.process_id = 0

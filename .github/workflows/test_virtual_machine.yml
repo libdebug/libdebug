@@ -1,0 +1,138 @@
+name: Test in QEMU VM with Debian Image (Manual)
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main", "dev" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-in-vm:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: ["amd64", "i386"]
+        cpu: ["host", "qemu64"]
+
+    name: Test in QEMU VM on ${{ matrix.arch }} with CPU ${{ matrix.cpu }}
+    steps:
+      - name: Install dependencies
+        run: |
+          # Install QEMU/KVM and utilities for handling the image and SSH
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils unzip wget sshpass
+
+      - name: Prepare Debian VM Image
+        run: |
+          echo "Downloading Debian image artifact..."
+          wget -O artifact.zip "https://gitlab.com/api/v4/projects/giomasce%2Fdqib/jobs/artifacts/master/download?job=convert_${{ matrix.arch }}-pc"
+          #
+          echo "Extracting artifact..."
+          unzip artifact.zip
+
+      - name: Create Test Script
+        id: test_script
+        run: |
+          # Create a script file to be executed inside the VM
+          cat << 'EOF' > run_tests.sh
+          #!/bin/bash
+          set -e
+          echo "--- Running inside VM ---"
+          export DEBIAN_FRONTEND=noninteractive
+          #
+          # Update package lists and install dependencies
+          apt-get update
+          if [[ "${{ matrix.arch }}" == "i386" ]]; then
+            apt-get install -y --no-install-recommends libdwarf-dev libelf-dev libiberty-dev curl libc6-dbg python3-pip python3-venv python3-dev git build-essential libssl-dev pkg-config
+            # We have a dependency which requires Rust which does not have prebuilt wheels for i386
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -q -y
+            . ./.cargo/env
+            # We create a symlink from /usr/include/libdwarf to /usr/include/libdwarf-1 because the Debian package is currently broken
+            ln -s /usr/include/libdwarf /usr/include/libdwarf-1
+          else
+            apt-get install -y --no-install-recommends libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg python3-pip python3-venv python3-dev git build-essential
+          fi
+          #
+          # Create a virtual environment for Python dependencies
+          python3 -m venv /tmp/venv
+          #
+          # Activate the virtual environment
+          source /tmp/venv/bin/activate
+          #
+          # Install Python test dependencies
+          python -m pip install capstone
+          python -m pip install pwntools pytest objgraph
+          #
+          # Clone the libdebug repository
+          git clone https://github.com/libdebug/libdebug.git
+          #
+          # Change to the libdebug directory
+          cd libdebug
+          #
+          # Checkout the correct commit
+          git checkout ${{ github.event.pull_request.head.sha }}
+          #
+          # Install the library
+          python -m pip install --upgrade .
+          #
+          # Change to the test directory
+          cd test
+          #
+          # Run the tests with pytest
+          echo "--- Starting pytest ---"
+          python -m pytest --ignore=other_tests --ignore scripts/atexit_handler_test.py --ignore scripts/speed_test.py
+          echo "--- Finished pytest ---"
+          EOF
+
+      - name: Run QEMU VM and Execute Script
+        env:
+          # IMPORTANT: Replace with the actual credentials for your Debian image
+          VM_USER: root
+          VM_PASS: root
+        run: |
+          # Start QEMU in the background, forwarding host port 2222 to the VM's SSH port 22
+          sudo qemu-system-x86_64 \
+            -m 4G \
+            -smp 2 \
+            -cpu ${{ matrix.cpu }} \
+            -enable-kvm \
+            -hda dqib_${{ matrix.arch }}-pc/image.qcow2 \
+            -kernel dqib_${{ matrix.arch }}-pc/kernel \
+            -initrd dqib_${{ matrix.arch }}-pc/initrd \
+            -netdev user,id=net0,hostfwd=tcp::2222-:22 \
+            -device virtio-net-pci,netdev=net0 \
+            -append "root=LABEL=rootfs console=ttyS0" \
+            -display none \
+            -daemonize \
+            -pidfile vm.pid
+          #
+          # Wait for the VM to boot and the SSH server to be ready
+          echo "Waiting for SSH connection..."
+          for i in {1..30}; do
+            if sshpass -p "$VM_PASS" ssh -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$VM_USER@localhost" "echo 'SSH is up'"; then
+              break
+            fi
+            echo "Attempt $i failed, retrying in 10 seconds..."
+            sleep 10
+          done
+          #
+          # Copy the test script to the VM
+          echo "Copying test script to VM..."
+          sshpass -p "$VM_PASS" scp -P 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ./run_tests.sh "$VM_USER@localhost":~/
+          #
+          # Execute the test script inside the VM
+          echo "Executing test script in VM..."
+          sshpass -p "$VM_PASS" ssh -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$VM_USER@localhost" "chmod +x ~/run_tests.sh && ~/run_tests.sh"
+
+      - name: Shutdown VM
+        if: always() # Always run this step to ensure cleanup
+        run: |
+          echo "Shutting down VM..."
+          if [ -f vm.pid ]; then
+            sudo kill $(sudo cat vm.pid)
+          fi

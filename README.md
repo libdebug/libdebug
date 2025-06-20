@@ -21,16 +21,6 @@ When running the same executable multiple times, choosing efficient implementati
 Homepage: https://libdebug.org  \
 Documentation: https://docs.libdebug.org
 
-## Installation Requirements:
-Ubuntu: \
-`sudo apt install -y python3 python3-dev g++ libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg` \
-Debian: \
-`sudo apt install -y python3 python3-dev g++ libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg` \
-Arch Linux: \
-`sudo pacman -S python libelf libdwarf gcc make debuginfod` \
-Fedora: \
-`sudo dnf install -y python3 python3-devel kernel-devel g++ binutils-devel libdwarf-devel`
-
 ## Installation
 ```bash
 python3 -m pip install libdebug
