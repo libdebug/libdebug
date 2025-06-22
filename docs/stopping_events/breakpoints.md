@@ -25,8 +25,9 @@ Hardware breakpoints are a more reliable way to set breakpoints. They are made p
 !!! TIP "Pros and Cons of Hardware Breakpoints"
     Hardware breakpoints are not affected by self-modifying code. They are also usually faster and more flexible. However, hardware breakpoints are limited in number and are hardware-dependent, so their support may vary across different systems.
 
-!!! INFO "Hardware Breakpoint Alignment in AArch64"
-    Hardware breakpoints have to be aligned to 4 bytes (which is the size of an ARM instruction).
+!!! INFO "Hardware Breakpoint Quirks"
+    - On AArch64 systems, hardware breakpoints have to be aligned to 4 bytes (which is the size of an ARM instruction).
+    - On x86 systems, hardware breakpoints can be set at any address, but their length should always be 1 byte. Although most CPUs appear to accept larger sizes—quietly ignoring the length field—the architecture defines any length greater than one byte as undefined behaviour. If you attempt to use a longer length, libdebug will issue a warning and automatically reduce the breakpoint to a single byte.
 
 
 ## **libdebug** API for Breakpoints
