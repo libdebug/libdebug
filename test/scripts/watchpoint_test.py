@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Francesco Panebianco, Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2023-2025 Francesco Panebianco, Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -887,6 +887,23 @@ class WatchpointTest(TestCase):
         self.assertEqual(d.instruction_pointer, 0x80491d5)  # mov eax, dword ptr [global_long]
 
         d.cont()
+
+        d.kill()
+        d.terminate()
+
+    @skipUnless(PLATFORM in ["amd64", "i386"], "Requires amd64 or i386")
+    def test_watchpoint_disaligned_address(self):
+        d = debugger(RESOLVE_EXE("watchpoint_test"), auto_interrupt_on_command=False)
+
+        d.run()
+
+        with self.assertRaises(ValueError):
+            # Attempt to set a watchpoint on a disaligned address
+            d.breakpoint("global_char+1", hardware=True, condition="rw", length=8)
+        
+        with self.assertRaises(ValueError):
+            # Attempt to set a watchpoint on a disaligned address
+            d.breakpoint("global_char+1", hardware=True, condition="w", length=8)
 
         d.kill()
         d.terminate()
