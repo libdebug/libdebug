@@ -165,9 +165,9 @@ def pprint_reg_diff_util(
 
 
 def pprint_reg_diff_large_util(
-    curr_reg_tuple: (str, str),
-    reg_tuple_before: (int, int),
-    reg_tuple_after: (int, int),
+    curr_reg_tuple: tuple[str, ...],
+    reg_tuple_before: tuple[int, ...],
+    reg_tuple_after: tuple[int, ...],
 ) -> None:
     """Pretty prints a register diff."""
     print(f"{ANSIColors.BLUE}" + "{" + f"{ANSIColors.RESET}")
