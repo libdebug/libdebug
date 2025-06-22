@@ -101,7 +101,7 @@ def _pprint_reg(registers: Registers, maps: MemoryMapList, register: str) -> Non
 
 
 def _get_colored_address_string(address: int, maps: MemoryMapList):
-    address_fixed = f"{address:#x}".rjust(18)
+    address_fixed = f"{address:#16x}"
 
     if maps := maps.filter(address):
         permissions = maps[0].permissions
@@ -222,6 +222,7 @@ def pprint_memory_util(
     word_size: int,
     maps: MemoryMapList,
     integer_mode: bool = False,
+    start_char: str = "",
 ) -> None:
     """Pretty prints the memory."""
     # Loop through each word-sized chunk
@@ -245,7 +246,7 @@ def pprint_memory_util(
             out = _get_colored_address_string(content, maps)
 
         # Print the memory diff with the address for this word
-        print(f"{current_address_str}:  {out}")
+        print(f"{start_char}{current_address_str}:  {out}")
 
 
 def pprint_memory_diff_util(
