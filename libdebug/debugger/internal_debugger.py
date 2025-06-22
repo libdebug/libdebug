@@ -937,7 +937,7 @@ class InternalDebugger:
         Returns:
             str: The command to migrate to GDB.
         """
-        gdb_command = f'/bin/gdb -q --pid {self.process_id} -ex "source {GDB_GOBACK_LOCATION} " -ex "ni" -ex "ni"'
+        gdb_command = f'gdb -q --pid {self.process_id} -ex "source {GDB_GOBACK_LOCATION} " -ex "ni" -ex "ni"'
 
         if not migrate_breakpoints:
             return gdb_command
@@ -972,7 +972,7 @@ class InternalDebugger:
         # create a temporary script that will run the command. This script will be executed by the terminal.
         command = self._craft_gdb_migration_command(migrate_breakpoints)
         with NamedTemporaryFile(delete=False, mode="w", suffix=".sh") as temp_file:
-            temp_file.write("#!/bin/bash\n")
+            temp_file.write("#!/bin/sh\n")
             temp_file.write(command)
             script_path = temp_file.name
 
@@ -1004,7 +1004,7 @@ class InternalDebugger:
         terminal_pid = Popen(command).pid
 
         # This is the command line that we are looking for
-        cmdline_target = ["/bin/bash", script_path]
+        cmdline_target = ["/bin/sh", script_path]
 
         self._wait_for_gdb(terminal_pid, cmdline_target)
 
@@ -1043,7 +1043,7 @@ class InternalDebugger:
         gdb_pid = os.fork()
 
         if gdb_pid == 0:  # This is the child process.
-            os.execv("/bin/bash", ["/bin/bash", script_path])
+            os.execv("/bin/sh", ["/bin/sh", script_path])
             raise RuntimeError("Failed to execute GDB.")
 
         # This is the parent process.

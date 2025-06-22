@@ -1495,7 +1495,7 @@ class SignalCatchTest(TestCase):
         def catch_signal(t, ch):
             self.assertNotEqual(t.signal, "SIGTRAP")
 
-        d = debugger("/bin/ls")
+        d = debugger("ls")
 
         d.run()
 
