@@ -31,7 +31,7 @@ jobs:
 
       - name: Trigger Docs Repo Workflow
         env:
-          PAT: ${{ secrets.GITHUB_TOKEN }}
+          PAT: ${{ secrets.PAT }}
         run: |
           curl -sSL -X POST \
             -H "Authorization: Bearer $PAT" \
