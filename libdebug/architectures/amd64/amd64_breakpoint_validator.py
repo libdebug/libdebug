@@ -44,7 +44,7 @@ def validate_breakpoint_amd64(bp: Breakpoint) -> None:
             "This is a hardware limitation of the x86 architecture, where not aligning the address "
             "may lead to undefined behaviour. "
             "Some debuggers work around it by transparently realigning the address—"
-            "either by extending the range where possible or by using multiple hardware "
+            "either by extending the length where possible or by spending multiple hardware "
             "breakpoint registers. "
             "libdebug deliberately does not do this leaving the decision to the you. ",
         )
