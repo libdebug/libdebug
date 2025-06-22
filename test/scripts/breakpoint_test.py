@@ -742,7 +742,8 @@ class BreakpointTest(TestCase):
 
         d.kill()
         d.terminate()
-        
+    
+    @skipUnless(PLATFORM in ["amd64", "i386"], "Requires amd64 or i386") 
     def test_wrong_hw_bp_length(self):
         d = debugger(RESOLVE_EXE("breakpoint_test"))
 
