@@ -1,16 +1,26 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Francesco Panebianco, Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2025 Francesco Panebianco, Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-from unittest import TestCase
-from utils.binary_utils import RESOLVE_EXE
+import io
+from unittest import TestCase, skipUnless
+from utils.binary_utils import RESOLVE_EXE, PLATFORM, CPUINFO
 from libdebug import debugger
-import os
 import tempfile
+import sys
 
 class SnapshotsTest(TestCase):
+    def setUp(self) -> None:
+        self.capturedOutput = io.StringIO()
+        sys.stdout = self.capturedOutput
+
+    def tearDown(self):
+        # Restore stdout
+        self.capturedOutput.close()
+        sys.stdout = sys.__stdout__
+
     def test_thread_base_snapshot(self):
         # Create a debugger and start execution
         d = debugger(RESOLVE_EXE("process_snapshot_test"), auto_interrupt_on_command=False, aslr=False)
@@ -547,4 +557,34 @@ class SnapshotsTest(TestCase):
                 self.assertEqual(reg_diff.new_value, new_val)
                 self.assertEqual(reg_diff.has_changed, has_changed)
         
+        d.terminate()
+        
+    @skipUnless(PLATFORM == "amd64" and "avx512" in CPUINFO, "Requires an AMD64 CPU with AVX512 support")
+    def test_snapshot_diff_avx512(self):
+        # Create a debugger and start
+        d = debugger(RESOLVE_EXE("process_snapshot_test"), auto_interrupt_on_command=False, aslr=False, fast_memory=True)
+        d.run()
+
+        ts1 = d.threads[0].create_snapshot(level="base", name="_start_snapshot")
+
+        # Move forward
+        d.breakpoint("main", file="binary")
+        d.cont()
+        d.wait()
+
+        # Create a new snapshot
+        d.regs.zmm0 = 0x1234567890abcdef
+        d.regs.zmm1 = 0xabcdef1234567890
+        d.regs.zmm2 = 0xdeadbeefdeadbeef
+        ts2 = d.threads[0].create_snapshot(level="full", name="main_snapshot")
+
+        # Diff it
+        diff = ts2.diff(ts1)
+
+        # Check for AVX512 registers
+        self.assertTrue(hasattr(diff.regs, "zmm0"))
+        self.assertTrue(hasattr(diff.regs, "zmm1"))
+        
+        diff.pprint_regs_all()
+
         d.terminate()
