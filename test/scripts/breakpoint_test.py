@@ -742,3 +742,17 @@ class BreakpointTest(TestCase):
 
         d.kill()
         d.terminate()
+        
+    def test_wrong_hw_bp_length(self):
+        d = debugger(RESOLVE_EXE("breakpoint_test"))
+
+        d.run()
+
+        d.bp("random_function", hardware=True, length=2)
+        
+        log_output = self.log_capture_string.getvalue()
+        self.assertIn("Forcing length to 1 byte.", log_output)
+        self.assertIn("WARNING", log_output)
+
+        d.kill()
+        d.terminate()
