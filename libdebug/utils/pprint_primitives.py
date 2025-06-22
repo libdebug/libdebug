@@ -5,6 +5,7 @@
 #
 
 import re
+import sys
 
 from libdebug.data.memory_map_list import MemoryMapList
 from libdebug.data.registers import Registers
@@ -227,17 +228,21 @@ def pprint_memory_util(
     for i in range(0, len(extract), word_size):
         # Calculate the current address
         current_address = address_start + i
+        current_address_str = _get_colored_address_string(current_address, maps)
 
         # Extract word-sized chunks from both extracts
         word = extract[i : i + word_size]
 
-        # Convert each byte in the chunks to hex and compare
-        formatted_word = [f"{byte:02x}" for byte in word]
+        if not integer_mode:
+            # Convert each byte in the chunks to hex and compare
+            formatted_word = [f"{byte:02x}" for byte in word]
 
-        # Join the formatted bytes into a string for each column
-        out = " ".join(formatted_word) if not integer_mode else "0x" + "".join(formatted_word[::-1])
-
-        current_address_str = _get_colored_address_string(current_address, maps)
+            # Join the formatted bytes into a string for each column
+            out = " ".join(formatted_word)
+        else:
+            # Take the integer representation of the word
+            content = int.from_bytes(word, sys.byteorder)
+            out = _get_colored_address_string(content, maps)
 
         # Print the memory diff with the address for this word
         print(f"{current_address_str}:  {out}")
