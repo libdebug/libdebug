@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024-2025 Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2024-2025 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 from random import randint
 from unittest import TestCase, skipUnless
-from utils.binary_utils import PLATFORM, RESOLVE_EXE
+from utils.binary_utils import PLATFORM, RESOLVE_EXE, CPUINFO
 
 from libdebug import debugger
 
@@ -19,17 +19,14 @@ class FloatingPointTest(TestCase):
         # This test is divided into two parts, depending on the current hardware
 
         # Let's check if we have AVX512
-        with Path("/proc/cpuinfo").open() as f:
-            cpuinfo = f.read()
-
-        if "avx512" in cpuinfo:
+        if "avx512" in CPUINFO:
             # Run an AVX512 test
             self.amd64_avx512()
             self.amd64_avx()
             self.amd64_xmm()
             self.amd64_mmx()
             self.amd64_st()
-        elif "avx" in cpuinfo:
+        elif "avx" in CPUINFO:
             # Run an AVX test
             self.amd64_avx()
             self.amd64_xmm()
@@ -441,17 +438,14 @@ class FloatingPointTest(TestCase):
         # This test is divided into two parts, depending on the current hardware
 
         # Let's check if we have AVX512
-        with Path("/proc/cpuinfo").open() as f:
-            cpuinfo = f.read()
-
-        if "avx512" in cpuinfo:
+        if "avx512" in CPUINFO:
             # Run an AVX512 test
             self.i386_avx512()
             self.i386_avx()
             self.i386_xmm()
             self.i386_mmx()
             self.i386_st()
-        elif "avx" in cpuinfo:
+        elif "avx" in CPUINFO:
             # Run an AVX test
             self.i386_avx()
             self.i386_xmm()
