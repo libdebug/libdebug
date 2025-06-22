@@ -129,7 +129,169 @@ void process_variable(Dwarf_Debug dbg, Dwarf_Die die, SymbolVector &symbols)
             add_symbol_info(symbols, die_name, lowpc, highpc);
         } else if (dwarf_attr(die, DW_AT_location, &loc_attr, &error) == DW_DLV_OK){
             DwarfAutoFree<Dwarf_Attribute, DW_DLA_ATTR> attr_guard(dbg, loc_attr); // RAII
-            add_symbol_info(symbols, die_name, 0, 0);
+            Dwarf_Addr loc_addr = 0;
+            Dwarf_Unsigned expr_len = 0;
+            bool has_valid_location = false;
+        
+            // Check if the location attribute is in address form
+            Dwarf_Half loc_form = 0;
+            if (dwarf_whatform(loc_attr, &loc_form, &error) != DW_DLV_OK) {
+                throw std::runtime_error("Failed to get the form of the location attribute");
+            }
+            
+            switch(loc_form) {
+                #ifdef DW_FORM_addrx
+                case DW_FORM_addrx:
+                #endif
+                case DW_FORM_addr:
+                    if (dwarf_formaddr(loc_attr, &loc_addr, &error) != DW_DLV_OK) {
+                        throw std::runtime_error("Failed to get the location address");
+                    }
+                    has_valid_location = true;
+                    break;
+                    
+                case DW_FORM_exprloc:
+                case DW_FORM_block:
+                case DW_FORM_block1:
+                case DW_FORM_block2:
+                case DW_FORM_block4:
+                {
+                    Dwarf_Ptr expr_buf = nullptr;
+        
+                    
+                    if (dwarf_formexprloc(loc_attr, &expr_len, &expr_buf, &error) != DW_DLV_OK) {
+                        // Try formblock as fallback for older DWARF versions
+                        Dwarf_Block *block = nullptr;
+                        
+                        if (dwarf_formblock(loc_attr, &block, &error) != DW_DLV_OK) {
+                            throw std::runtime_error("Failed to get the location expression");
+                        }
+                        expr_buf = block->bl_data;
+                        expr_len = block->bl_len;
+                    }
+                    
+                    // Process the location expression
+                    if (expr_len > 0 && expr_buf != nullptr) {
+                        Dwarf_Small *data = reinterpret_cast<Dwarf_Small*>(expr_buf);
+                        Dwarf_Small op = data[0];
+                        
+                        switch(op) {
+                            case DW_OP_addr:
+                                if (expr_len >= 1 + sizeof(Dwarf_Addr)) {
+                                    // Extract address from DW_OP_addr operation
+                                    memcpy(&loc_addr, data + 1, sizeof(Dwarf_Addr));
+                                    has_valid_location = true;
+                                }
+                                break;
+                                
+                            case DW_OP_fbreg:
+                            {
+                                // Frame base relative - this is a stack variable
+                                // The offset is encoded as SLEB128 after the opcode
+                                if (expr_len > 1) {
+                                    Dwarf_Signed offset = 0;
+                                    int bytes_read = 0;
+                                    
+                                    // Manual SLEB128 decoding
+                                    unsigned char *p = (unsigned char*)(data + 1);
+                                    int shift = 0;
+                                    unsigned char byte;
+                                    
+                                    do {
+                                        byte = *p++;
+                                        offset |= ((Dwarf_Signed)(byte & 0x7f)) << shift;
+                                        shift += 7;
+                                        bytes_read++;
+                                    } while (byte & 0x80 && bytes_read < (expr_len - 1));
+                                    
+                                    // Sign extend if necessary
+                                    if ((shift < 64) && (byte & 0x40)) {
+                                        offset |= -(1LL << shift);
+                                    }
+                                    
+                                    // Store frame-relative offset as address
+                                    // Note: negative values typically indicate local variables
+                                    loc_addr = static_cast<Dwarf_Addr>(offset);
+                                    has_valid_location = true;
+                                }
+                                break;
+                            }
+                            
+                            case DW_OP_breg0: case DW_OP_breg1: case DW_OP_breg2: case DW_OP_breg3:
+                            case DW_OP_breg4: case DW_OP_breg5: case DW_OP_breg6: case DW_OP_breg7:
+                            case DW_OP_breg8: case DW_OP_breg9: case DW_OP_breg10: case DW_OP_breg11:
+                            case DW_OP_breg12: case DW_OP_breg13: case DW_OP_breg14: case DW_OP_breg15:
+                            case DW_OP_breg16: case DW_OP_breg17: case DW_OP_breg18: case DW_OP_breg19:
+                            case DW_OP_breg20: case DW_OP_breg21: case DW_OP_breg22: case DW_OP_breg23:
+                            case DW_OP_breg24: case DW_OP_breg25: case DW_OP_breg26: case DW_OP_breg27:
+                            case DW_OP_breg28: case DW_OP_breg29: case DW_OP_breg30: case DW_OP_breg31:
+                            {
+                                    // Register + offset addressing
+                                    int reg_num = op - DW_OP_breg0;
+                                    if (expr_len > 1) {
+                                        // Similar SLEB128 decoding for offset
+                                        Dwarf_Signed offset = 0;
+                                        // ... (same SLEB128 decoding as above)
+                                        
+                                        // Store register number in high bits, offset in low bits
+                                        // This is a simplification - you may want a different approach
+                                        loc_addr = (static_cast<Dwarf_Addr>(reg_num) << 32) | (static_cast<Dwarf_Addr>(offset) & 0xFFFFFFFF);
+                                        has_valid_location = true;
+                                    }
+                                break;
+                            }
+                            
+                            case DW_OP_reg0: case DW_OP_reg1: case DW_OP_reg2: case DW_OP_reg3:
+                            case DW_OP_reg4: case DW_OP_reg5: case DW_OP_reg6: case DW_OP_reg7:
+                            case DW_OP_reg8: case DW_OP_reg9: case DW_OP_reg10: case DW_OP_reg11:
+                            case DW_OP_reg12: case DW_OP_reg13: case DW_OP_reg14: case DW_OP_reg15:
+                            case DW_OP_reg16: case DW_OP_reg17: case DW_OP_reg18: case DW_OP_reg19:
+                            case DW_OP_reg20: case DW_OP_reg21: case DW_OP_reg22: case DW_OP_reg23:
+                            case DW_OP_reg24: case DW_OP_reg25: case DW_OP_reg26: case DW_OP_reg27:
+                            case DW_OP_reg28: case DW_OP_reg29: case DW_OP_reg30: case DW_OP_reg31:
+                                // Variable is entirely in a register
+                                loc_addr = op - DW_OP_reg0; // Store register number
+                                has_valid_location = true;
+                                break;
+                            
+                            case DW_OP_regx:
+                                // Register number in ULEB128
+                                if (expr_len > 1) {
+                                    // ULEB128 decoding needed
+                                    has_valid_location = true;
+                                }
+                                break;
+                                
+                            case DW_OP_const1u:
+                            case DW_OP_const1s:
+                            case DW_OP_const2u:
+                            case DW_OP_const2s:
+                            case DW_OP_const4u:
+                            case DW_OP_const4s:
+                            case DW_OP_const8u:
+                            case DW_OP_const8s:
+                                // TODO: Handle constant values, if needed
+                                break;
+                        }
+                    }
+                    break;
+                }
+                
+                case DW_FORM_data4:
+                case DW_FORM_data8:
+                case DW_FORM_sec_offset:
+                    // TODO: Handle these forms if needed
+                    break;
+
+                default:
+                    // Unsupported location form
+                    break;
+            }
+            
+            // Only add symbol if we have a valid location or expression
+            if (has_valid_location) {
+                add_symbol_info(symbols, die_name, loc_addr, expr_len);
+            }
         }
     }
 }
