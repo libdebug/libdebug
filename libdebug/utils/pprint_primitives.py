@@ -71,10 +71,11 @@ def pprint_backtrace_util(
     backtrace: list,
     maps: MemoryMapList | MemoryMapSnapshotList,
     external_symbols: SymbolList = None,
+    start_char: str = "",
 ) -> None:
     """Pretty prints the current backtrace of the thread."""
     for return_address in backtrace:
-        print(get_colored_saved_address_util(return_address, maps, external_symbols))
+        print(f"{start_char}{get_colored_saved_address_util(return_address, maps, external_symbols)}")
 
 
 def _pprint_reg(registers: Registers, maps: MemoryMapList, register: str, start_char: str = "") -> None:
