@@ -47,7 +47,7 @@ from libdebug.memory.process_memory_manager import ProcessMemoryManager
 from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
 from libdebug.snapshots.serialization.serialization_helper import SerializationHelper
 from libdebug.state.resume_context import ResumeContext
-from libdebug.tui.tui import start_tui
+from libdebug.tui.tui import draw_context, start_tui
 from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.debugger_wrappers import (
     background_alias,
@@ -164,6 +164,9 @@ class InternalDebugger:
     is_debugging: bool = False
     """Whether the debugger is currently debugging a process."""
 
+    is_in_tui: bool = False
+    """Whether the debugger is currently in TUI mode."""
+
     children: list[Debugger]
     """The list of child debuggers."""
 
@@ -223,6 +226,7 @@ class InternalDebugger:
         self.threads = []
         self.instanced = False
         self.is_debugging = False
+        self.is_in_tui = False
         self._is_running = False
         self._is_migrated_to_gdb = False
         self.resume_context = ResumeContext()
@@ -881,7 +885,7 @@ class InternalDebugger:
     @change_state_function_process
     def tui(self: InternalDebugger) -> None:
         """Starts the TUI for the debugger."""
-        start_tui(self.debugger)
+        start_tui(self)
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
@@ -1840,6 +1844,9 @@ class InternalDebugger:
     def set_stopped(self: InternalDebugger) -> None:
         """Set the state of the process to stopped."""
         self._is_running = False
+        if self.is_in_tui:
+            # If we are in TUI mode, we need to redraw the context
+            draw_context(self)
 
     @change_state_function_process
     def create_snapshot(self: Debugger, level: str = "base", name: str | None = None) -> ProcessSnapshot:

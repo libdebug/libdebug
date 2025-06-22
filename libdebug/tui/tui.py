@@ -75,4 +75,5 @@ def start_tui(dbg: InternalDebugger) -> None:
         g = sys.modules["__main__"].__dict__
         embed(user_ns=g, banner1="", banner2="", exit_msg="")
     except (EOFError, KeyboardInterrupt):
+        dbg.is_in_tui = False
         return
