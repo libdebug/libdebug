@@ -1,45 +1,40 @@
 name: Deploy Documentation
-
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   deploy-docs:
-    name: Deploy Docs Site
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v3
+        with: { fetch-depth: 0 }
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
+      - uses: actions/setup-python@v4
+        with: { python-version: '3.x' }
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: |
-          pip install mkdocs-material
-          pip install mkdocstrings
-          pip install mkdocstrings-python
-          pip install mike
+          pip install mkdocs-material mkdocstrings mkdocstrings-python mike
 
-      - name: Generate Documentation
+      - name: Generate PyDoc
         working-directory: docs
         run: python scrape_code.py
 
       - name: Deploy with mike
-        run: mike deploy rolling --push
-
-      - name: Trigger Workflow in Docs Repository
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          curl -L \
-            -X POST \
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          mike deploy rolling --push
+
+      - name: Trigger Docs Repo Workflow
+        env:
+          PAT: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -sSL -X POST \
+            -H "Authorization: Bearer $PAT" \
             -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.PAT }}" \
             https://api.github.com/repos/libdebug/docs.libdebug.github.io/dispatches \
-            -d '{"event_type": "refresh_rolling"}'
+            -d '{"event_type":"refresh_rolling"}'
