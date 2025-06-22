@@ -247,6 +247,10 @@ class Debugger:
         """
         return self._internal_debugger.hijack_syscall(original_syscall, new_syscall, recursive, **kwargs)
 
+    def tui(self: Debugger) -> None:
+        """Starts the TUI (Text User Interface) for the debugger."""
+        self._internal_debugger.tui()
+
     def gdb(
         self: Debugger,
         migrate_breakpoints: bool = True,
