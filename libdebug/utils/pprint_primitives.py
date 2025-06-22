@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Gabriele Digregorio, Francesco Panebianco, Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2024-2025 Gabriele Digregorio, Francesco Panebianco, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -77,7 +77,7 @@ def pprint_backtrace_util(
         print(get_colored_saved_address_util(return_address, maps, external_symbols))
 
 
-def _pprint_reg(registers: Registers, maps: MemoryMapList, register: str) -> None:
+def _pprint_reg(registers: Registers, maps: MemoryMapList, register: str, start_char: str = "") -> None:
     attr = getattr(registers, register)
     color = ""
     style = ""
@@ -97,7 +97,7 @@ def _pprint_reg(registers: Registers, maps: MemoryMapList, register: str) -> Non
 
     if color or style:
         formatted_attr = f"{color}{style}{attr:#x}{ANSIColors.RESET}"
-    print(f"{ANSIColors.RED}{register}{ANSIColors.RESET}\t{formatted_attr}")
+    print(f"{start_char}{ANSIColors.RED}{register}{ANSIColors.RESET}\t{formatted_attr}")
 
 
 def _get_colored_address_string(address: int, maps: MemoryMapList):
@@ -122,10 +122,10 @@ def _get_colored_address_string(address: int, maps: MemoryMapList):
         return f"{address_fixed}{ANSIColors.RESET}"
 
 
-def pprint_registers_util(registers: Registers, maps: MemoryMapList, gen_regs: list[str]) -> None:
+def pprint_registers_util(registers: Registers, maps: MemoryMapList, gen_regs: list[str], start_char: str = "") -> None:
     """Pretty prints the thread's registers."""
     for curr_reg in gen_regs:
-        _pprint_reg(registers, maps, curr_reg)
+        _pprint_reg(registers, maps, curr_reg, start_char)
 
 
 def pprint_registers_all_util(
