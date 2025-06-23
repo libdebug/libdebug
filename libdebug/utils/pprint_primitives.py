@@ -280,23 +280,6 @@ def pprint_memory_util(
             raise ValueError(f"Unknown mode: {mode}. Supported modes are 'bytes', 'hex', and 'disasm'.")
 
 
-def pprint_disasm_util(
-    address_start: int,
-    extract: bytes,
-    start_char: str = "",
-) -> None:
-    """Pretty prints the disassembled memory."""
-    from capstone import CS_ARCH_X86, CS_MODE_64, Cs
-
-    # Configure Capstone disassembler (adjust arch/mode as needed)
-    md = Cs(CS_ARCH_X86, CS_MODE_64)  # For x86-64, change if needed
-    md.detail = False  # We only want the basic disassembly
-
-    for insn in md.disasm(extract, address_start):
-        bytes_str = " ".join(f"{b:02x}" for b in insn.bytes)
-        print(f"{start_char}{insn.address:08x}: {bytes_str:<20} {insn.mnemonic} {insn.op_str}")
-
-
 def pprint_memory_diff_util(
     address_start: int,
     extract_before: bytes,
