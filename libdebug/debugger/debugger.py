@@ -843,22 +843,22 @@ class Debugger:
 
     def pprint_memory(
         self: Debugger,
-        start: int,
-        end: int,
+        start: int | str,
+        end: int | str,
         file: str = "hybrid",
         override_word_size: int | None = None,
-        integer_mode: bool = False,
+        mode: str = "bytes",
     ) -> None:
-        """Pretty prints the memory contents of the process.
+        """Pretty print the memory.
 
         Args:
-            start (int): The start address of the memory region.
-            end (int): The end address of the memory region.
-            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
-            override_word_size (int, optional): The word size to use for the memory dump. Defaults to None.
-            integer_mode (bool, optional): Whether to print the memory contents as integers. Defaults to False.
+            start  (int | str): The start address of the memory. If a string, it will be resolved as a symbol.
+            end  (int | str): The end address of the memory. If a string, it will be resolved as a symbol.
+            file (str, optional): The backing file for relative / absolute addressing. Defaults to "hybrid".
+            override_word_size (int, optional): The word size to use for the diff in place of the ISA word size. Defaults to None.
+            mode (str, optional): The mode to use for the pretty print. Defaults to "bytes". Can be "bytes", "hex", or "disasm".
         """
-        self._internal_debugger.pprint_memory(start, end, file, override_word_size, integer_mode)
+        self._internal_debugger.pprint_memory(start, end, file, override_word_size, mode)
 
     def step(self: Debugger) -> None:
         """Executes a single instruction of the process."""

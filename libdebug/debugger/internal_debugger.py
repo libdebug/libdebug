@@ -534,56 +534,45 @@ class InternalDebugger:
 
     def pprint_memory(
         self: InternalDebugger,
-        start: int,
-        end: int,
+        start: int | str,
+        end: int | str,
         file: str = "hybrid",
         override_word_size: int | None = None,
-        integer_mode: bool = False,
+        mode: str = "bytes",
     ) -> None:
-        """Pretty print the memory diff.
+        """Pretty print the memory.
 
         Args:
-            start (int): The start address of the memory diff.
-            end (int): The end address of the memory diff.
+            start  (int | str): The start address of the memory. If a string, it will be resolved as a symbol.
+            end  (int | str): The end address of the memory. If a string, it will be resolved as a symbol.
             file (str, optional): The backing file for relative / absolute addressing. Defaults to "hybrid".
             override_word_size (int, optional): The word size to use for the diff in place of the ISA word size. Defaults to None.
-            integer_mode (bool, optional): If True, the diff will be printed as hex integers (system endianness applies). Defaults to False.
+            mode (str, optional): The mode to use for the pretty print. Defaults to "bytes". Can be "bytes", "hex", or "disasm".
         """
-        if start > end:
-            tmp = start
-            start = end
-            end = tmp
+        start_address = (
+            self.resolve_symbol(start, file) if isinstance(start, str) else self.resolve_address(start, file)
+        )
+
+        end_address = self.resolve_symbol(end, file) if isinstance(end, str) else self.resolve_address(end, file)
+
+        if start_address > end_address:
+            # Swap the addresses if they are in the wrong order
+            start_address, end_address = end_address, start_address
+
+        extract = self.memory[start_address:end_address, "absolute"]
 
         word_size = get_platform_gp_register_size(self.arch) if override_word_size is None else override_word_size
 
-        # Resolve the address
-        if file == "absolute":
-            address_start = start
-        elif file == "hybrid":
-            try:
-                # Try to resolve the address as absolute
-                self.memory[start, 1, "absolute"]
-                address_start = start
-            except ValueError:
-                # If the address is not in the maps, we use the binary file
-                address_start = start + self.maps.filter("binary")[0].start
-                file = "binary"
-        else:
-            map_file = self.maps.filter(file)[0]
-            address_start = start + map_file.base
-            file = map_file.backing_file if file != "binary" else "binary"
-
-        extract = self.memory[start:end, file]
-
         file_info = f" (file: {file})" if file not in ("absolute", "hybrid") else ""
-        print(f"Memory from {start:#x} to {end:#x}{file_info}:")
+        print(f"Memory from {start_address:#x} to {end_address:#x}{file_info}:")
 
         pprint_memory_util(
-            address_start,
+            start_address,
             extract,
             word_size,
             self.maps,
-            integer_mode=integer_mode,
+            self.arch,
+            mode=mode,
         )
 
     @background_alias(_background_invalid_call)

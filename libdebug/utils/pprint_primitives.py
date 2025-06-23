@@ -14,6 +14,11 @@ from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshot
 from libdebug.utils.ansi_escape_codes import ANSIColors
 from libdebug.utils.debugging_utils import resolve_symbol_name_in_maps_util
 
+try:
+    from capstone import CS_ARCH_ARM64, CS_ARCH_X86, CS_MODE_32, CS_MODE_64, CS_MODE_ARM, Cs
+except ImportError:
+    Cs = None
+
 
 def pprint_maps_util(maps: MemoryMapList | MemoryMapSnapshotList) -> None:
     """Prints the memory maps of the process."""
@@ -222,32 +227,71 @@ def pprint_memory_util(
     extract: bytes,
     word_size: int,
     maps: MemoryMapList,
-    integer_mode: bool = False,
+    architecture: str,
+    mode: str = "bytes",
     start_char: str = "",
 ) -> None:
     """Pretty prints the memory."""
-    # Loop through each word-sized chunk
-    for i in range(0, len(extract), word_size):
-        # Calculate the current address
-        current_address = address_start + i
-        current_address_str = _get_colored_address_string(current_address, maps)
+    match mode:
+        case "bytes" | "hex":
+            # Loop through each word-sized chunk
+            for i in range(0, len(extract), word_size):
+                # Calculate the current address
+                current_address = address_start + i
+                current_address_str = _get_colored_address_string(current_address, maps)
 
-        # Extract word-sized chunks from both extracts
-        word = extract[i : i + word_size]
+                # Extract word-sized chunks from both extracts
+                word = extract[i : i + word_size]
+                if mode == "bytes":
+                    # Convert each byte in the chunks to hex and compare
+                    formatted_word = [f"{byte:02x}" for byte in word]
 
-        if not integer_mode:
-            # Convert each byte in the chunks to hex and compare
-            formatted_word = [f"{byte:02x}" for byte in word]
+                    # Join the formatted bytes into a string for each column
+                    out = " ".join(formatted_word)
+                else:
+                    # Take the hex representation of the word
+                    content = int.from_bytes(word, sys.byteorder)
+                    out = _get_colored_address_string(content, maps)
+                # Print the memory diff with the address for this word
+                print(f"{start_char}{current_address_str}:  {out}")
+        case "disasm":
+            # Disassemble the word and format it
+            if not Cs:
+                raise ImportError("Capstone disassembler is not available. Install it to use the 'disasm' mode.")
+            out = ""
 
-            # Join the formatted bytes into a string for each column
-            out = " ".join(formatted_word)
-        else:
-            # Take the integer representation of the word
-            content = int.from_bytes(word, sys.byteorder)
-            out = _get_colored_address_string(content, maps)
+            # Configure Capstone disassembler
+            mode_mapping = {
+                "amd64": (CS_ARCH_X86, CS_MODE_64),
+                "i386": (CS_ARCH_X86, CS_MODE_32),
+                "aarch64": (CS_ARCH_ARM64, CS_MODE_ARM),
+            }
+            md = Cs(*mode_mapping[architecture])
+            # We only want the basic disassembly
+            md.detail = False
 
-        # Print the memory diff with the address for this word
-        print(f"{start_char}{current_address_str}:  {out}")
+            for insn in md.disasm(extract, address_start):
+                out += f"{start_char}{_get_colored_address_string(insn.address, maps)}: {insn.mnemonic} {insn.op_str}\n"
+            print(out)
+        case _:
+            raise ValueError(f"Unknown mode: {mode}. Supported modes are 'bytes', 'hex', and 'disasm'.")
+
+
+def pprint_disasm_util(
+    address_start: int,
+    extract: bytes,
+    start_char: str = "",
+) -> None:
+    """Pretty prints the disassembled memory."""
+    from capstone import CS_ARCH_X86, CS_MODE_64, Cs
+
+    # Configure Capstone disassembler (adjust arch/mode as needed)
+    md = Cs(CS_ARCH_X86, CS_MODE_64)  # For x86-64, change if needed
+    md.detail = False  # We only want the basic disassembly
+
+    for insn in md.disasm(extract, address_start):
+        bytes_str = " ".join(f"{b:02x}" for b in insn.bytes)
+        print(f"{start_char}{insn.address:08x}: {bytes_str:<20} {insn.mnemonic} {insn.op_str}")
 
 
 def pprint_memory_diff_util(
