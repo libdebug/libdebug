@@ -47,7 +47,26 @@ def draw_stack(dbg: InternalDebugger) -> None:
         extract=dbg.memory[sp, 8 * 8],
         word_size=8,
         maps=dbg.maps,
-        integer_mode=True,
+        architecture= dbg.arch,
+        mode="hex",
+        start_char="│ ",
+    )
+    print("└─")
+    
+
+def draw_disasm(dbg: InternalDebugger) -> None:
+    """Draw the disassembly of the executing code."""
+    print("┌─[ disasm ]")
+    # We do not want annoying warning about broken disasm here
+    address_start = dbg.threads[0].instruction_pointer
+    extract = dbg.memory[address_start, 100]
+    pprint_memory_util(
+        address_start= address_start,
+        extract= extract,
+        maps=dbg.maps,
+        architecture=dbg.arch,
+        mode="disasm",
+        max_instructions=8,
         start_char="│ ",
     )
     print("└─")
@@ -62,6 +81,7 @@ def draw_context(dbg: InternalDebugger) -> None:
     # Render the registers, stack, and backtrace
     draw_registers(dbg)
     draw_stack(dbg)
+    draw_disasm(dbg)
     draw_backtrace(dbg)
 
 
