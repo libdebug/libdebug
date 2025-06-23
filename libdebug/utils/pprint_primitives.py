@@ -225,10 +225,11 @@ def pprint_diff_substring(content: str, start: int, end: int) -> None:
 def pprint_memory_util(
     address_start: int,
     extract: bytes,
-    word_size: int,
     maps: MemoryMapList,
     architecture: str,
+    word_size: int = 8,
     mode: str = "bytes",
+    max_instructions: int = 6,
     start_char: str = "",
 ) -> None:
     """Pretty prints the memory."""
@@ -270,7 +271,9 @@ def pprint_memory_util(
             # We only want the basic disassembly
             md.detail = False
 
-            for insn in md.disasm(extract, address_start):
+            for idx, insn in enumerate(md.disasm(extract, address_start)):
+                if idx >= max_instructions:
+                    break
                 out += f"{start_char}{_get_colored_address_string(insn.address, maps)}: {insn.mnemonic} {insn.op_str}\n"
             print(out)
         case _:

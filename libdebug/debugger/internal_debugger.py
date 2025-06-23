@@ -569,8 +569,8 @@ class InternalDebugger:
         pprint_memory_util(
             start_address,
             extract,
-            word_size,
             self.maps,
+            word_size,
             self.arch,
             mode=mode,
         )
