@@ -6,7 +6,7 @@ on:
   release:
     types: [published]
   push:
-    branches: [ "main", "dev", "enable-wheel-distrib" ]
+    branches: [ "main", "dev" ]
   workflow_dispatch:
 
 jobs:

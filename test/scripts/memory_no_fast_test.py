@@ -4,6 +4,9 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+import io
+import logging
+import ctypes
 from pwn import process
 from unittest import TestCase
 from utils.binary_utils import RESOLVE_EXE, base_of
@@ -14,6 +17,28 @@ from libdebug.utils.platform_utils import get_platform_gp_register_size
 
 
 class MemoryNoFastTest(TestCase):
+    def setUp(self) -> None:
+        # Redirect logging to a string buffer
+        self.log_capture_string = io.StringIO()
+        self.log_handler = logging.StreamHandler(self.log_capture_string)
+        self.log_handler.setLevel(logging.WARNING)
+
+        self.logger = logging.getLogger("libdebug")
+        self.original_handlers = self.logger.handlers
+        self.logger.handlers = []
+        self.logger.addHandler(self.log_handler)
+        self.logger.setLevel(logging.WARNING)
+
+    def tearDown(self):
+        # Remove the custom handler
+        self.logger.removeHandler(self.log_handler)
+
+        # Restore the original handlers
+        self.logger.handlers = self.original_handlers
+
+        # Close the log capture string buffer
+        self.log_capture_string.close()
+
     def test_memory(self):
         d = debugger(RESOLVE_EXE("memory_test"), fast_memory=False)
 
@@ -75,6 +100,39 @@ class MemoryNoFastTest(TestCase):
 
         # File should start with ELF magic number
         self.assertTrue(file.startswith(b"\x7fELF"))
+        
+        # The following commands should raise exceptions
+        with self.assertRaises(TypeError) as cm:
+            d.memory[0x0, ctypes.c_uint32(10)]
+        self.assertIn("Invalid type for the size", str(cm.exception))
+        
+        with self.assertRaises(TypeError) as cm:
+            d.memory[ctypes.c_uint32(0x0), 256]
+        self.assertIn("Invalid type for the address", str(cm.exception))
+        
+        with self.assertRaises(TypeError) as cm:
+            d.memory[0x0, 256, 0xff]
+        self.assertIn("Invalid type for the backing file", str(cm.exception))
+        
+        with self.assertRaises(ValueError) as cm:
+            d.memory[0x0, 256, "invalid"]
+        self.assertIn("No memory maps available to resolve the address", str(cm.exception))
+        
+        with self.assertRaises(TypeError) as cm:
+            d.memory[0x0, ctypes.c_uint32(10)] = b"abcd1234"
+        self.assertIn("Invalid type for the size", str(cm.exception))
+        
+        with self.assertRaises(TypeError) as cm:
+            d.memory[ctypes.c_uint32(0x0), 256] = b"abcd1234"
+        self.assertIn("Invalid type for the address", str(cm.exception))
+        
+        with self.assertRaises(TypeError) as cm:
+            d.memory[0x0, 256, 0xff] = b"abcd1234"
+        self.assertIn("Invalid type for the backing file", str(cm.exception))
+        
+        with self.assertRaises(ValueError) as cm:
+            d.memory[0x0, 256, "invalid"] = b"abcd1234"
+        self.assertIn("No memory maps available to resolve the address", str(cm.exception))
 
         assert d.instruction_pointer == bp.address
 

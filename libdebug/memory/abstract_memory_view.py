@@ -117,6 +117,8 @@ class AbstractMemoryView(MutableSequence, ABC):
             occurrences = find_all_overlapping_occurrences(value, memory_content, start)
         else:
             maps = self.maps.filter(file)
+            if not maps:
+                raise ValueError("No memory map found for the specified backing file.")
             start = self.resolve_address(start, file, True) if start is not None else maps[0].start
             end = self.resolve_address(end, file, True) if end is not None else maps[-1].end - 1
 
@@ -339,6 +341,8 @@ class AbstractMemoryView(MutableSequence, ABC):
                 address = left
                 size = right
                 file = "hybrid"
+            else:
+                raise TypeError("Invalid type for the size. Expected int or string.")
         else:
             raise TypeError("Tuple must have 2 or 3 elements.")
 
@@ -435,6 +439,8 @@ class AbstractMemoryView(MutableSequence, ABC):
                 address = left
                 size = right
                 file = "hybrid"
+            else:
+                raise TypeError("Invalid type for the size. Expected int or string.")
         else:
             raise TypeError("Tuple must have 2 or 3 elements.")
 
@@ -493,7 +499,9 @@ class AbstractMemoryView(MutableSequence, ABC):
             ValueError: If the substring `backing_file` is present in multiple backing files.
         """
         return self._internal_debugger.resolve_address(
-            address, backing_file, skip_absolute_address_validation,
+            address,
+            backing_file,
+            skip_absolute_address_validation,
         )
 
     def resolve_symbol(self: AbstractMemoryView, symbol: str, backing_file: str) -> int:

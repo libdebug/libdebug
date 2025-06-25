@@ -1,12 +1,13 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2024-2025 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
 from __future__ import annotations
 
 import atexit
+import os
 import sys
 from dataclasses import dataclass, field
 from termios import TCSANOW, tcsetattr
@@ -44,16 +45,27 @@ def _cleanup_internal_debugger() -> None:
         except Exception as e:
             liblog.debugger(f"Error while restoring the original stdin settings: {e}")
 
-        if debugger.instanced and debugger.kill_on_exit:
-            try:
-                debugger.interrupt()
-            except Exception as e:
-                liblog.debugger(f"Error while interrupting debuggee: {e}")
+        # The following logic MUST work in any situation. This includes scenarios where the polling thread is stuck
+        # due to an endless callback, an unhandled exceptions that break the thread, a logic error in libdebug or a
+        # race condition causing the thread to wait indefinitely for an event that will never occur.
 
+        # The key idea here is that we cannot rely on the background threads (both polling and timeout threads),
+        # as only the main thread is aware of the script termination or the user's control-C interruption.
+        if debugger.instanced and debugger.kill_on_exit:
+            if debugger.is_debugging:
+                # We will leverage the fact that we are in the wrong thread but the same process to kill the debuggee
+                # process without relying on the background thread.
+                try:
+                    os.kill(debugger.process_id, 9)
+                except Exception as e:  # noqa: BLE001
+                    liblog.debugger("Error while interrupting debuggee: %s", e)
+
+            # Now we can try to terminate both the polling thread and the timeout thread, if any. Again, we cannot
+            # trust them, so we just try to notify them that the process is terminating.
             try:
-                debugger.terminate()
-            except Exception as e:
-                liblog.debugger(f"Error while terminating the debugger: {e}")
+                debugger._atexit_terminate()
+            except Exception as e:  # noqa: BLE001
+                liblog.debugger("Error while terminating the internal debugger: %s", e)
 
 
 atexit.register(_cleanup_internal_debugger)

@@ -1,9 +1,11 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2023-2025 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+import io
+import logging
 from unittest import TestCase, skipUnless
 from utils.binary_utils import PLATFORM, RESOLVE_EXE
 from time import perf_counter_ns
@@ -13,22 +15,36 @@ from libdebug.utils.libcontext import libcontext
 
 
 class LargeBinarySymTest(TestCase):
+    def setUp(self):
+        # Redirect logging to a string buffer
+        self.log_capture_string = io.StringIO()
+        self.log_handler = logging.StreamHandler(self.log_capture_string)
+        self.log_handler.setLevel(logging.WARNING)
+
+        self.logger = logging.getLogger("libdebug")
+        self.original_handlers = self.logger.handlers
+        self.logger.handlers = []
+        self.logger.addHandler(self.log_handler)
+        self.logger.setLevel(logging.WARNING)
+
+    def tearDown(self):
+        self.logger.removeHandler(self.log_handler)
+        self.logger.handlers = self.original_handlers
+        self.log_handler.close()
+
     @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_large_binary_symbol_load_times(self):
         d = debugger(RESOLVE_EXE("node"))
 
         d.run()
 
-        # Let ignore debuginfod for this test to avoid inconsistencies due to network
+        # Let's ignore debuginfod for this test to avoid inconsistencies due to network
         with libcontext.tmp(sym_lvl=4):
             t1_start = perf_counter_ns()
 
-            try:
-                # Try resolving a non-existent symbol, which will force the resolution of all symbols.
+            # Try resolving a non-existent symbol, which will force the resolution of all symbols.
+            with self.assertRaises(ValueError):
                 d.memory["provola", 2]
-                self.assertTrue(False)
-            except Exception:
-                self.assertTrue(True)
 
             t1_stop = perf_counter_ns()
 
@@ -47,15 +63,11 @@ class LargeBinarySymTest(TestCase):
         # Let ignore debuginfod for this test to avoid inconsistencies due to network
         with libcontext.tmp(sym_lvl=4):
             # Try resolving a non-existent symbol, which will force the resolution of all symbols.
-            try:
+            with self.assertRaises(ValueError):
                 d.memory[
                     "provola",
                     2,
                 ]
-                self.assertTrue(False)
-            except Exception:
-                self.assertTrue(True)
-                pass
 
             # Now resolve the demangled symbol
             d.memory[

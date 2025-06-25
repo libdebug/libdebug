@@ -22,7 +22,7 @@ match PLATFORM:
         raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
     
 class FindPointersTest(TestCase):
-    def test_find_ref_strings(self):
+    def test_find_pointers_strings(self):
         d = debugger(RESOLVE_EXE("find_ptr_test"))
         
         r = d.run()
@@ -64,7 +64,7 @@ class FindPointersTest(TestCase):
         d.kill()
         d.terminate()
         
-    def test_find_ref_addresses(self):
+    def test_find_pointers_addresses(self):
         d = debugger(RESOLVE_EXE("find_ptr_test"))
         
         r = d.run()
@@ -102,6 +102,29 @@ class FindPointersTest(TestCase):
         
         self.assertEqual(correct_reference, values[2][0])
         self.assertEqual(correct_source, values[2][1])
+        
+        d.wait()
+
+        d.kill()
+        d.terminate()
+    
+    def test_find_pointers_exception(self):
+        d = debugger(RESOLVE_EXE("find_ptr_test"))
+        
+        d.run()
+        d.bp(LOCATION, hardware=True, file="binary")
+
+        d.cont()
+        
+        heap_base = d.maps.filter("heap")[0].start
+        with self.assertRaises(ValueError) as cm:
+            d.memory.find_pointers(heap_base, "invalid")
+        self.assertIn("No memory map found for the specified target.", str(cm.exception))
+        
+        heap_base = d.maps.filter("heap")[0].start
+        with self.assertRaises(ValueError) as cm:
+            d.memory.find_pointers("invalid", heap_base)
+        self.assertIn("No memory map found for the specified where parameter.", str(cm.exception))
         
         d.wait()
 

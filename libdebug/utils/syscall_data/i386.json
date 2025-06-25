@@ -1,0 +1,3776 @@
+{
+    "syscalls": [
+        {
+            "name": "restart_syscall",
+            "number": 0,
+            "signature": []
+        },
+        {
+            "name": "exit",
+            "number": 1,
+            "signature": [
+                "int error_code"
+            ]
+        },
+        {
+            "name": "fork",
+            "number": 2,
+            "signature": []
+        },
+        {
+            "name": "read",
+            "number": 3,
+            "signature": [
+                "unsigned int fd",
+                "char *buf",
+                "size_t count"
+            ]
+        },
+        {
+            "name": "write",
+            "number": 4,
+            "signature": [
+                "unsigned int fd",
+                "const char *buf",
+                "size_t count"
+            ]
+        },
+        {
+            "name": "open",
+            "number": 5,
+            "signature": [
+                "const char *filename",
+                "int flags",
+                "umode_t mode"
+            ]
+        },
+        {
+            "name": "close",
+            "number": 6,
+            "signature": [
+                "unsigned int fd"
+            ]
+        },
+        {
+            "name": "waitpid",
+            "number": 7,
+            "signature": [
+                "pid_t pid",
+                "int *stat_addr",
+                "int options"
+            ]
+        },
+        {
+            "name": "creat",
+            "number": 8,
+            "signature": [
+                "const char *pathname",
+                "umode_t mode"
+            ]
+        },
+        {
+            "name": "link",
+            "number": 9,
+            "signature": [
+                "const char *oldname",
+                "const char *newname"
+            ]
+        },
+        {
+            "name": "unlink",
+            "number": 10,
+            "signature": [
+                "const char *pathname"
+            ]
+        },
+        {
+            "name": "execve",
+            "number": 11,
+            "signature": [
+                "const char *filename",
+                "const char *const *argv",
+                "const char *const *envp"
+            ]
+        },
+        {
+            "name": "chdir",
+            "number": 12,
+            "signature": [
+                "const char *filename"
+            ]
+        },
+        {
+            "name": "time",
+            "number": 13,
+            "signature": [
+                "old_time32_t *tloc"
+            ]
+        },
+        {
+            "name": "mknod",
+            "number": 14,
+            "signature": [
+                "const char *filename",
+                "umode_t mode",
+                "unsigned dev"
+            ]
+        },
+        {
+            "name": "chmod",
+            "number": 15,
+            "signature": [
+                "const char *filename",
+                "umode_t mode"
+            ]
+        },
+        {
+            "name": "lchown16",
+            "number": 16,
+            "signature": [
+                "const char *filename",
+                "old_uid_t user",
+                "old_gid_t group"
+            ]
+        },
+        {
+            "name": "stat",
+            "number": 18,
+            "signature": [
+                "const char *filename",
+                "struct __old_kernel_stat *statbuf"
+            ]
+        },
+        {
+            "name": "lseek",
+            "number": 19,
+            "signature": [
+                "unsigned int fd",
+                "off_t offset",
+                "unsigned int whence"
+            ]
+        },
+        {
+            "name": "getpid",
+            "number": 20,
+            "signature": []
+        },
+        {
+            "name": "mount",
+            "number": 21,
+            "signature": [
+                "char *dev_name",
+                "char *dir_name",
+                "char *type",
+                "unsigned long flags",
+                "void *data"
+            ]
+        },
+        {
+            "name": "oldumount",
+            "number": 22,
+            "signature": [
+                "char *name"
+            ]
+        },
+        {
+            "name": "setuid16",
+            "number": 23,
+            "signature": [
+                "old_uid_t uid"
+            ]
+        },
+        {
+            "name": "getuid16",
+            "number": 24,
+            "signature": []
+        },
+        {
+            "name": "stime",
+            "number": 25,
+            "signature": [
+                "old_time32_t *tptr"
+            ]
+        },
+        {
+            "name": "ptrace",
+            "number": 26,
+            "signature": [
+                "long request",
+                "long pid",
+                "unsigned long addr",
+                "unsigned long data"
+            ]
+        },
+        {
+            "name": "alarm",
+            "number": 27,
+            "signature": [
+                "unsigned int seconds"
+            ]
+        },
+        {
+            "name": "fstat",
+            "number": 28,
+            "signature": [
+                "unsigned int fd",
+                "struct __old_kernel_stat *statbuf"
+            ]
+        },
+        {
+            "name": "pause",
+            "number": 29,
+            "signature": []
+        },
+        {
+            "name": "utime",
+            "number": 30,
+            "signature": [
+                "const char *filename",
+                "struct old_utimbuf32 *t"
+            ]
+        },
+        {
+            "name": "access",
+            "number": 33,
+            "signature": [
+                "const char *filename",
+                "int mode"
+            ]
+        },
+        {
+            "name": "nice",
+            "number": 34,
+            "signature": [
+                "int increment"
+            ]
+        },
+        {
+            "name": "sync",
+            "number": 36,
+            "signature": []
+        },
+        {
+            "name": "kill",
+            "number": 37,
+            "signature": [
+                "pid_t pid",
+                "int sig"
+            ]
+        },
+        {
+            "name": "rename",
+            "number": 38,
+            "signature": [
+                "const char *oldname",
+                "const char *newname"
+            ]
+        },
+        {
+            "name": "mkdir",
+            "number": 39,
+            "signature": [
+                "const char *pathname",
+                "umode_t mode"
+            ]
+        },
+        {
+            "name": "rmdir",
+            "number": 40,
+            "signature": [
+                "const char *pathname"
+            ]
+        },
+        {
+            "name": "dup",
+            "number": 41,
+            "signature": [
+                "unsigned int fildes"
+            ]
+        },
+        {
+            "name": "pipe",
+            "number": 42,
+            "signature": [
+                "int *fildes"
+            ]
+        },
+        {
+            "name": "times",
+            "number": 43,
+            "signature": [
+                "struct tms *tbuf"
+            ]
+        },
+        {
+            "name": "brk",
+            "number": 45,
+            "signature": [
+                "unsigned long brk"
+            ]
+        },
+        {
+            "name": "setgid16",
+            "number": 46,
+            "signature": [
+                "old_gid_t gid"
+            ]
+        },
+        {
+            "name": "getgid16",
+            "number": 47,
+            "signature": []
+        },
+        {
+            "name": "signal",
+            "number": 48,
+            "signature": [
+                "int sig",
+                "__sighandler_t handler"
+            ]
+        },
+        {
+            "name": "geteuid16",
+            "number": 49,
+            "signature": []
+        },
+        {
+            "name": "getegid16",
+            "number": 50,
+            "signature": []
+        },
+        {
+            "name": "acct",
+            "number": 51,
+            "signature": [
+                "const char *name"
+            ]
+        },
+        {
+            "name": "umount",
+            "number": 52,
+            "signature": [
+                "char *name",
+                "int flags"
+            ]
+        },
+        {
+            "name": "ioctl",
+            "number": 54,
+            "signature": [
+                "unsigned int fd",
+                "unsigned int cmd",
+                "unsigned long arg"
+            ]
+        },
+        {
+            "name": "fcntl",
+            "number": 55,
+            "signature": [
+                "unsigned int fd",
+                "unsigned int cmd",
+                "unsigned long arg"
+            ]
+        },
+        {
+            "name": "setpgid",
+            "number": 57,
+            "signature": [
+                "pid_t pid",
+                "pid_t pgid"
+            ]
+        },
+        {
+            "name": "olduname",
+            "number": 59,
+            "signature": [
+                "struct oldold_utsname *name"
+            ]
+        },
+        {
+            "name": "umask",
+            "number": 60,
+            "signature": [
+                "int mask"
+            ]
+        },
+        {
+            "name": "chroot",
+            "number": 61,
+            "signature": [
+                "const char *filename"
+            ]
+        },
+        {
+            "name": "ustat",
+            "number": 62,
+            "signature": [
+                "unsigned dev",
+                "struct ustat *ubuf"
+            ]
+        },
+        {
+            "name": "dup2",
+            "number": 63,
+            "signature": [
+                "unsigned int oldfd",
+                "unsigned int newfd"
+            ]
+        },
+        {
+            "name": "getppid",
+            "number": 64,
+            "signature": []
+        },
+        {
+            "name": "getpgrp",
+            "number": 65,
+            "signature": []
+        },
+        {
+            "name": "setsid",
+            "number": 66,
+            "signature": []
+        },
+        {
+            "name": "sigaction",
+            "number": 67,
+            "signature": [
+                "int sig",
+                "const struct old_sigaction *act",
+                "struct old_sigaction *oact"
+            ]
+        },
+        {
+            "name": "sgetmask",
+            "number": 68,
+            "signature": []
+        },
+        {
+            "name": "ssetmask",
+            "number": 69,
+            "signature": [
+                "int newmask"
+            ]
+        },
+        {
+            "name": "setreuid16",
+            "number": 70,
+            "signature": [
+                "old_uid_t ruid",
+                "old_uid_t euid"
+            ]
+        },
+        {
+            "name": "setregid16",
+            "number": 71,
+            "signature": [
+                "old_gid_t rgid",
+                "old_gid_t egid"
+            ]
+        },
+        {
+            "name": "sigsuspend",
+            "number": 72,
+            "signature": [
+                "int unused1",
+                "int unused2",
+                "old_sigset_t mask"
+            ]
+        },
+        {
+            "name": "sigpending",
+            "number": 73,
+            "signature": [
+                "old_sigset_t *uset"
+            ]
+        },
+        {
+            "name": "sethostname",
+            "number": 74,
+            "signature": [
+                "char *name",
+                "int len"
+            ]
+        },
+        {
+            "name": "setrlimit",
+            "number": 75,
+            "signature": [
+                "unsigned int resource",
+                "struct rlimit *rlim"
+            ]
+        },
+        {
+            "name": "getrlimit",
+            "number": 76,
+            "signature": [
+                "unsigned int resource",
+                "struct rlimit *rlim"
+            ]
+        },
+        {
+            "name": "getrusage",
+            "number": 77,
+            "signature": [
+                "int who",
+                "struct rusage *ru"
+            ]
+        },
+        {
+            "name": "gettimeofday",
+            "number": 78,
+            "signature": [
+                "struct __kernel_old_timeval *tv",
+                "struct timezone *tz"
+            ]
+        },
+        {
+            "name": "settimeofday",
+            "number": 79,
+            "signature": [
+                "struct __kernel_old_timeval *tv",
+                "struct timezone *tz"
+            ]
+        },
+        {
+            "name": "getgroups16",
+            "number": 80,
+            "signature": [
+                "int gidsetsize",
+                "old_gid_t *grouplist"
+            ]
+        },
+        {
+            "name": "setgroups16",
+            "number": 81,
+            "signature": [
+                "int gidsetsize",
+                "old_gid_t *grouplist"
+            ]
+        },
+        {
+            "name": "select",
+            "number": 82,
+            "signature": [
+                "struct sel_arg_struct *arg"
+            ]
+        },
+        {
+            "name": "symlink",
+            "number": 83,
+            "signature": [
+                "const char *oldname",
+                "const char *newname"
+            ]
+        },
+        {
+            "name": "lstat",
+            "number": 84,
+            "signature": [
+                "const char *filename",
+                "struct __old_kernel_stat *statbuf"
+            ]
+        },
+        {
+            "name": "readlink",
+            "number": 85,
+            "signature": [
+                "const char *path",
+                "char *buf",
+                "int bufsiz"
+            ]
+        },
+        {
+            "name": "uselib",
+            "number": 86,
+            "signature": [
+                "const char *library"
+            ]
+        },
+        {
+            "name": "swapon",
+            "number": 87,
+            "signature": [
+                "const char *specialfile",
+                "int swap_flags"
+            ]
+        },
+        {
+            "name": "reboot",
+            "number": 88,
+            "signature": [
+                "int magic1",
+                "int magic2",
+                "unsigned int cmd",
+                "void *arg"
+            ]
+        },
+        {
+            "name": "readdir",
+            "number": 89,
+            "signature": [
+                "unsigned int fd",
+                "struct old_linux_dirent *dirent",
+                "unsigned int count"
+            ]
+        },
+        {
+            "name": "mmap",
+            "number": 90,
+            "signature": [
+                "struct mmap_arg_struct *arg"
+            ]
+        },
+        {
+            "name": "munmap",
+            "number": 91,
+            "signature": [
+                "unsigned long addr",
+                "size_t len"
+            ]
+        },
+        {
+            "name": "truncate",
+            "number": 92,
+            "signature": [
+                "const char *path",
+                "long length"
+            ]
+        },
+        {
+            "name": "ftruncate",
+            "number": 93,
+            "signature": [
+                "unsigned int fd",
+                "off_t length"
+            ]
+        },
+        {
+            "name": "fchmod",
+            "number": 94,
+            "signature": [
+                "unsigned int fd",
+                "umode_t mode"
+            ]
+        },
+        {
+            "name": "fchown16",
+            "number": 95,
+            "signature": [
+                "unsigned int fd",
+                "old_uid_t user",
+                "old_gid_t group"
+            ]
+        },
+        {
+            "name": "getpriority",
+            "number": 96,
+            "signature": [
+                "int which",
+                "int who"
+            ]
+        },
+        {
+            "name": "setpriority",
+            "number": 97,
+            "signature": [
+                "int which",
+                "int who",
+                "int niceval"
+            ]
+        },
+        {
+            "name": "statfs",
+            "number": 99,
+            "signature": [
+                "const char *pathname",
+                "struct statfs *buf"
+            ]
+        },
+        {
+            "name": "fstatfs",
+            "number": 100,
+            "signature": [
+                "unsigned int fd",
+                "struct statfs *buf"
+            ]
+        },
+        {
+            "name": "ioperm",
+            "number": 101,
+            "signature": [
+                "unsigned long from",
+                "unsigned long num",
+                "int turn_on"
+            ]
+        },
+        {
+            "name": "socketcall",
+            "number": 102,
+            "signature": [
+                "int call",
+                "unsigned long *args"
+            ]
+        },
+        {
+            "name": "syslog",
+            "number": 103,
+            "signature": [
+                "int type",
+                "char *buf",
+                "int len"
+            ]
+        },
+        {
+            "name": "setitimer",
+            "number": 104,
+            "signature": [
+                "int which",
+                "struct __kernel_old_itimerval *value",
+                "struct __kernel_old_itimerval *ovalue"
+            ]
+        },
+        {
+            "name": "getitimer",
+            "number": 105,
+            "signature": [
+                "int which",
+                "struct __kernel_old_itimerval *value"
+            ]
+        },
+        {
+            "name": "newstat",
+            "number": 106,
+            "signature": [
+                "const char *filename",
+                "struct stat *statbuf"
+            ]
+        },
+        {
+            "name": "newlstat",
+            "number": 107,
+            "signature": [
+                "const char *filename",
+                "struct stat *statbuf"
+            ]
+        },
+        {
+            "name": "newfstat",
+            "number": 108,
+            "signature": [
+                "unsigned int fd",
+                "struct stat *statbuf"
+            ]
+        },
+        {
+            "name": "uname",
+            "number": 109,
+            "signature": [
+                "struct old_utsname *name"
+            ]
+        },
+        {
+            "name": "iopl",
+            "number": 110,
+            "signature": [
+                "unsigned int level"
+            ]
+        },
+        {
+            "name": "vhangup",
+            "number": 111,
+            "signature": []
+        },
+        {
+            "name": "vm86old",
+            "number": 113,
+            "signature": [
+                "struct vm86_struct *user_vm86"
+            ]
+        },
+        {
+            "name": "wait4",
+            "number": 114,
+            "signature": [
+                "pid_t upid",
+                "int *stat_addr",
+                "int options",
+                "struct rusage *ru"
+            ]
+        },
+        {
+            "name": "swapoff",
+            "number": 115,
+            "signature": [
+                "const char *specialfile"
+            ]
+        },
+        {
+            "name": "sysinfo",
+            "number": 116,
+            "signature": [
+                "struct sysinfo *info"
+            ]
+        },
+        {
+            "name": "ipc",
+            "number": 117,
+            "signature": [
+                "unsigned int call",
+                "int first",
+                "unsigned long second",
+                "unsigned long third",
+                "void *ptr",
+                "long fifth"
+            ]
+        },
+        {
+            "name": "fsync",
+            "number": 118,
+            "signature": [
+                "unsigned int fd"
+            ]
+        },
+        {
+            "name": "sigreturn",
+            "number": 119,
+            "signature": []
+        },
+        {
+            "name": "clone",
+            "number": 120,
+            "signature": [
+                "unsigned long clone_flags",
+                "unsigned long newsp",
+                "int *parent_tidptr",
+                "unsigned long tls",
+                "int *child_tidptr"
+            ]
+        },
+        {
+            "name": "setdomainname",
+            "number": 121,
+            "signature": [
+                "char *name",
+                "int len"
+            ]
+        },
+        {
+            "name": "newuname",
+            "number": 122,
+            "signature": [
+                "struct new_utsname *name"
+            ]
+        },
+        {
+            "name": "modify_ldt",
+            "number": 123,
+            "signature": [
+                "int func",
+                "void *ptr",
+                "unsigned long bytecount"
+            ]
+        },
+        {
+            "name": "adjtimex",
+            "number": 124,
+            "signature": [
+                "struct old_timex32 *utp"
+            ]
+        },
+        {
+            "name": "mprotect",
+            "number": 125,
+            "signature": [
+                "unsigned long start",
+                "size_t len",
+                "unsigned long prot"
+            ]
+        },
+        {
+            "name": "sigprocmask",
+            "number": 126,
+            "signature": [
+                "int how",
+                "old_sigset_t *nset",
+                "old_sigset_t *oset"
+            ]
+        },
+        {
+            "name": "init_module",
+            "number": 128,
+            "signature": [
+                "void *umod",
+                "unsigned long len",
+                "const char *uargs"
+            ]
+        },
+        {
+            "name": "delete_module",
+            "number": 129,
+            "signature": [
+                "const char *name_user",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "quotactl",
+            "number": 131,
+            "signature": [
+                "unsigned int cmd",
+                "const char *special",
+                "qid_t id",
+                "void *addr"
+            ]
+        },
+        {
+            "name": "getpgid",
+            "number": 132,
+            "signature": [
+                "pid_t pid"
+            ]
+        },
+        {
+            "name": "fchdir",
+            "number": 133,
+            "signature": [
+                "unsigned int fd"
+            ]
+        },
+        {
+            "name": "sysfs",
+            "number": 135,
+            "signature": [
+                "int option",
+                "unsigned long arg1",
+                "unsigned long arg2"
+            ]
+        },
+        {
+            "name": "personality",
+            "number": 136,
+            "signature": [
+                "unsigned int personality"
+            ]
+        },
+        {
+            "name": "setfsuid16",
+            "number": 138,
+            "signature": [
+                "old_uid_t uid"
+            ]
+        },
+        {
+            "name": "setfsgid16",
+            "number": 139,
+            "signature": [
+                "old_gid_t gid"
+            ]
+        },
+        {
+            "name": "llseek",
+            "number": 140,
+            "signature": [
+                "unsigned int fd",
+                "unsigned long offset_high",
+                "unsigned long offset_low",
+                "loff_t *result",
+                "unsigned int whence"
+            ]
+        },
+        {
+            "name": "getdents",
+            "number": 141,
+            "signature": [
+                "unsigned int fd",
+                "struct linux_dirent *dirent",
+                "unsigned int count"
+            ]
+        },
+        {
+            "name": "select",
+            "number": 142,
+            "signature": [
+                "int n",
+                "fd_set *inp",
+                "fd_set *outp",
+                "fd_set *exp",
+                "struct __kernel_old_timeval *tvp"
+            ]
+        },
+        {
+            "name": "flock",
+            "number": 143,
+            "signature": [
+                "unsigned int fd",
+                "unsigned int cmd"
+            ]
+        },
+        {
+            "name": "msync",
+            "number": 144,
+            "signature": [
+                "unsigned long start",
+                "size_t len",
+                "int flags"
+            ]
+        },
+        {
+            "name": "readv",
+            "number": 145,
+            "signature": [
+                "unsigned long fd",
+                "const struct iovec *vec",
+                "unsigned long vlen"
+            ]
+        },
+        {
+            "name": "writev",
+            "number": 146,
+            "signature": [
+                "unsigned long fd",
+                "const struct iovec *vec",
+                "unsigned long vlen"
+            ]
+        },
+        {
+            "name": "getsid",
+            "number": 147,
+            "signature": [
+                "pid_t pid"
+            ]
+        },
+        {
+            "name": "fdatasync",
+            "number": 148,
+            "signature": [
+                "unsigned int fd"
+            ]
+        },
+        {
+            "name": "mlock",
+            "number": 150,
+            "signature": [
+                "unsigned long start",
+                "size_t len"
+            ]
+        },
+        {
+            "name": "munlock",
+            "number": 151,
+            "signature": [
+                "unsigned long start",
+                "size_t len"
+            ]
+        },
+        {
+            "name": "mlockall",
+            "number": 152,
+            "signature": [
+                "int flags"
+            ]
+        },
+        {
+            "name": "munlockall",
+            "number": 153,
+            "signature": []
+        },
+        {
+            "name": "sched_setparam",
+            "number": 154,
+            "signature": [
+                "pid_t pid",
+                "struct sched_param *param"
+            ]
+        },
+        {
+            "name": "sched_getparam",
+            "number": 155,
+            "signature": [
+                "pid_t pid",
+                "struct sched_param *param"
+            ]
+        },
+        {
+            "name": "sched_setscheduler",
+            "number": 156,
+            "signature": [
+                "pid_t pid",
+                "int policy",
+                "struct sched_param *param"
+            ]
+        },
+        {
+            "name": "sched_getscheduler",
+            "number": 157,
+            "signature": [
+                "pid_t pid"
+            ]
+        },
+        {
+            "name": "sched_yield",
+            "number": 158,
+            "signature": []
+        },
+        {
+            "name": "sched_get_priority_max",
+            "number": 159,
+            "signature": [
+                "int policy"
+            ]
+        },
+        {
+            "name": "sched_get_priority_min",
+            "number": 160,
+            "signature": [
+                "int policy"
+            ]
+        },
+        {
+            "name": "sched_rr_get_interval",
+            "number": 161,
+            "signature": [
+                "pid_t pid",
+                "struct old_timespec32 *interval"
+            ]
+        },
+        {
+            "name": "nanosleep",
+            "number": 162,
+            "signature": [
+                "struct old_timespec32 *rqtp",
+                "struct old_timespec32 *rmtp"
+            ]
+        },
+        {
+            "name": "mremap",
+            "number": 163,
+            "signature": [
+                "unsigned long addr",
+                "unsigned long old_len",
+                "unsigned long new_len",
+                "unsigned long flags",
+                "unsigned long new_addr"
+            ]
+        },
+        {
+            "name": "setresuid16",
+            "number": 164,
+            "signature": [
+                "old_uid_t ruid",
+                "old_uid_t euid",
+                "old_uid_t suid"
+            ]
+        },
+        {
+            "name": "getresuid16",
+            "number": 165,
+            "signature": [
+                "old_uid_t *ruidp",
+                "old_uid_t *euidp",
+                "old_uid_t *suidp"
+            ]
+        },
+        {
+            "name": "vm86",
+            "number": 166,
+            "signature": [
+                "unsigned long cmd",
+                "unsigned long arg"
+            ]
+        },
+        {
+            "name": "poll",
+            "number": 168,
+            "signature": [
+                "struct pollfd *ufds",
+                "unsigned int nfds",
+                "int timeout_msecs"
+            ]
+        },
+        {
+            "name": "setresgid16",
+            "number": 170,
+            "signature": [
+                "old_gid_t rgid",
+                "old_gid_t egid",
+                "old_gid_t sgid"
+            ]
+        },
+        {
+            "name": "getresgid16",
+            "number": 171,
+            "signature": [
+                "old_gid_t *rgidp",
+                "old_gid_t *egidp",
+                "old_gid_t *sgidp"
+            ]
+        },
+        {
+            "name": "prctl",
+            "number": 172,
+            "signature": [
+                "int option",
+                "unsigned long arg2",
+                "unsigned long arg3",
+                "unsigned long arg4",
+                "unsigned long arg5"
+            ]
+        },
+        {
+            "name": "rt_sigreturn",
+            "number": 173,
+            "signature": []
+        },
+        {
+            "name": "rt_sigaction",
+            "number": 174,
+            "signature": [
+                "int sig",
+                "const struct sigaction *act",
+                "struct sigaction *oact",
+                "size_t sigsetsize"
+            ]
+        },
+        {
+            "name": "rt_sigprocmask",
+            "number": 175,
+            "signature": [
+                "int how",
+                "sigset_t *nset",
+                "sigset_t *oset",
+                "size_t sigsetsize"
+            ]
+        },
+        {
+            "name": "rt_sigpending",
+            "number": 176,
+            "signature": [
+                "sigset_t *uset",
+                "size_t sigsetsize"
+            ]
+        },
+        {
+            "name": "rt_sigtimedwait",
+            "number": 177,
+            "signature": [
+                "const sigset_t *uthese",
+                "siginfo_t *uinfo",
+                "const struct old_timespec32 *uts",
+                "size_t sigsetsize"
+            ]
+        },
+        {
+            "name": "rt_sigqueueinfo",
+            "number": 178,
+            "signature": [
+                "pid_t pid",
+                "int sig",
+                "siginfo_t *uinfo"
+            ]
+        },
+        {
+            "name": "rt_sigsuspend",
+            "number": 179,
+            "signature": [
+                "sigset_t *unewset",
+                "size_t sigsetsize"
+            ]
+        },
+        {
+            "name": "pread64",
+            "number": 180,
+            "signature": [
+                "unsigned int fd",
+                "char *ubuf",
+                "u32 count",
+                "u32 poslo",
+                "u32 poshi"
+            ]
+        },
+        {
+            "name": "pwrite64",
+            "number": 181,
+            "signature": [
+                "unsigned int fd",
+                "const char *ubuf",
+                "u32 count",
+                "u32 poslo",
+                "u32 poshi"
+            ]
+        },
+        {
+            "name": "chown16",
+            "number": 182,
+            "signature": [
+                "const char *filename",
+                "old_uid_t user",
+                "old_gid_t group"
+            ]
+        },
+        {
+            "name": "getcwd",
+            "number": 183,
+            "signature": [
+                "char *buf",
+                "unsigned long size"
+            ]
+        },
+        {
+            "name": "capget",
+            "number": 184,
+            "signature": [
+                "cap_user_header_t header",
+                "cap_user_data_t dataptr"
+            ]
+        },
+        {
+            "name": "capset",
+            "number": 185,
+            "signature": [
+                "cap_user_header_t header",
+                "const cap_user_data_t data"
+            ]
+        },
+        {
+            "name": "sigaltstack",
+            "number": 186,
+            "signature": [
+                "const stack_t *uss",
+                "stack_t *uoss"
+            ]
+        },
+        {
+            "name": "sendfile",
+            "number": 187,
+            "signature": [
+                "int out_fd",
+                "int in_fd",
+                "off_t *offset",
+                "size_t count"
+            ]
+        },
+        {
+            "name": "vfork",
+            "number": 190,
+            "signature": []
+        },
+        {
+            "name": "getrlimit",
+            "number": 191,
+            "signature": [
+                "unsigned int resource",
+                "struct rlimit *rlim"
+            ]
+        },
+        {
+            "name": "mmap_pgoff",
+            "number": 192,
+            "signature": [
+                "unsigned long addr",
+                "unsigned long len",
+                "unsigned long prot",
+                "unsigned long flags",
+                "unsigned long fd",
+                "unsigned long pgoff"
+            ]
+        },
+        {
+            "name": "truncate64",
+            "number": 193,
+            "signature": [
+                "const char *filename",
+                "unsigned long offset_low",
+                "unsigned long offset_high"
+            ]
+        },
+        {
+            "name": "ftruncate64",
+            "number": 194,
+            "signature": [
+                "unsigned int fd",
+                "unsigned long offset_low",
+                "unsigned long offset_high"
+            ]
+        },
+        {
+            "name": "stat64",
+            "number": 195,
+            "signature": [
+                "const char *filename",
+                "struct stat64 *statbuf"
+            ]
+        },
+        {
+            "name": "lstat64",
+            "number": 196,
+            "signature": [
+                "const char *filename",
+                "struct stat64 *statbuf"
+            ]
+        },
+        {
+            "name": "fstat64",
+            "number": 197,
+            "signature": [
+                "unsigned long fd",
+                "struct stat64 *statbuf"
+            ]
+        },
+        {
+            "name": "lchown",
+            "number": 198,
+            "signature": [
+                "const char *filename",
+                "uid_t user",
+                "gid_t group"
+            ]
+        },
+        {
+            "name": "getuid",
+            "number": 199,
+            "signature": []
+        },
+        {
+            "name": "getgid",
+            "number": 200,
+            "signature": []
+        },
+        {
+            "name": "geteuid",
+            "number": 201,
+            "signature": []
+        },
+        {
+            "name": "getegid",
+            "number": 202,
+            "signature": []
+        },
+        {
+            "name": "setreuid",
+            "number": 203,
+            "signature": [
+                "uid_t ruid",
+                "uid_t euid"
+            ]
+        },
+        {
+            "name": "setregid",
+            "number": 204,
+            "signature": [
+                "gid_t rgid",
+                "gid_t egid"
+            ]
+        },
+        {
+            "name": "getgroups",
+            "number": 205,
+            "signature": [
+                "int gidsetsize",
+                "gid_t *grouplist"
+            ]
+        },
+        {
+            "name": "setgroups",
+            "number": 206,
+            "signature": [
+                "int gidsetsize",
+                "gid_t *grouplist"
+            ]
+        },
+        {
+            "name": "fchown",
+            "number": 207,
+            "signature": [
+                "unsigned int fd",
+                "uid_t user",
+                "gid_t group"
+            ]
+        },
+        {
+            "name": "setresuid",
+            "number": 208,
+            "signature": [
+                "uid_t ruid",
+                "uid_t euid",
+                "uid_t suid"
+            ]
+        },
+        {
+            "name": "getresuid",
+            "number": 209,
+            "signature": [
+                "uid_t *ruidp",
+                "uid_t *euidp",
+                "uid_t *suidp"
+            ]
+        },
+        {
+            "name": "setresgid",
+            "number": 210,
+            "signature": [
+                "gid_t rgid",
+                "gid_t egid",
+                "gid_t sgid"
+            ]
+        },
+        {
+            "name": "getresgid",
+            "number": 211,
+            "signature": [
+                "gid_t *rgidp",
+                "gid_t *egidp",
+                "gid_t *sgidp"
+            ]
+        },
+        {
+            "name": "chown",
+            "number": 212,
+            "signature": [
+                "const char *filename",
+                "uid_t user",
+                "gid_t group"
+            ]
+        },
+        {
+            "name": "setuid",
+            "number": 213,
+            "signature": [
+                "uid_t uid"
+            ]
+        },
+        {
+            "name": "setgid",
+            "number": 214,
+            "signature": [
+                "gid_t gid"
+            ]
+        },
+        {
+            "name": "setfsuid",
+            "number": 215,
+            "signature": [
+                "uid_t uid"
+            ]
+        },
+        {
+            "name": "setfsgid",
+            "number": 216,
+            "signature": [
+                "gid_t gid"
+            ]
+        },
+        {
+            "name": "pivot_root",
+            "number": 217,
+            "signature": [
+                "const char *new_root",
+                "const char *put_old"
+            ]
+        },
+        {
+            "name": "mincore",
+            "number": 218,
+            "signature": [
+                "unsigned long start",
+                "size_t len",
+                "unsigned char *vec"
+            ]
+        },
+        {
+            "name": "madvise",
+            "number": 219,
+            "signature": [
+                "unsigned long start",
+                "size_t len_in",
+                "int behavior"
+            ]
+        },
+        {
+            "name": "getdents64",
+            "number": 220,
+            "signature": [
+                "unsigned int fd",
+                "struct linux_dirent64 *dirent",
+                "unsigned int count"
+            ]
+        },
+        {
+            "name": "fcntl64",
+            "number": 221,
+            "signature": [
+                "unsigned int fd",
+                "unsigned int cmd",
+                "unsigned long arg"
+            ]
+        },
+        {
+            "name": "gettid",
+            "number": 224,
+            "signature": []
+        },
+        {
+            "name": "readahead",
+            "number": 225,
+            "signature": [
+                "int fd",
+                "unsigned int off_lo",
+                "unsigned int off_hi",
+                "size_t count"
+            ]
+        },
+        {
+            "name": "setxattr",
+            "number": 226,
+            "signature": [
+                "const char *pathname",
+                "const char *name",
+                "const void *value",
+                "size_t size",
+                "int flags"
+            ]
+        },
+        {
+            "name": "lsetxattr",
+            "number": 227,
+            "signature": [
+                "const char *pathname",
+                "const char *name",
+                "const void *value",
+                "size_t size",
+                "int flags"
+            ]
+        },
+        {
+            "name": "fsetxattr",
+            "number": 228,
+            "signature": [
+                "int fd",
+                "const char *name",
+                "const void *value",
+                "size_t size",
+                "int flags"
+            ]
+        },
+        {
+            "name": "getxattr",
+            "number": 229,
+            "signature": [
+                "const char *pathname",
+                "const char *name",
+                "void *value",
+                "size_t size"
+            ]
+        },
+        {
+            "name": "lgetxattr",
+            "number": 230,
+            "signature": [
+                "const char *pathname",
+                "const char *name",
+                "void *value",
+                "size_t size"
+            ]
+        },
+        {
+            "name": "fgetxattr",
+            "number": 231,
+            "signature": [
+                "int fd",
+                "const char *name",
+                "void *value",
+                "size_t size"
+            ]
+        },
+        {
+            "name": "listxattr",
+            "number": 232,
+            "signature": [
+                "const char *pathname",
+                "char *list",
+                "size_t size"
+            ]
+        },
+        {
+            "name": "llistxattr",
+            "number": 233,
+            "signature": [
+                "const char *pathname",
+                "char *list",
+                "size_t size"
+            ]
+        },
+        {
+            "name": "flistxattr",
+            "number": 234,
+            "signature": [
+                "int fd",
+                "char *list",
+                "size_t size"
+            ]
+        },
+        {
+            "name": "removexattr",
+            "number": 235,
+            "signature": [
+                "const char *pathname",
+                "const char *name"
+            ]
+        },
+        {
+            "name": "lremovexattr",
+            "number": 236,
+            "signature": [
+                "const char *pathname",
+                "const char *name"
+            ]
+        },
+        {
+            "name": "fremovexattr",
+            "number": 237,
+            "signature": [
+                "int fd",
+                "const char *name"
+            ]
+        },
+        {
+            "name": "tkill",
+            "number": 238,
+            "signature": [
+                "pid_t pid",
+                "int sig"
+            ]
+        },
+        {
+            "name": "sendfile64",
+            "number": 239,
+            "signature": [
+                "int out_fd",
+                "int in_fd",
+                "loff_t *offset",
+                "size_t count"
+            ]
+        },
+        {
+            "name": "futex",
+            "number": 240,
+            "signature": [
+                "u32 *uaddr",
+                "int op",
+                "u32 val",
+                "const struct old_timespec32 *utime",
+                "u32 *uaddr2",
+                "u32 val3"
+            ]
+        },
+        {
+            "name": "sched_setaffinity",
+            "number": 241,
+            "signature": [
+                "pid_t pid",
+                "unsigned int len",
+                "unsigned long *user_mask_ptr"
+            ]
+        },
+        {
+            "name": "sched_getaffinity",
+            "number": 242,
+            "signature": [
+                "pid_t pid",
+                "unsigned int len",
+                "unsigned long *user_mask_ptr"
+            ]
+        },
+        {
+            "name": "set_thread_area",
+            "number": 243,
+            "signature": [
+                "struct user_desc *u_info"
+            ]
+        },
+        {
+            "name": "get_thread_area",
+            "number": 244,
+            "signature": [
+                "struct user_desc *u_info"
+            ]
+        },
+        {
+            "name": "io_setup",
+            "number": 245,
+            "signature": [
+                "unsigned nr_events",
+                "aio_context_t *ctxp"
+            ]
+        },
+        {
+            "name": "io_destroy",
+            "number": 246,
+            "signature": [
+                "aio_context_t ctx"
+            ]
+        },
+        {
+            "name": "io_getevents",
+            "number": 247,
+            "signature": [
+                "__u32 ctx_id",
+                "__s32 min_nr",
+                "__s32 nr",
+                "struct io_event *events",
+                "struct old_timespec32 *timeout"
+            ]
+        },
+        {
+            "name": "io_submit",
+            "number": 248,
+            "signature": [
+                "aio_context_t ctx_id",
+                "long nr",
+                "struct iocb **iocbpp"
+            ]
+        },
+        {
+            "name": "io_cancel",
+            "number": 249,
+            "signature": [
+                "aio_context_t ctx_id",
+                "struct iocb *iocb",
+                "struct io_event *result"
+            ]
+        },
+        {
+            "name": "fadvise64",
+            "number": 250,
+            "signature": [
+                "int fd",
+                "unsigned int offset_lo",
+                "unsigned int offset_hi",
+                "size_t len",
+                "int advice"
+            ]
+        },
+        {
+            "name": "exit_group",
+            "number": 252,
+            "signature": [
+                "int error_code"
+            ]
+        },
+        {
+            "name": "epoll_create",
+            "number": 254,
+            "signature": [
+                "int size"
+            ]
+        },
+        {
+            "name": "epoll_ctl",
+            "number": 255,
+            "signature": [
+                "int epfd",
+                "int op",
+                "int fd",
+                "struct epoll_event *event"
+            ]
+        },
+        {
+            "name": "epoll_wait",
+            "number": 256,
+            "signature": [
+                "int epfd",
+                "struct epoll_event *events",
+                "int maxevents",
+                "int timeout"
+            ]
+        },
+        {
+            "name": "remap_file_pages",
+            "number": 257,
+            "signature": [
+                "unsigned long start",
+                "unsigned long size",
+                "unsigned long prot",
+                "unsigned long pgoff",
+                "unsigned long flags"
+            ]
+        },
+        {
+            "name": "set_tid_address",
+            "number": 258,
+            "signature": [
+                "int *tidptr"
+            ]
+        },
+        {
+            "name": "timer_create",
+            "number": 259,
+            "signature": [
+                "const clockid_t which_clock",
+                "struct sigevent *timer_event_spec",
+                "timer_t *created_timer_id"
+            ]
+        },
+        {
+            "name": "timer_settime",
+            "number": 260,
+            "signature": [
+                "timer_t timer_id",
+                "int flags",
+                "struct old_itimerspec32 *new",
+                "struct old_itimerspec32 *old"
+            ]
+        },
+        {
+            "name": "timer_gettime",
+            "number": 261,
+            "signature": [
+                "timer_t timer_id",
+                "struct old_itimerspec32 *setting"
+            ]
+        },
+        {
+            "name": "timer_getoverrun",
+            "number": 262,
+            "signature": [
+                "timer_t timer_id"
+            ]
+        },
+        {
+            "name": "timer_delete",
+            "number": 263,
+            "signature": [
+                "timer_t timer_id"
+            ]
+        },
+        {
+            "name": "clock_settime",
+            "number": 264,
+            "signature": [
+                "clockid_t which_clock",
+                "struct old_timespec32 *tp"
+            ]
+        },
+        {
+            "name": "clock_gettime",
+            "number": 265,
+            "signature": [
+                "clockid_t which_clock",
+                "struct old_timespec32 *tp"
+            ]
+        },
+        {
+            "name": "clock_getres",
+            "number": 266,
+            "signature": [
+                "clockid_t which_clock",
+                "struct old_timespec32 *tp"
+            ]
+        },
+        {
+            "name": "clock_nanosleep",
+            "number": 267,
+            "signature": [
+                "clockid_t which_clock",
+                "int flags",
+                "struct old_timespec32 *rqtp",
+                "struct old_timespec32 *rmtp"
+            ]
+        },
+        {
+            "name": "statfs64",
+            "number": 268,
+            "signature": [
+                "const char *pathname",
+                "size_t sz",
+                "struct statfs64 *buf"
+            ]
+        },
+        {
+            "name": "fstatfs64",
+            "number": 269,
+            "signature": [
+                "unsigned int fd",
+                "size_t sz",
+                "struct statfs64 *buf"
+            ]
+        },
+        {
+            "name": "tgkill",
+            "number": 270,
+            "signature": [
+                "pid_t tgid",
+                "pid_t pid",
+                "int sig"
+            ]
+        },
+        {
+            "name": "utimes",
+            "number": 271,
+            "signature": [
+                "const char *filename",
+                "struct old_timeval32 *t"
+            ]
+        },
+        {
+            "name": "fadvise64_64",
+            "number": 272,
+            "signature": [
+                "int fd",
+                "__u32 offset_low",
+                "__u32 offset_high",
+                "__u32 len_low",
+                "__u32 len_high",
+                "int advice"
+            ]
+        },
+        {
+            "name": "mbind",
+            "number": 274,
+            "signature": [
+                "unsigned long start",
+                "unsigned long len",
+                "unsigned long mode",
+                "const unsigned long *nmask",
+                "unsigned long maxnode",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "get_mempolicy",
+            "number": 275,
+            "signature": [
+                "int *policy",
+                "unsigned long *nmask",
+                "unsigned long maxnode",
+                "unsigned long addr",
+                "unsigned long flags"
+            ]
+        },
+        {
+            "name": "set_mempolicy",
+            "number": 276,
+            "signature": [
+                "int mode",
+                "const unsigned long *nmask",
+                "unsigned long maxnode"
+            ]
+        },
+        {
+            "name": "mq_open",
+            "number": 277,
+            "signature": [
+                "const char *u_name",
+                "int oflag",
+                "umode_t mode",
+                "struct mq_attr *u_attr"
+            ]
+        },
+        {
+            "name": "mq_unlink",
+            "number": 278,
+            "signature": [
+                "const char *u_name"
+            ]
+        },
+        {
+            "name": "mq_timedsend",
+            "number": 279,
+            "signature": [
+                "mqd_t mqdes",
+                "const char *u_msg_ptr",
+                "unsigned int msg_len",
+                "unsigned int msg_prio",
+                "const struct old_timespec32 *u_abs_timeout"
+            ]
+        },
+        {
+            "name": "mq_timedreceive",
+            "number": 280,
+            "signature": [
+                "mqd_t mqdes",
+                "char *u_msg_ptr",
+                "unsigned int msg_len",
+                "unsigned int *u_msg_prio",
+                "const struct old_timespec32 *u_abs_timeout"
+            ]
+        },
+        {
+            "name": "mq_notify",
+            "number": 281,
+            "signature": [
+                "mqd_t mqdes",
+                "const struct sigevent *u_notification"
+            ]
+        },
+        {
+            "name": "mq_getsetattr",
+            "number": 282,
+            "signature": [
+                "mqd_t mqdes",
+                "const struct mq_attr *u_mqstat",
+                "struct mq_attr *u_omqstat"
+            ]
+        },
+        {
+            "name": "kexec_load",
+            "number": 283,
+            "signature": [
+                "unsigned long entry",
+                "unsigned long nr_segments",
+                "struct kexec_segment *segments",
+                "unsigned long flags"
+            ]
+        },
+        {
+            "name": "waitid",
+            "number": 284,
+            "signature": [
+                "int which",
+                "pid_t upid",
+                "struct siginfo *infop",
+                "int options",
+                "struct rusage *ru"
+            ]
+        },
+        {
+            "name": "add_key",
+            "number": 286,
+            "signature": [
+                "const char *_type",
+                "const char *_description",
+                "const void *_payload",
+                "size_t plen",
+                "key_serial_t ringid"
+            ]
+        },
+        {
+            "name": "request_key",
+            "number": 287,
+            "signature": [
+                "const char *_type",
+                "const char *_description",
+                "const char *_callout_info",
+                "key_serial_t destringid"
+            ]
+        },
+        {
+            "name": "keyctl",
+            "number": 288,
+            "signature": [
+                "int option",
+                "unsigned long arg2",
+                "unsigned long arg3",
+                "unsigned long arg4",
+                "unsigned long arg5"
+            ]
+        },
+        {
+            "name": "ioprio_set",
+            "number": 289,
+            "signature": [
+                "int which",
+                "int who",
+                "int ioprio"
+            ]
+        },
+        {
+            "name": "ioprio_get",
+            "number": 290,
+            "signature": [
+                "int which",
+                "int who"
+            ]
+        },
+        {
+            "name": "inotify_init",
+            "number": 291,
+            "signature": []
+        },
+        {
+            "name": "inotify_add_watch",
+            "number": 292,
+            "signature": [
+                "int fd",
+                "const char *pathname",
+                "u32 mask"
+            ]
+        },
+        {
+            "name": "inotify_rm_watch",
+            "number": 293,
+            "signature": [
+                "int fd",
+                "__s32 wd"
+            ]
+        },
+        {
+            "name": "migrate_pages",
+            "number": 294,
+            "signature": [
+                "pid_t pid",
+                "unsigned long maxnode",
+                "const unsigned long *old_nodes",
+                "const unsigned long *new_nodes"
+            ]
+        },
+        {
+            "name": "openat",
+            "number": 295,
+            "signature": [
+                "int dfd",
+                "const char *filename",
+                "int flags",
+                "umode_t mode"
+            ]
+        },
+        {
+            "name": "mkdirat",
+            "number": 296,
+            "signature": [
+                "int dfd",
+                "const char *pathname",
+                "umode_t mode"
+            ]
+        },
+        {
+            "name": "mknodat",
+            "number": 297,
+            "signature": [
+                "int dfd",
+                "const char *filename",
+                "umode_t mode",
+                "unsigned int dev"
+            ]
+        },
+        {
+            "name": "fchownat",
+            "number": 298,
+            "signature": [
+                "int dfd",
+                "const char *filename",
+                "uid_t user",
+                "gid_t group",
+                "int flag"
+            ]
+        },
+        {
+            "name": "futimesat",
+            "number": 299,
+            "signature": [
+                "unsigned int dfd",
+                "const char *filename",
+                "struct old_timeval32 *t"
+            ]
+        },
+        {
+            "name": "fstatat64",
+            "number": 300,
+            "signature": [
+                "int dfd",
+                "const char *filename",
+                "struct stat64 *statbuf",
+                "int flag"
+            ]
+        },
+        {
+            "name": "unlinkat",
+            "number": 301,
+            "signature": [
+                "int dfd",
+                "const char *pathname",
+                "int flag"
+            ]
+        },
+        {
+            "name": "renameat",
+            "number": 302,
+            "signature": [
+                "int olddfd",
+                "const char *oldname",
+                "int newdfd",
+                "const char *newname"
+            ]
+        },
+        {
+            "name": "linkat",
+            "number": 303,
+            "signature": [
+                "int olddfd",
+                "const char *oldname",
+                "int newdfd",
+                "const char *newname",
+                "int flags"
+            ]
+        },
+        {
+            "name": "symlinkat",
+            "number": 304,
+            "signature": [
+                "const char *oldname",
+                "int newdfd",
+                "const char *newname"
+            ]
+        },
+        {
+            "name": "readlinkat",
+            "number": 305,
+            "signature": [
+                "int dfd",
+                "const char *pathname",
+                "char *buf",
+                "int bufsiz"
+            ]
+        },
+        {
+            "name": "fchmodat",
+            "number": 306,
+            "signature": [
+                "int dfd",
+                "const char *filename",
+                "umode_t mode"
+            ]
+        },
+        {
+            "name": "faccessat",
+            "number": 307,
+            "signature": [
+                "int dfd",
+                "const char *filename",
+                "int mode"
+            ]
+        },
+        {
+            "name": "pselect6",
+            "number": 308,
+            "signature": [
+                "int n",
+                "fd_set *inp",
+                "fd_set *outp",
+                "fd_set *exp",
+                "struct old_timespec32 *tsp",
+                "void *sig"
+            ]
+        },
+        {
+            "name": "ppoll",
+            "number": 309,
+            "signature": [
+                "struct pollfd *ufds",
+                "unsigned int nfds",
+                "struct old_timespec32 *tsp",
+                "const sigset_t *sigmask",
+                "size_t sigsetsize"
+            ]
+        },
+        {
+            "name": "unshare",
+            "number": 310,
+            "signature": [
+                "unsigned long unshare_flags"
+            ]
+        },
+        {
+            "name": "set_robust_list",
+            "number": 311,
+            "signature": [
+                "struct robust_list_head *head",
+                "size_t len"
+            ]
+        },
+        {
+            "name": "get_robust_list",
+            "number": 312,
+            "signature": [
+                "int pid",
+                "struct robust_list_head **head_ptr",
+                "size_t *len_ptr"
+            ]
+        },
+        {
+            "name": "splice",
+            "number": 313,
+            "signature": [
+                "int fd_in",
+                "loff_t *off_in",
+                "int fd_out",
+                "loff_t *off_out",
+                "size_t len",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "sync_file_range",
+            "number": 314,
+            "signature": [
+                "int fd",
+                "unsigned int off_low",
+                "unsigned int off_hi",
+                "unsigned int n_low",
+                "unsigned int n_hi",
+                "int flags"
+            ]
+        },
+        {
+            "name": "tee",
+            "number": 315,
+            "signature": [
+                "int fdin",
+                "int fdout",
+                "size_t len",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "vmsplice",
+            "number": 316,
+            "signature": [
+                "int fd",
+                "const struct iovec *uiov",
+                "unsigned long nr_segs",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "move_pages",
+            "number": 317,
+            "signature": [
+                "pid_t pid",
+                "unsigned long nr_pages",
+                "const void **pages",
+                "const int *nodes",
+                "int *status",
+                "int flags"
+            ]
+        },
+        {
+            "name": "getcpu",
+            "number": 318,
+            "signature": [
+                "unsigned *cpup",
+                "unsigned *nodep",
+                "struct getcpu_cache *unused"
+            ]
+        },
+        {
+            "name": "epoll_pwait",
+            "number": 319,
+            "signature": [
+                "int epfd",
+                "struct epoll_event *events",
+                "int maxevents",
+                "int timeout",
+                "const sigset_t *sigmask",
+                "size_t sigsetsize"
+            ]
+        },
+        {
+            "name": "utimensat",
+            "number": 320,
+            "signature": [
+                "unsigned int dfd",
+                "const char *filename",
+                "struct old_timespec32 *t",
+                "int flags"
+            ]
+        },
+        {
+            "name": "signalfd",
+            "number": 321,
+            "signature": [
+                "int ufd",
+                "sigset_t *user_mask",
+                "size_t sizemask"
+            ]
+        },
+        {
+            "name": "timerfd_create",
+            "number": 322,
+            "signature": [
+                "int clockid",
+                "int flags"
+            ]
+        },
+        {
+            "name": "eventfd",
+            "number": 323,
+            "signature": [
+                "unsigned int count"
+            ]
+        },
+        {
+            "name": "fallocate",
+            "number": 324,
+            "signature": [
+                "int fd",
+                "int mode",
+                "unsigned int offset_lo",
+                "unsigned int offset_hi",
+                "unsigned int len_lo",
+                "unsigned int len_hi"
+            ]
+        },
+        {
+            "name": "timerfd_settime",
+            "number": 325,
+            "signature": [
+                "int ufd",
+                "int flags",
+                "const struct old_itimerspec32 *utmr",
+                "struct old_itimerspec32 *otmr"
+            ]
+        },
+        {
+            "name": "timerfd_gettime",
+            "number": 326,
+            "signature": [
+                "int ufd",
+                "struct old_itimerspec32 *otmr"
+            ]
+        },
+        {
+            "name": "signalfd4",
+            "number": 327,
+            "signature": [
+                "int ufd",
+                "sigset_t *user_mask",
+                "size_t sizemask",
+                "int flags"
+            ]
+        },
+        {
+            "name": "eventfd2",
+            "number": 328,
+            "signature": [
+                "unsigned int count",
+                "int flags"
+            ]
+        },
+        {
+            "name": "epoll_create1",
+            "number": 329,
+            "signature": [
+                "int flags"
+            ]
+        },
+        {
+            "name": "dup3",
+            "number": 330,
+            "signature": [
+                "unsigned int oldfd",
+                "unsigned int newfd",
+                "int flags"
+            ]
+        },
+        {
+            "name": "pipe2",
+            "number": 331,
+            "signature": [
+                "int *fildes",
+                "int flags"
+            ]
+        },
+        {
+            "name": "inotify_init1",
+            "number": 332,
+            "signature": [
+                "int flags"
+            ]
+        },
+        {
+            "name": "preadv",
+            "number": 333,
+            "signature": [
+                "unsigned long fd",
+                "const struct iovec *vec",
+                "unsigned long vlen",
+                "unsigned long pos_l",
+                "unsigned long pos_h"
+            ]
+        },
+        {
+            "name": "pwritev",
+            "number": 334,
+            "signature": [
+                "unsigned long fd",
+                "const struct iovec *vec",
+                "unsigned long vlen",
+                "unsigned long pos_l",
+                "unsigned long pos_h"
+            ]
+        },
+        {
+            "name": "rt_tgsigqueueinfo",
+            "number": 335,
+            "signature": [
+                "pid_t tgid",
+                "pid_t pid",
+                "int sig",
+                "siginfo_t *uinfo"
+            ]
+        },
+        {
+            "name": "perf_event_open",
+            "number": 336,
+            "signature": [
+                "struct perf_event_attr *attr_uptr",
+                "pid_t pid",
+                "int cpu",
+                "int group_fd",
+                "unsigned long flags"
+            ]
+        },
+        {
+            "name": "recvmmsg",
+            "number": 337,
+            "signature": [
+                "int fd",
+                "struct mmsghdr *mmsg",
+                "unsigned int vlen",
+                "unsigned int flags",
+                "struct old_timespec32 *timeout"
+            ]
+        },
+        {
+            "name": "fanotify_init",
+            "number": 338,
+            "signature": [
+                "unsigned int flags",
+                "unsigned int event_f_flags"
+            ]
+        },
+        {
+            "name": "fanotify_mark",
+            "number": 339,
+            "signature": [
+                "int fanotify_fd",
+                "unsigned int flags",
+                "u32 mask_lo",
+                "u32 mask_hi",
+                "int dfd",
+                "const char *pathname"
+            ]
+        },
+        {
+            "name": "prlimit64",
+            "number": 340,
+            "signature": [
+                "pid_t pid",
+                "unsigned int resource",
+                "const struct rlimit64 *new_rlim",
+                "struct rlimit64 *old_rlim"
+            ]
+        },
+        {
+            "name": "name_to_handle_at",
+            "number": 341,
+            "signature": [
+                "int dfd",
+                "const char *name",
+                "struct file_handle *handle",
+                "void *mnt_id",
+                "int flag"
+            ]
+        },
+        {
+            "name": "open_by_handle_at",
+            "number": 342,
+            "signature": [
+                "int mountdirfd",
+                "struct file_handle *handle",
+                "int flags"
+            ]
+        },
+        {
+            "name": "clock_adjtime",
+            "number": 343,
+            "signature": [
+                "clockid_t which_clock",
+                "struct old_timex32 *utp"
+            ]
+        },
+        {
+            "name": "syncfs",
+            "number": 344,
+            "signature": [
+                "int fd"
+            ]
+        },
+        {
+            "name": "sendmmsg",
+            "number": 345,
+            "signature": [
+                "int fd",
+                "struct mmsghdr *mmsg",
+                "unsigned int vlen",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "setns",
+            "number": 346,
+            "signature": [
+                "int fd",
+                "int flags"
+            ]
+        },
+        {
+            "name": "process_vm_readv",
+            "number": 347,
+            "signature": [
+                "pid_t pid",
+                "const struct iovec *lvec",
+                "unsigned long liovcnt",
+                "const struct iovec *rvec",
+                "unsigned long riovcnt",
+                "unsigned long flags"
+            ]
+        },
+        {
+            "name": "process_vm_writev",
+            "number": 348,
+            "signature": [
+                "pid_t pid",
+                "const struct iovec *lvec",
+                "unsigned long liovcnt",
+                "const struct iovec *rvec",
+                "unsigned long riovcnt",
+                "unsigned long flags"
+            ]
+        },
+        {
+            "name": "kcmp",
+            "number": 349,
+            "signature": [
+                "pid_t pid1",
+                "pid_t pid2",
+                "int type",
+                "unsigned long idx1",
+                "unsigned long idx2"
+            ]
+        },
+        {
+            "name": "finit_module",
+            "number": 350,
+            "signature": [
+                "int fd",
+                "const char *uargs",
+                "int flags"
+            ]
+        },
+        {
+            "name": "sched_setattr",
+            "number": 351,
+            "signature": [
+                "pid_t pid",
+                "struct sched_attr *uattr",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "sched_getattr",
+            "number": 352,
+            "signature": [
+                "pid_t pid",
+                "struct sched_attr *uattr",
+                "unsigned int usize",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "renameat2",
+            "number": 353,
+            "signature": [
+                "int olddfd",
+                "const char *oldname",
+                "int newdfd",
+                "const char *newname",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "seccomp",
+            "number": 354,
+            "signature": [
+                "unsigned int op",
+                "unsigned int flags",
+                "void *uargs"
+            ]
+        },
+        {
+            "name": "getrandom",
+            "number": 355,
+            "signature": [
+                "char *ubuf",
+                "size_t len",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "memfd_create",
+            "number": 356,
+            "signature": [
+                "const char *uname",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "bpf",
+            "number": 357,
+            "signature": [
+                "int cmd",
+                "union bpf_attr *uattr",
+                "unsigned int size"
+            ]
+        },
+        {
+            "name": "execveat",
+            "number": 358,
+            "signature": [
+                "int fd",
+                "const char *filename",
+                "const char *const *argv",
+                "const char *const *envp",
+                "int flags"
+            ]
+        },
+        {
+            "name": "socket",
+            "number": 359,
+            "signature": [
+                "int family",
+                "int type",
+                "int protocol"
+            ]
+        },
+        {
+            "name": "socketpair",
+            "number": 360,
+            "signature": [
+                "int family",
+                "int type",
+                "int protocol",
+                "int *usockvec"
+            ]
+        },
+        {
+            "name": "bind",
+            "number": 361,
+            "signature": [
+                "int fd",
+                "struct sockaddr *umyaddr",
+                "int addrlen"
+            ]
+        },
+        {
+            "name": "connect",
+            "number": 362,
+            "signature": [
+                "int fd",
+                "struct sockaddr *uservaddr",
+                "int addrlen"
+            ]
+        },
+        {
+            "name": "listen",
+            "number": 363,
+            "signature": [
+                "int fd",
+                "int backlog"
+            ]
+        },
+        {
+            "name": "accept4",
+            "number": 364,
+            "signature": [
+                "int fd",
+                "struct sockaddr *upeer_sockaddr",
+                "int *upeer_addrlen",
+                "int flags"
+            ]
+        },
+        {
+            "name": "getsockopt",
+            "number": 365,
+            "signature": [
+                "int fd",
+                "int level",
+                "int optname",
+                "char *optval",
+                "int *optlen"
+            ]
+        },
+        {
+            "name": "setsockopt",
+            "number": 366,
+            "signature": [
+                "int fd",
+                "int level",
+                "int optname",
+                "char *optval",
+                "int optlen"
+            ]
+        },
+        {
+            "name": "getsockname",
+            "number": 367,
+            "signature": [
+                "int fd",
+                "struct sockaddr *usockaddr",
+                "int *usockaddr_len"
+            ]
+        },
+        {
+            "name": "getpeername",
+            "number": 368,
+            "signature": [
+                "int fd",
+                "struct sockaddr *usockaddr",
+                "int *usockaddr_len"
+            ]
+        },
+        {
+            "name": "sendto",
+            "number": 369,
+            "signature": [
+                "int fd",
+                "void *buff",
+                "size_t len",
+                "unsigned int flags",
+                "struct sockaddr *addr",
+                "int addr_len"
+            ]
+        },
+        {
+            "name": "sendmsg",
+            "number": 370,
+            "signature": [
+                "int fd",
+                "struct user_msghdr *msg",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "recvfrom",
+            "number": 371,
+            "signature": [
+                "int fd",
+                "void *ubuf",
+                "size_t size",
+                "unsigned int flags",
+                "struct sockaddr *addr",
+                "int *addr_len"
+            ]
+        },
+        {
+            "name": "recvmsg",
+            "number": 372,
+            "signature": [
+                "int fd",
+                "struct user_msghdr *msg",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "shutdown",
+            "number": 373,
+            "signature": [
+                "int fd",
+                "int how"
+            ]
+        },
+        {
+            "name": "userfaultfd",
+            "number": 374,
+            "signature": [
+                "int flags"
+            ]
+        },
+        {
+            "name": "membarrier",
+            "number": 375,
+            "signature": [
+                "int cmd",
+                "unsigned int flags",
+                "int cpu_id"
+            ]
+        },
+        {
+            "name": "mlock2",
+            "number": 376,
+            "signature": [
+                "unsigned long start",
+                "size_t len",
+                "int flags"
+            ]
+        },
+        {
+            "name": "copy_file_range",
+            "number": 377,
+            "signature": [
+                "int fd_in",
+                "loff_t *off_in",
+                "int fd_out",
+                "loff_t *off_out",
+                "size_t len",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "preadv2",
+            "number": 378,
+            "signature": [
+                "unsigned long fd",
+                "const struct iovec *vec",
+                "unsigned long vlen",
+                "unsigned long pos_l",
+                "unsigned long pos_h",
+                "rwf_t flags"
+            ]
+        },
+        {
+            "name": "pwritev2",
+            "number": 379,
+            "signature": [
+                "unsigned long fd",
+                "const struct iovec *vec",
+                "unsigned long vlen",
+                "unsigned long pos_l",
+                "unsigned long pos_h",
+                "rwf_t flags"
+            ]
+        },
+        {
+            "name": "statx",
+            "number": 383,
+            "signature": [
+                "int dfd",
+                "const char *filename",
+                "unsigned flags",
+                "unsigned int mask",
+                "struct statx *buffer"
+            ]
+        },
+        {
+            "name": "arch_prctl",
+            "number": 384,
+            "signature": [
+                "int option",
+                "unsigned long arg2"
+            ]
+        },
+        {
+            "name": "io_pgetevents",
+            "number": 385,
+            "signature": [
+                "aio_context_t ctx_id",
+                "long min_nr",
+                "long nr",
+                "struct io_event *events",
+                "struct old_timespec32 *timeout",
+                "const struct __aio_sigset *usig"
+            ]
+        },
+        {
+            "name": "rseq",
+            "number": 386,
+            "signature": [
+                "struct rseq *rseq",
+                "u32 rseq_len",
+                "int flags",
+                "u32 sig"
+            ]
+        },
+        {
+            "name": "semget",
+            "number": 393,
+            "signature": [
+                "key_t key",
+                "int nsems",
+                "int semflg"
+            ]
+        },
+        {
+            "name": "semctl",
+            "number": 394,
+            "signature": [
+                "int semid",
+                "int semnum",
+                "int cmd",
+                "unsigned long arg"
+            ]
+        },
+        {
+            "name": "shmget",
+            "number": 395,
+            "signature": [
+                "key_t key",
+                "size_t size",
+                "int shmflg"
+            ]
+        },
+        {
+            "name": "shmctl",
+            "number": 396,
+            "signature": [
+                "int shmid",
+                "int cmd",
+                "struct shmid_ds *buf"
+            ]
+        },
+        {
+            "name": "shmat",
+            "number": 397,
+            "signature": [
+                "int shmid",
+                "char *shmaddr",
+                "int shmflg"
+            ]
+        },
+        {
+            "name": "shmdt",
+            "number": 398,
+            "signature": [
+                "char *shmaddr"
+            ]
+        },
+        {
+            "name": "msgget",
+            "number": 399,
+            "signature": [
+                "key_t key",
+                "int msgflg"
+            ]
+        },
+        {
+            "name": "msgsnd",
+            "number": 400,
+            "signature": [
+                "int msqid",
+                "struct msgbuf *msgp",
+                "size_t msgsz",
+                "int msgflg"
+            ]
+        },
+        {
+            "name": "msgrcv",
+            "number": 401,
+            "signature": [
+                "int msqid",
+                "struct msgbuf *msgp",
+                "size_t msgsz",
+                "long msgtyp",
+                "int msgflg"
+            ]
+        },
+        {
+            "name": "msgctl",
+            "number": 402,
+            "signature": [
+                "int msqid",
+                "int cmd",
+                "struct msqid_ds *buf"
+            ]
+        },
+        {
+            "name": "clock_gettime",
+            "number": 403,
+            "signature": [
+                "const clockid_t which_clock",
+                "struct __kernel_timespec *tp"
+            ]
+        },
+        {
+            "name": "clock_settime",
+            "number": 404,
+            "signature": [
+                "const clockid_t which_clock",
+                "const struct __kernel_timespec *tp"
+            ]
+        },
+        {
+            "name": "clock_adjtime",
+            "number": 405,
+            "signature": [
+                "const clockid_t which_clock",
+                "struct __kernel_timex *utx"
+            ]
+        },
+        {
+            "name": "clock_getres",
+            "number": 406,
+            "signature": [
+                "const clockid_t which_clock",
+                "struct __kernel_timespec *tp"
+            ]
+        },
+        {
+            "name": "clock_nanosleep",
+            "number": 407,
+            "signature": [
+                "const clockid_t which_clock",
+                "int flags",
+                "const struct __kernel_timespec *rqtp",
+                "struct __kernel_timespec *rmtp"
+            ]
+        },
+        {
+            "name": "timer_gettime",
+            "number": 408,
+            "signature": [
+                "timer_t timer_id",
+                "struct __kernel_itimerspec *setting"
+            ]
+        },
+        {
+            "name": "timer_settime",
+            "number": 409,
+            "signature": [
+                "timer_t timer_id",
+                "int flags",
+                "const struct __kernel_itimerspec *new_setting",
+                "struct __kernel_itimerspec *old_setting"
+            ]
+        },
+        {
+            "name": "timerfd_gettime",
+            "number": 410,
+            "signature": [
+                "int ufd",
+                "struct __kernel_itimerspec *otmr"
+            ]
+        },
+        {
+            "name": "timerfd_settime",
+            "number": 411,
+            "signature": [
+                "int ufd",
+                "int flags",
+                "const struct __kernel_itimerspec *utmr",
+                "struct __kernel_itimerspec *otmr"
+            ]
+        },
+        {
+            "name": "utimensat",
+            "number": 412,
+            "signature": [
+                "int dfd",
+                "const char *filename",
+                "struct __kernel_timespec *utimes",
+                "int flags"
+            ]
+        },
+        {
+            "name": "pselect6",
+            "number": 413,
+            "signature": [
+                "int n",
+                "fd_set *inp",
+                "fd_set *outp",
+                "fd_set *exp",
+                "struct __kernel_timespec *tsp",
+                "void *sig"
+            ]
+        },
+        {
+            "name": "ppoll",
+            "number": 414,
+            "signature": [
+                "struct pollfd *ufds",
+                "unsigned int nfds",
+                "struct __kernel_timespec *tsp",
+                "const sigset_t *sigmask",
+                "size_t sigsetsize"
+            ]
+        },
+        {
+            "name": "io_pgetevents",
+            "number": 416,
+            "signature": [
+                "aio_context_t ctx_id",
+                "long min_nr",
+                "long nr",
+                "struct io_event *events",
+                "struct __kernel_timespec *timeout",
+                "const struct __aio_sigset *usig"
+            ]
+        },
+        {
+            "name": "recvmmsg",
+            "number": 417,
+            "signature": [
+                "int fd",
+                "struct mmsghdr *mmsg",
+                "unsigned int vlen",
+                "unsigned int flags",
+                "struct __kernel_timespec *timeout"
+            ]
+        },
+        {
+            "name": "mq_timedsend",
+            "number": 418,
+            "signature": [
+                "mqd_t mqdes",
+                "const char *u_msg_ptr",
+                "size_t msg_len",
+                "unsigned int msg_prio",
+                "const struct __kernel_timespec *u_abs_timeout"
+            ]
+        },
+        {
+            "name": "mq_timedreceive",
+            "number": 419,
+            "signature": [
+                "mqd_t mqdes",
+                "char *u_msg_ptr",
+                "size_t msg_len",
+                "unsigned int *u_msg_prio",
+                "const struct __kernel_timespec *u_abs_timeout"
+            ]
+        },
+        {
+            "name": "semtimedop",
+            "number": 420,
+            "signature": [
+                "int semid",
+                "struct sembuf *tsops",
+                "unsigned int nsops",
+                "const struct __kernel_timespec *timeout"
+            ]
+        },
+        {
+            "name": "rt_sigtimedwait",
+            "number": 421,
+            "signature": [
+                "const sigset_t *uthese",
+                "siginfo_t *uinfo",
+                "const struct __kernel_timespec *uts",
+                "size_t sigsetsize"
+            ]
+        },
+        {
+            "name": "futex",
+            "number": 422,
+            "signature": [
+                "u32 *uaddr",
+                "int op",
+                "u32 val",
+                "const struct __kernel_timespec *utime",
+                "u32 *uaddr2",
+                "u32 val3"
+            ]
+        },
+        {
+            "name": "sched_rr_get_interval",
+            "number": 423,
+            "signature": [
+                "pid_t pid",
+                "struct __kernel_timespec *interval"
+            ]
+        },
+        {
+            "name": "pidfd_send_signal",
+            "number": 424,
+            "signature": [
+                "int pidfd",
+                "int sig",
+                "siginfo_t *info",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "io_uring_setup",
+            "number": 425,
+            "signature": [
+                "u32 entries",
+                "struct io_uring_params *params"
+            ]
+        },
+        {
+            "name": "io_uring_enter",
+            "number": 426,
+            "signature": [
+                "unsigned int fd",
+                "u32 to_submit",
+                "u32 min_complete",
+                "u32 flags",
+                "const void *argp",
+                "size_t argsz"
+            ]
+        },
+        {
+            "name": "io_uring_register",
+            "number": 427,
+            "signature": [
+                "unsigned int fd",
+                "unsigned int opcode",
+                "void *arg",
+                "unsigned int nr_args"
+            ]
+        },
+        {
+            "name": "open_tree",
+            "number": 428,
+            "signature": [
+                "int dfd",
+                "const char *filename",
+                "unsigned flags"
+            ]
+        },
+        {
+            "name": "move_mount",
+            "number": 429,
+            "signature": [
+                "int from_dfd",
+                "const char *from_pathname",
+                "int to_dfd",
+                "const char *to_pathname",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "fsopen",
+            "number": 430,
+            "signature": [
+                "const char *_fs_name",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "fsconfig",
+            "number": 431,
+            "signature": [
+                "int fd",
+                "unsigned int cmd",
+                "const char *_key",
+                "const void *_value",
+                "int aux"
+            ]
+        },
+        {
+            "name": "fsmount",
+            "number": 432,
+            "signature": [
+                "int fs_fd",
+                "unsigned int flags",
+                "unsigned int attr_flags"
+            ]
+        },
+        {
+            "name": "fspick",
+            "number": 433,
+            "signature": [
+                "int dfd",
+                "const char *path",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "pidfd_open",
+            "number": 434,
+            "signature": [
+                "pid_t pid",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "clone3",
+            "number": 435,
+            "signature": [
+                "struct clone_args *uargs",
+                "size_t size"
+            ]
+        },
+        {
+            "name": "close_range",
+            "number": 436,
+            "signature": [
+                "unsigned int fd",
+                "unsigned int max_fd",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "openat2",
+            "number": 437,
+            "signature": [
+                "int dfd",
+                "const char *filename",
+                "struct open_how *how",
+                "size_t usize"
+            ]
+        },
+        {
+            "name": "pidfd_getfd",
+            "number": 438,
+            "signature": [
+                "int pidfd",
+                "int fd",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "faccessat2",
+            "number": 439,
+            "signature": [
+                "int dfd",
+                "const char *filename",
+                "int mode",
+                "int flags"
+            ]
+        },
+        {
+            "name": "process_madvise",
+            "number": 440,
+            "signature": [
+                "int pidfd",
+                "const struct iovec *vec",
+                "size_t vlen",
+                "int behavior",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "epoll_pwait2",
+            "number": 441,
+            "signature": [
+                "int epfd",
+                "struct epoll_event *events",
+                "int maxevents",
+                "const struct __kernel_timespec *timeout",
+                "const sigset_t *sigmask",
+                "size_t sigsetsize"
+            ]
+        },
+        {
+            "name": "mount_setattr",
+            "number": 442,
+            "signature": [
+                "int dfd",
+                "const char *path",
+                "unsigned int flags",
+                "struct mount_attr *uattr",
+                "size_t usize"
+            ]
+        },
+        {
+            "name": "quotactl_fd",
+            "number": 443,
+            "signature": [
+                "unsigned int fd",
+                "unsigned int cmd",
+                "qid_t id",
+                "void *addr"
+            ]
+        },
+        {
+            "name": "landlock_create_ruleset",
+            "number": 444,
+            "signature": [
+                "const struct landlock_ruleset_attr *const attr",
+                "const size_t size",
+                "const __u32 flags"
+            ]
+        },
+        {
+            "name": "landlock_add_rule",
+            "number": 445,
+            "signature": [
+                "const int ruleset_fd",
+                "const enum landlock_rule_type rule_type",
+                "const void *const rule_attr",
+                "const __u32 flags"
+            ]
+        },
+        {
+            "name": "landlock_restrict_self",
+            "number": 446,
+            "signature": [
+                "const int ruleset_fd",
+                "const __u32 flags"
+            ]
+        },
+        {
+            "name": "memfd_secret",
+            "number": 447,
+            "signature": [
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "process_mrelease",
+            "number": 448,
+            "signature": [
+                "int pidfd",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "futex_waitv",
+            "number": 449,
+            "signature": [
+                "struct futex_waitv *waiters",
+                "unsigned int nr_futexes",
+                "unsigned int flags",
+                "struct __kernel_timespec *timeout",
+                "clockid_t clockid"
+            ]
+        },
+        {
+            "name": "set_mempolicy_home_node",
+            "number": 450,
+            "signature": [
+                "unsigned long start",
+                "unsigned long len",
+                "unsigned long home_node",
+                "unsigned long flags"
+            ]
+        },
+        {
+            "name": "cachestat",
+            "number": 451,
+            "signature": [
+                "unsigned int fd",
+                "struct cachestat_range *cstat_range",
+                "struct cachestat *cstat",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "fchmodat2",
+            "number": 452,
+            "signature": [
+                "int dfd",
+                "const char *filename",
+                "umode_t mode",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "futex_wake",
+            "number": 454,
+            "signature": [
+                "void *uaddr",
+                "unsigned long mask",
+                "int nr",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "futex_wait",
+            "number": 455,
+            "signature": [
+                "void *uaddr",
+                "unsigned long val",
+                "unsigned long mask",
+                "unsigned int flags",
+                "struct __kernel_timespec *timeout",
+                "clockid_t clockid"
+            ]
+        },
+        {
+            "name": "futex_requeue",
+            "number": 456,
+            "signature": [
+                "struct futex_waitv *waiters",
+                "unsigned int flags",
+                "int nr_wake",
+                "int nr_requeue"
+            ]
+        },
+        {
+            "name": "statmount",
+            "number": 457,
+            "signature": [
+                "const struct mnt_id_req *req",
+                "struct statmount *buf",
+                "size_t bufsize",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "listmount",
+            "number": 458,
+            "signature": [
+                "const struct mnt_id_req *req",
+                "u64 *mnt_ids",
+                "size_t nr_mnt_ids",
+                "unsigned int flags"
+            ]
+        },
+        {
+            "name": "lsm_get_self_attr",
+            "number": 459,
+            "signature": [
+                "unsigned int attr",
+                "struct lsm_ctx *ctx",
+                "u32 *size",
+                "u32 flags"
+            ]
+        },
+        {
+            "name": "lsm_set_self_attr",
+            "number": 460,
+            "signature": [
+                "unsigned int attr",
+                "struct lsm_ctx *ctx",
+                "u32 size",
+                "u32 flags"
+            ]
+        },
+        {
+            "name": "lsm_list_modules",
+            "number": 461,
+            "signature": [
+                "u64 *ids",
+                "u32 *size",
+                "u32 flags"
+            ]
+        },
+        {
+            "name": "setxattrat",
+            "number": 463,
+            "signature": [
+                "int dfd",
+                "const char *pathname",
+                "unsigned int at_flags",
+                "const char *name",
+                "const struct xattr_args *uargs",
+                "size_t usize"
+            ]
+        },
+        {
+            "name": "getxattrat",
+            "number": 464,
+            "signature": [
+                "int dfd",
+                "const char *pathname",
+                "unsigned int at_flags",
+                "const char *name",
+                "struct xattr_args *uargs",
+                "size_t usize"
+            ]
+        },
+        {
+            "name": "listxattrat",
+            "number": 465,
+            "signature": [
+                "int dfd",
+                "const char *pathname",
+                "unsigned int at_flags",
+                "char *list",
+                "size_t size"
+            ]
+        },
+        {
+            "name": "removexattrat",
+            "number": 466,
+            "signature": [
+                "int dfd",
+                "const char *pathname",
+                "unsigned int at_flags",
+                "const char *name"
+            ]
+        }
+    ]
+}
