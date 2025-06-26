@@ -577,35 +577,35 @@ class MemoryTest(TestCase):
         
         ### 5 levels with a final integer
         # Test telescope with default depth
-        int_five_levels_default = d.mem.telescope(int_five_levels)
+        int_five_levels_default = d.mem.telescope(int_five_levels, min_str_len=6)
         self.assertEqual(len(int_five_levels_default), 6)
         self.assertIsInstance(int_five_levels_default[-1], int)
         self.assertEqual(int_five_levels_default[-1], 4242)
         
         # Test telescope with the right, custom depth
-        int_five_levels_len = d.mem.telescope(int_five_levels, 6)
+        int_five_levels_len = d.mem.telescope(int_five_levels, 6, min_str_len=6)
         self.assertEqual(int_five_levels_default, int_five_levels_len)
         
         # Test telescope with the wrong, custom depth
-        int_five_levels_wrong = d.mem.telescope(int_five_levels, 78)
+        int_five_levels_wrong = d.mem.telescope(int_five_levels, 78, min_str_len=6)
         self.assertEqual(int_five_levels_default, int_five_levels_wrong)
         
         ### 15 levels with a final integer
         # Test telescope with default depth. This will return only the first 10 levels + the original value
-        int_fifteen_levels_default = d.mem.telescope(int_fifteen_levels)
+        int_fifteen_levels_default = d.mem.telescope(int_fifteen_levels, min_str_len=6)
         self.assertEqual(len(int_fifteen_levels_default), 11)
         self.assertIsInstance(int_fifteen_levels_default[-1], int)
         self.assertNotEqual(int_fifteen_levels_default[-1], 4242)
         
         # Test telescope with the right, custom depth
-        int_fifteen_levels_len = d.mem.telescope(int_fifteen_levels, 16)
+        int_fifteen_levels_len = d.mem.telescope(int_fifteen_levels, 16, min_str_len=6)
         self.assertEqual(len(int_fifteen_levels_len), 16)
         self.assertIsInstance(int_fifteen_levels_len[-1], int)
         self.assertEqual(int_fifteen_levels_default, int_fifteen_levels_len[:11])
         self.assertEqual(int_fifteen_levels_len[-1], 4242)
         
         # Test telescope with the wrong, custom depth
-        int_fifteen_levels_wrong = d.mem.telescope(int_fifteen_levels, 78)
+        int_fifteen_levels_wrong = d.mem.telescope(int_fifteen_levels, 78, min_str_len=6)
         self.assertEqual(int_fifteen_levels_wrong, int_fifteen_levels_len)
         
         # Test telescope with a depth of 0
