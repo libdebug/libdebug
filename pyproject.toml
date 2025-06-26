@@ -45,8 +45,8 @@ keywords = ["libdebug", "debugger", "elf", "ptrace", "gdb", "debug", "ctf", "rev
 dependencies = [
     "psutil",
     "pyelftools",
-    "requests",
     "prompt-toolkit",
+    "requests",
 ]
 
 [project.optional-dependencies]

@@ -113,3 +113,91 @@ d.gdb()
 assert len([t for t in d.threads if t.dead]) > 1
 
 d.kill()
+
+
+"""
+Test for GDB migration inside a callback.
+"""
+d = debugger("../binaries/amd64/backtrace_test")
+
+d.run()
+
+d.gdb()
+
+line_called = False
+
+def callback_1(_, __):
+    global line_called
+
+    d.gdb()
+
+    # We expect this line to be hit
+    line_called = True
+
+line_called_2 = False
+
+def callback_2(_, __):
+    global line_called_2
+
+    # We expect this callback to be hit
+    line_called_2 = True
+
+bp1 = d.bp("function1", callback=callback_1)
+bp2 = d.bp("function3", callback=callback_2)
+
+d.cont()
+
+d.wait()
+
+assert line_called
+assert line_called_2
+
+assert bp1.hit_count == 1
+assert bp2.hit_count == 1
+
+d.kill()
+
+
+"""
+Test for GDB migration inside a callback 2.
+"""
+d = debugger("../binaries/amd64/backtrace_test")
+
+d.run()
+
+d.gdb()
+
+line_called = False
+
+def callback_1(_, __):
+    global line_called
+
+    d.gdb(blocking=False)
+
+    # We expect this line to be hit
+    line_called = True
+
+    d.wait_for_gdb()
+
+line_called_2 = False
+
+def callback_2(_, __):
+    global line_called_2
+
+    # We expect this line to be hit
+    line_called_2 = True
+
+bp1 = d.bp("function1", callback=callback_1)
+bp2 = d.bp("function3", callback=callback_2)
+
+d.cont()
+
+d.wait()
+
+assert line_called
+assert line_called_2
+
+assert bp1.hit_count == 1
+assert bp2.hit_count == 1
+
+d.kill()
