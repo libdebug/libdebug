@@ -165,7 +165,7 @@ The `memory` attribute of the [Debugger](../../from_pydoc/generated/debugger/deb
         depth: int = 10,
         min_str_len: int = 3,
         max_str_len: int = 0x100,
-    ) -> list[int | bytes]:
+    ) -> list[int | str]:
     ```
 
 **Parameters**:
@@ -181,7 +181,7 @@ The `memory` attribute of the [Debugger](../../from_pydoc/generated/debugger/deb
 
 | Return | Type | Description |
 | --- | --- | --- |
-| `Chain` | `list[int | bytes]` | The telescope chain. The last element might be both an integer or a bytestring, depending on the arguments provided and the content of the memory. The first element is always the address provided as argument. |
+| `Chain` | `list[int | str]` | The telescope chain. The last element might be both an integer or a string, depending on the arguments provided and the content of the memory. The first element is always the address provided as argument. |
 
 !!! ABSTRACT "Usage Example"
     ```python
