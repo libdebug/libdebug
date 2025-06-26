@@ -547,7 +547,7 @@ class MemoryTest(TestCase):
         str_five_levels_default = d.mem.telescope(str_five_levels)
         self.assertEqual(len(str_five_levels_default), 6)
         self.assertIsInstance(str_five_levels_default[-1], bytes)
-        self.assertEqual(str_five_levels_default[-1], b"Telescope test passed!")
+        self.assertEqual(str_five_levels_default[-1], "Telescope test passed!")
         self.assertEqual(str_five_levels_default[0], str_five_levels)
         
         # Test telescope with the right, custom depth
@@ -569,7 +569,7 @@ class MemoryTest(TestCase):
         self.assertEqual(len(str_fifteen_levels_len), 16)
         self.assertIsInstance(str_fifteen_levels_len[-1], bytes)
         self.assertEqual(str_fifteen_levels_default, str_fifteen_levels_len[:11])
-        self.assertEqual(str_fifteen_levels_len[-1], b"Telescope test passed!")
+        self.assertEqual(str_fifteen_levels_len[-1], "Telescope test passed!")
         
         # Test telescope with the wrong, custom depth
         str_fifteen_levels_wrong = d.mem.telescope(str_fifteen_levels, 78)
@@ -632,12 +632,12 @@ class MemoryTest(TestCase):
         # Test telescope with default str length values
         str_five_levels_content = d.mem.telescope(str_five_levels)
         self.assertIsInstance(str_five_levels_content[-1], bytes)
-        self.assertEqual(str_five_levels_content[-1], b"Telescope test passed!")
+        self.assertEqual(str_five_levels_content[-1], "Telescope test passed!")
         
         # Test telescope with a lower, custom min str length
         str_five_levels_content = d.mem.telescope(str_five_levels, min_str_len=5)
         self.assertIsInstance(str_five_levels_content[-1], bytes)
-        self.assertEqual(str_five_levels_content[-1], b"Telescope test passed!")
+        self.assertEqual(str_five_levels_content[-1], "Telescope test passed!")
 
         # Test telescope with a higher, custom min str length
         # This will make impossible to interpret the last value as a string
@@ -647,12 +647,12 @@ class MemoryTest(TestCase):
         # Test telescope with a higher, custom max str length
         str_five_levels_content = d.mem.telescope(str_five_levels, max_str_len=30)
         self.assertIsInstance(str_five_levels_content[-1], bytes)
-        self.assertEqual(str_five_levels_content[-1], b"Telescope test passed!")
+        self.assertEqual(str_five_levels_content[-1], "Telescope test passed!")
         
         # Test telescope with a lower, custom max str length
         str_five_levels_content = d.mem.telescope(str_five_levels, max_str_len=10)
         self.assertIsInstance(str_five_levels_content[-1], bytes)
-        self.assertEqual(str_five_levels_content[-1], b"Telescope test passed!"[:10])
+        self.assertEqual(str_five_levels_content[-1], "Telescope test passed!"[:10])
         
         # Test telescope with -1 as min str length
         # This will make the telescope to not interpret the last value as a string
@@ -662,12 +662,12 @@ class MemoryTest(TestCase):
         # Test telescope with min str length equal to max str length
         str_five_levels_content = d.mem.telescope(str_five_levels, min_str_len=6, max_str_len=6)
         self.assertIsInstance(str_five_levels_content[-1], bytes)
-        self.assertEqual(str_five_levels_content[-1], b"Telescope test passed!"[:6])
+        self.assertEqual(str_five_levels_content[-1], "Telescope test passed!"[:6])
         
         # Test telescope with 0 as min str length
         str_five_levels_content = d.mem.telescope(str_five_levels, min_str_len=0)
         self.assertIsInstance(str_five_levels_content[-1], bytes)
-        self.assertEqual(str_five_levels_content[-1], b"Telescope test passed!")
+        self.assertEqual(str_five_levels_content[-1], "Telescope test passed!")
         
         # Test telescope with min str length greater than max str length
         with self.assertRaises(ValueError) as cm:
