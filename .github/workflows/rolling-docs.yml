@@ -1,7 +1,9 @@
 name: Deploy Documentation
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - new-docs-ci
 
 jobs:
   deploy-docs:
