@@ -155,6 +155,40 @@ The `memory` attribute of the [Debugger](../../from_pydoc/generated/debugger/deb
         print(f"Heap leak to {dst} found at {src} points")
     ```
 
+## :material-telescope: Telescope
+The `memory` attribute of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object also allow you to traverse a chain of pointers in memory, starting from a given address. This is particularly useful for exploring complex data structures or following pointers through multiple levels of indirection.
+
+!!! ABSTRACT "Function Signature"
+    ```python
+    def telescope(
+        address: int,
+        depth: int = 10,
+        min_str_len: int = 3,
+        max_str_len: int = 0x100,
+    ) -> list[int | bytes]:
+    ```
+
+**Parameters**:
+
+| Argument | Type | Description |
+| --- | --- | --- |
+| `address` | `int` | The address to telescope. |
+| `depth` | `int` | The depth of the telescope. Defaults to `10`. |
+| `min_str_len` | `int` | The minimum length of a string to be resolved, if the found element is not a valid address. If `-1`, the element will never be resolved as a string. Defaults to `3`. |
+| `max_str_len` | `int` | The maximum length of a string to be resolved, if the found element is not a valid address. Defaults to `0x100`. |
+
+**Returns**:
+
+| Return | Type | Description |
+| --- | --- | --- |
+| `Chain` | `list[int | bytes]` | The telescope chain. The last element might be both an integer or a bytestring, depending on the arguments provided and the content of the memory. The first element is always the address provided as argument. |
+
+!!! ABSTRACT "Usage Example"
+    ```python
+    address = d.regs.rsp
+    chain = d.memory.telescope(address, depth=5, min_str_len=6, max_str_len=0x100)
+    ```
+
 ## :material-clock-fast: Fast and Slow Memory Access
 **libdebug** supports two different methods to access memory on Linux, controlled by the `fast_memory` parameter of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object. The two methods are:
 

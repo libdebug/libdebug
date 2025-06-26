@@ -271,6 +271,9 @@ class AbstractMemoryView(MutableSequence, ABC):
             depth (int, optional): The depth of the telescope. Defaults to 10.
             min_str_len (int, optional): The minimum length of a string to be resolved, if the found element is not a valid address. If -1, the element will never be resolved as a string. Defaults to 3.
             max_str_len (int, optional): The maximum length of a string to be resolved, if the found element is not a valid address. Defaults to 0x100.
+
+        Returns:
+            list[int | bytes]: The telescope chain. The last element might be both an integer or a bytestring, depending on the arguments provided and the content of the memory. The first element is always the address provided as argument.
         """
         if min_str_len < -1:
             raise ValueError("min_str_len must be -1 or greater.")
