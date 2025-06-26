@@ -76,14 +76,19 @@ def pprint_backtrace_util(
     backtrace: list,
     maps: MemoryMapList | MemoryMapSnapshotList,
     external_symbols: SymbolList = None,
-    start_char: str = "",
+    message: str = "backtrace",
 ) -> None:
     """Pretty prints the current backtrace of the thread."""
+    if message:
+        print(f"┌──────[ {message} ]")
+    start_char = "│ " if message else ""
     for return_address in backtrace:
         print(f"{start_char}{get_colored_saved_address_util(return_address, maps, external_symbols)}")
+    if message:
+        print("└────────")
 
 
-def _pprint_reg(registers: Registers, maps: MemoryMapList, register: str, start_char: str = "") -> None:
+def _pprint_reg(registers: Registers, maps: MemoryMapList, register: str, message: str = "") -> None:
     attr = getattr(registers, register)
     color = ""
     style = ""
@@ -103,6 +108,8 @@ def _pprint_reg(registers: Registers, maps: MemoryMapList, register: str, start_
 
     if color or style:
         formatted_attr = f"{color}{style}{attr:#x}{ANSIColors.RESET}"
+
+    start_char = "│ " if message else ""
     print(f"{start_char}{ANSIColors.RED}{register}{ANSIColors.RESET}\t{formatted_attr}")
 
 
@@ -128,10 +135,19 @@ def _get_colored_address_string(address: int, maps: MemoryMapList):
         return f"{address_fixed}{ANSIColors.RESET}"
 
 
-def pprint_registers_util(registers: Registers, maps: MemoryMapList, gen_regs: list[str], start_char: str = "") -> None:
+def pprint_registers_util(
+    registers: Registers,
+    maps: MemoryMapList,
+    gen_regs: list[str],
+    message: str = "registers",
+) -> None:
     """Pretty prints the thread's registers."""
+    if message:
+        print("┌──────[ registers ]")
     for curr_reg in gen_regs:
-        _pprint_reg(registers, maps, curr_reg, start_char)
+        _pprint_reg(registers, maps, curr_reg, message)
+    if message:
+        print("└────────")
 
 
 def pprint_registers_all_util(
@@ -230,31 +246,46 @@ def pprint_memory_util(
     word_size: int = 8,
     mode: str = "bytes",
     max_instructions: int = 6,
-    start_char: str = "",
+    message: str = "memory",
+    registers: Registers | None = None,
+    regs: list[str] | None = None,
 ) -> None:
     """Pretty prints the memory."""
+    if message:
+        print(f"┌──────[ {message} ]")
+    start_char = "│ " if message else ""
+
+    rows = []  # (reg_str, addr_str, out) for each word
+    reg_col_width = 0  # widest reg_str we will print
     match mode:
         case "bytes" | "hex":
             # Loop through each word-sized chunk
-            for i in range(0, len(extract), word_size):
-                # Calculate the current address
-                current_address = address_start + i
-                current_address_str = _get_colored_address_string(current_address, maps)
 
-                # Extract word-sized chunks from both extracts
+            for i in range(0, len(extract), word_size):
+                current_address = address_start + i
+                addr_str = _get_colored_address_string(current_address, maps)
+
+                # Filter registers ONCE and remember the printable string
+                regs_here = registers.filter(current_address) if registers else []
+                if regs_here and regs:
+                    # We want to keep only the registers we are interested in
+                    regs_here = [reg for reg in regs if reg in regs_here]
+
+                reg_str = f" {', '.join(regs_here)}" if regs_here else ""
+                reg_col_width = max(reg_col_width, len(reg_str))  # grow the max width
+
+                # Build the data we need to print
                 word = extract[i : i + word_size]
                 if mode == "bytes":
-                    # Convert each byte in the chunks to hex and compare
-                    formatted_word = [f"{byte:02x}" for byte in word]
-
-                    # Join the formatted bytes into a string for each column
-                    out = " ".join(formatted_word)
+                    out = " ".join(f"{byte:02x}" for byte in word)
                 else:
-                    # Take the hex representation of the word
                     content = int.from_bytes(word, sys.byteorder)
                     out = _get_colored_address_string(content, maps)
-                # Print the memory diff with the address for this word
-                print(f"{start_char}{current_address_str}:  {out}")
+
+                rows.append((reg_str, addr_str, out))
+
+            for reg_str, addr_str, out in rows:
+                print(f"{start_char}{reg_str:<{reg_col_width}}{addr_str}:  {out}")
         case "disasm":
             # Disassemble the word and format it
             if not Cs:
@@ -274,10 +305,28 @@ def pprint_memory_util(
             for idx, insn in enumerate(md.disasm(extract, address_start)):
                 if idx >= max_instructions:
                     break
-                out += f"{start_char}{_get_colored_address_string(insn.address, maps)}: {insn.mnemonic} {insn.op_str}\n"
-            print(out)
+
+                addr_str = _get_colored_address_string(insn.address, maps)
+
+                regs_here = registers.filter(insn.address) if registers else []
+                if regs_here and regs:
+                    # We want to keep only the registers we are interested in
+                    regs_here = [reg for reg in regs if reg in regs_here]
+
+                reg_str = f" {', '.join(regs_here)}" if regs_here else ""
+                reg_col_width = max(reg_col_width, len(reg_str))
+
+                rows.append((reg_str, addr_str, insn.mnemonic, insn.op_str))
+            out_lines = [
+                f"{start_char}{reg_str:<{reg_col_width}}{addr_str}: {mnemonic} {op_str}"
+                for reg_str, addr_str, mnemonic, op_str in rows
+            ]
+            print("\n".join(out_lines))
         case _:
             raise ValueError(f"Unknown mode: {mode}. Supported modes are 'bytes', 'hex', and 'disasm'.")
+
+    if message:
+        print("└────────")
 
 
 def pprint_memory_diff_util(

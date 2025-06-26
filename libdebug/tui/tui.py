@@ -17,59 +17,54 @@ from libdebug.utils.pprint_primitives import pprint_backtrace_util, pprint_memor
 
 def draw_registers(dbg: InternalDebugger) -> None:
     """Render the registers in a reader-friendly format."""
-    print("┌─[ registers ]")
     pprint_registers_util(
         dbg.threads[0].regs,
         dbg.maps,
         dbg.threads[0]._register_holder.provide_regs(),
-        start_char="│ ",
     )
-    print("└─")
 
 
 def draw_backtrace(dbg: InternalDebugger) -> None:
     """Draw the backtrace of the current thread."""
-    print("┌─[ backtrace ]")
     # We do not want annoying warning about broken backtrace here
     with libcontext.tmp(general_logger="SILENT"):
         backtrace = dbg.threads[0].backtrace()
         maps = dbg.maps
-        pprint_backtrace_util(backtrace=backtrace, maps=maps, external_symbols=dbg.symbols, start_char="│ ")
-    print("└─")
+        pprint_backtrace_util(backtrace=backtrace, maps=maps, external_symbols=dbg.symbols)
 
 
 def draw_stack(dbg: InternalDebugger) -> None:
     """Draw the stack in a reader-friendly format."""
     sp = dbg.threads[0].regs.__getattribute__("rsp")  # stack pointer
-    print("┌─[ stack ]")
     pprint_memory_util(
         address_start=sp,
         extract=dbg.memory[sp, 8 * 8],
         word_size=8,
         maps=dbg.maps,
-        architecture= dbg.arch,
+        architecture=dbg.arch,
         mode="hex",
-        start_char="│ ",
+        message="stack",
+        registers=dbg.threads[0].regs,
+        regs=dbg.threads[0]._register_holder.provide_regs(),
     )
-    print("└─")
-    
+
 
 def draw_disasm(dbg: InternalDebugger) -> None:
     """Draw the disassembly of the executing code."""
-    print("┌─[ disasm ]")
     # We do not want annoying warning about broken disasm here
     address_start = dbg.threads[0].instruction_pointer
     extract = dbg.memory[address_start, 100]
     pprint_memory_util(
-        address_start= address_start,
-        extract= extract,
+        address_start=address_start,
+        extract=extract,
         maps=dbg.maps,
         architecture=dbg.arch,
         mode="disasm",
         max_instructions=8,
-        start_char="│ ",
+        message="disasm",
+        registers=dbg.threads[0].regs,
+        regs=["rip"],
     )
-    print("└─")
 
 
 # ── pretty printer ────────────────────────────────────────────────────
