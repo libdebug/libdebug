@@ -548,6 +548,7 @@ class MemoryTest(TestCase):
         self.assertEqual(len(str_five_levels_default), 6)
         self.assertIsInstance(str_five_levels_default[-1], bytes)
         self.assertEqual(str_five_levels_default[-1], b"Telescope test passed!")
+        self.assertEqual(str_five_levels_default[0], str_five_levels)
         
         # Test telescope with the right, custom depth
         str_five_levels_len = d.mem.telescope(str_five_levels, 6)
