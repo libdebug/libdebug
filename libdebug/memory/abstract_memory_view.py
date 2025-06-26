@@ -263,7 +263,7 @@ class AbstractMemoryView(MutableSequence, ABC):
         depth: int = 10,
         min_str_len: int = 3,
         max_str_len: int = 0x100,
-    ) -> list[int | bytes]:
+    ) -> list[int | str]:
         """Returns a telescope of the memory at the specified address.
 
         Args:
@@ -273,7 +273,7 @@ class AbstractMemoryView(MutableSequence, ABC):
             max_str_len (int, optional): The maximum length of a string to be resolved, if the found element is not a valid address. Defaults to 0x100.
 
         Returns:
-            list[int | bytes]: The telescope chain. The last element might be both an integer or a bytestring, depending on the arguments provided and the content of the memory. The first element is always the address provided as argument.
+            list[int | str]: The telescope chain. The last element might be both an integer or a string, depending on the arguments provided and the content of the memory. The first element is always the address provided as argument.
         """
         if min_str_len < -1:
             raise ValueError("min_str_len must be -1 or greater.")
@@ -332,9 +332,9 @@ class AbstractMemoryView(MutableSequence, ABC):
 
         if actual_val is None:
             # The value was not a string matching the criteria, so we convert it to an integer
-            val = int.from_bytes(val, sys.byteorder)
+            actual_val = int.from_bytes(val, sys.byteorder)
 
-        chain[-1] = val
+        chain[-1] = actual_val
 
         return chain
 
