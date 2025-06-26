@@ -262,15 +262,15 @@ class AbstractMemoryView(MutableSequence, ABC):
         address: int,
         depth: int = 10,
         min_str_len: int = 3,
-        max_string_len: int = 0x100,
-    ) -> list[int | str]:
+        max_str_len: int = 0x100,
+    ) -> list[int | bytes]:
         """Returns a telescope of the memory at the specified address.
 
         Args:
             address (int): The address to telescope.
             depth (int, optional): The depth of the telescope. Defaults to 10.
             min_str_len (int, optional): The minimum length of a string to be resolved, if the found element is not a valid address. If -1, the element will never be resolved as a string. Defaults to 3.
-            max_string_len (int, optional): The maximum length of a string to be resolved, if the found element is not a valid address. Defaults to 0x100.
+            max_str_len (int, optional): The maximum length of a string to be resolved, if the found element is not a valid address. Defaults to 0x100.
         """
         addr_size = get_platform_gp_register_size(self._internal_debugger.arch)
 
@@ -298,8 +298,8 @@ class AbstractMemoryView(MutableSequence, ABC):
                 liblog.warning(
                     "Fast memory reading is disabled. Using telescope with fast_memory=False may be slow.",
                 )
-            val = self.read(last_ptr, max_string_len)
-            if all(b >= lp and b <= hp for b in val[:max_string_len]):
+            val = self.read(last_ptr, max_str_len)
+            if all(b >= lp and b <= hp for b in val[:max_str_len]):
                 null_byte = val.find(b"\x00")
                 if null_byte != -1:
                     val = val[:null_byte]
@@ -309,7 +309,7 @@ class AbstractMemoryView(MutableSequence, ABC):
                 liblog.warning(
                     "Fast memory reading is disabled. Using telescope with fast_memory=False may be slow.",
                 )
-            val = self.read(last_ptr, max_string_len)
+            val = self.read(last_ptr, max_str_len)
             null_byte = val.find(b"\x00")
             if null_byte != -1:
                 val = val[:null_byte]
