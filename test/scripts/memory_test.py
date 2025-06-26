@@ -608,6 +608,11 @@ class MemoryTest(TestCase):
         int_fifteen_levels_wrong = d.mem.telescope(int_fifteen_levels, 78)
         self.assertEqual(int_fifteen_levels_wrong, int_fifteen_levels_len)
         
+        # Test telescope with a depth of 0
+        with self.assertRaises(ValueError) as cm:
+            d.mem.telescope(str_five_levels, 0)
+        self.assertIn("depth must be greater than 0.", str(cm.exception))
+        
         d.wait()
 
         d.kill()
@@ -648,6 +653,37 @@ class MemoryTest(TestCase):
         str_five_levels_content = d.mem.telescope(str_five_levels, max_str_len=10)
         self.assertIsInstance(str_five_levels_content[-1], bytes)
         self.assertEqual(str_five_levels_content[-1], b"Telescope test passed!"[:10])
+        
+        # Test telescope with -1 as min str length
+        # This will make the telescope to not interpret the last value as a string
+        str_five_levels_content = d.mem.telescope(str_five_levels, min_str_len=-1)
+        self.assertIsInstance(str_five_levels_content[-1], int)
+        
+        # Test telescope with min str length equal to max str length
+        str_five_levels_content = d.mem.telescope(str_five_levels, min_str_len=6, max_str_len=6)
+        self.assertIsInstance(str_five_levels_content[-1], bytes)
+        self.assertEqual(str_five_levels_content[-1], b"Telescope test passed!"[:6])
+        
+        # Test telescope with 0 as min str length
+        str_five_levels_content = d.mem.telescope(str_five_levels, min_str_len=0)
+        self.assertIsInstance(str_five_levels_content[-1], bytes)
+        self.assertEqual(str_five_levels_content[-1], b"Telescope test passed!")
+        
+        # Test telescope with min str length greater than max str length
+        with self.assertRaises(ValueError) as cm:
+            d.mem.telescope(str_five_levels, min_str_len=10, max_str_len=5)
+        self.assertIn("min_str_len must be less than or equal to max_str_len.", str(cm.exception))
+        
+        # Test telescope with min str length lower than -1
+        with self.assertRaises(ValueError) as cm:
+            d.mem.telescope(str_five_levels, min_str_len=-2)
+        self.assertIn("min_str_len must be -1 or greater.", str(cm.exception))
+        
+        # Test telescope with max str length lower than 1
+        with self.assertRaises(ValueError) as cm:
+            d.mem.telescope(str_five_levels, max_str_len=0)
+        self.assertIn("max_str_len must be greater than 0.", str(cm.exception))
+
       
         
         d.wait()
