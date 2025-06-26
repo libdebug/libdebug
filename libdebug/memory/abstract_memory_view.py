@@ -272,6 +272,18 @@ class AbstractMemoryView(MutableSequence, ABC):
             min_str_len (int, optional): The minimum length of a string to be resolved, if the found element is not a valid address. If -1, the element will never be resolved as a string. Defaults to 3.
             max_str_len (int, optional): The maximum length of a string to be resolved, if the found element is not a valid address. Defaults to 0x100.
         """
+        if min_str_len < -1:
+            raise ValueError("min_str_len must be -1 or greater.")
+
+        if max_str_len < 1:
+            raise ValueError("max_str_len must be greater than 0.")
+
+        if depth < 1:
+            raise ValueError("depth must be greater than 0.")
+
+        if min_str_len > max_str_len:
+            raise ValueError("min_str_len must be less than or equal to max_str_len.")
+
         addr_size = get_platform_gp_register_size(self._internal_debugger.arch)
 
         # Validate the address
