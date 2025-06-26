@@ -313,22 +313,22 @@ class AbstractMemoryView(MutableSequence, ABC):
                 liblog.warning(
                     "Fast memory reading is disabled. Using telescope with fast_memory=False may be slow.",
                 )
-            val = self.read(last_ptr, max_str_len)
-            if all(b >= lp and b <= hp for b in val[:min_str_len]):
-                null_byte = val.find(b"\x00")
+            tmp_val = self.read(last_ptr, max_str_len)
+            if all(b >= lp and b <= hp for b in tmp_val[:min_str_len]):
+                null_byte = tmp_val.find(b"\x00")
                 if null_byte != -1:
-                    val = val[:null_byte]
-                actual_val = val.decode("utf-8", errors="backslashreplace")
+                    tmp_val = tmp_val[:null_byte]
+                actual_val = tmp_val.decode("utf-8", errors="backslashreplace")
         elif min_str_len != -1 and all(b >= lp and b <= hp for b in val[:min_str_len]):
             if not self._internal_debugger.fast_memory:
                 liblog.warning(
                     "Fast memory reading is disabled. Using telescope with fast_memory=False may be slow.",
                 )
-            val = self.read(last_ptr, max_str_len)
-            null_byte = val.find(b"\x00")
+            tmp_val = self.read(last_ptr, max_str_len)
+            null_byte = tmp_val.find(b"\x00")
             if null_byte != -1:
-                val = val[:null_byte]
-            actual_val = val.decode("utf-8", errors="backslashreplace")
+                tmp_val = tmp_val[:null_byte]
+            actual_val = tmp_val.decode("utf-8", errors="backslashreplace")
 
         if actual_val is None:
             # The value was not a string matching the criteria, so we convert it to an integer
