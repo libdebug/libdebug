@@ -257,6 +257,72 @@ class AbstractMemoryView(MutableSequence, ABC):
 
         return found_pointers
 
+    def telescope(  # noqa: C901
+        self: AbstractMemoryView,
+        address: int,
+        depth: int = 10,
+        min_str_len: int = 3,
+        max_string_len: int = 0x100,
+    ) -> list[int | str]:
+        """Returns a telescope of the memory at the specified address.
+
+        Args:
+            address (int): The address to telescope.
+            depth (int, optional): The depth of the telescope. Defaults to 10.
+            min_str_len (int, optional): The minimum length of a string to be resolved, if the found element is not a valid address. If -1, the element will never be resolved as a string. Defaults to 3.
+            max_string_len (int, optional): The maximum length of a string to be resolved, if the found element is not a valid address. Defaults to 0x100.
+        """
+        addr_size = get_platform_gp_register_size(self._internal_debugger.arch)
+
+        # Validate the address
+        addr = self._internal_debugger.resolve_address(address, "absolute")
+
+        chain: list[int | str] = [addr]
+        for _ in range(depth):
+            try:
+                val = self.read(addr, addr_size)
+                addr = int.from_bytes(val, sys.byteorder)
+                chain.append(addr)
+            except (OSError, OverflowError):
+                break
+
+        # The val variable contains the last read value, which can be a string or whatever
+        lp = 0x20
+        hp = 0x7E
+        last_ptr = chain[-2]
+
+        actual_val = None
+
+        if min_str_len != -1 and len(val) < min_str_len:
+            if not self._internal_debugger.fast_memory:
+                liblog.warning(
+                    "Fast memory reading is disabled. Using telescope with fast_memory=False may be slow.",
+                )
+            val = self.read(last_ptr, max_string_len)
+            if all(b >= lp and b <= hp for b in val[:max_string_len]):
+                null_byte = val.find(b"\x00")
+                if null_byte != -1:
+                    val = val[:null_byte]
+                actual_val = val.decode("utf-8", errors="backslashreplace")
+        elif min_str_len != -1 and all(b >= lp and b <= hp for b in val[:min_str_len]):
+            if not self._internal_debugger.fast_memory:
+                liblog.warning(
+                    "Fast memory reading is disabled. Using telescope with fast_memory=False may be slow.",
+                )
+            val = self.read(last_ptr, max_string_len)
+            null_byte = val.find(b"\x00")
+            if null_byte != -1:
+                val = val[:null_byte]
+            actual_val = val.decode("utf-8", errors="backslashreplace")
+
+        if actual_val is None:
+            # The value was not a string matching the criteria, so we convert it to an integer
+            val = int.from_bytes(val, sys.byteorder)
+
+        chain[-1] = val
+
+        return chain
+
     def __getitem__(self: AbstractMemoryView, key: int | slice | str | tuple) -> bytes:
         """Read from memory, either a single byte or a byte string.
 
