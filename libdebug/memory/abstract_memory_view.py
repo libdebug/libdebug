@@ -314,7 +314,7 @@ class AbstractMemoryView(MutableSequence, ABC):
                     "Fast memory reading is disabled. Using telescope with fast_memory=False may be slow.",
                 )
             val = self.read(last_ptr, max_str_len)
-            if all(b >= lp and b <= hp for b in val[:max_str_len]):
+            if all(b >= lp and b <= hp for b in val[:min_str_len]):
                 null_byte = val.find(b"\x00")
                 if null_byte != -1:
                     val = val[:null_byte]
