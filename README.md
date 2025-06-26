@@ -21,9 +21,36 @@ When running the same executable multiple times, choosing efficient implementati
 Homepage: https://libdebug.org  \
 Documentation: https://docs.libdebug.org
 
+### Installation Requirements:
+Current rolling releases of libdebug handle the installation of the required dependencies automatically. However, if you are on an unsupported distribution or are building from source, you may want to install the following dependencies manually.
+
+Ubuntu: \
+`sudo apt install -y python3 python3-dev g++ libdwarf-dev libelf-dev libiberty-dev libc6-dbg` \
+Debian: \
+`sudo apt install -y python3 python3-dev g++ libdwarf-dev libelf-dev libiberty-dev libc6-dbg` \
+Arch Linux: \
+`sudo pacman -S python libelf libdwarf gcc make debuginfod` \
+Fedora: \
+`sudo dnf install -y python3 python3-devel kernel-devel g++ binutils-devel libdwarf-devel`\
+openSUSE: \
+`sudo zypper install -y gcc-c++ make python3 python3-devel libelf-devel libdwarf-devel binutils-devel`\
+Alpine Linux: \
+`sudo apk add -y python3 python3-dev py3-pip linux-headers elfutils-dev libdwarf-dev binutils-dev`
+
+
 ## Installation
 ```bash
 python3 -m pip install libdebug
+```
+
+> ⚠️ <span style="color:rgb(190, 111, 21); font-weight: bold">Warning</span>\
+`PyPy3` is supported but not recommended, as it performs worse on most of our tests.
+
+### Install from another branch
+If you want to stay up to date with the most cutting-edge features (and you don't mind being on an unstable branch) you can install from a different branch (e.g., `dev`).
+
+```bash
+python3 -m pip install git+https://github.com/libdebug/libdebug.git@dev
 ```
 
 Please visit the [build guide](https://docs.libdebug.org/development/building_libdebug/) for more information on how to manually build libdebug from source.
