@@ -4,1048 +4,376 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+from libdebug.utils.gnu_constants import GnuConstants
+
+# !!! Parsing Values are up to date with Linux Kernel 6.15 !!!
+
+#TODO: Check if we can use the same parser for x86_64
+def parse_ptrace_data(*args) -> str:
+    """
+    Parse the ptrace data value into a dictionary.
+
+    Args:
+        *args: The arguments passed to the ptrace syscall.
+    """
+    request, pid, addr, data = args
+
+    # Skip any other parsing it's just 0
+    if data == 0:
+        return "0x0"
+
+    PTRACE_SETOPTIONS = 0x4200
+    PTRACE_SEIZE = 0x4206
+
+    if request in (PTRACE_SETOPTIONS, PTRACE_SEIZE):
+        options = {
+            0x1: "PTRACE_O_TRACESYSGOOD",
+            0x2: "PTRACE_O_TRACEFORK",
+            0x4: "PTRACE_O_TRACEVFORK",
+            0x8: "PTRACE_O_TRACECLONE",
+            0x10: "PTRACE_O_TRACEEXEC",
+            0x20: "PTRACE_O_TRACEVFORKDONE",
+            0x40: "PTRACE_O_TRACEEXIT",
+            0x80: "PTRACE_O_TRACESECCOMP",
+            0x100000: "PTRACE_O_EXITKILL",
+            0x200000: "PTRACE_O_SUSPEND_SECCOMP",
+        }
+
+        masked_bits = 0x0
+        out = ""
+
+        for bit, name in options.items():
+            if data & bit:
+                masked_bits |= bit
+                out = out + " | " + name if out else name
+                data &= ~bit
+
+                # Early exit if all bits are masked
+                if not data:
+                    break
+
+        # Unmasked values
+        if data:
+            return out + f" | {data:#x}" if out else f"{data:#x}"
+
+        return out
+    else:
+        return f"{data:#x}"
+
 AARCH64_SYSCALL_PARSER_MAP = \
 {
-    #io_setup
-    0:{
-        #unsigned nr_events
-        0: {},
-        #aio_context_t *ctxp
-        1: {},
-    },
-    #io_destroy
-    1:{
-        #aio_context_t ctx
-        0: {},
-    },
-    #io_submit
-    2:{
-        #aio_context_t ctx_id
-        0: {},
-        #long nr
-        1: {},
-        #struct iocb **iocbpp
-        2: {},
-    },
-    #io_cancel
-    3:{
-        #aio_context_t ctx_id
-        0: {},
-        #struct iocb *iocb
-        1: {},
-        #struct io_event *result
-        2: {},
-    },
-    #io_getevents
-    4:{
-        #aio_context_t ctx_id
-        0: {},
-        #long min_nr
-        1: {},
-        #long nr
-        2: {},
-        #struct io_event *events
-        3: {},
-        #struct __kernel_timespec *timeout
-        4: {},
-    },
     #setxattr
     5:{
-        #const char *pathname
-        0: {},
-        #const char *name
-        1: {},
-        #const void *value
-        2: {},
-        #size_t size
-        3: {},
         #int flags
-        4: {},
+        4: GnuConstants.XATTR_FLAGS,
     },
     #lsetxattr
     6:{
-        #const char *pathname
-        0: {},
-        #const char *name
-        1: {},
-        #const void *value
-        2: {},
-        #size_t size
-        3: {},
         #int flags
-        4: {},
+        4: GnuConstants.XATTR_FLAGS,
     },
     #fsetxattr
     7:{
-        #int fd
-        0: {},
-        #const char *name
-        1: {},
-        #const void *value
-        2: {},
-        #size_t size
-        3: {},
         #int flags
-        4: {},
-    },
-    #getxattr
-    8:{
-        #const char *pathname
-        0: {},
-        #const char *name
-        1: {},
-        #void *value
-        2: {},
-        #size_t size
-        3: {},
-    },
-    #lgetxattr
-    9:{
-        #const char *pathname
-        0: {},
-        #const char *name
-        1: {},
-        #void *value
-        2: {},
-        #size_t size
-        3: {},
-    },
-    #fgetxattr
-    10:{
-        #int fd
-        0: {},
-        #const char *name
-        1: {},
-        #void *value
-        2: {},
-        #size_t size
-        3: {},
-    },
-    #listxattr
-    11:{
-        #const char *pathname
-        0: {},
-        #char *list
-        1: {},
-        #size_t size
-        2: {},
-    },
-    #llistxattr
-    12:{
-        #const char *pathname
-        0: {},
-        #char *list
-        1: {},
-        #size_t size
-        2: {},
-    },
-    #flistxattr
-    13:{
-        #int fd
-        0: {},
-        #char *list
-        1: {},
-        #size_t size
-        2: {},
-    },
-    #removexattr
-    14:{
-        #const char *pathname
-        0: {},
-        #const char *name
-        1: {},
-    },
-    #lremovexattr
-    15:{
-        #const char *pathname
-        0: {},
-        #const char *name
-        1: {},
-    },
-    #fremovexattr
-    16:{
-        #int fd
-        0: {},
-        #const char *name
-        1: {},
-    },
-    #getcwd
-    17:{
-        #char *buf
-        0: {},
-        #unsigned long size
-        1: {},
+        4: GnuConstants.XATTR_FLAGS,
     },
     #eventfd2
     19:{
-        #unsigned int count
-        0: {},
         #int flags
-        1: {},
+        1: GnuConstants.EVENTFD_FLAGS,
     },
     #epoll_create1
     20:{
         #int flags
-        0: {},
+        0: GnuConstants.EPOLL_CREATE_FLAGS,
     },
     #epoll_ctl
     21:{
-        #int epfd
-        0: {},
         #int op
-        1: {},
-        #int fd
-        2: {},
-        #struct epoll_event *event
-        3: {},
-    },
-    #epoll_pwait
-    22:{
-        #int epfd
-        0: {},
-        #struct epoll_event *events
-        1: {},
-        #int maxevents
-        2: {},
-        #int timeout
-        3: {},
-        #const sigset_t *sigmask
-        4: {},
-        #size_t sigsetsize
-        5: {},
-    },
-    #dup
-    23:{
-        #unsigned int fildes
-        0: {},
+        1: GnuConstants.EPOLL_CTL_OPS,
     },
     #dup3
     24:{
-        #unsigned int oldfd
-        0: {},
-        #unsigned int newfd
-        1: {},
         #int flags
-        2: {},
+        2: GnuConstants.DUP3_FLAGS,
     },
     #fcntl
     25:{
-        #unsigned int fd
-        0: {},
         #unsigned int cmd
-        1: {},
+        1: GnuConstants.FCNTL_CMDS,
         #unsigned long arg
-        2: {},
+        2: {
+            "parsing_mode": "custom",
+            "parser": GnuConstants.parse_fcntl_arg,
+        },
     },
     #inotify_init1
     26:{
         #int flags
-        0: {},
-    },
-    #inotify_add_watch
-    27:{
-        #int fd
-        0: {},
-        #const char *pathname
-        1: {},
-        #u32 mask
-        2: {},
-    },
-    #inotify_rm_watch
-    28:{
-        #int fd
-        0: {},
-        #__s32 wd
-        1: {},
-    },
-    #ioctl
-    29:{
-        #unsigned int fd
-        0: {},
-        #unsigned int cmd
-        1: {},
-        #unsigned long arg
-        2: {},
+        0: GnuConstants.INOTIFY_INIT_FLAGS,
     },
     #ioprio_set
     30:{
         #int which
-        0: {},
-        #int who
-        1: {},
-        #int ioprio
-        2: {},
+        0: GnuConstants.IOPRIO_WHICH,
     },
     #ioprio_get
     31:{
         #int which
-        0: {},
-        #int who
-        1: {},
+        0: GnuConstants.IOPRIO_WHICH,
     },
     #flock
     32:{
-        #unsigned int fd
-        0: {},
         #unsigned int cmd
-        1: {},
+        1: GnuConstants.FLOCK_CMDS,
     },
     #mknodat
     33:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
+        0: GnuConstants.OPENAT_DFD,
         #umode_t mode
-        2: {},
-        #unsigned int dev
-        3: {},
+        2: GnuConstants.MKNOD_MODES,
     },
     #mkdirat
     34:{
         #int dfd
-        0: {},
-        #const char *pathname
-        1: {},
+        0: GnuConstants.OPENAT_DFD,
         #umode_t mode
-        2: {},
+        2: GnuConstants.OPEN_MODES,
     },
     #unlinkat
     35:{
         #int dfd
-        0: {},
-        #const char *pathname
-        1: {},
+        0: GnuConstants.OPENAT_DFD,
         #int flag
-        2: {},
+        2: GnuConstants.UNLINKAT_FLAGS,
     },
     #symlinkat
     36:{
-        #const char *oldname
-        0: {},
         #int newdfd
-        1: {},
-        #const char *newname
-        2: {},
+        1: GnuConstants.OPENAT_DFD,
     },
     #linkat
     37:{
         #int olddfd
-        0: {},
-        #const char *oldname
-        1: {},
+        0: GnuConstants.OPENAT_DFD,
         #int newdfd
-        2: {},
-        #const char *newname
-        3: {},
+        2: GnuConstants.OPENAT_DFD,
         #int flags
-        4: {},
+        4: GnuConstants.LINKAT_FLAGS,
     },
     #renameat
     38:{
         #int olddfd
-        0: {},
-        #const char *oldname
-        1: {},
-        #int newdfd
-        2: {},
-        #const char *newname
-        3: {},
+        0: GnuConstants.OPENAT_DFD,
     },
     #umount
     39:{
-        #char *name
-        0: {},
         #int flags
-        1: {},
+        1: GnuConstants.UMOUNT_FLAGS,
     },
     #mount
     40:{
-        #char *dev_name
-        0: {},
-        #char *dir_name
-        1: {},
-        #char *type
-        2: {},
         #unsigned long flags
-        3: {},
-        #void *data
-        4: {},
-    },
-    #pivot_root
-    41:{
-        #const char *new_root
-        0: {},
-        #const char *put_old
-        1: {},
-    },
-    #statfs
-    43:{
-        #const char *pathname
-        0: {},
-        #struct statfs *buf
-        1: {},
-    },
-    #fstatfs
-    44:{
-        #unsigned int fd
-        0: {},
-        #struct statfs *buf
-        1: {},
-    },
-    #truncate
-    45:{
-        #const char *path
-        0: {},
-        #long length
-        1: {},
-    },
-    #ftruncate
-    46:{
-        #unsigned int fd
-        0: {},
-        #off_t length
-        1: {},
+        3: GnuConstants.MOUNT_FLAGS,
     },
     #fallocate
     47:{
-        #int fd
-        0: {},
         #int mode
-        1: {},
-        #loff_t offset
-        2: {},
-        #loff_t len
-        3: {},
+        1: GnuConstants.FALLOCATE_MODES,
     },
     #faccessat
     48:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
+        0: GnuConstants.OPENAT_DFD,
         #int mode
-        2: {},
-    },
-    #chdir
-    49:{
-        #const char *filename
-        0: {},
-    },
-    #fchdir
-    50:{
-        #unsigned int fd
-        0: {},
-    },
-    #chroot
-    51:{
-        #const char *filename
-        0: {},
+        2: GnuConstants.OPEN_MODES,
     },
     #fchmod
     52:{
-        #unsigned int fd
-        0: {},
         #umode_t mode
-        1: {},
+        1: GnuConstants.OPEN_MODES,
     },
     #fchmodat
     53:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
+        0: GnuConstants.OPENAT_DFD,
         #umode_t mode
-        2: {},
+        2: GnuConstants.OPEN_MODES,
     },
     #fchownat
     54:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
-        #uid_t user
-        2: {},
-        #gid_t group
-        3: {},
+        0: GnuConstants.OPENAT_DFD,
         #int flag
-        4: {},
-    },
-    #fchown
-    55:{
-        #unsigned int fd
-        0: {},
-        #uid_t user
-        1: {},
-        #gid_t group
-        2: {},
+        4: GnuConstants.FCHOWNAT_FLAGS,
     },
     #openat
     56:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
+        0: GnuConstants.OPENAT_DFD,
         #int flags
-        2: {},
+        2: GnuConstants.OPEN_FLAGS,
         #umode_t mode
-        3: {},
-    },
-    #close
-    57:{
-        #unsigned int fd
-        0: {},
-    },
-    #vhangup
-    58:{
+        3: GnuConstants.OPEN_MODES,
     },
     #pipe2
     59:{
-        #int *fildes
-        0: {},
         #int flags
-        1: {},
+        1: GnuConstants.PIPE2_FLAGS,
     },
     #quotactl
     60:{
         #unsigned int cmd
-        0: {},
-        #const char *special
-        1: {},
-        #qid_t id
-        2: {},
-        #void *addr
-        3: {},
-    },
-    #getdents64
-    61:{
-        #unsigned int fd
-        0: {},
-        #struct linux_dirent64 *dirent
-        1: {},
-        #unsigned int count
-        2: {},
+        0: GnuConstants.QUOTACTL_CMDS,
+        # Technically if cmd is Q_QUOTAON,
+        # we could parse the ID with QFMT defines but
+        # it's likely not worth it
     },
     #lseek
     62:{
-        #unsigned int fd
-        0: {},
-        #off_t offset
-        1: {},
         #unsigned int whence
-        2: {},
-    },
-    #read
-    63:{
-        #unsigned int fd
-        0: {},
-        #char *buf
-        1: {},
-        #size_t count
-        2: {},
-    },
-    #write
-    64:{
-        #unsigned int fd
-        0: {},
-        #const char *buf
-        1: {},
-        #size_t count
-        2: {},
-    },
-    #readv
-    65:{
-        #unsigned long fd
-        0: {},
-        #const struct iovec *vec
-        1: {},
-        #unsigned long vlen
-        2: {},
-    },
-    #writev
-    66:{
-        #unsigned long fd
-        0: {},
-        #const struct iovec *vec
-        1: {},
-        #unsigned long vlen
-        2: {},
-    },
-    #pread64
-    67:{
-        #unsigned int fd
-        0: {},
-        #char *buf
-        1: {},
-        #size_t count
-        2: {},
-        #loff_t pos
-        3: {},
-    },
-    #pwrite64
-    68:{
-        #unsigned int fd
-        0: {},
-        #const char *buf
-        1: {},
-        #size_t count
-        2: {},
-        #loff_t pos
-        3: {},
-    },
-    #preadv
-    69:{
-        #unsigned long fd
-        0: {},
-        #const struct iovec *vec
-        1: {},
-        #unsigned long vlen
-        2: {},
-        #unsigned long pos_l
-        3: {},
-        #unsigned long pos_h
-        4: {},
-    },
-    #pwritev
-    70:{
-        #unsigned long fd
-        0: {},
-        #const struct iovec *vec
-        1: {},
-        #unsigned long vlen
-        2: {},
-        #unsigned long pos_l
-        3: {},
-        #unsigned long pos_h
-        4: {},
-    },
-    #sendfile64
-    71:{
-        #int out_fd
-        0: {},
-        #int in_fd
-        1: {},
-        #loff_t *offset
-        2: {},
-        #size_t count
-        3: {},
-    },
-    #pselect6
-    72:{
-        #int n
-        0: {},
-        #fd_set *inp
-        1: {},
-        #fd_set *outp
-        2: {},
-        #fd_set *exp
-        3: {},
-        #struct __kernel_timespec *tsp
-        4: {},
-        #void *sig
-        5: {},
-    },
-    #ppoll
-    73:{
-        #struct pollfd *ufds
-        0: {},
-        #unsigned int nfds
-        1: {},
-        #struct __kernel_timespec *tsp
-        2: {},
-        #const sigset_t *sigmask
-        3: {},
-        #size_t sigsetsize
-        4: {},
+        2: GnuConstants.LSEEK_WHENCE,
     },
     #signalfd4
     74:{
-        #int ufd
-        0: {},
-        #sigset_t *user_mask
-        1: {},
-        #size_t sizemask
-        2: {},
         #int flags
-        3: {},
+        3: GnuConstants.SIGNALFD_FLAGS,
     },
     #vmsplice
     75:{
-        #int fd
-        0: {},
-        #const struct iovec *uiov
-        1: {},
-        #unsigned long nr_segs
-        2: {},
         #unsigned int flags
-        3: {},
+        3: GnuConstants.VMSPLICE_FLAGS,
     },
     #splice
     76:{
-        #int fd_in
-        0: {},
-        #loff_t *off_in
-        1: {},
-        #int fd_out
-        2: {},
-        #loff_t *off_out
-        3: {},
-        #size_t len
-        4: {},
         #unsigned int flags
-        5: {},
+        5: GnuConstants.SPLICE_FLAGS,
     },
     #tee
     77:{
-        #int fdin
-        0: {},
-        #int fdout
-        1: {},
-        #size_t len
-        2: {},
         #unsigned int flags
-        3: {},
+        3: GnuConstants.SPLICE_FLAGS,
     },
     #readlinkat
     78:{
         #int dfd
-        0: {},
-        #const char *pathname
-        1: {},
-        #char *buf
-        2: {},
-        #int bufsiz
-        3: {},
+        0: GnuConstants.OPENAT_DFD,
     },
     #newfstatat
     79:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
-        #struct stat *statbuf
-        2: {},
+        0: GnuConstants.OPENAT_DFD,
         #int flag
-        3: {},
-    },
-    #newfstat
-    80:{
-        #unsigned int fd
-        0: {},
-        #struct stat *statbuf
-        1: {},
-    },
-    #sync
-    81:{
-    },
-    #fsync
-    82:{
-        #unsigned int fd
-        0: {},
-    },
-    #fdatasync
-    83:{
-        #unsigned int fd
-        0: {},
+        3: GnuConstants.NEWSTATFS_FLAGS,
     },
     #sync_file_range
     84:{
-        #int fd
-        0: {},
-        #loff_t offset
-        1: {},
-        #loff_t nbytes
-        2: {},
         #unsigned int flags
-        3: {},
+        3: GnuConstants.SYNC_FILE_RANGE_FLAGS,
     },
     #timerfd_create
     85:{
         #int clockid
-        0: {},
+        0: GnuConstants.TIMERFD_CREATE_CLOCKS,
         #int flags
-        1: {},
+        1: GnuConstants.TIMERFD_CREATE_FLAGS,
     },
     #timerfd_settime
     86:{
-        #int ufd
-        0: {},
         #int flags
-        1: {},
-        #const struct __kernel_itimerspec *utmr
-        2: {},
-        #struct __kernel_itimerspec *otmr
-        3: {},
-    },
-    #timerfd_gettime
-    87:{
-        #int ufd
-        0: {},
-        #struct __kernel_itimerspec *otmr
-        1: {},
+        1: GnuConstants.TIMERFD_SETTIME_FLAGS,
     },
     #utimensat
     88:{
-        #int dfd
-        0: {},
-        #const char *filename
-        1: {},
-        #struct __kernel_timespec *utimes
-        2: {},
         #int flags
-        3: {},
-    },
-    #acct
-    89:{
-        #const char *name
-        0: {},
-    },
-    #capget
-    90:{
-        #cap_user_header_t header
-        0: {},
-        #cap_user_data_t dataptr
-        1: {},
-    },
-    #capset
-    91:{
-        #cap_user_header_t header
-        0: {},
-        #const cap_user_data_t data
-        1: {},
+        3: GnuConstants.UTIMENSAT_FLAGS,
     },
     #personality
     92:{
         #unsigned int personality
-        0: {
-            0x0200000: "ADDR_COMPAT_LAYOUT",
-            0x0040000: "ADDR_NO_RANDOMIZE",
-            0x0800000: "PER_LINUX_32BIT | ADDR_LIMIT_32BIT",
-            0x8000000: "ADDR_LIMIT_3GB",
+        0: GnuConstants.PROCESS_PERSONALITIES + {
             0x0080000: "PER_LINUX_FDPIC | FDPIC_FUNCPTRS", # Applies only to ARM and SuperH
-            0x0100000: "MMAP_PAGE_ZERO",
-            0x0400000: "READ_IMPLIES_EXEC",
-            0x1000000: "SHORT_INODE",
-            0x4000000: "STICKY_TIMEOUTS",
-            0x0020000: "UNAME26",
-            0x2000000: "WHOLE_SECONDS",
-            0x0006: "PER_BSD",
-            0x0010: "PER_HPUX",
-            0x4000009: "PER_IRIX32",
-            0x400000b: "PER_IRIX64",
-            0x400000a: "PER_IRIXN32",
-            0x4000005: "PER_ISCR4",
-            0x0000000: "PER_LINUX",
-            0x0000008: "PER_LINUX32",
-            0x8000008: "PER_LINUX32_3GB",
-            0x000f: "PER_OSF4",
-            0x0000000c: "PER_RISCOS",
-            0x07000003: "PER_SCOSVR3",
-            0x0400000d: "PER_SOLARIS",
-            0x04000006: "PER_SUNOS",
-            0x05000002: "PER_SVR3",
-            0x04100001: "PER_SVR4",
-            0x0410000e: "PER_UW7",
-            0x05000004: "PER_WYSEV386",
-            0x05000007: "PER_XENIX",
         },
-    },
-    #exit
-    93:{
-        #int error_code
-        0: {},
-    },
-    #exit_group
-    94:{
-        #int error_code
-        0: {},
     },
     #waitid
     95:{
         #int which
-        0: {},
-        #pid_t upid
-        1: {},
-        #struct siginfo *infop
-        2: {},
+        0: GnuConstants.WAITID_WHICH,
         #int options
-        3: {},
-        #struct rusage *ru
-        4: {},
-    },
-    #set_tid_address
-    96:{
-        #int *tidptr
-        0: {},
+        3: GnuConstants.WAITID_OPTIONS,
     },
     #unshare
     97:{
         #unsigned long unshare_flags
-        0: {},
+        0: GnuConstants.UNSHARE_FLAGS,
     },
     #futex
     98:{
-        #u32 *uaddr
-        0: {},
         #int op
-        1: {},
-        #u32 val
-        2: {},
-        #const struct __kernel_timespec *utime
-        3: {},
-        #u32 *uaddr2
-        4: {},
-        #u32 val3
-        5: {},
-    },
-    #set_robust_list
-    99:{
-        #struct robust_list_head *head
-        0: {},
-        #size_t len
-        1: {},
-    },
-    #get_robust_list
-    100:{
-        #int pid
-        0: {},
-        #struct robust_list_head **head_ptr
-        1: {},
-        #size_t *len_ptr
-        2: {},
-    },
-    #nanosleep
-    101:{
-        #struct __kernel_timespec *rqtp
-        0: {},
-        #struct __kernel_timespec *rmtp
-        1: {},
+        1: GnuConstants.FUTEX_OPS,
     },
     #getitimer
     102:{
         #int which
-        0: {},
-        #struct __kernel_old_itimerval *value
-        1: {},
+        0: GnuConstants.ITIMER_WHICH,
     },
     #setitimer
     103:{
         #int which
-        0: {},
-        #struct __kernel_old_itimerval *value
-        1: {},
-        #struct __kernel_old_itimerval *ovalue
-        2: {},
+        0: GnuConstants.ITIMER_WHICH,
     },
     #kexec_load
     104:{
-        #unsigned long entry
-        0: {},
-        #unsigned long nr_segments
-        1: {},
-        #struct kexec_segment *segments
-        2: {},
         #unsigned long flags
-        3: {},
-    },
-    #init_module
-    105:{
-        #void *umod
-        0: {},
-        #unsigned long len
-        1: {},
-        #const char *uargs
-        2: {},
+        3: GnuConstants.KEXEC_LOAD_FLAGS,
     },
     #delete_module
     106:{
-        #const char *name_user
-        0: {},
         #unsigned int flags
-        1: {},
+        1: GnuConstants.DELETE_MODULE_FLAGS,
     },
     #timer_create
     107:{
         #const clockid_t which_clock
-        0: {},
-        #struct sigevent *timer_event_spec
-        1: {},
-        #timer_t *created_timer_id
-        2: {},
-    },
-    #timer_gettime
-    108:{
-        #timer_t timer_id
-        0: {},
-        #struct __kernel_itimerspec *setting
-        1: {},
-    },
-    #timer_getoverrun
-    109:{
-        #timer_t timer_id
-        0: {},
+        0: GnuConstants.TIMER_CREATE_WHICH_CLOCK,
     },
     #timer_settime
     110:{
-        #timer_t timer_id
-        0: {},
         #int flags
-        1: {},
-        #const struct __kernel_itimerspec *new_setting
-        2: {},
-        #struct __kernel_itimerspec *old_setting
-        3: {},
-    },
-    #timer_delete
-    111:{
-        #timer_t timer_id
-        0: {},
+        1: GnuConstants.TIMER_SETTIME_FLAGS,
     },
     #clock_settime
     112:{
         #const clockid_t which_clock
-        0: {},
-        #const struct __kernel_timespec *tp
-        1: {},
+        0: GnuConstants.WHICH_CLOCK,
     },
     #clock_gettime
     113:{
         #const clockid_t which_clock
-        0: {},
-        #struct __kernel_timespec *tp
-        1: {},
+        0: GnuConstants.WHICH_CLOCK,
     },
     #clock_getres
     114:{
         #const clockid_t which_clock
-        0: {},
-        #struct __kernel_timespec *tp
-        1: {},
+        0: GnuConstants.WHICH_CLOCK,
     },
     #clock_nanosleep
     115:{
         #const clockid_t which_clock
-        0: {},
+        0: GnuConstants.WHICH_CLOCK,
         #int flags
-        1: {},
-        #const struct __kernel_timespec *rqtp
-        2: {},
-        #struct __kernel_timespec *rmtp
-        3: {},
+        1: GnuConstants.CLOCK_NANOSLEEP_FLAGS,
     },
     #syslog
     116:{
         #int type
-        0: {},
-        #char *buf
-        1: {},
-        #int len
-        2: {},
+        0: GnuConstants.SYSLOG_TYPES,
     },
     #ptrace
     117:{
         #long request
-        0: {
+        0: GnuConstants.PTRACE_COMMON_REQUESTS + {
             0: "PTRACE_TRACEME",
             1: "PTRACE_PEEKTEXT",
             2: "PTRACE_PEEKDATA",
@@ -1077,1602 +405,597 @@ AARCH64_SYSCALL_PARSER_MAP = \
             31: "PTRACE_GETFDPIC",
             "PTRACE_GETFDPIC_EXEC": 0,
             "PTRACE_GETFDPIC_INTERP": 1,
-            # Arch-independent
-            0x4200: "PTRACE_SETOPTIONS",
-            0x4201: "PTRACE_GETEVENTMSG",
-            0x4202: "PTRACE_GETSIGINFO",
-            0x4203: "PTRACE_SETSIGINFO",
-            0x4204: "PTRACE_GETREGSET",
-            0x4205: "PTRACE_SETREGSET",
-            0x4206: "PTRACE_SEIZE",
-            0x4207: "PTRACE_INTERRUPT",
-            0x4208: "PTRACE_LISTEN",
-            0x4209: "PTRACE_PEEKSIGINFO",
-            0x420a: "PTRACE_GETSIGMASK",
-            0x420b: "PTRACE_SETSIGMASK",
-            0x420c: "PTRACE_SECCOMP_GET_FILTER",
-            0x420d: "PTRACE_SECCOMP_GET_METADATA",
-            0x420e: "PTRACE_GET_SYSCALL_INFO",
-            0x420f: "PTRACE_GET_RSEQ_CONFIGURATION",
-            0x4210: "PTRACE_SET_SYSCALL_USER_DISPATCH_CONFIG",
-            0x4211: "PTRACE_GET_SYSCALL_USER_DISPATCH_CONFIG",
-            "parsing_mode": "sequential",
         },
-        #long pid
-        1: {},
-        #unsigned long addr
-        2: {},
         #unsigned long data
-        3: {},
-    },
-    #sched_setparam
-    118:{
-        #pid_t pid
-        0: {},
-        #struct sched_param *param
-        1: {},
+        3: {
+            "parsing_mode": "custom",
+            "parser": parse_ptrace_data,
+        },
     },
     #sched_setscheduler
     119:{
-        #pid_t pid
-        0: {},
         #int policy
-        1: {},
-        #struct sched_param *param
-        2: {},
-    },
-    #sched_getscheduler
-    120:{
-        #pid_t pid
-        0: {},
-    },
-    #sched_getparam
-    121:{
-        #pid_t pid
-        0: {},
-        #struct sched_param *param
-        1: {},
-    },
-    #sched_setaffinity
-    122:{
-        #pid_t pid
-        0: {},
-        #unsigned int len
-        1: {},
-        #unsigned long *user_mask_ptr
-        2: {},
-    },
-    #sched_getaffinity
-    123:{
-        #pid_t pid
-        0: {},
-        #unsigned int len
-        1: {},
-        #unsigned long *user_mask_ptr
-        2: {},
-    },
-    #sched_yield
-    124:{
+        1: GnuConstants.SCHEDULER_POLICIES,
     },
     #sched_get_priority_max
     125:{
         #int policy
-        0: {},
+        0: GnuConstants.SCHEDULER_POLICIES,
     },
     #sched_get_priority_min
     126:{
         #int policy
-        0: {},
-    },
-    #sched_rr_get_interval
-    127:{
-        #pid_t pid
-        0: {},
-        #struct __kernel_timespec *interval
-        1: {},
-    },
-    #restart_syscall
-    128:{
+        0: GnuConstants.SCHEDULER_POLICIES,
     },
     #kill
     129:{
-        #pid_t pid
-        0: {},
         #int sig
-        1: {},
+        1: GnuConstants.SIGNALS,
     },
     #tkill
     130:{
-        #pid_t pid
-        0: {},
         #int sig
-        1: {},
+        1: GnuConstants.SIGNALS,
     },
     #tgkill
     131:{
-        #pid_t tgid
-        0: {},
-        #pid_t pid
-        1: {},
         #int sig
-        2: {},
-    },
-    #sigaltstack
-    132:{
-        #const stack_t *uss
-        0: {},
-        #stack_t *uoss
-        1: {},
-    },
-    #rt_sigsuspend
-    133:{
-        #sigset_t *unewset
-        0: {},
-        #size_t sigsetsize
-        1: {},
+        2: GnuConstants.SIGNALS,
     },
     #rt_sigaction
     134:{
         #int sig
-        0: {},
-        #const struct sigaction *act
-        1: {},
-        #struct sigaction *oact
-        2: {},
-        #size_t sigsetsize
-        3: {},
+        0: GnuConstants.SIGNALS,
     },
     #rt_sigprocmask
     135:{
         #int how
-        0: {},
-        #sigset_t *nset
-        1: {},
-        #sigset_t *oset
-        2: {},
-        #size_t sigsetsize
-        3: {},
-    },
-    #rt_sigpending
-    136:{
-        #sigset_t *uset
-        0: {},
-        #size_t sigsetsize
-        1: {},
-    },
-    #rt_sigtimedwait
-    137:{
-        #const sigset_t *uthese
-        0: {},
-        #siginfo_t *uinfo
-        1: {},
-        #const struct __kernel_timespec *uts
-        2: {},
-        #size_t sigsetsize
-        3: {},
+        0: GnuConstants.RT_SIGPROCMASK_HOW,
     },
     #rt_sigqueueinfo
     138:{
-        #pid_t pid
-        0: {},
         #int sig
-        1: {},
-        #siginfo_t *uinfo
-        2: {},
-    },
-    #rt_sigreturn
-    139:{
+        1: GnuConstants.SIGNALS,
     },
     #setpriority
     140:{
         #int which
-        0: {},
-        #int who
-        1: {},
-        #int niceval
-        2: {},
+        0: GnuConstants.PRIORITY_WHICH,
     },
     #getpriority
     141:{
         #int which
-        0: {},
-        #int who
-        1: {},
+        0: GnuConstants.PRIORITY_WHICH,
     },
     #reboot
     142:{
         #int magic1
-        0: {},
+        0: GnuConstants.REBOOT_MAGIC1,
         #int magic2
-        1: {},
+        1: GnuConstants.REBOOT_MAGIC2,
         #unsigned int cmd
-        2: {},
-        #void *arg
-        3: {},
-    },
-    #setregid
-    143:{
-        #gid_t rgid
-        0: {},
-        #gid_t egid
-        1: {},
-    },
-    #setgid
-    144:{
-        #gid_t gid
-        0: {},
-    },
-    #setreuid
-    145:{
-        #uid_t ruid
-        0: {},
-        #uid_t euid
-        1: {},
-    },
-    #setuid
-    146:{
-        #uid_t uid
-        0: {},
-    },
-    #setresuid
-    147:{
-        #uid_t ruid
-        0: {},
-        #uid_t euid
-        1: {},
-        #uid_t suid
-        2: {},
-    },
-    #getresuid
-    148:{
-        #uid_t *ruidp
-        0: {},
-        #uid_t *euidp
-        1: {},
-        #uid_t *suidp
-        2: {},
-    },
-    #setresgid
-    149:{
-        #gid_t rgid
-        0: {},
-        #gid_t egid
-        1: {},
-        #gid_t sgid
-        2: {},
-    },
-    #getresgid
-    150:{
-        #gid_t *rgidp
-        0: {},
-        #gid_t *egidp
-        1: {},
-        #gid_t *sgidp
-        2: {},
-    },
-    #setfsuid
-    151:{
-        #uid_t uid
-        0: {},
-    },
-    #setfsgid
-    152:{
-        #gid_t gid
-        0: {},
-    },
-    #times
-    153:{
-        #struct tms *tbuf
-        0: {},
-    },
-    #setpgid
-    154:{
-        #pid_t pid
-        0: {},
-        #pid_t pgid
-        1: {},
-    },
-    #getpgid
-    155:{
-        #pid_t pid
-        0: {},
-    },
-    #getsid
-    156:{
-        #pid_t pid
-        0: {},
-    },
-    #setsid
-    157:{
-    },
-    #getgroups
-    158:{
-        #int gidsetsize
-        0: {},
-        #gid_t *grouplist
-        1: {},
-    },
-    #setgroups
-    159:{
-        #int gidsetsize
-        0: {},
-        #gid_t *grouplist
-        1: {},
-    },
-    #newuname
-    160:{
-        #struct new_utsname *name
-        0: {},
-    },
-    #sethostname
-    161:{
-        #char *name
-        0: {},
-        #int len
-        1: {},
-    },
-    #setdomainname
-    162:{
-        #char *name
-        0: {},
-        #int len
-        1: {},
+        2: GnuConstants.REBOOT_CMDS,
     },
     #getrlimit
     163:{
         #unsigned int resource
-        0: {},
-        #struct rlimit *rlim
-        1: {},
+        0: GnuConstants.RLIMIT_RESOURCES,
     },
     #setrlimit
     164:{
         #unsigned int resource
-        0: {},
+        0: GnuConstants.RLIMIT_RESOURCES,
         #struct rlimit *rlim
         1: {},
     },
     #getrusage
     165:{
         #int who
-        0: {},
-        #struct rusage *ru
-        1: {},
+        0: GnuConstants.RUSAGE_WHO,
     },
     #umask
     166:{
         #int mask
-        0: {},
+        0: GnuConstants.OPEN_MODES,
     },
     #prctl
     167:{
         #int option
-        0: {},
-        #unsigned long arg2
-        1: {},
-        #unsigned long arg3
-        2: {},
-        #unsigned long arg4
-        3: {},
-        #unsigned long arg5
-        4: {},
-    },
-    #getcpu
-    168:{
-        #unsigned *cpup
-        0: {},
-        #unsigned *nodep
-        1: {},
-        #struct getcpu_cache *unused
-        2: {},
-    },
-    #gettimeofday
-    169:{
-        #struct __kernel_old_timeval *tv
-        0: {},
-        #struct timezone *tz
-        1: {},
-    },
-    #settimeofday
-    170:{
-        #struct __kernel_old_timeval *tv
-        0: {},
-        #struct timezone *tz
-        1: {},
-    },
-    #adjtimex
-    171:{
-        #struct __kernel_timex *txc_p
-        0: {},
-    },
-    #getpid
-    172:{
-    },
-    #getppid
-    173:{
-    },
-    #getuid
-    174:{
-    },
-    #geteuid
-    175:{
-    },
-    #getgid
-    176:{
-    },
-    #getegid
-    177:{
-    },
-    #gettid
-    178:{
-    },
-    #sysinfo
-    179:{
-        #struct sysinfo *info
-        0: {},
+        0: GnuConstants.PRCTL_OPTIONS,
     },
     #mq_open
     180:{
-        #const char *u_name
-        0: {},
         #int oflag
-        1: {},
+        1: GnuConstants.MQ_OPEN_FLAGS,
         #umode_t mode
-        2: {},
-        #struct mq_attr *u_attr
-        3: {},
-    },
-    #mq_unlink
-    181:{
-        #const char *u_name
-        0: {},
-    },
-    #mq_timedsend
-    182:{
-        #mqd_t mqdes
-        0: {},
-        #const char *u_msg_ptr
-        1: {},
-        #size_t msg_len
-        2: {},
-        #unsigned int msg_prio
-        3: {},
-        #const struct __kernel_timespec *u_abs_timeout
-        4: {},
-    },
-    #mq_timedreceive
-    183:{
-        #mqd_t mqdes
-        0: {},
-        #char *u_msg_ptr
-        1: {},
-        #size_t msg_len
-        2: {},
-        #unsigned int *u_msg_prio
-        3: {},
-        #const struct __kernel_timespec *u_abs_timeout
-        4: {},
-    },
-    #mq_notify
-    184:{
-        #mqd_t mqdes
-        0: {},
-        #const struct sigevent *u_notification
-        1: {},
-    },
-    #mq_getsetattr
-    185:{
-        #mqd_t mqdes
-        0: {},
-        #const struct mq_attr *u_mqstat
-        1: {},
-        #struct mq_attr *u_omqstat
-        2: {},
+        2: GnuConstants.OPEN_MODES,
     },
     #msgget
     186:{
         #key_t key
-        0: {},
+        0: GnuConstants.MSGGET_KEYS,
         #int msgflg
-        1: {},
+        1: GnuConstants.MSGGET_FLAGS,
     },
     #msgctl
     187:{
-        #int msqid
-        0: {},
         #int cmd
-        1: {},
-        #struct msqid_ds *buf
-        2: {},
+        1: GnuConstants.MSGCTL_CMDS,
     },
     #msgrcv
     188:{
-        #int msqid
-        0: {},
-        #struct msgbuf *msgp
-        1: {},
-        #size_t msgsz
-        2: {},
-        #long msgtyp
-        3: {},
         #int msgflg
-        4: {},
+        4: GnuConstants.MSGRCV_FLAGS,
     },
     #msgsnd
     189:{
-        #int msqid
-        0: {},
-        #struct msgbuf *msgp
-        1: {},
-        #size_t msgsz
-        2: {},
         #int msgflg
-        3: {},
+        3: GnuConstants.MSGSND_FLAGS,
     },
     #semget
     190:{
         #key_t key
-        0: {},
-        #int nsems
-        1: {},
+        0: GnuConstants.SEMGET_KEYS,
         #int semflg
-        2: {},
+        2: GnuConstants.SEMGET_FLAGS,
     },
     #semctl
     191:{
-        #int semid
-        0: {},
-        #int semnum
-        1: {},
         #int cmd
-        2: {},
-        #unsigned long arg
-        3: {},
-    },
-    #semtimedop
-    192:{
-        #int semid
-        0: {},
-        #struct sembuf *tsops
-        1: {},
-        #unsigned int nsops
-        2: {},
-        #const struct __kernel_timespec *timeout
-        3: {},
-    },
-    #semop
-    193:{
-        #int semid
-        0: {},
-        #struct sembuf *tsops
-        1: {},
-        #unsigned nsops
-        2: {},
+        2: GnuConstants.SEMCTL_CMDS,
     },
     #shmget
     194:{
-        #key_t key
-        0: {},
-        #size_t size
-        1: {},
         #int shmflg
-        2: {},
+        2: GnuConstants.SHMGET_FLAGS,
     },
     #shmctl
     195:{
-        #int shmid
-        0: {},
         #int cmd
-        1: {},
-        #struct shmid_ds *buf
-        2: {},
+        1: GnuConstants.SHMCTL_CMDS,
     },
     #shmat
     196:{
-        #int shmid
-        0: {},
-        #char *shmaddr
-        1: {},
         #int shmflg
-        2: {},
-    },
-    #shmdt
-    197:{
-        #char *shmaddr
-        0: {},
+        2: GnuConstants.SHMAT_FLAGS,
     },
     #socket
     198:{
-        #int family
-        0: {},
-        #int type
-        1: {},
-        #int protocol
-        2: {},
+        # int family
+        0: GnuConstants.SOCKET_FAMILIES,
+        # int type
+        1: GnuConstants.SOCKET_TYPES,
+        # int protocol
+        # Note: Protocol is not parsed here, as it is often 0
     },
     #socketpair
     199:{
-        #int family
-        0: {},
-        #int type
-        1: {},
-        #int protocol
-        2: {},
-        #int *usockvec
-        3: {},
-    },
-    #bind
-    200:{
-        #int fd
-        0: {},
-        #struct sockaddr *umyaddr
-        1: {},
-        #int addrlen
-        2: {},
-    },
-    #listen
-    201:{
-        #int fd
-        0: {},
-        #int backlog
-        1: {},
-    },
-    #accept
-    202:{
-        #int fd
-        0: {},
-        #struct sockaddr *upeer_sockaddr
-        1: {},
-        #int *upeer_addrlen
-        2: {},
-    },
-    #connect
-    203:{
-        #int fd
-        0: {},
-        #struct sockaddr *uservaddr
-        1: {},
-        #int addrlen
-        2: {},
-    },
-    #getsockname
-    204:{
-        #int fd
-        0: {},
-        #struct sockaddr *usockaddr
-        1: {},
-        #int *usockaddr_len
-        2: {},
-    },
-    #getpeername
-    205:{
-        #int fd
-        0: {},
-        #struct sockaddr *usockaddr
-        1: {},
-        #int *usockaddr_len
-        2: {},
+        # int family
+        0: GnuConstants.SOCKET_FAMILIES,
+        # int type
+        1: GnuConstants.SOCKET_TYPES,
+        # int protocol
+        # Note: Protocol is not parsed here, as it is often 0
     },
     #sendto
     206:{
-        #int fd
-        0: {},
-        #void *buff
-        1: {},
-        #size_t len
-        2: {},
         #unsigned int flags
-        3: {},
-        #struct sockaddr *addr
-        4: {},
-        #int addr_len
-        5: {},
+        3: GnuConstants.SENDTO_FLAGS,
     },
     #recvfrom
     207:{
-        #int fd
-        0: {},
-        #void *ubuf
-        1: {},
-        #size_t size
-        2: {},
         #unsigned int flags
-        3: {},
-        #struct sockaddr *addr
-        4: {},
-        #int *addr_len
-        5: {},
+        3: GnuConstants.RECV_FLAGS,
     },
     #setsockopt
-    208:{
-        #int fd
-        0: {},
-        #int level
-        1: {},
-        #int optname
-        2: {},
-        #char *optval
-        3: {},
-        #int optlen
-        4: {},
-    },
+    # TODO: Complex parsing, future work
+    # 208:{
+    #     #int fd
+    #     0: {},
+    #     #int level
+    #     1: {},
+    #     #int optname
+    #     2: {},
+    #     #char *optval
+    #     3: {},
+    #     #int optlen
+    #     4: {},
+    # },
     #getsockopt
-    209:{
-        #int fd
-        0: {},
-        #int level
-        1: {},
-        #int optname
-        2: {},
-        #char *optval
-        3: {},
-        #int *optlen
-        4: {},
-    },
+    # TODO: Complex parsing, future work
+    # 209:{
+    #     #int fd
+    #     0: {},
+    #     #int level
+    #     1: {},
+    #     #int optname
+    #     2: {},
+    #     #char *optval
+    #     3: {},
+    #     #int *optlen
+    #     4: {},
+    # },
     #shutdown
     210:{
-        #int fd
-        0: {},
         #int how
-        1: {},
+        1: GnuConstants.SHUTDOWN_HOW,
     },
     #sendmsg
     211:{
-        #int fd
-        0: {},
-        #struct user_msghdr *msg
-        1: {},
         #unsigned int flags
-        2: {},
+        2: GnuConstants.SENDMSG_FLAGS,
     },
     #recvmsg
     212:{
-        #int fd
-        0: {},
-        #struct user_msghdr *msg
-        1: {},
         #unsigned int flags
-        2: {},
-    },
-    #readahead
-    213:{
-        #int fd
-        0: {},
-        #loff_t offset
-        1: {},
-        #size_t count
-        2: {},
-    },
-    #brk
-    214:{
-        #unsigned long brk
-        0: {},
-    },
-    #munmap
-    215:{
-        #unsigned long addr
-        0: {},
-        #size_t len
-        1: {},
+        2: GnuConstants.RECVMMSG_FLAGS,
     },
     #mremap
     216:{
-        #unsigned long addr
-        0: {},
-        #unsigned long old_len
-        1: {},
-        #unsigned long new_len
-        2: {},
         #unsigned long flags
-        3: {},
-        #unsigned long new_addr
-        4: {},
+        3: GnuConstants.MREMAP_FLAGS,
     },
     #add_key
     217:{
-        #const char *_type
-        0: {},
-        #const char *_description
-        1: {},
-        #const void *_payload
-        2: {},
-        #size_t plen
-        3: {},
         #key_serial_t ringid
-        4: {},
+        4: {
+            0xFFFFFFFFFFFFFFFF: "KEY_SPEC_THREAD_KEYRING",
+            0xFFFFFFFFFFFFFFFE: "KEY_SPEC_PROCESS_KEYRING",
+            0xFFFFFFFFFFFFFFFD: "KEY_SPEC_SESSION_KEYRING",
+            0xFFFFFFFFFFFFFFFC: "KEY_SPEC_USER_KEYRING",
+            0xFFFFFFFFFFFFFFFB: "KEY_SPEC_USER_SESSION_KEYRING",
+            0xFFFFFFFFFFFFFFFA: "KEY_SPEC_GROUP_KEYRING",
+            0xFFFFFFFFFFFFFF9F: "KEY_SPEC_REQKEY_AUTH_KEY",
+            0xFFFFFFFFFFFFFF9E: "KEY_SPEC_REQUESTOR_KEYRING",
+            "parsing_mode": "sequential",
+        },
     },
     #request_key
     218:{
-        #const char *_type
-        0: {},
-        #const char *_description
-        1: {},
-        #const char *_callout_info
-        2: {},
         #key_serial_t destringid
-        3: {},
+        3: {
+            0xFFFFFFFFFFFFFFFF: "KEY_SPEC_THREAD_KEYRING",
+            0xFFFFFFFFFFFFFFFE: "KEY_SPEC_PROCESS_KEYRING",
+            0xFFFFFFFFFFFFFFFD: "KEY_SPEC_SESSION_KEYRING",
+            0xFFFFFFFFFFFFFFFC: "KEY_SPEC_USER_KEYRING",
+            0xFFFFFFFFFFFFFFFB: "KEY_SPEC_USER_SESSION_KEYRING",
+            0xFFFFFFFFFFFFFFFA: "KEY_SPEC_GROUP_KEYRING",
+            0xFFFFFFFFFFFFFF9F: "KEY_SPEC_REQKEY_AUTH_KEY",
+            0xFFFFFFFFFFFFFF9E: "KEY_SPEC_REQUESTOR_KEYRING",
+            "parsing_mode": "sequential",
+        },
     },
     #keyctl
     219:{
         #int option
-        0: {},
-        #unsigned long arg2
-        1: {},
-        #unsigned long arg3
-        2: {},
-        #unsigned long arg4
-        3: {},
-        #unsigned long arg5
-        4: {},
+        0: GnuConstants.KEYCTL_OPTIONS,
     },
     #clone
     220:{
         #unsigned long clone_flags
-        0: {},
-        #unsigned long newsp
-        1: {},
-        #int *parent_tidptr
-        2: {},
-        #unsigned long tls
-        3: {},
-        #int *child_tidptr
-        4: {},
-    },
-    #execve
-    221:{
-        #const char *filename
-        0: {},
-        #const char *const *argv
-        1: {},
-        #const char *const *envp
-        2: {},
+        0: GnuConstants.CLONE_FLAGS_COMMON,
     },
     #mmap
     222:{
-        #unsigned long addr
-        0: {},
-        #unsigned long len
-        1: {},
         #unsigned long prot
-        2: {},
+        2: GnuConstants.MMAP_PROT,
         #unsigned long flags
-        3: {},
-        #unsigned long fd
-        4: {},
-        #unsigned long off
-        5: {},
+        3: GnuConstants.MMAP_FLAGS_COMMON,
     },
     #fadvise64_64
     223:{
-        #int fd
-        0: {},
-        #loff_t offset
-        1: {},
-        #loff_t len
-        2: {},
         #int advice
-        3: {},
+        3: GnuConstants.FADVISE_ADVICE,
     },
     #swapon
     224:{
-        #const char *specialfile
-        0: {},
         #int swap_flags
-        1: {},
-    },
-    #swapoff
-    225:{
-        #const char *specialfile
-        0: {},
+        1: GnuConstants.SWAPON_FLAGS,
     },
     #mprotect
     226:{
-        #unsigned long start
-        0: {},
-        #size_t len
-        1: {},
         #unsigned long prot
-        2: {},
+        2: GnuConstants.MPROTECT_PROT,
     },
     #msync
     227:{
-        #unsigned long start
-        0: {},
-        #size_t len
-        1: {},
         #int flags
-        2: {},
-    },
-    #mlock
-    228:{
-        #unsigned long start
-        0: {},
-        #size_t len
-        1: {},
-    },
-    #munlock
-    229:{
-        #unsigned long start
-        0: {},
-        #size_t len
-        1: {},
+        2: GnuConstants.MSYNC_FLAGS,
     },
     #mlockall
     230:{
         #int flags
-        0: {},
-    },
-    #munlockall
-    231:{
-    },
-    #mincore
-    232:{
-        #unsigned long start
-        0: {},
-        #size_t len
-        1: {},
-        #unsigned char *vec
-        2: {},
+        0: GnuConstants.MLOCKALL_FLAGS,
     },
     #madvise
     233:{
-        #unsigned long start
-        0: {},
-        #size_t len_in
-        1: {},
         #int behavior
-        2: {},
+        2: GnuConstants.ADVISE_BEHAVIORS,
     },
     #remap_file_pages
     234:{
-        #unsigned long start
-        0: {},
-        #unsigned long size
-        1: {},
-        #unsigned long prot
-        2: {},
-        #unsigned long pgoff
-        3: {},
         #unsigned long flags
-        4: {},
+        4: GnuConstants.REMAP_FILE_PAGES_FLAGS,
     },
     #mbind
     235:{
-        #unsigned long start
-        0: {},
-        #unsigned long len
-        1: {},
         #unsigned long mode
-        2: {},
-        #const unsigned long *nmask
-        3: {},
-        #unsigned long maxnode
-        4: {},
+        2: GnuConstants.MBIND_MODES,
         #unsigned int flags
-        5: {},
+        5: GnuConstants.MBIND_FLAGS,
     },
     #get_mempolicy
     236:{
-        #int *policy
-        0: {},
-        #unsigned long *nmask
-        1: {},
-        #unsigned long maxnode
-        2: {},
-        #unsigned long addr
-        3: {},
         #unsigned long flags
-        4: {},
+        4: GnuConstants.GETMEMPOLICY_FLAGS,
     },
     #set_mempolicy
     237:{
         #int mode
-        0: {},
-        #const unsigned long *nmask
-        1: {},
-        #unsigned long maxnode
-        2: {},
-    },
-    #migrate_pages
-    238:{
-        #pid_t pid
-        0: {},
-        #unsigned long maxnode
-        1: {},
-        #const unsigned long *old_nodes
-        2: {},
-        #const unsigned long *new_nodes
-        3: {},
+        0: GnuConstants.SETMEMPOLICY_MODES,
     },
     #move_pages
     239:{
-        #pid_t pid
-        0: {},
-        #unsigned long nr_pages
-        1: {},
-        #const void **pages
-        2: {},
-        #const int *nodes
-        3: {},
-        #int *status
-        4: {},
         #int flags
-        5: {},
+        5: GnuConstants.MOVEPAGES_FLAGS,
     },
     #rt_tgsigqueueinfo
     240:{
-        #pid_t tgid
-        0: {},
-        #pid_t pid
-        1: {},
         #int sig
-        2: {},
-        #siginfo_t *uinfo
-        3: {},
+        2: GnuConstants.SIGNALS,
     },
     #perf_event_open
     241:{
-        #struct perf_event_attr *attr_uptr
-        0: {},
-        #pid_t pid
-        1: {},
-        #int cpu
-        2: {},
-        #int group_fd
-        3: {},
         #unsigned long flags
-        4: {},
+        4: GnuConstants.PERF_EVENT_OPEN_FLAGS,
     },
     #accept4
     242:{
-        #int fd
-        0: {},
-        #struct sockaddr *upeer_sockaddr
-        1: {},
-        #int *upeer_addrlen
-        2: {},
         #int flags
-        3: {},
+        3: GnuConstants.ACCEPT_FLAGS,
     },
     #recvmmsg
     243:{
-        #int fd
-        0: {},
-        #struct mmsghdr *mmsg
-        1: {},
-        #unsigned int vlen
-        2: {},
         #unsigned int flags
-        3: {},
-        #struct __kernel_timespec *timeout
-        4: {},
+        3: GnuConstants.RECVMMSG_FLAGS,
     },
     #wait4
     260:{
-        #pid_t upid
-        0: {},
-        #int *stat_addr
-        1: {},
         #int options
-        2: {},
-        #struct rusage *ru
-        3: {},
+        2: GnuConstants.WAIT4_OPTIONS,
     },
     #prlimit64
     261:{
-        #pid_t pid
-        0: {},
         #unsigned int resource
-        1: {},
-        #const struct rlimit64 *new_rlim
-        2: {},
-        #struct rlimit64 *old_rlim
-        3: {},
+        1: GnuConstants.PRLIMIT_RESOURCES,
     },
     #fanotify_init
     262:{
         #unsigned int flags
-        0: {},
+        0: GnuConstants.FANOTIFY_INIT_FLAGS,
         #unsigned int event_f_flags
-        1: {},
+        1: GnuConstants.FANOTIFY_EVENT_F_FLAGS,
     },
     #fanotify_mark
     263:{
-        #int fanotify_fd
-        0: {},
         #unsigned int flags
-        1: {},
+        1: GnuConstants.FANOTIFY_MARK_FLAGS,
         #__u64 mask
-        2: {},
+        2: GnuConstants.FANOTIFY_MARK_MASK,
         #int dfd
-        3: {},
-        #const char *pathname
-        4: {},
+        3: GnuConstants.OPENAT_DFD,
     },
     #name_to_handle_at
     264:{
         #int dfd
-        0: {},
-        #const char *name
-        1: {},
-        #struct file_handle *handle
-        2: {},
-        #void *mnt_id
-        3: {},
+        0: GnuConstants.OPENAT_DFD,
         #int flag
-        4: {},
+        4: GnuConstants.NAME_TO_HANDLE_FLAGS,
     },
     #open_by_handle_at
     265:{
         #int mountdirfd
-        0: {},
-        #struct file_handle *handle
-        1: {},
+        0: GnuConstants.OPENAT_DFD,
         #int flags
-        2: {},
+        2: GnuConstants.OPEN_FLAGS,
     },
     #clock_adjtime
     266:{
         #const clockid_t which_clock
-        0: {},
-        #struct __kernel_timex *utx
-        1: {},
-    },
-    #syncfs
-    267:{
-        #int fd
-        0: {},
+        0: GnuConstants.WHICH_CLOCK,
     },
     #setns
     268:{
-        #int fd
-        0: {},
         #int flags
-        1: {},
+        1: GnuConstants.SETNS_FLAGS,
     },
     #sendmmsg
     269:{
-        #int fd
-        0: {},
-        #struct mmsghdr *mmsg
-        1: {},
-        #unsigned int vlen
-        2: {},
         #unsigned int flags
-        3: {},
-    },
-    #process_vm_readv
-    270:{
-        #pid_t pid
-        0: {},
-        #const struct iovec *lvec
-        1: {},
-        #unsigned long liovcnt
-        2: {},
-        #const struct iovec *rvec
-        3: {},
-        #unsigned long riovcnt
-        4: {},
-        #unsigned long flags
-        5: {},
-    },
-    #process_vm_writev
-    271:{
-        #pid_t pid
-        0: {},
-        #const struct iovec *lvec
-        1: {},
-        #unsigned long liovcnt
-        2: {},
-        #const struct iovec *rvec
-        3: {},
-        #unsigned long riovcnt
-        4: {},
-        #unsigned long flags
-        5: {},
+        3: GnuConstants.SENDTO_FLAGS,
     },
     #kcmp
     272:{
-        #pid_t pid1
-        0: {},
-        #pid_t pid2
-        1: {},
         #int type
-        2: {},
-        #unsigned long idx1
-        3: {},
-        #unsigned long idx2
-        4: {},
+        2: GnuConstants.KCMP_TYPES,
     },
     #finit_module
     273:{
-        #int fd
-        0: {},
-        #const char *uargs
-        1: {},
         #int flags
-        2: {},
-    },
-    #sched_setattr
-    274:{
-        #pid_t pid
-        0: {},
-        #struct sched_attr *uattr
-        1: {},
-        #unsigned int flags
-        2: {},
-    },
-    #sched_getattr
-    275:{
-        #pid_t pid
-        0: {},
-        #struct sched_attr *uattr
-        1: {},
-        #unsigned int usize
-        2: {},
-        #unsigned int flags
-        3: {},
+        2: GnuConstants.FINIT_MODULE_FLAGS,
     },
     #renameat2
     276:{
         #int olddfd
-        0: {},
-        #const char *oldname
-        1: {},
-        #int newdfd
-        2: {},
-        #const char *newname
-        3: {},
+        0: GnuConstants.OPENAT_DFD,
         #unsigned int flags
-        4: {},
+        4: GnuConstants.RENAMEAT_FLAGS,
     },
     #seccomp
     277:{
         #unsigned int op
-        0: {},
+        0: GnuConstants.SECCOMP_OPS,
         #unsigned int flags
-        1: {},
-        #void *uargs
-        2: {},
+        1: GnuConstants.SECCOMP_FLAGS,
     },
     #getrandom
     278:{
-        #char *ubuf
-        0: {},
-        #size_t len
-        1: {},
         #unsigned int flags
-        2: {},
+        2: GnuConstants.GETRANDOM_FLAGS,
     },
     #memfd_create
     279:{
-        #const char *uname
-        0: {},
         #unsigned int flags
-        1: {},
+        1: GnuConstants.MEMFD_CREATE_FLAGS,
     },
     #bpf
     280:{
         #int cmd
-        0: {},
-        #union bpf_attr *uattr
-        1: {},
-        #unsigned int size
-        2: {},
+        0: GnuConstants.BPF_CMDS,
     },
     #execveat
     281:{
         #int fd
-        0: {},
-        #const char *filename
-        1: {},
-        #const char *const *argv
-        2: {},
-        #const char *const *envp
-        3: {},
+        0: GnuConstants.OPENAT_DFD,
         #int flags
-        4: {},
+        4: GnuConstants.EXECVEAT_FLAGS,
     },
     #userfaultfd
     282:{
         #int flags
-        0: {},
+        0: GnuConstants.USERFAULTFD_FLAGS,
     },
     #membarrier
     283:{
         #int cmd
-        0: {},
+        0: GnuConstants.MEMBARRIER_CMDS,
         #unsigned int flags
-        1: {},
-        #int cpu_id
-        2: {},
+        1: GnuConstants.MEMBARRIER_FLAGS,
     },
     #mlock2
     284:{
-        #unsigned long start
-        0: {},
-        #size_t len
-        1: {},
         #int flags
-        2: {},
-    },
-    #copy_file_range
-    285:{
-        #int fd_in
-        0: {},
-        #loff_t *off_in
-        1: {},
-        #int fd_out
-        2: {},
-        #loff_t *off_out
-        3: {},
-        #size_t len
-        4: {},
-        #unsigned int flags
-        5: {},
+        2: GnuConstants.MLOCK_FLAGS,
     },
     #preadv2
     286:{
-        #unsigned long fd
-        0: {},
-        #const struct iovec *vec
-        1: {},
-        #unsigned long vlen
-        2: {},
-        #unsigned long pos_l
-        3: {},
-        #unsigned long pos_h
-        4: {},
         #rwf_t flags
-        5: {},
+        5: GnuConstants.PREADV_FLAGS,
     },
     #pwritev2
     287:{
-        #unsigned long fd
-        0: {},
-        #const struct iovec *vec
-        1: {},
-        #unsigned long vlen
-        2: {},
-        #unsigned long pos_l
-        3: {},
-        #unsigned long pos_h
-        4: {},
         #rwf_t flags
-        5: {},
+        5: GnuConstants.PREADV_FLAGS,
     },
     #pkey_mprotect
     288:{
-        #unsigned long start
-        0: {},
-        #size_t len
-        1: {},
         #unsigned long prot
-        2: {},
-        #int pkey
-        3: {},
+        2: GnuConstants.PKEY_MPROTECT_PROTS,
     },
     #pkey_alloc
     289:{
-        #unsigned long flags
-        0: {},
         #unsigned long init_val
-        1: {},
-    },
-    #pkey_free
-    290:{
-        #int pkey
-        0: {},
+        1: GnuConstants.PKEY_ALLOC_INIT_VALS,
     },
     #statx
     291:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
+        0: GnuConstants.OPENAT_DFD,
         #unsigned flags
-        2: {},
+        2: GnuConstants.STATX_FLAGS,
         #unsigned int mask
-        3: {},
-        #struct statx *buffer
-        4: {},
-    },
-    #io_pgetevents
-    292:{
-        #aio_context_t ctx_id
-        0: {},
-        #long min_nr
-        1: {},
-        #long nr
-        2: {},
-        #struct io_event *events
-        3: {},
-        #struct __kernel_timespec *timeout
-        4: {},
-        #const struct __aio_sigset *usig
-        5: {},
+        3: GnuConstants.STATX_MASKS,
     },
     #rseq
     293:{
-        #struct rseq *rseq
-        0: {},
-        #u32 rseq_len
-        1: {},
         #int flags
-        2: {},
-        #u32 sig
-        3: {},
+        2: GnuConstants.RSEQ_FLAGS,
     },
     #kexec_file_load
     294:{
-        #int kernel_fd
-        0: {},
-        #int initrd_fd
-        1: {},
-        #unsigned long cmdline_len
-        2: {},
-        #const char *cmdline_ptr
-        3: {},
         #unsigned long flags
-        4: {},
+        4: GnuConstants.KEXEC_FILE_LOAD_FLAGS,
     },
     #pidfd_send_signal
     424:{
-        #int pidfd
-        0: {},
         #int sig
-        1: {},
-        #siginfo_t *info
-        2: {},
+        1: GnuConstants.SIGNALS,
         #unsigned int flags
-        3: {},
-    },
-    #io_uring_setup
-    425:{
-        #u32 entries
-        0: {},
-        #struct io_uring_params *params
-        1: {},
+        3: GnuConstants.PIDFD_SEND_SIGNAL_FLAGS,
     },
     #io_uring_enter
     426:{
-        #unsigned int fd
-        0: {},
-        #u32 to_submit
-        1: {},
-        #u32 min_complete
-        2: {},
         #u32 flags
-        3: {},
-        #const void *argp
-        4: {},
-        #size_t argsz
-        5: {},
+        3: GnuConstants.IO_URING_ENTER_FLAGS,
     },
     #io_uring_register
     427:{
-        #unsigned int fd
-        0: {},
         #unsigned int opcode
-        1: {},
-        #void *arg
-        2: {},
-        #unsigned int nr_args
-        3: {},
+        1: GnuConstants.IO_URING_REGISTER_OPCODES,
     },
     #open_tree
     428:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
+        0: GnuConstants.OPENAT_DFD,
         #unsigned flags
-        2: {},
+        2: GnuConstants.OPENTREE_FLAGS,
     },
     #move_mount
     429:{
         #int from_dfd
-        0: {},
-        #const char *from_pathname
-        1: {},
+        0: GnuConstants.OPENAT_DFD,
         #int to_dfd
-        2: {},
-        #const char *to_pathname
-        3: {},
+        2: GnuConstants.OPENAT_DFD,
         #unsigned int flags
-        4: {},
+        4: GnuConstants.MOVE_MOUNT_FLAGS,
     },
     #fsopen
     430:{
-        #const char *_fs_name
-        0: {},
         #unsigned int flags
-        1: {},
+        1: GnuConstants.FSOPEN_FLAGS,
     },
     #fsconfig
     431:{
-        #int fd
-        0: {},
         #unsigned int cmd
-        1: {},
-        #const char *_key
-        2: {},
-        #const void *_value
-        3: {},
-        #int aux
-        4: {},
+        1: GnuConstants.FSCONFIG_CMDS,
     },
     #fsmount
     432:{
-        #int fs_fd
-        0: {},
         #unsigned int flags
-        1: {},
+        1: GnuConstants.FSMOUNT_FLAGS,
         #unsigned int attr_flags
-        2: {},
+        2: GnuConstants.FSMOUNT_ATTR_FLAGS,
     },
     #fspick
     433:{
         #int dfd
-        0: {},
-        #const char *path
-        1: {},
+        0: GnuConstants.OPENAT_DFD,
         #unsigned int flags
-        2: {},
+        2: GnuConstants.FSPICK_FLAGS,
     },
     #pidfd_open
     434:{
-        #pid_t pid
-        0: {},
         #unsigned int flags
-        1: {},
-    },
-    #clone3
-    435:{
-        #struct clone_args *uargs
-        0: {},
-        #size_t size
-        1: {},
+        1: GnuConstants.PIDFD_OPEN_FLAGS,
     },
     #close_range
     436:{
-        #unsigned int fd
-        0: {},
-        #unsigned int max_fd
-        1: {},
         #unsigned int flags
-        2: {},
+        2: GnuConstants.CLOSE_RANGE_FLAGS,
     },
     #openat2
     437:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
-        #struct open_how *how
-        2: {},
-        #size_t usize
-        3: {},
-    },
-    #pidfd_getfd
-    438:{
-        #int pidfd
-        0: {},
-        #int fd
-        1: {},
-        #unsigned int flags
-        2: {},
+        0: GnuConstants.OPENAT_DFD,
     },
     #faccessat2
     439:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
+        0: GnuConstants.OPENAT_DFD,
         #int mode
-        2: {},
+        2: GnuConstants.OPEN_MODES,
         #int flags
-        3: {},
+        3: GnuConstants.FACCESSAT_FLAGS,
     },
     #process_madvise
     440:{

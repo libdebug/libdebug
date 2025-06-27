@@ -548,18 +548,7 @@ I386_SYSCALL_PARSER_MAP = {
     #timer_create
     259:{
         #const clockid_t which_clock
-        0: {
-            0: "CLOCK_REALTIME",
-            1: "CLOCK_MONOTONIC",
-            2: "CLOCK_PROCESS_CPUTIME_ID",
-            3: "CLOCK_THREAD_CPUTIME_ID",
-            5: "CLOCK_REALTIME_COARSE",
-            7: "CLOCK_BOOTTIME",
-            8: "CLOCK_REALTIME_ALARM",
-            9: "CLOCK_BOOTTIME_ALARM",
-            11: "CLOCK_TAI",
-            "parsing_mode": "sequential",
-        },
+        0: GnuConstants.TIMER_CREATE_WHICH_CLOCK,
     },
     #timer_settime
     260:{
@@ -791,7 +780,7 @@ I386_SYSCALL_PARSER_MAP = {
     #vmsplice
     316:{
         #unsigned int flags
-        3: GnuConstants.SPLICE_FLAGS,
+        3: GnuConstants.VMSPLICE_FLAGS,
     },
     #move_pages
     317:{
@@ -870,7 +859,7 @@ I386_SYSCALL_PARSER_MAP = {
         #unsigned int flags
         0: GnuConstants.FANOTIFY_INIT_FLAGS,
         #unsigned int event_f_flags
-        1: GnuConstants.OPEN_FLAGS,
+        1: GnuConstants.FANOTIFY_EVENT_F_FLAGS,
     },
     #fanotify_mark
     339:{

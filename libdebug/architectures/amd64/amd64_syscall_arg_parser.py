@@ -509,6 +509,11 @@ AMD64_SYSCALL_PARSER_MAP = {
         # int advice
         3: GnuConstants.FADVISE_ADVICE,
     },
+    # timer_create
+    222: {
+        # const clockid_t which_clock
+        0: GnuConstants.TIMER_CREATE_WHICH_CLOCK,
+    },
     # timer_settime
     223: {
         # int flags
@@ -732,7 +737,7 @@ AMD64_SYSCALL_PARSER_MAP = {
     # vmsplice
     278: {
         # unsigned int flags
-        3: GnuConstants.SPLICE_FLAGS,
+        3: GnuConstants.VMSPLICE_FLAGS,
     },
     # move_pages
     279: {
@@ -816,7 +821,7 @@ AMD64_SYSCALL_PARSER_MAP = {
         # unsigned int flags
         0: GnuConstants.FANOTIFY_INIT_FLAGS,
         # unsigned int event_f_flags
-        1: GnuConstants.OPEN_FLAGS,
+        1: GnuConstants.FANOTIFY_EVENT_F_FLAGS,
     },
     # fanotify_mark
     301: {
@@ -1016,9 +1021,7 @@ AMD64_SYSCALL_PARSER_MAP = {
     # fspick
     433: {
         # int dfd
-        0: {
-            GnuConstants.OPENAT_DFD,
-        },
+        0: GnuConstants.OPENAT_DFD,
         # unsigned int flags
         2: GnuConstants.FSPICK_FLAGS,
     },

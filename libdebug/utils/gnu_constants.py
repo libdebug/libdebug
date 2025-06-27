@@ -202,6 +202,11 @@ class GnuConstants:
         0x01: "SPLICE_F_MOVE",
         0x02: "SPLICE_F_NONBLOCK",
         0x04: "SPLICE_F_MORE",
+    }
+
+    VMSPLICE_FLAGS = {
+        0x02: "SPLICE_F_NONBLOCK",
+        0x04: "SPLICE_F_MORE",
         0x08: "SPLICE_F_GIFT",
     }
 
@@ -1242,6 +1247,18 @@ class GnuConstants:
         "parsing_mode": "mixed",
     }
 
+    FANOTIFY_EVENT_F_FLAGS = {
+        0o00000000: "O_RDONLY",
+        0o00000001: "O_WRONLY",
+        0o00000002: "O_RDWR",
+        0o00100000: "O_LARGEFILE",
+        0o02000000: "O_CLOEXEC",
+        0o00002000: "O_APPEND",
+        0o00010000: "O_DSYNC",
+        0o01000000: "O_NOATIME",
+        0o00004000: "O_NONBLOCK",
+    }
+
     FANOTIFY_MARK_FLAGS = {
         "sequential_flags": {
             0x00000001: "FAN_MARK_ADD",
@@ -1747,6 +1764,19 @@ class GnuConstants:
         128: "FUTEX_PRIVATE_FLAG",
         "parsing_mode": "sequential",
     }
+
+    TIMER_CREATE_WHICH_CLOCK = {
+        0: "CLOCK_REALTIME",
+        1: "CLOCK_MONOTONIC",
+        2: "CLOCK_PROCESS_CPUTIME_ID",
+        3: "CLOCK_THREAD_CPUTIME_ID",
+        5: "CLOCK_REALTIME_COARSE",
+        7: "CLOCK_BOOTTIME",
+        8: "CLOCK_REALTIME_ALARM",
+        9: "CLOCK_BOOTTIME_ALARM",
+        11: "CLOCK_TAI",
+        "parsing_mode": "sequential",
+    },
 
     def parse_fcntl_arg(self: GnuConstants, cmd: int, arg: int) -> str:
         """
