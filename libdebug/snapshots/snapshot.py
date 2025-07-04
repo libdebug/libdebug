@@ -194,13 +194,25 @@ class Snapshot:
         if file == "absolute":
             address_start = start
         elif file == "hybrid":
+            resolved_as_absolute = False
             try:
                 # Try to resolve the address as absolute
                 self.memory[start, 1, "absolute"]
                 address_start = start
+                resolved_as_absolute = True
             except ValueError:
+                pass
+
+            # If the address is not absolute, we try to resolve it as relative
+            if not resolved_as_absolute:
+                binary_maps = self.maps.filter("binary")
+                if end > binary_maps[-1].end:
+                    raise ValueError(
+                        f"Requested memory pprint from {start:#x} to {end:#x} relative to binary. Relative end address {end:#x} is beyond the end of the binary file {binary_maps[-1].backing_file!r} ({binary_maps[-1].end:#x}).",
+                    )
+
                 # If the address is not in the maps, we use the binary file
-                address_start = start + self.maps.filter("binary")[0].start
+                address_start = start + binary_maps[0].start
                 file = "binary"
         else:
             map_file = self.maps.filter(file)[0]
