@@ -1329,6 +1329,8 @@ I386_SYSCALL_PARSER_MAP = {
     464:{
         #int dfd
         0: GnuConstants.OPENAT_DFD,
+        #unsigned int at_flags
+        2: GnuConstants.XATTRAT_FLAGS,
     },
     #listxattrat
     465:{

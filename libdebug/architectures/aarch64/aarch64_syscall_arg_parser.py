@@ -999,301 +999,101 @@ AARCH64_SYSCALL_PARSER_MAP = \
     },
     #process_madvise
     440:{
-        #int pidfd
-        0: {},
-        #const struct iovec *vec
-        1: {},
-        #size_t vlen
-        2: {},
         #int behavior
-        3: {},
-        #unsigned int flags
-        4: {},
-    },
-    #epoll_pwait2
-    441:{
-        #int epfd
-        0: {},
-        #struct epoll_event *events
-        1: {},
-        #int maxevents
-        2: {},
-        #const struct __kernel_timespec *timeout
-        3: {},
-        #const sigset_t *sigmask
-        4: {},
-        #size_t sigsetsize
-        5: {},
+        3: GnuConstants.ADVISE_BEHAVIORS,
     },
     #mount_setattr
     442:{
         #int dfd
-        0: {},
-        #const char *path
-        1: {},
+        0: GnuConstants.OPENAT_DFD,
         #unsigned int flags
-        2: {},
-        #struct mount_attr *uattr
-        3: {},
-        #size_t usize
-        4: {},
+        2: GnuConstants.MOUNT_SETATTR_FLAGS,
     },
     #quotactl_fd
     443:{
-        #unsigned int fd
-        0: {},
         #unsigned int cmd
-        1: {},
-        #qid_t id
-        2: {},
-        #void *addr
-        3: {},
+        1: GnuConstants.QUOTACTL_CMDS,
     },
     #landlock_create_ruleset
     444:{
-        #const struct landlock_ruleset_attr *const attr
-        0: {},
-        #const size_t size
-        1: {},
         #const __u32 flags
-        2: {},
+        2: GnuConstants.LANDLOCK_CREATE_RULESET_FLAGS,
     },
     #landlock_add_rule
     445:{
-        #const int ruleset_fd
-        0: {},
         #const enum landlock_rule_type rule_type
-        1: {},
-        #const void *const rule_attr
-        2: {},
-        #const __u32 flags
-        3: {},
-    },
-    #landlock_restrict_self
-    446:{
-        #const int ruleset_fd
-        0: {},
-        #const __u32 flags
-        1: {},
+        1: GnuConstants.LANDLOCK_ADD_RULE_TYPES,
     },
     #memfd_secret
     447:{
         #unsigned int flags
-        0: {},
-    },
-    #process_mrelease
-    448:{
-        #int pidfd
-        0: {},
-        #unsigned int flags
-        1: {},
+        0: GnuConstants.MEMFD_SECRET_FLAGS,
     },
     #futex_waitv
     449:{
-        #struct futex_waitv *waiters
-        0: {},
-        #unsigned int nr_futexes
-        1: {},
-        #unsigned int flags
-        2: {},
-        #struct __kernel_timespec *timeout
-        3: {},
         #clockid_t clockid
-        4: {},
-    },
-    #set_mempolicy_home_node
-    450:{
-        #unsigned long start
-        0: {},
-        #unsigned long len
-        1: {},
-        #unsigned long home_node
-        2: {},
-        #unsigned long flags
-        3: {},
-    },
-    #cachestat
-    451:{
-        #unsigned int fd
-        0: {},
-        #struct cachestat_range *cstat_range
-        1: {},
-        #struct cachestat *cstat
-        2: {},
-        #unsigned int flags
-        3: {},
+        4: GnuConstants.WHICH_CLOCK,
     },
     #fchmodat2
     452:{
         #int dfd
-        0: {},
-        #const char *filename
-        1: {},
+        0: GnuConstants.OPENAT_DFD,
         #umode_t mode
-        2: {},
+        2: GnuConstants.OPEN_MODES,
         #unsigned int flags
-        3: {},
+        3: GnuConstants.FCHMODAT_FLAGS,
     },
     #map_shadow_stack
     453:{
-        #unsigned long addr
-        0: {},
-        #unsigned long size
-        1: {},
         #unsigned int flags
-        2: {},
+        2: GnuConstants.MAP_SHADOW_STACK_FLAGS,
     },
     #futex_wake
     454:{
-        #void *uaddr
-        0: {},
-        #unsigned long mask
-        1: {},
-        #int nr
-        2: {},
         #unsigned int flags
-        3: {},
+        3: GnuConstants.FUTEX2_FLAGS,
     },
     #futex_wait
     455:{
-        #void *uaddr
-        0: {},
-        #unsigned long val
-        1: {},
-        #unsigned long mask
-        2: {},
-        #unsigned int flags
-        3: {},
-        #struct __kernel_timespec *timeout
-        4: {},
         #clockid_t clockid
-        5: {},
-    },
-    #futex_requeue
-    456:{
-        #struct futex_waitv *waiters
-        0: {},
-        #unsigned int flags
-        1: {},
-        #int nr_wake
-        2: {},
-        #int nr_requeue
-        3: {},
-    },
-    #statmount
-    457:{
-        #const struct mnt_id_req *req
-        0: {},
-        #struct statmount *buf
-        1: {},
-        #size_t bufsize
-        2: {},
-        #unsigned int flags
-        3: {},
+        5: GnuConstants.WHICH_CLOCK,
     },
     #listmount
     458:{
-        #const struct mnt_id_req *req
-        0: {},
-        #u64 *mnt_ids
-        1: {},
-        #size_t nr_mnt_ids
-        2: {},
         #unsigned int flags
-        3: {},
+        3: GnuConstants.LISTMOUNT_FLAGS,
     },
     #lsm_get_self_attr
     459:{
-        #unsigned int attr
-        0: {},
-        #struct lsm_ctx *ctx
-        1: {},
-        #u32 *size
-        2: {},
         #u32 flags
-        3: {},
-    },
-    #lsm_set_self_attr
-    460:{
-        #unsigned int attr
-        0: {},
-        #struct lsm_ctx *ctx
-        1: {},
-        #u32 size
-        2: {},
-        #u32 flags
-        3: {},
-    },
-    #lsm_list_modules
-    461:{
-        #u64 *ids
-        0: {},
-        #u32 *size
-        1: {},
-        #u32 flags
-        2: {},
-    },
-    #mseal
-    462:{
-        #unsigned long start
-        0: {},
-        #size_t len
-        1: {},
-        #unsigned long flags
-        2: {},
+        3: GnuConstants.LSM_GET_SELF_ATTR_FLAGS,
     },
     #setxattrat
     463:{
         #int dfd
-        0: {},
-        #const char *pathname
-        1: {},
+        0: GnuConstants.OPENAT_DFD,
         #unsigned int at_flags
-        2: {},
-        #const char *name
-        3: {},
-        #const struct xattr_args *uargs
-        4: {},
-        #size_t usize
-        5: {},
+        2: GnuConstants.XATTRAT_FLAGS,
     },
     #getxattrat
     464:{
         #int dfd
-        0: {},
-        #const char *pathname
-        1: {},
+        0: GnuConstants.OPENAT_DFD,
         #unsigned int at_flags
-        2: {},
-        #const char *name
-        3: {},
-        #struct xattr_args *uargs
-        4: {},
-        #size_t usize
-        5: {},
+        2: GnuConstants.XATTRAT_FLAGS,
     },
     #listxattrat
     465:{
-        #int dfd
-        0: {},
-        #const char *pathname
-        1: {},
-        #unsigned int at_flags
-        2: {},
-        #char *list
-        3: {},
-        #size_t size
-        4: {},
+        # int dfd
+        0: GnuConstants.OPENAT_DFD,
+        # unsigned int at_flags
+        2: GnuConstants.XATTRAT_FLAGS,
     },
     #removexattrat
     466:{
-        #int dfd
-        0: {},
-        #const char *pathname
-        1: {},
-        #unsigned int at_flags
-        2: {},
-        #const char *name
-        3: {},
+        # int dfd
+        0: GnuConstants.OPENAT_DFD,
+        # unsigned int at_flags
+        2: GnuConstants.XATTRAT_FLAGS,
     },
 }
