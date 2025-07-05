@@ -155,8 +155,15 @@ The `memory` attribute of the [Debugger](../../from_pydoc/generated/debugger/deb
         print(f"Heap leak to {dst} found at {src} points")
     ```
 
-## :material-telescope: Telescope
+### :material-telescope: Telescope
 The `memory` attribute of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object also allow you to traverse a chain of pointers in memory, starting from a given address. This is particularly useful for exploring complex data structures or following pointers through multiple levels of indirection.
+
+For example, let's say the return value of `telescope(0x7ffff7fcb200)` is:
+```
+[0x7ffff7fcb200, 0x7ffff7fcb208, 0x7ffff7fcb210, "provola"]
+```
+
+This means that `0x7ffff7fcb200` (input address) points to `0x7ffff7fcb208`, which points to `0x7ffff7fcb210`, which contains the string `"provola"`.
 
 !!! ABSTRACT "Function Signature"
     ```python
