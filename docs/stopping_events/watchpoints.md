@@ -45,17 +45,16 @@ The `condition` parameter specifies the type of access that triggers the watchpo
 ### Valid Word Lengths
 The `length` parameter specifies the size of the word being watched. By default, the watchpoint is set to watch a single byte.
 
-| Architecture | Supported Lengths |
-| --- | --- |
-| <span style="font-size: 2.5em; vertical-align: middle;">:simple-intel:</span> AMD64 | 1, 2, 4, 8 |
-| <span style="font-size: 2.5em; vertical-align: middle;">:simple-intel:</span> i386 | 1, 2, 4 |
-| <span style="font-size: 2.5em; vertical-align: middle;">:simple-arm:</span> AArch64 | Any length from 1 to 8 bytes |
+The following table summarizes compatible configurations of watchpoints across architectures. For execution hardware breakpoint configurations, please refer to [this table](../stopping_events/breakpoints/#hardware-breakpoints) instead.
 
-!!! INFO "Watchpoint alignment"
-    - On AArch64-based CPUs, the address of the watchpoint needs to be aligned to 8 bytes. Instead, basic hardware breakpoints have to be aligned to 4 bytes (which is the size of an ARM instruction).
-    - On x86-based CPUs, the address of a watchpoint must be aligned to its length. For example, if you set a watchpoint of 4 bytes, the address must be 4-byte aligned. Defining a different alignment results in (architecturally) undefined behaviour. While some debuggers allow unaligned watchpoints by transparently realigning the address—either by extending the length or by spending multiple hardware registers—libdebug deliberately raises a `ValueError`, leaving it up to the user to decide how to handle unaligned watchpoints.
+| Architecture | Address Alignment | Supported Lengths | Comment |
+| --- | --- | --- | --- |
+| <span style="font-size: 2.5em; vertical-align: middle;">:simple-intel:</span> AMD64 | Aligned to length | 1, 2, 4, 8 | E.g. 4-byte watchpoint needs to be aligned to 4-byte addresses. Misalignment causes architecturally undefined behavior. |
+| <span style="font-size: 2.5em; vertical-align: middle;">:simple-intel:</span> i386 | Aligned to length | 1, 2, 4 | E.g. 4-byte watchpoint needs to be aligned to 4-byte addresses. Misalignment causes architecturally undefined behavior |
+| <span style="font-size: 2.5em; vertical-align: middle;">:simple-arm:</span> AArch64 | 8 bytes | Any length from 1 to 8 bytes | |
 
- 
+!!! QUESTION "Watchpoint alignment validation on x86"
+    Some debuggers automatically handle unaligned watchpoints by adjusting the address or using multiple hardware registers. However, **libdebug** intentionally raises a `ValueError` in these cases, requiring the user to explicitly manage unaligned watchpoints.
 
 ### :material-code-json: Callback Signature
 If you wish to create an [asynchronous](../debugging_flow) watchpoint, you will have to provide a callback function. Since internally watchpoints are implemented as hardware breakpoints, the callback signature is the same as for [breakpoints](../breakpoints#callback-signature). As for breakpoints, if you want to leave the callback empty, you can set callback to `True`.

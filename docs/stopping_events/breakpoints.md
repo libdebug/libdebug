@@ -20,15 +20,16 @@ When the `int3` instruction is executed, the CPU raises a `SIGTRAP` signal, whic
     Software breakpoints are unlimited, but they can break when the program uses self-modifying code. This is because the patched code could be overwritten by the program. On the other hand, software breakpoints are slower than their hardware counterparts on most modern CPUs.
 
 ### :octicons-cpu-24: Hardware Breakpoints
-Hardware breakpoints are a more reliable way to set breakpoints. They are made possible by the existence of special registers in the CPU that can be used to monitor memory accesses. Differently from software breakpoints, their hardware counterparts allows the debugger to monitor read and write accesses on top of code execution. This kind of hardware breakpoint is also called a [watchpoint](../watchpoints). More information on watchpoints can be found in the dedicated documentation.
+Hardware breakpoints are a more reliable way to set breakpoints. They are made possible by the existence of special registers in the CPU that can be used to monitor memory accesses. Differently from software breakpoints, their hardware counterparts allows the debugger to monitor read and write accesses on top of code execution. This kind of hardware breakpoint is also called a [watchpoint](../watchpoints). More information on watchpoints can be found in the dedicated documentation. The following table only refers to execution hardware breakpoints.
+
+| Architecture | Address Alignment | Length | Comment |
+| ------------ | ----------------- | ------ | ------- |
+| <span style="font-size: 2.5em; vertical-align: middle;">:simple-intel:</span> i386 / AMD64| None | 1 byte | Any other length is undefined behaviour and will be quietly ignored by hardware.<br>Upon setting larger sizes, **libdebug** forces a size of 1 and prints a warning. |
+| <span style="font-size: 2.5em; vertical-align: middle;">:simple-arm:</span> AArch64 | 4 bytes | Any from 1 to 8 bytes | |
+
 
 !!! TIP "Pros and Cons of Hardware Breakpoints"
     Hardware breakpoints are not affected by self-modifying code. They are also usually faster and more flexible. However, hardware breakpoints are limited in number and are hardware-dependent, so their support may vary across different systems.
-
-!!! INFO "Hardware Breakpoint Quirks"
-    - On AArch64 systems, hardware breakpoints have to be aligned to 4 bytes (which is the size of an ARM instruction).
-    - On x86 systems, hardware breakpoints can be set at any address, but their length should always be 1 byte. Although most CPUs appear to accept larger sizes—quietly ignoring the length field—the architecture defines any length greater than one byte as undefined behaviour. If you attempt to use a longer length, libdebug will issue a warning and automatically reduce the breakpoint to a single byte.
-
 
 ## **libdebug** API for Breakpoints
 
