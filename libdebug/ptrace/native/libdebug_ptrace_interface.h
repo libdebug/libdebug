@@ -7,6 +7,7 @@
 #pragma once
 
 #include "libdebug_ptrace_base.h"
+#include "fp_regs_definition.h"
 
 class LibdebugPtraceInterface
 {
@@ -16,6 +17,7 @@ private:
     bool handle_syscall;
     std::map<pid_t, Thread> threads, dead_threads;
     std::map<unsigned long, SoftwareBreakpoint> software_breakpoints;
+    PtraceFPRegsStructDefinition fpregs_definition; // Definition of the FP registers structure, used only for x86/x86_64
 
     // Register private methods
     int getregs(Thread &);
@@ -51,7 +53,7 @@ private:
     Thread &try_get_thread(const pid_t);
 
 public:
-    LibdebugPtraceInterface();
+    LibdebugPtraceInterface(PtraceFPRegsStructDefinition fpregs_def);
 
     // Debugger utility methods
     void cleanup();
@@ -100,8 +102,4 @@ public:
     void get_fp_regs(const pid_t);
     unsigned long peek_data(const unsigned long);
     void poke_data(const unsigned long, const unsigned long);
-
-    // Arbitrary invocation methods
-    unsigned long invoke_syscall(pid_t tid, unsigned long syscall_number, unsigned int actual_syscall_argcount, unsigned long arg0, unsigned long arg1, unsigned long arg2, unsigned long arg3, unsigned long arg4, unsigned long arg5);
-
 };

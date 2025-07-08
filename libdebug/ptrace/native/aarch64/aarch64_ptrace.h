@@ -1,6 +1,6 @@
 //
 // This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-// Copyright (c) 2024 Roberto Alessandro Bertolini. All rights reserved.
+// Copyright (c) 2024-2025 Roberto Alessandro Bertolini. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for details.
 //
 
@@ -10,6 +10,7 @@
 #include <nanobind/stl/array.h>
 
 #include "libdebug_ptrace_base.h"
+#include "fp_regs_definition.h"
 
 #define INSTRUCTION_POINTER(regs) (regs->pc)
 #define INSTALL_BREAKPOINT(instruction) ((instruction & 0xFFFFFFFF00000000) | 0xD4200000)
@@ -84,6 +85,37 @@ struct PtraceFPRegsStruct
     unsigned int fpsr;
     unsigned int fpcr;
     unsigned long padding;
+
+    PtraceFPRegsStruct(PtraceFPRegsStructDefinition unused)
+        : dirty(false), fresh(false), bool_padding{0}, fpsr(0), fpcr(0), padding(0)
+    {
+        // Initialize vregs to zero
+        for (auto &vreg : vregs) {
+            vreg.bytes.fill(0);
+        }
+
+        (void) unused; // Avoid unused parameter warning
+    }
+
+    bool is_dirty() const
+    {
+        return dirty;
+    }
+
+    void set_dirty(bool value)
+    {
+        dirty = value;
+    }
+
+    bool is_fresh() const
+    {
+        return fresh;
+    }
+
+    void set_fresh(bool value)
+    {
+        fresh = value;
+    }
 };
 #pragma pack(pop)
 

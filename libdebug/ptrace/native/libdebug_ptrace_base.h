@@ -17,6 +17,11 @@
 struct PtraceRegsStruct;
 struct PtraceFPRegsStruct;
 
+struct Reg80
+{
+    std::array<unsigned char, 10> bytes;
+};
+
 struct Reg128
 {
     std::array<unsigned char, 16> bytes;

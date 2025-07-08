@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2024-2025 Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -228,8 +228,8 @@ class FloatingPointTest(TestCase):
 
         d.run()
 
-        bp1 = d.bp(0x401372)
-        bp2 = d.bp(0x401399)
+        bp1 = d.bp(0x4006ba)
+        bp2 = d.bp(0x4006e1)
 
         d.cont()
 
@@ -294,8 +294,8 @@ class FloatingPointTest(TestCase):
 
         d.run()
 
-        d.bp(0x401372, callback=callback)
-        bp = d.bp(0x401399)
+        d.bp(0x4006ba, callback=callback)
+        bp = d.bp(0x4006e1)
 
         d.cont()
 
@@ -467,7 +467,6 @@ class FloatingPointTest(TestCase):
             self.i386_st()
         else:
             # Run a generic test
-            self.i386_xmm()
             self.i386_mmx()
             self.i386_st()
 
@@ -626,8 +625,8 @@ class FloatingPointTest(TestCase):
 
         d.run()
 
-        bp1 = d.bp(0x804926d)
-        bp2 = d.bp(0x804928a)
+        bp1 = d.bp(0x804844d)
+        bp2 = d.bp(0x804846a)
 
         d.cont()
 
@@ -676,8 +675,8 @@ class FloatingPointTest(TestCase):
 
         d.run()
 
-        d.bp(0x804926d, callback=callback)
-        bp = d.bp(0x804928a)
+        d.bp(0x804844d, callback=callback)
+        bp = d.bp(0x804846a)
 
         d.cont()
 

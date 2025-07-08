@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 echo "Building Fedora..."
 docker build -f dockerfiles/fedora.Dockerfile -t libdebug_test_fedora ../

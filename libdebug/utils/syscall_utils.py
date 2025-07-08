@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2024-2025 Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -8,52 +8,19 @@ import functools
 import json
 from pathlib import Path
 
-import requests
-
-SYSCALLS_REMOTE = "https://syscalls.mebeim.net/db"
-LOCAL_FOLDER_PATH = (Path.home() / ".cache" / "libdebug" / "syscalls").resolve()
-
-
-def get_remote_definition_url(arch: str) -> str:
-    """Get the URL of the remote syscall definition file."""
-    match arch:
-        case "amd64":
-            return f"{SYSCALLS_REMOTE}/x86/64/x64/latest/table.json"
-        case "aarch64":
-            return f"{SYSCALLS_REMOTE}/arm64/64/aarch64/latest/table.json"
-        case "i386":
-            return f"{SYSCALLS_REMOTE}/x86/32/ia32/latest/table.json"
-        case _:
-            raise ValueError(f"Architecture {arch} not supported")
-
-
-def fetch_remote_syscall_definition(arch: str) -> dict:
-    """Fetch the syscall definition file from the remote server."""
-    url = get_remote_definition_url(arch)
-
-    response = requests.get(url, timeout=1)
-    response.raise_for_status()
-
-    # Save the response to a local file
-    with Path(f"{LOCAL_FOLDER_PATH}/{arch}.json").open("w") as f:
-        f.write(response.text)
-
-    return response.json()
+STATIC_FOLDER_PATH = Path(__file__).parent / "syscall_data"
 
 
 @functools.cache
 def get_syscall_definitions(arch: str) -> dict:
     """Get the syscall definitions for the specified architecture."""
-    LOCAL_FOLDER_PATH.mkdir(parents=True, exist_ok=True)
+    local_file_path = STATIC_FOLDER_PATH / f"{arch}.json"
 
-    if (LOCAL_FOLDER_PATH / f"{arch}.json").exists():
-        try:
-            with (LOCAL_FOLDER_PATH / f"{arch}.json").open() as f:
-                return json.load(f)
-        except json.decoder.JSONDecodeError:
-            pass
+    if not local_file_path.exists():
+        raise FileNotFoundError(f"Local syscall definition for {arch} not found")
 
-    return fetch_remote_syscall_definition(arch)
+    with local_file_path.open() as f:
+        return json.load(f)
 
 
 @functools.cache

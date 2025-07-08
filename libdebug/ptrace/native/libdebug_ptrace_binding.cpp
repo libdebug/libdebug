@@ -15,17 +15,18 @@
 
 #include "libdebug_ptrace_base.h"
 #include "libdebug_ptrace_interface.h"
+#include "utils.h"
 
 #ifdef ARCH_X86_64
 #include "shared/x86_ptrace.h"
 #include "amd64/amd64_ptrace.h"
-#include "x86_fpregs_xsave_layout.h"
+#include "x86_fp_regs.h"
 #endif
 
 #ifdef ARCH_X86
 #include "shared/x86_ptrace.h"
 #include "i386/i386_ptrace.h"
-#include "x86_fpregs_xsave_layout.h"
+#include "x86_fp_regs.h"
 #endif
 
 #ifdef ARCH_AARCH64
@@ -37,23 +38,23 @@ namespace nb = nanobind;
 void LibdebugPtraceInterface::getfpregs(Thread &t)
 {
     arch_getfpregs(t);
-    t.fpregs->fresh = 1;
+    t.fpregs->set_fresh(1);
 }
 
 void LibdebugPtraceInterface::setfpregs(Thread &t)
 {
     arch_setfpregs(t);
-    t.fpregs->dirty = 0;
-    t.fpregs->fresh = 0;
+    t.fpregs->set_dirty(0);
+    t.fpregs->set_fresh(0);
 }
 
 void LibdebugPtraceInterface::check_and_set_fpregs(Thread &t)
 {
-    if (t.fpregs->dirty) {
+    if (t.fpregs->is_dirty()) {
         setfpregs(t);
     }
 
-    t.fpregs->fresh = 0;
+    t.fpregs->set_fresh(0);
 }
 
 void LibdebugPtraceInterface::cont_thread(Thread &t)
@@ -133,10 +134,11 @@ Thread& LibdebugPtraceInterface::try_get_thread(const pid_t tid)
     return it->second;
 }
 
-LibdebugPtraceInterface::LibdebugPtraceInterface()
+LibdebugPtraceInterface::LibdebugPtraceInterface(PtraceFPRegsStructDefinition definition)
+: fpregs_definition(definition),
+  process_id(-1),
+  handle_syscall(false)
 {
-    process_id = -1;
-    handle_syscall = false;
 }
 
 void LibdebugPtraceInterface::cleanup()
@@ -167,15 +169,9 @@ std::pair<std::shared_ptr<PtraceRegsStruct>, std::shared_ptr<PtraceFPRegsStruct>
     t.tid = tid;
     t.signal_to_forward = 0;
     t.regs = std::make_shared<PtraceRegsStruct>();
-    t.fpregs = std::make_shared<PtraceFPRegsStruct>();
-#if defined ARCH_X86_64 || defined ARCH_X86
-    t.fpregs->type = FPREGS_TYPE;
-#endif
-    t.fpregs->dirty = 0;
-    t.fpregs->fresh = 0;
-    
-    t.regs_backup.regs = std::make_shared<PtraceRegsStruct>();
-    t.regs_backup.fpregs = std::make_shared<PtraceFPRegsStruct>();
+    t.fpregs = std::make_shared<PtraceFPRegsStruct>(fpregs_definition);
+    t.fpregs->set_dirty(0);
+    t.fpregs->set_fresh(0);
 
     threads[tid] = t;
 
@@ -210,7 +206,7 @@ void LibdebugPtraceInterface::detach_for_migration()
         if (setregs(it->second) == -1) {
             // if we can't read the registers, the thread is probably still running
             // ensure that the thread is stopped
-            tgkill(process_id, it->first, SIGSTOP);
+            thread_kill(process_id, it->first, SIGSTOP);
 
             // wait for it to stop
             waitpid(it->first, NULL, 0);
@@ -227,7 +223,7 @@ void LibdebugPtraceInterface::detach_for_migration()
         }
 
         // be sure that the thread will not run during gdb reattachment
-        tgkill(process_id, it->first, SIGSTOP);
+        thread_kill(process_id, it->first, SIGSTOP);
 
         // detach from it
         if (ptrace(PTRACE_DETACH, it->first, NULL, NULL) == -1) {
@@ -291,7 +287,7 @@ void LibdebugPtraceInterface::detach_for_kill()
         if (getregs(it->second)) {
             // the thread is probably still running
             // ensure that the thread is stopped
-            tgkill(process_id, it->first, SIGSTOP);
+            thread_kill(process_id, it->first, SIGSTOP);
 
             // wait for it to stop
             waitpid(it->first, NULL, 0);
@@ -303,7 +299,7 @@ void LibdebugPtraceInterface::detach_for_kill()
         }
 
         // kill it
-        tgkill(process_id, it->first, SIGKILL);
+        thread_kill(process_id, it->first, SIGKILL);
     }
 
     // final waitpid for the zombie process
@@ -520,7 +516,7 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_
             // not "stop" it again
             if (getregs(t.second) == -1) {
                 // Stop the thread with a SIGSTOP
-                tgkill(process_id, t.first, SIGSTOP);
+                thread_kill(process_id, t.first, SIGSTOP);
                 // Wait for the thread to stop
                 temp_tid = waitpid(t.first, &temp_status, 0);
 
@@ -848,6 +844,13 @@ NB_MODULE(libdebug_ptrace_binding, m)
 {
     init_libdebug_ptrace_registers(m);
 
+    nb::class_<Reg80>(m, "Reg80", "An 80-bit register.")
+        .def_rw(
+            "data",
+            &Reg80::bytes,
+            "The data of the register, as a byte array."
+        );
+
     nb::class_<Reg128>(m, "Reg128", "A 128-bit register.")
         .def_rw(
             "data",
@@ -883,7 +886,8 @@ NB_MODULE(libdebug_ptrace_binding, m)
 
     nb::class_<LibdebugPtraceInterface>(m, "LibdebugPtraceInterface", "The native binding for ptrace on Linux.")
         .def(
-            nb::init<>(),
+            nb::init<PtraceFPRegsStructDefinition>(),
+            nb::arg("fpregs_definition"),
             "Initializes a new ptrace interface for debugging."
         )
         .def(
@@ -1187,6 +1191,18 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "Args:\n"
             "    tid (int): The thread id to continue to the next syscall."
         );
+
+    nb::class_<PtraceFPRegsStructDefinition>(m, "PtraceFPRegsStructDefinition")
+        .def(nb::init<size_t, off_t, off_t, off_t, unsigned char, bool>(),
+             "Constructor for PtraceFPRegsStructDefinition.",
+             nb::arg("struct_size"), nb::arg("avx_ymm0_offset"), nb::arg("avx512_zmm0_offset"),
+             nb::arg("avx512_zmm1_offset"), nb::arg("type"), nb::arg("has_xsave"))
+        .def_ro("struct_size", &PtraceFPRegsStructDefinition::struct_size, "The size of the fpregs struct.")
+        .def_ro("avx_ymm0_offset", &PtraceFPRegsStructDefinition::avx_ymm0_offset, "The offset of the first ymm0 register in the fpregs struct.")
+        .def_ro("avx512_zmm0_offset", &PtraceFPRegsStructDefinition::avx512_zmm0_offset, "The offset of the first zmm0 register in the fpregs struct.")
+        .def_ro("avx512_zmm1_offset", &PtraceFPRegsStructDefinition::avx512_zmm1_offset, "The offset of the first zmm1 register in the fpregs struct.")
+        .def_ro("type", &PtraceFPRegsStructDefinition::type, "The type of the fpregs struct.")
+        .def_ro("has_xsave", &PtraceFPRegsStructDefinition::has_xsave, "Whether the current CPU supports XSAVE.");
 
     nb::set_leak_warnings(false);
 }
