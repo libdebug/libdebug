@@ -70,6 +70,7 @@ else()
     message(STATUS "FindLibIberty: libiberty not found via pkg-config. Trying manual search.")
     find_path(LibIberty_MANUAL_INCLUDE_DIR NAMES demangle.h
               PATHS /usr/include/libiberty
+              PATH_SUFFIXES libiberty
               HINTS ENV CPATH ENV C_INCLUDE_PATH ENV CPLUS_INCLUDE_PATH
               DOC "Directory containing demangle.h")
     find_library(LibIberty_MANUAL_LIBRARY NAMES iberty
