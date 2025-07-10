@@ -527,3 +527,204 @@ class MemoryTest(TestCase):
             d.mem
         
         d.terminate()
+
+    def test_telescope_depth(self):
+        d = debugger(RESOLVE_EXE("telescope_test"))
+    
+        r = d.run()
+
+        d.cont()
+
+        str_five_levels = int(r.recvline(), 16)
+        str_fifteen_levels = int(r.recvline(), 16)
+        int_five_levels = int(r.recvline(), 16)
+        int_fifteen_levels = int(r.recvline(), 16)
+
+        d.interrupt()
+        
+        ### 5 levels with a final string
+        # Test telescope with default depth
+        str_five_levels_default = d.mem.telescope(str_five_levels)
+        self.assertEqual(len(str_five_levels_default), 6)
+        self.assertIsInstance(str_five_levels_default[-1], str)
+        self.assertEqual(str_five_levels_default[-1], "Telescope test passed!")
+        self.assertEqual(str_five_levels_default[0], str_five_levels)
+        
+        # Test telescope with the right, custom depth
+        str_five_levels_len = d.mem.telescope(str_five_levels, 6)
+        self.assertEqual(str_five_levels_default, str_five_levels_len)
+        
+        # Test telescope with the wrong, custom depth
+        str_five_levels_wrong = d.mem.telescope(str_five_levels, 78)
+        self.assertEqual(str_five_levels_default, str_five_levels_wrong)
+        
+        ### 15 levels with a final string
+        # Test telescope with default depth. This will return only the first 10 levels + the original value
+        str_fifteen_levels_default = d.mem.telescope(str_fifteen_levels)
+        self.assertEqual(len(str_fifteen_levels_default), 11)
+        self.assertIsInstance(str_fifteen_levels_default[-1], int)
+        
+        # Test telescope with the right, custom depth
+        str_fifteen_levels_len = d.mem.telescope(str_fifteen_levels, 16)
+        self.assertEqual(len(str_fifteen_levels_len), 16)
+        self.assertIsInstance(str_fifteen_levels_len[-1], str)
+        self.assertEqual(str_fifteen_levels_default, str_fifteen_levels_len[:11])
+        self.assertEqual(str_fifteen_levels_len[-1], "Telescope test passed!")
+        
+        # Test telescope with the wrong, custom depth
+        str_fifteen_levels_wrong = d.mem.telescope(str_fifteen_levels, 78)
+        self.assertEqual(str_fifteen_levels_wrong, str_fifteen_levels_len)
+        
+        ### 5 levels with a final integer
+        # Test telescope with default depth
+        int_five_levels_default = d.mem.telescope(int_five_levels, min_str_len=6)
+        self.assertEqual(len(int_five_levels_default), 6)
+        self.assertIsInstance(int_five_levels_default[-1], int)
+        self.assertEqual(int_five_levels_default[-1], 4242)
+        
+        # Test telescope with the right, custom depth
+        int_five_levels_len = d.mem.telescope(int_five_levels, 6, min_str_len=6)
+        self.assertEqual(int_five_levels_default, int_five_levels_len)
+        
+        # Test telescope with the wrong, custom depth
+        int_five_levels_wrong = d.mem.telescope(int_five_levels, 78, min_str_len=6)
+        self.assertEqual(int_five_levels_default, int_five_levels_wrong)
+        
+        ### 15 levels with a final integer
+        # Test telescope with default depth. This will return only the first 10 levels + the original value
+        int_fifteen_levels_default = d.mem.telescope(int_fifteen_levels, min_str_len=6)
+        self.assertEqual(len(int_fifteen_levels_default), 11)
+        self.assertIsInstance(int_fifteen_levels_default[-1], int)
+        self.assertNotEqual(int_fifteen_levels_default[-1], 4242)
+        
+        # Test telescope with the right, custom depth
+        int_fifteen_levels_len = d.mem.telescope(int_fifteen_levels, 16, min_str_len=6)
+        self.assertEqual(len(int_fifteen_levels_len), 16)
+        self.assertIsInstance(int_fifteen_levels_len[-1], int)
+        self.assertEqual(int_fifteen_levels_default, int_fifteen_levels_len[:11])
+        self.assertEqual(int_fifteen_levels_len[-1], 4242)
+        
+        # Test telescope with the wrong, custom depth
+        int_fifteen_levels_wrong = d.mem.telescope(int_fifteen_levels, 78, min_str_len=6)
+        self.assertEqual(int_fifteen_levels_wrong, int_fifteen_levels_len)
+        
+        # Test telescope with a depth of 0
+        with self.assertRaises(ValueError) as cm:
+            d.mem.telescope(str_five_levels, 0)
+        self.assertIn("depth must be greater than 0.", str(cm.exception))
+        
+        d.wait()
+
+        d.kill()
+        d.terminate()
+    
+    
+    def test_telescope_loop(self):
+        d = debugger(RESOLVE_EXE("telescope_test"))
+    
+        r = d.run()
+
+        d.cont()
+
+        for _ in range(4):
+            r.recvline()  # Skip the first lines
+        loop_start = int(r.recvline(), 16)
+
+        d.interrupt()
+        
+        self.log_capture_string.truncate(0)
+        self.log_capture_string.seek(0)
+        
+        chain_loop = d.mem.telescope(loop_start, min_str_len=-1)
+        logged = self.log_capture_string.getvalue()
+        self.assertIn("WARNING", logged)
+        self.assertIn("The telescope chain contains a loop", logged)
+        self.assertIsInstance(chain_loop[-1], int)
+        self.assertEqual(len(chain_loop), 11)
+        
+        self.log_capture_string.truncate(0)
+        self.log_capture_string.seek(0)
+        
+        chain_loop = d.mem.telescope(loop_start, 100, min_str_len=-1)
+        logged = self.log_capture_string.getvalue()
+        self.assertIn("WARNING", logged)
+        self.assertIn("The telescope chain contains a loop", logged)
+        self.assertIsInstance(chain_loop[-1], int)
+        self.assertEqual(len(chain_loop), 101)
+        
+
+        d.wait()
+
+        d.kill()
+        d.terminate()
+        
+    def test_telescope_str_len(self):
+        d = debugger(RESOLVE_EXE("telescope_test"))
+    
+        r = d.run()
+
+        d.cont()
+
+        str_five_levels = int(r.recvline(), 16)
+
+        d.interrupt()
+        
+        # Test telescope with default str length values
+        str_five_levels_content = d.mem.telescope(str_five_levels)
+        self.assertIsInstance(str_five_levels_content[-1], str)
+        self.assertEqual(str_five_levels_content[-1], "Telescope test passed!")
+        
+        # Test telescope with a lower, custom min str length
+        str_five_levels_content = d.mem.telescope(str_five_levels, min_str_len=5)
+        self.assertIsInstance(str_five_levels_content[-1], str)
+        self.assertEqual(str_five_levels_content[-1], "Telescope test passed!")
+
+        # Test telescope with a higher, custom min str length
+        # This will make impossible to interpret the last value as a string
+        str_five_levels_content = d.mem.telescope(str_five_levels, min_str_len=100)
+        self.assertIsInstance(str_five_levels_content[-1], int)
+
+        # Test telescope with a higher, custom max str length
+        str_five_levels_content = d.mem.telescope(str_five_levels, max_str_len=30)
+        self.assertIsInstance(str_five_levels_content[-1], str)
+        self.assertEqual(str_five_levels_content[-1], "Telescope test passed!")
+        
+        # Test telescope with a lower, custom max str length
+        str_five_levels_content = d.mem.telescope(str_five_levels, max_str_len=10)
+        self.assertIsInstance(str_five_levels_content[-1], str)
+        self.assertEqual(str_five_levels_content[-1], "Telescope test passed!"[:10])
+        
+        # Test telescope with -1 as min str length
+        # This will make the telescope to not interpret the last value as a string
+        str_five_levels_content = d.mem.telescope(str_five_levels, min_str_len=-1)
+        self.assertIsInstance(str_five_levels_content[-1], int)
+        
+        # Test telescope with min str length equal to max str length
+        str_five_levels_content = d.mem.telescope(str_five_levels, min_str_len=6, max_str_len=6)
+        self.assertIsInstance(str_five_levels_content[-1], str)
+        self.assertEqual(str_five_levels_content[-1], "Telescope test passed!"[:6])
+        
+        # Test telescope with 0 as min str length
+        str_five_levels_content = d.mem.telescope(str_five_levels, min_str_len=0)
+        self.assertIsInstance(str_five_levels_content[-1], str)
+        self.assertEqual(str_five_levels_content[-1], "Telescope test passed!")
+        
+        # Test telescope with min str length greater than max str length
+        with self.assertRaises(ValueError) as cm:
+            d.mem.telescope(str_five_levels, min_str_len=10, max_str_len=5)
+        self.assertIn("min_str_len must be less than or equal to max_str_len.", str(cm.exception))
+        
+        # Test telescope with min str length lower than -1
+        with self.assertRaises(ValueError) as cm:
+            d.mem.telescope(str_five_levels, min_str_len=-2)
+        self.assertIn("min_str_len must be -1 or greater.", str(cm.exception))
+        
+        # Test telescope with max str length lower than 1
+        with self.assertRaises(ValueError) as cm:
+            d.mem.telescope(str_five_levels, max_str_len=0)
+        self.assertIn("max_str_len must be greater than 0.", str(cm.exception))
+
+        d.wait()
+
+        d.kill()
+        d.terminate()
