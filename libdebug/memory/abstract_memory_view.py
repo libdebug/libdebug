@@ -312,8 +312,8 @@ class AbstractMemoryView(MutableSequence, ABC):
             return chain
 
         # The val variable contains the last read value, which can be a string or whatever
-        lp = 0x20
-        hp = 0x7E
+        min_ascii_value = 0x20  # First printable ASCII character
+        max_ascii_value = 0x7E  # Last printable ASCII character
         last_ptr = chain[-2]
 
         actual_val = None
@@ -324,12 +324,14 @@ class AbstractMemoryView(MutableSequence, ABC):
                     "Fast memory reading is disabled. Using telescope with fast_memory=False may be slow.",
                 )
             tmp_val = self.read(last_ptr, max_str_len)
-            if all(b >= lp and b <= hp for b in tmp_val[:min_str_len]):
+            if all(b >= min_ascii_value and b <= max_ascii_value for b in tmp_val[:min_str_len]):
+                # All bytes in the first min_str_len bytes are printable ASCII characters
                 null_byte = tmp_val.find(b"\x00")
                 if null_byte != -1:
                     tmp_val = tmp_val[:null_byte]
                 actual_val = tmp_val.decode("utf-8", errors="backslashreplace")
-        elif min_str_len != -1 and all(b >= lp and b <= hp for b in val[:min_str_len]):
+        elif min_str_len != -1 and all(b >= min_ascii_value and b <= max_ascii_value for b in val[:min_str_len]):
+            # All bytes in the first min_str_len bytes are printable ASCII characters
             if not self._internal_debugger.fast_memory:
                 liblog.warning(
                     "Fast memory reading is disabled. Using telescope with fast_memory=False may be slow.",
