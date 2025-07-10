@@ -635,7 +635,7 @@ class MemoryTest(TestCase):
         self.log_capture_string.truncate(0)
         self.log_capture_string.seek(0)
         
-        chain_loop = d.mem.telescope(loop_start)
+        chain_loop = d.mem.telescope(loop_start, min_str_len=-1)
         logged = self.log_capture_string.getvalue()
         self.assertIn("WARNING", logged)
         self.assertIn("The telescope chain contains a loop", logged)
@@ -645,7 +645,7 @@ class MemoryTest(TestCase):
         self.log_capture_string.truncate(0)
         self.log_capture_string.seek(0)
         
-        chain_loop = d.mem.telescope(loop_start, 100)
+        chain_loop = d.mem.telescope(loop_start, 100, min_str_len=-1)
         logged = self.log_capture_string.getvalue()
         self.assertIn("WARNING", logged)
         self.assertIn("The telescope chain contains a loop", logged)
