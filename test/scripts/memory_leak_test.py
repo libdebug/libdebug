@@ -4,14 +4,19 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 from libdebug import debugger
-from unittest import TestCase
-import tracemalloc
+from unittest import TestCase, skipIf
 import gc
 import objgraph
 from utils.binary_utils import RESOLVE_EXE
 
+try:
+    import tracemalloc
+except ImportError:
+    tracemalloc = None
+
 
 class MemoryLeakTest(TestCase):
+    @skipIf(tracemalloc is None, "tracemalloc is not available")
     def test_memory_leak(self):
         def runner():
             d = debugger(RESOLVE_EXE("basic_test"))
