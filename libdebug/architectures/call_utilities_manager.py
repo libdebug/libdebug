@@ -23,7 +23,3 @@ class CallUtilitiesManager(ABC):
     @abstractmethod
     def get_call_and_skip_amount(self: CallUtilitiesManager, opcode_window: bytes) -> tuple[bool, int]:
         """Check if the current instruction is a call instruction and compute the instruction size."""
-
-    @abstractmethod
-    def get_syscall_instruction(self: CallUtilitiesManager) -> bytes:
-        """Return the bytes of the syscall instruction."""

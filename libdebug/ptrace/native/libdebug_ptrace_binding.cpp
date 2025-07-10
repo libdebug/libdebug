@@ -124,10 +124,6 @@ Thread& LibdebugPtraceInterface::try_get_thread(const pid_t tid)
     auto it = threads.find(tid);
 
     if (it == threads.end()) {
-        for (auto &t : threads) {
-            printf("Thread %d is not registered\n", t.first);
-            printf("SEarch for %d\n", tid);
-        }
         throw std::runtime_error("Thread not found");
     }
 
@@ -789,57 +785,6 @@ void LibdebugPtraceInterface::poke_data(unsigned long addr, unsigned long data)
     }
 }
 
-void LibdebugPtraceInterface::make_fast_regs_backup(pid_t tid)
-{
-    Thread &t = try_get_thread(tid);
-
-    int ret = getregs(t);
-    if (ret == -1) {
-        throw std::runtime_error("getregs failed");
-    }
-
-    getfpregs(t);
-
-    std::shared_ptr<PtraceRegsStruct> regs = threads[tid].regs;
-    std::shared_ptr<PtraceFPRegsStruct> fpregs = threads[tid].fpregs;
-
-    *t.regs_backup.regs = *regs;
-    *t.regs_backup.fpregs = *fpregs;
-
-}
-
-void LibdebugPtraceInterface::restore_fast_regs_backup(pid_t tid)
-{
-    Thread &t = try_get_thread(tid);
-
-    *t.regs = *t.regs_backup.regs;
-    *t.fpregs = *t.regs_backup.fpregs;
-
-    setregs(t);
-    setfpregs(t);
-
-}
-
-
-void LibdebugPtraceInterface::cont_to_syscall(pid_t tid)
-{
-    Thread &t = try_get_thread(tid);
-
-    // Flush any register changes
-    if (setregs(t)) {
-        throw std::runtime_error("setregs failed");
-    }
-
-    check_and_set_fpregs(t);
-
-    // Continue to syscall on specified thread
-    if (ptrace(PTRACE_SYSCALL, t.tid, NULL, t.signal_to_forward) == -1) {
-        throw std::runtime_error("ptrace cont failed");
-    }
-
-    t.signal_to_forward = 0;
-}
-
 NB_MODULE(libdebug_ptrace_binding, m)
 {
     init_libdebug_ptrace_registers(m);
@@ -1163,33 +1108,6 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "Args:\n"
             "    addr (int): The address to poke memory at.\n"
             "    data (int): The data to poke at the address."
-        )
-        .def(
-            "make_fast_regs_backup",
-            &LibdebugPtraceInterface::make_fast_regs_backup,
-            nb::arg("tid"),
-            "Makes a fast backup of the registers for a thread.\n"
-            "\n"
-            "Args:\n"
-            "    tid (int): The thread id to make the backup for."
-        )
-        .def(
-            "restore_fast_regs_backup",
-            &LibdebugPtraceInterface::restore_fast_regs_backup,
-            nb::arg("tid"),
-            "Restores the fast backup of the registers for a thread.\n"
-            "\n"
-            "Args:\n"
-            "    tid (int): The thread id to restore the backup for."
-        )
-        .def(
-            "cont_to_syscall",
-            &LibdebugPtraceInterface::cont_to_syscall,
-            nb::arg("tid"),
-            "Continues a thread to the next syscall.\n"
-            "\n"
-            "Args:\n"
-            "    tid (int): The thread id to continue to the next syscall."
         );
 
     nb::class_<PtraceFPRegsStructDefinition>(m, "PtraceFPRegsStructDefinition")

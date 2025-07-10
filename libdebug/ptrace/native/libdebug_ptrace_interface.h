@@ -73,7 +73,6 @@ public:
 
     // Debugger control flow methods
     void cont_all_and_set_bps(const bool);
-    void cont_to_syscall(const pid_t);
     void step(const pid_t);
     void step_until(const pid_t, const unsigned long, const int);
     void stepping_finish(const pid_t, const bool);
@@ -82,8 +81,6 @@ public:
     std::vector<std::pair<pid_t, int>> wait_all_and_update_regs(const bool);
     unsigned long get_thread_event_msg(const pid_t);
     void forward_signals(const std::vector<std::pair<pid_t, int>>);
-    void make_fast_regs_backup(const pid_t);
-    void restore_fast_regs_backup(const pid_t);
 
     // Debugger software breakpoint methods
     void register_breakpoint(const unsigned long);

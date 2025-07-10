@@ -22,11 +22,9 @@ from typing import TYPE_CHECKING
 from psutil import STATUS_ZOMBIE, Error, Process, ZombieProcess, process_iter
 
 from libdebug.architectures.breakpoint_validator import validate_hardware_breakpoint
-from libdebug.architectures.call_utilities_provider import call_utilities_provider
 from libdebug.architectures.syscall_hijacker import SyscallHijacker
 from libdebug.builtin.antidebug_syscall_handler import on_enter_ptrace, on_exit_ptrace
 from libdebug.builtin.pretty_print_syscall_handler import (
-    negate_value,
     pprint_on_enter,
     pprint_on_exit,
 )
@@ -1578,22 +1576,6 @@ class InternalDebugger:
         self.__polling_thread_command_queue.join()
         self._check_status()
 
-    def _join_and_get_return_value(self: InternalDebugger) -> int:
-        # Wait for the background thread to signal "task done" before returning
-        # We don't want any asynchronous behaviour here
-        self.__polling_thread_command_queue.join()
-
-        # Check for any exceptions raised by the background thread
-        if not self.__polling_thread_response_queue.empty():
-            response = self.__polling_thread_response_queue.get()
-            self.__polling_thread_response_queue.task_done()
-            if response is None:
-                raise RuntimeError("No return value from the background thread.")
-
-            return response
-        else:
-            raise RuntimeError("No return value from the background thread.")
-
     @functools.cached_property
     def _process_full_path(self: InternalDebugger) -> str:
         """Get the full path of the process.
@@ -1654,19 +1636,6 @@ class InternalDebugger:
 
         self.set_running()
         self.debugging_interface.cont()
-
-    def __threaded_cont_to_syscall(self: InternalDebugger, thread: ThreadContext) -> None:
-        if self.argv:
-            liblog.debugger(
-                "Continuing process %s (%d) to syscall (Arbitrary Invocation).",
-                self.argv[0],
-                self.process_id,
-            )
-        else:
-            liblog.debugger("Continuing process %d to syscall (Arbitrary Invocation).", self.process_id)
-
-        self.debugging_interface.cont_to_syscall(thread)
-        self.set_running()
 
     def __threaded_wait(self: InternalDebugger) -> None:
         if self.argv:
@@ -1760,12 +1729,6 @@ class InternalDebugger:
 
     def __threaded_flush_fp_registers(self: InternalDebugger, registers: Registers) -> None:
         self.debugging_interface.flush_fp_registers(registers)
-
-    def __threaded_quick_regs_copy(self: InternalDebugger, thread: ThreadContext) -> None:
-        self.debugging_interface.quick_regs_copy(thread.thread_id)
-
-    def __threaded_quick_regs_restore(self: InternalDebugger, thread: ThreadContext) -> None:
-        self.debugging_interface.quick_regs_restore(thread.thread_id)
 
     @background_alias(__threaded_peek_memory)
     def _peek_memory(self: InternalDebugger, address: int) -> bytes:
@@ -1914,250 +1877,6 @@ class InternalDebugger:
     def set_stopped(self: InternalDebugger) -> None:
         """Set the state of the process to stopped."""
         self._is_running = False
-
-    @change_state_function_thread
-    def invoke_syscall(
-        self: InternalDebugger,
-        thread: ThreadContext,
-        syscall_identifier: str | int,
-        *args: int,
-    ) -> int:
-        """Invoke a syscall in the target process.
-
-        Args:
-            thread (ThreadContext): The thread to invoke the syscall in.
-            syscall_identifier (str | int): The syscall identifier.
-            *args (int): The arguments to pass to the syscall.
-
-        Returns:
-            int: The return value of the syscall.
-        """
-        # Initial checks to ensure the syscall can be invoked
-        if self.debugging_interface.status_handler.is_in_syscall_callback(thread):
-            raise RuntimeError("Attempted to invoke syscall inside a syscall handling callback. This is unsupported.")
-        elif self.debugging_interface.status_handler.is_inside_handled_syscall(thread):
-            raise RuntimeError("Attempted to invoke syscall while stopped inside another syscall's invocation. This is unsupported.")
-
-        if isinstance(syscall_identifier, str):
-            syscall_number = resolve_syscall_number(self.arch, syscall_identifier)
-        else:
-            syscall_number = syscall_identifier
-
-        num_args = len(args)
-        max_architectural_args = thread.num_syscall_args
-
-        if num_args > max_architectural_args:
-            raise ValueError(
-                f"Too many arguments for syscall invocation. Expected at most {max_architectural_args}, got {num_args}.",
-            )
-
-        if any(not isinstance(arg, int) for arg in args):
-            raise TypeError("All arguments must be integers.")
-
-        self._ensure_process_stopped()
-
-        if not self._is_in_background():
-            # Backup registers.
-            self.__polling_thread_command_queue.put(
-                (self.__threaded_quick_regs_copy, (thread,)),
-            )
-            self._join_and_check_status()
-        else:
-            # Backup registers.
-            self.__threaded_quick_regs_copy(thread)
-
-        # Compute architectural constants to normalize arguments.
-        max_arg_t_size = get_platform_gp_register_size(self.arch)
-        max_reg_t = 2 ** (max_arg_t_size * 8) - 1
-        min_signed_reg_t = -(2 ** (max_arg_t_size * 8 - 1))
-
-        # Set the syscall arguments according to the argument count.
-        for i, arg in enumerate(args):
-            if arg < min_signed_reg_t:
-                raise ValueError(
-                    f"Argument {i} is out of bounds. Negative value cannot be less than {min_signed_reg_t}.",
-                )
-            elif arg < 0:
-                # Compute twos complement
-                normalized_arg = negate_value(-arg, max_arg_t_size)
-            elif arg > max_reg_t:
-                raise ValueError(
-                    f"Argument {i} is out of bounds. Positive value cannot be greater than {max_reg_t}.",
-                )
-            else:
-                normalized_arg = arg
-
-            setattr(thread, f"syscall_arg{i}", normalized_arg)
-
-        call_utils = call_utilities_provider(self.arch)
-
-        syscall_instruction = call_utils.get_syscall_instruction()
-        thread.instruction_pointer -= len(syscall_instruction)
-        patch_ip = thread.instruction_pointer
-
-        len_patch = len(syscall_instruction)
-
-        backup_code = thread.memory[patch_ip, len_patch, "absolute"]
-
-        # Patch the syscall instruction.
-        thread.memory[patch_ip, len_patch, "absolute"] = syscall_instruction
-
-        # Set the syscall number in both the architectural register
-        # and the corresponding kernel copy register (e.g., orig_rax on x86_64).
-        thread.syscall_num_register = syscall_number
-        thread.syscall_number = syscall_number
-
-        self.debugging_interface.status_handler.executing_arbitrary_syscall = True
-
-        if not self._is_in_background():
-            self.__polling_thread_command_queue.put((self.__threaded_cont_to_syscall, (thread,)))
-            self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
-        else:
-            self.__threaded_cont_to_syscall(thread)
-            self.__threaded_wait()
-
-        # If not handled or handled syncronously, the status handler will not resume the process
-        # Note: the process stops first on syscall entry, then on syscall exit, thus we need
-        # two continuations
-        if syscall_number not in self.handled_syscalls or (
-            self.handled_syscalls[syscall_number].on_enter_user is None
-            and self.handled_syscalls[syscall_number].on_exit_user is None
-        ):
-            if not self._is_in_background():
-                self.__polling_thread_command_queue.put((self.__threaded_cont_to_syscall, (thread,)))
-                self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
-            else:
-                self.__threaded_cont_to_syscall(thread)
-                self.__threaded_wait()
-
-        if not self._is_in_background():
-            self._join_and_check_status()
-
-
-        self.debugging_interface.status_handler.executing_arbitrary_syscall = False
-
-        # Get return value.
-        retval = thread.syscall_return
-
-        thread.syscall_number = syscall_number
-
-        # Restore the original code.
-        try:
-            thread.memory[patch_ip, len_patch, "absolute"] = backup_code
-        except RuntimeError as e:
-            raise RuntimeError(
-                "Failed to restore the original instruction after syscall invocation. "
-                "The process likely died during the syscall invocation.",
-            ) from e
-
-        # Restore the registers
-
-        if not self._is_in_background():
-            self.__polling_thread_command_queue.put(
-                (self.__threaded_quick_regs_restore, (thread,)),
-            )
-            self._join_and_check_status()
-        else:
-            self.__threaded_quick_regs_restore(thread)
-
-        syscall_name = (
-            syscall_identifier
-            if isinstance(syscall_identifier, str)
-            else resolve_syscall_name(self.arch, syscall_number)
-        )
-
-        is_cloning_event = syscall_name in ["fork", "vfork", "clone", "clone3"]
-
-        if is_cloning_event:
-            # Complex handling of struct, maybe future work, but for an arbitrary call likely not necessary
-            if syscall_name == "clone3":
-                liblog.warning(
-                    "clone3 syscall invocation is experimental, check state of the new process / thread manually or use the base clone syscall"
-                )
-                return retval
-
-            CLONE_VM = 0x00000100
-            CLONE_THREAD = 0x00010000
-
-            thread_flags = thread.syscall_arg2
-
-            compatible_thread_flags = (
-                thread_flags & CLONE_VM == CLONE_VM
-                ) or (
-                thread_flags & CLONE_THREAD == CLONE_THREAD
-            )
-
-            is_process = syscall_name in ["fork", "vfork"] or not compatible_thread_flags
-
-            if is_process:
-                # If the syscall is a fork, we need to fix the state of the new process
-                new_pid = retval
-
-                reg_bit_count = get_platform_gp_register_size(self.arch) * 8
-                negative_threshold = 2 ** (reg_bit_count - 1)
-
-                if new_pid >= negative_threshold:
-                    raise RuntimeError(
-                        f"{syscall_name} syscall returned a negative value: {new_pid:#x}. This is not a valid PID.",
-                    )
-
-                child = None
-
-                for candidate in self.children:
-                    if candidate.process_id == new_pid:
-                        child = candidate
-                        break
-
-                if child is None:
-                    raise RuntimeError(
-                        f"Failed to find the child process {new_pid} after syscall invocation.",
-                    )
-
-                # - Restore the original code in the child process
-                liblog.debugger("Restoring state on child process %d", child.process_id)
-                child.memory[patch_ip, len_patch, "absolute"] = backup_code
-                child.syscall_number = syscall_number
-
-                # - Restore registers
-                child.step()
-                child.interrupt()
-                for reg_name in dir(thread.regs):
-                    if isinstance(getattr(thread.regs, reg_name), int | float) and reg_name != "_thread_id":
-                        setattr(child.regs, reg_name, getattr(thread.regs, reg_name))
-            else:
-                # If the syscall is a fork, we need to fix the state of the new process
-                new_tid = retval
-
-                reg_bit_count = get_platform_gp_register_size(self.arch) * 8
-                negative_threshold = 2 ** (reg_bit_count - 1)
-
-                if new_tid >= negative_threshold:
-                    raise RuntimeError(
-                        f"{syscall_name} syscall returned a negative value: {new_tid:#x}. This is not a valid PID.",
-                    )
-
-                child = None
-
-                for candidate in self.threads:
-                    if candidate.thread_id == new_tid:
-                        child = candidate
-                        break
-
-                if child is None:
-                    raise RuntimeError(
-                        f"Failed to find the child thread {new_tid} after syscall invocation.",
-                    )
-
-                # - The thread only needs to restore registers
-                liblog.debugger("Restoring state on child thread %d", child.thread_id)
-
-                # - Restore registers
-                child.step()
-
-                for reg_name in dir(thread.regs):
-                    if isinstance(getattr(thread.regs, reg_name), int | float) and reg_name != "_thread_id":
-                        setattr(child.regs, reg_name, getattr(thread.regs, reg_name))
-        return retval
 
     @change_state_function_process
     def create_snapshot(self: Debugger, level: str = "base", name: str | None = None) -> ProcessSnapshot:

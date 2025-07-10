@@ -19,20 +19,6 @@
 
 #define IS_RET_INSTRUCTION(instruction) (instruction == 0xD65F03C0)
 
-#define SET_SYSCALL_NUMBER(regs, value) regs->x8 = value
-
-#define SET_SYSCALL_ARG0(regs, value) regs->x0 = value
-#define SET_SYSCALL_ARG1(regs, value) regs->x1 = value
-#define SET_SYSCALL_ARG2(regs, value) regs->x2 = value
-#define SET_SYSCALL_ARG3(regs, value) regs->x3 = value
-#define SET_SYSCALL_ARG4(regs, value) regs->x4 = value
-#define SET_SYSCALL_ARG5(regs, value) regs->x5 = value
-#define SET_SYSCALL_ARG6(regs, value) regs->x6 = value
-
-#define GET_SYSCALL_RESULT(regs) regs->x0
-
-#define SYSCALL_INSTRUCTION 0xD4000001
-
 int IS_CALL_INSTRUCTION(uint8_t* instr);
 
 struct PtraceRegsStruct

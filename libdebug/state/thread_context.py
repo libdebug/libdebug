@@ -54,9 +54,6 @@ class ThreadContext(ABC):
     syscall_number: int
     """The thread's syscall number when the kernel has entered a syscall."""
 
-    syscall_num_register: int
-    """The thread's syscall number from the architectural register dedicated to syscalls."""
-
     syscall_return: int
     """The thread's syscall return value."""
 
@@ -350,16 +347,6 @@ class ThreadContext(ABC):
     def ni(self: ThreadContext) -> None:
         """Alias for the `next` method. Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._internal_debugger.next(self)
-
-    def invoke_syscall(self: ThreadContext, syscall_identifier: str | int, *args: int) -> int:
-        """Invokes a syscall with the specified arguments on this thread.
-
-        Args:
-            syscall_identifier (str | int): The syscall identifier.
-            *args (int): The syscall arguments.
-        """
-        liblog.debugger(f"Invoking syscall {syscall_identifier} on thread {self.tid} with args {args}")
-        return self._internal_debugger.invoke_syscall(self, syscall_identifier, *args)
 
     def __repr__(self: ThreadContext) -> str:
         """Returns a string representation of the object."""

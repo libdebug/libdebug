@@ -39,7 +39,6 @@ class PtraceStatusHandler:
         self._assume_race_sigstop: bool = (
             True  # Assume the stop is due to a race condition with SIGSTOP sent by the debugger
         )
-        self.executing_arbitrary_syscall: bool = False
 
     def _handle_clone(self: PtraceStatusHandler, thread_id: int, results: list) -> None:
         # https://go.googlesource.com/debug/+/a09ead70f05c87ad67bd9a131ff8352cf39a6082/doc/ptrace-nptl.txt
@@ -171,10 +170,6 @@ class PtraceStatusHandler:
             syscall_number_after_callback = thread.syscall_number
 
             if syscall_number_after_callback != syscall_number:
-                if self.executing_arbitrary_syscall:
-                    liblog.warning(
-                        "Syscall hijacking callback is active, syscall invocation will be changed accordingly"
-                    )
                 # The syscall number has changed
                 # Pretty print the syscall number before the callback
                 if handler.on_enter_pprint:
@@ -235,7 +230,6 @@ class PtraceStatusHandler:
     def handle_syscall(self: PtraceStatusHandler, thread_id: int) -> bool:
         """Handle a syscall trap."""
         thread = self.internal_debugger.get_thread_by_id(thread_id)
-
         if not hasattr(thread, "syscall_number"):
             # This is another spurious trap, we don't know what to do with it
             return
@@ -247,11 +241,6 @@ class PtraceStatusHandler:
         elif -1 in self.internal_debugger.handled_syscalls:
             # Handle all syscalls is enabled
             handler = self.internal_debugger.handled_syscalls[-1]
-        elif self.executing_arbitrary_syscall:
-            self.internal_debugger.resume_context.event_type[thread_id] = EventType.SYSCALL
-            self.internal_debugger.resume_context.event_hit_ref[thread_id] = None
-            self.internal_debugger.resume_context.resume = False
-            return
         else:
             # This is a syscall we don't care about
             # Resume the execution
@@ -311,9 +300,7 @@ class PtraceStatusHandler:
 
             handler._has_entered = False
             handler._skip_exit = False
-            if (
-                not handler.on_enter_user and not handler.on_exit_user and handler.enabled
-            ) or self.executing_arbitrary_syscall:
+            if not handler.on_enter_user and not handler.on_exit_user and handler.enabled:
                 # If the syscall has no callback, we need to stop the process despite the other signals
                 self.internal_debugger.resume_context.event_type[thread_id] = EventType.SYSCALL
                 self.internal_debugger.resume_context.resume = False
@@ -553,34 +540,3 @@ class PtraceStatusHandler:
             if not thread.dead and thread.thread_id not in tids:
                 self.ptrace_interface.unregister_thread(thread.thread_id, None, None)
                 liblog.debugger("Manually unregistered thread %d" % thread.thread_id)
-
-    def is_in_syscall_callback(self: PtraceStatusHandler, thread: ThreadContext) -> bool:
-        """Check if we are in a syscall callback.
-
-        Args:
-            thread (ThreadContext): The thread to check.
-
-        Returns:
-            bool: True if we are in a syscall callback, False otherwise.
-        """
-        resume_context = self.internal_debugger.resume_context
-
-        return (
-            resume_context.is_in_callback
-            and resume_context.event_type == EventType.SYSCALL
-            and resume_context.event_hit_ref[thread.thread_id] is not None
-        )
-
-    def is_inside_handled_syscall(self: PtraceStatusHandler, thread: ThreadContext) -> bool:
-        """Check if the thread in a handled syscall enter.
-
-        Args:
-            thread (ThreadContext): The thread to check.
-
-        Returns:
-            bool: True if we are in a syscall enter callback, False otherwise.
-        """
-        return any(
-            self.internal_debugger.handled_syscalls[syscall_number].hit_on_enter(thread)
-            for syscall_number in self.internal_debugger.handled_syscalls
-        )

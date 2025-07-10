@@ -385,7 +385,6 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
 
         # setup generic syscall properties
         target_class.syscall_number = _get_property_64("orig_rax")
-        target_class.syscall_num_register = _get_property_64("rax")
         target_class.syscall_return = _get_property_64("rax")
         target_class.syscall_arg0 = _get_property_64("rdi")
         target_class.syscall_arg1 = _get_property_64("rsi")

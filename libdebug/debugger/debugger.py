@@ -983,12 +983,3 @@ class Debugger:
             file_path (str): The path to the snapshot file.
         """
         return self._internal_debugger.load_snapshot(file_path)
-
-    def invoke_syscall(self: Debugger, syscall_identifier: str | int, *args: int) -> int:
-        """Invokes a syscall with the specified arguments on this thread.
-
-        Args:
-            syscall_identifier (str | int): The syscall identifier.
-            *args (int): The syscall arguments.
-        """
-        return self.threads[0].invoke_syscall(syscall_identifier, *args)
