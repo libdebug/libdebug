@@ -9,29 +9,30 @@ import logging
 from unittest import TestCase
 from utils.binary_utils import RESOLVE_EXE
 from libdebug import debugger
-import os
 import tempfile
+import sys
 
 class SnapshotsTest(TestCase):
     def setUp(self) -> None:
+        self.capturedOutput = io.StringIO()
+        sys.stdout = self.capturedOutput
         # Redirect logging to a string buffer
         self.log_capture_string = io.StringIO()
         self.log_handler = logging.StreamHandler(self.log_capture_string)
-        self.log_handler.setLevel(logging.WARNING)
-
         self.logger = logging.getLogger("libdebug")
         self.original_handlers = self.logger.handlers
         self.logger.handlers = []
         self.logger.addHandler(self.log_handler)
         self.logger.setLevel(logging.WARNING)
-
+        
     def tearDown(self):
+        # Restore stdout
+        self.capturedOutput.close()
+        sys.stdout = sys.__stdout__
         # Remove the custom handler
         self.logger.removeHandler(self.log_handler)
-
         # Restore the original handlers
         self.logger.handlers = self.original_handlers
-
         # Close the log capture string buffer
         self.log_capture_string.close()
 

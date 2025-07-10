@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Gabriele Digregorio, Francesco Panebianco, Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2024-2025 Gabriele Digregorio, Francesco Panebianco, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -165,9 +165,9 @@ def pprint_reg_diff_util(
 
 
 def pprint_reg_diff_large_util(
-    curr_reg_tuple: (str, str),
-    reg_tuple_before: (int, int),
-    reg_tuple_after: (int, int),
+    curr_reg_tuple: tuple[str, ...],
+    reg_tuple_before: tuple[int, ...],
+    reg_tuple_after: tuple[int, ...],
 ) -> None:
     """Pretty prints a register diff."""
     print(f"{ANSIColors.BLUE}" + "{" + f"{ANSIColors.RESET}")
