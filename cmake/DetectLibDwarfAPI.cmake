@@ -40,11 +40,22 @@ endif()
 # Determine the correct linker flags/libraries for the checks
 set(CMAKE_REQUIRED_LIBRARIES "")
 
+set(LINK_DIRS "")
+set(LINK_LIBS "")
+set(COMPILE_FLAGS "")
+
 if(DEFINED LibDwarf_LDFLAGS AND LibDwarf_LDFLAGS)
-    # Parse LDFLAGS to separate compile flags from link flags
-    string(REGEX MATCHALL "-L[^ ]+" LINK_DIRS "${LibDwarf_LDFLAGS}")
-    string(REGEX MATCHALL "-l[^ ]+" LINK_LIBS "${LibDwarf_LDFLAGS}")
-    string(REGEX MATCHALL "-[^Ll][^ ]*" COMPILE_FLAGS "${LibDwarf_LDFLAGS}")
+    # Treat the variable as a proper CMake list and loop through each item
+    foreach(flag ${LibDwarf_LDFLAGS})
+        if(flag MATCHES "^-L")
+            list(APPEND LINK_DIRS ${flag})
+        elseif(flag MATCHES "^-l(.+)")
+            list(APPEND LINK_LIBS ${CMAKE_MATCH_1})
+        else()
+            # Anything else is considered a compile flag (e.g., -gnu)
+            list(APPEND COMPILE_FLAGS ${flag})
+        endif()
+    endforeach()
 
     # Add compile flags to CMAKE_REQUIRED_FLAGS
     if(COMPILE_FLAGS)
@@ -77,23 +88,25 @@ if(PKG_CONFIG_FOUND)
     pkg_check_modules(ZLIB QUIET zlib)
     if(ZLIB_FOUND)
         list(APPEND CMAKE_REQUIRED_LIBRARIES ${ZLIB_LIBRARIES})
-        set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${ZLIB_LDFLAGS}")
+        list(JOIN ZLIB_LDFLAGS " " ZLIB_REQUIRED_FLAGS)
+        set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${ZLIB_REQUIRED_FLAGS}")
     else()
         # Fallback to standard library names
-        list(APPEND CMAKE_REQUIRED_LIBRARIES -lz)
+        list(APPEND CMAKE_REQUIRED_LIBRARIES z)
     endif()
 
     pkg_check_modules(ZSTD QUIET libzstd)
     if(ZSTD_FOUND)
         list(APPEND CMAKE_REQUIRED_LIBRARIES ${ZSTD_LIBRARIES})
-        set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${ZSTD_LDFLAGS}")
+        list(JOIN ZSTD_LDFLAGS " " ZSTD_REQUIRED_FLAGS)
+        set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${ZSTD_REQUIRED_FLAGS}")
     else()
         # Fallback to standard library names
-        list(APPEND CMAKE_REQUIRED_LIBRARIES -lzstd)
+        list(APPEND CMAKE_REQUIRED_LIBRARIES zstd)
     endif()
 else()
     # Fallback when pkg-config is not available
-    list(APPEND CMAKE_REQUIRED_LIBRARIES -lz -lzstd)
+    list(APPEND CMAKE_REQUIRED_LIBRARIES z zstd)
 endif()
 
 # Clean up CMAKE_REQUIRED_FLAGS

@@ -1,6 +1,6 @@
 //
 // This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-// Copyright (c) 2024 Roberto Alessandro Bertolini. All rights reserved.
+// Copyright (c) 2024-2025 Roberto Alessandro Bertolini. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for details.
 //
 
@@ -346,8 +346,8 @@ void init_libdebug_ptrace_registers(nb::module_ &m) {
         .def_rw("override_syscall_number", &PtraceRegsStruct::override_syscall_number);
 
     nb::class_<PtraceFPRegsStruct>(m, "PtraceFPRegsStruct")
-        .def_rw("dirty", &PtraceFPRegsStruct::dirty)
-        .def_rw("fresh", &PtraceFPRegsStruct::fresh)
+        .def_prop_rw("dirty", &PtraceFPRegsStruct::is_dirty, &PtraceFPRegsStruct::set_dirty)
+        .def_prop_rw("fresh", &PtraceFPRegsStruct::is_fresh, &PtraceFPRegsStruct::set_fresh)
         .def_ro("vregs", &PtraceFPRegsStruct::vregs)
         .def_rw("fpsr", &PtraceFPRegsStruct::fpsr)
         .def_rw("fpcr", &PtraceFPRegsStruct::fpcr);

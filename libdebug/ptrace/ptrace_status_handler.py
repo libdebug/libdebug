@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
     from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
-    from libdebug.interfaces.debugging_interface import DebuggingInterface
+    from libdebug.ptrace.ptrace_interface import PtraceInterface
     from libdebug.state.thread_context import ThreadContext
 
 
@@ -34,7 +34,7 @@ class PtraceStatusHandler:
     def __init__(self: PtraceStatusHandler) -> None:
         """Initializes the PtraceStatusHandler class."""
         self.internal_debugger = provide_internal_debugger(self)
-        self.ptrace_interface: DebuggingInterface = self.internal_debugger.debugging_interface
+        self.ptrace_interface: PtraceInterface = self.internal_debugger.debugging_interface
         self.forward_signal: bool = True
         self._assume_race_sigstop: bool = (
             True  # Assume the stop is due to a race condition with SIGSTOP sent by the debugger
@@ -64,6 +64,16 @@ class PtraceStatusHandler:
         if self.internal_debugger.get_thread_by_id(thread_id):
             self.ptrace_interface.unregister_thread(thread_id, exit_code=exit_code, exit_signal=exit_signal)
 
+    def _check_gdb_migration_status(self: PtraceStatusHandler) -> None:
+        if self.internal_debugger._is_migrated_to_gdb:
+            # If `d.wait_for_gdb()` was never called inside the callback, after migrating in non-blocking mode,
+            # we need to raise an exception, because we cannot continue with the debugging
+            # until the process is migrated back to libdebug.
+            raise RuntimeError(
+                "The process was migrated to GDB, but the callback did not wait for it to migrate back to libdebug. "
+                "Please ensure that `d.wait_for_gdb()` is called inside the callback before continuing.",
+            )
+
     def _handle_breakpoints(self: PtraceStatusHandler, thread_id: int) -> None:
         thread = self.internal_debugger.get_thread_by_id(thread_id)
 
@@ -80,7 +90,7 @@ class PtraceStatusHandler:
         bp: None | Breakpoint
 
         bp = self.internal_debugger.breakpoints.get(ip)
-        if bp and bp.enabled and not bp._disabled_for_step:
+        if bp and bp._enabled and not bp._disabled_for_step:
             # Hardware breakpoint hit
             liblog.debugger("Hardware breakpoint hit at 0x%x", ip)
         else:
@@ -89,7 +99,7 @@ class PtraceStatusHandler:
             ip -= software_breakpoint_byte_size(self.internal_debugger.arch)
 
             bp = self.internal_debugger.breakpoints.get(ip)
-            if bp and bp.enabled and not bp._disabled_for_step:
+            if bp and bp._enabled and not bp._disabled_for_step:
                 # Software breakpoint hit
                 liblog.debugger("Software breakpoint hit at 0x%x", ip)
 
@@ -114,7 +124,13 @@ class PtraceStatusHandler:
             bp.hit_count += 1
 
             if bp.callback:
-                bp.callback(thread, bp)
+                try:
+                    bp.callback(thread, bp)
+                except Exception as e:
+                    liblog.error('Exception raised while executing callback for breakpoint at "%s": %s', bp.symbol, e)
+                    raise RuntimeError("Unhandled exception in breakpoint callback") from e
+
+                self._check_gdb_migration_status()
             else:
                 # If the breakpoint has no callback, we need to stop the process despite the other signals
                 self.internal_debugger.resume_context.resume = False
@@ -128,7 +144,7 @@ class PtraceStatusHandler:
     ) -> None:
         """Manage the on_enter callback of a syscall."""
         # Call the user-defined callback if it exists
-        if handler.on_enter_user and handler.enabled:
+        if handler.on_enter_user and handler._enabled:
             old_args = [
                 thread.syscall_arg0,
                 thread.syscall_arg1,
@@ -137,7 +153,18 @@ class PtraceStatusHandler:
                 thread.syscall_arg4,
                 thread.syscall_arg5,
             ]
-            handler.on_enter_user(thread, handler)
+            try:
+                handler.on_enter_user(thread, handler)
+            except Exception as e:  # noqa: BLE001
+                liblog.error("Exception raised in on-enter callback for syscall %d: %s", handler.syscall_number, e)
+                raise RuntimeError("Unhandled exception in syscall callback") from e
+
+            self._check_gdb_migration_status()
+
+            if not handler.enabled:
+                # The syscall has been disabled by the user, we will never hit the on_exit
+                # so we have to increment the hit count here
+                handler.hit_count += 1
 
             # Check if the syscall number has changed
             syscall_number_after_callback = thread.syscall_number
@@ -194,7 +221,7 @@ class PtraceStatusHandler:
         elif handler.on_exit_pprint or handler.on_exit_user:
             # The syscall has been entered but the user did not define an on_enter callback
             handler._has_entered = True
-        if not handler.on_enter_user and not handler.on_exit_user and handler.enabled:
+        if not handler.on_enter_user and not handler.on_exit_user and handler._enabled:
             # If the syscall has no callback, we need to stop the process despite the other signals
             self.internal_debugger.resume_context.event_type[thread.thread_id] = EventType.SYSCALL
             handler._has_entered = True
@@ -240,16 +267,24 @@ class PtraceStatusHandler:
             # The syscall is being exited
             liblog.debugger("Syscall %d exited on thread %d", syscall_number, thread_id)
 
-            if handler.enabled and not handler._skip_exit:
+            if handler._enabled and not handler._skip_exit:
                 # Increment the hit count only if the syscall has been handled
                 handler.hit_count += 1
 
             # Call the user-defined callback if it exists
-            if handler.on_exit_user and handler.enabled and not handler._skip_exit:
+            if handler.on_exit_user and handler._enabled and not handler._skip_exit:
                 # Pretty print the return value before the callback
                 if handler.on_exit_pprint:
                     return_value_before_callback = thread.syscall_return
-                handler.on_exit_user(thread, handler)
+
+                try:
+                    handler.on_exit_user(thread, handler)
+                except Exception as e:  # noqa: BLE001
+                    liblog.error("Exception raised in on-exit callback for syscall %d: %s", handler.syscall_number, e)
+                    raise RuntimeError("Unhandled exception in syscall callback") from e
+
+                self._check_gdb_migration_status()
+
                 if handler.on_exit_pprint:
                     return_value_after_callback = thread.syscall_return
                     if return_value_after_callback != return_value_before_callback:
@@ -264,7 +299,7 @@ class PtraceStatusHandler:
 
             handler._has_entered = False
             handler._skip_exit = False
-            if not handler.on_enter_user and not handler.on_exit_user and handler.enabled:
+            if not handler.on_enter_user and not handler.on_exit_user and handler._enabled:
                 # If the syscall has no callback, we need to stop the process despite the other signals
                 self.internal_debugger.resume_context.event_type[thread_id] = EventType.SYSCALL
                 self.internal_debugger.resume_context.resume = False
@@ -276,7 +311,7 @@ class PtraceStatusHandler:
         signal_number: int,
         hijacked_set: set[int],
     ) -> None:
-        if catcher.enabled:
+        if catcher._enabled:
             catcher.hit_count += 1
             liblog.debugger(
                 "Caught signal %s (%d) hit on thread %d",
@@ -286,7 +321,17 @@ class PtraceStatusHandler:
             )
             if catcher.callback:
                 # Execute the user-defined callback
-                catcher.callback(thread, catcher)
+                try:
+                    catcher.callback(thread, catcher)
+                except Exception as e:
+                    liblog.error(
+                        "Exception raised in callback for signal %s: %s",
+                        resolve_signal_name(signal_number),
+                        e,
+                    )
+                    raise RuntimeError("Unhandled exception in signal callback") from e
+
+                self._check_gdb_migration_status()
 
                 new_signal_number = thread._signal_number
 
@@ -467,10 +512,16 @@ class PtraceStatusHandler:
         # This is a workaround for some race conditions that may happen
         self._assume_race_sigstop = True
 
+        # We declare in the ResumeContext that we are executing a few callbacks
+        self.internal_debugger.resume_context.is_in_callback = True
+
         for pid, status in result:
             if pid != -1:
                 # Otherwise, this is a spurious trap
                 self._handle_change(pid, status, result)
+
+        # Callbacks are done
+        self.internal_debugger.resume_context.is_in_callback = False
 
         if self._assume_race_sigstop:
             # Resume the process if the stop was due to a race condition with SIGSTOP sent by the debugger

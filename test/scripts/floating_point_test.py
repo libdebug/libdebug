@@ -72,8 +72,16 @@ class FloatingPointTest(TestCase):
         self.assertTrue(bp2.hit_on(d))
 
         for i in range(32):
+            val = randint(0, 2**256 - 1)
+            setattr(d.regs, f"ymm{i}", val)
+            self.assertEqual(getattr(d.regs, f"xmm{i}"), val & ((1 << 128) - 1))
+            self.assertEqual(getattr(d.regs, f"ymm{i}"), val)
+
+        for i in range(32):
             val = randint(0, 2**512 - 1)
             setattr(d.regs, f"zmm{i}", val)
+            self.assertEqual(getattr(d.regs, f"xmm{i}"), val & ((1 << 128) - 1))
+            self.assertEqual(getattr(d.regs, f"ymm{i}"), val & ((1 << 256) - 1))
             self.assertEqual(getattr(d.regs, f"zmm{i}"), val)
 
         d.kill()
@@ -453,7 +461,6 @@ class FloatingPointTest(TestCase):
             self.i386_st()
         else:
             # Run a generic test
-            self.i386_xmm()
             self.i386_mmx()
             self.i386_st()
 
@@ -612,8 +619,8 @@ class FloatingPointTest(TestCase):
 
         d.run()
 
-        bp1 = d.bp(0x804926d)
-        bp2 = d.bp(0x804928a)
+        bp1 = d.bp(0x804844d)
+        bp2 = d.bp(0x804846a)
 
         d.cont()
 
@@ -662,8 +669,8 @@ class FloatingPointTest(TestCase):
 
         d.run()
 
-        d.bp(0x804926d, callback=callback)
-        bp = d.bp(0x804928a)
+        d.bp(0x804844d, callback=callback)
+        bp = d.bp(0x804846a)
 
         d.cont()
 

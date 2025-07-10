@@ -1,9 +1,11 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Gabriele Digregorio, Francesco Panebianco, Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2023-2025 Gabriele Digregorio, Francesco Panebianco, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+import io
+import logging
 from unittest import TestCase, skipUnless
 from utils.binary_utils import PLATFORM, RESOLVE_EXE
 from utils.thread_utils import FUN_ARG_0
@@ -33,6 +35,20 @@ match PLATFORM:
 class CallbackTest(TestCase):
     def setUp(self):
         self.exceptions = []
+        self.log_capture_string = io.StringIO()
+        self.log_handler = logging.StreamHandler(self.log_capture_string)
+        self.log_handler.setLevel(logging.WARNING)
+
+        self.logger = logging.getLogger("libdebug")
+        self.original_handlers = self.logger.handlers
+        self.logger.handlers = []
+        self.logger.addHandler(self.log_handler)
+        self.logger.setLevel(logging.WARNING)
+
+    def tearDown(self):
+        self.logger.removeHandler(self.log_handler)
+        self.logger.handlers = self.original_handlers
+        self.log_handler.close()
 
     def test_callback_simple(self):
         self.exceptions.clear()
@@ -199,7 +215,7 @@ class CallbackTest(TestCase):
             
         d.wait()
 
-        assert bp2.hit_on(d)
+        self.assertTrue(bp2.hit_on(d))
 
         d.kill()
         d.terminate()
@@ -226,7 +242,7 @@ class CallbackTest(TestCase):
             
         d.wait()
 
-        assert bp2.hit_on(d)
+        self.assertTrue(bp2.hit_on(d))
 
         d.kill()
         d.terminate()
@@ -253,14 +269,12 @@ class CallbackTest(TestCase):
             
         d.wait()
 
-        assert bp2.hit_on(d)
+        self.assertTrue(bp2.hit_on(d))
 
         d.kill()
         d.terminate()
 
     def test_callback_pid_accessible(self):
-        self.exceptions.clear()
-
         d = debugger(RESOLVE_EXE("basic_test"))
 
         d.run()
@@ -281,8 +295,6 @@ class CallbackTest(TestCase):
         self.assertTrue(hit)
     
     def test_callback_pid_accessible_alias(self):
-        self.exceptions.clear()
-
         d = debugger(RESOLVE_EXE("basic_test"))
 
         d.run()
@@ -304,8 +316,6 @@ class CallbackTest(TestCase):
         self.assertTrue(hit)
         
     def test_callback_tid_accessible_alias(self):
-        self.exceptions.clear()
-
         d = debugger(RESOLVE_EXE("basic_test"))
 
         d.run()
@@ -326,8 +336,6 @@ class CallbackTest(TestCase):
         self.assertTrue(hit)
     
     def test_callback_empty(self):
-        self.exceptions.clear()
-
         d = debugger(RESOLVE_EXE("basic_test"))
 
         d.run()
@@ -341,5 +349,240 @@ class CallbackTest(TestCase):
 
         self.assertEqual(bp.hit_count, 1)
 
-        if self.exceptions:
-            raise self.exceptions[0]
+    def test_raise_exception_in_bp_callback(self):
+        d = debugger(RESOLVE_EXE("basic_test"))
+
+        d.run()
+
+        def callback(_, __):
+            raise Exception("Test exception")
+
+        d.breakpoint("register_test", callback=callback)
+
+        with self.assertRaises(Exception):
+            d.cont()
+            d.wait()
+
+        d.kill()
+        d.terminate()
+
+        # Check if the error was logged
+        self.log_handler.flush()
+        log_output = self.log_capture_string.getvalue()
+        self.assertIn("Test exception", log_output)
+        self.assertIn("ERROR", log_output)
+
+    def test_raise_exception_in_all_callbacks(self):
+        d = debugger(RESOLVE_EXE("run_pipes_test"))
+
+        r = d.run()
+
+        def callback(_, x):
+            raise Exception(f"Test Exception for {type(x).__name__}")
+
+        d.breakpoint("option_1", callback=callback)
+        d.catch_signal(50, callback=callback)
+        d.handle_syscall("write", on_enter=callback, on_exit=callback)
+
+        with self.assertRaises(Exception):
+            d.cont()
+            r.sendline(b"3")
+            r.sendline(b"1")
+            r.sendline(b"4")
+            d.wait()
+
+        while not d.dead:
+            try:
+                d.cont()
+                d.wait()
+            except:
+                pass
+
+        d.kill()
+        d.terminate()
+
+        self.log_handler.flush()
+        log_output = self.log_capture_string.getvalue()
+
+        # We should have printed "Test Exception for Breakpoint"
+        self.assertIn("Test Exception for Breakpoint", log_output)
+
+        # We should have printed "Test Exception for SignalCatcher"
+        self.assertIn("Test Exception for Signal", log_output)
+
+        # We should have printed "Test Exception for SyscallHandler" 74 times
+        self.assertIn("Test Exception for Syscall", log_output)
+        self.assertEqual(log_output.count("Test Exception for Syscall"), 74)
+
+    def test_interrupt_inside_callback(self):
+        d = debugger(RESOLVE_EXE("multiple_calls"))
+
+        d.run()
+
+        def callback(_, bp):
+            if bp.hit_count == 5:
+                d.interrupt()
+
+        bp = d.breakpoint("printMessage", callback=callback)
+
+        d.cont()
+        d.wait()
+
+        # We should be interrupted here
+        self.assertEqual(bp.hit_count, 5)
+        self.assertFalse(d.dead)
+        self.assertTrue(bp.hit_on(d))
+
+        bp.callback = None
+
+        d.cont()
+        d.wait()
+
+        self.assertEqual(bp.hit_count, 6)
+        self.assertFalse(d.dead)
+        self.assertTrue(bp.hit_on(d))
+
+        bp.callback = callback
+
+        d.cont()
+        d.wait()
+
+        self.assertTrue(d.dead)
+
+        d.kill()
+        d.terminate()
+
+    def test_bp_inside_callback(self):
+        d = debugger(RESOLVE_EXE("backtrace_test"))
+
+        d.run()
+
+        bp2 = None
+        bp3 = None
+
+        def callback(_, bp):
+            nonlocal bp2, bp3
+            if bp.symbol == "function1":
+                bp2 = d.breakpoint("function2")
+                bp3 = d.breakpoint("function3", callback=callback, hardware=True)
+
+        bp1 = d.breakpoint("function1", callback=callback)
+
+        d.cont()
+        d.wait()
+
+        # We should be stopped at function2
+        self.assertEqual(bp1.hit_count, 1)
+        self.assertEqual(bp2.hit_count, 1)
+        self.assertTrue(bp2.hit_on(d))
+
+        d.cont()
+        d.wait()
+
+        self.assertTrue(d.dead)
+        self.assertEqual(bp3.hit_count, 1)
+
+        d.kill()
+        d.terminate()
+
+    def test_disable_self_inside_callback(self):
+        d = debugger(RESOLVE_EXE("run_pipes_test"))
+
+        r = d.run()
+
+        def callback(_, x):
+            x.disable()
+
+        bp = d.bp("option_1", callback=callback)
+        sc = d.catch_signal(50, callback=callback)
+        sh1 = d.handle_syscall("rt_sigaction", on_enter=callback)
+        sh2 = d.handle_syscall("write", on_exit=callback)
+
+        d.cont()
+
+        r.sendline(b"3")
+        r.sendline(b"1")
+        r.sendline(b"4")
+
+        d.wait()
+
+        self.assertEqual(bp.hit_count, 1)
+        self.assertEqual(sc.hit_count, 1)
+        self.assertEqual(sh1.hit_count, 1)
+        self.assertEqual(sh2.hit_count, 1)
+        self.assertTrue(d.dead)
+
+        d.kill()
+        d.terminate()
+
+    def test_disable_self_inside_callback_2(self):
+        d = debugger(RESOLVE_EXE("run_pipes_test"))
+
+        r = d.run()
+
+        def callback(_, x):
+            x.enabled = False
+
+        bp = d.bp("option_1", callback=callback)
+        sc = d.catch_signal(50, callback=callback)
+        sh1 = d.handle_syscall("rt_sigaction", on_enter=callback)
+        sh2 = d.handle_syscall("write", on_exit=callback)
+
+        d.cont()
+
+        r.sendline(b"3")
+        r.sendline(b"1")
+        r.sendline(b"4")
+
+        d.wait()
+
+        self.assertEqual(bp.hit_count, 1)
+        self.assertEqual(sc.hit_count, 1)
+        self.assertEqual(sh1.hit_count, 1)
+        self.assertEqual(sh2.hit_count, 1)
+        self.assertTrue(d.dead)
+
+        d.kill()
+        d.terminate()
+
+    def test_signal_and_syscalls_inside_callback(self):
+        d = debugger(RESOLVE_EXE("run_pipes_test"))
+
+        r = d.run()
+
+        sc = None
+        bp = None
+
+        def rt_signaction_callback(_, sh):
+            nonlocal sc, bp
+
+            sc = d.catch_signal(50)
+            bp = d.bp("option_1", callback=True)
+
+        sh = d.handle_syscall("rt_sigaction", on_enter=rt_signaction_callback)
+
+        d.cont()
+
+        r.sendline(b"3")
+
+        d.wait()
+
+        # We should be stopped at SIGPROVOLA
+        self.assertEqual(sc.hit_count, 1)
+        self.assertTrue(sc.hit_on(d))
+
+        d.cont()
+
+        for _ in range(5):
+            r.sendline(b"1") # Calls option_1
+
+        r.sendline(b"4")
+
+        d.wait()
+
+        self.assertEqual(bp.hit_count, 5)
+        self.assertEqual(sc.hit_count, 1)
+        self.assertEqual(sh.hit_count, 1)
+
+        d.kill()
+        d.terminate()

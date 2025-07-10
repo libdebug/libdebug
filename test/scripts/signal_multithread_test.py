@@ -237,12 +237,11 @@ class SignalMultithreadTest(TestCase):
         d.signals_to_block = ["SIGUSR1", 15, "SIGINT", 3, 13]
 
         d.cont()
-        
-        for _ in range(12):   
-            signal_event.clear()             
-            r.sendline(b"sync")
+        for _ in range(12): 
             if not signal_event.wait(timeout=5):
                 raise TimeoutError("No signal received within 5 seconds")
+            signal_event.clear()   
+            r.sendline(b"sync")
             
 
         self.assertEqual(r.recvline(timeout=5), b"Sender exiting normally.")

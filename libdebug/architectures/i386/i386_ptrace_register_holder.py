@@ -77,6 +77,47 @@ def _get_property_fp_st(name: str, index: int) -> property:
     return property(getter, setter, None, name)
 
 
+def _get_property_legacy_fp_st(name: str, index: int) -> property:
+    # We should be able to expose the long double member from nanobind directly
+    # But their support for long double does not actually allow for value comparison or manipulation
+    # So, ctypes it is
+    def getter(self: I386Registers) -> float:
+        self._internal_debugger._ensure_process_stopped_regs()
+        if not self._fp_register_file.fresh:
+            self._internal_debugger._fetch_fp_registers(self)
+        # legacy_st_space is a 10-byte wide array
+        return c_longdouble.from_buffer_copy(
+            bytes(self._fp_register_file.legacy_st_space[index].data).ljust(12, b"\x00"),
+        ).value
+
+    def setter(self: I386Registers, value: float) -> None:
+        self._internal_debugger._ensure_process_stopped_regs()
+        if not self._fp_register_file.fresh:
+            self._internal_debugger._fetch_fp_registers(self)
+        # Cut it to then bytes, as the last 2 bytes are padding
+        self._fp_register_file.legacy_st_space[index].data = bytes(c_longdouble(value))[:10]
+        self._fp_register_file.dirty = True
+
+    return property(getter, setter, None, name)
+
+
+def _get_property_legacy_fp_mmx(name: str, index: int) -> property:
+    def getter(self: I386Registers) -> int:
+        self._internal_debugger._ensure_process_stopped_regs()
+        if not self._fp_register_file.fresh:
+            self._internal_debugger._fetch_fp_registers(self)
+        return int.from_bytes(self._fp_register_file.legacy_st_space[index].data, "little") & ((1 << 64) - 1)
+
+    def setter(self: I386Registers, value: int) -> None:
+        self._internal_debugger._ensure_process_stopped_regs()
+        if not self._fp_register_file.fresh:
+            self._internal_debugger._fetch_fp_registers(self)
+        self._fp_register_file.legacy_st_space[index].data = (value & ((1 << 64) - 1)).to_bytes(10, "little")
+        self._fp_register_file.dirty = True
+
+    return property(getter, setter, None, name)
+
+
 @dataclass
 class I386PtraceRegisterHolder(PtraceRegisterHolder):
     """A class that provides views and setters for the registers of an i386 process."""
@@ -135,19 +176,24 @@ class I386PtraceRegisterHolder(PtraceRegisterHolder):
         # setup special registers
         target_class.eip = _get_property_32("eip")
 
-        self._handle_fp_legacy(target_class)
+        if self.fp_register_file.has_xsave:
+            self._handle_fp_legacy(target_class)
 
-        match self.fp_register_file.type:
-            case 0:
-                self._handle_vector_512(target_class)
-            case 1:
-                self._handle_vector_896(target_class)
-            case 2:
-                self._handle_vector_2696(target_class)
-            case _:
-                raise NotImplementedError(
-                    f"Floating-point register file type {self.fp_register_file.type} not available.",
-                )
+            match self.fp_register_file.type:
+                case 0:
+                    self._handle_vector_512(target_class)
+                case 1:
+                    self._handle_vector_896(target_class)
+                case 2:
+                    self._handle_vector_2696(target_class)
+                case _:
+                    raise NotImplementedError(
+                        f"Floating-point register file type {self.fp_register_file.type} not available.",
+                    )
+        else:
+            # If we don't have xsave, we only have the legacy floating point registers
+            # see sys/user.h for the struct definition that we are parsing
+            self._handle_fp_legacy_no_xsave(target_class)
 
         I386PtraceRegisterHolder._vector_fp_registers = self._vector_fp_registers
 
@@ -171,6 +217,18 @@ class I386PtraceRegisterHolder(PtraceRegisterHolder):
         target_class.syscall_arg3 = _get_property_32("esi")
         target_class.syscall_arg4 = _get_property_32("edi")
         target_class.syscall_arg5 = _get_property_32("ebp")
+
+    def _handle_fp_legacy_no_xsave(self: I386PtraceRegisterHolder, target_class: type) -> None:
+        """Handle the legacy floating point registers without xsave."""
+        # i386 only gets 8 registers
+        for index in range(8):
+            name_mm = f"mm{index}"
+            setattr(target_class, name_mm, _get_property_legacy_fp_mmx(name_mm, index))
+
+            name_st = f"st{index}"
+            setattr(target_class, name_st, _get_property_legacy_fp_st(name_st, index))
+
+            self._vector_fp_registers.append((name_mm, name_st))
 
     def _handle_fp_legacy(self: I386PtraceRegisterHolder, target_class: type) -> None:
         """Handle legacy mmx and st registers."""

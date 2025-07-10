@@ -23,14 +23,17 @@ def fast_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.BreakpointTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.CallbackTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.ControlFlowTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.CorruptedELFTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.CursedBinariesTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.DeathTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.FindPointersTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.FinishTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.FloatingPointTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.JumpstartTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.LargeBinarySymTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.MemoryTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.MemoryNoFastTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.MultipleDebuggersTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.MultiprocessingTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.NextTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.NlinksTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.PPrintSyscallsTest))
@@ -38,14 +41,12 @@ def fast_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.RunPipesTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SignalCatchTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SignalMultithreadTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SnapshotsTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SymbolTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SyscallHandleTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SyscallHijackTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.ThreadTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.WatchpointTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.FindPointersTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SymbolTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SnapshotsTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.MultiprocessingTest))
 
     return suite
 
@@ -56,6 +57,7 @@ def full_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.DeepDiveDivisionTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.JumpoutTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.SpeedTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.TimeoutTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.Vmwhere1Test))
 
     return suite

@@ -137,8 +137,9 @@ dmypy.json
 # Vscode
 .vscode/
 
-# Jumpstart binary file
+# Jumpstart and FP layout generator binary files
 libdebug/ptrace/jumpstart/jumpstart
+libdebug/ptrace/native/autodetect_fpregs_layout
 
 # syscall definitions
 libdebug/utils/syscalls/

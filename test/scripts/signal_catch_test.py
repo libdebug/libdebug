@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024-2025 Gabriele Digregorio, Francesco Panebianco. All rights reserved.
+# Copyright (c) 2024-2025 Gabriele Digregorio, Francesco Panebianco, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -247,6 +247,94 @@ class SignalCatchTest(TestCase):
         if bp.hit_on(d):
             catcher4.disable()
             catcher5.disable()
+        d.cont()
+
+        SIGQUIT += r.recvline()
+        SIGPIPE += r.recvline()
+
+        d.kill()
+        d.terminate()
+
+        self.assertEqual(SIGUSR1_count, 2)
+        self.assertEqual(SIGTERM_count, 2)
+        self.assertEqual(SIGINT_count, 2)
+        self.assertEqual(SIGQUIT_count, 2)  # 1 times less because of the disable catch
+        self.assertEqual(SIGPIPE_count, 2)  # 1 times less because of the disable catch
+
+        self.assertEqual(SIGUSR1_count, catcher1.hit_count)
+        self.assertEqual(SIGTERM_count, catcher2.hit_count)
+        self.assertEqual(SIGINT_count, catcher3.hit_count)
+        self.assertEqual(SIGQUIT_count, catcher4.hit_count)
+        self.assertEqual(SIGPIPE_count, catcher5.hit_count)
+
+        self.assertEqual(SIGUSR1, b"Received signal 10" * 2)
+        self.assertEqual(SIGTERM, b"Received signal 15" * 2)
+        self.assertEqual(SIGINT, b"Received signal 2" * 2)
+        self.assertEqual(SIGQUIT, b"Received signal 3" * 3)
+        self.assertEqual(SIGPIPE, b"Received signal 13" * 3)
+
+    def test_signal_disable_catch_signal_2(self):
+        SIGUSR1_count = 0
+        SIGINT_count = 0
+        SIGQUIT_count = 0
+        SIGTERM_count = 0
+        SIGPIPE_count = 0
+
+        def catcher_SIGUSR1(t, sc):
+            nonlocal SIGUSR1_count
+
+            SIGUSR1_count += 1
+
+        def catcher_SIGTERM(t, sc):
+            nonlocal SIGTERM_count
+
+            SIGTERM_count += 1
+
+        def catcher_SIGINT(t, sc):
+            nonlocal SIGINT_count
+
+            SIGINT_count += 1
+
+        def catcher_SIGQUIT(t, sc):
+            nonlocal SIGQUIT_count
+
+            SIGQUIT_count += 1
+
+        def catcher_SIGPIPE(t, sc):
+            nonlocal SIGPIPE_count
+
+            SIGPIPE_count += 1
+
+        d = debugger(RESOLVE_EXE("catch_signal_test"))
+
+        r = d.run()
+
+        catcher1 = d.catch_signal("SIGUSR1", callback=catcher_SIGUSR1)
+        catcher2 = d.catch_signal("SIGTERM", callback=catcher_SIGTERM)
+        catcher3 = d.catch_signal("SIGINT", callback=catcher_SIGINT)
+        catcher4 = d.catch_signal("SIGQUIT", callback=catcher_SIGQUIT)
+        catcher5 = d.catch_signal("SIGPIPE", callback=catcher_SIGPIPE)
+
+        bp = d.breakpoint(ADDRESS)
+
+        d.cont()
+
+        SIGUSR1 = r.recvline()
+        SIGTERM = r.recvline()
+        SIGINT = r.recvline()
+        SIGQUIT = r.recvline()
+        SIGPIPE = r.recvline()
+
+        SIGUSR1 += r.recvline()
+        SIGTERM += r.recvline()
+        SIGINT += r.recvline()
+        SIGQUIT += r.recvline()
+        SIGPIPE += r.recvline()
+
+        # Uncatchering signals
+        if bp.hit_on(d):
+            catcher4.enabled = False
+            catcher5.enabled = False
         d.cont()
 
         SIGQUIT += r.recvline()
@@ -1495,7 +1583,7 @@ class SignalCatchTest(TestCase):
         def catch_signal(t, ch):
             self.assertNotEqual(t.signal, "SIGTRAP")
 
-        d = debugger("/bin/ls")
+        d = debugger("ls")
 
         d.run()
 

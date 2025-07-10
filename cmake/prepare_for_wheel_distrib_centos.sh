@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # This file should not go here, but I've not found a better place yet.
 # Intended for CentOS 7 / manylinux2014

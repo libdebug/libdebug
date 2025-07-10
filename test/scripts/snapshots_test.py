@@ -1,12 +1,13 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024-2025 Francesco Panebianco, Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2025 Francesco Panebianco, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
 import io
-from unittest import TestCase, skipUnless
-from utils.binary_utils import RESOLVE_EXE, PLATFORM, CPUINFO
+import logging
+from unittest import TestCase
+from utils.binary_utils import RESOLVE_EXE
 from libdebug import debugger
 import tempfile
 import sys
@@ -15,11 +16,25 @@ class SnapshotsTest(TestCase):
     def setUp(self) -> None:
         self.capturedOutput = io.StringIO()
         sys.stdout = self.capturedOutput
-
+        # Redirect logging to a string buffer
+        self.log_capture_string = io.StringIO()
+        self.log_handler = logging.StreamHandler(self.log_capture_string)
+        self.logger = logging.getLogger("libdebug")
+        self.original_handlers = self.logger.handlers
+        self.logger.handlers = []
+        self.logger.addHandler(self.log_handler)
+        self.logger.setLevel(logging.WARNING)
+        
     def tearDown(self):
         # Restore stdout
         self.capturedOutput.close()
         sys.stdout = sys.__stdout__
+        # Remove the custom handler
+        self.logger.removeHandler(self.log_handler)
+        # Restore the original handlers
+        self.logger.handlers = self.original_handlers
+        # Close the log capture string buffer
+        self.log_capture_string.close()
 
     def test_thread_base_snapshot(self):
         # Create a debugger and start execution
@@ -558,33 +573,35 @@ class SnapshotsTest(TestCase):
                 self.assertEqual(reg_diff.has_changed, has_changed)
         
         d.terminate()
-        
-    @skipUnless(PLATFORM == "amd64" and "avx512" in CPUINFO, "Requires an AMD64 CPU with AVX512 support")
-    def test_snapshot_diff_avx512(self):
-        # Create a debugger and start
+
+    def test_symbol_permanence_test(self):
         d = debugger(RESOLVE_EXE("process_snapshot_test"), auto_interrupt_on_command=False, aslr=False, fast_memory=True)
         d.run()
 
-        ts1 = d.threads[0].create_snapshot(level="base", name="_start_snapshot")
+        # Create a snapshot
+        ps1 = d.create_snapshot(level="writable", name="_start_snapshot")
 
-        # Move forward
-        d.breakpoint("main", file="binary")
-        d.cont()
-        d.wait()
+        binary_page = ps1.maps.filter("binary")[0]
 
-        # Create a new snapshot
-        d.regs.zmm0 = 0x1234567890abcdef
-        d.regs.zmm1 = 0xabcdef1234567890
-        d.regs.zmm2 = 0xdeadbeefdeadbeef
-        ts2 = d.threads[0].create_snapshot(level="full", name="main_snapshot")
+        d.kill()
 
-        # Diff it
-        diff = ts2.diff(ts1)
-
-        # Check for AVX512 registers
-        self.assertTrue(hasattr(diff.regs, "zmm0"))
-        self.assertTrue(hasattr(diff.regs, "zmm1"))
+        # This should not throw an exception even if the binary is dead
+        symbol1 = ps1.memory._symbol_ref["main"]
+        symbol2 = ps1.memory._symbol_ref.filter(binary_page.start + symbol1[0].start)
+        self.assertEqual(symbol1, symbol2)
         
-        diff.pprint_regs_all()
 
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp_file:
+            save_path = tmp_file.name
+
+        ps1.save(save_path)
+        ps1_restored = d.load_snapshot(save_path)
+
+        # Retry filtering symbols on the restored snapshot
+        restored_symbol1 = ps1_restored.memory._symbol_ref["main"]
+        restored_symbol2 = ps1.memory._symbol_ref.filter(binary_page.start + restored_symbol1[0].start)
+
+        self.assertEqual(restored_symbol1, restored_symbol2)
+
+        self.assertEqual(symbol1, restored_symbol1)
         d.terminate()
