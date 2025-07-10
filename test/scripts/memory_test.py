@@ -617,6 +617,46 @@ class MemoryTest(TestCase):
 
         d.kill()
         d.terminate()
+    
+    
+    def test_telescope_loop(self):
+        d = debugger(RESOLVE_EXE("telescope_test"))
+    
+        r = d.run()
+
+        d.cont()
+
+        for _ in range(4):
+            r.recvline()  # Skip the first lines
+        loop_start = int(r.recvline(), 16)
+
+        d.interrupt()
+        
+        self.log_capture_string.truncate(0)
+        self.log_capture_string.seek(0)
+        
+        chain_loop = d.mem.telescope(loop_start)
+        logged = self.log_capture_string.getvalue()
+        self.assertIn("WARNING", logged)
+        self.assertIn("The telescope chain contains a loop", logged)
+        self.assertIsInstance(chain_loop[-1], int)
+        self.assertEqual(len(chain_loop), 11)
+        
+        self.log_capture_string.truncate(0)
+        self.log_capture_string.seek(0)
+        
+        chain_loop = d.mem.telescope(loop_start, 100)
+        logged = self.log_capture_string.getvalue()
+        self.assertIn("WARNING", logged)
+        self.assertIn("The telescope chain contains a loop", logged)
+        self.assertIsInstance(chain_loop[-1], int)
+        self.assertEqual(len(chain_loop), 101)
+        
+
+        d.wait()
+
+        d.kill()
+        d.terminate()
         
     def test_telescope_str_len(self):
         d = debugger(RESOLVE_EXE("telescope_test"))
@@ -684,8 +724,6 @@ class MemoryTest(TestCase):
             d.mem.telescope(str_five_levels, max_str_len=0)
         self.assertIn("max_str_len must be greater than 0.", str(cm.exception))
 
-      
-        
         d.wait()
 
         d.kill()

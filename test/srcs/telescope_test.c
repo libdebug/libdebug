@@ -54,6 +54,12 @@ int main() {
     create_int_pointer_chain(levels_15, int_chain_15, &number);
     printf("%p\n", (void *)int_chain_15[0]);
 
+    void *loop_chain[3];
+    loop_chain[0] = &loop_chain[1];
+    loop_chain[1] = &loop_chain[2];
+    loop_chain[2] = &loop_chain[0]; 
+    printf("%p\n", (void *)loop_chain[0]);
+
     // Wait for user input before exiting
     printf("Press Enter to exit...\n");
     getchar();
