@@ -293,13 +293,23 @@ class AbstractMemoryView(MutableSequence, ABC):
         addr = self._internal_debugger.resolve_address(address, "absolute")
 
         chain: list[int | str] = [addr]
+        chain_set = {addr}
         for _ in range(max_depth):
             try:
                 val = self.read(addr, addr_size)
                 addr = int.from_bytes(val, sys.byteorder)
                 chain.append(addr)
+                chain_set.add(addr)
             except (OSError, OverflowError):
                 break
+
+        # Check for loops in the telescope chain
+        if len(chain) != len(chain_set):
+            liblog.warning(
+                "The telescope chain contains a loop. The telescope will continue until max_depth is reached.",
+            )
+            # At this point, it is not possible that the last element is a string, so we can just return the chain
+            return chain
 
         # The val variable contains the last read value, which can be a string or whatever
         lp = 0x20
