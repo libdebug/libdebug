@@ -260,7 +260,7 @@ class AbstractMemoryView(MutableSequence, ABC):
     def telescope(  # noqa: C901
         self: AbstractMemoryView,
         address: int,
-        depth: int = 10,
+        max_depth: int = 10,
         min_str_len: int = 3,
         max_str_len: int = 0x100,
     ) -> list[int | str]:
@@ -268,7 +268,7 @@ class AbstractMemoryView(MutableSequence, ABC):
 
         Args:
             address (int): The address to telescope.
-            depth (int, optional): The depth of the telescope. Defaults to 10.
+            max_depth (int, optional): The maximum depth of the telescope. Defaults to 10.
             min_str_len (int, optional): The minimum length of a string to be resolved, if the found element is not a valid address. If -1, the element will never be resolved as a string. Defaults to 3.
             max_str_len (int, optional): The maximum length of a string to be resolved, if the found element is not a valid address. Defaults to 0x100.
 
@@ -281,7 +281,7 @@ class AbstractMemoryView(MutableSequence, ABC):
         if max_str_len < 1:
             raise ValueError("max_str_len must be greater than 0.")
 
-        if depth < 1:
+        if max_depth < 1:
             raise ValueError("depth must be greater than 0.")
 
         if min_str_len > max_str_len:
@@ -293,7 +293,7 @@ class AbstractMemoryView(MutableSequence, ABC):
         addr = self._internal_debugger.resolve_address(address, "absolute")
 
         chain: list[int | str] = [addr]
-        for _ in range(depth):
+        for _ in range(max_depth):
             try:
                 val = self.read(addr, addr_size)
                 addr = int.from_bytes(val, sys.byteorder)

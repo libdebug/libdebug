@@ -169,7 +169,7 @@ This means that `0x7ffff7fcb200` (input address) points to `0x7ffff7fcb208`, whi
     ```python
     def telescope(
         address: int,
-        depth: int = 10,
+        max_depth: int = 10,
         min_str_len: int = 3,
         max_str_len: int = 0x100,
     ) -> list[int | str]:
@@ -180,7 +180,7 @@ This means that `0x7ffff7fcb200` (input address) points to `0x7ffff7fcb208`, whi
 | Argument | Type | Description |
 | --- | --- | --- |
 | `address` | `int` | The address to telescope. |
-| `depth` | `int` | The depth of the telescope. Defaults to `10`. |
+| `max_depth` | `int` | The maximum depth of the telescope. Defaults to `10`. |
 | `min_str_len` | `int` | The minimum length of a string to be resolved, if the found element is not a valid address. If `-1`, the element will never be resolved as a string. Defaults to `3`. |
 | `max_str_len` | `int` | The maximum length of a string to be resolved, if the found element is not a valid address. Defaults to `0x100`. |
 
@@ -193,7 +193,7 @@ This means that `0x7ffff7fcb200` (input address) points to `0x7ffff7fcb208`, whi
 !!! ABSTRACT "Usage Example"
     ```python
     address = d.regs.rsp
-    chain = d.memory.telescope(address, depth=5, min_str_len=6, max_str_len=0x100)
+    chain = d.memory.telescope(address, max_depth=5, min_str_len=6, max_str_len=0x100)
     ```
 
 ## :material-clock-fast: Fast and Slow Memory Access
