@@ -3,8 +3,8 @@
 # Copyright (c) 2025 Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
-from libdebug.architectures.syscall_arg_parser import or_parse, sequential_parse
 from libdebug.utils.gnu_constants import GnuConstants
+from libdebug.utils.parsing_utils import or_parse, sequential_parse
 
 # !!! Parsing Values are up to date with Linux Kernel 6.15 !!!
 
@@ -79,9 +79,7 @@ AMD64_SYSCALL_PARSER_MAP = {
         # unsigned long prot
         2: GnuConstants.MMAP_PROT,
         # unsigned long flags
-        3: {
-            GnuConstants.MMAP_FLAGS_COMMON + {0x00000040: "MAP_32BIT"},
-        },
+        3: GnuConstants.MMAP_FLAGS_COMMON | {0x00000040: "MAP_32BIT"},
     },
     # mprotect
     10: {
@@ -308,7 +306,7 @@ AMD64_SYSCALL_PARSER_MAP = {
     101: {
         # long request
         0: GnuConstants.PTRACE_COMMON_REQUESTS
-        + {
+        | {
             # Arch-specific
             0: "PTRACE_TRACEME",
             1: "PTRACE_PEEKTEXT",
@@ -960,7 +958,7 @@ AMD64_SYSCALL_PARSER_MAP = {
         0: GnuConstants.OPENAT_DFD,
         # unsigned flags
         2: GnuConstants.STATX_FLAGS,
-        #unsigned int mask
+        # unsigned int mask
         3: GnuConstants.STATX_MASKS,
     },
     # rseq
@@ -977,7 +975,7 @@ AMD64_SYSCALL_PARSER_MAP = {
     },
     # io_uring_enter
     426: {
-        #u32 flags
+        # u32 flags
         2: GnuConstants.IO_URING_ENTER_FLAGS,
     },
     # io_uring_register

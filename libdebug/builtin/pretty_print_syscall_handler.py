@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 from libdebug.architectures.syscall_arg_parser import syscall_arg_parser
 from libdebug.utils.ansi_escape_codes import ANSIColors
-from libdebug.utils.gnu_constants import err_code
+from libdebug.utils.gnu_constants import GnuConstants
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.platform_utils import get_platform_gp_register_size
 from libdebug.utils.syscall_utils import (
@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from libdebug.state.thread_context import ThreadContext
 
 MAX_STR_SHOW_LEN = 32
+
 
 def negate_value(value: int, word_size: int) -> int:
     """Negate a value.
@@ -103,7 +104,8 @@ def parse_syscall_arg(t: ThreadContext, sycall_num: int, arg_num: int, arg_val: 
                 string_content += f"...[truncated] ({MAX_STR_SHOW_LEN} bytes)"
                 break
 
-        return (f'"{string_content}" ({arg_val:#x})'.replace("\n", "\\n")
+        return (
+            f'"{string_content}" ({arg_val:#x})'.replace("\n", "\\n")
             .replace("\r", "\\r")
             .replace("\t", "\\t")
             .replace("\b", "\\b")
@@ -211,14 +213,14 @@ def pprint_on_exit(t: ThreadContext, syscall_return: int | tuple[int, int]) -> N
     if isinstance(syscall_return, tuple):
         real_retval = numeric_or_mnemonic(
             syscall_return[0],
-            err_code,
+            GnuConstants.ERRNOS,
             equality=True,
             negate_search=True,
             word_size=word_size,
         )
         changed_retval = numeric_or_mnemonic(
             syscall_return[1],
-            err_code,
+            GnuConstants.ERRNOS,
             equality=True,
             negate_search=True,
             word_size=word_size,
@@ -228,5 +230,5 @@ def pprint_on_exit(t: ThreadContext, syscall_return: int | tuple[int, int]) -> N
             f"{ANSIColors.YELLOW}{ANSIColors.STRIKE}{real_retval}{ANSIColors.RESET} {ANSIColors.YELLOW}{changed_retval}{ANSIColors.RESET}",
         )
     else:
-        retval = numeric_or_mnemonic(syscall_return, err_code, equality=True, negate_search=True, word_size=word_size)
+        retval = numeric_or_mnemonic(syscall_return, GnuConstants.ERRNOS, equality=True, negate_search=True, word_size=word_size)
         print(f"{ANSIColors.YELLOW}{retval}{ANSIColors.RESET}")

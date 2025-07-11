@@ -380,6 +380,6 @@ class ThreadContext(ABC):
         self._snapshot_count += 1
 
     @property
-    @abstractmethod
     def num_syscall_args(self: ThreadContext) -> int:
         """The number of syscall arguments."""
+        return 6

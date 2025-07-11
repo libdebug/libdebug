@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from libdebug.architectures.syscall_arg_parser import or_parse, sequential_parse
+from libdebug.utils.parsing_utils import or_parse, sequential_parse
 
 
 @dataclass(frozen=True)
@@ -278,7 +278,7 @@ class GnuConstants:
         "parsing_mode": "sequential",
     }
 
-    FCNTL64_CMDS = FCNTL_CMDS + {
+    FCNTL64_CMDS = FCNTL_CMDS | {
         12: "F_GETLK64",
         13: "F_SETLK64",
         14: "F_SETLKW64",
@@ -1776,7 +1776,7 @@ class GnuConstants:
         9: "CLOCK_BOOTTIME_ALARM",
         11: "CLOCK_TAI",
         "parsing_mode": "sequential",
-    },
+    }
 
     def parse_fcntl_arg(self: GnuConstants, cmd: int, arg: int) -> str:
         """

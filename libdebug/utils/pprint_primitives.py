@@ -12,6 +12,7 @@ from libdebug.data.symbol_list import SymbolList
 from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
 from libdebug.utils.ansi_escape_codes import ANSIColors
 from libdebug.utils.debugging_utils import resolve_symbol_name_in_maps_util
+from libdebug.utils.parsing_utils import or_parse, sequential_parse
 
 
 def pprint_maps_util(maps: MemoryMapList | MemoryMapSnapshotList) -> None:

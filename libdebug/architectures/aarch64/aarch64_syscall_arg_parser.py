@@ -292,7 +292,7 @@ AARCH64_SYSCALL_PARSER_MAP = \
     #personality
     92:{
         #unsigned int personality
-        0: GnuConstants.PROCESS_PERSONALITIES + {
+        0: GnuConstants.PROCESS_PERSONALITIES | {
             0x0080000: "PER_LINUX_FDPIC | FDPIC_FUNCPTRS", # Applies only to ARM and SuperH
         },
     },
@@ -373,7 +373,7 @@ AARCH64_SYSCALL_PARSER_MAP = \
     #ptrace
     117:{
         #long request
-        0: GnuConstants.PTRACE_COMMON_REQUESTS + {
+        0: GnuConstants.PTRACE_COMMON_REQUESTS | {
             0: "PTRACE_TRACEME",
             1: "PTRACE_PEEKTEXT",
             2: "PTRACE_PEEKDATA",
