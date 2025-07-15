@@ -25,6 +25,7 @@ def or_parse(arg_map: dict, value: int) -> str:
             # If the mask is not an integer, skip it
             # it's string metadata
             continue
+
         if mnemonic_mask == 0 and value != 0:
             # If the mask is 0 and the syscall argument value is not 0, skip it
             continue

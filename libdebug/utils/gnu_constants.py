@@ -105,24 +105,29 @@ class GnuConstants:
 
     # Common flags flags across syscalls
     OPEN_FLAGS = {
-        0o00002000: "O_APPEND",
-        0o00020000: "O_ASYNC",
-        0o02000000: "O_CLOEXEC",
-        0o00000100: "O_CREAT",
-        0o00040000: "O_DIRECT",
-        0o00200000: "O_DIRECTORY",
-        0o00010000: "O_DSYNC",
-        0o00000200: "O_EXCL",
-        0o00100000: "O_LARGEFILE",
-        0o00000400: "O_NOCTTY",
-        0o00004000: "O_NOFOLLOW / O_NONBLOCK",
-        0o010000000: "O_PATH",
-        0o00000000: "O_RDONLY",
-        0o00000002: "O_RDWR",
-        0o04000000: "O_SYNC",
-        0o01000000: "O_TMPFILE / O_NOATIME",
-        0o00001000: "O_TRUNC",
-        0o00000001: "O_WRONLY",
+        "or_flags": {
+            0o00002000: "O_APPEND",
+            0o00020000: "O_ASYNC",
+            0o02000000: "O_CLOEXEC",
+            0o00000100: "O_CREAT",
+            0o00040000: "O_DIRECT",
+            0o00200000: "O_DIRECTORY",
+            0o00010000: "O_DSYNC",
+            0o00000200: "O_EXCL",
+            0o00100000: "O_LARGEFILE",
+            0o00000400: "O_NOCTTY",
+            0o00004000: "O_NOFOLLOW / O_NONBLOCK",
+            0o10000000: "O_PATH",
+            0o04000000: "O_SYNC",
+            0o01000000: "O_TMPFILE / O_NOATIME",
+            0o00001000: "O_TRUNC",
+        },
+        "sequential_flags": {
+            0o00000000: "O_RDONLY",
+            0o00000001: "O_WRONLY",
+            0o00000002: "O_RDWR",
+        },
+        "parsing_mode": "mixed",
     }
 
     OPEN_MODES = {
@@ -989,13 +994,18 @@ class GnuConstants:
     }
 
     MQ_OPEN_FLAGS = {
-        0o02000000: "O_CLOEXEC",
-        0o00000100: "O_CREAT",
-        0o00000200: "O_EXCL",
-        0o00004000: "O_NOFOLLOW / O_NONBLOCK",
-        0o00000000: "O_RDONLY",
-        0o00000002: "O_RDWR",
-        0o00000001: "O_WRONLY",
+        "or_flags": {
+            0o02000000: "O_CLOEXEC",
+            0o00000100: "O_CREAT",
+            0o00000200: "O_EXCL",
+            0o00004000: "O_NOFOLLOW / O_NONBLOCK",
+        },
+        "sequential_flags": {
+            0o00000000: "O_RDONLY",
+            0o00000001: "O_WRONLY",
+            0o00000002: "O_RDWR",
+        },
+        "parsing_mode": "mixed",
     }
 
     KEXEC_LOAD_FLAGS = {
@@ -1248,15 +1258,20 @@ class GnuConstants:
     }
 
     FANOTIFY_EVENT_F_FLAGS = {
-        0o00000000: "O_RDONLY",
-        0o00000001: "O_WRONLY",
-        0o00000002: "O_RDWR",
-        0o00100000: "O_LARGEFILE",
-        0o02000000: "O_CLOEXEC",
-        0o00002000: "O_APPEND",
-        0o00010000: "O_DSYNC",
-        0o01000000: "O_NOATIME",
-        0o00004000: "O_NONBLOCK",
+        "or_flags": {
+            0o00100000: "O_LARGEFILE",
+            0o02000000: "O_CLOEXEC",
+            0o00002000: "O_APPEND",
+            0o00010000: "O_DSYNC",
+            0o01000000: "O_NOATIME",
+            0o00004000: "O_NONBLOCK",
+        },
+        "sequential_flags": {
+            0o00000000: "O_RDONLY",
+            0o00000001: "O_WRONLY",
+            0o00000002: "O_RDWR",
+        },
+        "parsing_mode": "mixed",
     }
 
     FANOTIFY_MARK_FLAGS = {

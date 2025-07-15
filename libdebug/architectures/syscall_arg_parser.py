@@ -67,13 +67,6 @@ def syscall_arg_parser(
     elif parsing_mode == "mixed":
         out_mnemonic = ""
 
-        # Handle "sequential_flags" if present
-        sequential_flags = specific_arg_map.get("sequential_flags", {})
-        candidate = sequential_flags.get(syscall_arg_value)
-        if candidate is None:
-            # If we don't find a base sequential let's not bother parsing ORed flags
-            return default_val
-
         # Handle "or_flags" if present
         or_flags = specific_arg_map.get("or_flags", {})
         if or_flags:
@@ -102,6 +95,16 @@ def syscall_arg_parser(
                 out_mnemonic += f" | {or_mnemonic}"
             elif len(or_mnemonic) > 0:
                 out_mnemonic = or_mnemonic
+
+        # Handle "sequential_flags" if present
+        sequential_flags = specific_arg_map.get("sequential_flags", {})
+
+        masked_seq_value = syscall_arg_value & ~(masked_bits)
+
+        candidate = sequential_flags.get(masked_seq_value)
+        if candidate is None:
+            # If we don't find a base sequential let's not bother parsing ORed flags
+            return default_val
 
         if out_mnemonic == "":
             out_mnemonic = candidate + f" ({syscall_arg_value:#x})"

@@ -23,7 +23,6 @@ if TYPE_CHECKING:
 
 MAX_STR_SHOW_LEN = 32
 
-
 def negate_value(value: int, word_size: int) -> int:
     """Negate a value.
 
@@ -95,9 +94,34 @@ def parse_syscall_arg(t: ThreadContext, sycall_num: int, arg_num: int, arg_val: 
         curr_char = ""
         cursor = arg_val
 
+        BASE_ESCAPES = {
+            0x00: "\0",
+            0x07: r"\a",
+            0x08: r"\b",
+            0x09: r"\t",
+            0x0A: r"\n",
+            0x0B: r"\v",
+            0x0C: r"\f",
+            0x0D: r"\r",
+        }
+
         while curr_char != "\0":
             string_content += curr_char
-            curr_char = chr(int.from_bytes(t.memory[cursor, 1, "absolute"]))
+            curr_char_ord = int.from_bytes(t.memory[cursor, 1, "absolute"])
+
+            def escape_char(ch_ord: int) -> str:
+                # Fast lookup for the common control chars
+                if ch_ord in BASE_ESCAPES:
+                    return BASE_ESCAPES[ch_ord]
+
+                # Other non-printables should be \x escaped
+                if ch_ord < 0x20 or ch_ord > 0x7E:
+                    return fr"\x{ch_ord:02x}"
+
+                # Printable ASCII: keep as-is
+                return chr(ch_ord)
+
+            curr_char = escape_char(curr_char_ord)
             cursor += 1
 
             if cursor - arg_val > MAX_STR_SHOW_LEN:
@@ -105,13 +129,7 @@ def parse_syscall_arg(t: ThreadContext, sycall_num: int, arg_num: int, arg_val: 
                 break
 
         return (
-            f'"{string_content}" ({arg_val:#x})'.replace("\n", "\\n")
-            .replace("\r", "\\r")
-            .replace("\t", "\\t")
-            .replace("\b", "\\b")
-            .replace("\f", "\\f")
-            .replace("\a", "\\a")
-            .replace("\v", "\\v")
+            f'"{string_content}" ({arg_val:#x})'
         )
     else:
         return syscall_arg_parser(
