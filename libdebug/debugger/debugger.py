@@ -363,6 +363,16 @@ class Debugger:
         self._internal_debugger.arch = map_arch(value)
 
     @property
+    def argv(self: Debugger) -> list[str]:
+        """The command line arguments of the debugged process."""
+        return self._internal_debugger.argv
+
+    @property
+    def env(self: Debugger) -> dict[str, str] | None:
+        """The environment variables of the debugged process."""
+        return self._internal_debugger.env
+
+    @property
     def kill_on_exit(self: Debugger) -> bool:
         """Get whether the process will be killed when the debugger exits."""
         return self._internal_debugger.kill_on_exit
