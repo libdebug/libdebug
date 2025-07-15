@@ -5,7 +5,11 @@ except ImportError:
 else:
     install()
 
-from .libdebug import debugger
-from .utils.libcontext import libcontext
+from libdebug.data.breakpoint import Breakpoint
+from libdebug.data.signal_catcher import SignalCatcher
+from libdebug.data.syscall_handler import SyscallHandler
+from libdebug.libdebug import debugger
+from libdebug.state.thread_context import ThreadContext
+from libdebug.utils.libcontext import libcontext
 
-__all__ = ["debugger", "libcontext"]
+__all__ = ["Breakpoint", "SignalCatcher", "SyscallHandler", "ThreadContext", "debugger", "libcontext"]
