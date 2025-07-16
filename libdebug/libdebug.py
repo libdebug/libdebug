@@ -48,6 +48,10 @@ def debugger(
     if isinstance(argv, str):
         argv = [argv]
 
+    # We must note inside the debugger if the path is different from the first argument in argv
+    # We use this parameter to determine if we need to resolve the path again
+    has_path_different_from_argv0 = path is not None
+
     if path:
         path = resolve_argv_path(path)
     elif argv:
@@ -64,6 +68,7 @@ def debugger(
     internal_debugger.fast_memory = fast_memory
     internal_debugger.kill_on_exit = kill_on_exit
     internal_debugger.follow_children = follow_children
+    internal_debugger._has_path_different_from_argv0 = has_path_different_from_argv0
 
     debugger = Debugger()
     debugger.post_init_(internal_debugger)

@@ -44,6 +44,7 @@ from libdebug.liblog import liblog
 from libdebug.memory.chunked_memory_view import ChunkedMemoryView
 from libdebug.memory.direct_memory_view import DirectMemoryView
 from libdebug.memory.process_memory_manager import ProcessMemoryManager
+from libdebug.ptrace.ptrace_interface import PtraceInterface
 from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
 from libdebug.snapshots.serialization.serialization_helper import SerializationHelper
 from libdebug.state.resume_context import ResumeContext
@@ -217,6 +218,9 @@ class InternalDebugger:
 
     _snapshot_count: int
     """The counter used to assign an ID to each snapshot."""
+
+    _has_path_different_from_argv0: bool
+    """A flag that indicates if the path to the binary is different from the first argument in argv."""
 
     def __init__(self: InternalDebugger) -> None:
         """Initialize the context."""
@@ -2036,3 +2040,12 @@ class InternalDebugger:
 
             # Signal that the command has been executed
             self.__timeout_thread_command_queue.task_done()
+
+    def clear_all_caches(self: InternalDebugger) -> None:
+        """Clears all the caches of the internal debugger."""
+        # The cached properties can be cleared by deleting the attribute
+        if hasattr(self, "_process_full_path"):
+            del self._process_full_path
+
+        if hasattr(self, "_process_name"):
+            del self._process_name

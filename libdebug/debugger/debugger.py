@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 from libdebug.liblog import liblog
 from libdebug.utils.arch_mappings import map_arch
+from libdebug.utils.elf_utils import resolve_argv_path
 from libdebug.utils.signal_utils import (
     get_all_signal_numbers,
     resolve_signal_name,
@@ -365,12 +366,73 @@ class Debugger:
     @property
     def argv(self: Debugger) -> list[str]:
         """The command line arguments of the debugged process."""
+        self._internal_debugger._ensure_process_stopped()
         return self._internal_debugger.argv
+
+    @argv.setter
+    def argv(self: Debugger, value: str | list[str]) -> None:
+        """Set the command line arguments of the debugger process."""
+        self._internal_debugger._ensure_process_stopped()
+        # Changing argv is not allowed while the process is being debugged.
+        if self._internal_debugger.is_debugging:
+            raise RuntimeError("Cannot change argv while the process is running. Please kill it first.")
+
+        if not isinstance(value, str | list):
+            raise TypeError("argv must be a string or a list of strings")
+        if isinstance(value, str):
+            value = [value]
+
+        # We have to check whether argv[0] has changed
+        # if so, we should invalidate everything and resolve the path again
+        # but that should be done only if path depended on argv[0]
+        if (
+            not self._internal_debugger._has_path_different_from_argv0
+            and self._internal_debugger.argv
+            and value[0] != self._internal_debugger.argv[0]
+        ):
+            self._internal_debugger.path = resolve_argv_path(value[0])
+            self._internal_debugger.clear_all_caches()
+
+        self._internal_debugger.argv = value
 
     @property
     def env(self: Debugger) -> dict[str, str] | None:
         """The environment variables of the debugged process."""
+        self._internal_debugger._ensure_process_stopped()
         return self._internal_debugger.env
+
+    @env.setter
+    def env(self: Debugger, value: dict[str, str] | None) -> None:
+        """Set the environment variables of the debugged process."""
+        self._internal_debugger._ensure_process_stopped()
+        # Changing env is not allowed while the process is being debugged.
+        if self._internal_debugger.is_debugging:
+            raise RuntimeError("Cannot change env while the process is running. Please kill it first.")
+
+        if value is not None and not isinstance(value, dict):
+            raise TypeError("env must be a dictionary or None")
+        self._internal_debugger.env = value
+
+    @property
+    def path(self: Debugger) -> str:
+        """The resolved path to the debugged binary."""
+        self._internal_debugger._ensure_process_stopped()
+        return self._internal_debugger.path
+
+    @path.setter
+    def path(self: Debugger, value: str) -> None:
+        """Set the path to the debugged binary."""
+        self._internal_debugger._ensure_process_stopped()
+        if self._internal_debugger.is_debugging:
+            raise RuntimeError("Cannot change path while the process is running. Please kill it first.")
+
+        if not isinstance(value, str):
+            raise TypeError("path must be a string")
+        # We must note inside the debugger if the path is different from the first argument in argv
+        self._internal_debugger._has_path_different_from_argv0 = True
+
+        self._internal_debugger.path = resolve_argv_path(value)
+        self._internal_debugger.clear_all_caches()
 
     @property
     def kill_on_exit(self: Debugger) -> bool:

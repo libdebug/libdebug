@@ -69,6 +69,7 @@ def extend_internal_debugger(referrer: object) -> ...:
         yield
         internal_debugger_holder.global_internal_debugger = None
 
+
 def remove_internal_debugger_refs(internal_debugger: InternalDebugger) -> None:
     """Remove all refs to passed internal debugger and connected objects.
 
@@ -78,4 +79,4 @@ def remove_internal_debugger_refs(internal_debugger: InternalDebugger) -> None:
     with internal_debugger_holder.internal_debugger_lock:
         for key in list(internal_debugger_holder.internal_debuggers):
             if internal_debugger_holder.internal_debuggers[key] == internal_debugger:
-                    del internal_debugger_holder.internal_debuggers[key]
+                del internal_debugger_holder.internal_debuggers[key]
