@@ -2043,8 +2043,8 @@ class InternalDebugger:
     def clear_all_caches(self: InternalDebugger) -> None:
         """Clears all the caches of the internal debugger."""
         # The cached properties can be cleared by deleting the attribute
-        if hasattr(self, "_process_full_path"):
+        if "_process_full_path" in self.__dict__:
             del self._process_full_path
 
-        if hasattr(self, "_process_name"):
+        if "_process_name" in self.__dict__:
             del self._process_name
