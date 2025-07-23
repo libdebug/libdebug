@@ -42,7 +42,7 @@ class DebuggerTest(TestCase):
         self.assertIn("true", d._internal_debugger._process_name)
 
         with self.assertRaises(RuntimeError):
-            # Can't do it now because the process is being debugger
+            # Can't do it now because the process is being debugged
             d.argv = "/bin/ls"
 
         # Warm the caches
