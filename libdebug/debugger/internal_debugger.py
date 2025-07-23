@@ -218,6 +218,9 @@ class InternalDebugger:
     _snapshot_count: int
     """The counter used to assign an ID to each snapshot."""
 
+    _has_path_different_from_argv0: bool
+    """A flag that indicates if the path to the binary is different from the first argument in argv."""
+
     def __init__(self: InternalDebugger) -> None:
         """Initialize the context."""
         # These must be reinitialized on every call to "debugger"
@@ -2036,3 +2039,12 @@ class InternalDebugger:
 
             # Signal that the command has been executed
             self.__timeout_thread_command_queue.task_done()
+
+    def clear_all_caches(self: InternalDebugger) -> None:
+        """Clears all the caches of the internal debugger."""
+        # The cached properties can be cleared by deleting the attribute
+        if "_process_full_path" in self.__dict__:
+            del self._process_full_path
+
+        if "_process_name" in self.__dict__:
+            del self._process_name
