@@ -371,7 +371,7 @@ class Debugger:
 
     @argv.setter
     def argv(self: Debugger, value: str | list[str]) -> None:
-        """Set the command line arguments of the debugger process."""
+        """Set the command line arguments of the debugged process."""
         self._internal_debugger._ensure_process_stopped()
         # Changing argv is not allowed while the process is being debugged.
         if self._internal_debugger.is_debugging:
