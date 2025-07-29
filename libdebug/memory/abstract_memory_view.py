@@ -257,6 +257,99 @@ class AbstractMemoryView(MutableSequence, ABC):
 
         return found_pointers
 
+    def telescope(  # noqa: C901
+        self: AbstractMemoryView,
+        address: int,
+        max_depth: int = 10,
+        min_str_len: int = 3,
+        max_str_len: int = 0x100,
+    ) -> list[int | str]:
+        """Returns a telescope of the memory at the specified address.
+
+        Args:
+            address (int): The address to telescope.
+            max_depth (int, optional): The maximum depth of the telescope. Defaults to 10.
+            min_str_len (int, optional): The minimum length of a string to be resolved, if the found element is not a valid address. If -1, the element will never be resolved as a string. Defaults to 3.
+            max_str_len (int, optional): The maximum length of a string to be resolved, if the found element is not a valid address. Defaults to 0x100.
+
+        Returns:
+            list[int | str]: The telescope chain. The last element might be both an integer or a string, depending on the arguments provided and the content of the memory. The first element is always the address provided as argument.
+        """
+        if min_str_len < -1:
+            raise ValueError("min_str_len must be -1 or greater.")
+
+        if max_str_len < 1:
+            raise ValueError("max_str_len must be greater than 0.")
+
+        if max_depth < 1:
+            raise ValueError("depth must be greater than 0.")
+
+        if min_str_len > max_str_len:
+            raise ValueError("min_str_len must be less than or equal to max_str_len.")
+
+        addr_size = get_platform_gp_register_size(self._internal_debugger.arch)
+
+        # Validate the address
+        addr = self._internal_debugger.resolve_address(address, "absolute")
+
+        chain: list[int | str] = [addr]
+        chain_set = {addr}
+        for _ in range(max_depth):
+            try:
+                val = self.read(addr, addr_size)
+                addr = int.from_bytes(val, sys.byteorder)
+                chain.append(addr)
+                chain_set.add(addr)
+            except (OSError, OverflowError):
+                break
+
+        # Check for loops in the telescope chain
+        if len(chain) != len(chain_set):
+            liblog.warning(
+                "The telescope chain contains a loop. The telescope will continue until max_depth is reached.",
+            )
+            # At this point, it is not possible that the last element is a string, so we can just return the chain
+            return chain
+
+        # The val variable contains the last read value, which can be a string or whatever
+        min_ascii_value = 0x20  # First printable ASCII character
+        max_ascii_value = 0x7E  # Last printable ASCII character
+        last_ptr = chain[-2]
+
+        actual_val = None
+
+        if min_str_len != -1 and len(val) < min_str_len:
+            if not self._internal_debugger.fast_memory:
+                liblog.warning(
+                    "Fast memory reading is disabled. Using telescope with fast_memory=False may be slow.",
+                )
+            tmp_val = self.read(last_ptr, max_str_len)
+            if all(b >= min_ascii_value and b <= max_ascii_value for b in tmp_val[:min_str_len]):
+                # All bytes in the first min_str_len bytes are printable ASCII characters
+                null_byte = tmp_val.find(b"\x00")
+                if null_byte != -1:
+                    tmp_val = tmp_val[:null_byte]
+                actual_val = tmp_val.decode("utf-8", errors="backslashreplace")
+        elif min_str_len != -1 and all(b >= min_ascii_value and b <= max_ascii_value for b in val[:min_str_len]):
+            # All bytes in the first min_str_len bytes are printable ASCII characters
+            if not self._internal_debugger.fast_memory:
+                liblog.warning(
+                    "Fast memory reading is disabled. Using telescope with fast_memory=False may be slow.",
+                )
+            tmp_val = self.read(last_ptr, max_str_len)
+            null_byte = tmp_val.find(b"\x00")
+            if null_byte != -1:
+                tmp_val = tmp_val[:null_byte]
+            actual_val = tmp_val.decode("utf-8", errors="backslashreplace")
+
+        if actual_val is None:
+            # The value was not a string matching the criteria, so we convert it to an integer
+            actual_val = int.from_bytes(val, sys.byteorder)
+
+        chain[-1] = actual_val
+
+        return chain
+
     def __getitem__(self: AbstractMemoryView, key: int | slice | str | tuple) -> bytes:
         """Read from memory, either a single byte or a byte string.
 
