@@ -30,16 +30,7 @@ class ArgumentList(list[str]):
         """
         # Validate items before calling super().__init__()
         if iterable is not None:
-            if not hasattr(iterable, "__iter__"):
-                raise TypeError(f"Expected an iterable, got {type(iterable).__name__}")
-
-            validated_items = []
-            for i, item in enumerate(iterable):
-                if not isinstance(item, str):
-                    raise TypeError(
-                        f"ArgumentList can only contain strings, got {type(item).__name__} at index {i}: {item!r}",
-                    )
-                validated_items.append(item)
+            validated_items = ArgumentList._validate_string_iterable(iterable)
             super().__init__(validated_items)
         else:
             super().__init__()
@@ -91,7 +82,8 @@ class ArgumentList(list[str]):
             raise TypeError(f"ArgumentList can only contain strings, got {type(item).__name__}: {item!r}")
         return item
 
-    def _validate_string_iterable(self, iterable: object) -> list[str]:
+    @staticmethod
+    def _validate_string_iterable(iterable: object) -> list[str]:
         """Validate that all items in an iterable are strings."""
         if not hasattr(iterable, "__iter__"):
             raise TypeError(f"Expected an iterable, got {type(iterable).__name__}")
@@ -114,7 +106,7 @@ class ArgumentList(list[str]):
 
     def extend(self, iterable: Iterable[str]) -> None:
         """Extend the list with items from an iterable."""
-        validated_items = self._validate_string_iterable(iterable)
+        validated_items = ArgumentList._validate_string_iterable(iterable)
         self._call_before_callback()
         super().extend(validated_items)
         self._call_after_callback()
@@ -163,11 +155,11 @@ class ArgumentList(list[str]):
         super().sort(key=key, reverse=reverse)
         self._call_after_callback()
 
-    def __setitem__(self, index: int | slice, value: str) -> None:
+    def __setitem__(self, index: int | slice, value: str | Iterable[str]) -> None:
         """Set an item or slice of items."""
         if isinstance(index, slice):
             # For slice assignment, value should be an iterable
-            validated_value = self._validate_string_iterable(value)
+            validated_value = ArgumentList._validate_string_iterable(value)
         else:
             # For single item assignment, value should be a string
             validated_value = self._validate_string(value)
@@ -191,7 +183,7 @@ class ArgumentList(list[str]):
 
     def __iadd__(self, other: Iterable[str]) -> ArgumentList:
         """Implement += operator."""
-        validated_other = self._validate_string_iterable(other)
+        validated_other = ArgumentList._validate_string_iterable(other)
         self._call_before_callback()
         super().__iadd__(validated_other)
         self._call_after_callback()
