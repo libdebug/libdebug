@@ -48,6 +48,7 @@ from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
 from libdebug.snapshots.serialization.serialization_helper import SerializationHelper
 from libdebug.state.resume_context import ResumeContext
 from libdebug.utils.arch_mappings import map_arch
+from libdebug.utils.argument_list import ArgumentList
 from libdebug.utils.debugger_wrappers import (
     background_alias,
     change_state_function_process,
@@ -101,7 +102,7 @@ class InternalDebugger:
     arch: str
     """The architecture of the debugged process."""
 
-    argv: list[str]
+    argv: ArgumentList
     """The command line arguments of the debugged process."""
 
     path: str
@@ -226,7 +227,7 @@ class InternalDebugger:
         # These must be reinitialized on every call to "debugger"
         self.aslr_enabled = False
         self.autoreach_entrypoint = True
-        self.argv = []
+        self.argv = ArgumentList()
         self.env = {}
         self.escape_antidebug = False
         self.breakpoints = {}

@@ -10,6 +10,7 @@ from elftools.common.exceptions import ELFError
 from libdebug.debugger.debugger import Debugger
 from libdebug.debugger.internal_debugger import InternalDebugger
 from libdebug.liblog import liblog
+from libdebug.utils.argument_list import ArgumentList
 from libdebug.utils.elf_utils import elf_architecture, resolve_argv_path
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.thread_exceptions import setup_signal_handler
@@ -46,7 +47,11 @@ def debugger(
         Debugger: The `Debugger` object.
     """
     if isinstance(argv, str):
-        argv = [argv]
+        argv = ArgumentList([argv])
+    elif isinstance(argv, list):
+        argv = ArgumentList(argv)
+    elif argv is None:
+        argv = ArgumentList()
 
     # We must note inside the debugger if the path is different from the first argument in argv
     # We use this parameter to determine if we need to resolve the path again

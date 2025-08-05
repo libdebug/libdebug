@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 from libdebug.liblog import liblog
 from libdebug.utils.arch_mappings import map_arch
+from libdebug.utils.argument_list import ArgumentList
 from libdebug.utils.elf_utils import resolve_argv_path
 from libdebug.utils.signal_utils import (
     get_all_signal_numbers,
@@ -364,23 +365,25 @@ class Debugger:
         self._internal_debugger.arch = map_arch(value)
 
     @property
-    def argv(self: Debugger) -> list[str]:
+    def argv(self: Debugger) -> ArgumentList:
         """The command line arguments of the debugged process."""
         self._internal_debugger._ensure_process_stopped()
         return self._internal_debugger.argv
 
     @argv.setter
-    def argv(self: Debugger, value: str | list[str]) -> None:
+    def argv(self: Debugger, value: str | list[str] | ArgumentList) -> None:
         """Set the command line arguments of the debugged process."""
         self._internal_debugger._ensure_process_stopped()
         # Changing argv is not allowed while the process is being debugged.
         if self._internal_debugger.is_debugging:
             raise RuntimeError("Cannot change argv while the process is running. Please kill it first.")
 
-        if not isinstance(value, str | list):
+        if not isinstance(value, str | list | ArgumentList):
             raise TypeError("argv must be a string or a list of strings")
         if isinstance(value, str):
-            value = [value]
+            value = ArgumentList([value])
+        elif isinstance(value, list):
+            value = ArgumentList(value)
 
         # We have to check whether argv[0] has changed
         # if so, we should invalidate everything and resolve the path again
