@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
@@ -21,7 +21,7 @@ class ArgumentList(list[str]):
     to provide before/after callbacks and optional protection against complete clearing.
     """
 
-    def __init__(self: Self, iterable: Iterable[str] | None = None) -> None:
+    def __init__(self: ArgumentList, iterable: Iterable[str] | None = None) -> None:
         """
         Initialize the trackable list.
 
@@ -189,7 +189,7 @@ class ArgumentList(list[str]):
         super().__delitem__(index)
         self._call_after_callback()
 
-    def __iadd__(self, other: Iterable[str]) -> Self:
+    def __iadd__(self, other: Iterable[str]) -> ArgumentList:
         """Implement += operator."""
         validated_other = self._validate_string_iterable(other)
         self._call_before_callback()
@@ -197,7 +197,7 @@ class ArgumentList(list[str]):
         self._call_after_callback()
         return self
 
-    def __imul__(self, other: int) -> Self:
+    def __imul__(self, other: int) -> ArgumentList:
         """Implement *= operator."""
         self._call_before_callback()
         super().__imul__(other)
