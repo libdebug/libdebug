@@ -11,7 +11,6 @@ from libdebug.utils.argument_list import ArgumentList
 
 class ArgumentListTest(TestCase):
     def test_callbacks(self):
-        """Test callback functionality."""
         arg_list = ArgumentList()
 
         before_states = []
@@ -59,7 +58,6 @@ class ArgumentListTest(TestCase):
         self.assertEqual(len(received_states), 2)  # Before and after callbacks
 
     def test_prevent_empty(self):
-        """Test prevent_empty functionality."""
         arg_list = ArgumentList(["1", "2", "3"])
 
         # Test property getter/setter
@@ -102,7 +100,6 @@ class ArgumentListTest(TestCase):
             arg_list.remove("2")
 
     def test_list_operations(self):
-        """Test basic list operations."""
         # Test append
         arg_list = ArgumentList(["1", "2"])
         arg_list.append("3")
@@ -157,7 +154,6 @@ class ArgumentListTest(TestCase):
         self.assertEqual(list(arg_list), ["3", "2", "1"])
 
     def test_item_access_and_operators(self):
-        """Test item access and special operators."""
         # Test __setitem__ with single index
         arg_list = ArgumentList(["1", "2", "3"])
         arg_list[1] = "99"
@@ -191,7 +187,6 @@ class ArgumentListTest(TestCase):
         self.assertIsInstance(arg_list, ArgumentList)  # Should return self
 
     def test_callbacks_with_prevent_empty(self):
-        """Test callbacks work correctly with prevent_empty protection."""
         arg_list = ArgumentList(["1", "2"])
         arg_list.prevent_empty = True
 
@@ -221,7 +216,6 @@ class ArgumentListTest(TestCase):
         self.assertEqual(before_states[1], ["2"])
 
     def test_comprehensive_workflow(self):
-        """Test a comprehensive workflow with multiple operations."""
         arg_list = ArgumentList()
 
         operation_log = []
