@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 class ArgumentList(list[str]):
-    """A list that behaves like a normal list but provides callbacks for modifications.
+    """A list that behaves like a normal list of strings but provides callbacks for modifications.
 
     Can be configured to always maintain at least one element.
 
