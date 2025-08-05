@@ -7,10 +7,10 @@ from __future__ import annotations
 
 from elftools.common.exceptions import ELFError
 
+from libdebug.data.argument_list import ArgumentList
 from libdebug.debugger.debugger import Debugger
 from libdebug.debugger.internal_debugger import InternalDebugger
 from libdebug.liblog import liblog
-from libdebug.utils.argument_list import ArgumentList
 from libdebug.utils.elf_utils import elf_architecture, resolve_argv_path
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.thread_exceptions import setup_signal_handler

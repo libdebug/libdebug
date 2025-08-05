@@ -9,9 +9,9 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
+from libdebug.data.argument_list import ArgumentList
 from libdebug.liblog import liblog
 from libdebug.utils.arch_mappings import map_arch
-from libdebug.utils.argument_list import ArgumentList
 from libdebug.utils.elf_utils import resolve_argv_path
 from libdebug.utils.signal_utils import (
     get_all_signal_numbers,

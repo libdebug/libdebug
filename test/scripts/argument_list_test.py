@@ -6,7 +6,7 @@
 
 from unittest import TestCase
 
-from libdebug.utils.argument_list import ArgumentList
+from libdebug.data.argument_list import ArgumentList
 
 
 class ArgumentListTest(TestCase):

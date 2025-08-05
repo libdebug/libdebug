@@ -28,6 +28,7 @@ from libdebug.builtin.pretty_print_syscall_handler import (
     pprint_on_enter,
     pprint_on_exit,
 )
+from libdebug.data.argument_list import ArgumentList
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.gdb_resume_event import GdbResumeEvent
 from libdebug.data.signal_catcher import SignalCatcher
@@ -48,7 +49,6 @@ from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
 from libdebug.snapshots.serialization.serialization_helper import SerializationHelper
 from libdebug.state.resume_context import ResumeContext
 from libdebug.utils.arch_mappings import map_arch
-from libdebug.utils.argument_list import ArgumentList
 from libdebug.utils.debugger_wrappers import (
     background_alias,
     change_state_function_process,
