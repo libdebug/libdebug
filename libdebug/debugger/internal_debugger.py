@@ -407,6 +407,7 @@ class InternalDebugger:
         child_internal_debugger = InternalDebugger()
         child_internal_debugger.argv = self.argv
         child_internal_debugger.path = self.path
+        child_internal_debugger._has_path_different_from_argv0 = self._has_path_different_from_argv0
         child_internal_debugger.env = self.env
         child_internal_debugger.aslr_enabled = self.aslr_enabled
         child_internal_debugger.autoreach_entrypoint = self.autoreach_entrypoint

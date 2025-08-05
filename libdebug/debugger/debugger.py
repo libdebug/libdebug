@@ -52,6 +52,9 @@ class Debugger:
     _internal_debugger: InternalDebugger
     """The internal debugger object."""
 
+    __previous_argv: list[str]
+    """A copy of the previous argv state, used internally to detect changes to argv[0]."""
+
     def __init__(self: Debugger) -> None:
         pass
 
@@ -59,6 +62,9 @@ class Debugger:
         """Do not use this constructor directly. Use the `debugger` function instead."""
         self._internal_debugger = internal_debugger
         self._internal_debugger.start_up()
+
+        # We need to install the proper callbacks on the ArgumentList
+        self._configure_argument_list(self._internal_debugger.argv)
 
     def run(self: Debugger, timeout: float = -1, redirect_pipes: bool = True) -> PipeManager | None:
         """Starts the process and waits for it to stop.
@@ -364,6 +370,36 @@ class Debugger:
         """Set the architecture of the process."""
         self._internal_debugger.arch = map_arch(value)
 
+    def _configure_argument_list(self: Debugger, argv: ArgumentList) -> None:
+        """Sets up the ArgumentList with the before/after callbacks, and freezes argv[0] if needed."""
+        # If the user has not specified a different path, and argv is not empty, we should freeze argv[0]
+        if not self._internal_debugger._has_path_different_from_argv0 and argv and argv[0]:
+            argv.prevent_empty = True
+        else:
+            argv.prevent_empty = False
+
+        # We register a _before_callback that stores a copy of the current argv state
+        def _before_callback(_: list[str]) -> None:
+            """Store a copy of the current argv state."""
+            self.__previous_argv = list(self._internal_debugger.argv) if self._internal_debugger.argv else []
+
+        # The _after callback should check if argv[0] has changed and update the path accordingly
+        def _after_callback(new_argv: list[str]) -> None:
+            """An after callback that updates the path if argv[0] has changed."""
+            if not hasattr(self, "__previous_argv"):
+                raise RuntimeError("The __previous_argv attribute is not set. This should not happen.")
+
+            if (
+                not self._internal_debugger._has_path_different_from_argv0
+                and self._internal_debugger.argv
+                and new_argv[0] != self.__previous_argv[0]
+            ):
+                self._internal_debugger.path = resolve_argv_path(new_argv[0])
+                self._internal_debugger.clear_all_caches()
+
+        # Set the callbacks on the ArgumentList
+        argv.set_callbacks(_before_callback, _after_callback)
+
     @property
     def argv(self: Debugger) -> ArgumentList:
         """The command line arguments of the debugged process."""
@@ -374,6 +410,7 @@ class Debugger:
     def argv(self: Debugger, value: str | list[str] | ArgumentList) -> None:
         """Set the command line arguments of the debugged process."""
         self._internal_debugger._ensure_process_stopped()
+
         # Changing argv is not allowed while the process is being debugged.
         if self._internal_debugger.is_debugging:
             raise RuntimeError("Cannot change argv while the process is running. Please kill it first.")
@@ -384,6 +421,9 @@ class Debugger:
             value = ArgumentList([value])
         elif isinstance(value, list):
             value = ArgumentList(value)
+
+        # We need to install on the ArgumentList the proper callbacks
+        self._configure_argument_list(value)
 
         # We have to check whether argv[0] has changed
         # if so, we should invalidate everything and resolve the path again
