@@ -12,7 +12,7 @@ from .control_flow_test import ControlFlowTest
 from .corrupted_elf_test import CorruptedELFTest
 from .cursed_binaries_test import CursedBinariesTest
 from .death_test import DeathTest
-from .debugger_test import DebuggerTest
+from .debugger_argument_test import DebuggerArgumentTest
 from .deep_dive_division_test import DeepDiveDivisionTest
 from .finish_test import FinishTest
 from .floating_point_test import FloatingPointTest

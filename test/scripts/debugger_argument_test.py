@@ -9,7 +9,7 @@ from unittest import TestCase
 from libdebug import debugger
 
 
-class DebuggerTest(TestCase):
+class DebuggerArgumentTest(TestCase):
     def test_get_set_argv_and_path(self):
         d = debugger("/bin/ls")
 
