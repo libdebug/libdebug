@@ -1,21 +1,17 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024  Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2024-2025 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
+from libdebug.data.memory_map import MemoryMap
 from libdebug.debugger.internal_debugger_instance_manager import extend_internal_debugger, provide_internal_debugger
 from libdebug.liblog import liblog
 
-if TYPE_CHECKING:
-    from libdebug.data.memory_map import MemoryMap
 
-
-class MemoryMapList(list):
+class MemoryMapList(list[MemoryMap]):
     """A list of memory maps of the target process."""
 
     def __init__(self: MemoryMapList, memory_maps: list[MemoryMap]) -> None:
@@ -48,7 +44,7 @@ class MemoryMapList(list):
 
         return filtered_maps
 
-    def filter(self: MemoryMapList, value: int | str) -> MemoryMapList[MemoryMap]:
+    def filter(self: MemoryMapList, value: int | str) -> MemoryMapList:
         """Filters the memory maps according to the specified value.
 
         If the value is an integer, it is treated as an address.
@@ -58,7 +54,7 @@ class MemoryMapList(list):
             value (int | str): The value to search for.
 
         Returns:
-            MemoryMapList[MemoryMap]: The memory maps matching the specified value.
+            MemoryMapList: The memory maps matching the specified value.
         """
         if isinstance(value, int):
             filtered_maps = self._search_by_address(value)
