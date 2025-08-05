@@ -16,6 +16,7 @@ def fast_suite():
 
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.AliasTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.AntidebugEscapingTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.ArgumentListTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.AtexitHandlerTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.AttachDetachTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.AutoWaitingTest))
