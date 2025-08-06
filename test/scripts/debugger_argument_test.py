@@ -307,3 +307,140 @@ class DebuggerArgumentTest(TestCase):
         self.assertNotEqual(d.argv, argv)
         self.assertEqual(d.argv, ["/bin/ls", "-l"])
         d.terminate()
+
+    def test_envdict(self):
+        # We check that we can modify the environment when the process is not running
+        d = debugger("/bin/ls", env={"A": "B"})
+
+        self.assertEqual(d.env, {"A": "B"})
+        d.env["C"] = "D"
+        self.assertEqual(d.env, {"A": "B", "C": "D"})
+
+        d.run()
+
+        self.assertEqual(d.env, {"A": "B", "C": "D"})
+        with self.assertRaises(RuntimeError):
+            # Cannot modify env while the process is running
+            d.env["E"] = "F"
+
+        # The error should have been raised before changing the environment
+        self.assertEqual(d.env, {"A": "B", "C": "D"})
+
+        d.kill()
+
+        # We can now modify the environment again
+        d.env["E"] = "F"
+
+        d.run()
+
+        # Let's ensure the environment is set correctly
+        self.assertEqual(d.env, {"A": "B", "C": "D", "E": "F"})
+        with open(f"/proc/{d.pid}/environ", "r") as f:
+            env_content = f.read().replace("\x00", "\n").strip()
+        self.assertIn("A=B", env_content)
+        self.assertIn("C=D", env_content)
+        self.assertIn("E=F", env_content)
+
+        # Clearing the environment should not be possible while the process is running
+        with self.assertRaises(RuntimeError):
+            d.env.clear()
+
+        # The error should have been raised before clearing the environment
+        self.assertEqual(d.env, {"A": "B", "C": "D", "E": "F"})
+
+        d.kill()
+
+        # We can clear the environment now
+        d.env.clear()
+
+        # Clearing the environment should result in an empty EnvDict
+        self.assertEqual(d.env, {})
+
+        # The process should not have any environment variables set
+        d.run()
+
+        with open(f"/proc/{d.pid}/environ", "r") as f:
+            env_content = f.read().replace("\x00", "\n").strip()
+        self.assertEqual(env_content, "")
+
+        # Setting the environment to None should not be possible while the process is running
+        with self.assertRaises(RuntimeError):
+            d.env = None
+
+        # The error should have been raised before setting the environment to None
+        self.assertEqual(d.env, {})
+
+        d.kill()
+
+        # We can set the environment to None now
+        d.env = None
+
+        # The environment should be None
+        self.assertIsNone(d.env)
+
+        # The process should inherit the environment from the parent
+        d.run()
+
+        with open(f"/proc/{d.pid}/environ", "r") as f:
+            env_content = f.read().replace("\x00", "\n").strip()
+        self.assertNotIn("A=B", env_content)
+        self.assertNotEqual(env_content, "")
+
+        # Settings the environment to a new dictionary should not be possible while the process is running
+        with self.assertRaises(RuntimeError):
+            d.env = {"X": "Y"}
+
+        # The error should have been raised before setting the environment to a new dictionary
+        self.assertIsNone(d.env)
+
+        d.kill()
+
+        # We can set the environment to a new dictionary now
+        d.env = {"X": "Y"}
+
+        # The environment should be set correctly
+        self.assertEqual(d.env, {"X": "Y"})
+
+        d.run()
+
+        with open(f"/proc/{d.pid}/environ", "r") as f:
+            env_content = f.read().replace("\x00", "\n").strip()
+        self.assertIn("X=Y", env_content)
+
+        d.kill()
+
+        d.terminate()
+
+    def test_envdict_invalid_types(self):
+        # Ensure that we cannot set env to an invalid type
+        with self.assertRaises(TypeError):
+            debugger("/bin/ls", env=12345)
+
+        # Ensure that we cannot set env to a non-dictionary type
+        with self.assertRaises(TypeError):
+            debugger("/bin/ls", env=["A=B"])
+
+        # Ensure that we cannot set env with non-string keys or values
+        d = debugger("/bin/ls", env={"A": "B"})
+        with self.assertRaises(TypeError):
+            d.env[123] = "C"
+        with self.assertRaises(TypeError):
+            d.env["D"] = 456
+        d.terminate()
+
+        # Ensure that non-string keys or values are not allowed in the call to
+        # debugger
+        with self.assertRaises(TypeError):
+            debugger("/bin/ls", env={123: "C"})
+        with self.assertRaises(TypeError):
+            debugger("/bin/ls", env={"D": 456})
+
+    def test_envdict_copy(self):
+        # We check that instancing the debugger with a dict copies it
+        env = {"A": "B", "C": "D"}
+        d = debugger("/bin/ls", env=env)
+        self.assertEqual(d.env, env)
+        env["E"] = "F"
+        self.assertNotEqual(d.env, env)
+        self.assertEqual(d.env, {"A": "B", "C": "D"})
+        d.terminate()
