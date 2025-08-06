@@ -43,7 +43,7 @@ Alpine Linux: \
 python3 -m pip install libdebug
 ```
 
-> ⚠️ <span style="color:rgb(190, 111, 21); font-weight: bold">Warning</span>\
+> <span style="color:rgb(190, 111, 21); font-weight: bold">Warning</span>\
 `PyPy3` is supported but not recommended, as it performs worse on most of our tests.
 
 ### Install from another branch
@@ -215,20 +215,20 @@ d.kill()
 We've published a poster on libdebug. If you use libdebug in your research, you can cite the associated poster paper:
 ```bibtex
 @inproceedings{10.1145/3658644.3691391,
-author = {Digregorio, Gabriele and Bertolini, Roberto Alessandro and Panebianco, Francesco and Polino, Mario},
-title = {Poster: libdebug, Build Your Own Debugger for a Better (Hello) World},
-year = {2024},
-isbn = {9798400706363},
-publisher = {Association for Computing Machinery},
-address = {New York, NY, USA},
-url = {https://doi.org/10.1145/3658644.3691391},
-doi = {10.1145/3658644.3691391},
-booktitle = {Proceedings of the 2024 on ACM SIGSAC Conference on Computer and Communications Security},
-pages = {4976–4978},
-numpages = {3},
-keywords = {debugging, reverse engineering, software security},
-location = {Salt Lake City, UT, USA},
-series = {CCS '24}
+	author = {Digregorio, Gabriele and Bertolini, Roberto Alessandro and Panebianco, Francesco and Polino, Mario},
+	title = {Poster: libdebug, Build Your Own Debugger for a Better (Hello) World},
+	year = {2024},
+	isbn = {9798400706363},
+	publisher = {Association for Computing Machinery},
+	address = {New York, NY, USA},
+	url = {https://doi.org/10.1145/3658644.3691391},
+	doi = {10.1145/3658644.3691391},
+	booktitle = {Proceedings of the 2024 on ACM SIGSAC Conference on Computer and Communications Security},
+	pages = {4976–4978},
+	numpages = {3},
+	keywords = {debugging, reverse engineering, software security},
+	location = {Salt Lake City, UT, USA},
+	series = {CCS '24}
 }
 ```
 
