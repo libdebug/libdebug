@@ -318,7 +318,7 @@ class InternalDebugger:
             timeout (float): The timeout in seconds. If -1, no timeout is set.
             redirect_pipes (bool): Whether to hook and redirect the pipes of the process to a PipeManager.
         """
-        if not self.argv:
+        if not self.path:
             raise RuntimeError("No binary file specified.")
 
         if timeout <= 0 and timeout != -1:
