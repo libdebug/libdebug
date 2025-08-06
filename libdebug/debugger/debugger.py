@@ -10,6 +10,7 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
 from libdebug.data.argument_list import ArgumentList
+from libdebug.data.env_dict import EnvDict
 from libdebug.liblog import liblog
 from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.elf_utils import elf_architecture, resolve_argv_path
@@ -65,6 +66,7 @@ class Debugger:
 
         # We need to install the proper callbacks on the ArgumentList
         self._configure_argument_list(self._internal_debugger.argv)
+        self._configure_env_dict()
 
     def run(self: Debugger, timeout: float = -1, redirect_pipes: bool = True) -> PipeManager | None:
         """Starts the process and waits for it to stop.
@@ -453,8 +455,22 @@ class Debugger:
 
         self._internal_debugger.argv = value
 
+    def _configure_env_dict(self: Debugger) -> None:
+        """Sets up the EnvDict with the before callback."""
+        # We register a _before_callback that ensure that the process
+        # is not being debugged when the environment is changed
+        def _before_callback() -> None:
+            """Ensure that the process is not being debugged when the environment is changed."""
+            # Changing env is not allowed while the process is being debugged.
+            if self._internal_debugger.is_debugging:
+                raise RuntimeError("Cannot change env while the process is running. Please kill it first.")
+
+        if self._internal_debugger.env is not None:
+            # If the env is already set, we just need to set the callback
+            self._internal_debugger.env.set_callback(_before_callback)
+
     @property
-    def env(self: Debugger) -> dict[str, str] | None:
+    def env(self: Debugger) -> EnvDict | None:
         """The environment variables of the debugged process."""
         self._internal_debugger._ensure_process_stopped()
         return self._internal_debugger.env
@@ -463,13 +479,16 @@ class Debugger:
     def env(self: Debugger, value: dict[str, str] | None) -> None:
         """Set the environment variables of the debugged process."""
         self._internal_debugger._ensure_process_stopped()
+
         # Changing env is not allowed while the process is being debugged.
         if self._internal_debugger.is_debugging:
             raise RuntimeError("Cannot change env while the process is running. Please kill it first.")
 
         if value is not None and not isinstance(value, dict):
             raise TypeError("env must be a dictionary or None")
-        self._internal_debugger.env = value
+
+        self._internal_debugger.env = EnvDict(value) if value is not None else None
+        self._configure_env_dict()
 
     @property
     def path(self: Debugger) -> str:

@@ -30,6 +30,7 @@ from libdebug.builtin.pretty_print_syscall_handler import (
 )
 from libdebug.data.argument_list import ArgumentList
 from libdebug.data.breakpoint import Breakpoint
+from libdebug.data.env_dict import EnvDict
 from libdebug.data.gdb_resume_event import GdbResumeEvent
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
@@ -108,7 +109,7 @@ class InternalDebugger:
     path: str
     """The path to the binary of the debugged process."""
 
-    env: dict[str, str] | None
+    env: EnvDict | None
     """The environment variables of the debugged process."""
 
     escape_antidebug: bool

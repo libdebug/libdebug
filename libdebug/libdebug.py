@@ -8,6 +8,7 @@ from __future__ import annotations
 from elftools.common.exceptions import ELFError
 
 from libdebug.data.argument_list import ArgumentList
+from libdebug.data.env_dict import EnvDict
 from libdebug.debugger.debugger import Debugger
 from libdebug.debugger.internal_debugger import InternalDebugger
 from libdebug.liblog import liblog
@@ -61,6 +62,11 @@ def debugger(
         path = resolve_argv_path(path)
     elif argv:
         path = resolve_argv_path(argv[0])
+
+    if env is not None:
+        if not isinstance(env, dict):
+            raise TypeError("env must be a dictionary or None")
+        env = EnvDict(env)
 
     internal_debugger = InternalDebugger()
     internal_debugger.argv = argv
