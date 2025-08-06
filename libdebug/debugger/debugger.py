@@ -406,7 +406,7 @@ class Debugger:
                     resolved_path = resolve_argv_path(new_argv[0])
                     self.arch = elf_architecture(resolved_path)
                     self._internal_debugger.path = resolved_path
-            except:
+            except Exception:
                 # We revert to the previous argv state if something goes wrong
                 self._internal_debugger.argv = ArgumentList(self._previous_argv)
                 raise
@@ -508,12 +508,12 @@ class Debugger:
 
         self._internal_debugger.clear_all_caches()
 
+        # resolve_argv_path can fail if the path is not valid
         resolved_path = resolve_argv_path(value)
 
         # Changing path can also change the architecture, so we need to update it
         self.arch = elf_architecture(resolved_path)
-
-        self._internal_debugger.path = resolve_argv_path(value)
+        self._internal_debugger.path = resolved_path
 
         # We can also unfreeze argv[0] if it was frozen
         self._internal_debugger.argv.prevent_empty = False
