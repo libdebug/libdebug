@@ -54,6 +54,12 @@ class ArgumentList(list[str]):
         self._before_callback = before_callback
         self._after_callback = after_callback
 
+    def raise_empty_error(self) -> None:
+        """Raises an error to indicate that the list cannot be emptied."""
+        raise ValueError("Argument list must maintain at least one element. If you want to clear argv"
+                         " please specify a different binary path to the executable using the "
+                         "`path` property of the Debugger.")
+
     @property
     def prevent_empty(self) -> bool:
         """Get the current prevent_empty setting."""
@@ -122,7 +128,7 @@ class ArgumentList(list[str]):
         """Remove the first occurrence of an item."""
         self._call_before_callback()
         if self._prevent_empty and len(self) <= 1 and item in self:
-            raise ValueError("Argument list must maintain at least one element")
+            self.raise_empty_error()
         super().remove(item)
         self._call_after_callback()
 
@@ -130,7 +136,7 @@ class ArgumentList(list[str]):
         """Remove and return an item at the specified index (default last)."""
         self._call_before_callback()
         if self._prevent_empty and len(self) <= 1:
-            raise ValueError("Argument list must maintain at least one element")
+            self.raise_empty_error()
         result = super().pop(index)
         self._call_after_callback()
         return result
@@ -139,7 +145,7 @@ class ArgumentList(list[str]):
         """Remove all items from the list."""
         self._call_before_callback()
         if self._prevent_empty and len(self) > 0:
-            raise ValueError("Argument list must maintain at least one element")
+            self.raise_empty_error()
         super().clear()
         self._call_after_callback()
 
@@ -173,11 +179,11 @@ class ArgumentList(list[str]):
         if self._prevent_empty:
             if isinstance(index, slice):
                 start, stop, step = index.indices(len(self))
-                items_to_delete = max(0, stop - start) if step == 1 else len(range(start, stop, step))
+                items_to_delete = len(range(start, stop, step))
                 if len(self) <= items_to_delete:
-                    raise ValueError("Argument list must maintain at least one element")
+                    self.raise_empty_error()
             elif len(self) <= 1:
-                raise ValueError("Argument list must maintain at least one element")
+                self.raise_empty_error()
         super().__delitem__(index)
         self._call_after_callback()
 

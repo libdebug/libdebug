@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 from libdebug.data.argument_list import ArgumentList
 from libdebug.liblog import liblog
 from libdebug.utils.arch_mappings import map_arch
-from libdebug.utils.elf_utils import resolve_argv_path
+from libdebug.utils.elf_utils import elf_architecture, resolve_argv_path
 from libdebug.utils.signal_utils import (
     get_all_signal_numbers,
     resolve_signal_name,
@@ -52,7 +52,7 @@ class Debugger:
     _internal_debugger: InternalDebugger
     """The internal debugger object."""
 
-    __previous_argv: list[str]
+    _previous_argv: list[str]
     """A copy of the previous argv state, used internally to detect changes to argv[0]."""
 
     def __init__(self: Debugger) -> None:
@@ -381,21 +381,33 @@ class Debugger:
         # We register a _before_callback that stores a copy of the current argv state
         def _before_callback(_: list[str]) -> None:
             """Store a copy of the current argv state."""
-            self.__previous_argv = list(self._internal_debugger.argv) if self._internal_debugger.argv else []
+            # Changing argv is not allowed while the process is being debugged.
+            if self._internal_debugger.is_debugging:
+                raise RuntimeError("Cannot change argv while the process is running. Please kill it first.")
+
+            self._previous_argv = list(self._internal_debugger.argv) if self._internal_debugger.argv else []
 
         # The _after callback should check if argv[0] has changed and update the path accordingly
         def _after_callback(new_argv: list[str]) -> None:
             """An after callback that updates the path if argv[0] has changed."""
-            if not hasattr(self, "__previous_argv"):
-                raise RuntimeError("The __previous_argv attribute is not set. This should not happen.")
+            if not hasattr(self, "_previous_argv"):
+                raise RuntimeError("The _previous_argv attribute is not set. This should not happen.")
 
-            if (
-                not self._internal_debugger._has_path_different_from_argv0
-                and self._internal_debugger.argv
-                and new_argv[0] != self.__previous_argv[0]
-            ):
-                self._internal_debugger.path = resolve_argv_path(new_argv[0])
-                self._internal_debugger.clear_all_caches()
+            try:
+                if (
+                    not self._internal_debugger._has_path_different_from_argv0
+                    and self._internal_debugger.argv
+                    and new_argv[0] != self._previous_argv[0]
+                ):
+                    self._internal_debugger.clear_all_caches()
+                    # Changing path can also change the architecture, so we need to update it
+                    resolved_path = resolve_argv_path(new_argv[0])
+                    self.arch = elf_architecture(resolved_path)
+                    self._internal_debugger.path = resolved_path
+            except:
+                # We revert to the previous argv state if something goes wrong
+                self._internal_debugger.argv = ArgumentList(self._previous_argv)
+                raise
 
         # Set the callbacks on the ArgumentList
         argv.set_callbacks(_before_callback, _after_callback)
@@ -433,8 +445,11 @@ class Debugger:
             and self._internal_debugger.argv
             and value[0] != self._internal_debugger.argv[0]
         ):
-            self._internal_debugger.path = resolve_argv_path(value[0])
             self._internal_debugger.clear_all_caches()
+            # Changing path can also change the architecture, so we need to update it
+            resolved_path = resolve_argv_path(value[0])
+            self.arch = elf_architecture(resolved_path)
+            self._internal_debugger.path = resolved_path
 
         self._internal_debugger.argv = value
 
@@ -471,11 +486,23 @@ class Debugger:
 
         if not isinstance(value, str):
             raise TypeError("path must be a string")
-        # We must note inside the debugger if the path is different from the first argument in argv
-        self._internal_debugger._has_path_different_from_argv0 = True
+
+        self._internal_debugger.clear_all_caches()
+
+        resolved_path = resolve_argv_path(value)
+
+        # Changing path can also change the architecture, so we need to update it
+        self.arch = elf_architecture(resolved_path)
 
         self._internal_debugger.path = resolve_argv_path(value)
-        self._internal_debugger.clear_all_caches()
+
+        # We can also unfreeze argv[0] if it was frozen
+        self._internal_debugger.argv.prevent_empty = False
+
+        # We must note inside the debugger if the path is different from the first argument in argv
+        # This must be done last, otherwise we might get in an inconsistent state
+        # if one of the previous checks fails
+        self._internal_debugger._has_path_different_from_argv0 = True
 
     @property
     def kill_on_exit(self: Debugger) -> bool:
