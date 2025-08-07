@@ -398,7 +398,7 @@ class Debugger:
             try:
                 if (
                     not self._internal_debugger._has_path_different_from_argv0
-                    and self._internal_debugger.argv
+                    and new_argv
                     and new_argv[0] != self._previous_argv[0]
                 ):
                     self._internal_debugger.clear_all_caches()

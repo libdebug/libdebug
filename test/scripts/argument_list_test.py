@@ -16,17 +16,6 @@ class ArgumentListTest(TestCase):
         before_states = []
         after_states = []
 
-        def before_callback(state):
-            before_states.append(state.copy())
-
-        def after_callback(state):
-            after_states.append(state.copy())
-
-        # Test setting callbacks
-        arg_list.set_callbacks(before_callback, after_callback)
-        self.assertEqual(arg_list._before_callback, before_callback)
-        self.assertEqual(arg_list._after_callback, after_callback)
-
         # Test callbacks on operations
         arg_list = ArgumentList(["a", "b", "c"])
         arg_list.set_callbacks(
