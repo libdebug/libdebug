@@ -2014,14 +2014,34 @@
 <p>Software breakpoints are unlimited, but they can break when the program uses self-modifying code. This is because the patched code could be overwritten by the program. On the other hand, software breakpoints are slower than their hardware counterparts on most modern CPUs.</p>
 </div>
 <h3 id="hardware-breakpoints"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.75 8h6.5a.75.75 0 0 1 .75.75v6.5a.75.75 0 0 1-.75.75h-6.5a.75.75 0 0 1-.75-.75v-6.5A.75.75 0 0 1 8.75 8m.75 6.5h5v-5h-5Z"/><path d="M15.25 1a.75.75 0 0 1 .75.75V4h2.25c.966 0 1.75.784 1.75 1.75V8h2.25a.75.75 0 0 1 0 1.5H20v5h2.25a.75.75 0 0 1 0 1.5H20v2.25A1.75 1.75 0 0 1 18.25 20H16v2.25a.75.75 0 0 1-1.5 0V20h-5v2.25a.75.75 0 0 1-1.5 0V20H5.75A1.75 1.75 0 0 1 4 18.25V16H1.75a.75.75 0 0 1 0-1.5H4v-5H1.75a.75.75 0 0 1 0-1.5H4V5.75C4 4.784 4.784 4 5.75 4H8V1.75a.75.75 0 0 1 1.5 0V4h5V1.75a.75.75 0 0 1 .75-.75m3 17.5a.25.25 0 0 0 .25-.25V5.75a.25.25 0 0 0-.25-.25H5.75a.25.25 0 0 0-.25.25v12.5c0 .138.112.25.25.25Z"/></svg></span> Hardware Breakpoints</h3>
-<p>Hardware breakpoints are a more reliable way to set breakpoints. They are made possible by the existence of special registers in the CPU that can be used to monitor memory accesses. Differently from software breakpoints, their hardware counterparts allows the debugger to monitor read and write accesses on top of code execution. This kind of hardware breakpoint is also called a <a href="../watchpoints">watchpoint</a>. More information on watchpoints can be found in the dedicated documentation.</p>
+<p>Hardware breakpoints are a more reliable way to set breakpoints. They are made possible by the existence of special registers in the CPU that can be used to monitor memory accesses. Differently from software breakpoints, their hardware counterparts allows the debugger to monitor read and write accesses on top of code execution. This kind of hardware breakpoint is also called a <a href="../watchpoints">watchpoint</a>. More information on watchpoints can be found in the dedicated documentation. The following table only refers to execution hardware breakpoints.</p>
+<table>
+<thead>
+<tr>
+<th>Architecture</th>
+<th>Address Alignment</th>
+<th>Length</th>
+<th>Comment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span style="font-size: 2.5em; vertical-align: middle;"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.42 7.345v9.18h1.651v-9.18zM0 7.475v1.737h1.737V7.474zm9.78.352v6.053q0 .77.13 1.292.131.511.44.828c.203.21.475.359.803.451q.502.138 1.255.136h.216v-1.533c-.24 0-.445-.012-.593-.037a.67.67 0 0 1-.39-.173.7.7 0 0 1-.173-.377 4 4 0 0 1-.037-.606v-2.182h1.193v-1.416h-1.193V7.827zm-3.505 2.312c-.396 0-.76.08-1.082.241q-.49.242-.822.668l-.087.117v-.902H2.658v6.256h1.639v-3.214q.025-.881.433-1.299c.29-.297.642-.445 1.044-.445.476 0 .841.149 1.082.433.235.284.359.686.359 1.2v3.324h1.663V12.97c.006-.89-.229-1.595-.686-2.09s-1.1-.742-1.917-.742zm10.065.006a3.25 3.25 0 0 0-2.306.946c-.29.29-.525.637-.692 1.033a3.15 3.15 0 0 0-.254 1.273q0 .679.241 1.274c.161.395.39.742.674 1.032s.637.526 1.045.693c.408.173.86.26 1.342.26 1.397 0 2.262-.637 2.782-1.23l-1.187-.904c-.248.297-.841.699-1.583.699-.464 0-.847-.105-1.138-.321a1.6 1.6 0 0 1-.593-.872l-.019-.056h4.915v-.587q-.001-.676-.235-1.267a3.4 3.4 0 0 0-.661-1.033 3 3 0 0 0-1.02-.692 3.35 3.35 0 0 0-1.311-.248m-16.297.118v6.256h1.651v-6.256zm16.278 1.286c1.132 0 1.664.797 1.664 1.255l-3.32.006c0-.458.525-1.255 1.656-1.261m7.073 3.814a.606.606 0 0 0-.606.606.606.606 0 0 0 .606.606.606.606 0 0 0 .606-.606.606.606 0 0 0-.606-.606m-.008.105h.002a.5.5 0 0 1 .5.501.5.5 0 0 1-.5.5.5.5 0 0 1-.5-.5.5.5 0 0 1 .498-.5zm-.233.155v.699h.13v-.285h.093l.173.285h.136l-.18-.297a.2.2 0 0 0 .118-.056c.03-.03.05-.074.05-.136q0-.1-.063-.154c-.037-.038-.105-.056-.185-.056zm.13.099h.154q.028.001.056.012a.06.06 0 0 1 .037.031c.013.013.012.031.012.056a.1.1 0 0 1-.012.055.2.2 0 0 1-.037.031q-.028.011-.056.013h-.154Z"/></svg></span></span> i386 / AMD64</td>
+<td>None</td>
+<td>1 byte</td>
+<td>Any other length is undefined behaviour and will be quietly ignored by hardware.<br>Upon setting larger sizes, <strong>libdebug</strong> forces a size of 1 and prints a warning.</td>
+</tr>
+<tr>
+<td><span style="font-size: 2.5em; vertical-align: middle;"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M5.419 8.534h1.614v6.911H5.419v-.72c-.71.822-1.573.933-2.07.933C1.218 15.658 0 13.882 0 11.985c0-2.253 1.542-3.633 3.37-3.633.507 0 1.4.132 2.049.984zm-3.765 3.491c0 1.198.751 2.202 1.918 2.202 1.015 0 1.959-.74 1.959-2.181 0-1.512-.934-2.233-1.959-2.233-1.167-.01-1.918.974-1.918 2.212m7.297-3.49h1.613v.618a3 3 0 0 1 .67-.578c.314-.183.619-.233.984-.233.396 0 .822.06 1.269.324l-.66 1.462a1.43 1.43 0 0 0-.822-.244c-.345 0-.69.05-1.005.376-.446.477-.446 1.136-.446 1.593v3.582H8.94zm5.56 0h1.614v.639c.538-.66 1.177-.822 1.705-.822.72 0 1.4.345 1.786 1.015.579-.822 1.441-1.015 2.05-1.015.842 0 1.573.396 1.969 1.086.132.233.365.74.365 1.745v4.272h-1.614V11.65c0-.771-.08-1.086-.152-1.228-.101-.264-.345-.609-.923-.609-.396 0-.741.213-.954.508-.284.395-.315.984-.315 1.572v3.562H18.43V11.65c0-.771-.081-1.086-.152-1.228-.102-.264-.345-.609-.924-.609-.396 0-.74.213-.954.508-.284.395-.314.984-.314 1.572v3.562h-1.573z"/></svg></span></span> AArch64</td>
+<td>4 bytes</td>
+<td>Any from 1 to 8 bytes</td>
+<td></td>
+</tr>
+</tbody>
+</table>
 <div class="admonition tip">
 <p class="admonition-title">Pros and Cons of Hardware Breakpoints</p>
 <p>Hardware breakpoints are not affected by self-modifying code. They are also usually faster and more flexible. However, hardware breakpoints are limited in number and are hardware-dependent, so their support may vary across different systems.</p>
-</div>
-<div class="admonition info">
-<p class="admonition-title">Hardware Breakpoint Alignment in AArch64</p>
-<p>Hardware breakpoints have to be aligned to 4 bytes (which is the size of an ARM instruction).</p>
 </div>
 <h2 id="libdebug-api-for-breakpoints"><strong>libdebug</strong> API for Breakpoints</h2>
 <p>The <code>breakpoint()</code> function in the <a href="../../from_pydoc/generated/debugger/debugger/">Debugger</a> object sets a breakpoint at a specific address.</p>

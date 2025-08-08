@@ -871,6 +871,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#telescope" class="md-nav__link">
+    <span class="md-ellipsis">
+      Telescope
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1948,6 +1957,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#telescope" class="md-nav__link">
+    <span class="md-ellipsis">
+      Telescope
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2181,6 +2199,77 @@ Please note that contrary to what happens in GDB, the offset is always interpret
 </span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Heap leak to </span><span class="si">{</span><span class="n">dst</span><span class="si">}</span><span class="s2"> found at </span><span class="si">{</span><span class="n">src</span><span class="si">}</span><span class="s2"> points&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 </div>
+<h3 id="telescope"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m21.9 8.9-1.7 1-4-6.9 1.7-1zm-12.1-1 3 5.2 6.1-3.5-3-5.2zm1.6 4.8-2-3.5-4.3 2.5 2 3.5zm-9.3 1.9 1 1.7 2.6-1.5-1-1.7zm10-.6-.3-.4-4.3 2.5.3.4c.2.3.5.6.8.8L7 22h2l1.4-4.3h.1L12 22h2l-1.9-5.6c.5-.7.5-1.6 0-2.4"/></svg></span> Telescope</h3>
+<p>The <code>memory</code> attribute of the <a href="../../from_pydoc/generated/debugger/debugger/">Debugger</a> object also allow you to traverse a chain of pointers in memory, starting from a given address. This is particularly useful for exploring complex data structures or following pointers through multiple levels of indirection.</p>
+<p>For example, let's say the return value of <code>telescope(0x7ffff7fcb200)</code> is:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>[0x7ffff7fcb200, 0x7ffff7fcb208, 0x7ffff7fcb210, &quot;provola&quot;]
+</span></code></pre></div></p>
+<p>This means that <code>0x7ffff7fcb200</code> (input address) points to <code>0x7ffff7fcb208</code>, which points to <code>0x7ffff7fcb210</code>, which contains the string <code>"provola"</code>.</p>
+<div class="admonition abstract">
+<p class="admonition-title">Function Signature</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">telescope</span><span class="p">(</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>    <span class="n">address</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>    <span class="n">max_depth</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>    <span class="n">min_str_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>    <span class="n">max_str_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mh">0x100</span><span class="p">,</span>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span> <span class="o">|</span> <span class="nb">str</span><span class="p">]:</span>
+</span></code></pre></div>
+</div>
+<p><strong>Parameters</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Argument</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>address</code></td>
+<td><code>int</code></td>
+<td>The address to telescope.</td>
+</tr>
+<tr>
+<td><code>max_depth</code></td>
+<td><code>int</code></td>
+<td>The maximum depth of the telescope. Defaults to <code>10</code>.</td>
+</tr>
+<tr>
+<td><code>min_str_len</code></td>
+<td><code>int</code></td>
+<td>The minimum length of a string to be resolved, if the found element is not a valid address. If <code>-1</code>, the element will never be resolved as a string. Defaults to <code>3</code>.</td>
+</tr>
+<tr>
+<td><code>max_str_len</code></td>
+<td><code>int</code></td>
+<td>The maximum length of a string to be resolved, if the found element is not a valid address. Defaults to <code>0x100</code>.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Return</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Chain</code></td>
+<td><code>list[int | str]</code></td>
+<td>The telescope chain. The last element might be both an integer or a string, depending on the arguments provided and the content of the memory. The first element is always the address provided as argument.</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition abstract">
+<p class="admonition-title">Usage Example</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="n">address</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">regs</span><span class="o">.</span><span class="n">rsp</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="n">chain</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="o">.</span><span class="n">telescope</span><span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="n">max_depth</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">min_str_len</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">max_str_len</span><span class="o">=</span><span class="mh">0x100</span><span class="p">)</span>
+</span></code></pre></div>
+</div>
 <h2 id="fast-and-slow-memory-access"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15 4a8 8 0 0 1 8 8 8 8 0 0 1-8 8 8 8 0 0 1-8-8 8 8 0 0 1 8-8m0 2a6 6 0 0 0-6 6 6 6 0 0 0 6 6 6 6 0 0 0 6-6 6 6 0 0 0-6-6m-1 2h1.5v3.78l2.33 2.33-1.06 1.06L14 12.4zM2 18a1 1 0 0 1-1-1 1 1 0 0 1 1-1h3.83c.31.71.71 1.38 1.17 2zm1-5a1 1 0 0 1-1-1 1 1 0 0 1 1-1h2.05L5 12l.05 1zm1-5a1 1 0 0 1-1-1 1 1 0 0 1 1-1h3c-.46.62-.86 1.29-1.17 2z"/></svg></span> Fast and Slow Memory Access</h2>
 <p><strong>libdebug</strong> supports two different methods to access memory on Linux, controlled by the <code>fast_memory</code> parameter of the <a href="../../from_pydoc/generated/debugger/debugger/">Debugger</a> object. The two methods are:</p>
 <ul>
@@ -2191,11 +2280,11 @@ Please note that contrary to what happens in GDB, the offset is always interpret
 <div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">When creating the Debugger object</label><label for="__tabbed_2_2">At runtime</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="n">d</span> <span class="o">=</span> <span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;test&quot;</span><span class="p">,</span> <span class="n">fast_memory</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="n">d</span> <span class="o">=</span> <span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;test&quot;</span><span class="p">,</span> <span class="n">fast_memory</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </span></code></pre></div>
 </div>
 <div class="tabbed-block">
-<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="n">d</span><span class="o">.</span><span class="n">fast_memory</span> <span class="o">=</span> <span class="kc">False</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="n">d</span><span class="o">.</span><span class="n">fast_memory</span> <span class="o">=</span> <span class="kc">False</span>
 </span></code></pre></div>
 </div>
 </div>
