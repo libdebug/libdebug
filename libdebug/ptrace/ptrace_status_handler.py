@@ -55,6 +55,18 @@ class PtraceStatusHandler:
             os.waitpid(thread_id, 0)
         self.ptrace_interface.register_new_thread(thread_id)
 
+    def _handle_exec(self: PtraceStatusHandler) -> None:
+        """Handle the exec event."""
+        # The exec event requires us to unregister all threads except the main thread
+        for thread in self.internal_debugger.threads:
+            # Do not unregister the main thread
+            if thread.tid != thread.pid:
+                self.ptrace_interface.unregister_thread(thread.thread_id, None, None)
+                liblog.debugger("Unregistered thread %d after exec" % thread.thread_id)
+
+        # We also need to clear the caches of the debugger
+        self.internal_debugger.clear_all_caches()
+
     def _handle_exit(
         self: PtraceStatusHandler,
         thread_id: int,
@@ -463,6 +475,15 @@ class PtraceStatusHandler:
                         self.internal_debugger.set_child_debugger(message)
                     self.forward_signal = False
                     self.internal_debugger.resume_context.event_type[pid] = EventType.FORK
+                case StopEvents.EXEC_EVENT:
+                    # The process has executed a new program
+                    liblog.debugger(f"Process {pid} executed a new program")
+                    self._handle_exec()
+                    # We do not forward the signal, otherwise we would kill the new process
+                    self.forward_signal = False
+                    # We interrupt the process to allow the user to handle the exec event
+                    self.internal_debugger.resume_context.event_type[pid] = EventType.EXEC
+                    self.internal_debugger.resume_context.resume = False
 
     def _handle_change(self: PtraceStatusHandler, pid: int, status: int, results: list) -> None:
         """Handle a change in the status of a traced process."""

@@ -77,3 +77,4 @@ class EventType:
     FORK = "Process Fork"
     EXIT = "Process Exit"
     SECCOMP = "Seccomp"
+    EXEC = "Process Exec"
