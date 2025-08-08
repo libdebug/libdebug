@@ -1,5 +1,6 @@
 from .alias_test import AliasTest
 from .antidebug_escaping_test import AntidebugEscapingTest
+from .argument_list_test import ArgumentListTest
 from .atexit_handler_test import AtexitHandlerTest
 from .attach_detach_test import AttachDetachTest
 from .auto_waiting_test import AutoWaitingTest
@@ -11,6 +12,7 @@ from .control_flow_test import ControlFlowTest
 from .corrupted_elf_test import CorruptedELFTest
 from .cursed_binaries_test import CursedBinariesTest
 from .death_test import DeathTest
+from .debugger_argument_test import DebuggerArgumentTest
 from .deep_dive_division_test import DeepDiveDivisionTest
 from .finish_test import FinishTest
 from .floating_point_test import FloatingPointTest

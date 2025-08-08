@@ -28,7 +28,9 @@ from libdebug.builtin.pretty_print_syscall_handler import (
     pprint_on_enter,
     pprint_on_exit,
 )
+from libdebug.data.argument_list import ArgumentList
 from libdebug.data.breakpoint import Breakpoint
+from libdebug.data.env_dict import EnvDict
 from libdebug.data.gdb_resume_event import GdbResumeEvent
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
@@ -101,13 +103,13 @@ class InternalDebugger:
     arch: str
     """The architecture of the debugged process."""
 
-    argv: list[str]
+    argv: ArgumentList
     """The command line arguments of the debugged process."""
 
     path: str
     """The path to the binary of the debugged process."""
 
-    env: dict[str, str] | None
+    env: EnvDict | None
     """The environment variables of the debugged process."""
 
     escape_antidebug: bool
@@ -218,12 +220,15 @@ class InternalDebugger:
     _snapshot_count: int
     """The counter used to assign an ID to each snapshot."""
 
+    _has_path_different_from_argv0: bool
+    """A flag that indicates if the path to the binary is different from the first argument in argv."""
+
     def __init__(self: InternalDebugger) -> None:
         """Initialize the context."""
         # These must be reinitialized on every call to "debugger"
         self.aslr_enabled = False
         self.autoreach_entrypoint = True
-        self.argv = []
+        self.argv = ArgumentList()
         self.env = {}
         self.escape_antidebug = False
         self.breakpoints = {}
@@ -314,7 +319,7 @@ class InternalDebugger:
             timeout (float): The timeout in seconds. If -1, no timeout is set.
             redirect_pipes (bool): Whether to hook and redirect the pipes of the process to a PipeManager.
         """
-        if not self.argv:
+        if not self.path:
             raise RuntimeError("No binary file specified.")
 
         if timeout <= 0 and timeout != -1:
@@ -403,6 +408,7 @@ class InternalDebugger:
         child_internal_debugger = InternalDebugger()
         child_internal_debugger.argv = self.argv
         child_internal_debugger.path = self.path
+        child_internal_debugger._has_path_different_from_argv0 = self._has_path_different_from_argv0
         child_internal_debugger.env = self.env
         child_internal_debugger.aslr_enabled = self.aslr_enabled
         child_internal_debugger.autoreach_entrypoint = self.autoreach_entrypoint
@@ -2036,3 +2042,12 @@ class InternalDebugger:
 
             # Signal that the command has been executed
             self.__timeout_thread_command_queue.task_done()
+
+    def clear_all_caches(self: InternalDebugger) -> None:
+        """Clears all the caches of the internal debugger."""
+        # The cached properties can be cleared by deleting the attribute
+        if "_process_full_path" in self.__dict__:
+            del self._process_full_path
+
+        if "_process_name" in self.__dict__:
+            del self._process_name
