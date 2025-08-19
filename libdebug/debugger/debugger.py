@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2025  Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
+# Copyright (c) 2023-2025 Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -457,6 +457,7 @@ class Debugger:
 
     def _configure_env_dict(self: Debugger) -> None:
         """Sets up the EnvDict with the before callback."""
+
         # We register a _before_callback that ensure that the process
         # is not being debugged when the environment is changed
         def _before_callback() -> None:

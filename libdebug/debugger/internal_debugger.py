@@ -30,7 +30,6 @@ from libdebug.builtin.pretty_print_syscall_handler import (
 )
 from libdebug.data.argument_list import ArgumentList
 from libdebug.data.breakpoint import Breakpoint
-from libdebug.data.env_dict import EnvDict
 from libdebug.data.gdb_resume_event import GdbResumeEvent
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
@@ -80,6 +79,7 @@ if TYPE_CHECKING:
     from typing import Any
 
     from libdebug.commlink.pipe_manager import PipeManager
+    from libdebug.data.env_dict import EnvDict
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.data.registers import Registers
