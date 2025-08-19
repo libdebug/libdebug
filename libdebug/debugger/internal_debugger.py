@@ -358,6 +358,9 @@ class InternalDebugger:
             raise RuntimeError("Something went wrong during pipe initialization.")
 
         self._process_memory_manager.open(self.process_id)
+        if not self._process_memory_manager.is_available():
+            liblog.warning("Fast memory access is not available. Using a slower memory access method instead.")
+            self.fast_memory = False
 
         return self.pipe_manager
 
