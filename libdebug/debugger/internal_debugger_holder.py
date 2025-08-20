@@ -9,11 +9,9 @@ from __future__ import annotations
 import atexit
 import os
 import sys
-from dataclasses import dataclass, field
 from termios import TCSANOW, tcsetattr
-from threading import Lock
 from typing import TYPE_CHECKING
-from weakref import WeakKeyDictionary
+from weakref import ref
 
 from libdebug.liblog import liblog
 
@@ -21,22 +19,26 @@ if TYPE_CHECKING:
     from libdebug.debugger.internal_debugger import InternalDebugger
 
 
-@dataclass
-class InternalDebuggerHolder:
-    """A holder for internal debuggers."""
-
-    internal_debuggers: WeakKeyDictionary = field(default_factory=WeakKeyDictionary)
-    global_internal_debugger = None
-    internal_debugger_lock = Lock()
+_instanced_debuggers: set[ref[InternalDebugger]] = set()
 
 
-internal_debugger_holder = InternalDebuggerHolder()
+def register_internal_debugger(debugger: InternalDebugger) -> None:
+    """Register an internal debugger instance."""
+    _instanced_debuggers.add(ref(debugger))
 
+def remove_internal_debugger_refs(debugger: InternalDebugger) -> None:
+    """Remove a reference to an internal debugger instance."""
+    updated_debuggers = {d for d in _instanced_debuggers if d() is not None and d() is not debugger}
+    _instanced_debuggers.clear()
+    _instanced_debuggers.update(updated_debuggers)
+    liblog.debugger("Removed internal debugger reference: %s", debugger)
 
 def _cleanup_internal_debugger() -> None:
     """Cleanup the internal debugger."""
-    for debugger in set(internal_debugger_holder.internal_debuggers.values()):
-        debugger: InternalDebugger
+    for debugger_ref in _instanced_debuggers:
+        debugger = debugger_ref()
+        if debugger is None:
+            continue
 
         # Restore the original stdin settings, just in case
         try:
@@ -66,6 +68,8 @@ def _cleanup_internal_debugger() -> None:
                 debugger._atexit_terminate()
             except Exception as e:  # noqa: BLE001
                 liblog.debugger("Error while terminating the internal debugger: %s", e)
+
+    _instanced_debuggers.clear()
 
 
 atexit.register(_cleanup_internal_debugger)
