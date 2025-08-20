@@ -36,11 +36,7 @@ from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
 from libdebug.data.terminals import TerminalTypes
 from libdebug.debugger.debugger import Debugger
-from libdebug.debugger.internal_debugger_instance_manager import (
-    extend_internal_debugger,
-    link_to_internal_debugger,
-    remove_internal_debugger_refs,
-)
+from libdebug.debugger.internal_debugger_holder import register_internal_debugger, remove_internal_debugger_refs
 from libdebug.interfaces.interface_helper import provide_debugging_interface
 from libdebug.liblog import liblog
 from libdebug.memory.chunked_memory_view import ChunkedMemoryView
@@ -259,6 +255,9 @@ class InternalDebugger:
         self.serialization_helper = SerializationHelper()
         self.children = []
 
+        # We register this debugger so that we can clean it up on exit.
+        register_internal_debugger(self)
+
     def clear(self: InternalDebugger) -> None:
         """Reinitializes the context, so it is ready for a new run."""
         # These must be reinitialized on every call to "run"
@@ -285,9 +284,6 @@ class InternalDebugger:
 
     def start_up(self: InternalDebugger) -> None:
         """Starts up the context."""
-        # The context is linked to itself
-        link_to_internal_debugger(self, self)
-
         self.start_processing_thread()
         self.debugging_interface = provide_debugging_interface(self)
         self._fast_memory = DirectMemoryView(
@@ -516,12 +512,12 @@ class InternalDebugger:
 
         self.cleanup_timeout_thread()
 
-        # Remove elemement from internal_debugger_holder to avoid memleaks
-        remove_internal_debugger_refs(self)
-
         # Clean up the register accessors
         for thread in self.threads:
             thread._register_holder.cleanup()
+
+        # Clean up our reference in the holder
+        remove_internal_debugger_refs(self)
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
@@ -680,8 +676,6 @@ class InternalDebugger:
 
         if hardware:
             validate_hardware_breakpoint(self.arch, bp)
-
-        link_to_internal_debugger(bp, self)
 
         if not self._is_in_background():
             # Go through the queue and wait for it to be done
@@ -1457,8 +1451,7 @@ class InternalDebugger:
             # If no explicit backing file is specified, we try resolving the symbol in the main map
             filtered_maps = self.maps.filter("binary")
             try:
-                with extend_internal_debugger(self):
-                    return resolve_symbol_in_maps(symbol, filtered_maps)
+                return resolve_symbol_in_maps(symbol, filtered_maps)
             except ValueError:
                 liblog.warning(
                     f"No backing file specified for the symbol `{symbol}`. Resolving the symbol in ALL the maps (slow!)",
@@ -1467,8 +1460,7 @@ class InternalDebugger:
             # Otherwise, we resolve the symbol in all the maps: as this can be slow,
             # we issue a warning with the file containing it
             maps = self.maps
-            with extend_internal_debugger(self):
-                address = resolve_symbol_in_maps(symbol, maps)
+            address = resolve_symbol_in_maps(symbol, maps)
 
             filtered_maps = self.maps.filter(address)
             if len(filtered_maps) != 1:
@@ -1488,15 +1480,13 @@ class InternalDebugger:
 
         filtered_maps = self.maps.filter(backing_file)
 
-        with extend_internal_debugger(self):
-            return resolve_symbol_in_maps(symbol, filtered_maps)
+        return resolve_symbol_in_maps(symbol, filtered_maps)
 
     @property
     def symbols(self: InternalDebugger) -> SymbolList[Symbol]:
         """Get the symbols of the process."""
         backing_files = {vmap.backing_file for vmap in self.maps}
-        with extend_internal_debugger(self):
-            return get_all_symbols(backing_files)
+        return get_all_symbols(backing_files, self)
 
     def _background_ensure_process_stopped(self: InternalDebugger) -> None:
         """Validates the state of the process."""
