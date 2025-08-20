@@ -499,3 +499,5 @@ class MemoryNoFastTest(TestCase):
             
         with self.assertRaises(RuntimeError):
             d.mem
+
+        d.terminate()
