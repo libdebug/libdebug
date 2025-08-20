@@ -62,10 +62,15 @@ class PtraceStatusHandler:
             # Do not unregister the main thread
             if thread.tid != thread.pid:
                 self.ptrace_interface.unregister_thread(thread.thread_id, None, None)
-                liblog.debugger("Unregistered thread %d after exec" % thread.thread_id)
+                liblog.debugger("Unregistered thread %d after exec", thread.thread_id)
 
         # We also need to clear the caches of the debugger
         self.internal_debugger.clear_all_caches()
+
+        # At this point, we are still executing the old binary, stopped before the end
+        # of the execve syscall. All breakpoints, syscall hooks, and signal handlers would
+        # still be valid, but we can clear them now, as they won't be valid after continuing
+        self.internal_debugger.clear_internal_state()
 
     def _handle_exit(
         self: PtraceStatusHandler,
