@@ -143,6 +143,18 @@ class PipeManager:
         os.close(self._stdin_write)
         os.close(self._stdout_read)
         os.close(self._stderr_read)
+        self._stdin_write = None
+        self._stdout_read = None
+        self._stderr_read = None
+
+    def __del__(self: PipeManager) -> None:
+        """Destructor for the PipeManager class."""
+        if self._stdin_write is not None:
+            os.close(self._stdin_write)
+        if self._stdout_read is not None:
+            os.close(self._stdout_read)
+        if self._stderr_read is not None:
+            os.close(self._stderr_read)
 
     def _buffered_recv(self: PipeManager, numb: int, timeout: int, stderr: bool) -> bytes:
         """Receives at most numb bytes from the child process stdout or stderr.
