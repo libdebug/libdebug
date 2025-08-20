@@ -293,7 +293,7 @@ class AtexitHandlerTest(TestCase):
             self.assertNotIn(pid, psutil.pids())
     
     def test_attach_2(self):
-        p = process(RESOLVE_EXE("infinite_loop_test"))
+        p = process(RESOLVE_EXE("infinite_loop_test"), env={})
 
         d = debugger()
 

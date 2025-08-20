@@ -39,7 +39,7 @@ match PLATFORM:
 
 class AttachDetachTest(unittest.TestCase):
     def test_attach(self):
-        r = process(RESOLVE_EXE("attach_test"))
+        r = process(RESOLVE_EXE("attach_test"), env={})
 
         d = debugger()
         d.attach(r.pid)
@@ -88,7 +88,7 @@ class AttachDetachTest(unittest.TestCase):
         d.terminate()
 
     def test_attach_and_detach_1(self):
-        r = process(RESOLVE_EXE("attach_test"))
+        r = process(RESOLVE_EXE("attach_test"), env={})
 
         d = debugger()
 
@@ -143,7 +143,7 @@ class AttachDetachTest(unittest.TestCase):
         d.terminate()
 
     def test_attach_and_detach_4(self):
-        r = process(RESOLVE_EXE("attach_test"))
+        r = process(RESOLVE_EXE("attach_test"), env={})
 
         d = debugger()
         d.attach(r.pid)

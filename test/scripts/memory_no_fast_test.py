@@ -465,7 +465,7 @@ class MemoryNoFastTest(TestCase):
 
     def test_memory_attach(self):
         # Ensure that slow memory works when attaching to a process
-        r = process(RESOLVE_EXE("attach_test"))
+        r = process(RESOLVE_EXE("attach_test"), env={})
 
         d = debugger(fast_memory=False)
 
