@@ -289,14 +289,18 @@ class InternalDebugger:
         link_to_internal_debugger(self, self)
 
         self.start_processing_thread()
-        with extend_internal_debugger(self):
-            self.debugging_interface = provide_debugging_interface()
-            self._fast_memory = DirectMemoryView(self._fast_read_memory, self._fast_write_memory)
-            self._slow_memory = ChunkedMemoryView(
-                self._peek_memory,
-                self._poke_memory,
-                unit_size=get_platform_gp_register_size(libcontext.platform),
-            )
+        self.debugging_interface = provide_debugging_interface(self)
+        self._fast_memory = DirectMemoryView(
+            self,
+            self._fast_read_memory,
+            self._fast_write_memory,
+        )
+        self._slow_memory = ChunkedMemoryView(
+            self,
+            self._peek_memory,
+            self._poke_memory,
+            unit_size=get_platform_gp_register_size(libcontext.platform),
+        )
 
     def start_processing_thread(self: InternalDebugger) -> None:
         """Starts the thread that will poll the traced process for state change."""

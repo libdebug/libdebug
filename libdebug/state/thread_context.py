@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING
 from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
 from libdebug.debugger.internal_debugger_instance_manager import (
     extend_internal_debugger,
-    provide_internal_debugger,
 )
 from libdebug.liblog import liblog
 from libdebug.snapshots.thread.thread_snapshot import ThreadSnapshot
@@ -87,14 +86,23 @@ class ThreadContext(ABC):
     _zombie: bool = False
     """Whether the thread is a zombie."""
 
-    def __init__(self: ThreadContext, thread_id: int, registers: RegisterHolder) -> None:
+    def __init__(
+        self: ThreadContext,
+        thread_id: int,
+        registers: RegisterHolder,
+        internal_debugger: InternalDebugger,
+    ) -> None:
         """Initializes the Thread Context."""
-        self._internal_debugger = provide_internal_debugger(self)
+        self._internal_debugger = internal_debugger
         self._thread_id = thread_id
         self._register_holder = registers
-        regs_class = self._register_holder.provide_regs_class()
-        self.regs = regs_class(thread_id, self._register_holder.provide_regs())
-        self._register_holder.apply_on_regs(self.regs, regs_class)
+        RegsSpecializedClass = self._register_holder.provide_regs_class()  # noqa: N806
+        self.regs = RegsSpecializedClass(
+            thread_id,
+            self._register_holder.provide_regs(),
+            internal_debugger,
+        )
+        self._register_holder.apply_on_regs(self.regs, RegsSpecializedClass)
 
     def set_as_dead(self: ThreadContext) -> None:
         """Set the thread as dead."""
