@@ -106,6 +106,8 @@ class SnapshotsTest(TestCase):
         d.kill()
         d.terminate()
 
+        tmp_file.close()
+
     def test_thread_writable_snapshot(self):
         # Create a debugger and start execution
         d = debugger(RESOLVE_EXE("process_snapshot_test"), auto_interrupt_on_command=False, aslr=False, fast_memory=True)
@@ -208,6 +210,8 @@ class SnapshotsTest(TestCase):
         d.kill()
         d.terminate()
 
+        tmp_file.close()
+
     def test_thread_full_snapshot(self):
         # Create a debugger and start execution
         d = debugger(RESOLVE_EXE("process_snapshot_test"), auto_interrupt_on_command=False, aslr=False, fast_memory=True)
@@ -301,6 +305,8 @@ class SnapshotsTest(TestCase):
 
         d.kill()
         d.terminate()
+
+        tmp_file.close()
 
     def test_process_base_snapshot(self):
         
@@ -405,6 +411,8 @@ class SnapshotsTest(TestCase):
 
         d.kill()
         d.terminate()
+
+        tmp_file.close()
 
     def test_process_full_snapshot(self):
         # Create a debugger and start
@@ -534,6 +542,8 @@ class SnapshotsTest(TestCase):
         d.kill()
         d.terminate()
 
+        tmp_file.close()
+
     def test_diff_thread_base_full(self):
         # Create a debugger and start
         d = debugger(RESOLVE_EXE("process_snapshot_test"), auto_interrupt_on_command=False, aslr=False, fast_memory=True)
@@ -605,3 +615,5 @@ class SnapshotsTest(TestCase):
 
         self.assertEqual(symbol1, restored_symbol1)
         d.terminate()
+
+        tmp_file.close()
