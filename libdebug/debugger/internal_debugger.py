@@ -2051,3 +2051,14 @@ class InternalDebugger:
 
         if "_process_name" in self.__dict__:
             del self._process_name
+
+    def clear_internal_state(self: InternalDebugger) -> None:
+        """Clears the internal state of the debugger."""
+        # Clear the handled syscalls
+        self.handled_syscalls.clear()
+
+        # Clear the breakpoints
+        self.breakpoints.clear()
+
+        # Clear the signal catchers
+        self.caught_signals.clear()
