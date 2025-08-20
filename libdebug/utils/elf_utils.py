@@ -102,7 +102,7 @@ def _collect_external_info(debug_path: str, reference_path: str, build_id: str) 
     ]
 
 
-# @functools.cache
+@functools.cache
 def _parse_elf_file(path: str, debug_info_level: int) -> tuple[list[Symbol], str | None, str | None]:
     """Returns a dictionary containing the symbols of the specified ELF file and the buildid.
 
