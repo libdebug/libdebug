@@ -313,3 +313,6 @@ class AtexitHandlerTest(TestCase):
         
         # Even if we kill the process, the next call should not raise an exception
         _cleanup_internal_debugger()
+
+        p.close()
+        del p
