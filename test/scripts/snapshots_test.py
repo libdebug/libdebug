@@ -70,8 +70,8 @@ class SnapshotsTest(TestCase):
             saved_backtrace = ts1.backtrace()
 
         # Try saving
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp_file:
-            save_path = tmp_file.name
+        tmp_file = tempfile.NamedTemporaryFile(suffix=".json")
+        save_path = tmp_file.name
 
         ts1.save(save_path)
         ts1_restored = d.load_snapshot(save_path)
@@ -158,8 +158,8 @@ class SnapshotsTest(TestCase):
         for i, spc in enumerate(current_backtrace):
             self.assertEqual(spc, saved_backtrace[i])
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp_file:
-            save_path = tmp_file.name
+        tmp_file = tempfile.NamedTemporaryFile(suffix=".json")
+        save_path = tmp_file.name
 
         ts1.save(save_path)
         ts1_restored = d.load_snapshot(save_path)
@@ -258,8 +258,8 @@ class SnapshotsTest(TestCase):
         for i, spc in enumerate(current_backtrace):
             self.assertEqual(spc, saved_backtrace[i])
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp_file:
-            save_path = tmp_file.name
+        tmp_file = tempfile.NamedTemporaryFile(suffix=".json")
+        save_path = tmp_file.name
 
         ts1.save(save_path)
         ts1_restored = d.load_snapshot(save_path)
@@ -361,8 +361,8 @@ class SnapshotsTest(TestCase):
                         thread.regs.__getattribute__(reg_name)
                     )
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp_file:
-            save_path = tmp_file.name
+        tmp_file = tempfile.NamedTemporaryFile(suffix=".json")
+        save_path = tmp_file.name
 
         ps1.save(save_path)
         ps1_restored = d.load_snapshot(save_path)
@@ -479,8 +479,8 @@ class SnapshotsTest(TestCase):
                         thread.regs.__getattribute__(reg_name)
                     )
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp_file:
-            save_path = tmp_file.name
+        tmp_file = tempfile.NamedTemporaryFile(suffix=".json")
+        save_path = tmp_file.name
 
         ps1.save(save_path)
         ps1_restored = d.load_snapshot(save_path)
@@ -601,8 +601,8 @@ class SnapshotsTest(TestCase):
         self.assertEqual(symbol1, symbol2)
         
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp_file:
-            save_path = tmp_file.name
+        tmp_file = tempfile.NamedTemporaryFile(suffix=".json")
+        save_path = tmp_file.name
 
         ps1.save(save_path)
         ps1_restored = d.load_snapshot(save_path)
