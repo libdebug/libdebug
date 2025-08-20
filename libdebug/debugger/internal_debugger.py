@@ -672,7 +672,7 @@ class InternalDebugger:
             def callback(_: ThreadContext, __: Breakpoint) -> None:
                 pass
 
-        bp = Breakpoint(address, position, 0, hardware, callback, condition.lower(), length)
+        bp = Breakpoint(address, position, 0, hardware, callback, condition.lower(), length, self)
 
         if hardware:
             validate_hardware_breakpoint(self.arch, bp)
@@ -744,9 +744,7 @@ class InternalDebugger:
             def callback(_: ThreadContext, __: SignalCatcher) -> None:
                 pass
 
-        catcher = SignalCatcher(signal_number, callback, recursive)
-
-        link_to_internal_debugger(catcher, self)
+        catcher = SignalCatcher(signal_number, callback, recursive, _internal_debugger=self)
 
         if not self._is_in_background():
             # Go through the queue and wait for it to be done
@@ -849,9 +847,8 @@ class InternalDebugger:
                 None,
                 None,
                 recursive,
+                _internal_debugger=self,
             )
-
-            link_to_internal_debugger(handler, self)
 
             if not self._is_in_background():
                 # Go through the queue and wait for it to be done
@@ -928,9 +925,8 @@ class InternalDebugger:
                 None,
                 None,
                 recursive,
+                _internal_debugger=self,
             )
-
-            link_to_internal_debugger(handler, self)
 
             if not self._is_in_background():
                 # Go through the queue and wait for it to be done
@@ -1309,9 +1305,8 @@ class InternalDebugger:
                     None,
                     pprint_on_enter,
                     pprint_on_exit,
+                    _internal_debugger=self,
                 )
-
-                link_to_internal_debugger(handler, self)
 
                 # We have to disable the handler since it is not user-defined
                 handler.disable()
@@ -1855,9 +1850,8 @@ class InternalDebugger:
             on_exit_ptrace,
             None,
             None,
+            _internal_debugger=self,
         )
-
-        link_to_internal_debugger(handler, self)
 
         self.__polling_thread_command_queue.put((self.__threaded_handle_syscall, (handler,)))
 

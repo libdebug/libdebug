@@ -6,14 +6,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
-
-from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.state.thread_context import ThreadContext
 
 
@@ -34,17 +33,18 @@ class SignalCatcher:
     recursive: bool = True
     hit_count: int = 0
     _enabled: bool = True
+    _internal_debugger: InternalDebugger = field(default=None, init=True, repr=False)
 
     @property
     def enabled(self: SignalCatcher) -> bool:
         """Return whether the signal catcher is enabled or not."""
-        provide_internal_debugger(self)._ensure_process_stopped()
+        self._internal_debugger._ensure_process_stopped()
         return self._enabled
 
     @enabled.setter
     def enabled(self: SignalCatcher, value: bool) -> None:
         """Set whether the signal catcher is enabled or not."""
-        provide_internal_debugger(self)._ensure_process_stopped()
+        self._internal_debugger._ensure_process_stopped()
         self._enabled = value
 
     def enable(self: SignalCatcher) -> None:
@@ -57,5 +57,5 @@ class SignalCatcher:
 
     def hit_on(self: SignalCatcher, thread_context: ThreadContext) -> bool:
         """Returns whether the signal catcher has been hit on the given thread context."""
-        provide_internal_debugger(self)._ensure_process_stopped()
+        self._internal_debugger._ensure_process_stopped()
         return self._enabled and thread_context.signal_number == self.signal_number

@@ -373,8 +373,11 @@ class PtraceInterface(DebuggingInterface):
                 # Otherwise we use a software breakpoint
                 install_hw_bp = self.lib_trace.get_remaining_hw_breakpoint_count(thread.thread_id) > 0
 
-                ip_breakpoint = Breakpoint(last_saved_instruction_pointer, hardware=install_hw_bp)
-                link_to_internal_debugger(ip_breakpoint, self._internal_debugger)
+                ip_breakpoint = Breakpoint(
+                    last_saved_instruction_pointer,
+                    hardware=install_hw_bp,
+                    _internal_debugger=self._internal_debugger,
+                )
                 self.set_breakpoint(ip_breakpoint)
             elif not ip_breakpoint.enabled:
                 self._enable_breakpoint(ip_breakpoint)
@@ -423,8 +426,11 @@ class PtraceInterface(DebuggingInterface):
                 # Check if we have enough hardware breakpoints available
                 # Otherwise we use a software breakpoint
                 install_hw_bp = self.lib_trace.get_remaining_hw_breakpoint_count(thread.thread_id) > 0
-                ip_breakpoint = Breakpoint(skip_address, hardware=install_hw_bp)
-                link_to_internal_debugger(ip_breakpoint, self._internal_debugger)
+                ip_breakpoint = Breakpoint(
+                    skip_address,
+                    hardware=install_hw_bp,
+                    _internal_debugger=self._internal_debugger,
+                )
                 self.set_breakpoint(ip_breakpoint)
             elif not ip_breakpoint.enabled:
                 self._enable_breakpoint(ip_breakpoint)
@@ -457,8 +463,13 @@ class PtraceInterface(DebuggingInterface):
             os.close(self.stderr_write)
         except Exception as e:
             raise Exception("Closing fds failed: %r", e) from e
-        with extend_internal_debugger(self):
-            return PipeManager(self.stdin_write, self.stdout_read, self.stderr_read)
+
+        return PipeManager(
+            self._internal_debugger,
+            self.stdin_write,
+            self.stdout_read,
+            self.stderr_read,
+        )
 
     def _setup_parent(self: PtraceInterface, continue_to_entry_point: bool) -> None:
         """Sets up the parent process after the child process has been created or attached to."""
@@ -482,9 +493,7 @@ class PtraceInterface(DebuggingInterface):
                 liblog.error(f"Failed to get the entry point for the given binary: {e}")
             else:
                 # Only if we think we have found a valid entry point location, we attempt to reach it
-                bp = Breakpoint(entry_point, hardware=True)
-                # Link the breakpoint to self
-                link_to_internal_debugger(bp, self._internal_debugger)
+                bp = Breakpoint(entry_point, hardware=True, _internal_debugger=self._internal_debugger)
                 self.set_breakpoint(bp)
                 self.cont()
                 self.wait()

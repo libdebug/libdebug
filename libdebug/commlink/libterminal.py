@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2024-2025 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -23,11 +23,12 @@ from prompt_toolkit.layout import Layout
 from prompt_toolkit.widgets import TextArea
 
 from libdebug.commlink.std_wrapper import StdWrapper
-from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 from libdebug.liblog import liblog
 
 if TYPE_CHECKING:
     from prompt_toolkit.application.application import KeyPressEvent
+
+    from libdebug.debugger.internal_debugger import InternalDebugger
 
 PATH_HISTORY = Path.home() / ".cache" / "libdebug" / "history"
 
@@ -37,6 +38,7 @@ class LibTerminal:
 
     def __init__(
         self: LibTerminal,
+        internal_debugger: InternalDebugger,
         prompt: str,
         sendline: callable,
         end_interactive_event: Event,
@@ -44,7 +46,7 @@ class LibTerminal:
     ) -> None:
         """Initializes the LibTerminal object."""
         # Provide the internal debugger instance
-        self._internal_debugger = provide_internal_debugger(self)
+        self._internal_debugger = internal_debugger
 
         # Function to send a line to the child process
         self._sendline: callable = sendline
