@@ -580,7 +580,7 @@ class MemoryTest(TestCase):
         with self.assertLogs("libdebug", level="WARNING") as cm:
             d.run()
 
-        self.assertIn("Fast memory access is not available. Using a slower memory access method instead.", cm.output[0])
+        self.assertIn("Fast memory access is not available for the current process.", cm.output[0])
         self.assertFalse(d.fast_memory)
 
         # Instead, attempting to force fast_memory to True will raise an exception

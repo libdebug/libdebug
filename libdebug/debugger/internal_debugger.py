@@ -359,7 +359,10 @@ class InternalDebugger:
 
         self._process_memory_manager.open(self.process_id)
         if not self._process_memory_manager.is_available():
-            liblog.warning("Fast memory access is not available. Using a slower memory access method instead.")
+            liblog.warning(
+                "The procfs memory interface could not be accessed (it could be read-only or not mounted). "
+                "Fast memory access is not available for the current process.",
+            )
             self.fast_memory = False
 
         return self.pipe_manager

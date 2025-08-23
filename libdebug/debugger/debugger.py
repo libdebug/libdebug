@@ -741,7 +741,10 @@ class Debugger:
             and self._internal_debugger.is_debugging
             and not self._internal_debugger._process_memory_manager.is_available()
         ):
-            raise RuntimeError("Fast memory access is not available for the current process.")
+            raise RuntimeError(
+                "The procfs memory interface could not be accessed (it could be read-only or not mounted). "
+                "Fast memory access is not available for the current process.",
+            )
 
         self._internal_debugger.fast_memory = value
 
