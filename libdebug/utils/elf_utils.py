@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2025 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2023-2025 Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -16,6 +16,7 @@ from libdebug.data.symbol_list import SymbolList
 from libdebug.debugger.internal_debugger_instance_manager import get_global_internal_debugger
 from libdebug.liblog import liblog
 from libdebug.native import libdebug_debug_sym_parser
+from libdebug.native.libdebug_section_parser import Section, SectionTable
 from libdebug.utils.libcontext import libcontext
 
 DEBUGINFOD_PATH: Path = Path.home() / ".cache" / "debuginfod_client"
@@ -341,6 +342,7 @@ def resolve_argv_path(argv_path: str) -> str:
         resolved_path = abs_path if (abs_path := shutil.which(argv_path_expanded)) else argv_path_expanded
     return str(resolved_path)
 
+
 @functools.cache
 def is_elf(path: str) -> bool:
     """Check if the file at the given path is an ELF file.
@@ -357,3 +359,16 @@ def is_elf(path: str) -> bool:
             return magic == b"\x7fELF"
     except OSError:
         return False
+
+
+@functools.cache
+def get_elf_sections(path: str) -> SectionTable:
+    """Returns the sections of the specified ELF file.
+
+    Args:
+        path (str): The path to the ELF file.
+
+    Returns:
+        SectionTable: The sections of the specified ELF file.
+    """
+    return SectionTable.from_file(path)

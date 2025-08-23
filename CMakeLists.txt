@@ -201,6 +201,25 @@ nanobind_add_stub(
   PYTHON_PATH "."
 )
 
+# Add the stub for libdebug_sections
+nanobind_add_stub(
+  libdebug_section_parser_stub
+  MODULE libdebug_section_parser
+  DEPENDS libdebug_section_parser
+  OUTPUT libdebug_section_parser.pyi
+  PYTHON_PATH "."
+)
+
+# Add the libdebug_section_parser module
+nanobind_add_module(
+  libdebug_section_parser
+  LTO
+  STABLE_ABI
+  libdebug/native/sections/section_parser.cpp
+)
+
+
+
 if(BUILD_SYMBOLS)
   # Check if the new libdwarf API is available
   if (LibDwarf_HAS_NEW_API)
@@ -269,11 +288,13 @@ endif()
 install(TARGETS libdebug_ptrace_binding LIBRARY DESTINATION libdebug/ptrace/native)
 install(TARGETS libdebug_linux_binding LIBRARY DESTINATION libdebug/native)
 install(TARGETS libdebug_debug_sym_parser LIBRARY DESTINATION libdebug/native)
+install(TARGETS libdebug_section_parser LIBRARY DESTINATION libdebug/native)
 
 # Install the Python stubs
 install(FILES ${CMAKE_BINARY_DIR}/libdebug_ptrace_binding.pyi DESTINATION libdebug/ptrace/native)
 install(FILES ${CMAKE_BINARY_DIR}/libdebug_linux_binding.pyi DESTINATION libdebug/native)
 install(FILES ${CMAKE_BINARY_DIR}/libdebug_debug_sym_parser.pyi DESTINATION libdebug/native)
+install(FILES ${CMAKE_BINARY_DIR}/libdebug_section_parser.pyi DESTINATION libdebug/native)
 
 # Include the jumpstart.c file and add it as an executable
 set(SRC_DIR "${CMAKE_SOURCE_DIR}/libdebug/ptrace/jumpstart")
