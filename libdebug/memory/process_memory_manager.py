@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -76,3 +77,17 @@ class ProcessMemoryManager:
         if self._mem_file:
             self._mem_file.close()
             self._mem_file = None
+
+    def is_available(self: ProcessMemoryManager) -> bool:
+        """Checks if the process memory manager is available.
+
+        Accessing memory through /proc/pid/mem requires ProcFS to be mounted as R/W,
+        and for the debugged process to have the necessary permissions.
+
+        Returns:
+            bool: True if available, False otherwise.
+        """
+        return Path(f"/proc/{self.process_id}/mem").exists() and os.access(
+            f"/proc/{self.process_id}/mem",
+            os.R_OK | os.W_OK,
+        )

@@ -53,7 +53,7 @@ jobs:
             # We create a symlink from /usr/include/libdwarf to /usr/include/libdwarf-1 because the Debian package is currently broken
             ln -s /usr/include/libdwarf /usr/include/libdwarf-1
           else
-            apt-get install -y --no-install-recommends libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg python3-pip python3-venv python3-dev git build-essential
+            apt-get install -y --no-install-recommends libdwarf-dev libelf-dev libiberty-dev libc6-dbg python3-pip python3-venv python3-dev git build-essential
           fi
           #
           # Create a virtual environment for Python dependencies
