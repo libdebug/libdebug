@@ -464,8 +464,8 @@ class MemoryNoFastTest(TestCase):
         d.terminate()
 
     def test_memory_attach(self):
-        # Ensure that fast-memory works when attaching to a process
-        r = process(RESOLVE_EXE("attach_test"))
+        # Ensure that slow memory works when attaching to a process
+        r = process(RESOLVE_EXE("attach_test"), env={})
 
         d = debugger(fast_memory=False)
 
@@ -475,6 +475,9 @@ class MemoryNoFastTest(TestCase):
 
         d.kill()
         d.terminate()
+
+        r.close()
+        del r
     
     def test_memory_no_fast_debugger_status(self):
         d = debugger(RESOLVE_EXE("basic_test"), fast_memory=False)
@@ -496,3 +499,5 @@ class MemoryNoFastTest(TestCase):
             
         with self.assertRaises(RuntimeError):
             d.mem
+
+        d.terminate()

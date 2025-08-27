@@ -11,12 +11,13 @@ from abc import ABC, abstractmethod
 from collections.abc import MutableSequence
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from libdebug.data.memory_map import MemoryMap
-from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 from libdebug.liblog import liblog
 from libdebug.utils.platform_utils import get_platform_gp_register_size
 from libdebug.utils.search_utils import find_all_overlapping_occurrences
+
+if TYPE_CHECKING:
+    from libdebug.data.memory_map import MemoryMap
+    from libdebug.debugger.internal_debugger import InternalDebugger
 
 
 class AbstractMemoryView(MutableSequence, ABC):
@@ -25,9 +26,9 @@ class AbstractMemoryView(MutableSequence, ABC):
     An implementation of class must be used to read and write memory of the target process.
     """
 
-    def __init__(self: AbstractMemoryView) -> None:
+    def __init__(self: AbstractMemoryView, internal_debugger: InternalDebugger) -> None:
         """Initializes the MemoryView."""
-        self._internal_debugger = provide_internal_debugger(self)
+        self._internal_debugger = internal_debugger
 
     @abstractmethod
     def read(self: AbstractMemoryView, address: int, size: int) -> bytes:

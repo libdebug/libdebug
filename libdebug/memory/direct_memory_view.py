@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2024-2025 Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -14,25 +14,28 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from libdebug.data.memory_map_list import MemoryMapList
+    from libdebug.debugger.internal_debugger import InternalDebugger
 
 
 class DirectMemoryView(AbstractMemoryView):
     """A memory interface for the target process, intended for direct memory access.
 
     Attributes:
-            getter (Callable[[int, int], bytes]): A function that reads a variable amount of data from the target's memory.
-            setter (Callable[[int, bytes], None]): A function that writes memory to the target process.
-            align_to (int, optional): The address alignment that must be used when reading and writing memory. Defaults to 1.
+        internal_debugger (InternalDebugger): The internal debugger instance.
+        getter (Callable[[int, int], bytes]): A function that reads a variable amount of data from the target's memory.
+        setter (Callable[[int, bytes], None]): A function that writes memory to the target process.
+        align_to (int, optional): The address alignment that must be used when reading and writing memory. Defaults to 1.
     """
 
     def __init__(
         self: DirectMemoryView,
+        internal_debugger: InternalDebugger,
         getter: Callable[[int, int], bytes],
         setter: Callable[[int, bytes], None],
         align_to: int = 1,
     ) -> None:
         """Initializes the MemoryView."""
-        super().__init__()
+        super().__init__(internal_debugger)
         self.getter = getter
         self.setter = setter
         self.align_to = align_to

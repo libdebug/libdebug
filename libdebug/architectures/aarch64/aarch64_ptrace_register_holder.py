@@ -278,9 +278,3 @@ class Aarch64PtraceRegisterHolder(PtraceRegisterHolder):
         # syscall number handling is special on aarch64, as the original number is stored in x8
         # but writing to x8 isn't enough to change the actual called syscall
         target_class.syscall_number = _get_property_syscall_num()
-
-    def cleanup(self: Aarch64PtraceRegisterHolder) -> None:
-        """Clean up the register accessors from the Aarch64Registers class."""
-        for attr_name, attr_value in list(Aarch64Registers.__dict__.items()):
-            if isinstance(attr_value, property):
-                delattr(Aarch64Registers, attr_name)
