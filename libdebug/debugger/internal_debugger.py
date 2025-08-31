@@ -358,7 +358,7 @@ class InternalDebugger:
             raise RuntimeError("Something went wrong during pipe initialization.")
 
         self._process_memory_manager.open(self.process_id)
-        if not self._process_memory_manager.is_available():
+        if self.fast_memory and not self._process_memory_manager.is_available():
             liblog.warning(
                 "The procfs memory interface could not be accessed (it could be read-only or not mounted). "
                 "Fast memory access is not available for the current process.",
@@ -387,6 +387,12 @@ class InternalDebugger:
         self._join_and_check_status()
 
         self._process_memory_manager.open(self.process_id)
+        if self.fast_memory and not self._process_memory_manager.is_available():
+            liblog.warning(
+                "The procfs memory interface could not be accessed (it could be read-only or not mounted). "
+                "Fast memory access is not available for the current process.",
+            )
+            self.fast_memory = False
 
     def detach(self: InternalDebugger) -> None:
         """Detaches from the process."""
