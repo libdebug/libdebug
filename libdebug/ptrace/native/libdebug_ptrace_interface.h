@@ -13,7 +13,7 @@ class LibdebugPtraceInterface
 {
 
 private:
-    pid_t process_id;
+    pid_t process_id, group_id;
     bool handle_syscall;
     std::map<pid_t, Thread> threads, dead_threads;
     std::map<unsigned long, SoftwareBreakpoint> software_breakpoints;
