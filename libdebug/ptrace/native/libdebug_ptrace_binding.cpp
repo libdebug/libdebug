@@ -133,6 +133,7 @@ Thread& LibdebugPtraceInterface::try_get_thread(const pid_t tid)
 LibdebugPtraceInterface::LibdebugPtraceInterface(PtraceFPRegsStructDefinition definition)
 : fpregs_definition(definition),
   process_id(-1),
+  group_id(-1),
   handle_syscall(false)
 {
 }
@@ -144,6 +145,7 @@ void LibdebugPtraceInterface::cleanup()
     software_breakpoints.clear();
 
     process_id = -1;
+    group_id = -1;
     handle_syscall = false;
 }
 
@@ -159,6 +161,10 @@ std::pair<std::shared_ptr<PtraceRegsStruct>, std::shared_ptr<PtraceFPRegsStruct>
 
     if (process_id == -1) {
         process_id = tid;
+    }
+
+    if (group_id == -1) {
+        group_id = getpgid(tid);
     }
 
     Thread t;
@@ -486,6 +492,23 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_
 
     int tid, status;
 
+    siginfo_t info{};
+
+    // Wait (non-destructively, because of WNOWAIT) for *any* child in that PGID.
+    // This avoids to burn CPU with the while loop before any event is ready.
+    // However, waiting for any child in the PGID can create some edge cases.
+    // For example, in multiprocess scenarios, we might get events from the other process
+    // that is, however, debugged by another instance of this debugger.
+    if (waitid(P_PGID, group_id, &info, WEXITED | WSTOPPED | WCONTINUED | WNOWAIT) == -1) {
+        throw std::runtime_error("waitid failed");
+    }
+
+    // We cannot assume that the event we received is from a thread we are actually debugging
+    // in this debugger instance. Poll for events from all threads. This will burn CPU cycles.
+    // Hence, if the previous waitid returned an event from a thread/process we are not debugging 
+    // (e.g., child process), we will burn CPU cycles until we receive an event from a thread we 
+    // are debugging. This is not ideal, but it is necessary to ensure we don't miss any events. 
+    // Waiting for a better solution one day (pidfd???)
     while (true) {
         // Check if any thread has finished
         bool anyFinished = std::any_of(threads.begin(), threads.end(), [&](auto &t) {
