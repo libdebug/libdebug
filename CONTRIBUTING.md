@@ -82,7 +82,7 @@ Every pull request that makes a user-visible change must include a small **news 
   - `123.feature.md` → will appear under **Features**
   - `123.improvement.md` → under **Other Improvements**
   - `123.bugfix.md` → under **Bug fixes**
-  - `123.ci.md` or `123.test.md` → under **Testing & CI**
+  - `123.test.md` → under **Testing & CI**
   - `123.doc.md` → under **Documentation**
 
 Each fragment is a tiny Markdown file with **one short, user-facing sentence**.  

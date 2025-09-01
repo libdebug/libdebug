@@ -92,9 +92,8 @@ wheel.py-api = "cp312"
 [tool.scikit-build.sdist]
 exclude = ["test", "docs", "media", "examples", ".github", "*/__pycache__", "newsfragments"]
 
-[tool.release-names]
-"0.9" = "🏰 White Castle 🏰"
-"0.8" = "🍣 Chutoro Nigiri 🍣"
+[tool.libdebug]
+"codename" = "🏰 White Castle 🏰"
 
 [tool.towncrier]
 directory = "newsfragments"
@@ -102,22 +101,22 @@ filename = "CHANGELOG.md"
 start_string = "<!-- towncrier release notes start -->"
 title_format = "## {version}"
 
-[[tool.towncrier.section]]
+[[tool.towncrier.type]]
 name = "Features"
-types = ["feature"]
+directory = "feature"
 
-[[tool.towncrier.section]]
+[[tool.towncrier.type]]
 name = "Other Improvements"
-types = ["improvement"]
+directory = "improvement"
 
-[[tool.towncrier.section]]
+[[tool.towncrier.type]]
 name = "Bug Fixes"
-types = ["bugfix"]
+directory = "bugfix"
 
-[[tool.towncrier.section]]
+[[tool.towncrier.type]]
 name = "Testing & CI"
-types = ["ci", "test"]
+directory = "test"
 
-[[tool.towncrier.section]]
+[[tool.towncrier.type]]
 name = "Documentation"
-types = ["doc"]
+directory = "doc"
