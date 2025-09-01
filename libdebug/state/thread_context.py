@@ -9,10 +9,6 @@ from abc import ABC
 from typing import TYPE_CHECKING
 
 from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
-from libdebug.debugger.internal_debugger_instance_manager import (
-    extend_internal_debugger,
-    provide_internal_debugger,
-)
 from libdebug.liblog import liblog
 from libdebug.snapshots.thread.thread_snapshot import ThreadSnapshot
 from libdebug.utils.debugging_utils import resolve_address_in_maps
@@ -87,14 +83,23 @@ class ThreadContext(ABC):
     _zombie: bool = False
     """Whether the thread is a zombie."""
 
-    def __init__(self: ThreadContext, thread_id: int, registers: RegisterHolder) -> None:
+    def __init__(
+        self: ThreadContext,
+        thread_id: int,
+        registers: RegisterHolder,
+        internal_debugger: InternalDebugger,
+    ) -> None:
         """Initializes the Thread Context."""
-        self._internal_debugger = provide_internal_debugger(self)
+        self._internal_debugger = internal_debugger
         self._thread_id = thread_id
         self._register_holder = registers
-        regs_class = self._register_holder.provide_regs_class()
-        self.regs = regs_class(thread_id, self._register_holder.provide_regs())
-        self._register_holder.apply_on_regs(self.regs, regs_class)
+        RegsSpecializedClass = self._register_holder.provide_regs_class()  # noqa: N806
+        self.regs = RegsSpecializedClass(
+            thread_id,
+            self._register_holder.provide_regs(),
+            internal_debugger,
+        )
+        self._register_holder.apply_on_regs(self.regs, RegsSpecializedClass)
 
     def set_as_dead(self: ThreadContext) -> None:
         """Set the thread as dead."""
@@ -231,8 +236,7 @@ class ThreadContext(ABC):
         backtrace = stack_unwinder.unwind(self)
         if as_symbols:
             maps = self._internal_debugger.debugging_interface.get_maps()
-            with extend_internal_debugger(self._internal_debugger):
-                backtrace = [resolve_address_in_maps(x, maps) for x in backtrace]
+            backtrace = [resolve_address_in_maps(x, maps) for x in backtrace]
         return backtrace
 
     def pprint_backtrace(self: ThreadContext) -> None:

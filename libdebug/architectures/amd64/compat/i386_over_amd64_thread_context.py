@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from libdebug.architectures.amd64.compat.i386_over_amd64_ptrace_register_holder import (
         I386OverAMD64PtraceRegisterHolder,
     )
+    from libdebug.debugger.internal_debugger import InternalDebugger
 
 
 class I386OverAMD64ThreadContext(ThreadContext):
@@ -23,9 +24,10 @@ class I386OverAMD64ThreadContext(ThreadContext):
         self: I386OverAMD64ThreadContext,
         thread_id: int,
         registers: I386OverAMD64PtraceRegisterHolder,
+        internal_debugger: InternalDebugger,
     ) -> None:
         """Initialize the thread context with the given thread id."""
-        super().__init__(thread_id, registers)
+        super().__init__(thread_id, registers, internal_debugger)
 
         # Register the thread properties
         self._register_holder.apply_on_thread(self, I386OverAMD64ThreadContext)
