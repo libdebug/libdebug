@@ -1,0 +1,43 @@
+name: Changelog fragment check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+
+jobs:
+  check-fragment:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for news fragment
+        id: fragment
+        run: |
+          PR_NUMBER=$(jq -r .pull_request.number "$GITHUB_EVENT_PATH")
+          ALLOWED_TYPES="feature improvement bugfix ci test doc"
+
+          shopt -s nullglob
+          matches=( )
+          for t in $ALLOWED_TYPES; do
+            for f in newsfragments/${PR_NUMBER}.${t}.md; do
+              matches+=( "$f" )
+            done
+          done
+
+          if [ ${#matches[@]} -eq 0 ]; then
+            echo "found=false" >> $GITHUB_OUTPUT
+          else
+            echo "found=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set status neutral if no fragment
+        if: steps.fragment.outputs.found == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.notice("⚪ No changelog fragment found for this PR. See CONTRIBUTING.md.")
+            // Mark the job as neutral instead of success/failure
+            core.setFailed("neutral")  // will be overridden below
+        continue-on-error: true
