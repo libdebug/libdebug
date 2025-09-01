@@ -30,7 +30,6 @@ from libdebug.builtin.pretty_print_syscall_handler import (
 )
 from libdebug.data.argument_list import ArgumentList
 from libdebug.data.breakpoint import Breakpoint
-from libdebug.data.env_dict import EnvDict
 from libdebug.data.gdb_resume_event import GdbResumeEvent
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
@@ -80,6 +79,7 @@ if TYPE_CHECKING:
     from typing import Any
 
     from libdebug.commlink.pipe_manager import PipeManager
+    from libdebug.data.env_dict import EnvDict
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.data.registers import Registers
@@ -358,6 +358,12 @@ class InternalDebugger:
             raise RuntimeError("Something went wrong during pipe initialization.")
 
         self._process_memory_manager.open(self.process_id)
+        if self.fast_memory and not self._process_memory_manager.is_available():
+            liblog.warning(
+                "The procfs memory interface could not be accessed (it could be read-only or not mounted). "
+                "Fast memory access is not available for the current process.",
+            )
+            self.fast_memory = False
 
         return self.pipe_manager
 
@@ -381,6 +387,12 @@ class InternalDebugger:
         self._join_and_check_status()
 
         self._process_memory_manager.open(self.process_id)
+        if self.fast_memory and not self._process_memory_manager.is_available():
+            liblog.warning(
+                "The procfs memory interface could not be accessed (it could be read-only or not mounted). "
+                "Fast memory access is not available for the current process.",
+            )
+            self.fast_memory = False
 
     def detach(self: InternalDebugger) -> None:
         """Detaches from the process."""
