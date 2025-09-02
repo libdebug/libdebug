@@ -90,4 +90,33 @@ build-dir = "build/{wheel_tag}"
 wheel.py-api = "cp312"
 
 [tool.scikit-build.sdist]
-exclude = ["test", "docs", "media", "examples", ".github", "*/__pycache__"]
+exclude = ["test", "docs", "media", "examples", ".github", "*/__pycache__", "newsfragments"]
+
+[tool.libdebug]
+"codename" = "🏰 White Castle 🏰"
+
+[tool.towncrier]
+directory = "newsfragments"
+filename = "CHANGELOG.md"
+start_string = "<!-- towncrier release notes start -->"
+title_format = "## {version}"
+
+[[tool.towncrier.type]]
+name = "Features"
+directory = "feature"
+
+[[tool.towncrier.type]]
+name = "Other Improvements"
+directory = "improvement"
+
+[[tool.towncrier.type]]
+name = "Bug Fixes"
+directory = "bugfix"
+
+[[tool.towncrier.type]]
+name = "Testing & CI"
+directory = "test"
+
+[[tool.towncrier.type]]
+name = "Documentation"
+directory = "doc"
