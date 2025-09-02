@@ -59,6 +59,7 @@ Arch Linux: `sudo pacman -S python libelf libdwarf gcc make debuginfod`<br>
 1. Install the build system requirements: `pip install scikit_build_core`
 1. Install libdebug in editable mode: `pip install --no-build-isolation -Ceditable.rebuild=true -ve .`
 1. Make your change, add tests, and make sure the tests still pass. If you change any .cpp files, they will be automatically recompiled at runtime.
+1. Add a [changelog fragment](#changelog-fragments) in `newsfragments/` describing your change (see below for details).
 1. Push to your fork and [submit a pull request][pr].
 1. Pat your self on the back and wait for your pull request to be reviewed and merged.
 
@@ -70,6 +71,26 @@ Here are a few things you can do that will increase the likelihood of your pull 
 - Write a [good commit message](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html).
 
 Work in Progress pull requests are also welcome to get feedback early on.
+
+## Changelog fragments
+
+This project uses [Towncrier](https://towncrier.readthedocs.io/) to build the `CHANGELOG.md` at release time.  
+Every pull request that makes a user-visible change must include a small **news fragment**.
+
+- Place your fragment in the `newsfragments/` folder.
+- Name it after your pull request number and the change type:
+  - `123.feature.md` → will appear under **Features**
+  - `123.improvement.md` → under **Other Improvements**
+  - `123.bugfix.md` → under **Bug fixes**
+  - `123.test.md` → under **Testing & CI**
+  - `123.doc.md` → under **Documentation**
+
+Each fragment is a tiny Markdown file with **one short, user-facing sentence**.  
+Example:
+
+```markdown
+Fixed crash when attaching to PIE binaries on openSUSE Provola.
+```
 
 ## Coding Style
 

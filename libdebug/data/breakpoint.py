@@ -9,15 +9,14 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
-
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.state.thread_context import ThreadContext
 
 
-@dataclass
+@dataclass(eq=False)
 class Breakpoint:
     """A breakpoint in the target process.
 
@@ -39,24 +38,23 @@ class Breakpoint:
     callback: None | Callable[[ThreadContext, Breakpoint], None] = None
     condition: str = "x"
     length: int = 1
-    _enabled: bool = True
 
-    _linked_thread_ids: list[int] = field(default_factory=list)
-    # The thread ID that hit the breakpoint
-
-    _disabled_for_step: bool = False
-    _changed: bool = False
+    _enabled: bool = field(default=True, init=False, repr=False)
+    _linked_thread_ids: list[int] = field(default_factory=list, init=False, repr=False)
+    _disabled_for_step: bool = field(default=False, init=False, repr=False)
+    _changed: bool = field(default=False, init=False, repr=False)
+    _internal_debugger: InternalDebugger = field(default=None, init=True, repr=False)
 
     @property
     def enabled(self: Breakpoint) -> bool:
         """Whether the breakpoint is enabled or not."""
-        provide_internal_debugger(self)._ensure_process_stopped()
+        self._internal_debugger._ensure_process_stopped()
         return self._enabled
 
     @enabled.setter
     def enabled(self: Breakpoint, value: bool) -> None:
         """Set the enabled state of the breakpoint."""
-        provide_internal_debugger(self)._ensure_process_stopped()
+        self._internal_debugger._ensure_process_stopped()
         self._enabled = value
         self._changed = True
 
@@ -70,18 +68,9 @@ class Breakpoint:
 
     def hit_on(self: Breakpoint, thread_context: ThreadContext) -> bool:
         """Returns whether the breakpoint has been hit on the given thread context."""
-        internal_debugger = provide_internal_debugger(self)
-        internal_debugger._ensure_process_stopped()
+        self._internal_debugger._ensure_process_stopped()
 
         if not self._enabled:
             return False
 
-        return internal_debugger.resume_context.event_hit_ref.get(thread_context.thread_id) == self
-
-    def __hash__(self: Breakpoint) -> int:
-        """Hash the breakpoint object by its memory address, so that it can be used in sets and dicts correctly."""
-        return hash(id(self))
-
-    def __eq__(self: Breakpoint, other: object) -> bool:
-        """Check if two breakpoints are equal."""
-        return id(self) == id(other)
+        return self._internal_debugger.resume_context.event_hit_ref.get(thread_context.thread_id) == self

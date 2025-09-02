@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
+# Copyright (c) 2023-2025 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from libdebug.data.registers import Registers
     from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
+    from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.state.thread_context import ThreadContext
 
 
@@ -23,7 +24,7 @@ class DebuggingInterface(ABC):
     """The interface used by `_InternalDebugger` to communicate with the available debugging backends, such as `ptrace` or `gdb`."""
 
     @abstractmethod
-    def __init__(self: DebuggingInterface) -> None:
+    def __init__(self: DebuggingInterface, internal_debugger: InternalDebugger) -> None:
         """Initializes the DebuggingInterface classs."""
 
     @abstractmethod

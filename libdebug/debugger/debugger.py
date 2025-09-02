@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2025  Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
+# Copyright (c) 2023-2025 Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -282,15 +282,16 @@ class Debugger:
         """Waits for the GDB process to migrate back to libdebug."""
         self._internal_debugger.wait_for_gdb()
 
-    def r(self: Debugger, redirect_pipes: bool = True) -> PipeManager | None:
+    def r(self: Debugger, timeout: float = -1, redirect_pipes: bool = True) -> PipeManager | None:
         """Alias for the `run` method.
 
         Starts the process and waits for it to stop.
 
         Args:
+            timeout (float): The timeout for the process to run. If -1, the process will run indefinitely.
             redirect_pipes (bool): Whether to hook and redirect the pipes of the process to a PipeManager.
         """
-        return self._internal_debugger.run(redirect_pipes)
+        return self._internal_debugger.run(timeout, redirect_pipes)
 
     def c(self: Debugger) -> None:
         """Alias for the `cont` method.
@@ -457,6 +458,7 @@ class Debugger:
 
     def _configure_env_dict(self: Debugger) -> None:
         """Sets up the EnvDict with the before callback."""
+
         # We register a _before_callback that ensure that the process
         # is not being debugged when the environment is changed
         def _before_callback() -> None:
@@ -726,8 +728,25 @@ class Debugger:
         Args:
             value (bool): the value to set.
         """
+        self._internal_debugger._ensure_process_stopped()
+
         if not isinstance(value, bool):
             raise TypeError("fast_memory must be a boolean")
+
+        # If the process is currently being debugged and we are enabling fast_memory, we must
+        # ensure that fast_memory is actually available
+        # Setting fast_memory to False is always allowed, and if the process is not being debugged
+        # we have to perform the check at startup instead
+        if (
+            value
+            and self._internal_debugger.is_debugging
+            and not self._internal_debugger._process_memory_manager.is_available()
+        ):
+            raise RuntimeError(
+                "The procfs memory interface could not be accessed (it could be read-only or not mounted). "
+                "Fast memory access is not available for the current process.",
+            )
+
         self._internal_debugger.fast_memory = value
 
     @property

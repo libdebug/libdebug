@@ -333,6 +333,7 @@ class WatchpointTest(TestCase):
         d.cont()
 
         d.kill()
+        d.terminate()
 
     @skipUnless(PLATFORM == "aarch64", "Requires aarch64")
     def test_watchpoint_callback_aarch64(self):

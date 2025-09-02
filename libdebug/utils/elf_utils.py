@@ -4,20 +4,25 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+from __future__ import annotations
+
 import functools
 import shutil
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import requests
 from elftools.elf.elffile import ELFFile
 
 from libdebug.data.symbol import Symbol
 from libdebug.data.symbol_list import SymbolList
-from libdebug.debugger.internal_debugger_instance_manager import get_global_internal_debugger
 from libdebug.liblog import liblog
 from libdebug.native import libdebug_debug_sym_parser
 from libdebug.native.libdebug_section_parser import Section, SectionTable
 from libdebug.utils.libcontext import libcontext
+
+if TYPE_CHECKING:
+    from libdebug.debugger.internal_debugger import InternalDebugger
 
 DEBUGINFOD_PATH: Path = Path.home() / ".cache" / "debuginfod_client"
 LOCAL_DEBUG_PATH: Path = Path("/usr/lib/debug/.build-id/")
@@ -74,7 +79,7 @@ def _debuginfod(buildid: str) -> Path:
 
 
 @functools.cache
-def _collect_external_info(debug_path: str, reference_path: str, build_id: str) -> SymbolList[Symbol]:
+def _collect_external_info(debug_path: str, reference_path: str, build_id: str) -> list[Symbol]:
     """Returns a dictionary containing the symbols taken from the external debuginfo file.
 
     Args:
@@ -83,26 +88,23 @@ def _collect_external_info(debug_path: str, reference_path: str, build_id: str) 
         build_id (str): The buildid of the ELF file.
 
     Returns:
-        SymbolList[Symbol]: A list containing the symbols taken from the external debuginfo file.
+        list[Symbol]: A list containing the symbols taken from the external debuginfo file.
     """
     liblog.debugger("Collecting external symbols from %s", debug_path)
 
     if not libdebug_debug_sym_parser.HAS_SYMBOL_SUPPORT:
-        return SymbolList([], get_global_internal_debugger())
+        return []
 
     ext_symbols = libdebug_debug_sym_parser.collect_external_symbols(debug_path, libcontext.sym_lvl)
 
-    return SymbolList(
-        [
-            Symbol(symbol.low_pc, symbol.high_pc, symbol.name, debug_path, reference_path, build_id, True)
-            for symbol in ext_symbols
-        ],
-        get_global_internal_debugger(),
-    )
+    return [
+        Symbol(symbol.low_pc, symbol.high_pc, symbol.name, debug_path, reference_path, build_id, True)
+        for symbol in ext_symbols
+    ]
 
 
 @functools.cache
-def _parse_elf_file(path: str, debug_info_level: int) -> tuple[SymbolList[Symbol], str | None, str | None]:
+def _parse_elf_file(path: str, debug_info_level: int) -> tuple[list[Symbol], str | None, str | None]:
     """Returns a dictionary containing the symbols of the specified ELF file and the buildid.
 
     Args:
@@ -110,14 +112,14 @@ def _parse_elf_file(path: str, debug_info_level: int) -> tuple[SymbolList[Symbol
         debug_info_level (int): The debug info level.
 
     Returns:
-        symbols (SymbolList[Symbol): A list containing the symbols of the specified ELF file.
+        symbols (list[Symbol): A list containing the symbols of the specified ELF file.
         buildid (str): The buildid of the specified ELF file.
         debug_file_path (str): The path to the external debuginfo file corresponding.
     """
     liblog.debugger("Searching for symbols in %s", path)
 
     if not libdebug_debug_sym_parser.HAS_SYMBOL_SUPPORT:
-        return SymbolList([], get_global_internal_debugger()), None, None
+        return [], None, None
 
     elfinfo = libdebug_debug_sym_parser.read_elf_info(path, debug_info_level)
 
@@ -126,7 +128,7 @@ def _parse_elf_file(path: str, debug_info_level: int) -> tuple[SymbolList[Symbol
         for symbol in elfinfo.symbols
     ]
 
-    return SymbolList(symbols, get_global_internal_debugger()), elfinfo.build_id, elfinfo.debuglink
+    return symbols, elfinfo.build_id, elfinfo.debuglink
 
 
 @functools.cache
@@ -173,16 +175,17 @@ def resolve_symbol(path: str, symbol: str) -> int:
     raise ValueError(f"Symbol {symbol} not found in {path}. Please specify a valid symbol.")
 
 
-def get_all_symbols(backing_files: set[str]) -> SymbolList[Symbol]:
+def get_all_symbols(backing_files: set[str], internal_debugger: InternalDebugger) -> SymbolList[Symbol]:
     """Returns a list of all the symbols in the target process.
 
     Args:
         backing_files (set[str]): The set of backing files.
+        internal_debugger (InternalDebugger): The internal debugger instance.
 
     Returns:
         SymbolList[Symbol]: A list of all the symbols in the target process.
     """
-    symbols = SymbolList([], get_global_internal_debugger())
+    symbols = SymbolList([], internal_debugger)
 
     if libcontext.sym_lvl == 0:
         raise Exception(
