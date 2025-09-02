@@ -524,10 +524,6 @@ class InternalDebugger:
 
         self.cleanup_timeout_thread()
 
-        # Clean up the register accessors
-        for thread in self.threads:
-            thread._register_holder.cleanup()
-
         # Clean up our reference in the holder
         remove_internal_debugger_refs(self)
 
