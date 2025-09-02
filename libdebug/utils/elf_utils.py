@@ -279,8 +279,9 @@ def parse_elf_characteristics(path: str) -> tuple[bool, int, str]:
     pie = elf.header.e_type == "ET_DYN"
     entry_point = elf.header.e_entry
     arch = elf.get_machine_arch()
+    endianness = "little" if elf.little_endian else "big"
 
-    return pie, entry_point, arch
+    return pie, entry_point, arch, endianness
 
 
 def is_pie(path: str) -> bool:
@@ -318,6 +319,16 @@ def elf_architecture(path: str) -> str:
     """
     return parse_elf_characteristics(path)[2]
 
+def get_endianness(path: str) -> str:
+    """Returns the endianness of the specified ELF file.
+
+    Args:
+        path (str): The path to the ELF file.
+
+    Returns:
+        str: The endianness of the specified ELF file.
+    """
+    return parse_elf_characteristics(path)[3]
 
 def resolve_argv_path(argv_path: str) -> str:
     """Resolve the path of the binary to debug.

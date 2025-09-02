@@ -66,10 +66,10 @@ static int in_bounds(size_t off, size_t len, size_t file_sz){
 }
 
 // Forward decls now take an output vector instead of printing
-static void parse_sections_64(const uint8_t *data, size_t sz, int swap, std::vector<Section>& out);
-static void parse_sections_32(const uint8_t *data, size_t sz, int swap, std::vector<Section>& out);
+static void parse_sections_64(const uint8_t *data, size_t sz, int swap, std::vector<SectionInfo>& out);
+static void parse_sections_32(const uint8_t *data, size_t sz, int swap, std::vector<SectionInfo>& out);
 
-static void parse_sections_64(const uint8_t *data, size_t sz, int swap, std::vector<Section>& out){
+static void parse_sections_64(const uint8_t *data, size_t sz, int swap, std::vector<SectionInfo>& out){
     if (!in_bounds(0, sizeof(Elf64_Ehdr), sz))
         throw std::runtime_error("Truncated ELF header");
     const Elf64_Ehdr *eh = (const Elf64_Ehdr*)data;
@@ -148,7 +148,7 @@ static void parse_sections_64(const uint8_t *data, size_t sz, int swap, std::vec
                 throw std::runtime_error("Section data out of bounds");
         }
 
-        Section s;
+        SectionInfo s;
         s.index = i;
         s.type = sh_type;
         flags_str(sh_flags, s.flags); // convert to string
@@ -161,7 +161,7 @@ static void parse_sections_64(const uint8_t *data, size_t sz, int swap, std::vec
     }
 }
 
-static void parse_sections_32(const uint8_t *data, size_t sz, int swap, std::vector<Section>& out){
+static void parse_sections_32(const uint8_t *data, size_t sz, int swap, std::vector<SectionInfo>& out){
     if (!in_bounds(0, sizeof(Elf32_Ehdr), sz)) throw std::runtime_error("Truncated ELF header");
     const Elf32_Ehdr *eh = (const Elf32_Ehdr*)data;
 
@@ -239,7 +239,7 @@ static void parse_sections_32(const uint8_t *data, size_t sz, int swap, std::vec
                 throw std::runtime_error("Section data out of bounds");
         }
 
-        Section s;
+        SectionInfo s;
         s.index = i;
         s.type = sh_type;
         flags_str(sh_flags, s.flags); // convert to string
@@ -252,7 +252,7 @@ static void parse_sections_32(const uint8_t *data, size_t sz, int swap, std::vec
     }
 }
 
-static void internal_parse_elf_sections(const uint8_t *data, size_t sz, std::vector<Section>& out){
+static void internal_parse_elf_sections(const uint8_t *data, size_t sz, std::vector<SectionInfo>& out){
     if (sz < EI_NIDENT) throw std::runtime_error("File too small");
     if (!(data[0]==0x7f && data[1]=='E' && data[2]=='L' && data[3]=='F')) throw std::runtime_error("Not an ELF file");
 
@@ -302,15 +302,15 @@ namespace nb = nanobind;
 
 NB_MODULE(libdebug_section_parser, m) {
     // Section (leaf object)
-    nb::class_<Section>(m, "Section", "ELF section")
-        .def_ro("index", &Section::index, "The section index")
-        .def_ro("type", &Section::type, "The ELF sh_type value")
-        .def_ro("flags", &Section::flags, "The ELF sh_flags parsed string")
-        .def_ro("addr", &Section::addr, "The virtual address (sh_addr)")
-        .def_ro("offset", &Section::offset, "The file offset (sh_offset)")
-        .def_ro("size", &Section::size, "The section size in bytes (sh_size)")
-        .def_ro("addralign", &Section::addralign, "The alignment (sh_addralign)")
-        .def_ro("name", &Section::name, "The section name");
+    nb::class_<SectionInfo>(m, "Section", "ELF section")
+        .def_ro("index", &SectionInfo::index, "The section index")
+        .def_ro("type", &SectionInfo::type, "The ELF sh_type value")
+        .def_ro("flags", &SectionInfo::flags, "The ELF sh_flags parsed string")
+        .def_ro("addr", &SectionInfo::addr, "The virtual address (sh_addr)")
+        .def_ro("offset", &SectionInfo::offset, "The file offset (sh_offset)")
+        .def_ro("size", &SectionInfo::size, "The section size in bytes (sh_size)")
+        .def_ro("addralign", &SectionInfo::addralign, "The alignment (sh_addralign)")
+        .def_ro("name", &SectionInfo::name, "The section name");
 
     // SectionTable (container)
     nb::class_<SectionTable>(m, "SectionTable", "Container for ELF sections")

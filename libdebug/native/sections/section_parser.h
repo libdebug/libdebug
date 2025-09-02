@@ -17,7 +17,7 @@
 #include <elf.h>
 
 
-struct Section {
+struct SectionInfo {
     uint16_t index = 0;
 
     // Use raw ELF values for portability; you can wrap with enums on the Python side.
@@ -32,7 +32,7 @@ struct Section {
 };
 
 struct SectionTable {
-    std::vector<Section> sections;
+    std::vector<SectionInfo> sections;
 
     static SectionTable parse_file(const char* filename);
 };
