@@ -83,10 +83,12 @@ class SectionList(list):
         else:
             raise TypeError("The value must be an integer or a string.")
 
-        return SectionList(filtered_sections, self._maps_source)
+        return SectionList(filtered_sections)
 
     def __getitem__(self: SectionList, key: str | int) -> SectionList[Section] | Section:
-        """Returns the section with the specified name.
+        """Returns the section with the specified name or index. (. before the name is considered equivalent to no .).
+
+        For example, .text is considered equivalent to text.
 
         Args:
             key (str, int): The name of the section to return, or the index of the section in the list.
@@ -97,7 +99,7 @@ class SectionList(list):
         if not isinstance(key, str):
             return super().__getitem__(key)
 
-        sections = [section for section in self if section.name == key]
+        sections = [section for section in self if (section.name == key or section.name == key.lstrip("."))]
         if not sections:
             raise KeyError(f"Section '{key}' not found.")
         return SectionList(sections)

@@ -30,6 +30,7 @@ from libdebug.builtin.pretty_print_syscall_handler import (
 )
 from libdebug.data.argument_list import ArgumentList
 from libdebug.data.breakpoint import Breakpoint
+from libdebug.data.elf import ELF
 from libdebug.data.gdb_resume_event import GdbResumeEvent
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
@@ -219,6 +220,9 @@ class InternalDebugger:
     _has_path_different_from_argv0: bool
     """A flag that indicates if the path to the binary is different from the first argument in argv."""
 
+    _elf_parsed_with_aslr: bool = False
+    """A flag that indicates if the ELF files were parsed with ASLR enabled."""
+
     def __init__(self: InternalDebugger) -> None:
         """Initialize the context."""
         # These must be reinitialized on every call to "debugger"
@@ -322,6 +326,11 @@ class InternalDebugger:
         if not self.path:
             raise RuntimeError("No binary file specified.")
 
+        # If ASLR is enabled or the process was not yet run, clear ELF caches
+        if self._elf_parsed_with_aslr or not self.is_debugging:
+            self.clear_elf_caches()
+            self._elf_parsed_with_aslr = False
+
         if timeout <= 0 and timeout != -1:
             raise ValueError("Timeout must be a positive number or -1.")
         if 0 < timeout <= 0.01:
@@ -375,6 +384,8 @@ class InternalDebugger:
         if self.threads:
             self.clear()
             self.debugging_interface.reset()
+
+        self.clear_elf_caches()
 
         self.instanced = True
         self.is_debugging = True
@@ -2047,3 +2058,78 @@ class InternalDebugger:
 
         if "_process_name" in self.__dict__:
             del self._process_name
+
+        if "binary" in self.__dict__:
+            del self.binary
+
+        if "libraries" in self.__dict__:
+            del self.libraries
+
+    def clear_elf_caches(self: InternalDebugger) -> None
+        """Clears all the ELF caches of the internal debugger."""
+        if "binary" in self.__dict__:
+            del self.binary
+
+        if "libraries" in self.__dict__:
+            del self.libraries
+
+    @functools.cached_property
+    def binary(self: InternalDebugger) -> ELF:
+        """The ELF object representing the debugged binary."""
+        if self.aslr_enabled:
+            self._elf_parsed_with_aslr = True
+
+        base = self.maps.filter("binary")[0].start if self.is_debugging else 0
+
+        return ELF(self._process_full_path, base, self)
+
+    @functools.cached_property
+    def libraries(self: InternalDebugger) -> dict[str, ELF]:
+        """A dictionary mapping the paths of the loaded shared libraries to their ELF objects."""
+        if not self.is_debugging:
+            raise RuntimeError("Process not traced, cannot parse libraries.")
+
+        if self.aslr_enabled:
+            self._elf_parsed_with_aslr = True
+
+        start_segment = None
+        last_path = None
+        collected_libs = []
+        has_parsed_file = False
+
+        for curr_map in self.maps:
+            if curr_map.backing_file == self.path:
+                # Skip the main binary
+                continue
+
+            if has_parsed_file:
+                if curr_map.backing_file == last_path:
+                    # We already parsed this file, skip it
+                    continue
+
+                # New file
+                has_parsed_file = False
+                start_segment = None
+
+            if last_path != curr_map.backing_file:
+                start_segment = curr_map
+
+            if "x" in curr_map.permissions:
+                if start_segment is None:
+                    liblog.error(f"Could not determine the start of the library segment for {curr_map.backing_file}.")
+                else:
+                    collected_libs.append((curr_map.backing_file, start_segment.start))
+                    has_parsed_file = True
+
+            last_path = curr_map.backing_file
+
+        parsed_libs = {}
+
+        for lib_path, base in collected_libs:
+            try:
+                parsed_libs[lib_path] = ELF(lib_path, base, self)
+                liblog.debugger(f"Parsed library {lib_path} at base address {hex(base)}.")
+            except Exception as e:
+                liblog.error(f"Could not parse library {lib_path}: {e}")
+
+

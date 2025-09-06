@@ -16,7 +16,6 @@
 #include <vector>
 #include <elf.h>
 
-
 struct SectionInfo {
     uint16_t index = 0;
 

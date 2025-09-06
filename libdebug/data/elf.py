@@ -10,10 +10,12 @@ from dataclasses import dataclass
 
 from libdebug.data.section import Section
 from libdebug.data.section_list import SectionList
+from libdebug.data.symbol_list import SymbolList
+from libdebug.debugger.internal_debugger import InternalDebugger
 from libdebug.utils.elf_utils import elf_architecture, get_elf_sections, get_endianness, get_entry_point, is_pie
 
 
-@dataclass(frozen=True)
+@dataclass
 class ELF:
     """An ELF file involved in the target process.
 
@@ -26,13 +28,11 @@ class ELF:
         endianness (str): The endianness of the ELF file (e.g., little, big).
         sections (SectionList): The list of sections in the ELF file.
         build_id (str): The build ID of the ELF file, if available.
+        symbols (SymbolList): The list of symbols in the ELF file.
     """
 
     path: str = ""
     """Path to the ELF file."""
-
-    base_address: int = 0
-    """Base address where the ELF file is loaded in memory."""
 
     entry_point: int = 0
     """Entry point of the ELF file."""
@@ -52,13 +52,23 @@ class ELF:
     _build_id: str | None = None
     """Build ID of the ELF file, if available."""
 
+    _base_address: int = 0x0
+    """Base address where the ELF file is loaded in memory."""
+
+    _symbols: SymbolList | None = None
+    """List of symbols in the ELF file."""
+
+    _internal_debugger: InternalDebugger | None = None
+    """The instance of InternalDebugger"""
+
     @staticmethod
-    def parse_base(path: str, base: int) -> ELF:
+    def parse(path: str, base_address: int, internal_debugger: InternalDebugger) -> ELF:
         """Parses an ELF from a path.
 
         Args:
             path (str): The path to the ELF file.
-            base (int): The base address where the ELF file is loaded in memory.
+            base_address (int): The base address where the ELF file is loaded in memory.
+            internal_debugger (InternalDebugger): The instance of InternalDebugger.
 
         Returns:
             ELF: The parsed ELF file.
@@ -69,11 +79,12 @@ class ELF:
         endianness_ = get_endianness(path)
         return ELF(
             path=path,
-            base_address=base,
             entry_point=entry_point_,
             is_pie=is_pie_,
             architecture=architecture_,
             endianness=endianness_,
+            _base_address=base_address,
+            _internal_debugger=internal_debugger,
         )
 
     @property
@@ -111,6 +122,21 @@ class ELF:
                 return self._build_id
 
         return None
+
+    @property
+    def base_address(self: ELF) -> int:
+        """The base address where the ELF file is loaded in memory."""
+        if self._base_address == 0x0:
+            raise ValueError("Base address not yet resolved. Did you run or attach to the process?")
+
+        return self._base_address
+
+    @property
+    def symbols(self: ELF) -> SymbolList:
+        """The list of symbols in the ELF file."""
+        if self._symbols is None:
+            self._symbols = [sym for sym in self._internal_debugger.symbols if sym.backing_file == self.path]
+        return self._symbols
 
     def __repr__(self: ELF) -> str:
         """Return the string representation of the binary."""
