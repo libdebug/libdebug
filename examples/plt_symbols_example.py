@@ -140,6 +140,26 @@ def demonstrate_plt_symbols():
                     count += 1
                     print(f"  📍 plt@{symbol}")
         
+        if count == 0:
+            # Try alternative parsing for different readelf formats
+            for line in result.stdout.split('\\n'):
+                if 'R_X86_64_JUMP_SLO' in line or 'JUMP_SLOT' in line:
+                    parts = line.split()
+                    if len(parts) >= 5:
+                        # Find the symbol name (should contain @ or be the last part)
+                        symbol_part = None
+                        for part in parts:
+                            if '@' in part and 'GLIBC' in part:
+                                symbol_part = part
+                                break
+                        if not symbol_part:
+                            symbol_part = parts[-2] if parts[-1] == '0' else parts[-1]
+                        
+                        symbol = symbol_part.split('@')[0] if '@' in symbol_part else symbol_part
+                        if symbol and not symbol.isdigit():
+                            count += 1
+                            print(f"  📍 plt@{symbol}")
+        
         print(f"\\nTotal: {count} PLT symbols would be available")
         return False
         
