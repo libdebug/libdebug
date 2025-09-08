@@ -146,3 +146,4 @@ libdebug/utils/syscalls/
 
 # Native stubs
 *.pyi
+*.o
