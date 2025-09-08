@@ -20,6 +20,7 @@
 
 void add_symbol_info(SymbolVector &, const char *, const Dwarf_Addr, const Dwarf_Addr);
 void process_symbol_tables(Elf *, SymbolVector &);
+void process_plt_symbols(Elf *, SymbolVector &);
 std::pair<const std::string, const std::string> read_build_id_and_filename(Elf *);
 void process_die(Dwarf_Debug, Dwarf_Die, SymbolVector &);
 void dwarf_retrieve_symbol_names(Dwarf_Debug, SymbolVector &);

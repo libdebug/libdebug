@@ -73,6 +73,115 @@ void process_symbol_tables(Elf *elf, SymbolVector &symbols)
     }
 }
 
+void process_plt_symbols(Elf *elf, SymbolVector &symbols)
+{
+    Elf_Scn *plt_scn = NULL;
+    Elf_Scn *rela_plt_scn = NULL;
+    Elf_Scn *dynsym_scn = NULL;
+    GElf_Shdr shdr;
+    char *name;
+    GElf_Ehdr ehdr;
+
+    if (!gelf_getehdr(elf, &ehdr)) {
+        return;  // Can't read ELF header, skip PLT processing
+    }
+
+    // First, find the relevant sections: .plt, .rela.plt, and .dynsym
+    Elf_Scn *scn = NULL;
+    while ((scn = elf_nextscn(elf, scn)) != NULL) {
+        if (gelf_getshdr(scn, &shdr) != &shdr) {
+            continue;
+        }
+
+        name = elf_strptr(elf, ehdr.e_shstrndx, shdr.sh_name);
+        if (!name) {
+            continue;
+        }
+
+        if (strcmp(name, ".plt") == 0) {
+            plt_scn = scn;
+        } else if (strcmp(name, ".rela.plt") == 0) {
+            rela_plt_scn = scn;
+        } else if (shdr.sh_type == SHT_DYNSYM) {
+            dynsym_scn = scn;
+        }
+    }
+
+    // If we don't have all the required sections, we can't process PLT symbols
+    if (!plt_scn || !rela_plt_scn || !dynsym_scn) {
+        return;
+    }
+
+    // Get PLT section info
+    GElf_Shdr plt_shdr;
+    if (gelf_getshdr(plt_scn, &plt_shdr) != &plt_shdr) {
+        return;
+    }
+
+    // Get dynsym section info for later use
+    GElf_Shdr dynsym_shdr;
+    if (gelf_getshdr(dynsym_scn, &dynsym_shdr) != &dynsym_shdr) {
+        return;
+    }
+
+    // Process .rela.plt relocations
+    Elf_Data *rela_plt_data = elf_getdata(rela_plt_scn, NULL);
+    if (!rela_plt_data) {
+        return;
+    }
+
+    GElf_Shdr rela_plt_shdr;
+    if (gelf_getshdr(rela_plt_scn, &rela_plt_shdr) != &rela_plt_shdr) {
+        return;
+    }
+
+    Elf_Data *dynsym_data = elf_getdata(dynsym_scn, NULL);
+    if (!dynsym_data) {
+        return;
+    }
+
+    int rela_count = rela_plt_shdr.sh_size / rela_plt_shdr.sh_entsize;
+    
+    // Calculate PLT entry size based on architecture
+    // For x86_64, each PLT entry is typically 16 bytes
+    // The first entry is the PLT header, so skip it
+    size_t plt_entry_size = 16;  // x86_64 default
+    Dwarf_Addr plt_base = plt_shdr.sh_addr;
+    Dwarf_Addr plt_entry_addr = plt_base + plt_entry_size; // Skip PLT header
+
+    for (int i = 0; i < rela_count; ++i) {
+        GElf_Rela rela;
+        if (gelf_getrela(rela_plt_data, i, &rela) != &rela) {
+            continue;
+        }
+
+        // Get the symbol index from the relocation
+        int sym_index = GELF_R_SYM(rela.r_info);
+
+        // Get the symbol from the dynamic symbol table
+        GElf_Sym sym;
+        if (gelf_getsym(dynsym_data, sym_index, &sym) != &sym) {
+            continue;
+        }
+
+        // Get the symbol name
+        const char *sym_name = elf_strptr(elf, dynsym_shdr.sh_link, sym.st_name);
+        if (!sym_name || strlen(sym_name) == 0) {
+            continue;
+        }
+
+        // Create PLT symbol name with "plt@" prefix
+        std::string plt_symbol_name = "plt@" + std::string(sym_name);
+
+        // Add the PLT symbol
+        // PLT entries are typically 16 bytes on x86_64
+        add_symbol_info(symbols, plt_symbol_name.c_str(), plt_entry_addr, plt_entry_addr + plt_entry_size);
+
+        // Move to next PLT entry
+        plt_entry_addr += plt_entry_size;
+    }
+}
+
 std::pair<const std::string, const std::string> read_build_id_and_filename(Elf *elf)
 {
     GElf_Shdr shdr;
@@ -168,6 +277,9 @@ const ElfInfo read_elf_info(const std::string &elf_file_path, const int debug_in
         // Read the symbol table
         process_symbol_tables(elf, symbols);
 
+        // Read PLT symbols
+        process_plt_symbols(elf, symbols);
+
         // Read the build ID
         build_id_and_debug_file_path = read_build_id_and_filename(elf);
         build_id = build_id_and_debug_file_path.first;
@@ -227,6 +339,9 @@ SymbolVector collect_external_symbols(const std::string &debug_file_path, const 
     // Read the symbol table
     try {
         process_symbol_tables(elf, symbols);
+
+        // Read PLT symbols
+        process_plt_symbols(elf, symbols);
 
         if (debug_info_level > 3) {
             // Read the dwarf info
