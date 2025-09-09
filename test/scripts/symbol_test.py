@@ -75,7 +75,7 @@ class SymbolTest(TestCase):
             "getchar@plt",
             "__stack_chk_fail@plt",
             "puts@plt"
-        ] and s.backing_file == d.executable.path]
+        ] and s.backing_file == d.path]
         self.assertEqual(len(other_plt_symbols), 0)
 
         d.kill()
@@ -111,7 +111,7 @@ class SymbolTest(TestCase):
             "__stack_chk_fail@plt",
             "printf@plt",
             "getchar@plt"
-        ] and s.backing_file == d.executable.path]
+        ] and s.backing_file == d.path]
         self.assertEqual(len(other_plt_symbols), 0)
 
         d.kill()
@@ -139,7 +139,7 @@ class SymbolTest(TestCase):
         other_plt_symbols = [s for s in symbols if s.name.endswith("@plt") and s.name not in [
             "__libc_start_main@plt",
             "puts@plt"
-        ] and s.backing_file == d.executable.path]
+        ] and s.backing_file == d.path]
         self.assertEqual(len(other_plt_symbols), 0)
 
         d.kill()
@@ -163,7 +163,7 @@ class SymbolTest(TestCase):
         # No other plt symbols should be present
         other_plt_symbols = [s for s in symbols if s.name.endswith("@plt") and s.name not in [
             "puts@plt"
-        ] and s.backing_file == d.executable.path]
+        ] and s.backing_file == d.path]
         self.assertEqual(len(other_plt_symbols), 0)
 
         d.kill()
@@ -191,7 +191,7 @@ class SymbolTest(TestCase):
         other_plt_symbols = [s for s in symbols if s.name.endswith("@plt") and s.name not in [
             "__libc_start_main@plt",
             "printf@plt"
-        ] and s.backing_file == d.executable.path]
+        ] and s.backing_file == d.path]
         self.assertEqual(len(other_plt_symbols), 0)
 
         d.kill()
@@ -219,7 +219,7 @@ class SymbolTest(TestCase):
         other_plt_symbols = [s for s in symbols if s.name.endswith("@plt") and s.name not in [
             "puts@plt",
             "printf@plt"
-        ] and s.backing_file == d.executable.path]
+        ] and s.backing_file == d.path]
         self.assertEqual(len(other_plt_symbols), 0)
 
         d.kill()
