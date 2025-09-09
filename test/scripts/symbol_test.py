@@ -75,7 +75,7 @@ class SymbolTest(TestCase):
             "getchar@plt",
             "__stack_chk_fail@plt",
             "puts@plt"
-        ]]
+        ] and s.backing_file == d.executable.path]
         self.assertEqual(len(other_plt_symbols), 0)
 
         d.kill()
@@ -111,7 +111,7 @@ class SymbolTest(TestCase):
             "__stack_chk_fail@plt",
             "printf@plt",
             "getchar@plt"
-        ]]
+        ] and s.backing_file == d.executable.path]
         self.assertEqual(len(other_plt_symbols), 0)
 
         d.kill()
@@ -139,7 +139,7 @@ class SymbolTest(TestCase):
         other_plt_symbols = [s for s in symbols if s.name.endswith("@plt") and s.name not in [
             "__libc_start_main@plt",
             "puts@plt"
-        ]]
+        ] and s.backing_file == d.executable.path]
         self.assertEqual(len(other_plt_symbols), 0)
 
         d.kill()
@@ -163,7 +163,7 @@ class SymbolTest(TestCase):
         # No other plt symbols should be present
         other_plt_symbols = [s for s in symbols if s.name.endswith("@plt") and s.name not in [
             "puts@plt"
-        ]]
+        ] and s.backing_file == d.executable.path]
         self.assertEqual(len(other_plt_symbols), 0)
 
         d.kill()
@@ -187,6 +187,16 @@ class SymbolTest(TestCase):
         self.assertEqual(libc_start_main_plt[0].start, 0x8049030)
         self.assertEqual(printf_plt[0].start, 0x8049040)        
 
+        # No other plt symbols should be present
+        other_plt_symbols = [s for s in symbols if s.name.endswith("@plt") and s.name not in [
+            "__libc_start_main@plt",
+            "printf@plt"
+        ] and s.backing_file == d.executable.path]
+        self.assertEqual(len(other_plt_symbols), 0)
+
+        d.kill()
+        d.terminate()
+
     @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_plt_symbols_no_pie4(self):
         d = debugger(RESOLVE_EXE("breakpoint_test"))
@@ -209,8 +219,8 @@ class SymbolTest(TestCase):
         other_plt_symbols = [s for s in symbols if s.name.endswith("@plt") and s.name not in [
             "puts@plt",
             "printf@plt"
-        ]]
-        self.assertEqual(len(other_plt_symbols), 0) 
+        ] and s.backing_file == d.executable.path]
+        self.assertEqual(len(other_plt_symbols), 0)
 
         d.kill()
         d.terminate()
