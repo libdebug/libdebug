@@ -7,12 +7,20 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+from rich.console import Console
+from rich.table import Table
 
 from libdebug.data.section import Section
 from libdebug.data.section_list import SectionList
-from libdebug.data.symbol_list import SymbolList
-from libdebug.debugger.internal_debugger import InternalDebugger
+from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.elf_utils import elf_architecture, get_elf_sections, get_endianness, get_entry_point, is_pie
+
+if TYPE_CHECKING:
+    from libdebug.data.symbol_list import SymbolList
+    from libdebug.debugger.internal_debugger import InternalDebugger
 
 
 @dataclass
@@ -75,8 +83,9 @@ class ELF:
         """
         is_pie_ = is_pie(path)
         entry_point_ = get_entry_point(path)
-        architecture_ = elf_architecture(path)
+        architecture_ = map_arch(elf_architecture(path))
         endianness_ = get_endianness(path)
+
         return ELF(
             path=path,
             entry_point=entry_point_,
@@ -96,9 +105,9 @@ class ELF:
             parsed_sections = [
                 Section(
                     name=section_info.name,
-                    type=section_info.type,
+                    section_type_val=section_info.type,
                     flags=section_info.flags,
-                    address=section_info.address,
+                    address=section_info.addr,
                     offset=section_info.offset,
                     size=section_info.size,
                     address_align=section_info.addralign,
@@ -116,10 +125,20 @@ class ELF:
         if self._build_id is not None:
             return self._build_id
 
+        id_section = None
+
         for section in self.sections:
             if section.name == ".note.gnu.build-id":
-                self._build_id = section.get_build_id()
-                return self._build_id
+                id_section = section
+                break
+
+        if id_section is not None:
+            with Path(self.path).open("rb") as f:
+                f.seek(id_section.offset)
+                data = f.read(id_section.size)
+                if len(data) >= 16:
+                    self._build_id = data[16:].hex()
+                    return self._build_id
 
         return None
 
@@ -135,9 +154,45 @@ class ELF:
     def symbols(self: ELF) -> SymbolList:
         """The list of symbols in the ELF file."""
         if self._symbols is None:
-            self._symbols = [sym for sym in self._internal_debugger.symbols if sym.backing_file == self.path]
+            if not self._internal_debugger.is_debugging:
+                raise ValueError("You must run or attach to the process before accessing symbols.")
+
+            full_path_elf = Path(self.path)
+
+            self._symbols = [
+                sym
+                for sym in self._internal_debugger.symbols
+                if full_path_elf.samefile(Path(sym.backing_file))
+            ]
         return self._symbols
+
+    def pprint_sections(self: ELF) -> None:
+        """Pretty-prints the sections of the ELF file."""
+        console = Console()
+        table = Table(title=f"Sections in {self.path}")
+
+        table.add_column("Name", style="cyan", no_wrap=True)
+        table.add_column("Type", style="magenta")
+        table.add_column("Flags", style="green")
+        table.add_column("Address", style="yellow")
+        table.add_column("Offset", style="blue")
+        table.add_column("Size", style="red")
+        table.add_column("Align", style="white")
+
+        for section in self.sections:
+            table.add_row(
+                section.name,
+                section.section_type.name,
+                section.flags,
+                f"{section.start:#x}",
+                f"{section.offset:#x}",
+                f"{section.size:#x}",
+                f"{section.address_align}",
+            )
+
+        console.print(table)
 
     def __repr__(self: ELF) -> str:
         """Return the string representation of the binary."""
-        return f"ELF(path={self.path}, base_address={self.base_address:#x}, entry_point={self.entry_point:#x}, is_pie={self.is_pie}, architecture={self.architecture}, endianness={self.endianness}, build_id={self.build_id}, is_shared_object={self.is_shared_object})"
+        base_address_repr = f"{self._base_address:#x}" if self._base_address != 0x0 else "Not yet resolved"
+        return f"ELF(path={self.path}, base_address={base_address_repr}, entry_point={self.entry_point:#x}, is_pie={self.is_pie}, architecture={self.architecture}, endianness={self.endianness}, build_id={self.build_id})"

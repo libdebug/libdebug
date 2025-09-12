@@ -6,13 +6,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from libdebug.data.section import Section
+from libdebug.data.section import Section
 
 
-class SectionList(list):
+class SectionList(list[Section]):
     """A list of sections in the target process."""
 
     def __init__(self: SectionList, sections: list[Section]) -> None:

@@ -92,7 +92,7 @@ class Section:
     def __init__(
         self: Section,
         name: str,
-        section_type_index: int,
+        section_type_val: int,
         flags: int,
         address: int,
         offset: int,
@@ -104,7 +104,7 @@ class Section:
 
         Args:
             name (str): The name of the section.
-            section_type_index (int): The type of the section (e.g., SHT_PROGBITS, SHT_SYMTAB).
+            section_type_val (int): The int type of the section from the define (e.g., SHT_PROGBITS, SHT_SYMTAB).
             flags (str): The flags associated with the section (e.g., X, W, R).
             address (int): The virtual address of the section in memory.
             offset (int): The offset of the section in the file.
@@ -113,7 +113,7 @@ class Section:
             reference_file (str): The path to the ELF file containing this section.
         """
         self.name = name
-        self.section_type = SectionType.from_value(section_type_index)
+        self.section_type = SectionType.from_value(section_type_val)
         self.flags = flags
         self.start = address
         self.end = address + size
@@ -125,8 +125,7 @@ class Section:
     def __repr__(self: Section) -> str:
         """Return a developer-oriented string representation of the Section."""
         return (
-            f"Section(name={self.name}, section_type={self.section_type.name}, flags={self.flags:#x}, "
-            f"address={self.start:#x}, offset={self.offset:#x}, size={self.size}, "
-            f"link={self.link}, info={self.info}, address_align={self.address_align}, "
-            f"entry_size={self.entry_size}, reference_file='{self.reference_file}')"
+            f'Section(name="{self.name}", section_type={self.section_type.name}, flags={self.flags}, '
+            f'address={self.start:#x}, offset={self.offset:#x}, size={self.size:#x}, '
+            f'reference_file="{self.reference_file}")'
         )

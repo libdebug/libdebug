@@ -86,6 +86,8 @@ if TYPE_CHECKING:
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
     from libdebug.snapshots.snapshot import Snapshot
     from libdebug.state.thread_context import ThreadContext
+from rich.console import Console
+from rich.table import Column, Table
 
 THREAD_TERMINATE = -1
 GDB_GOBACK_LOCATION = str((Path(__file__).parent.parent / "utils" / "gdb.py").resolve())
@@ -2065,7 +2067,7 @@ class InternalDebugger:
         if "libraries" in self.__dict__:
             del self.libraries
 
-    def clear_elf_caches(self: InternalDebugger) -> None
+    def clear_elf_caches(self: InternalDebugger) -> None:
         """Clears all the ELF caches of the internal debugger."""
         if "binary" in self.__dict__:
             del self.binary
@@ -2073,35 +2075,18 @@ class InternalDebugger:
         if "libraries" in self.__dict__:
             del self.libraries
 
-    @functools.cached_property
-    def binary(self: InternalDebugger) -> ELF:
-        """The ELF object representing the debugged binary."""
-        if self.aslr_enabled:
-            self._elf_parsed_with_aslr = True
+    def _find_libraries_in_traced_process(self: InternalDebugger) -> list[tuple[str, int]]:
+        """Finds all the loaded shared libraries and their base addresses from the live process.
 
-        base = self.maps.filter("binary")[0].start if self.is_debugging else 0
-
-        return ELF(self._process_full_path, base, self)
-
-    @functools.cached_property
-    def libraries(self: InternalDebugger) -> dict[str, ELF]:
-        """A dictionary mapping the paths of the loaded shared libraries to their ELF objects."""
-        if not self.is_debugging:
-            raise RuntimeError("Process not traced, cannot parse libraries.")
-
-        if self.aslr_enabled:
-            self._elf_parsed_with_aslr = True
-
+        Returns:
+            list[tuple[str, int]]: A list of tuples containing the path and base address of each loaded shared library.
+        """
         start_segment = None
         last_path = None
         collected_libs = []
         has_parsed_file = False
 
         for curr_map in self.maps:
-            if curr_map.backing_file == self.path:
-                # Skip the main binary
-                continue
-
             if has_parsed_file:
                 if curr_map.backing_file == last_path:
                     # We already parsed this file, skip it
@@ -2118,18 +2103,90 @@ class InternalDebugger:
                 if start_segment is None:
                     liblog.error(f"Could not determine the start of the library segment for {curr_map.backing_file}.")
                 else:
-                    collected_libs.append((curr_map.backing_file, start_segment.start))
                     has_parsed_file = True
+
+                    p_backing = Path(curr_map.backing_file)
+                    file_exists = p_backing.exists()
+
+                    if not file_exists:
+                        # The backing file does not exist, skip it
+                        continue
+
+                    p_main    = Path(self.path)
+
+                    if Path.samefile(p_backing, p_main):
+                        # Skip the main binary
+                        continue
+
+                    # Check if the segment is from a parsable ELF file
+                    is_parsable_lib = (
+                        "r" in start_segment.permissions
+                        and self.memory[start_segment.start : start_segment.start + 4] == b"\x7fELF"
+                    )
+
+                    # We found an executable segment, if it's not from an ELF file, skip it
+                    if not is_parsable_lib:
+                        continue
+
+                    collected_libs.append((curr_map.backing_file, start_segment.start))
 
             last_path = curr_map.backing_file
 
+        return collected_libs
+
+    @functools.cached_property
+    def binary(self: InternalDebugger) -> ELF:
+        """The ELF object representing the debugged binary."""
+        if self.aslr_enabled:
+            self._elf_parsed_with_aslr = True
+
+        base = self.maps.filter("binary")[0].start if self.is_debugging else 0
+        return ELF.parse(self.path, base, self)
+
+    @functools.cached_property
+    def libraries(self: InternalDebugger) -> dict[str, ELF]:
+        """A dictionary mapping the paths of the loaded shared libraries to their ELF objects."""
+        if not self.is_debugging:
+            raise RuntimeError("Process not traced, cannot parse libraries.")
+
+        if self.aslr_enabled:
+            self._elf_parsed_with_aslr = True
+
+        found_libs = self._find_libraries_in_traced_process()
+
         parsed_libs = {}
 
-        for lib_path, base in collected_libs:
+        for lib_path, base in found_libs:
+            lib_name = Path(lib_path).name
+
             try:
-                parsed_libs[lib_path] = ELF(lib_path, base, self)
+                parsed_libs[lib_name] = ELF.parse(lib_path, base, self)
                 liblog.debugger(f"Parsed library {lib_path} at base address {hex(base)}.")
             except Exception as e:
                 liblog.error(f"Could not parse library {lib_path}: {e}")
 
+        return parsed_libs
 
+    def pprint_binary_report(self: InternalDebugger) -> None:
+        """Prints a report of the binary."""
+        console = Console()
+
+        table = Table(
+            Column("Attribute", justify="right", style="cyan", no_wrap=True),
+            Column("Value", style="magenta"),
+            title="Binary Report",
+        )
+
+        table.add_row("Path", self.path)
+        table.add_section()
+        table.add_row("Architecture", self.binary.architecture)
+        table.add_row("Endianness", self.binary.endianness)
+        table.add_row("PIE", str(self.binary.is_pie))
+        table.add_row("Base Address", hex(self.binary.base_address) if self.is_debugging else "Process not yet traced")
+        table.add_row("Build ID", self.binary.build_id if self.binary.build_id else "N/A")
+        table.add_section()
+        # Libs in the form key -> path
+        libs = "\n".join(f"{k} -> {v.path}" for k, v in self.libraries.items()) if self.is_debugging else "Process not yet traced"
+        table.add_row("Loaded Libraries", libs)
+
+        console.print(table)
