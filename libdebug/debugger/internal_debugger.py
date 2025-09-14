@@ -31,6 +31,7 @@ from libdebug.builtin.pretty_print_syscall_handler import (
 from libdebug.data.argument_list import ArgumentList
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.elf import ELF
+from libdebug.data.elf_list import ELFList
 from libdebug.data.gdb_resume_event import GdbResumeEvent
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
@@ -2112,7 +2113,7 @@ class InternalDebugger:
                         # The backing file does not exist, skip it
                         continue
 
-                    p_main    = Path(self.path)
+                    p_main = Path(self.path)
 
                     if Path.samefile(p_backing, p_main):
                         # Skip the main binary
@@ -2144,8 +2145,8 @@ class InternalDebugger:
         return ELF.parse(self.path, base, self)
 
     @functools.cached_property
-    def libraries(self: InternalDebugger) -> dict[str, ELF]:
-        """A dictionary mapping the paths of the loaded shared libraries to their ELF objects."""
+    def libraries(self: InternalDebugger) -> ELFList:
+        """A list of the ELF objects representing the loaded shared libraries."""
         if not self.is_debugging:
             raise RuntimeError("Process not traced, cannot parse libraries.")
 
@@ -2154,18 +2155,17 @@ class InternalDebugger:
 
         found_libs = self._find_libraries_in_traced_process()
 
-        parsed_libs = {}
+        parsed_libs = []
 
         for lib_path, base in found_libs:
-            lib_name = Path(lib_path).name
 
             try:
-                parsed_libs[lib_name] = ELF.parse(lib_path, base, self)
+                parsed_libs.append(ELF.parse(lib_path, base, self))
                 liblog.debugger(f"Parsed library {lib_path} at base address {hex(base)}.")
             except Exception as e:
                 liblog.error(f"Could not parse library {lib_path}: {e}")
 
-        return parsed_libs
+        return ELFList(parsed_libs)
 
     def pprint_binary_report(self: InternalDebugger) -> None:
         """Prints a report of the binary."""
@@ -2186,7 +2186,11 @@ class InternalDebugger:
         table.add_row("Build ID", self.binary.build_id if self.binary.build_id else "N/A")
         table.add_section()
         # Libs in the form key -> path
-        libs = "\n".join(f"{k} -> {v.path}" for k, v in self.libraries.items()) if self.is_debugging else "Process not yet traced"
+        libs = (
+            "\n".join(f"{Path(lib.path).name} ({lib.path})" for lib in self.libraries)
+            if self.is_debugging
+            else "Process not yet traced"
+        )
         table.add_row("Loaded Libraries", libs)
 
         console.print(table)

@@ -287,6 +287,361 @@ static void internal_parse_elf_sections(const uint8_t *data, size_t sz, std::vec
     }
 }
 
+// -------------------- Dynamic section parsing --------------------
+
+#define OLD_DT_LOOS	0x60000000
+#define OLD_DT_HIOS     0x6fffffff
+
+static const char* dt_tag_name(int64_t tag) {
+    switch (tag) {
+        case DT_NULL:        return "NULL";
+        case DT_NEEDED:      return "NEEDED";
+        case DT_PLTRELSZ:    return "PLTRELSZ";
+        case DT_PLTGOT:      return "PLTGOT";
+        case DT_HASH:        return "HASH";
+        case DT_STRTAB:      return "STRTAB";
+        case DT_SYMTAB:      return "SYMTAB";
+        case DT_RELA:        return "RELA";
+        case DT_RELASZ:      return "RELASZ";
+        case DT_RELAENT:     return "RELAENT";
+        case DT_STRSZ:       return "STRSZ";
+        case DT_SYMENT:      return "SYMENT";
+        case DT_INIT:        return "INIT";
+        case DT_FINI:        return "FINI";
+        case DT_SONAME:      return "SONAME";
+        case DT_RPATH:       return "RPATH";
+        case DT_SYMBOLIC:    return "SYMBOLIC";
+        case DT_REL:         return "REL";
+        case DT_RELSZ:       return "RELSZ";
+        case DT_RELENT:      return "RELENT";
+        case DT_PLTREL:      return "PLTREL";
+        case DT_DEBUG:       return "DEBUG";
+        case DT_TEXTREL:     return "TEXTREL";
+        case DT_JMPREL:      return "JMPREL";
+        case DT_BIND_NOW:    return "BIND_NOW";
+        case DT_INIT_ARRAY:  return "INIT_ARRAY";
+        case DT_FINI_ARRAY:  return "FINI_ARRAY";
+        case DT_INIT_ARRAYSZ: return "INIT_ARRAYSZ";
+        case DT_FINI_ARRAYSZ: return "FINI_ARRAYSZ";
+        case DT_RUNPATH:      return "RUNPATH";
+        case DT_FLAGS:        return "FLAGS";
+        case DT_PREINIT_ARRAY: return "PREINIT_ARRAY";
+        case DT_PREINIT_ARRAYSZ: return "PREINIT_ARRAYSZ";
+        case DT_SYMTAB_SHNDX: return "SYMTAB_SHNDX";
+        case DT_RELRSZ:       return "RELRSZ";
+        case DT_RELR:         return "RELR";
+        case DT_RELRENT:      return "RELRENT";
+        case DT_NUM:          return "NUM";
+        case OLD_DT_LOOS:     return "OLD_LOOS";
+        case DT_LOOS:         return "LOOS";
+        case DT_HIOS:         return "HIOS";
+        case DT_VALRNGLO:     return "VALRNGLO";
+        case DT_VALRNGHI:     return "VALRNGHI";
+        case DT_ADDRRNGLO:    return "ADDRRNGLO";
+        case DT_GNU_HASH:     return "GNU_HASH";
+        case DT_ADDRRNGHI:    return "ADDRRNGHI";
+        case DT_VERSYM:       return "VERSYM";
+        case DT_RELACOUNT:    return "RELACOUNT";
+        case DT_RELCOUNT:     return "RELCOUNT";
+        case DT_FLAGS_1:      return "FLAGS_1";
+        case DT_VERDEF:       return "VERDEF";
+        case DT_VERDEFNUM:    return "VERDEFNUM";
+        case DT_VERNEED:      return "VERNEED";
+        case DT_VERNEEDNUM:   return "VERNEEDNUM";
+        case DT_AUXILIARY:   return "AUXILIARY";
+        case DT_LOPROC:       return "LOPROC";
+        case DT_HIPROC:       return "HIPROC";
+        default:              return "UNKNOWN";
+    }
+}
+
+static DynSectionValueType dt_value_type(int64_t tag) {
+    switch (tag) {
+        
+        // String-table offsets (need STRTAB)
+        case DT_NEEDED:
+        case DT_SONAME:
+        case DT_RPATH:
+        case DT_RUNPATH:
+        case DT_AUXILIARY:
+            return DYN_VAL_STR;
+
+        // Pointers / addresses
+        case DT_PLTGOT:
+        case DT_HASH:
+        case DT_STRTAB:
+        case DT_SYMTAB:
+        case DT_RELA:
+        case DT_INIT:
+        case DT_FINI:
+        case DT_REL:
+        case DT_JMPREL:
+        case DT_DEBUG:
+        case DT_INIT_ARRAY:
+        case DT_FINI_ARRAY:
+        case DT_GNU_HASH:
+        case DT_VERSYM:
+        case DT_VERNEED:
+        case DT_VERDEF:
+        case DT_RELR:
+        case DT_SYMTAB_SHNDX:
+        case DT_PREINIT_ARRAY:
+            return DYN_VAL_ADDR;
+
+        // Sizes / counts / enums / flags
+        case DT_PLTRELSZ:
+        case DT_RELASZ:
+        case DT_RELAENT:
+        case DT_STRSZ:
+        case DT_SYMENT:
+        case DT_RELSZ:
+        case DT_RELENT:
+        case DT_PLTREL:
+        case DT_TEXTREL:
+        case DT_BIND_NOW:
+        case DT_INIT_ARRAYSZ:
+        case DT_FINI_ARRAYSZ:
+        case DT_FLAGS:
+        case DT_VERNEEDNUM:
+        case DT_VERDEFNUM:
+        case DT_NULL:
+        case DT_SYMBOLIC:
+        case DT_PREINIT_ARRAYSZ:
+        case DT_RELRSZ:
+        case DT_RELRENT:
+        case DT_NUM:
+        case OLD_DT_LOOS:
+        case DT_LOOS:
+        case DT_HIOS:
+        case DT_VALRNGLO:
+        case DT_VALRNGHI:
+        case DT_ADDRRNGLO:
+        case DT_ADDRRNGHI:
+        case DT_RELACOUNT:
+        case DT_RELCOUNT:
+        case DT_FLAGS_1:
+        case DT_LOPROC:
+        case DT_HIPROC:
+            return DYN_VAL_NUM;
+
+        default:
+            return DYN_VAL_NUM; // sensible default
+    }
+}
+
+template <typename PhdrT>
+static void collect_segments(const uint8_t* data, size_t sz,
+                             uint64_t phoff, uint16_t phentsize, uint16_t phnum, int swap,
+                             std::vector< LoadSeg<PhdrT> >& loads,
+                             const PhdrT*& dyn_phdr_out)
+{
+    dyn_phdr_out = nullptr;
+    if (!in_bounds((size_t)phoff, (size_t)phentsize * (size_t)phnum, sz))
+        throw std::runtime_error("Program headers out of bounds");
+
+    const uint8_t* p = data + (size_t)phoff;
+    for (uint16_t i = 0; i < phnum; ++i, p += phentsize) {
+        const PhdrT* ph = reinterpret_cast<const PhdrT*>(p);
+        uint32_t p_type =
+            std::is_same<PhdrT, Elf64_Phdr>::value ? maybe32(((const Elf64_Phdr*)ph)->p_type, swap)
+                                                   : maybe32(((const Elf32_Phdr*)ph)->p_type, swap);
+
+        uint64_t p_offset = std::is_same<PhdrT, Elf64_Phdr>::value ? maybe64(((const Elf64_Phdr*)ph)->p_offset, swap)
+                                                                   : maybe32(((const Elf32_Phdr*)ph)->p_offset, swap);
+        uint64_t p_vaddr  = std::is_same<PhdrT, Elf64_Phdr>::value ? maybe64(((const Elf64_Phdr*)ph)->p_vaddr, swap)
+                                                                   : maybe32(((const Elf32_Phdr*)ph)->p_vaddr, swap);
+        uint64_t p_filesz = std::is_same<PhdrT, Elf64_Phdr>::value ? maybe64(((const Elf64_Phdr*)ph)->p_filesz, swap)
+                                                                   : maybe32(((const Elf32_Phdr*)ph)->p_filesz, swap);
+        uint64_t p_memsz  = std::is_same<PhdrT, Elf64_Phdr>::value ? maybe64(((const Elf64_Phdr*)ph)->p_memsz, swap)
+                                                                   : maybe32(((const Elf32_Phdr*)ph)->p_memsz, swap);
+
+        if (p_type == PT_LOAD) {
+            loads.push_back(LoadSeg<PhdrT>{p_vaddr, p_memsz, p_offset, p_filesz});
+        } else if (p_type == PT_DYNAMIC) {
+            dyn_phdr_out = ph;
+        }
+    }
+}
+
+template <typename PhdrT>
+static bool vaddr_to_offset(uint64_t vaddr,
+                            const std::vector< LoadSeg<PhdrT> >& loads,
+                            uint64_t& out_off)
+{
+    for (const auto& s : loads) {
+        if (vaddr >= s.vaddr && vaddr < s.vaddr + s.memsz) {
+            uint64_t delta = vaddr - s.vaddr;
+            if (delta <= s.filesz) {
+                out_off = s.off + delta;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+static void parse_dynamic_64(const uint8_t* data, size_t sz, int swap, std::vector<DynamicSectionInfo>& out){
+    if (!in_bounds(0, sizeof(Elf64_Ehdr), sz)) throw std::runtime_error("Truncated ELF header");
+    const Elf64_Ehdr* eh = (const Elf64_Ehdr*)data;
+
+    uint64_t phoff = maybe64(eh->e_phoff, swap);
+    uint16_t phentsize = maybe16(eh->e_phentsize, swap);
+    uint16_t phnum = maybe16(eh->e_phnum, swap);
+    if (phoff == 0 || phnum == 0) throw std::runtime_error("No program headers");
+
+    std::vector< LoadSeg<Elf64_Phdr> > loads;
+    const Elf64_Phdr* dyn_phdr = nullptr;
+    collect_segments<Elf64_Phdr>(data, sz, phoff, phentsize, phnum, swap, loads, dyn_phdr);
+    if (!dyn_phdr) throw std::runtime_error("No PT_DYNAMIC segment");
+
+    uint64_t dyn_off   = maybe64(dyn_phdr->p_offset, swap);
+    uint64_t dyn_filesz= maybe64(dyn_phdr->p_filesz, swap);
+    if (!in_bounds((size_t)dyn_off, (size_t)dyn_filesz, sz))
+        throw std::runtime_error("PT_DYNAMIC out of bounds");
+
+    const uint8_t* p = data + (size_t)dyn_off;
+    const uint8_t* end = p + (size_t)dyn_filesz;
+
+    std::vector<RawDynEnt> raw;
+    raw.reserve(64);
+
+    uint64_t strtab_vaddr = 0, strsz = 0;
+
+    while (p + sizeof(Elf64_Dyn) <= end) {
+        const Elf64_Dyn* d = (const Elf64_Dyn*)p;
+        int64_t d_tag  = (int64_t)maybe64((uint64_t)d->d_tag, swap);
+        uint64_t d_un  = maybe64((uint64_t)d->d_un.d_val, swap);
+        p += sizeof(Elf64_Dyn);
+
+        if (d_tag == DT_NULL) break;
+        raw.push_back({d_tag, d_un});
+
+        if (d_tag == DT_STRTAB) strtab_vaddr = d_un;
+        else if (d_tag == DT_STRSZ) strsz = d_un;
+    }
+
+    const char* strtab = nullptr;
+    size_t strtab_sz = 0;
+    if (strtab_vaddr && strsz) {
+        uint64_t str_off;
+        if (vaddr_to_offset<Elf64_Phdr>(strtab_vaddr, loads, str_off) &&
+            in_bounds((size_t)str_off, (size_t)strsz, sz)) {
+            strtab = (const char*)(data + (size_t)str_off);
+            strtab_sz = (size_t)strsz;
+        }
+    }
+
+    out.reserve(out.size() + raw.size());
+    for (const auto& e : raw) {
+        DynamicSectionInfo di;
+        di.tag = dt_tag_name(e.tag);
+        di.val = e.val;
+        di.val_type = dt_value_type(e.tag);
+
+        if (di.val_type == DYN_VAL_STR && strtab && e.val < strtab_sz) {
+            const char* cand = strtab + (size_t)e.val;
+            size_t remain = strtab_sz - (size_t)e.val;
+            size_t k = 0;
+            for (; k < remain && cand[k] != '\0'; ++k) {}
+            if (k < remain) di.str.assign(cand, k);
+        }
+        out.push_back(std::move(di));
+    }
+}
+
+static void parse_dynamic_32(const uint8_t* data, size_t sz, int swap, std::vector<DynamicSectionInfo>& out){
+    if (!in_bounds(0, sizeof(Elf32_Ehdr), sz)) throw std::runtime_error("Truncated ELF header");
+    const Elf32_Ehdr* eh = (const Elf32_Ehdr*)data;
+
+    uint32_t phoff = maybe32(eh->e_phoff, swap);
+    uint16_t phentsize = maybe16(eh->e_phentsize, swap);
+    uint16_t phnum = maybe16(eh->e_phnum, swap);
+    if (phoff == 0 || phnum == 0) throw std::runtime_error("No program headers");
+
+    std::vector< LoadSeg<Elf32_Phdr> > loads;
+    const Elf32_Phdr* dyn_phdr = nullptr;
+    collect_segments<Elf32_Phdr>(data, sz, phoff, phentsize, phnum, swap, loads, dyn_phdr);
+    if (!dyn_phdr) throw std::runtime_error("No PT_DYNAMIC segment");
+
+    uint32_t dyn_off   = maybe32(dyn_phdr->p_offset, swap);
+    uint32_t dyn_filesz= maybe32(dyn_phdr->p_filesz, swap);
+    if (!in_bounds((size_t)dyn_off, (size_t)dyn_filesz, sz))
+        throw std::runtime_error("PT_DYNAMIC out of bounds");
+
+    const uint8_t* p = data + (size_t)dyn_off;
+    const uint8_t* end = p + (size_t)dyn_filesz;
+
+    std::vector<RawDynEnt> raw;
+    raw.reserve(64);
+
+    uint64_t strtab_vaddr = 0, strsz = 0;
+
+    while (p + sizeof(Elf32_Dyn) <= end) {
+        const Elf32_Dyn* d = (const Elf32_Dyn*)p;
+        int64_t d_tag  = (int64_t)maybe32((uint32_t)d->d_tag, swap);
+        uint32_t d_un  = maybe32((uint32_t)d->d_un.d_val, swap);
+        p += sizeof(Elf32_Dyn);
+
+        if (d_tag == DT_NULL) break;
+        raw.push_back({d_tag, (uint64_t)d_un});
+
+        if (d_tag == DT_STRTAB) strtab_vaddr = d_un;
+        else if (d_tag == DT_STRSZ) strsz = d_un;
+    }
+
+    const char* strtab = nullptr;
+    size_t strtab_sz = 0;
+    if (strtab_vaddr && strsz) {
+        uint64_t str_off;
+        if (vaddr_to_offset<Elf32_Phdr>(strtab_vaddr, loads, str_off) &&
+            in_bounds((size_t)str_off, (size_t)strsz, sz)) {
+            strtab = (const char*)(data + (size_t)str_off);
+            strtab_sz = (size_t)strsz;
+        }
+    }
+
+    out.reserve(out.size() + raw.size());
+    for (const auto& e : raw) {
+        DynamicSectionInfo di;
+        di.tag = dt_tag_name(e.tag);
+        di.val = e.val;
+        di.val_type = dt_value_type(e.tag);
+
+        if (di.val_type == DYN_VAL_STR && strtab && e.val < strtab_sz) {
+            const char* cand = strtab + (size_t)e.val;
+            size_t remain = strtab_sz - (size_t)e.val;
+            size_t k = 0;
+            for (; k < remain && cand[k] != '\0'; ++k) {}
+            if (k < remain) di.str.assign(cand, k);
+        }
+        out.push_back(std::move(di));
+    }
+}
+
+static void internal_parse_elf_dynamic(const uint8_t* data, size_t sz, std::vector<DynamicSectionInfo>& out){
+    if (sz < EI_NIDENT) throw std::runtime_error("File too small");
+    if (!(data[0]==0x7f && data[1]=='E' && data[2]=='L' && data[3]=='F')) throw std::runtime_error("Not an ELF file");
+
+    int file_le;
+    switch (data[EI_DATA]) {
+        case ELFDATA2LSB: file_le = 1; break;
+        case ELFDATA2MSB: file_le = 0; break;
+        default: throw std::runtime_error("Unknown ELF data encoding");
+    }
+    int swap = (file_le != host_is_le());
+
+    int cls = data[EI_CLASS];
+    if (cls == ELFCLASS64) {
+        if (!in_bounds(0, sizeof(Elf64_Ehdr), sz)) throw std::runtime_error("Truncated ELF header (64)");
+        parse_dynamic_64(data, sz, swap, out);
+    } else if (cls == ELFCLASS32) {
+        if (!in_bounds(0, sizeof(Elf32_Ehdr), sz)) throw std::runtime_error("Truncated ELF header (32)");
+        parse_dynamic_32(data, sz, swap, out);
+    } else {
+        throw std::runtime_error("Unsupported ELF class");
+    }
+}
+
 // ---- Public API --------------------------------------------------------------
 
 SectionTable SectionTable::parse_file(const char* filename){
@@ -295,6 +650,15 @@ SectionTable SectionTable::parse_file(const char* filename){
 
     SectionTable tbl;
     internal_parse_elf_sections(buf.data(), buf.size(), tbl.sections);
+    return tbl;
+}
+
+DynamicSectionTable DynamicSectionTable::parse_file(const char* filename){
+    std::vector<uint8_t> buf;
+    read_file_or_throw(filename, buf);
+
+    DynamicSectionTable tbl;
+    internal_parse_elf_dynamic(buf.data(), buf.size(), tbl.entries);
     return tbl;
 }
 
@@ -321,4 +685,25 @@ NB_MODULE(libdebug_section_parser, m) {
         .def_static("from_file", &SectionTable::parse_file,
                     nb::arg("elf_file_path"),
                     "Parse sections from an ELF file and return a SectionTable");
+
+     nb::enum_<DynSectionValueType>(m, "DynValueType")
+        .value("NONE", DYN_VAL_NONE)
+        .value("NUM", DYN_VAL_NUM)
+        .value("STR", DYN_VAL_STR)
+        .value("ADDR", DYN_VAL_ADDR);
+
+    nb::class_<DynamicSectionInfo>(m, "DynamicEntry", "ELF DT_* dynamic entry")
+        .def_ro("tag", &DynamicSectionInfo::tag, "Human-readable DT_* name (or 'UNKNOWN')")
+        .def_ro("val", &DynamicSectionInfo::val, "Raw d_un value")
+        .def_ro("str", &DynamicSectionInfo::str, "Resolved string (if applicable)")
+        .def_ro("val_type", &DynamicSectionInfo::val_type, "Type of value");
+
+    nb::class_<DynamicSectionTable>(m, "DynamicTable", "Container for ELF dynamic section entries")
+        .def_prop_ro(
+            "entries",
+            [](const DynamicSectionTable& t) { return t.entries; },
+            "List of DT_* entries in file order")
+        .def_static("from_file", &DynamicSectionTable::parse_file,
+                    nb::arg("elf_file_path"),
+                    "Parse DT_* entries from an ELF file and return a DynamicTable");
 }

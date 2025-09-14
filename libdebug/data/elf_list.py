@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -32,13 +33,15 @@ class ELFList(list):
         no_exact_match = []
         # We first want to list the elfs that exactly match the name
         for elf in self:
-            if elf.name == name:
+            curr_name = Path(elf.path).name
+
+            if name in (curr_name, elf.path):
                 exact_match.append(elf)
-            elif name in elf.name:
+            elif name in elf.path:
                 no_exact_match.append(elf)
         return exact_match + no_exact_match
 
-    def filter(self: ELFList, value: str) -> ELFList[ELF]:
+    def filter(self: ELFList, value: str) -> ELFList:
         """Filters the elfs according to the specified value.
 
         Args:
@@ -54,7 +57,7 @@ class ELFList(list):
 
         return ELFList(filtered_elfs)
 
-    def __getitem__(self: ELFList, key: str) -> ELFList[ELF]:
+    def __getitem__(self: ELFList, key: str) -> ELFList:
         """Returns the elf with exactly the specified name.
 
         Args:
@@ -66,7 +69,7 @@ class ELFList(list):
         if not isinstance(key, str):
             return super().__getitem__(key)
 
-        elfs = [elf for elf in self if elf.name == key]
+        elfs = [elf for elf in self if Path(elf.path).name == key]
         if not elfs:
             raise KeyError(f"ELF '{key}' not found.")
         return ELFList(elfs)

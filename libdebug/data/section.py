@@ -1,3 +1,9 @@
+#
+# This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
+# Copyright (c) 2025 Francesco Panebianco. All rights reserved.
+# Licensed under the MIT license. See LICENSE file in the project root for details.
+#
+
 from __future__ import annotations
 
 from enum import IntEnum
@@ -22,6 +28,21 @@ class SectionType(IntEnum):
     SHT_INIT_ARRAY = 0xE
     SHT_FINI_ARRAY = 0xF
     SHT_PREINIT_ARRAY = 0x10
+    SHT_GROUP = 0x11
+    SHT_SYMTAB_SHNDX = 0x12
+    SHT_RELR = 0x13
+    SHT_NUM = 0x14
+    SHT_LOOS = 0x60000000
+    SHT_GNU_ATTRIBUTES = 0x6FFFFFF5
+    SHT_GNU_HASH = 0x6FFFFFF6
+    SHT_GNU_LIBLIST = 0x6FFFFFF7
+    SHT_CHECKSUM = 0x6FFFFFF8
+    SHT_LOSUNW = 0x6FFFFFFA
+    SHT_SUNW_MOVE = 0x6FFFFFFA
+    SHT_SUNW_COMDAT = 0x6FFFFFFB
+    SHT_SUNW_SYMINFO = 0x6FFFFFFC
+    SHT_HISUNW = 0x6FFFFFFF
+    SHT_HIOS = 0x6FFFFFFF
 
     # Processor / application specific bounds
     SHT_LOPROC = 0x70000000
@@ -33,37 +54,6 @@ class SectionType(IntEnum):
     SHT_GNU_VERDEF = 0x6FFFFFFD
     SHT_GNU_VERNEED = 0x6FFFFFFE
     SHT_GNU_VERSYM = 0x6FFFFFFF
-
-    @classmethod
-    def _description_map(cls) -> dict[SectionType, str]:
-        return {
-            cls.SHT_NULL: "Inactive section header.",
-            cls.SHT_PROGBITS: "Program-defined data.",
-            cls.SHT_SYMTAB: "Full symbol table (mutually exclusive with SHT_DYNSYM).",
-            cls.SHT_STRTAB: "String table.",
-            cls.SHT_RELA: "Relocation entries with addends.",
-            cls.SHT_HASH: "Symbol hash table.",
-            cls.SHT_DYNAMIC: "Dynamic linking information.",
-            cls.SHT_NOTE: "Auxiliary information (notes).",
-            cls.SHT_NOBITS: "No file space; otherwise like PROGBITS (e.g. .bss).",
-            cls.SHT_REL: "Relocation entries without addends.",
-            cls.SHT_SHLIB: "Reserved (unspecified semantics).",
-            cls.SHT_DYNSYM: "Minimal dynamic linking symbol table.",
-            cls.SHT_INIT_ARRAY: "Pointers to initialization functions.",
-            cls.SHT_FINI_ARRAY: "Pointers to termination functions.",
-            cls.SHT_PREINIT_ARRAY: "Pointers to pre-initialization functions.",
-            cls.SHT_LOPROC: "Start of processor-specific range.",
-            cls.SHT_HIPROC: "End of processor-specific range.",
-            cls.SHT_LOUSER: "Start of application-specific range.",
-            cls.SHT_HIUSER: "End of application-specific range.",
-            cls.SHT_GNU_VERDEF: "GNU version definitions provided.",
-            cls.SHT_GNU_VERNEED: "GNU version requirements needed.",
-            cls.SHT_GNU_VERSYM: "GNU version symbol table.",
-        }
-
-    def describe(self: SectionType) -> str:
-        """Returns a human-readable description of the section type."""
-        return self._description_map().get(self, "Unknown section type.")
 
     @classmethod
     def from_value(cls, value: int) -> SectionType:
@@ -115,8 +105,7 @@ class Section:
         self.name = name
         self.section_type = SectionType.from_value(section_type_val)
         self.flags = flags
-        self.start = address
-        self.end = address + size
+        self.address = address
         self.offset = offset
         self.size = size
         self.address_align = address_align
@@ -126,6 +115,6 @@ class Section:
         """Return a developer-oriented string representation of the Section."""
         return (
             f'Section(name="{self.name}", section_type={self.section_type.name}, flags={self.flags}, '
-            f'address={self.start:#x}, offset={self.offset:#x}, size={self.size:#x}, '
+            f'address={self.address:#x}, offset={self.offset:#x}, size={self.size:#x}, '
             f'reference_file="{self.reference_file}")'
         )

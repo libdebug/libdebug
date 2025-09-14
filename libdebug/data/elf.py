@@ -184,7 +184,7 @@ class ELF:
                 section.name,
                 section.section_type.name,
                 section.flags,
-                f"{section.start:#x}",
+                f"{section.address:#x}",
                 f"{section.offset:#x}",
                 f"{section.size:#x}",
                 f"{section.address_align}",

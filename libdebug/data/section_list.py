@@ -13,7 +13,7 @@ class SectionList(list[Section]):
     """A list of sections in the target process."""
 
     def __init__(self: SectionList, sections: list[Section]) -> None:
-        """Initializes the SectionDict."""
+        """Initializes the SectionList."""
         super().__init__(sections)
 
     def _search_by_address(self: SectionList, address: int) -> list[Section]:
@@ -110,5 +110,5 @@ class SectionList(list[Section]):
         return super().__eq__(other)
 
     def __repr__(self: SectionList) -> str:
-        """Returns the string representation of the SectionDict without the default factory."""
+        """Returns the string representation of the SectionList without the default factory."""
         return f"SectionList({super().__repr__()})"

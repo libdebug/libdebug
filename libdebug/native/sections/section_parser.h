@@ -30,8 +30,36 @@ struct SectionInfo {
     std::string name;       // from .shstrtab
 };
 
+struct RawDynEnt {
+    int64_t tag;
+    uint64_t val; // raw d_un after endianness fix, widened
+};
+
+template <typename PhdrT>
+struct LoadSeg { uint64_t vaddr, memsz, off, filesz; };
+
+typedef enum DynSectionValueType {
+    DYN_VAL_NONE,
+    DYN_VAL_NUM,
+    DYN_VAL_STR,
+    DYN_VAL_ADDR
+} DynSectionValueType;
+
+struct DynamicSectionInfo {
+    std::string tag; // e.g. NEEDED
+    uint64_t val;    // e.g. 0x7f
+    std::string str; // e.g. "libc.so.6"
+    DynSectionValueType val_type; // type of val (e.g., number of bytes, string, address)
+};
+
 struct SectionTable {
     std::vector<SectionInfo> sections;
 
     static SectionTable parse_file(const char* filename);
+};
+
+struct DynamicSectionTable {
+    std::vector<DynamicSectionInfo> entries;
+
+    static DynamicSectionTable parse_file(const char* filename);
 };

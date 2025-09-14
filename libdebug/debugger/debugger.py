@@ -1183,3 +1183,7 @@ class Debugger:
         A list of the loaded shared libraries.
         """
         return self._internal_debugger.libraries
+
+    def pprint_binary_report(self: InternalDebugger) -> None:
+        """Pretty prints a report of the debugged binary."""
+        self._internal_debugger.pprint_binary_report()
