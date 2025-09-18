@@ -38,17 +38,19 @@ struct RawDynEnt {
 template <typename PhdrT>
 struct LoadSeg { uint64_t vaddr, memsz, off, filesz; };
 
-typedef enum DynSectionValueType {
+enum class DynSectionValueType {
     DYN_VAL_NONE,
     DYN_VAL_NUM,
     DYN_VAL_STR,
-    DYN_VAL_ADDR
-} DynSectionValueType;
+    DYN_VAL_ADDR,
+    DYN_VAL_FLAGS,
+    DYN_VAL_FLAGS1
+};
 
 struct DynamicSectionInfo {
     std::string tag; // e.g. NEEDED
     uint64_t val;    // e.g. 0x7f
-    std::string str; // e.g. "libc.so.6"
+    std::string val_str; // e.g. "libc.so.6"
     DynSectionValueType val_type; // type of val (e.g., number of bytes, string, address)
 };
 

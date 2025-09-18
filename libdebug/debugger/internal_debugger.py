@@ -2125,7 +2125,7 @@ class InternalDebugger:
                         and self.memory[start_segment.start : start_segment.start + 4] == b"\x7fELF"
                     )
 
-                    # We found an executable segment, if it's not from an ELF file, skip it
+                    # We found an executable segment, if it's not from  an ELF file, skip it
                     if not is_parsable_lib:
                         continue
 
@@ -2134,6 +2134,15 @@ class InternalDebugger:
             last_path = curr_map.backing_file
 
         return collected_libs
+
+    def _find_linked_libraries(self: InternalDebugger) -> list[str]:
+        """Finds all the linked shared libraries from the binary file.
+
+        Returns:
+            list[str]: A list of paths of each linked shared library.
+        """
+        needed_entries = self.binary.dynamic_section.filter("NEEDED")
+        return [entry.value for entry in needed_entries]
 
     @functools.cached_property
     def binary(self: InternalDebugger) -> ELF:
@@ -2160,8 +2169,11 @@ class InternalDebugger:
         for lib_path, base in found_libs:
 
             try:
-                parsed_libs.append(ELF.parse(lib_path, base, self))
-                liblog.debugger(f"Parsed library {lib_path} at base address {hex(base)}.")
+                curr = ELF.parse(lib_path, base, self)
+
+                if curr.soname is not None:
+                    parsed_libs.append(curr)
+                    liblog.debugger(f"Parsed library {lib_path} at base address {hex(base)}.")
             except Exception as e:
                 liblog.error(f"Could not parse library {lib_path}: {e}")
 
@@ -2185,12 +2197,15 @@ class InternalDebugger:
         table.add_row("Base Address", hex(self.binary.base_address) if self.is_debugging else "Process not yet traced")
         table.add_row("Build ID", self.binary.build_id if self.binary.build_id else "N/A")
         table.add_section()
-        # Libs in the form key -> path
-        libs = (
-            "\n".join(f"{Path(lib.path).name} ({lib.path})" for lib in self.libraries)
-            if self.is_debugging
-            else "Process not yet traced"
-        )
-        table.add_row("Loaded Libraries", libs)
+
+        if self.is_debugging:
+            # Libs in the form key -> path
+            libs = (
+                "\n".join(f"{lib.soname} ({lib.path})" for lib in self.libraries)
+            )
+            table.add_row("Loaded Libraries", libs)
+        else:
+            linked_libs = "\n".join(self._find_linked_libraries())
+            table.add_row("Linked Libraries", linked_libs if linked_libs else "None")
 
         console.print(table)

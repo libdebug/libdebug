@@ -13,10 +13,20 @@ from typing import TYPE_CHECKING
 from rich.console import Console
 from rich.table import Table
 
+from libdebug.data.dynamic_section import DynamicSection
+from libdebug.data.dynamic_section_list import DynamicSectionList
 from libdebug.data.section import Section
 from libdebug.data.section_list import SectionList
+from libdebug.native.libdebug_section_parser import DynSectionValueType
 from libdebug.utils.arch_mappings import map_arch
-from libdebug.utils.elf_utils import elf_architecture, get_elf_sections, get_endianness, get_entry_point, is_pie
+from libdebug.utils.elf_utils import (
+    elf_architecture,
+    get_elf_dynamic_sections,
+    get_elf_sections,
+    get_endianness,
+    get_entry_point,
+    is_pie,
+)
 
 if TYPE_CHECKING:
     from libdebug.data.symbol_list import SymbolList
@@ -56,6 +66,9 @@ class ELF:
 
     _sections: SectionList | None = None
     """List of sections in the ELF file."""
+
+    _dynamic_sections: DynamicSectionList | None = None
+    """List of dynamic sections in the ELF file."""
 
     _build_id: str | None = None
     """Build ID of the ELF file, if available."""
@@ -120,6 +133,31 @@ class ELF:
         return self._sections
 
     @property
+    def dynamic_sections(self: ELF) -> DynamicSectionList:
+        """The list of dynamic sections in the ELF file."""
+        if self._dynamic_sections is None:
+            table = get_elf_dynamic_sections(self.path)
+
+            parsed_dynamic_sections = [
+                DynamicSection(
+                    tag=dyn_section.tag,
+                    # Value can be either an int or a str depending on the type of the dynamic section
+                    value=(
+                        dyn_section.val
+                        if dyn_section.val_type
+                        not in (DynSectionValueType.STR, DynSectionValueType.FLAGS, DynSectionValueType.FLAGS1)
+                        else dyn_section.val_str
+                    ),
+                    is_value_address=dyn_section.val_type == DynSectionValueType.ADDR,
+                    reference_file=self.path,
+                )
+                for dyn_section in table.entries
+            ]
+
+            self._dynamic_sections = DynamicSectionList(parsed_dynamic_sections)
+        return self._dynamic_sections
+
+    @property
     def build_id(self: ELF) -> str | None:
         """The build ID of the ELF file, if available."""
         if self._build_id is not None:
@@ -160,11 +198,21 @@ class ELF:
             full_path_elf = Path(self.path)
 
             self._symbols = [
-                sym
-                for sym in self._internal_debugger.symbols
-                if full_path_elf.samefile(Path(sym.backing_file))
+                sym for sym in self._internal_debugger.symbols if full_path_elf.samefile(Path(sym.backing_file))
             ]
         return self._symbols
+
+    @property
+    def soname(self: ELF) -> str | None:
+        """The SONAME of the ELF file, if available.
+
+        Returns:
+            str | None: The SONAME of the shared object ELF file, or None if not a library.
+        """
+        soname_entries = self.dynamic_sections.filter("SONAME")
+        if len(soname_entries) > 0:
+            return soname_entries[0].value if isinstance(soname_entries[0].value, str) else None
+        return None
 
     def pprint_sections(self: ELF) -> None:
         """Pretty-prints the sections of the ELF file."""
@@ -192,7 +240,39 @@ class ELF:
 
         console.print(table)
 
+    def pprint_dynamic_sections(self: ELF) -> None:
+        """Pretty-prints the dynamic sections of the ELF file."""
+        console = Console()
+        table = Table(title=f"Dynamic Sections in {self.path}")
+
+        table.add_column("Tag", style="cyan", no_wrap=True)
+        table.add_column("Value", style="magenta")
+
+        for dyn_section in self.dynamic_sections:
+            if dyn_section.is_value_address and isinstance(dyn_section.value, int):
+                value_str = f"{dyn_section.value:#x}"
+            elif isinstance(dyn_section.value, str):
+                value_str = dyn_section.value
+            elif isinstance(dyn_section.value, int):
+                value_str = str(dyn_section.value)
+            else:
+                value_str = str(dyn_section.value)
+
+            table.add_row(dyn_section.tag, value_str)
+
+        console.print(table)
+
     def __repr__(self: ELF) -> str:
         """Return the string representation of the binary."""
         base_address_repr = f"{self._base_address:#x}" if self._base_address != 0x0 else "Not yet resolved"
-        return f"ELF(path={self.path}, base_address={base_address_repr}, entry_point={self.entry_point:#x}, is_pie={self.is_pie}, architecture={self.architecture}, endianness={self.endianness}, build_id={self.build_id})"
+        so_addition = f"soname={self.soname}, " if self.soname else ""
+
+        return (
+            f"ELF({so_addition}path={self.path}, base_address={base_address_repr}, "
+            f"entry_point={self.entry_point:#x}, "
+            f"is_pie={self.is_pie}, "
+            f"architecture={self.architecture}, "
+            f"endianness={self.endianness}, "
+            f"build_id={self.build_id})"
+        )
+

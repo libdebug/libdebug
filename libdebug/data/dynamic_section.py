@@ -32,4 +32,5 @@ class DynamicSection:
 
     def __repr__(self: DynamicSection) -> str:
         """Return a developer-oriented string representation of the DynamicSection."""
-        return f'DynamicSection(tag={self.tag}, value={self.value}, is_value_address={self.is_value_address}, reference_file="{self.reference_file}")'
+        value_repr = hex(self.value) if self.is_value_address else repr(self.value)
+        return f'DynamicSection(tag="{self.tag}", value={value_repr}, is_value_address={self.is_value_address}, reference_file="{self.reference_file}")'

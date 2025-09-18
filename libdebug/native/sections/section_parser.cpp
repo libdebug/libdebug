@@ -351,8 +351,57 @@ static const char* dt_tag_name(int64_t tag) {
         case DT_AUXILIARY:   return "AUXILIARY";
         case DT_LOPROC:       return "LOPROC";
         case DT_HIPROC:       return "HIPROC";
-        default:              return "UNKNOWN";
+        default:
+            static thread_local char buf[32];
+            std::snprintf(buf, sizeof(buf), "UNKNOWN_0x%" PRIx64, (uint64_t)tag);
+            return buf;
     }
+}
+
+static void dt_flags_str(uint64_t flags, std::string& out){
+    out.clear();
+    if (flags & DF_ORIGIN)      out += "ORIGIN ";
+    if (flags & DF_SYMBOLIC)    out += "SYMBOLIC ";
+    if (flags & DF_TEXTREL)     out += "TEXTREL ";
+    if (flags & DF_BIND_NOW)    out += "BIND_NOW ";
+    if (flags & DF_STATIC_TLS)  out += "STATIC_TLS ";
+    if (!out.empty()) out.pop_back(); // remove trailing space
+}
+
+static void dt_flags_1_str(uint64_t flags, std::string& out) {
+    out.clear();
+    if (flags & DF_1_NOW)        out += "NOW ";
+    if (flags & DF_1_GLOBAL)     out += "GLOBAL ";
+    if (flags & DF_1_GROUP)      out += "GROUP ";
+    if (flags & DF_1_NODELETE)   out += "NODELETE ";
+    if (flags & DF_1_LOADFLTR)   out += "LOADFLTR ";
+    if (flags & DF_1_INITFIRST)  out += "INITFIRST ";
+    if (flags & DF_1_NOOPEN)     out += "NOOPEN ";
+    if (flags & DF_1_ORIGIN)     out += "ORIGIN ";
+    if (flags & DF_1_DIRECT)     out += "DIRECT ";
+    if (flags & DF_1_TRANS)      out += "TRANS ";
+    if (flags & DF_1_INTERPOSE)  out += "INTERPOSE ";
+    if (flags & DF_1_NODEFLIB)   out += "NODEFLIB ";
+    if (flags & DF_1_NODUMP)     out += "NODUMP ";
+    if (flags & DF_1_CONFALT)    out += "CONFALT ";
+    if (flags & DF_1_ENDFILTEE)  out += "ENDFILTEE ";
+    if (flags & DF_1_DISPRELDNE) out += "DISPRELDNE ";
+    if (flags & DF_1_DISPRELPND) out += "DISPRELPND ";
+    if (flags & DF_1_NODIRECT)   out += "NODIRECT ";
+    if (flags & DF_1_IGNMULDEF)  out += "IGNMULDEF ";
+    if (flags & DF_1_NOKSYMS)    out += "NOKSYMS ";
+    if (flags & DF_1_NOHDR)      out += "NOHDR ";
+    if (flags & DF_1_EDITED)     out += "EDITED ";
+    if (flags & DF_1_NORELOC)    out += "NORELOC ";
+    if (flags & DF_1_SYMINTPOSE) out += "SYMINTPOSE ";
+    if (flags & DF_1_GLOBAUDIT)  out += "GLOBAUDIT ";
+    if (flags & DF_1_SINGLETON)  out += "SINGLETON ";
+    if (flags & DF_1_STUB)       out += "STUB ";
+    if (flags & DF_1_PIE)        out += "PIE ";
+    if (flags & DF_1_KMOD)       out += "KMOD ";
+    if (flags & DF_1_WEAKFILTER) out += "WEAKFILTER ";
+    if (flags & DF_1_NOCOMMON)   out += "NOCOMMON ";
+    if (!out.empty()) out.pop_back(); // remove trailing space
 }
 
 static DynSectionValueType dt_value_type(int64_t tag) {
@@ -364,7 +413,7 @@ static DynSectionValueType dt_value_type(int64_t tag) {
         case DT_RPATH:
         case DT_RUNPATH:
         case DT_AUXILIARY:
-            return DYN_VAL_STR;
+            return DynSectionValueType::DYN_VAL_STR;
 
         // Pointers / addresses
         case DT_PLTGOT:
@@ -386,7 +435,7 @@ static DynSectionValueType dt_value_type(int64_t tag) {
         case DT_RELR:
         case DT_SYMTAB_SHNDX:
         case DT_PREINIT_ARRAY:
-            return DYN_VAL_ADDR;
+            return DynSectionValueType::DYN_VAL_ADDR;
 
         // Sizes / counts / enums / flags
         case DT_PLTRELSZ:
@@ -401,7 +450,6 @@ static DynSectionValueType dt_value_type(int64_t tag) {
         case DT_BIND_NOW:
         case DT_INIT_ARRAYSZ:
         case DT_FINI_ARRAYSZ:
-        case DT_FLAGS:
         case DT_VERNEEDNUM:
         case DT_VERDEFNUM:
         case DT_NULL:
@@ -419,13 +467,16 @@ static DynSectionValueType dt_value_type(int64_t tag) {
         case DT_ADDRRNGHI:
         case DT_RELACOUNT:
         case DT_RELCOUNT:
-        case DT_FLAGS_1:
         case DT_LOPROC:
         case DT_HIPROC:
-            return DYN_VAL_NUM;
+            return DynSectionValueType::DYN_VAL_NUM;
+        case DT_FLAGS:
+            return DynSectionValueType::DYN_VAL_FLAGS;
+        case DT_FLAGS_1:
+            return DynSectionValueType::DYN_VAL_FLAGS1;
 
         default:
-            return DYN_VAL_NUM; // sensible default
+            return DynSectionValueType::DYN_VAL_NUM; // sensible default
     }
 }
 
@@ -538,12 +589,20 @@ static void parse_dynamic_64(const uint8_t* data, size_t sz, int swap, std::vect
         di.val = e.val;
         di.val_type = dt_value_type(e.tag);
 
-        if (di.val_type == DYN_VAL_STR && strtab && e.val < strtab_sz) {
+        if (di.val_type == DynSectionValueType::DYN_VAL_STR && strtab && e.val < strtab_sz) {
             const char* cand = strtab + (size_t)e.val;
             size_t remain = strtab_sz - (size_t)e.val;
             size_t k = 0;
             for (; k < remain && cand[k] != '\0'; ++k) {}
-            if (k < remain) di.str.assign(cand, k);
+            if (k < remain) di.val_str.assign(cand, k);
+        }
+        else if (di.val_type == DynSectionValueType::DYN_VAL_FLAGS)
+        {
+            dt_flags_str(e.val, di.val_str);
+        }
+        else if (di.val_type == DynSectionValueType::DYN_VAL_FLAGS1)
+        {
+            dt_flags_1_str(e.val, di.val_str);
         }
         out.push_back(std::move(di));
     }
@@ -607,12 +666,20 @@ static void parse_dynamic_32(const uint8_t* data, size_t sz, int swap, std::vect
         di.val = e.val;
         di.val_type = dt_value_type(e.tag);
 
-        if (di.val_type == DYN_VAL_STR && strtab && e.val < strtab_sz) {
+        if (di.val_type == DynSectionValueType::DYN_VAL_STR && strtab && e.val < strtab_sz) {
             const char* cand = strtab + (size_t)e.val;
             size_t remain = strtab_sz - (size_t)e.val;
             size_t k = 0;
             for (; k < remain && cand[k] != '\0'; ++k) {}
-            if (k < remain) di.str.assign(cand, k);
+            if (k < remain) di.val_str.assign(cand, k);
+        }
+        else if (di.val_type == DynSectionValueType::DYN_VAL_FLAGS)
+        {
+            dt_flags_str(e.val, di.val_str);
+        }
+        else if (di.val_type == DynSectionValueType::DYN_VAL_FLAGS1)
+        {
+            dt_flags_1_str(e.val, di.val_str);
         }
         out.push_back(std::move(di));
     }
@@ -686,24 +753,26 @@ NB_MODULE(libdebug_section_parser, m) {
                     nb::arg("elf_file_path"),
                     "Parse sections from an ELF file and return a SectionTable");
 
-     nb::enum_<DynSectionValueType>(m, "DynValueType")
-        .value("NONE", DYN_VAL_NONE)
-        .value("NUM", DYN_VAL_NUM)
-        .value("STR", DYN_VAL_STR)
-        .value("ADDR", DYN_VAL_ADDR);
+     nb::enum_<DynSectionValueType>(m, "DynSectionValueType")
+        .value("NONE", DynSectionValueType::DYN_VAL_NONE)
+        .value("NUM", DynSectionValueType::DYN_VAL_NUM)
+        .value("STR", DynSectionValueType::DYN_VAL_STR)
+        .value("ADDR", DynSectionValueType::DYN_VAL_ADDR)
+        .value("FLAGS", DynSectionValueType::DYN_VAL_FLAGS)
+        .value("FLAGS1", DynSectionValueType::DYN_VAL_FLAGS1);
 
     nb::class_<DynamicSectionInfo>(m, "DynamicEntry", "ELF DT_* dynamic entry")
         .def_ro("tag", &DynamicSectionInfo::tag, "Human-readable DT_* name (or 'UNKNOWN')")
         .def_ro("val", &DynamicSectionInfo::val, "Raw d_un value")
-        .def_ro("str", &DynamicSectionInfo::str, "Resolved string (if applicable)")
+        .def_ro("val_str", &DynamicSectionInfo::val_str, "Resolved string (if applicable)")
         .def_ro("val_type", &DynamicSectionInfo::val_type, "Type of value");
 
-    nb::class_<DynamicSectionTable>(m, "DynamicTable", "Container for ELF dynamic section entries")
+    nb::class_<DynamicSectionTable>(m, "DynamicSectionTable", "Container for ELF dynamic section entries")
         .def_prop_ro(
             "entries",
             [](const DynamicSectionTable& t) { return t.entries; },
             "List of DT_* entries in file order")
         .def_static("from_file", &DynamicSectionTable::parse_file,
                     nb::arg("elf_file_path"),
-                    "Parse DT_* entries from an ELF file and return a DynamicTable");
+                    "Parse DT_* entries from an ELF file and return a DynamicSectionTable");
 }

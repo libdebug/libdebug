@@ -18,7 +18,7 @@ from libdebug.data.symbol import Symbol
 from libdebug.data.symbol_list import SymbolList
 from libdebug.liblog import liblog
 from libdebug.native import libdebug_debug_sym_parser
-from libdebug.native.libdebug_section_parser import Section, SectionTable
+from libdebug.native.libdebug_section_parser import DynamicSectionTable, SectionTable
 from libdebug.utils.libcontext import libcontext
 
 if TYPE_CHECKING:
@@ -322,6 +322,7 @@ def elf_architecture(path: str) -> str:
     """
     return parse_elf_characteristics(path)[2]
 
+
 def get_endianness(path: str) -> str:
     """Returns the endianness of the specified ELF file.
 
@@ -332,6 +333,7 @@ def get_endianness(path: str) -> str:
         str: The endianness of the specified ELF file.
     """
     return parse_elf_characteristics(path)[3]
+
 
 def resolve_argv_path(argv_path: str) -> str:
     """Resolve the path of the binary to debug.
@@ -386,3 +388,16 @@ def get_elf_sections(path: str) -> SectionTable:
         SectionTable: The sections of the specified ELF file.
     """
     return SectionTable.from_file(path)
+
+
+@functools.cache
+def get_elf_dynamic_sections(path: str) -> DynamicSectionTable:
+    """Returns the dynamic sections of the specified ELF file.
+
+    Args:
+        path (str): The path to the ELF file.
+
+    Returns:
+        DynamicSectionTable: The dynamic sections of the specified ELF file.
+    """
+    return DynamicSectionTable.from_file(path)
