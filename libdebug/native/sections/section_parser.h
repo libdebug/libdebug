@@ -4,7 +4,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for details.
 //
 
-
 #pragma once
 
 #include <cinttypes>
@@ -15,6 +14,8 @@
 #include <string>
 #include <vector>
 #include <elf.h>
+
+#include "../utils/binary_utils.h"
 
 struct SectionInfo {
     uint16_t index = 0;
@@ -44,7 +45,9 @@ enum class DynSectionValueType {
     DYN_VAL_STR,
     DYN_VAL_ADDR,
     DYN_VAL_FLAGS,
-    DYN_VAL_FLAGS1
+    DYN_VAL_FLAGS1,
+    DYN_VAL_FEATURES,
+    DYN_VAL_POSFLAG1
 };
 
 struct DynamicSectionInfo {

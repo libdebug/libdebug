@@ -1,3 +1,4 @@
+//
 // This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
 // Copyright (c) 2025 Francesco Panebianco. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for details.
@@ -8,22 +9,6 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h> 
-
-static int host_is_le(void) {
-    uint16_t x = 1;
-    return *(uint8_t*)&x == 1;
-}
-
-static uint16_t bswap16(uint16_t x){ return (uint16_t)((x<<8)|(x>>8)); }
-static uint32_t bswap32(uint32_t x){ return ((x&0x000000FFu)<<24)|((x&0x0000FF00u)<<8)|((x&0x00FF0000u)>>8)|((x&0xFF000000u)>>24); }
-static uint64_t bswap64(uint64_t x){
-    return ((uint64_t)bswap32((uint32_t)(x&0xFFFFFFFFull))<<32) | (uint64_t)bswap32((uint32_t)(x>>32));
-}
-static uint16_t maybe16(uint16_t v, int swap){ return swap ? bswap16(v) : v; }
-static uint32_t maybe32(uint32_t v, int swap){ return swap ? bswap32(v) : v; }
-static uint64_t maybe64(uint64_t v, int swap){ return swap ? bswap64(v) : v; }
-
-static int is_p2(uint64_t x){ return x && ((x & (x - 1)) == 0); }
 
 static void flags_str(uint64_t f, char out[16]){
     char *p = out;
@@ -44,25 +29,6 @@ static void flags_str(uint64_t f, char out[16]){
     if (f & SHF_EXCLUDE)    *p++='E';
 #endif
     *p = '\0';
-}
-
-static void read_file_or_throw(const char *path, std::vector<uint8_t> &buf){
-    FILE *f = fopen(path, "rb");
-    if (!f) throw std::runtime_error("Failed to open ELF file for section parsing");
-    if (fseek(f, 0, SEEK_END)) { fclose(f); throw std::runtime_error("fseek failed"); }
-    long n = ftell(f);
-    if (n < 0) { fclose(f); throw std::runtime_error("ftell failed"); }
-    if (fseek(f, 0, SEEK_SET)) { fclose(f); throw std::runtime_error("fseek failed"); }
-    buf.resize(n > 0 ? (size_t)n : 1);
-    size_t rd = fread(buf.data(), 1, buf.size(), f);
-    fclose(f);
-    if (rd != buf.size()) throw std::runtime_error("Short read");
-}
-
-static int in_bounds(size_t off, size_t len, size_t file_sz){
-    if (off > file_sz) return 0;
-    if (len > file_sz - off) return 0;
-    return 1;
 }
 
 // Forward decls now take an output vector instead of printing
@@ -289,74 +255,87 @@ static void internal_parse_elf_sections(const uint8_t *data, size_t sz, std::vec
 
 // -------------------- Dynamic section parsing --------------------
 
-#define OLD_DT_LOOS	0x60000000
-#define OLD_DT_HIOS     0x6fffffff
-
 static const char* dt_tag_name(int64_t tag) {
     switch (tag) {
-        case DT_NULL:        return "NULL";
-        case DT_NEEDED:      return "NEEDED";
-        case DT_PLTRELSZ:    return "PLTRELSZ";
-        case DT_PLTGOT:      return "PLTGOT";
-        case DT_HASH:        return "HASH";
-        case DT_STRTAB:      return "STRTAB";
-        case DT_SYMTAB:      return "SYMTAB";
-        case DT_RELA:        return "RELA";
-        case DT_RELASZ:      return "RELASZ";
-        case DT_RELAENT:     return "RELAENT";
-        case DT_STRSZ:       return "STRSZ";
-        case DT_SYMENT:      return "SYMENT";
-        case DT_INIT:        return "INIT";
-        case DT_FINI:        return "FINI";
-        case DT_SONAME:      return "SONAME";
-        case DT_RPATH:       return "RPATH";
-        case DT_SYMBOLIC:    return "SYMBOLIC";
-        case DT_REL:         return "REL";
-        case DT_RELSZ:       return "RELSZ";
-        case DT_RELENT:      return "RELENT";
-        case DT_PLTREL:      return "PLTREL";
-        case DT_DEBUG:       return "DEBUG";
-        case DT_TEXTREL:     return "TEXTREL";
-        case DT_JMPREL:      return "JMPREL";
-        case DT_BIND_NOW:    return "BIND_NOW";
-        case DT_INIT_ARRAY:  return "INIT_ARRAY";
-        case DT_FINI_ARRAY:  return "FINI_ARRAY";
-        case DT_INIT_ARRAYSZ: return "INIT_ARRAYSZ";
-        case DT_FINI_ARRAYSZ: return "FINI_ARRAYSZ";
-        case DT_RUNPATH:      return "RUNPATH";
-        case DT_FLAGS:        return "FLAGS";
-        case DT_PREINIT_ARRAY: return "PREINIT_ARRAY";
+        case DT_NULL:            return "NULL";
+        case DT_NEEDED:          return "NEEDED";
+        case DT_PLTRELSZ:        return "PLTRELSZ";
+        case DT_PLTGOT:          return "PLTGOT";
+        case DT_HASH:            return "HASH";
+        case DT_STRTAB:          return "STRTAB";
+        case DT_SYMTAB:          return "SYMTAB";
+        case DT_RELA:            return "RELA";
+        case DT_RELASZ:          return "RELASZ";
+        case DT_RELAENT:         return "RELAENT";
+        case DT_STRSZ:           return "STRSZ";
+        case DT_SYMENT:          return "SYMENT";
+        case DT_INIT:            return "INIT";
+        case DT_FINI:            return "FINI";
+        case DT_SONAME:          return "SONAME";
+        case DT_RPATH:           return "RPATH";
+        case DT_SYMBOLIC:        return "SYMBOLIC";
+        case DT_REL:             return "REL";
+        case DT_RELSZ:           return "RELSZ";
+        case DT_RELENT:          return "RELENT";
+        case DT_PLTREL:          return "PLTREL";
+        case DT_DEBUG:           return "DEBUG";
+        case DT_TEXTREL:         return "TEXTREL";
+        case DT_JMPREL:          return "JMPREL";
+        case DT_BIND_NOW:        return "BIND_NOW";
+        case DT_INIT_ARRAY:      return "INIT_ARRAY";
+        case DT_FINI_ARRAY:      return "FINI_ARRAY";
+        case DT_INIT_ARRAYSZ:    return "INIT_ARRAYSZ";
+        case DT_FINI_ARRAYSZ:    return "FINI_ARRAYSZ";
+        case DT_RUNPATH:         return "RUNPATH";
+        case DT_FLAGS:           return "FLAGS";
+        case DT_PREINIT_ARRAY:   return "PREINIT_ARRAY";
         case DT_PREINIT_ARRAYSZ: return "PREINIT_ARRAYSZ";
-        case DT_SYMTAB_SHNDX: return "SYMTAB_SHNDX";
-        case DT_RELRSZ:       return "RELRSZ";
-        case DT_RELR:         return "RELR";
-        case DT_RELRENT:      return "RELRENT";
-        case DT_NUM:          return "NUM";
-        case OLD_DT_LOOS:     return "OLD_LOOS";
-        case DT_LOOS:         return "LOOS";
-        case DT_HIOS:         return "HIOS";
-        case DT_VALRNGLO:     return "VALRNGLO";
-        case DT_VALRNGHI:     return "VALRNGHI";
-        case DT_ADDRRNGLO:    return "ADDRRNGLO";
-        case DT_GNU_HASH:     return "GNU_HASH";
-        case DT_ADDRRNGHI:    return "ADDRRNGHI";
-        case DT_VERSYM:       return "VERSYM";
-        case DT_RELACOUNT:    return "RELACOUNT";
-        case DT_RELCOUNT:     return "RELCOUNT";
-        case DT_FLAGS_1:      return "FLAGS_1";
-        case DT_VERDEF:       return "VERDEF";
-        case DT_VERDEFNUM:    return "VERDEFNUM";
-        case DT_VERNEED:      return "VERNEED";
-        case DT_VERNEEDNUM:   return "VERNEEDNUM";
-        case DT_AUXILIARY:   return "AUXILIARY";
-        case DT_LOPROC:       return "LOPROC";
-        case DT_HIPROC:       return "HIPROC";
+        case DT_NUM:             return "NUM";
+
+        // GNU / Extensions
+        case DT_GNU_PRELINKED:   return "GNU_PRELINKED";
+        case DT_GNU_CONFLICTSZ:  return "GNU_CONFLICTSZ";
+        case DT_GNU_LIBLISTSZ:   return "GNU_LIBLISTSZ";
+        case DT_CHECKSUM:        return "CHECKSUM";
+        case DT_PLTPADSZ:        return "PLTPADSZ";
+        case DT_MOVEENT:         return "MOVEENT";
+        case DT_MOVESZ:          return "MOVESZ";
+        case DT_SYMINSZ:         return "SYMINSZ";
+        case DT_SYMINENT:        return "SYMINENT";
+        case DT_RELACOUNT:       return "RELACOUNT";
+        case DT_RELCOUNT:        return "RELCOUNT";
+        case DT_FLAGS_1:         return "FLAGS_1";
+        case DT_VERDEF:          return "VERDEF";
+        case DT_VERDEFNUM:       return "VERDEFNUM";
+        case DT_VERNEED:         return "VERNEED";
+        case DT_VERNEEDNUM:      return "VERNEEDNUM";
+        case DT_VERSYM:          return "VERSYM";
+        case DT_AUXILIARY:       return "AUXILIARY";
+        case DT_FILTER:          return "FILTER";
+        case DT_GNU_HASH:        return "GNU_HASH";
+        case DT_CONFIG:          return "CONFIG";
+        case DT_DEPAUDIT:        return "DEPAUDIT";
+        case DT_AUDIT:           return "AUDIT";
+        case DT_PLTPAD:          return "PLTPAD";
+        case DT_MOVETAB:         return "MOVETAB";
+        case DT_SYMINFO:         return "SYMINFO";
+        case DT_RELRSZ:          return "RELRSZ";
+        case DT_RELR:            return "RELR";
+        case DT_RELRENT:         return "RELRENT";
+        case DT_TLSDESC_PLT:     return "TLSDESC_PLT";
+        case DT_TLSDESC_GOT:     return "TLSDESC_GOT";
+        case DT_GNU_CONFLICT:    return "GNU_CONFLICT";
+        case DT_FEATURE_1:       return "FEATURE_1";
+        case DT_POSFLAG_1:       return "POSFLAG_1";
+        case DT_SYMTAB_SHNDX:    return "SYMTAB_SHNDX";
+
         default:
             static thread_local char buf[32];
             std::snprintf(buf, sizeof(buf), "UNKNOWN_0x%" PRIx64, (uint64_t)tag);
             return buf;
     }
 }
+
 
 static void dt_flags_str(uint64_t flags, std::string& out){
     out.clear();
@@ -404,15 +383,29 @@ static void dt_flags_1_str(uint64_t flags, std::string& out) {
     if (!out.empty()) out.pop_back(); // remove trailing space
 }
 
+static void dt_features_str(uint64_t features, std::string& out) {
+    out.clear();
+    if (features & DTF_1_PARINIT)   out += "PARINIT ";
+    if (features & DTF_1_CONFEXP)   out += "CONFEXP ";
+    if (!out.empty()) out.pop_back(); // remove trailing space
+}
+
+static void dt_posflag_str(uint64_t posflags, std::string& out) {
+    out.clear();
+    if (posflags & DF_P1_LAZYLOAD)  out += "LAZYLOAD ";
+    if (posflags & DF_P1_GROUPPERM) out += "GROUPPERM ";
+    if (!out.empty()) out.pop_back(); // remove trailing space
+}
+
 static DynSectionValueType dt_value_type(int64_t tag) {
     switch (tag) {
-        
         // String-table offsets (need STRTAB)
         case DT_NEEDED:
         case DT_SONAME:
         case DT_RPATH:
         case DT_RUNPATH:
         case DT_AUXILIARY:
+        case DT_FILTER:
             return DynSectionValueType::DYN_VAL_STR;
 
         // Pointers / addresses
@@ -435,6 +428,15 @@ static DynSectionValueType dt_value_type(int64_t tag) {
         case DT_RELR:
         case DT_SYMTAB_SHNDX:
         case DT_PREINIT_ARRAY:
+        case DT_TLSDESC_PLT:
+        case DT_TLSDESC_GOT:
+        case DT_GNU_CONFLICT:
+        case DT_CONFIG:
+        case DT_DEPAUDIT:
+        case DT_AUDIT:
+        case DT_PLTPAD:
+        case DT_MOVETAB:
+        case DT_SYMINFO:
             return DynSectionValueType::DYN_VAL_ADDR;
 
         // Sizes / counts / enums / flags
@@ -458,22 +460,26 @@ static DynSectionValueType dt_value_type(int64_t tag) {
         case DT_RELRSZ:
         case DT_RELRENT:
         case DT_NUM:
-        case OLD_DT_LOOS:
-        case DT_LOOS:
-        case DT_HIOS:
-        case DT_VALRNGLO:
-        case DT_VALRNGHI:
-        case DT_ADDRRNGLO:
-        case DT_ADDRRNGHI:
+        case DT_GNU_PRELINKED:
+        case DT_GNU_CONFLICTSZ:
+        case DT_GNU_LIBLISTSZ:
+        case DT_CHECKSUM:
+        case DT_PLTPADSZ:
+        case DT_MOVEENT:
+        case DT_MOVESZ:
+        case DT_SYMINSZ:
+        case DT_SYMINENT:
         case DT_RELACOUNT:
         case DT_RELCOUNT:
-        case DT_LOPROC:
-        case DT_HIPROC:
             return DynSectionValueType::DYN_VAL_NUM;
         case DT_FLAGS:
             return DynSectionValueType::DYN_VAL_FLAGS;
         case DT_FLAGS_1:
             return DynSectionValueType::DYN_VAL_FLAGS1;
+        case DT_FEATURE_1:
+            return DynSectionValueType::DYN_VAL_FEATURES;
+        case DT_POSFLAG_1:
+            return DynSectionValueType::DYN_VAL_POSFLAG1;
 
         default:
             return DynSectionValueType::DYN_VAL_NUM; // sensible default
@@ -604,6 +610,14 @@ static void parse_dynamic_64(const uint8_t* data, size_t sz, int swap, std::vect
         {
             dt_flags_1_str(e.val, di.val_str);
         }
+        else if (di.val_type == DynSectionValueType::DYN_VAL_FEATURES)
+        {
+            dt_features_str(e.val, di.val_str);
+        }
+        else if (di.val_type == DynSectionValueType::DYN_VAL_POSFLAG1)
+        {
+            dt_posflag_str(e.val, di.val_str);
+        }
         out.push_back(std::move(di));
     }
 }
@@ -680,6 +694,14 @@ static void parse_dynamic_32(const uint8_t* data, size_t sz, int swap, std::vect
         else if (di.val_type == DynSectionValueType::DYN_VAL_FLAGS1)
         {
             dt_flags_1_str(e.val, di.val_str);
+        }
+        else if (di.val_type == DynSectionValueType::DYN_VAL_FEATURES)
+        {
+            dt_features_str(e.val, di.val_str);
+        }
+        else if (di.val_type == DynSectionValueType::DYN_VAL_POSFLAG1)
+        {
+            dt_posflag_str(e.val, di.val_str);
         }
         out.push_back(std::move(di));
     }
@@ -759,7 +781,9 @@ NB_MODULE(libdebug_section_parser, m) {
         .value("STR", DynSectionValueType::DYN_VAL_STR)
         .value("ADDR", DynSectionValueType::DYN_VAL_ADDR)
         .value("FLAGS", DynSectionValueType::DYN_VAL_FLAGS)
-        .value("FLAGS1", DynSectionValueType::DYN_VAL_FLAGS1);
+        .value("FLAGS1", DynSectionValueType::DYN_VAL_FLAGS1)
+        .value("FEATURES", DynSectionValueType::DYN_VAL_FEATURES)
+        .value("POSFLAG1", DynSectionValueType::DYN_VAL_POSFLAG1);
 
     nb::class_<DynamicSectionInfo>(m, "DynamicEntry", "ELF DT_* dynamic entry")
         .def_ro("tag", &DynamicSectionInfo::tag, "Human-readable DT_* name (or 'UNKNOWN')")
