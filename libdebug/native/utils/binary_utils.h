@@ -7,6 +7,12 @@
 # pragma once
 
 #include <cinttypes>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 int host_is_le(void);
 

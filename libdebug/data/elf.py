@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import functools
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -15,6 +16,8 @@ from rich.table import Table
 
 from libdebug.data.dynamic_section import DynamicSection
 from libdebug.data.dynamic_section_list import DynamicSectionList
+from libdebug.data.program_header import ProgramHeader
+from libdebug.data.program_header_list import ProgramHeaderList
 from libdebug.data.section import Section
 from libdebug.data.section_list import SectionList
 from libdebug.native.libdebug_section_parser import DynSectionValueType
@@ -22,6 +25,7 @@ from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.elf_utils import (
     elf_architecture,
     get_elf_dynamic_sections,
+    get_elf_program_headers,
     get_elf_sections,
     get_endianness,
     get_entry_point,
@@ -70,6 +74,9 @@ class ELF:
     _dynamic_sections: DynamicSectionList | None = None
     """List of dynamic sections in the ELF file."""
 
+    _program_headers: ProgramHeaderList | None = None
+    """List of program headers in the ELF file."""
+
     _build_id: str | None = None
     """Build ID of the ELF file, if available."""
 
@@ -108,6 +115,11 @@ class ELF:
             _base_address=base_address,
             _internal_debugger=internal_debugger,
         )
+
+    @functools.cached_property
+    def size(self: ELF) -> int:
+        """The size of the ELF file in bytes."""
+        return Path(self.path).stat().st_size
 
     @property
     def sections(self: ELF) -> SectionList:
@@ -214,6 +226,31 @@ class ELF:
             return soname_entries[0].value if isinstance(soname_entries[0].value, str) else None
         return None
 
+    @property
+    def program_headers(self: ELF) -> ProgramHeaderList:
+        """The program headers of the ELF file."""
+        if self._program_headers is None:
+            table = get_elf_program_headers(self.path)
+
+            parsed_program_headers = [
+                ProgramHeader(
+                    header_type=ph_info.type,
+                    offset=ph_info.offset,
+                    vaddr=ph_info.vaddr,
+                    paddr=ph_info.paddr,
+                    filesz=ph_info.filesz,
+                    memsz=ph_info.memsz,
+                    flags=ph_info.flags,
+                    align=ph_info.align,
+                    reference_file=self.path,
+                )
+                for ph_info in table.headers
+            ]
+
+            self._program_headers = ProgramHeaderList(parsed_program_headers)
+
+        return self._program_headers
+
     def pprint_sections(self: ELF) -> None:
         """Pretty-prints the sections of the ELF file."""
         console = Console()
@@ -262,6 +299,34 @@ class ELF:
 
         console.print(table)
 
+    def pprint_program_headers(self: ELF) -> None:
+        """Pretty-prints the program headers of the ELF file."""
+        console = Console()
+        table = Table(title=f"Program Headers in {self.path}")
+
+        table.add_column("Type", style="cyan", no_wrap=True)
+        table.add_column("Offset", style="magenta")
+        table.add_column("Vaddr", style="green")
+        table.add_column("Paddr", style="yellow")
+        table.add_column("Filesz", style="blue")
+        table.add_column("Memsz", style="red")
+        table.add_column("Flags", style="white")
+        table.add_column("Align", style="white")
+
+        for ph in self.program_headers:
+            table.add_row(
+                ph.header_type,
+                f"{ph.offset:#x}",
+                f"{ph.vaddr:#x}",
+                f"{ph.paddr:#x}",
+                f"{ph.filesz:#x}",
+                f"{ph.memsz:#x}",
+                ph.flags,
+                f"{ph.align:#x}",
+            )
+
+        console.print(table)
+
     def __repr__(self: ELF) -> str:
         """Return the string representation of the binary."""
         base_address_repr = f"{self._base_address:#x}" if self._base_address != 0x0 else "Not yet resolved"
@@ -275,4 +340,3 @@ class ELF:
             f"endianness={self.endianness}, "
             f"build_id={self.build_id})"
         )
-

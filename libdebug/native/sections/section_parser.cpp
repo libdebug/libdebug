@@ -255,7 +255,31 @@ static void internal_parse_elf_sections(const uint8_t *data, size_t sz, std::vec
 
 // -------------------- Dynamic section parsing --------------------
 
-static const char* dt_tag_name(int64_t tag) {
+static const char* dt_tag_name(int64_t tag, uint16_t e_machine) {
+    if (e_machine == EM_AARCH64) {
+        // AArch64-specific DT_* tags
+        switch (tag) {
+            case DT_AARCH64_BTI_PLT:      return "AARCH64_BTI_PLT";
+            case DT_AARCH64_PAC_PLT:      return "AARCH64_PAC_PLT";
+            case DT_AARCH64_VARIANT_PCS:  return "AARCH64_VARIANT_PCS";
+            default:
+                // Fall through to generic handling below
+                break;
+        }
+    }
+    else if (e_machine == EM_X86_64)
+    {
+        // x86-64 specific DT_* tags
+        switch (tag) {
+            case DT_X86_64_PLT:      return "X86_64_PLT";
+            case DT_X86_64_PLTSZ:    return "X86_64_PLTSZ";
+            case DT_X86_64_PLTENT:   return "X86_64_PLTENT";
+            default:
+                // Fall through to generic handling below
+                break;
+        }
+    }
+
     switch (tag) {
         case DT_NULL:            return "NULL";
         case DT_NEEDED:          return "NEEDED";
@@ -290,7 +314,6 @@ static const char* dt_tag_name(int64_t tag) {
         case DT_FLAGS:           return "FLAGS";
         case DT_PREINIT_ARRAY:   return "PREINIT_ARRAY";
         case DT_PREINIT_ARRAYSZ: return "PREINIT_ARRAYSZ";
-        case DT_NUM:             return "NUM";
 
         // GNU / Extensions
         case DT_GNU_PRELINKED:   return "GNU_PRELINKED";
@@ -397,7 +420,32 @@ static void dt_posflag_str(uint64_t posflags, std::string& out) {
     if (!out.empty()) out.pop_back(); // remove trailing space
 }
 
-static DynSectionValueType dt_value_type(int64_t tag) {
+static DynSectionValueType dt_value_type(int64_t tag, uint16_t e_machine) {
+    if (e_machine == EM_AARCH64) {
+        switch (tag)
+        {
+            case DT_AARCH64_BTI_PLT:
+            case DT_AARCH64_PAC_PLT:
+                return DynSectionValueType::DYN_VAL_FLAGS; // bitflags
+            case DT_AARCH64_VARIANT_PCS:
+                return DynSectionValueType::DYN_VAL_NUM; // enum
+            default:
+                break;
+        }
+    }
+    else if (e_machine == EM_X86_64)
+    {
+        switch (tag)
+        {
+            case DT_X86_64_PLT:
+            case DT_X86_64_PLTSZ:
+            case DT_X86_64_PLTENT:
+                return DynSectionValueType::DYN_VAL_NUM; // sizes / enum
+            default:
+                break;
+        }
+    }
+
     switch (tag) {
         // String-table offsets (need STRTAB)
         case DT_NEEDED:
@@ -459,7 +507,6 @@ static DynSectionValueType dt_value_type(int64_t tag) {
         case DT_PREINIT_ARRAYSZ:
         case DT_RELRSZ:
         case DT_RELRENT:
-        case DT_NUM:
         case DT_GNU_PRELINKED:
         case DT_GNU_CONFLICTSZ:
         case DT_GNU_LIBLISTSZ:
@@ -588,12 +635,14 @@ static void parse_dynamic_64(const uint8_t* data, size_t sz, int swap, std::vect
         }
     }
 
+    uint16_t e_machine = maybe16(eh->e_machine, swap);
+
     out.reserve(out.size() + raw.size());
     for (const auto& e : raw) {
         DynamicSectionInfo di;
-        di.tag = dt_tag_name(e.tag);
+        di.tag = dt_tag_name(e.tag, e_machine);
         di.val = e.val;
-        di.val_type = dt_value_type(e.tag);
+        di.val_type = dt_value_type(e.tag, e_machine);
 
         if (di.val_type == DynSectionValueType::DYN_VAL_STR && strtab && e.val < strtab_sz) {
             const char* cand = strtab + (size_t)e.val;
@@ -673,12 +722,14 @@ static void parse_dynamic_32(const uint8_t* data, size_t sz, int swap, std::vect
         }
     }
 
+    uint16_t e_machine = maybe16(eh->e_machine, swap);
+
     out.reserve(out.size() + raw.size());
     for (const auto& e : raw) {
         DynamicSectionInfo di;
-        di.tag = dt_tag_name(e.tag);
+        di.tag = dt_tag_name(e.tag, e_machine);
         di.val = e.val;
-        di.val_type = dt_value_type(e.tag);
+        di.val_type = dt_value_type(e.tag, e_machine);
 
         if (di.val_type == DynSectionValueType::DYN_VAL_STR && strtab && e.val < strtab_sz) {
             const char* cand = strtab + (size_t)e.val;

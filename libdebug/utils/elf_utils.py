@@ -18,6 +18,7 @@ from libdebug.data.symbol import Symbol
 from libdebug.data.symbol_list import SymbolList
 from libdebug.liblog import liblog
 from libdebug.native import libdebug_debug_sym_parser
+from libdebug.native.libdebug_program_header_parser import ProgramHeaderTable
 from libdebug.native.libdebug_section_parser import DynamicSectionTable, SectionTable
 from libdebug.utils.libcontext import libcontext
 
@@ -401,3 +402,15 @@ def get_elf_dynamic_sections(path: str) -> DynamicSectionTable:
         DynamicSectionTable: The dynamic sections of the specified ELF file.
     """
     return DynamicSectionTable.from_file(path)
+
+@functools.cache
+def get_elf_program_headers(path: str) -> ProgramHeaderTable:
+    """Returns the program headers of the specified ELF file.
+
+    Args:
+        path (str): The path to the ELF file.
+
+    Returns:
+        ProgramHeaderTable: The program headers of the specified ELF file.
+    """
+    return ProgramHeaderTable.from_file(path)
