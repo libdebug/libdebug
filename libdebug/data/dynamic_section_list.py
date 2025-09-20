@@ -13,43 +13,43 @@ class DynamicSectionList(list[DynamicSection]):
     """A list of dynamic sections in the target process."""
 
     def __init__(self: DynamicSectionList, sections: list[DynamicSection]) -> None:
-        """Initializes the DynamicSection dict."""
+        """Initializes the DynamicSection list."""
         super().__init__(sections)
 
-    def _search_by_tag(self: DynamicSection, name: str) -> list[DynamicSection]:
-        """Searches for a dynamic section by name.
+    def _search_by_tag(self: DynamicSection, tag: str) -> list[DynamicSection]:
+        """Searches for a dynamic section by tag.
 
         Args:
-            name (str): The tag of the dynamic section to search for.
+            tag (str): The tag of the dynamic section to search for.
 
         Returns:
-            list[Section]: The list of sections that match the specified name.
+            list[DynamicSection]: The list of sections that match the specified tag.
         """
         exact_match = []
         no_exact_match = []
-        # We first want to list the sections that exactly match the name
-        for section in self:
-            if section.name == name:
-                exact_match.append(section)
-            elif name in section.name:
-                no_exact_match.append(section)
+        # We first want to list the sections that exactly match the tag
+        for dyn_section in self:
+            if dyn_section.tag == tag:
+                exact_match.append(dyn_section)
+            elif tag in dyn_section.tag:
+                no_exact_match.append(dyn_section)
         return exact_match + no_exact_match
 
     def filter(self: DynamicSectionList, tag: str) -> DynamicSectionList[DynamicSection]:
-        """Filters the sections according to the specified tag.
+        """Filters the dynamic sections according to the specified tag.
 
         Args:
             tag (str): The tag of the dynamic section to find.
 
         Returns:
-            SectionList[Section]: The sections matching the specified tag.
+            SectionList[DynamicSection]: The dynamic sections matching the specified tag.
         """
         if isinstance(tag, str):
-            filtered_sections = self._search_by_tag(tag)
+            filtered_dyn_sections = self._search_by_tag(tag)
         else:
-            raise TypeError("The value must be an integer or a string.")
+            raise TypeError("The value must be a string.")
 
-        return DynamicSectionList(filtered_sections)
+        return DynamicSectionList(filtered_dyn_sections)
 
     def __hash__(self) -> int:
         """Return the hash of the dynamic section list."""
