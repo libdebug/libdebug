@@ -1787,7 +1787,7 @@ class InternalDebugger:
             raise RuntimeError("Process not running, cannot access memory.")
 
         if self.running:
-            # Reading memory while the process is running could lead to concurrency issues
+            # Writing memory while the process is running could lead to concurrency issues
             # and corrupted values
             liblog.debugger(
                 "Process is running. Waiting for it to stop before writing to memory.",
@@ -1807,7 +1807,7 @@ class InternalDebugger:
             raise RuntimeError("Process not running, cannot access memory.")
 
         if self.running:
-            # Reading memory while the process is running could lead to concurrency issues
+            # Writing memory while the process is running could lead to concurrency issues
             # and corrupted values
             liblog.debugger(
                 "Process is running. Waiting for it to stop before writing to memory.",
