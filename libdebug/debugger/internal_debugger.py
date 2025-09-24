@@ -1768,14 +1768,15 @@ class InternalDebugger:
         if not self.is_debugging:
             raise RuntimeError("Process not running, cannot access memory.")
 
-        if self.running:
-            # Reading memory while the process is running could lead to concurrency issues
-            # and corrupted values
-            liblog.debugger(
-                "Process is running. Waiting for it to stop before reading memory.",
-            )
+        if not self._is_in_background():
+            if self.running:
+                # Reading memory while the process is running could lead to concurrency issues
+                # and corrupted values
+                liblog.debugger(
+                    "Process is running. Waiting for it to stop before reading memory.",
+                )
 
-        self._ensure_process_stopped()
+            self._ensure_process_stopped()
 
         return self._process_memory_manager.read(address, size)
 
