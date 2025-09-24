@@ -11,7 +11,8 @@ from unittest import TestCase
 from utils.binary_utils import RESOLVE_EXE, base_of
 from utils.thread_utils import FUN_ARG_0, STACK_POINTER
 
-from libdebug import debugger
+from libdebug import debugger, libcontext
+from libdebug.liblog import liblog
 from libdebug.memory.chunked_memory_view import ChunkedMemoryView
 from libdebug.memory.direct_memory_view import DirectMemoryView
 from libdebug.utils.libcontext import libcontext
@@ -840,6 +841,41 @@ class MemoryTest(TestCase):
         self.assertIn("max_str_len must be greater than 0.", str(cm.exception))
 
         d.wait()
+
+        d.kill()
+        d.terminate()
+
+    def test_memory_access_in_callback(self):
+        d = debugger(RESOLVE_EXE("memory_test_3"))
+
+        prev_logger = liblog.debugger_logger
+        liblog.debugger_logger = self.logger
+        self.logger.setLevel("DEBUG")
+        self.log_handler.setLevel("DEBUG")
+
+        with libcontext.tmp(debugger_logger="DEBUG"):
+            d.run()
+
+            memory_values = []
+
+            def callback(t, _):
+                memory_values.append(t.mem[t.regs.rdi, 8])
+
+            d.breakpoint("do_nothing", callback=callback)
+
+            d.cont()
+            d.wait()
+
+        self.assertEqual(len(memory_values), 1)
+        self.assertEqual(memory_values[0], (0).to_bytes(4, "little") + (1).to_bytes(4, "little"))
+
+        # Let's ensure we don't print the erroneus message "Process is running. Waiting for it to stop before reading memory."
+        captured_log = self.log_capture_string.getvalue()
+        self.assertNotIn("Process is running. Waiting for it to stop before reading memory.", captured_log)
+
+        liblog.debugger_logger = prev_logger
+        self.log_handler.setLevel("WARNING")
+        self.logger.setLevel("WARNING")
 
         d.kill()
         d.terminate()
