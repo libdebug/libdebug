@@ -859,8 +859,8 @@ class MemoryTest(TestCase):
             memory_values = []
 
             def callback(t, _):
-                memory_values.append(t.mem[t.regs.rdi, 8])
-                t.mem[t.regs.rdi] = (1).to_bytes(4, "little") + (0).to_bytes(4, "little")
+                memory_values.append(t.mem[FUN_ARG_0(t), 8])
+                t.mem[FUN_ARG_0(t)] = (1).to_bytes(4, "little") + (0).to_bytes(4, "little")
 
             d.breakpoint("do_nothing", callback=callback)
 
