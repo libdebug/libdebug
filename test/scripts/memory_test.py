@@ -870,7 +870,7 @@ class MemoryTest(TestCase):
         self.assertEqual(len(memory_values), 1)
         self.assertEqual(memory_values[0], (0).to_bytes(4, "little") + (1).to_bytes(4, "little"))
 
-        # Let's ensure we don't print the erroneus message "Process is running. Waiting for it to stop before reading memory."
+        # Let's ensure we don't print the erroneous message "Process is running. Waiting for it to stop before reading memory."
         captured_log = self.log_capture_string.getvalue()
         self.assertNotIn("Process is running. Waiting for it to stop before reading memory.", captured_log)
         self.assertNotIn("Process is running. Waiting for it to stop before writing to memory.", captured_log)
