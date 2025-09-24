@@ -860,6 +860,7 @@ class MemoryTest(TestCase):
 
             def callback(t, _):
                 memory_values.append(t.mem[t.regs.rdi, 8])
+                t.mem[t.regs.rdi] = (1).to_bytes(4, "little") + (0).to_bytes(4, "little")
 
             d.breakpoint("do_nothing", callback=callback)
 
@@ -872,6 +873,7 @@ class MemoryTest(TestCase):
         # Let's ensure we don't print the erroneus message "Process is running. Waiting for it to stop before reading memory."
         captured_log = self.log_capture_string.getvalue()
         self.assertNotIn("Process is running. Waiting for it to stop before reading memory.", captured_log)
+        self.assertNotIn("Process is running. Waiting for it to stop before writing to memory.", captured_log)
 
         liblog.debugger_logger = prev_logger
         self.log_handler.setLevel("WARNING")
