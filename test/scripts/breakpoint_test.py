@@ -771,6 +771,9 @@ class BreakpointTest(TestCase):
         self.assertTrue(wp.hit_on(d))
         self.assertFalse(bp.hit_on(d))
 
+        if PLATFORM == "aarch64":
+            d.step()
+
         self.assertEqual(d.mem[0xbadf0000, 4], (42).to_bytes(4, "little"))
 
         d.cont()
