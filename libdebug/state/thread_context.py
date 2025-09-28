@@ -12,6 +12,7 @@ from libdebug.architectures.stack_unwinding_provider import stack_unwinding_prov
 from libdebug.liblog import liblog
 from libdebug.snapshots.thread.thread_snapshot import ThreadSnapshot
 from libdebug.utils.debugging_utils import resolve_address_in_maps
+from libdebug.utils.oop.alias import alias, aliased_property
 from libdebug.utils.pprint_primitives import pprint_backtrace_util, pprint_registers_all_util, pprint_registers_util
 from libdebug.utils.signal_utils import resolve_signal_name, resolve_signal_number
 
@@ -115,7 +116,7 @@ class ThreadContext(ABC):
         """Whether the thread is dead."""
         return self._dead
 
-    @property
+    @aliased_property("mem")
     def memory(self: ThreadContext) -> AbstractMemoryView:
         """The memory view of the debugged process."""
         return self._internal_debugger.memory
@@ -124,31 +125,34 @@ class ThreadContext(ABC):
     def mem(self: ThreadContext) -> AbstractMemoryView:
         """Alias for the `memory` property.
 
-        Get the memory view of the process.
+        The memory view of the debugged process.
         """
         return self._internal_debugger.memory
 
-    @property
+    @aliased_property("pid")
     def process_id(self: ThreadContext) -> int:
         """The process ID."""
         return self._internal_debugger.process_id
 
     @property
     def pid(self: ThreadContext) -> int:
-        """Alias for `process_id` property.
+        """Alias for the `process_id` property.
 
         The process ID.
         """
         return self._internal_debugger.process_id
 
-    @property
+    @aliased_property("tid")
     def thread_id(self: ThreadContext) -> int:
         """The thread ID."""
         return self._thread_id
 
     @property
     def tid(self: ThreadContext) -> int:
-        """The thread ID."""
+        """Alias for the `thread_id` property.
+
+        The thread ID.
+        """
         return self._thread_id
 
     @property
@@ -247,6 +251,7 @@ class ThreadContext(ABC):
         maps = self._internal_debugger.debugging_interface.get_maps()
         pprint_backtrace_util(backtrace, maps, self._internal_debugger.symbols)
 
+    @alias("pprint_regs")
     def pprint_registers(self: ThreadContext) -> None:
         """Pretty prints the thread's registers."""
         pprint_registers_util(
@@ -262,6 +267,7 @@ class ThreadContext(ABC):
         """
         self.pprint_registers()
 
+    @alias("pprint_regs_all")
     def pprint_registers_all(self: ThreadContext) -> None:
         """Pretty prints all the thread's registers."""
         pprint_registers_all_util(
@@ -283,6 +289,7 @@ class ThreadContext(ABC):
         """Executes a single instruction of the process."""
         self._internal_debugger.step(self)
 
+    @alias("su")
     def step_until(
         self: ThreadContext,
         position: int | str,
@@ -298,6 +305,7 @@ class ThreadContext(ABC):
         """
         self._internal_debugger.step_until(self, position, max_steps, file)
 
+    @alias("fin")
     def finish(self: ThreadContext, heuristic: str = "backtrace") -> None:
         """Continues execution until the current function returns or the process stops.
 
@@ -310,6 +318,7 @@ class ThreadContext(ABC):
         """
         self._internal_debugger.finish(self, heuristic=heuristic)
 
+    @alias("ni")
     def next(self: ThreadContext) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._internal_debugger.next(self)
@@ -325,6 +334,7 @@ class ThreadContext(ABC):
         self: ThreadContext,
         position: int | str,
         max_steps: int = -1,
+        file: str = "hybrid",
     ) -> None:
         """Alias for the `step_until` method.
 
@@ -333,11 +343,14 @@ class ThreadContext(ABC):
         Args:
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
-        self._internal_debugger.step_until(self, position, max_steps)
+        self._internal_debugger.step_until(self, position, max_steps, file)
 
     def fin(self: ThreadContext, heuristic: str = "backtrace") -> None:
-        """Alias for the `finish` method. Continues execution until the current function returns or the process stops.
+        """Alias for the `finish` method.
+
+        Continues execution until the current function returns or the process stops.
 
         The command requires a heuristic to determine the end of the function. The available heuristics are:
         - `backtrace`: The debugger will place a breakpoint on the saved return address found on the stack and continue execution on all threads.
@@ -349,7 +362,10 @@ class ThreadContext(ABC):
         self._internal_debugger.finish(self, heuristic)
 
     def ni(self: ThreadContext) -> None:
-        """Alias for the `next` method. Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
+        """Alias for the `next` method.
+
+        Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
+        """
         self._internal_debugger.next(self)
 
     def __repr__(self: ThreadContext) -> str:
