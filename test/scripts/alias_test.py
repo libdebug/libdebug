@@ -1,15 +1,16 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
+# Copyright (c) 2023-2025 Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-from unittest import TestCase, skipIf
+from unittest import TestCase
 from utils.thread_utils import FUN_ARG_0
 from utils.binary_utils import BASE, PLATFORM, RESOLVE_EXE
 
 from libdebug import debugger
-
+from libdebug.debugger.debugger import Debugger
+from libdebug.utils.oop.aliased_class import AliasedClass
 
 match PLATFORM:
     case "amd64":
@@ -242,3 +243,15 @@ class AliasTest(TestCase):
         d.int()
         d.kill()
         d.terminate()
+
+    def test_alias_signature_consistency(self):
+        # We construct a custom Debugger with AliasedClass metaclass to verify
+        # that no TypeError is raised during class creation.
+        # Note that we could directly declare the Debugger class with the metaclass,
+        # but this would cause trouble if a user decides to change some method signatures
+        # as it would force them to be always compatible with the aliases.
+        # With this test, we only ensure consistency for our current implementation,
+        # without forcing it on users of the library.
+        checked_D = AliasedClass("D", (Debugger,), {})
+        _ = checked_D()
+        # If we reached this point, no TypeError was raised
