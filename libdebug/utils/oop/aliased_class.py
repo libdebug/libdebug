@@ -42,8 +42,8 @@ class AliasedClass(type):
         Raises:
             TypeError: If the docstrings do not match
         """
-        original_lines = original_docstring.strip().splitlines()
-        alias_lines = alias_docstring.strip().splitlines()
+        original_lines = [x.strip() for x in original_docstring.strip().splitlines()]
+        alias_lines = [x.strip() for x in alias_docstring.strip().splitlines()]
 
         if not all(line in alias_lines for line in original_lines):
             raise TypeError(f"Docstring mismatch between '{attr_name}' and its alias")
