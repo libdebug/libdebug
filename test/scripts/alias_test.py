@@ -8,8 +8,11 @@ from unittest import TestCase
 from utils.thread_utils import FUN_ARG_0
 from utils.binary_utils import BASE, PLATFORM, RESOLVE_EXE
 
+from abc import ABCMeta
+
 from libdebug import debugger
 from libdebug.debugger.debugger import Debugger
+from libdebug.state.thread_context import ThreadContext
 from libdebug.utils.oop.aliased_class import AliasedClass
 
 match PLATFORM:
@@ -252,6 +255,10 @@ class AliasTest(TestCase):
         # as it would force them to be always compatible with the aliases.
         # With this test, we only ensure consistency for our current implementation,
         # without forcing it on users of the library.
-        checked_D = AliasedClass("D", (Debugger,), {})
-        _ = checked_D()
+        _ = AliasedClass("D", (Debugger,), {})
+        # If we reached this point, no TypeError was raised
+
+        # We can check the ThreadContext class too
+        MetaAliasedClass = type("MetaAliasedClass", (AliasedClass, ABCMeta,), {})
+        _ = MetaAliasedClass("TC", (ThreadContext,), {})
         # If we reached this point, no TypeError was raised
