@@ -42,18 +42,16 @@ class AliasedClass(type):
         Raises:
             TypeError: If the docstrings do not match
         """
-        constructed_alias_docstring = (
-            f"Alias for the `{attr_name}` {'property' if is_property else 'method'}.\n\n{original_docstring}"
-        )
+        original_lines = original_docstring.strip().splitlines()
+        alias_lines = alias_docstring.strip().splitlines()
 
-        if constructed_alias_docstring == alias_docstring:
-            return
+        if not all(line in alias_lines for line in original_lines):
+            raise TypeError(f"Docstring mismatch between '{attr_name}' and its alias")
 
-        # The alias docstring might contain an additional newline at the end
-        if constructed_alias_docstring + "\n" == alias_docstring:
-            return
-
-        raise TypeError(f"Docstring mismatch between '{attr_name}' and its alias")
+        # alias_lines should contain a line indicating it's an alias
+        alias_line = f"Alias for the `{attr_name}` {'property' if is_property else 'method'}."
+        if alias_line != alias_lines[0].strip():
+            raise TypeError(f"Alias docstring for '{attr_name}' must include alias declaration line")
 
     def _validate_function_alias(
         cls,
