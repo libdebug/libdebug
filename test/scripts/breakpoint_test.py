@@ -757,3 +757,26 @@ class BreakpointTest(TestCase):
 
         d.kill()
         d.terminate()
+
+    def test_hw_bp_at_invalid_location(self):
+        d = debugger(RESOLVE_EXE("breakpoint_test_2"))
+
+        d.run()
+
+        wp = d.wp(0xbadf0000, "w", 4, file="absolute")
+        bp = d.bp(0xdeadb000, hardware=True, file="absolute")
+
+        d.cont()
+
+        self.assertTrue(wp.hit_on(d))
+        self.assertFalse(bp.hit_on(d))
+
+        self.assertEqual(d.mem[0xbadf0000, 4], (42).to_bytes(4, "little"))
+
+        d.cont()
+
+        self.assertFalse(wp.hit_on(d))
+        self.assertTrue(bp.hit_on(d))
+
+        d.kill()
+        d.terminate()
