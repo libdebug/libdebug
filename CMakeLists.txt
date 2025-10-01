@@ -201,40 +201,22 @@ nanobind_add_stub(
   PYTHON_PATH "."
 )
 
-# Add the stub for libdebug_sections
-nanobind_add_stub(
-  libdebug_section_parser_stub
-  MODULE libdebug_section_parser
-  DEPENDS libdebug_section_parser
-  OUTPUT libdebug_section_parser.pyi
-  PYTHON_PATH "."
-)
-
-# Add the libdebug_section_parser module
+# Add the libdebug_elf_api module
 nanobind_add_module(
-  libdebug_section_parser
+  libdebug_elf_api
   LTO
   STABLE_ABI
-  libdebug/native/sections/section_parser.cpp
+  libdebug/native/elf/elf_api.cpp
   libdebug/native/utils/binary_utils.cpp
 )
 
-# Add the stub for libdebug_program_header_parser
+# Add the stub for libdebug_elf_api
 nanobind_add_stub(
-  libdebug_program_header_parser_stub
-  MODULE libdebug_program_header_parser
-  DEPENDS libdebug_program_header_parser
-  OUTPUT libdebug_program_header_parser.pyi
+  libdebug_elf_api_stub
+  MODULE libdebug_elf_api
+  DEPENDS libdebug_elf_api
+  OUTPUT libdebug_elf_api.pyi
   PYTHON_PATH "."
-)
-
-# Add the libdebug_section_parser module
-nanobind_add_module(
-  libdebug_program_header_parser
-  LTO
-  STABLE_ABI
-  libdebug/native/program_headers/program_header_parsing.cpp
-  libdebug/native/utils/binary_utils.cpp
 )
 
 if(BUILD_SYMBOLS)
@@ -305,15 +287,14 @@ endif()
 install(TARGETS libdebug_ptrace_binding LIBRARY DESTINATION libdebug/ptrace/native)
 install(TARGETS libdebug_linux_binding LIBRARY DESTINATION libdebug/native)
 install(TARGETS libdebug_debug_sym_parser LIBRARY DESTINATION libdebug/native)
-install(TARGETS libdebug_section_parser LIBRARY DESTINATION libdebug/native)
-install(TARGETS libdebug_program_header_parser LIBRARY DESTINATION libdebug/native)
+install(TARGETS libdebug_elf_api LIBRARY DESTINATION libdebug/native)
 
 # Install the Python stubs
 install(FILES ${CMAKE_BINARY_DIR}/libdebug_ptrace_binding.pyi DESTINATION libdebug/ptrace/native)
 install(FILES ${CMAKE_BINARY_DIR}/libdebug_linux_binding.pyi DESTINATION libdebug/native)
 install(FILES ${CMAKE_BINARY_DIR}/libdebug_debug_sym_parser.pyi DESTINATION libdebug/native)
 install(FILES ${CMAKE_BINARY_DIR}/libdebug_section_parser.pyi DESTINATION libdebug/native)
-install(FILES ${CMAKE_BINARY_DIR}/libdebug_program_header_parser.pyi DESTINATION libdebug/native)
+install(FILES ${CMAKE_BINARY_DIR}/libdebug_elf_api.pyi DESTINATION libdebug/native)
 
 # Include the jumpstart.c file and add it as an executable
 set(SRC_DIR "${CMAKE_SOURCE_DIR}/libdebug/ptrace/jumpstart")

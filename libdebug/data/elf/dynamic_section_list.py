@@ -6,24 +6,24 @@
 
 from __future__ import annotations
 
-from libdebug.data.dynamic_section import DynamicSection
+from libdebug.data.elf.dynamic_section import DynamicSection
 
 
 class DynamicSectionList(list[DynamicSection]):
-    """A list of dynamic sections in the target process."""
+    """A list of dynamic sections in an ELF."""
 
     def __init__(self: DynamicSectionList, sections: list[DynamicSection]) -> None:
         """Initializes the DynamicSection list."""
         super().__init__(sections)
 
-    def _search_by_tag(self: DynamicSection, tag: str) -> list[DynamicSection]:
+    def _search_by_tag(self: DynamicSection, tag: str) -> DynamicSectionList:
         """Searches for a dynamic section by tag.
 
         Args:
             tag (str): The tag of the dynamic section to search for.
 
         Returns:
-            list[DynamicSection]: The list of sections that match the specified tag.
+            DynamicSectionList: The list of sections that match the specified tag.
         """
         exact_match = []
         no_exact_match = []
@@ -35,14 +35,14 @@ class DynamicSectionList(list[DynamicSection]):
                 no_exact_match.append(dyn_section)
         return exact_match + no_exact_match
 
-    def filter(self: DynamicSectionList, tag: str) -> DynamicSectionList[DynamicSection]:
+    def filter(self: DynamicSectionList, tag: str) -> DynamicSectionList:
         """Filters the dynamic sections according to the specified tag.
 
         Args:
             tag (str): The tag of the dynamic section to find.
 
         Returns:
-            SectionList[DynamicSection]: The dynamic sections matching the specified tag.
+            DynamicSectionList: The dynamic sections matching the specified tag.
         """
         if isinstance(tag, str):
             filtered_dyn_sections = self._search_by_tag(tag)
@@ -60,5 +60,5 @@ class DynamicSectionList(list[DynamicSection]):
         return super().__eq__(other)
 
     def __repr__(self: DynamicSectionList) -> str:
-        """Returns the string representation of the DinamicSection without the default factory."""
+        """Returns the string representation of the DynamicSection without the default factory."""
         return f"SectionList({super().__repr__()})"

@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from libdebug.data.elf import ELF
+    from libdebug.data.elf.elf import ELF
 
 
 class ELFList(list):

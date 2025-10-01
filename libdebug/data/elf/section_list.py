@@ -6,24 +6,24 @@
 
 from __future__ import annotations
 
-from libdebug.data.section import Section
+from libdebug.data.elf.section import Section
 
 
 class SectionList(list[Section]):
-    """A list of sections in the target process."""
+    """A list of sections in an ELF."""
 
     def __init__(self: SectionList, sections: list[Section]) -> None:
         """Initializes the SectionList."""
         super().__init__(sections)
 
-    def _search_by_address(self: SectionList, address: int) -> list[Section]:
+    def _search_by_address(self: SectionList, address: int) -> SectionList:
         """Searches for a section by relative address.
 
         Args:
             address (int): The relative address of the section to search for.
 
         Returns:
-            list[Section]: The list of sections that match the specified relative address.
+            SectionList: The list of sections that match the specified relative address.
         """
         # Find the backing file that contains the address
         target = None
@@ -42,14 +42,14 @@ class SectionList(list[Section]):
                 f"Address {address:#x} does not belong to any section. You must specify a relative address.",
             )
 
-    def _search_by_name(self: SectionList, name: str) -> list[Section]:
+    def _search_by_name(self: SectionList, name: str) -> SectionList:
         """Searches for a section by name.
 
         Args:
             name (str): The name of the section to search for.
 
         Returns:
-            list[Section]: The list of sections that match the specified name.
+            SectionList: The list of sections that match the specified name.
         """
         exact_match = []
         no_exact_match = []
@@ -61,7 +61,7 @@ class SectionList(list[Section]):
                 no_exact_match.append(section)
         return exact_match + no_exact_match
 
-    def filter(self: SectionList, value: int | str) -> SectionList[Section]:
+    def filter(self: SectionList, value: int | str) -> SectionList:
         """Filters the sections according to the specified value.
 
         If the value is an integer, it is treated as a relative address.
@@ -71,7 +71,7 @@ class SectionList(list[Section]):
             value (int | str): The relative address or name of the section to find.
 
         Returns:
-            SectionList[Section]: The sections matching the specified value.
+            SectionList: The sections matching the specified value.
         """
         if isinstance(value, int):
             filtered_sections = self._search_by_address(value)
@@ -82,7 +82,7 @@ class SectionList(list[Section]):
 
         return SectionList(filtered_sections)
 
-    def __getitem__(self: SectionList, key: str | int) -> SectionList[Section] | Section:
+    def __getitem__(self: SectionList, key: str | int) -> SectionList | Section:
         """Returns the section with the specified name or index. (. before the name is considered equivalent to no .).
 
         For example, .text is considered equivalent to text.
@@ -91,7 +91,7 @@ class SectionList(list[Section]):
             key (str, int): The name of the section to return, or the index of the section in the list.
 
         Returns:
-            Section | SectionList[Section]: The section at the specified index, or the SectionList of sections with the specified name.
+            Section | SectionList: The section at the specified index, or the SectionList of sections with the specified name.
         """
         if not isinstance(key, str):
             return super().__getitem__(key)

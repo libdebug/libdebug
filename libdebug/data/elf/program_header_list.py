@@ -6,24 +6,24 @@
 
 from __future__ import annotations
 
-from libdebug.data.program_header import ProgramHeader
+from libdebug.data.elf.program_header import ProgramHeader
 
 
 class ProgramHeaderList(list[ProgramHeader]):
-    """A list of program headers in the target process."""
+    """A list of program headers in an ELF."""
 
     def __init__(self: ProgramHeaderList, headers: list[ProgramHeader]) -> None:
         """Initializes the ProgramHeader list."""
         super().__init__(headers)
 
-    def _search_by_type(self: ProgramHeader, header_type: str) -> list[ProgramHeader]:
+    def _search_by_type(self: ProgramHeader, header_type: str) -> ProgramHeaderList:
         """Searches for a program header by type.
 
         Args:
             header_type (str): The type of the program header to search for.
 
         Returns:
-            list[ProgramHeader]: The list of program headers that match the specified name.
+            ProgramHeaderList: The list of program headers that match the specified name.
         """
         exact_match = []
         no_exact_match = []
@@ -35,14 +35,14 @@ class ProgramHeaderList(list[ProgramHeader]):
                 no_exact_match.append(program_header)
         return exact_match + no_exact_match
 
-    def filter(self: ProgramHeaderList, header_type: str) -> ProgramHeaderList[ProgramHeader]:
+    def filter(self: ProgramHeaderList, header_type: str) -> ProgramHeaderList:
         """Filters the program headers according to the specified type.
 
         Args:
             header_type (str): The type of the program header to find.
 
         Returns:
-            ProgramHeaderList[ProgramHeader]: The program headers matching the specified type.
+            ProgramHeaderList: The program headers matching the specified type.
         """
         if isinstance(type, str):
             filtered_headers = self._search_by_type(header_type)

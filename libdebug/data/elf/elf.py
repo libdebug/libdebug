@@ -14,17 +14,20 @@ from typing import TYPE_CHECKING
 from rich.console import Console
 from rich.table import Table
 
-from libdebug.data.dynamic_section import DynamicSection
-from libdebug.data.dynamic_section_list import DynamicSectionList
-from libdebug.data.program_header import ProgramHeader
-from libdebug.data.program_header_list import ProgramHeaderList
-from libdebug.data.section import Section
-from libdebug.data.section_list import SectionList
-from libdebug.native.libdebug_section_parser import DynSectionValueType
+from libdebug.data.elf.dynamic_section import DynamicSection
+from libdebug.data.elf.dynamic_section_list import DynamicSectionList
+from libdebug.data.elf.program_header import ProgramHeader
+from libdebug.data.elf.program_header_list import ProgramHeaderList
+from libdebug.data.elf.section import Section
+from libdebug.data.elf.section_list import SectionList
+from libdebug.data.elf.gnu_property import GNUProperty
+from libdebug.data.elf.gnu_property_list import GNUPropertyList
+from libdebug.native.libdebug_elf_api import DynSectionValueType
 from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.elf_utils import (
     elf_architecture,
     get_elf_dynamic_sections,
+    get_elf_gnu_property_notes,
     get_elf_program_headers,
     get_elf_sections,
     get_endianness,
@@ -76,6 +79,9 @@ class ELF:
 
     _program_headers: ProgramHeaderList | None = None
     """List of program headers in the ELF file."""
+
+    _gnu_properties: GNUPropertyList | None = None
+    """List of GNU properties in the ELF file."""
 
     _build_id: str | None = None
     """Build ID of the ELF file, if available."""
@@ -130,7 +136,7 @@ class ELF:
             parsed_sections = [
                 Section(
                     name=section_info.name,
-                    section_type_val=section_info.type,
+                    section_type=section_info.type,
                     flags=section_info.flags,
                     address=section_info.addr,
                     offset=section_info.offset,
@@ -251,6 +257,36 @@ class ELF:
 
         return self._program_headers
 
+    @property
+    def gnu_properties(self: ELF) -> GNUPropertyList:
+        """The GNU properties of the ELF file."""
+        if self._gnu_properties is None:
+                table = get_elf_gnu_property_notes(self.path)
+
+                parsed_gnu_properties = []
+
+                for note in table.properties:
+                    pr_type = note.type
+
+                    # Determine the value based on the note content
+                    if note.is_bit_mask or note.bit_mnemonics:
+                        value = note.bit_mnemonics
+                    elif len(note.data) in (4, 8):
+                        value = int.from_bytes(note.data, byteorder=self.endianness)
+                    else:
+                        value = note.data
+
+                    parsed_gnu_properties.append(
+                        GNUProperty(
+                            pr_type=pr_type,
+                            value=value,
+                        ),
+                    )
+
+                self._gnu_properties = GNUPropertyList(parsed_gnu_properties)
+
+        return self._gnu_properties
+
     def pprint_sections(self: ELF) -> None:
         """Pretty-prints the sections of the ELF file."""
         console = Console()
@@ -267,7 +303,7 @@ class ELF:
         for section in self.sections:
             table.add_row(
                 section.name,
-                section.section_type.name,
+                section.section_type,
                 section.flags,
                 f"{section.address:#x}",
                 f"{section.offset:#x}",
@@ -324,6 +360,28 @@ class ELF:
                 ph.flags,
                 f"{ph.align:#x}",
             )
+
+        console.print(table)
+
+    def pprint_gnu_properties(self: ELF) -> None:
+        """Pretty-prints the GNU properties of the ELF file."""
+        console = Console()
+        table = Table(title=f"GNU Properties in {self.path}")
+
+        table.add_column("Type", style="cyan", no_wrap=True)
+        table.add_column("Data", style="magenta")
+
+        for prop in self.gnu_properties:
+            if isinstance(prop.value, int):
+                data_str = f"{prop.value:#x}"
+            elif isinstance(prop.value, bytes):
+                data_str = prop.value.hex()
+            elif isinstance(prop.value, list):
+                data_str = ", ".join(prop.value)
+            else:
+                data_str = str(prop.value)
+
+            table.add_row(prop.pr_type, data_str)
 
         console.print(table)
 
