@@ -1824,7 +1824,7 @@ static void parse_gnu_property_descs(const uint8_t* desc, size_t descsz, int swa
         if (pr_datasz) {
             std::memcpy(pd.data.data(), p, pr_datasz);
         }
-// Decode known types
+        // Decode known types
         if (pr_datasz == 4) {
             uint32_t mask = maybe32(*reinterpret_cast<const uint32_t*>(p), swap);
             

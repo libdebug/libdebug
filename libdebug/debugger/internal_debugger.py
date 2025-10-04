@@ -2141,7 +2141,7 @@ class InternalDebugger:
         Returns:
             list[str]: A list of paths of each linked shared library.
         """
-        needed_entries = self.binary.dynamic_section.filter("NEEDED")
+        needed_entries = self.binary.dynamic_sections.filter("NEEDED")
         return [entry.value for entry in needed_entries]
 
     @functools.cached_property

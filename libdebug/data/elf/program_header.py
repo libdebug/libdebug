@@ -43,7 +43,7 @@ class ProgramHeader:
     def __repr__(self: ProgramHeader) -> str:
         """Returns a string representation of the ProgramHeader."""
         return (
-            f"ProgramHeader(header_type={self.type}, offset={self.offset:#x}, vaddr={self.vaddr:#x}, "
+            f"ProgramHeader(header_type={self.header_type}, offset={self.offset:#x}, vaddr={self.vaddr:#x}, "
             f"paddr={self.paddr:#x}, filesz={self.filesz:#x}, memsz={self.memsz:#x}, "
             f"flags='{self.flags}', align={self.align:#x}, reference_file='{self.reference_file}')"
         )
