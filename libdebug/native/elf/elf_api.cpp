@@ -1975,6 +1975,49 @@ static void internal_parse_elf_property_notes(const uint8_t *data, size_t sz,
 
 }
 
+static inline bool is_ascii_printable(uint8_t c) noexcept { return c >= 32 && c <= 126; }
+
+// Output version (recommended)
+static void internal_quick_sym_lookup(const uint8_t* data,
+                                      size_t sz,
+                                      const std::string& substr,
+                                      std::vector<std::string>& out_syms) {
+    if (!data || sz == 0) return;
+
+    // Prebuild a fast searcher
+    const auto searcher = std::boyer_moore_horspool_searcher(substr.begin(), substr.end());
+
+    const uint8_t* p   = data;
+    const uint8_t* end = data + sz;
+
+    const uint8_t* run_start = nullptr;
+    size_t run_len = 0;
+
+    auto process_run = [&](const uint8_t* s, size_t n) {
+        if (n < 3 || n < substr.size()) return;
+        std::string_view sv(reinterpret_cast<const char*>(s), n);
+        auto it = std::search(sv.begin(), sv.end(), searcher);
+        if (it != sv.end()) {
+            out_syms.emplace_back(sv); // one allocation only on hit
+        }
+    };
+
+    while (p < end) {
+        if (is_ascii_printable(*p)) {
+            if (!run_start) run_start = p;
+            ++run_len;
+        } else {
+            if (run_start) process_run(run_start, run_len);
+            run_start = nullptr;
+            run_len = 0;
+        }
+        ++p;
+    }
+    // Flush last run if buffer ends with printable bytes
+    if (run_start) process_run(run_start, run_len);
+}
+
+
 // ---- Public API --------------------------------------------------------------
 
 SectionTable SectionTable::parse_file(const char* filename){
@@ -2035,6 +2078,15 @@ GNUPropertyNotesTable GNUPropertyNotesTable::parse_file(const char* filename,
 
     internal_parse_elf_property_notes(base, sz, section_ptr, section_size, segment_ptr, segment_size, tbl.properties);
     return tbl;
+}
+
+std::vector<std::string> quick_sym_heuristic_lookup(const char* filename, std::string substr) {
+    std::vector<uint8_t> buf;
+    std::vector<std::string> result;
+    read_file_or_throw(filename, buf);
+
+    internal_quick_sym_lookup(buf.data(), buf.size(), substr, result);
+    return result;
 }
 
 namespace nb = nanobind;
@@ -2125,4 +2177,9 @@ NB_MODULE(libdebug_elf_api, m) {
                     "Parse GNU property descriptors from an ELF file and return a GNUPropertyNotesTable. "
                     "If section_off/section_size is provided, it is used as the .note.gnu.property section (file offsets). "
                     "If segment_off/segment_size is provided, it is used as the PT_GNU_PROPERTY segment (file offsets).");
+
+    m.def("quick_sym_heuristic_lookup", &quick_sym_heuristic_lookup,
+          nb::arg("elf_file_path"),
+          nb::arg("substring"),
+          "Quickly search for printable symbols (as a string) containing the given substring in an ELF file and return a list of matches");
 }

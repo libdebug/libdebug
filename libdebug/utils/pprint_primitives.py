@@ -5,7 +5,15 @@
 #
 
 import re
+from typing import TYPE_CHECKING
 
+from rich.console import Console
+from rich.panel import Panel
+from rich.text import Text
+from rich.tree import Tree
+
+from libdebug.data.elf.elf import ELF
+from libdebug.data.elf.linux_runtime_mitigations import RelroStatus
 from libdebug.data.memory_map_list import MemoryMapList
 from libdebug.data.registers import Registers
 from libdebug.data.symbol_list import SymbolList
@@ -324,3 +332,75 @@ def pad_colored_string(string: str, length: int) -> str:
     if padding_length > 0:
         return string + " " * padding_length
     return string
+
+
+def pprint_mitigations(elf: ELF, console: Console) -> str:
+    """Pretty prints the mitigations of the ELF.
+
+    Args:
+        elf (ELF): The ELF to print the mitigations of.
+        console (Console): The console to print the mitigations to.
+
+    Returns:
+        str: The pretty printed mitigations.
+    """
+    r_mit = elf.runtime_mitigations
+    arch = (elf.architecture or "").lower()
+
+    def yn(enabled: bool, label: str, emoji: str) -> Text:
+        # Normalize emoji spacing: caller may pass trailing space, ensure exactly one space after
+        emoji = (emoji or "").strip()
+        color = "green" if enabled else "red"
+        state = "Enabled" if enabled else "Disabled"
+        return Text.assemble(emoji, " ", label, ": ", (state, color))
+
+    def print_exec(executable: bool) -> Text:
+        color = "red" if executable else "green"
+        state = "Executable" if executable else "Non-executable"
+        return Text.assemble("🧵 ", "Stack", ": ", (state, color))
+
+    # RELRO with special coloring
+    if r_mit.relro == RelroStatus.FULL:
+        relro_text = Text.assemble("🧱 ", "RELRO", ": ", ("Full", "green"))
+    elif r_mit.relro == RelroStatus.PARTIAL:
+        relro_text = Text.assemble("🧱 ", "RELRO", ": ", ("Partial", "orange3"))
+    else:
+        relro_text = Text.assemble("🧱 ", "RELRO", ": ", ("None", "red"))
+
+    # Build a tree to keep things tight but readable
+    tree = Tree(Text("Runtime Mitigations", style="bold"))
+
+    tree.add(relro_text)
+    tree.add(yn(r_mit.stack_guard, "Stack Guard (canary)", "🛡 "))
+    # NX vs Executable Stack (show both succinctly)
+    tree.add(yn(r_mit.nx, "NX", "👾 "))
+    tree.add(print_exec(not r_mit.nx and r_mit.stack_executable))
+
+    tree.add(yn(r_mit.pie, "PIE", "🧩 "))
+
+    if elf.arch in ("i386", "amd64"):
+        cet_node = tree.add(Text("Intel CET"))
+        cet_node.add(Text.assemble(Text("↳  ", style="dim"), yn(r_mit.shstk, "Shadow Stack", "☰")))
+        cet_node.add(Text.assemble(Text("↳  ", style="dim"), yn(r_mit.ibt, "IBT", "🧭")))
+    elif elf.arch == "aarch64":
+        hard_node = tree.add(Text("ARM Architectural Hardening"))
+        hard_node.add(Text.assemble(Text("↳  ", style="dim"), yn(r_mit.shstk, "GCS", "☰")))
+        hard_node.add(Text.assemble(Text("↳  ", style="dim"), yn(r_mit.ibt, "BTI", "🧭")))
+        # Include AArch64-only features in this group
+        hard_node.add(Text.assemble(Text("↳  ", style="dim"), yn(r_mit.mte, "MTE", "🔖")))
+        hard_node.add(Text.assemble(Text("↳  ", style="dim"), yn(r_mit.pac, "PAC", "�")))
+
+    # Fortify
+    tree.add(yn(r_mit.fortify, "FORTIFY_SOURCE", "🏰 "))
+
+    # AArch64-only features are now nested under the ARM group above
+
+    # Sanitizers (only show if present)
+    if r_mit.asan:
+        tree.add(yn(True, "ASan", "🧪 "))
+    if r_mit.msan:
+        tree.add(yn(True, "MSan", "🧪 "))
+    if r_mit.ubsan:
+        tree.add(yn(True, "UBSan", "🧪 "))
+
+    console.print(Panel.fit(tree, title="Mitigations", border_style="cyan"))

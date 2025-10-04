@@ -13,6 +13,8 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <functional>
+#include <algorithm>
 #include <elf.h>
 
 #include "../utils/binary_utils.h"

@@ -31,7 +31,7 @@ class ProgramHeaderList(list[ProgramHeader]):
         for program_header in self:
             if program_header.header_type == header_type:
                 exact_match.append(program_header)
-            elif type in program_header.header_type:
+            elif header_type in program_header.header_type:
                 no_exact_match.append(program_header)
         return exact_match + no_exact_match
 
@@ -44,7 +44,7 @@ class ProgramHeaderList(list[ProgramHeader]):
         Returns:
             ProgramHeaderList: The program headers matching the specified type.
         """
-        if isinstance(type, str):
+        if isinstance(header_type, str):
             filtered_headers = self._search_by_type(header_type)
         else:
             raise TypeError("The value must be a string.")

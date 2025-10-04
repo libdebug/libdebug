@@ -16,12 +16,13 @@ from rich.table import Table
 
 from libdebug.data.elf.dynamic_section import DynamicSection
 from libdebug.data.elf.dynamic_section_list import DynamicSectionList
+from libdebug.data.elf.gnu_property import GNUProperty
+from libdebug.data.elf.gnu_property_list import GNUPropertyList
+from libdebug.data.elf.linux_runtime_mitigations import LinuxRuntimeMitigations
 from libdebug.data.elf.program_header import ProgramHeader
 from libdebug.data.elf.program_header_list import ProgramHeaderList
 from libdebug.data.elf.section import Section
 from libdebug.data.elf.section_list import SectionList
-from libdebug.data.elf.gnu_property import GNUProperty
-from libdebug.data.elf.gnu_property_list import GNUPropertyList
 from libdebug.native.libdebug_elf_api import DynSectionValueType
 from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.elf_utils import (
@@ -92,6 +93,9 @@ class ELF:
     _symbols: SymbolList | None = None
     """List of symbols in the ELF file."""
 
+    _runtime_mitigations: LinuxRuntimeMitigations | None = None
+    """The Linux runtime mitigations of the ELF file."""
+
     _internal_debugger: InternalDebugger | None = None
     """The instance of InternalDebugger"""
 
@@ -121,6 +125,11 @@ class ELF:
             _base_address=base_address,
             _internal_debugger=internal_debugger,
         )
+
+    @property
+    def arch(self: ELF) -> str:
+        """Alias for architecture."""
+        return self.architecture
 
     @functools.cached_property
     def size(self: ELF) -> int:
@@ -261,31 +270,38 @@ class ELF:
     def gnu_properties(self: ELF) -> GNUPropertyList:
         """The GNU properties of the ELF file."""
         if self._gnu_properties is None:
-                table = get_elf_gnu_property_notes(self.path)
+            table = get_elf_gnu_property_notes(self.path)
 
-                parsed_gnu_properties = []
+            parsed_gnu_properties = []
 
-                for note in table.properties:
-                    pr_type = note.type
+            for note in table.properties:
+                pr_type = note.type
 
-                    # Determine the value based on the note content
-                    if note.is_bit_mask or note.bit_mnemonics:
-                        value = note.bit_mnemonics
-                    elif len(note.data) in (4, 8):
-                        value = int.from_bytes(note.data, byteorder=self.endianness)
-                    else:
-                        value = note.data
+                # Determine the value based on the note content
+                if note.is_bit_mask or note.bit_mnemonics:
+                    value = note.bit_mnemonics
+                elif len(note.data) in (4, 8):
+                    value = int.from_bytes(note.data, byteorder=self.endianness)
+                else:
+                    value = note.data
 
-                    parsed_gnu_properties.append(
-                        GNUProperty(
-                            pr_type=pr_type,
-                            value=value,
-                        ),
-                    )
+                parsed_gnu_properties.append(
+                    GNUProperty(
+                        pr_type=pr_type,
+                        value=value,
+                    ),
+                )
 
-                self._gnu_properties = GNUPropertyList(parsed_gnu_properties)
+            self._gnu_properties = GNUPropertyList(parsed_gnu_properties)
 
         return self._gnu_properties
+
+    @property
+    def runtime_mitigations(self: ELF) -> LinuxRuntimeMitigations:
+        """The Linux runtime mitigations of the ELF file."""
+        if self._runtime_mitigations is None:
+            self._runtime_mitigations = LinuxRuntimeMitigations.parse_elf(self, self._internal_debugger.is_debugging)
+        return self._runtime_mitigations
 
     def pprint_sections(self: ELF) -> None:
         """Pretty-prints the sections of the ELF file."""

@@ -18,7 +18,12 @@ from libdebug.data.symbol import Symbol
 from libdebug.data.symbol_list import SymbolList
 from libdebug.liblog import liblog
 from libdebug.native import libdebug_debug_sym_parser
-from libdebug.native.libdebug_elf_api import DynamicSectionTable, ProgramHeaderTable, SectionTable, GNUPropertyNotesTable
+from libdebug.native.libdebug_elf_api import (
+    DynamicSectionTable,
+    GNUPropertyNotesTable,
+    ProgramHeaderTable,
+    SectionTable,
+)
 from libdebug.utils.libcontext import libcontext
 
 if TYPE_CHECKING:
@@ -414,6 +419,7 @@ def get_elf_program_headers(path: str) -> ProgramHeaderTable:
         ProgramHeaderTable: The program headers of the specified ELF file.
     """
     return ProgramHeaderTable.from_file(path)
+
 
 @functools.cache
 def get_elf_gnu_property_notes(path: str) -> GNUPropertyNotesTable:

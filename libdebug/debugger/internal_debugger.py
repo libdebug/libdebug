@@ -20,6 +20,8 @@ from threading import Event, Thread, current_thread
 from typing import TYPE_CHECKING
 
 from psutil import STATUS_ZOMBIE, Error, Process, ZombieProcess, process_iter
+from rich.console import Console
+from rich.table import Column, Table
 
 from libdebug.architectures.breakpoint_validator import validate_hardware_breakpoint
 from libdebug.architectures.syscall_hijacker import SyscallHijacker
@@ -32,6 +34,7 @@ from libdebug.data.argument_list import ArgumentList
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.elf.elf import ELF
 from libdebug.data.elf.elf_list import ELFList
+from libdebug.data.elf.linux_runtime_mitigations import RelroStatus
 from libdebug.data.gdb_resume_event import GdbResumeEvent
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
@@ -60,7 +63,7 @@ from libdebug.utils.elf_utils import get_all_symbols
 from libdebug.utils.file_utils import ensure_file_executable
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.platform_utils import get_platform_gp_register_size
-from libdebug.utils.pprint_primitives import pprint_maps_util, pprint_memory_util
+from libdebug.utils.pprint_primitives import pprint_maps_util, pprint_memory_util, pprint_mitigations
 from libdebug.utils.signal_utils import (
     resolve_signal_name,
     resolve_signal_number,
@@ -87,8 +90,6 @@ if TYPE_CHECKING:
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
     from libdebug.snapshots.snapshot import Snapshot
     from libdebug.state.thread_context import ThreadContext
-from rich.console import Console
-from rich.table import Column, Table
 
 THREAD_TERMINATE = -1
 GDB_GOBACK_LOCATION = str((Path(__file__).parent.parent / "utils" / "gdb.py").resolve())
@@ -2167,7 +2168,6 @@ class InternalDebugger:
         parsed_libs = []
 
         for lib_path, base in found_libs:
-
             try:
                 curr = ELF.parse(lib_path, base, self)
 
@@ -2199,13 +2199,16 @@ class InternalDebugger:
         table.add_section()
 
         if self.is_debugging:
-            # Libs in the form key -> path
-            libs = (
-                "\n".join(f"{lib.soname} ({lib.path})" for lib in self.libraries)
-            )
+            libs = "\n".join(f"{lib.soname} ({lib.path})" for lib in self.libraries)
             table.add_row("Loaded Libraries", libs)
         else:
             linked_libs = "\n".join(self._find_linked_libraries())
             table.add_row("Linked Libraries", linked_libs if linked_libs else "None")
 
+        # Render the mitigations as a compact panel under the main table
         console.print(table)
+
+        # ──────────────────────────────
+        # Runtime mitigations (compact)
+        # ──────────────────────────────
+        pprint_mitigations(self.binary, console=console)
