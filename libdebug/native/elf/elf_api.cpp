@@ -1885,6 +1885,16 @@ static void parse_gnu_property_descs(const uint8_t* desc, size_t descsz, int swa
     }
 }
 
+static inline bool ranges_overlap(const void* a, size_t asz,
+                                  const void* b, size_t bsz) {
+    auto ab = reinterpret_cast<const uintptr_t>(a);
+    auto ae = ab + asz;
+    auto bb = reinterpret_cast<const uintptr_t>(b);
+    auto be = bb + bsz;
+    if (asz == 0 || bsz == 0) return false;
+    return !(ae <= bb || be <= ab);
+}
+
 static void parse_gnu_property_notes_common(const uint8_t* data, size_t sz, int swap,
                                               const uint8_t* block, size_t block_size,
                                               bool is64, std::vector<GNUPropertyDescriptor>& out)
@@ -1965,12 +1975,24 @@ static void internal_parse_elf_property_notes(const uint8_t *data, size_t sz,
     bool is64 = (cls == ELFCLASS64);
 
     out.clear();
-    if (section_addr && section_size) {
-        parse_gnu_property_notes_common(data, sz, swap, (const uint8_t*)section_addr, section_size, is64, out);
-    }
-    // Append from segment if available
-    if (segment_addr && segment_size) {
-        parse_gnu_property_notes_common(data, sz, swap, (const uint8_t*)segment_addr, segment_size, is64, out);
+
+    const bool have_section = section_addr && section_size;
+    const bool have_segment = segment_addr && segment_size;
+
+    if (!have_section && !have_segment) return;
+
+    // Prefer the section view when it exists.
+    if (have_section)
+        parse_gnu_property_notes_common(data, sz, swap,
+                                        (const uint8_t*)section_addr, section_size,
+                                        is64, out);
+
+    // Only parse the segment if it does NOT overlap the section bytes.
+    if (have_segment && !(have_section && ranges_overlap(section_addr, section_size,
+                                                         segment_addr, segment_size))) {
+        parse_gnu_property_notes_common(data, sz, swap,
+                                        (const uint8_t*)segment_addr, segment_size,
+                                        is64, out);
     }
 
 }
