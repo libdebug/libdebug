@@ -16,6 +16,6 @@ class GNUProperty:
     pr_type: str
     """The type of the GNU property."""
 
-    value: bytes
+    value: str | int | bytes
     """The data of the GNU property."""
 

@@ -29,7 +29,7 @@ class SectionList(list[Section]):
         target = None
 
         for section in self:
-            if section.start <= address < section.end:
+            if section.address <= address < section.address + section.size:
                 target = section
                 break
 
