@@ -15,6 +15,9 @@ Visualizing the state of the process you are debugging can be a daunting task. *
 ### [:material-map-plus: Memory Maps](../memory_maps/)
 **libdebug** offers utilities to retrieve the memory maps of a process. This can be useful to understand the memory layout of the process you are debugging.
 
+### [:octicons-file-binary-16: ELF API](../elf_api/)
+**libdebug** offers a handy API to parse properties of ELF files, such as sections, segments, symbols, and more.
+
 ### [:octicons-stack-24: Stack Frame Utils](../stack_frame_utils/)
 **libdebug** offers utilities to resolve the return addresses of a process.
 
