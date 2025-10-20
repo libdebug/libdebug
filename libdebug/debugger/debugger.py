@@ -14,7 +14,7 @@ from libdebug.data.env_dict import EnvDict
 from libdebug.liblog import liblog
 from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.elf_utils import elf_architecture, resolve_argv_path
-from libdebug.utils.oop.alias import alias, aliased_property
+from libdebug.utils.oop.alias import check_alias, check_aliased_property
 from libdebug.utils.signal_utils import (
     get_all_signal_numbers,
     resolve_signal_name,
@@ -69,7 +69,7 @@ class Debugger:
         self._configure_argument_list(self._internal_debugger.argv)
         self._configure_env_dict()
 
-    @alias("r")
+    @check_alias("r")
     def run(self: Debugger, timeout: float = -1, redirect_pipes: bool = True) -> PipeManager | None:
         """Starts the process and waits for it to stop.
 
@@ -99,17 +99,17 @@ class Debugger:
         """
         self._internal_debugger.terminate()
 
-    @alias("c")
+    @check_alias("c")
     def cont(self: Debugger) -> None:
         """Continues the process."""
         self._internal_debugger.cont()
 
-    @alias("int")
+    @check_alias("int")
     def interrupt(self: Debugger) -> None:
         """Interrupts the process."""
         self._internal_debugger.interrupt()
 
-    @alias("w")
+    @check_alias("w")
     def wait(self: Debugger) -> None:
         """Waits for the process to stop."""
         self._internal_debugger.wait()
@@ -140,7 +140,7 @@ class Debugger:
         """Get the symbols of the process."""
         return self._internal_debugger.symbols
 
-    @alias("bp")
+    @check_alias("bp")
     def breakpoint(
         self: Debugger,
         position: int | str,
@@ -162,7 +162,7 @@ class Debugger:
         """
         return self._internal_debugger.breakpoint(position, hardware, condition, length, callback, file)
 
-    @alias("wp")
+    @check_alias("wp")
     def watchpoint(
         self: Debugger,
         position: int | str,
@@ -906,7 +906,7 @@ class Debugger:
             raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         return self.threads[0].zombie
 
-    @aliased_property("mem")
+    @check_aliased_property("mem")
     def memory(self: Debugger) -> AbstractMemoryView:
         """The memory view of the process."""
         return self._internal_debugger.memory
@@ -919,7 +919,7 @@ class Debugger:
         """
         return self._internal_debugger.memory
 
-    @aliased_property("pid")
+    @check_aliased_property("pid")
     def process_id(self: Debugger) -> int:
         """The process ID."""
         return self._internal_debugger.process_id
@@ -932,7 +932,7 @@ class Debugger:
         """
         return self._internal_debugger.process_id
 
-    @aliased_property("tid")
+    @check_aliased_property("tid")
     def thread_id(self: Debugger) -> int:
         """The thread ID of the main thread."""
         if not self.threads:
@@ -1012,7 +1012,7 @@ class Debugger:
             raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         self.threads[0].pprint_backtrace()
 
-    @alias("pprint_regs")
+    @check_alias("pprint_regs")
     def pprint_registers(self: Debugger) -> None:
         """Pretty prints the main thread's registers."""
         if not self.threads:
@@ -1026,7 +1026,7 @@ class Debugger:
         """
         self.pprint_registers()
 
-    @alias("pprint_regs_all")
+    @check_alias("pprint_regs_all")
     def pprint_registers_all(self: Debugger) -> None:
         """Pretty prints all the main thread's registers."""
         if not self.threads:
@@ -1059,12 +1059,12 @@ class Debugger:
         """
         self._internal_debugger.pprint_memory(start, end, file, override_word_size, integer_mode)
 
-    @alias("si")
+    @check_alias("si")
     def step(self: Debugger) -> None:
         """Executes a single instruction of the process."""
         self._internal_debugger.step(self)
 
-    @alias("su")
+    @check_alias("su")
     def step_until(
         self: Debugger,
         position: int | str,
@@ -1080,7 +1080,7 @@ class Debugger:
         """
         self._internal_debugger.step_until(self, position, max_steps, file)
 
-    @alias("fin")
+    @check_alias("fin")
     def finish(self: Debugger, heuristic: str = "backtrace") -> None:
         """Continues execution until the current function returns or the process stops.
 
@@ -1093,7 +1093,7 @@ class Debugger:
         """
         self._internal_debugger.finish(self, heuristic=heuristic)
 
-    @alias("ni")
+    @check_alias("ni")
     def next(self: Debugger) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._internal_debugger.next(self)

@@ -38,7 +38,7 @@ class AliasedProperty(property):
         self.__aliases__: tuple[str, ...] = ()
 
 
-def alias(*alias_names: str) -> Callable:
+def check_alias(*alias_names: str) -> Callable:
     """Decorator to mark a function or method with alias names.
 
     Args:
@@ -54,7 +54,7 @@ def alias(*alias_names: str) -> Callable:
     return decorator
 
 
-def aliased_property(*alias_names: str) -> Callable:
+def check_aliased_property(*alias_names: str) -> Callable:
     """Decorator to create a property with alias names.
 
     This decorator creates an AliasedProperty that can store alias information

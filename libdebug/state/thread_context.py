@@ -12,7 +12,7 @@ from libdebug.architectures.stack_unwinding_provider import stack_unwinding_prov
 from libdebug.liblog import liblog
 from libdebug.snapshots.thread.thread_snapshot import ThreadSnapshot
 from libdebug.utils.debugging_utils import resolve_address_in_maps
-from libdebug.utils.oop.alias import alias, aliased_property
+from libdebug.utils.oop.alias import check_alias, check_aliased_property
 from libdebug.utils.pprint_primitives import pprint_backtrace_util, pprint_registers_all_util, pprint_registers_util
 from libdebug.utils.signal_utils import resolve_signal_name, resolve_signal_number
 
@@ -116,7 +116,7 @@ class ThreadContext(ABC):
         """Whether the thread is dead."""
         return self._dead
 
-    @aliased_property("mem")
+    @check_aliased_property("mem")
     def memory(self: ThreadContext) -> AbstractMemoryView:
         """The memory view of the debugged process."""
         return self._internal_debugger.memory
@@ -129,7 +129,7 @@ class ThreadContext(ABC):
         """
         return self._internal_debugger.memory
 
-    @aliased_property("pid")
+    @check_aliased_property("pid")
     def process_id(self: ThreadContext) -> int:
         """The process ID."""
         return self._internal_debugger.process_id
@@ -142,7 +142,7 @@ class ThreadContext(ABC):
         """
         return self._internal_debugger.process_id
 
-    @aliased_property("tid")
+    @check_aliased_property("tid")
     def thread_id(self: ThreadContext) -> int:
         """The thread ID."""
         return self._thread_id
@@ -251,7 +251,7 @@ class ThreadContext(ABC):
         maps = self._internal_debugger.debugging_interface.get_maps()
         pprint_backtrace_util(backtrace, maps, self._internal_debugger.symbols)
 
-    @alias("pprint_regs")
+    @check_alias("pprint_regs")
     def pprint_registers(self: ThreadContext) -> None:
         """Pretty prints the thread's registers."""
         pprint_registers_util(
@@ -267,7 +267,7 @@ class ThreadContext(ABC):
         """
         self.pprint_registers()
 
-    @alias("pprint_regs_all")
+    @check_alias("pprint_regs_all")
     def pprint_registers_all(self: ThreadContext) -> None:
         """Pretty prints all the thread's registers."""
         pprint_registers_all_util(
@@ -289,7 +289,7 @@ class ThreadContext(ABC):
         """Executes a single instruction of the process."""
         self._internal_debugger.step(self)
 
-    @alias("su")
+    @check_alias("su")
     def step_until(
         self: ThreadContext,
         position: int | str,
@@ -305,7 +305,7 @@ class ThreadContext(ABC):
         """
         self._internal_debugger.step_until(self, position, max_steps, file)
 
-    @alias("fin")
+    @check_alias("fin")
     def finish(self: ThreadContext, heuristic: str = "backtrace") -> None:
         """Continues execution until the current function returns or the process stops.
 
@@ -318,7 +318,7 @@ class ThreadContext(ABC):
         """
         self._internal_debugger.finish(self, heuristic=heuristic)
 
-    @alias("ni")
+    @check_alias("ni")
     def next(self: ThreadContext) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._internal_debugger.next(self)
