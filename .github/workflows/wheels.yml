@@ -22,15 +22,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build Wheels
-        uses: pypa/cibuildwheel@v2.23.3
-        env:
-          CIBW_BUILD: "cp310-* cp311-* cp312-* cp313-* cp314-*"
-          CIBW_ARCHS: ["auto32", "auto64"]
-          CIBW_MANYLINUX_X86_64_IMAGE: "manylinux_2_28"
-          CIBW_MANYLINUX_I686_IMAGE: "manylinux2014"
-          CIBW_MANYLINUX_AARCH64_IMAGE: "manylinux_2_28"
-          CIBW_REPAIR_WHEEL_COMMAND: "auditwheel repair --strip -w {dest_dir} {wheel}"
-          CIBW_BEFORE_ALL: "python cmake/prepare_for_wheel_distrib.py"
+        uses: pypa/cibuildwheel@v3.2.1
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
