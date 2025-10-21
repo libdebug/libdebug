@@ -1,6 +1,5 @@
 # This workflow will build wheels for the major Python versions and test them on multiple distros
-
-name: Wheels
+name: Build and Test Wheels
 
 on:
   release:
@@ -54,7 +53,7 @@ jobs:
           - alpine:3.20
           - alpine:3.22
           - alpine:latest
-        python_version: ["3.10", "3.11", "3.12", "3.13"]
+        python_version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
         exclude:
           # Alpine 3.18, only test with Python 3.11
           - distro: alpine:3.18
