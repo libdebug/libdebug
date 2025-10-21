@@ -23,6 +23,7 @@ from libdebug.data.elf.program_header import ProgramHeader
 from libdebug.data.elf.program_header_list import ProgramHeaderList
 from libdebug.data.elf.section import Section
 from libdebug.data.elf.section_list import SectionList
+from libdebug.data.symbol_list import SymbolList
 from libdebug.native.libdebug_elf_api import DynSectionValueType
 from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.elf_utils import (
@@ -224,9 +225,10 @@ class ELF:
 
             full_path_elf = Path(self.path)
 
-            self._symbols = [
-                sym for sym in self._internal_debugger.symbols if full_path_elf.samefile(Path(sym.backing_file))
-            ]
+            self._symbols = SymbolList(
+                [sym for sym in self._internal_debugger.symbols if full_path_elf.samefile(Path(sym.backing_file))],
+                maps_source=self._internal_debugger,
+            )
         return self._symbols
 
     @property

@@ -293,7 +293,6 @@ install(TARGETS libdebug_elf_api LIBRARY DESTINATION libdebug/native)
 install(FILES ${CMAKE_BINARY_DIR}/libdebug_ptrace_binding.pyi DESTINATION libdebug/ptrace/native)
 install(FILES ${CMAKE_BINARY_DIR}/libdebug_linux_binding.pyi DESTINATION libdebug/native)
 install(FILES ${CMAKE_BINARY_DIR}/libdebug_debug_sym_parser.pyi DESTINATION libdebug/native)
-install(FILES ${CMAKE_BINARY_DIR}/libdebug_section_parser.pyi DESTINATION libdebug/native)
 install(FILES ${CMAKE_BINARY_DIR}/libdebug_elf_api.pyi DESTINATION libdebug/native)
 
 # Include the jumpstart.c file and add it as an executable

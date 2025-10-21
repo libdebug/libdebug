@@ -102,12 +102,8 @@ class LinuxRuntimeMitigations:
         # Yes, it's enogh for the mitigation, albeit not ideal
         strings_of_interest = []
 
-        if is_debugging:
-            syms_of_interest = elf.symbols.filter("_chk")
-
-            strings_of_interest.extend(sym.name for sym in syms_of_interest)
-        else:
-            strings_of_interest = quick_sym_heuristic_lookup(elf.path, "_chk")
+        # .plt symbols will not be in the list of symbols, so we should use a heuristic lookup
+        strings_of_interest = quick_sym_heuristic_lookup(elf.path, "_chk")
 
         stack_guard = "__stack_chk_fail" in strings_of_interest
 
