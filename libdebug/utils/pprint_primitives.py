@@ -399,12 +399,10 @@ def pprint_mitigations(elf: ELF, console: Console) -> str:
         hard_node.add(Text.assemble(Text("↳  ", style="dim"), yn(r_mit.ibt, "BTI", "🧭")))
         # Include AArch64-only features in this group
         hard_node.add(Text.assemble(Text("↳  ", style="dim"), yn(r_mit.mte, "MTE", "🔖")))
-        hard_node.add(Text.assemble(Text("↳  ", style="dim"), yn(r_mit.pac, "PAC", "�")))
+        hard_node.add(Text.assemble(Text("↳  ", style="dim"), yn(r_mit.pac, "PAC", "🔐")))
 
     # Fortify
     tree.add(yn(r_mit.fortify, "FORTIFY_SOURCE", "🏰 "))
-
-    # AArch64-only features are now nested under the ARM group above
 
     # Sanitizers (only show if present)
     if r_mit.asan:

@@ -209,5 +209,191 @@ As always, the `filter()` method allows partial matching, while the `[]` operato
 ## :material-alphabetical: Symbols
 The `symbols` property of an [ELF](../../from_pydoc/generated/data/elf/elf) object returns a [SymbolList](../../from_pydoc/generated/data/symbol_list) object containing all symbols defined or exported by the ELF file. A deep dive into symbol resolution and filtering can be found in the [:material-alphabetical: Symbol Resolution](../symbols/) documentation.
 
-
 ## :material-security: Linux Runtime Mitigations
+The ELF API also includes the parsing of Linux runtime security mitigations supported by the binary. To those who are used to [pwntools](https://github.com/Gallopsled/pwntools), this is similar to the `checksec` functionality. Before seeing how to access mitigation information, let's make a brief introduction to each mitigation htat **libdebug** can parse.
+
+!!! WARNING "Damn Heuristics"
+    Note that many mitigation checks are heuristic and may not be completely reliable. Some detections depend on runtime configuration or hardware, and others can be intentionally concealed.
+
+    For example, symbol-based checks will miss mitigations if symbols are stripped or renamed. Each mitigation section below documents the exact checks performed so you can assess whether they are adequate for your use case.
+
+### 🧱 RELocation Read-Only (RELRO)
+Relocation Read-Only (RELRO) is a security feature that alters the relocation strategy of dynamically-linked ELFS to prevent attacks that rely on overwriting Global Offset Table (GOT) entries.
+
+There are three levels of RELRO:
+
+- <span style="color:#e53935;">:material-shield-off: No RELRO</span>: Lazy binding via `.got.plt`. `.got` section and `.got.plt` are writable, and are placed right after the `.bss` section (allows exploitation of overflows from BSS into GOT).
+- <span style="color:#fb8c00;">:material-shield-half: Partial RELRO</span>: Some symbols (e.g. `__libc_start_main`) are resolved at startup, and the `.got` section is made read-only. However, `.got.plt` section remains writable for lazy binding of other symbols. These sections are placed before `.data` and `.bss` to prevent exploitation of overflows.
+- <span style="color:#43a047;">:material-shield: Full RELRO</span>: All symbols are resolved at startup, and both `.got` and `.got.plt` sections are made read-only. This is the most secure option, as it prevents any modification of GOT entries after the program has started.
+
+**libdebug** checks for RELRO in the following way:
+- If there is no `PT_GNU_RELRO` program header, RELRO is considered `NONE`.
+- If there is a `PT_GNU_RELRO` program header but no `BIND_NOW` flag in the `DT_FLAGS` or `DT_FLAGS_1` dynamic section entries, RELRO is considered `PARTIAL`.
+- If there is a `PT_GNU_RELRO` program header and the `BIND_NOW` flag is present, RELRO is considered `FULL`.
+
+You can check the [RelroStatus](../../from_pydoc/generated/data/elf/linux_runtime_mitigations#libdebug.data.elf.linux_runtime_mitigations.RelroStatus) of the ELF using the `relro` attribute of the [LinuxRuntimeMitigations](../../from_pydoc/generated/data/elf/linux_runtime_mitigations) object.
+
+### 🛡 Stack Canary (Stack Guard)
+[Stack Guard](https://www.redhat.com/en/blog/security-technologies-stack-smashing-protection-stackguard) is a security mechanism implemented in [GCC](https://gcc.gnu.org/) and [Clang](https://clang.llvm.org/) that helps protect against stack-based buffer overflow attacks. It works by placing a small, random value called a "canary" between the local variables and the control data (such as the return address) on the stack. Before a function returns, the canary value is checked to see if it has been altered. If it has, the program calls `__stack_chk_fail`, which typically results in the program terminating with a `SIGABRT` signal.
+
+**libdebug** simply checks for the presence of the `__stack_chk_fail` symbol in the ELF's symbol table to determine if Stack Guard is enabled.
+
+You can check if Stack Guard is enabled using the `stack_guard` attribute of the [LinuxRuntimeMitigations](../../from_pydoc/generated/data/elf/linux_runtime_mitigations) object.
+
+### 👾 NX (Non-eXecutable) Protection
+Non-eXecutable (NX) is a security feature that marks some segment of a process as non-executable. This helps mitigate code injection as a result of buffer overflows.
+
+**libdebug** follows the same approach as [pwntools](https://docs.pwntools.com/en/stable/elf/elf.html#pwnlib.elf.elf.ELF.nx) to determine if NX is enabled: if there is a `PT_GNU_STACK` program header with the executable flag (`PF_X`) unset, NX is considered enabled, otherwise architecture-specific checks are done.
+
+You can check if NX is enabled using the `nx` attribute of the [LinuxRuntimeMitigations](../../from_pydoc/generated/data/elf/linux_runtime_mitigations) object. Other than a boolean value, this attribute may also be `None`, indicating that the check depends on whether the process has `READ_IMPLIES_EXEC` in its [personality](https://man7.org/linux/man-pages/man2/personality.2.html).
+
+Read more about NX checks in [pwntools' documentation](https://docs.pwntools.com/en/stable/elf/elf.html#pwnlib.elf.elf.ELF.nx).
+
+### 🧩 Position-Independent Executable
+Position-Independent Executable (PIE) is a security feature that allows the operating system to load an executable at any address in memory, rather than at a fixed address. This is achieved by compiling the executable with position-independent code (PIC), which uses relative addressing instead of absolute addressing. PIE is often used in conjunction with [Address Space Layout Randomization (ASLR)](https://en.wikipedia.org/wiki/Address_space_layout_randomization) to make it more difficult for attackers to predict the location of code and data in memory.
+
+**libdebug** checks if an ELF is compiled as PIE by examining the ELF type: if the type is `ET_DYN`, it is considered PIE; otherwise, it is not.
+
+You can check if PIE is enabled using the `pie` attribute of the [LinuxRuntimeMitigations](../../from_pydoc/generated/data/elf/linux_runtime_mitigations) object.
+
+### 🏰 Fortify Source
+[Fortify Source](https://www.redhat.com/en/blog/enhance-application-security-fortifysource) is a set of compile-time and runtime security checks provided by [Glibc](https://www.gnu.org/software/libc/) to detect and prevent buffer overflows and other memory-related vulnerabilities. When enabled, Fortify Source replaces certain standard library functions (like `strcpy`, `sprintf`, etc.) with safer versions that perform additional checks on the size of the destination buffer before performing the operation.
+
+There are two levels of Fortify Source:
+
+- Level 1 (`-D_FORTIFY_SOURCE=1`): Doesn't change the behavior of functions, but adds checks for some functions when optimization is enabled.
+- Level 2 (`-D_FORTIFY_SOURCE=2`): Adds more extensive checks and may change the behavior of some functions, making them non-conforming to the standard.
+
+**libdebug** checks for Fortify Source by looking for the presence of fortified function symbols (e.g., `__strcpy_chk`, `__sprintf_chk`, etc.) in the ELF's symbol table.
+
+You can check if Fortify Source is enabled using the `fortify` attribute of the [LinuxRuntimeMitigations](../../from_pydoc/generated/data/elf/linux_runtime_mitigations) object.
+
+### ☰ Shadow Stack
+A Shadow Stack is a security feature that provides protection against control-flow hijacking attacks, such as return-oriented programming (ROP). It works by maintaining a separate, protected stack (the shadow stack) that stores return addresses. When a function is called, the return address is pushed onto both the regular stack and the shadow stack. Upon function return, the return address from the regular stack is compared with the one on the shadow stack. If they do not match, it indicates a potential attack, and the program can take appropriate action (e.g., terminate).
+
+Implementations of Shadow Stacks include [Intel's Control-flow Enforcement Technology (CET)](https://www.intel.com/content/www/us/en/developer/articles/technical/technical-look-control-flow-enforcement-technology.html) and [ARM's Guarded Control Stack (GCS)](https://developer.arm.com/documentation/109697/2025_09/Feature-descriptions/The-Armv9-4-architecture-extension#md461-tRM's Guarded Control Stack (GCS)](https://developer.arm.com/documentation/109697/2025_09/Feature-descriptions/The-Armv9-4-architecture-extension#md461-the-armv94-architecture-extension__feat_FEAT_GCS).
+
+On i386 and amd64 architectures, **libdebug** checks for Intel CET Shadow Stack support by looking for the `SHSTK` flag in the `X86_FEATURE_1_AND` GNU property. On aarch64 architecture, it checks for ARM GCS support by looking for the `GCS` flag in the `AARCH64_FEATURE_1_AND` GNU property.
+
+You can check if Shadow Stack is supported using the `shstk` attribute of the [LinuxRuntimeMitigations](../../from_pydoc/generated/data/elf/linux_runtime_mitigations) object.
+
+!!! INFO "Intel CET and ARM GCS Availability"
+    Note that even if Shadow Stack support is indicated in the binary, the actual availability of this feature also depends on the CPU and kernel configuration. For example, Intel CET requires both hardware support (a compatible CPU) and OS support (e.g., a recent Linux kernel with CET **explicitly** enabled).
+
+### 🧭 Indirect Branch Tracking / Branch Target Identification
+Indirect Branch Tracking (IBT) is a security feature that helps protect against control-flow hijacking attacks by ensuring that indirect branches (like function pointers or virtual method calls) only target valid locations. This is achieved by marking valid branch targets with special instructions, and the CPU checks these instructions before allowing the branch to occur.
+
+It is implemented as part of [Intel's Control-flow Enforcement Technology (CET)](https://www.intel.com/content/www/us/en/developer/articles/technical/technical-look-control-flow-enforcement-technology.html). ARM architecture has a similar feature called [Branch Target Identification (BTI)](https://developer.arm.com/documentation/109576/0100/Branch-Target-Identification).
+
+On i386 and amd64 architectures, **libdebug** checks for Intel CET IBT support by looking for the `IBT` flag in the `X86_FEATURE_1_AND` GNU property. On aarch64 architecture, it checks for ARM BTI support by looking for the `BTI` flag in the `AARCH64_FEATURE_1_AND` GNU property.
+
+You can check if Indirect Branch Tracking / Branch Target Identification is supported using the `ibt` attribute of the [LinuxRuntimeMitigations](../../from_pydoc/generated/data/elf/linux_runtime_mitigations) object. You can also use the alias `bti` for this attribute.
+
+!!! INFO "Intel CET and ARM BTI Availability"
+    Note that even if IBT/BTI support is indicated in the binary, the actual availability of this feature also depends on the CPU and kernel configuration. For example, Intel CET requires both hardware support (a compatible CPU) and OS support (e.g., a recent Linux kernel with CET **explicitly** enabled).
+
+### 🧪 GCC Sanitizers
+Sanitizers are runtime instrumentation tools that help detect various types of bugs and vulnerabilities in programs during development. In this sense, they are not strictly a mitigation, but may be used in CTF challenges to harden binaries.
+
+Common sanitizers include:
+
+For more information on sanitizers in GCC, read [here](https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html).
+
+- Address Sanitizer (ASAN): Detects memory errors such as buffer overflows, use-after-free, and memory leaks.
+- Memory Sanitizer (MSAN): Detects uninitialized memory reads.
+- Undefined Behavior Sanitizer (UBSAN): Detects undefined behavior in C/C++ programs, such as integer overflows, null pointer dereferences, and type mismatches.
+
+**libdebug** checks for the presence of sanitizer-specific symbols (e.g., `__asan_*`, `__msan_*`, `__ubsan_*`) in the ELF's symbol table to determine if a binary was built with a specific sanitizer.
+
+You can check if a binary was built with a specific sanitizer using the `asan`, `msan`, and `ubsan` attributes of the [LinuxRuntimeMitigations](../../from_pydoc/generated/data/elf/linux_runtime_mitigations) object.
+
+!!! WARNING "Specificity of Sanitizers Detection"
+    Note that the detection of sanitizers is based on the presence of specific symbols in the ELF's symbol table. These symbols are introduced by GCC when the sanitizers are enabled during compilation. However, different sanitizers may use different sets of symbols.
+
+### ARMv8 Architectural Hardening
+In recent years, ARM has introduced several architectural extensions to enhance security and mitigate common attack vectors. For the following mitigations, remember that their actual availability also depends on the CPU and kernel configuration.
+
+#### 🔖 Memory Tagging Extension (MTE)
+As part of the ARMv8.5-A architecture, the [Memory Tagging Extension (MTE)](https://developer.arm.com/documentation/108035/0100/Introduction-to-the-Memory-Tagging-Extension) is a hardware extension that helps detect and prevent memory safety violations, such as heap buffer overflows and use-after-free errors. MTE works by associating a "tag" with each memory allocation and pointer. When a pointer is used to access memory, the hardware checks if the tag of the pointer matches the tag of the memory allocation. If they do not match, it is flagged memory safety violation, and the program can take appropriate action (e.g., terminate). The tag is randomly generated and is typically 4 bits in size, allowing for 16 different tag values, increasing the entropy in stochastic exploits.
+
+There are two modes of MTE operation:
+- Asynchronous MTE: Tag mismatches are detected during memory accesses, but the program continues execution and will report the error later.
+- Synchronous MTE: Tag mismatches cause immediate exceptions, reducing the likelihood of exploitation.
+
+**libdebug** checks for ARM MTE support by looking for the `PT_AARCH64_MEMTAG_MTE` program header.
+
+You can check if Memory Tagging Extension is supported using the `mte` attribute of the [LinuxRuntimeMitigations](../../from_pydoc/generated/data/elf/linux_runtime_mitigations) object.
+
+#### 🔐 Pointer Authentication Codes (PAC)
+As part of the ARMv8.3-A architecture, [Pointer Authentication Codes (PAC)](https://developer.arm.com/documentation/109576/0100/Pointer-Authentication-Code/Introduction-to-PAC) were introduced as a security feature to protect against control-flow hijacking attacks by cryptographically signing pointers. PAC works by generating a Pointer Authentication Code (PAC) for each pointer using a secret key and additional context information (such as the pointer's address). When the pointer is used, the hardware verifies the PAC to ensure that the pointer has not been tampered with. If the PAC verification fails, it indicates a potential attack, and the program can take appropriate action (e.g., terminate).
+
+**libdebug** checks for ARM PAC support by looking for the `PAC` flag in the `AARCH64_FEATURE_1_AND` GNU property.
+
+You can check if Pointer Authentication Codes are supported using the `pac` attribute of the [LinuxRuntimeMitigations](../../from_pydoc/generated/data/elf/linux_runtime_mitigations) object.
+
+## Mitigations API
+
+The `runtime_mitigations` property of an [ELF](../../from_pydoc/generated/data/elf/elf) object returns a [LinuxRuntimeMitigations](../../from_pydoc/generated/data/elf/linux_runtime_mitigations) object, containing the following properties:
+
+| Attribute | Type | Description |
+| --- | --- | --- |
+| `relro` | [RelroStatus](../../from_pydoc/generated/data/elf/linux_runtime_mitigations#libdebug.data.elf.linux_runtime_mitigations.RelroStatus) | Value of RELRO (FULL, PARTIAL, NONE). |
+| `stack_guard` | `bool` | Whether a stack canary (stack guard) is present (heuristic: `__stack_chk_fail` symbol). |
+| `nx` | `bool | None` | Whether NX (non-executable stack) is enabled. May be `None` when detection depends on process personality. |
+| `stack_executable` | `bool` | Whether the stack is executable. |
+| `pie` | `bool` | Whether the binary is a Position-Independent Executable (PIE). |
+| `shstk` | `bool` | Shadow Stack support (Intel CET SHSTK / ARM GCS). |
+| `ibt` | `bool` | Indirect Branch Tracking / Branch Target Identification support (Intel CET IBT / ARM BTI). Alias: `bti`. |
+| `fortify` | `bool` | Whether glibc _FORTIFY_SOURCE is in effect (heuristic via fortified symbols). |
+| `mte` | `bool` | ARM Memory Tagging Extension (MTE) supported. |
+| `pac` | `bool` | ARM Pointer Authentication Codes (PAC) supported. |
+| `asan` | `bool` | Binary built with AddressSanitizer (ASAN). |
+| `msan` | `bool` | Binary built with MemorySanitizer (MSAN). |
+| `ubsan` | `bool` | Binary built with UndefinedBehaviorSanitizer (UBSAN). |
+
+## :material-flower-tulip-outline: Pretty Printing of ELF Information
+You can pretty print the most relevant information of an ELF file using the following `pprint_...` methods of the [ELF](../../from_pydoc/generated/data/elf/elf) object:
+
+- `d.binary.pprint_sections()` — Pretty print ELF sections.
+
+![pprint_sections output](../../assets/pprint_sections.png)
+
+- `d.binary.pprint_program_headers()` — Pretty print ELF program headers (segments).
+
+![pprint_program_headers output](../../assets/pprint_program_headers.png)
+
+- `d.binary.pprint_dynamic_sections()` — Pretty print ELF dynamic sections.
+
+![pprint_dynamic_sections output](../../assets/pprint_dynamic_sections.png)
+
+- `d.binary.pprint_gnu_properties()` — Pretty print ELF GNU properties.
+
+![pprint_gnu_properties output](../../assets/pprint_gnu_properties.png)
+
+### :material-file-code-outline: Binary Report
+The binary report is a pretty-printed summary of the most relevant information about an ELF file. You can generate it using the `pprint_binary_report()` method of the [Debugger](../../from_pydoc/generated/debugger/debugger) object.
+
+!!! ABSTRACT "Usage"
+    ```python
+    d.pprint_binary_report()
+    ```
+
+The report will include different information based on whether the process is being traced or not. For example, when the process is traced, the base address of the binary and paths to the libraries will be included.
+
+Here are two examples of binary reports, one on AMD64 and another on AArch64:
+
+Example on AMD64:
+
+=== "Not Traced"
+    ![AMD64 Binary Report - Not Traced Process](../../assets/amd64_binary_report.png)
+
+=== "Traced"
+    ![AMD64 Binary Report - Traced Process](../../assets/amd64_binary_report_running.png)
+
+Example on AArch64:
+
+=== "Not Traced"
+    ![AArch64 Binary Report - Not Traced Process](../../assets/aarch64_binary_report.png)
+
+=== "Traced"
+    ![AArch64 Binary Report - Traced Process](../../assets/aarch64_binary_report_running.png)
