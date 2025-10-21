@@ -345,7 +345,6 @@ def pprint_mitigations(elf: ELF, console: Console) -> str:
         str: The pretty printed mitigations.
     """
     r_mit = elf.runtime_mitigations
-    arch = (elf.architecture or "").lower()
 
     def yn(enabled: bool, label: str, emoji: str) -> Text:
         # Normalize emoji spacing: caller may pass trailing space, ensure exactly one space after
@@ -353,6 +352,18 @@ def pprint_mitigations(elf: ELF, console: Console) -> str:
         color = "green" if enabled else "red"
         state = "Enabled" if enabled else "Disabled"
         return Text.assemble(emoji, " ", label, ": ", (state, color))
+
+    def nx_status(n_x: bool | None) -> Text:
+        if n_x is True:
+            color = "green"
+            state = "Enabled"
+        elif n_x is False:
+            color = "red"
+            state = "Disabled"
+        else:
+            color = "yellow"
+            state = "Depends"
+        return Text.assemble("👾 ", "NX", ": ", (state, color))
 
     def print_exec(executable: bool) -> Text:
         color = "red" if executable else "green"
@@ -373,7 +384,7 @@ def pprint_mitigations(elf: ELF, console: Console) -> str:
     tree.add(relro_text)
     tree.add(yn(r_mit.stack_guard, "Stack Guard (canary)", "🛡 "))
     # NX vs Executable Stack (show both succinctly)
-    tree.add(yn(r_mit.nx, "NX", "👾 "))
+    tree.add(nx_status(r_mit.nx))
     tree.add(print_exec(not r_mit.nx and r_mit.stack_executable))
 
     tree.add(yn(r_mit.pie, "PIE", "🧩 "))
