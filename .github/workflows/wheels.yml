@@ -37,7 +37,6 @@ jobs:
       matrix:
         os: [ubuntu-24.04, ubuntu-24.04-arm]
         distro:
-          - ubuntu:20.04
           - ubuntu:22.04
           - ubuntu:24.04
           - ubuntu:latest
@@ -62,6 +61,8 @@ jobs:
             python_version: "3.12"
           - distro: alpine:3.18
             python_version: "3.13"
+          - distro: alpine:3.18
+            python_version: "3.14"
           # Alpine 3.20, only test with Python 3.12
           - distro: alpine:3.20
             python_version: "3.10"
@@ -69,6 +70,8 @@ jobs:
             python_version: "3.11"
           - distro: alpine:3.20
             python_version: "3.13"
+          - distro: alpine:3.20
+            python_version: "3.14"
           # Alpine 3.22, only test with Python 3.12
           - distro: alpine:3.22
             python_version: "3.10"
@@ -76,6 +79,8 @@ jobs:
             python_version: "3.11"
           - distro: alpine:3.22
             python_version: "3.13" 
+          - distro: alpine:3.22
+            python_version: "3.14"
           # Alpine Latest, only test with Python 3.12
           - distro: alpine:latest
             python_version: "3.10"
@@ -83,6 +88,8 @@ jobs:
             python_version: "3.11"
           - distro: alpine:latest
             python_version: "3.13" 
+          - distro: alpine:latest
+            python_version: "3.14"
           # Debian 12, only test with Python 3.11
           - distro: debian:12
             python_version: "3.10"
@@ -90,14 +97,20 @@ jobs:
             python_version: "3.12"
           - distro: debian:12
             python_version: "3.13"
-          # Debian Sid, only test with Python 3.12 and 3.13
+          - distro: debian:12
+            python_version: "3.14"
+          # Debian Sid, only test with Python 3.13, and 3.14
           - distro: debian:sid
             python_version: "3.10"
           - distro: debian:sid
             python_version: "3.11"
-          # OpenSUSE Leap 15.6 does not support Python 3.13
+          - distro: debian:sid
+            python_version: "3.12"
+          # OpenSUSE Leap 15.6 does not support Python 3.13 or 3.14
           - distro: opensuse/leap:15.6
             python_version: "3.13"
+          - distro: opensuse/leap:15.6
+            python_version: "3.14"
           # Arch Linux is not available on Arm
           - distro: archlinux:latest
             os: ubuntu-24.04-arm
@@ -335,6 +348,9 @@ jobs:
         shell: bash
         run: |
           source venv/bin/activate
+          # We install unicorn first, otherwise pwntools will try to force an older version
+          # which is not even buildable on some distros with recent Python versions.
+          python3 -m pip install unicorn
           python3 -m pip install pytest pwntools requests objgraph
           if [[ "${{ matrix.distro_image }}" == "opensuse/tumbleweed:latest" ]]; then
             zypper --non-interactive install -y python313-curses
