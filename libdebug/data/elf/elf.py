@@ -173,7 +173,11 @@ class ELF:
                     value=(
                         dyn_section.val
                         if dyn_section.val_type
-                        not in (DynSectionValueType.STR, DynSectionValueType.FLAGS, DynSectionValueType.FLAGS1)
+                        in (
+                            DynSectionValueType.NONE,
+                            DynSectionValueType.NUM,
+                            DynSectionValueType.ADDR,
+                        )
                         else dyn_section.val_str
                     ),
                     is_value_address=dyn_section.val_type == DynSectionValueType.ADDR,
