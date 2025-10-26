@@ -236,7 +236,7 @@ You can check the [RelroStatus](../../from_pydoc/generated/data/elf/linux_runtim
 ### 🛡 Stack Canary (Stack Guard)
 [Stack Guard](https://www.redhat.com/en/blog/security-technologies-stack-smashing-protection-stackguard) is a security mechanism implemented in [GCC](https://gcc.gnu.org/) and [Clang](https://clang.llvm.org/) that helps protect against stack-based buffer overflow attacks. It works by placing a small, random value called a "canary" between the local variables and the control data (such as the return address) on the stack. Before a function returns, the canary value is checked to see if it has been altered. If it has, the program calls `__stack_chk_fail`, which typically results in the program terminating with a `SIGABRT` signal.
 
-**libdebug** simply checks for the presence of the `__stack_chk_fail` symbol in the ELF's symbol table to determine if Stack Guard is enabled.
+**libdebug** simply checks for the presence of the `__stack_chk_fail` string in the ELF to determine if Stack Guard is enabled.
 
 You can check if Stack Guard is enabled using the `stack_guard` attribute of the [LinuxRuntimeMitigations](../../from_pydoc/generated/data/elf/linux_runtime_mitigations) object.
 
@@ -264,14 +264,14 @@ There are two levels of Fortify Source:
 - Level 1 (`-D_FORTIFY_SOURCE=1`): Doesn't change the behavior of functions, but adds checks for some functions when optimization is enabled.
 - Level 2 (`-D_FORTIFY_SOURCE=2`): Adds more extensive checks and may change the behavior of some functions, making them non-conforming to the standard.
 
-**libdebug** checks for Fortify Source by looking for the presence of fortified function symbols (e.g., `__strcpy_chk`, `__sprintf_chk`, etc.) in the ELF's symbol table.
+**libdebug** checks for Fortify Source by looking for strings with names of fortified function symbols (e.g., `__strcpy_chk`, `__sprintf_chk`, etc.) in the ELF.
 
 You can check if Fortify Source is enabled using the `fortify` attribute of the [LinuxRuntimeMitigations](../../from_pydoc/generated/data/elf/linux_runtime_mitigations) object.
 
 ### ☰ Shadow Stack
 A Shadow Stack is a security feature that provides protection against control-flow hijacking attacks, such as return-oriented programming (ROP). It works by maintaining a separate, protected stack (the shadow stack) that stores return addresses. When a function is called, the return address is pushed onto both the regular stack and the shadow stack. Upon function return, the return address from the regular stack is compared with the one on the shadow stack. If they do not match, it indicates a potential attack, and the program can take appropriate action (e.g., terminate).
 
-Implementations of Shadow Stacks include [Intel's Control-flow Enforcement Technology (CET)](https://www.intel.com/content/www/us/en/developer/articles/technical/technical-look-control-flow-enforcement-technology.html) and [ARM's Guarded Control Stack (GCS)](https://developer.arm.com/documentation/109697/2025_09/Feature-descriptions/The-Armv9-4-architecture-extension#md461-tRM's Guarded Control Stack (GCS)](https://developer.arm.com/documentation/109697/2025_09/Feature-descriptions/The-Armv9-4-architecture-extension#md461-the-armv94-architecture-extension__feat_FEAT_GCS).
+Implementations of Shadow Stacks include [Intel's Control-flow Enforcement Technology (CET)](https://www.intel.com/content/www/us/en/developer/articles/technical/technical-look-control-flow-enforcement-technology.html) and [ARM's Guarded Control Stack (GCS)](https://developer.arm.com/documentation/109697/2025_09/Feature-descriptions/The-Armv9-4-architecture-extension#md461-tRM's Guarded Control Stack (GCS)](https://developer.arm.com/documentation/109697/2025_09/Feature-descriptions/The-Armv9-4-architecture-extension#md461-the-armv94-architecture-extension__feat_FEAT_GCS) on ARMv9.4-a.
 
 On i386 and amd64 architectures, **libdebug** checks for Intel CET Shadow Stack support by looking for the `SHSTK` flag in the `X86_FEATURE_1_AND` GNU property. On aarch64 architecture, it checks for ARM GCS support by looking for the `GCS` flag in the `AARCH64_FEATURE_1_AND` GNU property.
 
@@ -303,14 +303,14 @@ For more information on sanitizers in GCC, read [here](https://gcc.gnu.org/onlin
 - Memory Sanitizer (MSAN): Detects uninitialized memory reads.
 - Undefined Behavior Sanitizer (UBSAN): Detects undefined behavior in C/C++ programs, such as integer overflows, null pointer dereferences, and type mismatches.
 
-**libdebug** checks for the presence of sanitizer-specific symbols (e.g., `__asan_*`, `__msan_*`, `__ubsan_*`) in the ELF's symbol table to determine if a binary was built with a specific sanitizer.
+**libdebug** checks for the presence of sanitizer-specific stings (e.g., `__asan_*`, `__msan_*`, `__ubsan_*`) in the ELF's symbol table to determine if a binary was built with a specific sanitizer.
 
 You can check if a binary was built with a specific sanitizer using the `asan`, `msan`, and `ubsan` attributes of the [LinuxRuntimeMitigations](../../from_pydoc/generated/data/elf/linux_runtime_mitigations) object.
 
 !!! WARNING "Specificity of Sanitizers Detection"
     Note that the detection of sanitizers is based on the presence of specific symbols in the ELF's symbol table. These symbols are introduced by GCC when the sanitizers are enabled during compilation. However, different sanitizers may use different sets of symbols.
 
-### ARMv8 Architectural Hardening
+### ARM Architectural Hardening
 In recent years, ARM has introduced several architectural extensions to enhance security and mitigate common attack vectors. For the following mitigations, remember that their actual availability also depends on the CPU and kernel configuration.
 
 #### 🔖 Memory Tagging Extension (MTE)
