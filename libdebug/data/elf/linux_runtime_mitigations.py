@@ -113,7 +113,7 @@ class LinuxRuntimeMitigations:
 
         # FORTIFY_SOURCE
         # adds symbols like __memcpy_chk, __sprintf_chk
-        fortify = any(candidate.endswith("_chk") for candidate in strings_of_interest)
+        fortify = any(candidate.startswith("__") and candidate.endswith("_chk") for candidate in strings_of_interest)
 
         pie = elf.is_pie
 

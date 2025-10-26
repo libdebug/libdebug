@@ -789,6 +789,19 @@ static void dt_posflag_str(uint64_t posflags, std::string& out) {
     if (!out.empty()) out.pop_back(); // remove trailing space
 }
 
+static void dt_pltrel_str(uint64_t pltrel, std::string& out) {
+    out.clear();
+    #ifdef DT_RELA
+        if (pltrel == DT_RELA) out += "RELA";
+    #endif
+    #ifdef DT_REL
+        if (pltrel == DT_REL)  out += "REL";
+    #endif
+    if (out.empty()) {
+        out += "UNKNOWN";
+    }
+}
+
 static DynSectionValueType dt_value_type(int64_t tag, uint16_t e_machine) {
     // --- ISA-specific tags ---------------------------------------------------
 
@@ -921,10 +934,7 @@ static DynSectionValueType dt_value_type(int64_t tag, uint16_t e_machine) {
         case DT_SYMINFO:        return DynSectionValueType::DYN_VAL_ADDR;
 #endif
 
-        // Sizes / counts / enums / flags
-#if defined(DT_PLTRELSZ)
-        case DT_PLTRELSZ:       return DynSectionValueType::DYN_VAL_NUM;
-#endif
+// Sizes / counts / enums / flags
 #if defined(DT_RELASZ)
         case DT_RELASZ:         return DynSectionValueType::DYN_VAL_NUM;
 #endif
@@ -1025,6 +1035,10 @@ static DynSectionValueType dt_value_type(int64_t tag, uint16_t e_machine) {
 #endif
 #if defined(DT_POSFLAG_1)
         case DT_POSFLAG_1:      return DynSectionValueType::DYN_VAL_POSFLAG1;
+#endif
+
+#if defined(DT_PLTRELSZ)
+        case DT_PLTRELSZ:       return DynSectionValueType::DYN_VAL_PLTREL;
 #endif
 
         default:
@@ -1165,6 +1179,10 @@ static void parse_dynamic_64(const uint8_t* data, size_t sz, int swap, std::vect
         else if (di.val_type == DynSectionValueType::DYN_VAL_POSFLAG1)
         {
             dt_posflag_str(e.val, di.val_str);
+        }
+        else if (di.val_type == DynSectionValueType::DYN_VAL_PLTREL)
+        {
+            dt_pltrel_str(e.val, di.val_str);
         }
         out.push_back(std::move(di));
     }
@@ -2143,7 +2161,8 @@ NB_MODULE(libdebug_elf_api, m) {
         .value("FLAGS", DynSectionValueType::DYN_VAL_FLAGS)
         .value("FLAGS1", DynSectionValueType::DYN_VAL_FLAGS1)
         .value("FEATURES", DynSectionValueType::DYN_VAL_FEATURES)
-        .value("POSFLAG1", DynSectionValueType::DYN_VAL_POSFLAG1);
+        .value("POSFLAG1", DynSectionValueType::DYN_VAL_POSFLAG1)
+        .value("PLTREL", DynSectionValueType::DYN_VAL_PLTREL);
 
     nb::class_<DynamicSectionInfo>(m, "DynamicEntry", "ELF DT_* dynamic entry")
         .def_ro("tag", &DynamicSectionInfo::tag, "Human-readable DT_* name (or 'UNKNOWN')")

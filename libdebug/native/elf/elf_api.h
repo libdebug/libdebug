@@ -54,7 +54,8 @@ enum class DynSectionValueType {
     DYN_VAL_FLAGS,
     DYN_VAL_FLAGS1,
     DYN_VAL_FEATURES,
-    DYN_VAL_POSFLAG1
+    DYN_VAL_POSFLAG1,
+    DYN_VAL_PLTREL
 };
 
 struct RawDynEnt {
