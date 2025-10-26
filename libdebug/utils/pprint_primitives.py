@@ -5,7 +5,6 @@
 #
 
 import re
-from typing import TYPE_CHECKING
 
 from rich.console import Console
 from rich.panel import Panel
