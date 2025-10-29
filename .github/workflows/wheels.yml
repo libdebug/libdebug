@@ -111,6 +111,9 @@ jobs:
             python_version: "3.13"
           - distro: opensuse/leap:15.6
             python_version: "3.14"
+          # OpenSUSE Tumbleweed does not support Python 3.14
+          - distro: opensuse/tumbleweed:latest
+            python_version: "3.14"
           # Arch Linux is not available on Arm
           - distro: archlinux:latest
             os: ubuntu-24.04-arm
