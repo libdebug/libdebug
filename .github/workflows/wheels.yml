@@ -351,10 +351,18 @@ jobs:
         shell: bash
         run: |
           source venv/bin/activate
-          # We install unicorn first, otherwise pwntools will try to force an older version
-          # which is not even buildable on some distros with recent Python versions.
-          python3 -m pip install unicorn
-          python3 -m pip install pytest pwntools requests objgraph
+          if [[ "${{ matrix.python_version }}" == "3.14" ]]; then
+            # For Python 3.14, manually install pwntools dependencies to avoid unicorn version conflicts
+            python3 -m pip install paramiko mako pyelftools capstone ropgadget pyserial requests pip pygments pysocks python-dateutil packaging psutil intervaltree sortedcontainers rpyc colored_traceback unix-ar zstandard
+            # Install unicorn (unicorn 2.1.3 and 2.1.4 have some issues, but are fine for our purposes)
+            python3 -m pip install "unicorn>=2.0.1"
+            # Install pwntools without dependencies
+            python3 -m pip install --no-deps pwntools
+            # Install other test dependencies
+            python3 -m pip install pytest requests objgraph
+          else
+            python3 -m pip install pytest pwntools requests objgraph
+          fi
           if [[ "${{ matrix.distro_image }}" == "opensuse/tumbleweed:latest" ]]; then
             zypper --non-interactive install -y python313-curses
           fi
