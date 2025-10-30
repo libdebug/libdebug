@@ -65,7 +65,7 @@ include = ["pyproject.toml", "libdebug/**/*.py"]
 exclude = ["test/"]
 line-length = 120
 indent-width = 4
-target-version = "py312"
+target-version = "py310" # Should be the minimum supported version
 
 [tool.ruff.lint]
 select = ["ALL"]
