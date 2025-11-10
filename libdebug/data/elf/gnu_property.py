@@ -19,3 +19,6 @@ class GNUProperty:
     value: str | int | bytes
     """The data of the GNU property."""
 
+    reference_file: str = ""
+    """Path to the ELF file that contains this GNU property."""
+

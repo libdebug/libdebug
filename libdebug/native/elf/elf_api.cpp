@@ -11,7 +11,7 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h> 
 
-static void flags_str(uint64_t f, std::string out){
+static void sh_flags_str(uint64_t f, std::string& out){
     out.clear();
     #ifdef SHF_WRITE
         if (f & SHF_WRITE)      out += 'W';
@@ -269,7 +269,7 @@ static void parse_sections_64(const uint8_t *data, size_t sz, int swap, std::vec
         SectionInfo s;
         s.index = i;
         s.type.assign(sh_type_str(sh_type, maybe16(eh->e_machine, swap)));
-        flags_str(sh_flags, s.flags); // convert to string
+        sh_flags_str(sh_flags, s.flags); // convert to string
         s.addr = sh_addr;
         s.offset = sh_offset;
         s.size = sh_size;
@@ -336,10 +336,16 @@ static void parse_sections_32(const uint8_t *data, size_t sz, int swap, std::vec
         uint32_t sh_size     = maybe32(sh->sh_size, swap);
         uint32_t sh_addralign= maybe32(sh->sh_addralign, swap);
 
-        if (sh_addralign && !is_p2(sh_addralign)) {
-            // Keep it non-fatal: warn via stderr, continue
-            std::fprintf(stderr, "Warn: section %u has non power-of-two sh_addralign=%" PRIu64 "\n", i, (uint64_t)sh_addralign);
-        }
+        // Do we want an exception for non-power-of-two alignments?
+        // if (sh_addralign && !is_p2(sh_addralign)) {
+        //     {
+        //         char buf[128];
+        //         std::snprintf(buf, sizeof(buf),
+        //                       "Non power-of-two sh_addralign for section %u: %" PRIu64,
+        //                       (unsigned)i, (uint64_t)sh_addralign);
+        //         throw std::runtime_error(buf);
+        //     }
+        // }
 
         const char *name_c = "(bad-name)";
         if (sh_name < strtab_sz){
@@ -360,7 +366,7 @@ static void parse_sections_32(const uint8_t *data, size_t sz, int swap, std::vec
         SectionInfo s;
         s.index = i;
         s.type.assign(sh_type_str(sh_type, maybe16(eh->e_machine, swap)));
-        flags_str(sh_flags, s.flags); // convert to string
+        sh_flags_str(sh_flags, s.flags); // convert to string
         s.addr = sh_addr;
         s.offset = sh_offset;
         s.size = sh_size;
@@ -953,9 +959,6 @@ static DynSectionValueType dt_value_type(int64_t tag, uint16_t e_machine) {
 #if defined(DT_RELENT)
         case DT_RELENT:         return DynSectionValueType::DYN_VAL_NUM;
 #endif
-#if defined(DT_PLTREL)
-        case DT_PLTREL:         return DynSectionValueType::DYN_VAL_NUM;
-#endif
 #if defined(DT_TEXTREL)
         case DT_TEXTREL:        return DynSectionValueType::DYN_VAL_NUM;
 #endif
@@ -1037,8 +1040,8 @@ static DynSectionValueType dt_value_type(int64_t tag, uint16_t e_machine) {
         case DT_POSFLAG_1:      return DynSectionValueType::DYN_VAL_POSFLAG1;
 #endif
 
-#if defined(DT_PLTRELSZ)
-        case DT_PLTRELSZ:       return DynSectionValueType::DYN_VAL_PLTREL;
+#if defined(DT_PLTREL)
+        case DT_PLTREL:       return DynSectionValueType::DYN_VAL_PLTREL;
 #endif
 
         default:
@@ -1270,6 +1273,10 @@ static void parse_dynamic_32(const uint8_t* data, size_t sz, int swap, std::vect
         else if (di.val_type == DynSectionValueType::DYN_VAL_POSFLAG1)
         {
             dt_posflag_str(e.val, di.val_str);
+        }
+        else if (di.val_type == DynSectionValueType::DYN_VAL_PLTREL)
+        {
+            dt_pltrel_str(e.val, di.val_str);
         }
         out.push_back(std::move(di));
     }

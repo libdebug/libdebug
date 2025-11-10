@@ -48,6 +48,7 @@ class ELF:
 
     Attributes:
         path (str): The path to the ELF file.
+        absolute_path (str): The absolute path to the ELF file.
         base_address (int): The base address where the ELF file is loaded in memory.
         entry_point (int): The entry point of the ELF file.
         is_pie (bool): Whether the ELF file is position-independent (PIE) or not.
@@ -60,6 +61,9 @@ class ELF:
 
     path: str = ""
     """Path to the ELF file."""
+
+    absolute_path: str = ""
+    """Absolute path to the ELF file."""
 
     entry_point: int = 0
     """Entry point of the ELF file."""
@@ -119,6 +123,7 @@ class ELF:
 
         return ELF(
             path=path,
+            absolute_path=str(Path(path).resolve()),
             entry_point=entry_point_,
             is_pie=is_pie_,
             architecture=architecture_,
@@ -152,7 +157,7 @@ class ELF:
                     offset=section_info.offset,
                     size=section_info.size,
                     address_align=section_info.addralign,
-                    reference_file=self.path,
+                    reference_file=self.absolute_path,
                 )
                 for section_info in table.sections
             ]
@@ -181,7 +186,7 @@ class ELF:
                         else dyn_section.val_str
                     ),
                     is_value_address=dyn_section.val_type == DynSectionValueType.ADDR,
-                    reference_file=self.path,
+                    reference_file=self.absolute_path,
                 )
                 for dyn_section in table.entries
             ]
@@ -227,7 +232,7 @@ class ELF:
             if not self._internal_debugger.is_debugging:
                 raise ValueError("You must run or attach to the process before accessing symbols.")
 
-            full_path_elf = Path(self.path)
+            full_path_elf = Path(self.absolute_path)
 
             self._symbols = SymbolList(
                 [sym for sym in self._internal_debugger.symbols if full_path_elf.samefile(Path(sym.backing_file))],
@@ -263,7 +268,7 @@ class ELF:
                     memsz=ph_info.memsz,
                     flags=ph_info.flags,
                     align=ph_info.align,
-                    reference_file=self.path,
+                    reference_file=self.absolute_path,
                 )
                 for ph_info in table.headers
             ]
@@ -295,6 +300,7 @@ class ELF:
                     GNUProperty(
                         pr_type=pr_type,
                         value=value,
+                        reference_file=self.absolute_path,
                     ),
                 )
 

@@ -26,7 +26,7 @@ struct SectionInfo {
 
     // Use raw ELF values for portability; you can wrap with enums on the Python side.
     std::string type;      // sh_type
-    std::string flags;    // sh_flags parsed to fixed-size string
+    std::string flags;    // sh_flags parsed to string
     uint64_t addr = 0;      // sh_addr
     uint64_t offset = 0;    // sh_offset
     uint64_t size = 0;      // sh_size
