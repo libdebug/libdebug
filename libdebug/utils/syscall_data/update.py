@@ -42,7 +42,6 @@ p.add_argument(
     "-a",
     type=str,
     help="Architecture for which to fetch the syscall definitions (e.g., amd64, aarch64, i386).",
-    default="amd64",
     dest="arch",
 )
 
