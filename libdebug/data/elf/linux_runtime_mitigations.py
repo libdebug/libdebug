@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 from typing import TYPE_CHECKING
 
+from libdebug.architectures.aarch64.aarch64_pac_instruction_detector import detect_pac_pattern_in_code
 from libdebug.native.libdebug_elf_api import quick_sym_heuristic_lookup
 
 if TYPE_CHECKING:
@@ -31,7 +33,6 @@ class LinuxRuntimeMitigations:
         shstk (bool): Intel CET / ARM GCS Shadow Stack (SHSTK) supported.
         ibt (bool): Intel CET Indirect Branch Tracking (IBT) supported.
         fortify (bool): Glibc FORTIFY_SOURCE enabled or not.
-        mte (bool): ARM Memory Tagging Extension (MTE) supported.
         pac (bool): ARM Pointer Authentication Codes (PAC) supported.
         asan (bool): Binary built with Address Sanitizer (ASAN).
         msan (bool): Binary built with Memory Sanitizer (MSAN).
@@ -61,9 +62,6 @@ class LinuxRuntimeMitigations:
 
     fortify: bool = False
     """Glibc FORTIFY_SOURCE enabled or not."""
-
-    mte: bool = False
-    """ARM Memory Tagging Extension (MTE) supported."""
 
     pac: bool = False
     """ARM Pointer Authentication Codes (PAC) supported."""
@@ -131,7 +129,6 @@ class LinuxRuntimeMitigations:
             msan = any("__msan_" in candidate for candidate in strings_of_interest)
             ubsan = any("__ubsan_" in candidate for candidate in strings_of_interest)
 
-        mte = LinuxRuntimeMitigations._parse_mte(elf)
         pac = LinuxRuntimeMitigations._parse_pac(elf)
 
         return LinuxRuntimeMitigations(
@@ -146,7 +143,6 @@ class LinuxRuntimeMitigations:
             asan=asan,
             msan=msan,
             ubsan=ubsan,
-            mte=mte,
             pac=pac,
             _elf=elf,
         )
@@ -276,23 +272,6 @@ class LinuxRuntimeMitigations:
         return False
 
     @staticmethod
-    def _parse_mte(elf: ELF) -> bool:
-        """Parse if the binary was built with ARM Memory Tagging Extension (MTE).
-
-        Args:
-            elf (ELF): The ELF file to parse.
-
-        Returns:
-            bool: True if MTE is supported, False otherwise.
-        """
-        if elf.arch != "aarch64":
-            return False
-
-        program_headers = elf.program_headers.filter("AARCH64_MEMTAG_MTE")
-
-        return len(program_headers) > 0
-
-    @staticmethod
     def _parse_pac(elf: ELF) -> bool:
         """Parse if the binary was built with ARM Pointer Authentication Codes (PAC).
 
@@ -307,4 +286,16 @@ class LinuxRuntimeMitigations:
 
         aarch64_features = elf.gnu_properties.filter("AARCH64_FEATURE_1_AND")
 
-        return len(aarch64_features) > 0 and "PAC" in aarch64_features[0].value
+        if len(aarch64_features) > 0 and "PAC" in aarch64_features[0].value:
+            return True
+        # Check for presence of PAC hints
+        binary_text = elf.sections.filter(".text")
+
+        if not binary_text:
+            return False
+
+        with Path(elf.path).open("rb") as f:
+            f.seek(binary_text[0].offset)
+            code_bytes = f.read(binary_text[0].size)
+
+        return detect_pac_pattern_in_code(code_bytes)

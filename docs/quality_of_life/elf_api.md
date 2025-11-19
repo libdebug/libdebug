@@ -11,7 +11,8 @@ Since version 0.10 TBD, **libdebug** offers a simple API to parse some of the mo
 
 | Attribute | Type | Description |
 | --- | --- | --- |
-| `path` | `str` | Path to the ELF file. |
+| `path` | `str` | Relative path to the ELF file. |
+| `absolute_path` | `str` | Absolute path to the ELF file. |
 | `entry_point` | `int` | Entry point address (relative) of the ELF binary. |
 | `is_pie` | `bool` | Whether the ELF file is position-independent (PIE). See [Linux Runtime Mitigations](#linux-runtime-mitigations) |
 | `architecture` | `str` | CPU architecture (e.g., `amd64`, `i386`, `aarch64`). Alias: `arch`. |
@@ -90,12 +91,34 @@ The Section object exposes the following attributes:
 | --- | --- | --- |
 | `name` | `str` | Name of the section (e.g., `.text`, `.data`). |
 | `section_type` | `str` | Section type mnemonic (e.g., `PROGBITS`, `SYMTAB`). |
-| `flags` | `int` | Flags bitmask describing section attributes (e.g., executable, writable, readable). |
+| `flags` | `int` | Flags parsed from bitmask describing section attributes (e.g., executable, writable, readable). |
 | `address` | `int` | Virtual address of the section in memory. |
 | `offset` | `int` | Offset of the section within the file. |
 | `size` | `int` | Size of the section in bytes. |
 | `address_align` | `int` | Required alignment of the section in memory. |
 | `reference_file` | `str` | Path to the ELF file that contains this section. |
+
+The `flags` attibute, parsed from a bitmask, can have one or more of the following values:
+
+| &lt;elf.h&gt; Definition | Notation | Description |
+| --- | --- | --- |
+| `SHF_WRITE` | `'W'` | Section is writable. |
+| `SHF_ALLOC` | `'A'` | Section is allocated in memory at runtime. |
+| `SHF_EXECINSTR` | `'X'` | Section contains executable instructions. |
+| `SHF_MERGE` | `'M'` | Section may be merged (contains data that can be combined). |
+| `SHF_STRINGS` | `'S'` | Section contains null-terminated strings. |
+| `SHF_INFO_LINK` | `'I'` | Section holds information that indexes another section (sh_info). |
+| `SHF_LINK_ORDER` | `'L'` | Section order matters relative to other sections (link-order). |
+| `SHF_OS_NONCONFORMING` | `'O'` | OS-specific nonconforming section. |
+| `SHF_GROUP` | `'G'` | Section is a member of a section group. |
+| `SHF_TLS` | `'T'` | Section describes thread-local storage (TLS). |
+| `SHF_COMPRESSED` | `'C'` | Section data is compressed. |
+| `SHF_EXCLUDE` | `'E'` | Section should be excluded from the final output (GNU extension). |
+| `SHF_GNU_RETAIN` | `' RETAIN'` | GNU-specific: instructs the linker/loader to retain the section. |
+| `SHF_ORDERED` | `' ORDERED'` | GNU-specific: section has ordering constraints. |
+| `SHF_X86_64_LARGE` | `' LARGE'` | Processor-specific: large section on x86_64. |
+| `SHF_ENTRYSECT` | `' ENTRYSECT'` | Processor-specific: marks an entry-section. |
+| `SHF_COMDEF` | `' COMDEF'` | Processor-specific: common definitions (COMDEF). |
 
 ### Searching Sections
 You can search sections in a [SectionList](../../from_pydoc/generated/data/elf/section_list) object using the `filter()` method or the `[]` operator.
@@ -195,6 +218,7 @@ The GNUProperty object exposes the following attributes:
 | --- | --- | --- |
 | `pr_type` | `str` | The type of the GNU property. |
 | `value` | `str | int | bytes` | Data of the GNU property. Depending on the property type, this could be a string, an integer, or raw bytes. |
+| `reference_file` | `str` | Path to the ELF file that contains this GNU property. |
 
 ### Searching GNU Properties
 You can search GNU properties by type in a [GNUPropertyList](../../from_pydoc/generated/data/elf/gnu_property_list) object using the `filter()` method or the `[]` operator.
@@ -245,7 +269,7 @@ Non-eXecutable (NX) is a security feature that marks some segment of a process a
 
 **libdebug** follows the same approach as [pwntools](https://docs.pwntools.com/en/stable/elf/elf.html#pwnlib.elf.elf.ELF.nx) to determine if NX is enabled: if there is a `PT_GNU_STACK` program header with the executable flag (`PF_X`) unset, NX is considered enabled, otherwise architecture-specific checks are done.
 
-You can check if NX is enabled using the `nx` attribute of the [LinuxRuntimeMitigations](../../from_pydoc/generated/data/elf/linux_runtime_mitigations) object. Other than a boolean value, this attribute may also be `None`, indicating that the check depends on whether the process has `READ_IMPLIES_EXEC` in its [personality](https://man7.org/linux/man-pages/man2/personality.2.html).
+You can check if NX is enabled using the `nx` attribute of the [LinuxRuntimeMitigations](../../from_pydoc/generated/data/elf/linux_runtime_mitigations) object. Other than a boolean value, this attribute may also be `None`, indicating that the check depends on whether the process has `READ_IMPLIES_EXEC` in its [personality](https://man7.org/linux/man-pages/man2/personality.2.html). In this case, the [Binary Report](#binary-report) will s`Depends` for NX.
 
 Read more about NX checks in [pwntools' documentation](https://docs.pwntools.com/en/stable/elf/elf.html#pwnlib.elf.elf.ELF.nx).
 
@@ -313,21 +337,10 @@ You can check if a binary was built with a specific sanitizer using the `asan`, 
 ### ARM Architectural Hardening
 In recent years, ARM has introduced several architectural extensions to enhance security and mitigate common attack vectors. For the following mitigations, remember that their actual availability also depends on the CPU and kernel configuration.
 
-#### 🔖 Memory Tagging Extension (MTE)
-As part of the ARMv8.5-A architecture, the [Memory Tagging Extension (MTE)](https://developer.arm.com/documentation/108035/0100/Introduction-to-the-Memory-Tagging-Extension) is a hardware extension that helps detect and prevent memory safety violations, such as heap buffer overflows and use-after-free errors. MTE works by associating a "tag" with each memory allocation and pointer. When a pointer is used to access memory, the hardware checks if the tag of the pointer matches the tag of the memory allocation. If they do not match, it is flagged memory safety violation, and the program can take appropriate action (e.g., terminate). The tag is randomly generated and is typically 4 bits in size, allowing for 16 different tag values, increasing the entropy in stochastic exploits.
-
-There are two modes of MTE operation:
-- Asynchronous MTE: Tag mismatches are detected during memory accesses, but the program continues execution and will report the error later.
-- Synchronous MTE: Tag mismatches cause immediate exceptions, reducing the likelihood of exploitation.
-
-**libdebug** checks for ARM MTE support by looking for the `PT_AARCH64_MEMTAG_MTE` program header.
-
-You can check if Memory Tagging Extension is supported using the `mte` attribute of the [LinuxRuntimeMitigations](../../from_pydoc/generated/data/elf/linux_runtime_mitigations) object.
-
 #### 🔐 Pointer Authentication Codes (PAC)
 As part of the ARMv8.3-A architecture, [Pointer Authentication Codes (PAC)](https://developer.arm.com/documentation/109576/0100/Pointer-Authentication-Code/Introduction-to-PAC) were introduced as a security feature to protect against control-flow hijacking attacks by cryptographically signing pointers. PAC works by generating a Pointer Authentication Code (PAC) for each pointer using a secret key and additional context information (such as the pointer's address). When the pointer is used, the hardware verifies the PAC to ensure that the pointer has not been tampered with. If the PAC verification fails, it indicates a potential attack, and the program can take appropriate action (e.g., terminate).
 
-**libdebug** checks for ARM PAC support by looking for the `PAC` flag in the `AARCH64_FEATURE_1_AND` GNU property.
+**libdebug** checks for ARM PAC support by looking for the `PAC` flag in the `AARCH64_FEATURE_1_AND` GNU property or specific PAC instructions in the `.text` section (e.g., `PACG`, `AUT`, etc.). This is because unlike BTI, the PAC GNU property is optional, as it is callee ABI in Linux with no changes to memory permissions \[[Source](https://developer.arm.com/community/arm-community-blogs/b/architectures-and-processors-blog/posts/enabling-pac-and-bti-on-aarch64#Bill'sdraftpost:EnablingPACandBTIonAArch64onLinux-PAC)\]. 
 
 You can check if Pointer Authentication Codes are supported using the `pac` attribute of the [LinuxRuntimeMitigations](../../from_pydoc/generated/data/elf/linux_runtime_mitigations) object.
 
@@ -345,7 +358,6 @@ The `runtime_mitigations` property of an [ELF](../../from_pydoc/generated/data/e
 | `shstk` | `bool` | Shadow Stack support (Intel CET SHSTK / ARM GCS). |
 | `ibt` | `bool` | Indirect Branch Tracking / Branch Target Identification support (Intel CET IBT / ARM BTI). Alias: `bti`. |
 | `fortify` | `bool` | Whether glibc _FORTIFY_SOURCE is in effect (heuristic via fortified symbols). |
-| `mte` | `bool` | ARM Memory Tagging Extension (MTE) supported. |
 | `pac` | `bool` | ARM Pointer Authentication Codes (PAC) supported. |
 | `asan` | `bool` | Binary built with AddressSanitizer (ASAN). |
 | `msan` | `bool` | Binary built with MemorySanitizer (MSAN). |
@@ -379,6 +391,8 @@ The binary report is a pretty-printed summary of the most relevant information a
     ```
 
 The report will include different information based on whether the process is being traced or not. For example, when the process is traced, the base address of the binary and paths to the libraries will be included.
+
+Finally, the report will also include the runtime mitigations supported by the binary, color-coded for better readability.
 
 Here are two examples of binary reports, one on AMD64 and another on AArch64:
 
