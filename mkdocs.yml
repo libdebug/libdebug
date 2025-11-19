@@ -76,10 +76,11 @@ nav:
       - Logging: logging/liblog.md
   - Quality of Life:
       - Quality of Life: quality_of_life/quality_of_life.md
-      - Pretty Printing: quality_of_life/pretty_printing.md
-      - Symbol Resolution: quality_of_life/symbols.md
       - Memory Maps: quality_of_life/memory_maps.md
+      - Symbol Resolution: quality_of_life/symbols.md
       - Stack Frame Utils: quality_of_life/stack_frame_utils.md
+      - Pretty Printing: quality_of_life/pretty_printing.md
+      - ELF API: quality_of_life/elf_api.md
       - Evasion of Anti-Debugging: quality_of_life/anti_debugging.md
   - Save States:
       - Save States: save_states/save_states.md
