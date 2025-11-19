@@ -778,12 +778,6 @@ class BreakpointTest(TestCase):
 
         d.cont()
 
-        d.pprint_regs()
-        d.pprint_maps()
-        d.pprint_backtrace()
-        print(d._internal_debugger.resume_context.get_event_type())
-        print(wp.hit_on(d), bp.hit_on(d))
-
         self.assertFalse(wp.hit_on(d))
         self.assertTrue(bp.hit_on(d))
 
