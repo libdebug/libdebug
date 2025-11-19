@@ -16,6 +16,9 @@ PLATFORM = os.getenv("PLATFORM", libcontext.platform)
 def RESOLVE_EXE(file: str) -> str:
     return f"binaries/{PLATFORM}/{file}"
 
+def RESOLVE_EXE_CROSS(file: str, platform: str) -> str:
+    return f"binaries/{platform}/{file}"
+
 def _base_address() -> int:
     d = debugger(RESOLVE_EXE("basic_test_pie"), aslr=False)
 

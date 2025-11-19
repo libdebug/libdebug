@@ -13,6 +13,8 @@ from pathlib import Path
 from utils.binary_utils import PLATFORM, BASE
 
 
+from libdebug.data.elf.linux_runtime_mitigations import RelroStatus
+
 class ElfApiTest(TestCase):
 
     def test_sections_amd64(self):
@@ -1888,3 +1890,207 @@ class ElfApiTest(TestCase):
                 self.fail(f"Unsupported platform: {PLATFORM}")
  
         d.terminate()
+
+    def test_binary_mitigations(self):
+        """Tests the binary mitigations API."""
+        # AMD64 mitigationsv1
+        rel_path = RESOLVE_EXE_CROSS("mitigationsv1", "amd64")
+        d = debugger(rel_path, aslr=False)
+        mitigations = d.binary.runtime_mitigations
+
+        self.assertEqual(mitigations.relro, RelroStatus.FULL)
+        self.assertTrue(mitigations.stack_guard)
+        self.assertTrue(mitigations.nx)
+        self.assertFalse(mitigations.stack_executable)
+        self.assertTrue(mitigations.pie)
+        self.assertTrue(mitigations.shstk)
+        self.assertTrue(mitigations.ibt)
+        self.assertTrue(mitigations.fortify)
+        self.assertFalse(mitigations.asan)
+        self.assertFalse(mitigations.msan)
+        self.assertFalse(mitigations.ubsan)
+        self.assertFalse(mitigations.pac)
+
+        # AMD64 mitigationsv2
+        rel_path = RESOLVE_EXE_CROSS("mitigationsv2", "amd64")
+        d = debugger(rel_path, aslr=False)
+        mitigations = d.binary.runtime_mitigations
+
+        self.assertEqual(mitigations.relro, RelroStatus.PARTIAL)
+        self.assertTrue(mitigations.stack_guard)
+        self.assertTrue(mitigations.nx)
+        self.assertFalse(mitigations.stack_executable)
+        self.assertTrue(mitigations.pie)
+        self.assertFalse(mitigations.shstk)
+        self.assertFalse(mitigations.ibt)
+        self.assertFalse(mitigations.fortify)
+        self.assertFalse(mitigations.asan)
+        self.assertFalse(mitigations.msan)
+        self.assertFalse(mitigations.ubsan)
+        self.assertFalse(mitigations.pac)
+
+        # AMD64 mitigationsv3
+        rel_path = RESOLVE_EXE_CROSS("mitigationsv3", "amd64")
+        d = debugger(rel_path, aslr=False)
+        mitigations = d.binary.runtime_mitigations
+
+        self.assertEqual(mitigations.relro, RelroStatus.NONE)
+        self.assertFalse(mitigations.stack_guard)
+        self.assertEqual(mitigations.nx, None) # Depends on READ_IMPLIES_EXEC
+        self.assertTrue(mitigations.stack_executable)
+        self.assertFalse(mitigations.pie)
+        self.assertFalse(mitigations.shstk)
+        self.assertFalse(mitigations.ibt)
+        self.assertFalse(mitigations.fortify)
+        self.assertFalse(mitigations.asan)
+        self.assertFalse(mitigations.msan)
+        self.assertFalse(mitigations.ubsan)
+        self.assertFalse(mitigations.pac)
+
+        # AMD64 mitigationsv4
+        rel_path = RESOLVE_EXE_CROSS("mitigationsv4", "amd64")
+        d = debugger(rel_path, aslr=False)
+        mitigations = d.binary.runtime_mitigations
+
+        self.assertEqual(mitigations.relro, RelroStatus.FULL)
+        self.assertTrue(mitigations.stack_guard)
+        self.assertTrue(mitigations.nx)
+        self.assertFalse(mitigations.stack_executable)
+        self.assertTrue(mitigations.pie)
+        self.assertFalse(mitigations.shstk)
+        self.assertFalse(mitigations.ibt)
+        self.assertTrue(mitigations.fortify)
+        self.assertTrue(mitigations.asan)
+        self.assertFalse(mitigations.msan)
+        self.assertFalse(mitigations.ubsan)
+        self.assertFalse(mitigations.pac)
+
+        # -------------------------
+
+        # i386 mitigationsv1
+        rel_path = RESOLVE_EXE_CROSS("mitigationsv1", "i386")
+        d = debugger(rel_path, aslr=False)
+        mitigations = d.binary.runtime_mitigations
+
+        self.assertEqual(mitigations.relro, RelroStatus.FULL)
+        self.assertTrue(mitigations.stack_guard)
+        self.assertTrue(mitigations.nx)
+        self.assertFalse(mitigations.stack_executable)
+        self.assertTrue(mitigations.pie)
+        self.assertFalse(mitigations.shstk)
+        self.assertFalse(mitigations.ibt)
+        self.assertTrue(mitigations.fortify)
+        self.assertFalse(mitigations.asan)
+        self.assertFalse(mitigations.msan)
+        self.assertFalse(mitigations.ubsan)
+        self.assertFalse(mitigations.pac)
+
+        # i386 mitigationsv2
+        rel_path = RESOLVE_EXE_CROSS("mitigationsv2", "i386")
+        d = debugger(rel_path, aslr=False)
+        mitigations = d.binary.runtime_mitigations
+
+        self.assertEqual(mitigations.relro, RelroStatus.PARTIAL)
+        self.assertTrue(mitigations.stack_guard)
+        self.assertTrue(mitigations.nx)
+        self.assertFalse(mitigations.stack_executable)
+        self.assertTrue(mitigations.pie)
+        self.assertFalse(mitigations.shstk)
+        self.assertFalse(mitigations.ibt)
+        self.assertFalse(mitigations.fortify)
+        self.assertFalse(mitigations.asan)
+        self.assertFalse(mitigations.msan)
+        self.assertFalse(mitigations.ubsan)
+        self.assertFalse(mitigations.pac)
+
+        # i386 mitigationsv3
+        rel_path = RESOLVE_EXE_CROSS("mitigationsv3", "i386")
+        d = debugger(rel_path, aslr=False)
+        mitigations = d.binary.runtime_mitigations
+
+        self.assertEqual(mitigations.relro, RelroStatus.NONE)
+        self.assertFalse(mitigations.stack_guard)
+        self.assertEqual(mitigations.nx, None) # Depends on READ_IMPLIES_EXEC
+        self.assertTrue(mitigations.stack_executable)
+        self.assertFalse(mitigations.pie)
+        self.assertFalse(mitigations.shstk)
+        self.assertFalse(mitigations.ibt)
+        self.assertFalse(mitigations.fortify)
+        self.assertFalse(mitigations.asan)
+        self.assertFalse(mitigations.msan)
+        self.assertFalse(mitigations.ubsan)
+        self.assertFalse(mitigations.pac)
+
+        # -------------------------
+
+        # AArch64 mitigationsv1
+        rel_path = RESOLVE_EXE_CROSS("mitigationsv1", "aarch64")
+        d = debugger(rel_path, aslr=False)
+        mitigations = d.binary.runtime_mitigations
+
+        self.assertEqual(mitigations.relro, RelroStatus.FULL)
+        self.assertTrue(mitigations.stack_guard)
+        self.assertTrue(mitigations.nx)
+        self.assertFalse(mitigations.stack_executable)
+        self.assertTrue(mitigations.pie)
+        self.assertFalse(mitigations.shstk)
+        self.assertFalse(mitigations.ibt)
+        self.assertTrue(mitigations.fortify)
+        self.assertFalse(mitigations.asan)
+        self.assertFalse(mitigations.msan)
+        self.assertFalse(mitigations.ubsan)
+        self.assertFalse(mitigations.pac)
+
+        # AArch64 GCS support is recent and still shaky, using a compiled GLIBC with GCS for the test
+        rel_path = RESOLVE_EXE_CROSS("glibc-2.42-mitigations-gcs.so", "aarch64")
+        d = debugger(rel_path, aslr=False)
+        mitigations = d.binary.runtime_mitigations
+
+        self.assertEqual(mitigations.relro, RelroStatus.PARTIAL)
+        self.assertTrue(mitigations.stack_guard)
+        self.assertTrue(mitigations.nx)
+        self.assertFalse(mitigations.stack_executable)
+        self.assertTrue(mitigations.pie)
+        self.assertTrue(mitigations.shstk)
+        self.assertFalse(mitigations.ibt)
+        self.assertTrue(mitigations.fortify)
+        self.assertFalse(mitigations.asan)
+        self.assertFalse(mitigations.msan)
+        self.assertFalse(mitigations.ubsan)
+        self.assertTrue(mitigations.pac)
+
+        # AArch64 mitigationsv3
+        rel_path = RESOLVE_EXE_CROSS("mitigationsv3", "aarch64")
+        d = debugger(rel_path, aslr=False)
+        mitigations = d.binary.runtime_mitigations
+
+        self.assertEqual(mitigations.relro, RelroStatus.FULL)
+        self.assertTrue(mitigations.stack_guard)
+        self.assertTrue(mitigations.nx)
+        self.assertFalse(mitigations.stack_executable)
+        self.assertTrue(mitigations.pie)
+        self.assertFalse(mitigations.shstk)
+        self.assertTrue(mitigations.ibt)
+        self.assertTrue(mitigations.fortify)
+        self.assertFalse(mitigations.asan)
+        self.assertFalse(mitigations.msan)
+        self.assertFalse(mitigations.ubsan)
+        self.assertTrue(mitigations.pac)
+
+        # AArch64 mitigationsv4
+        rel_path = RESOLVE_EXE_CROSS("mitigationsv4", "aarch64")
+        d = debugger(rel_path, aslr=False)
+        mitigations = d.binary.runtime_mitigations
+
+        self.assertEqual(mitigations.relro, RelroStatus.NONE)
+        self.assertFalse(mitigations.stack_guard)
+        self.assertEqual(mitigations.nx, None) # Depends on READ_IMPLIES_EXEC
+        self.assertTrue(mitigations.stack_executable)
+        self.assertFalse(mitigations.pie)
+        self.assertFalse(mitigations.shstk)
+        self.assertFalse(mitigations.ibt)
+        self.assertFalse(mitigations.fortify)
+        self.assertFalse(mitigations.asan)
+        self.assertFalse(mitigations.msan)
+        self.assertFalse(mitigations.ubsan)
+        self.assertFalse(mitigations.pac)
