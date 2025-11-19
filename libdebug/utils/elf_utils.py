@@ -355,9 +355,9 @@ def resolve_argv_path(argv_path: str) -> str:
     if argv_path_expanded.is_absolute():
         # It's an absolute path, return it as is
         resolved_path = argv_path_expanded
-    elif argv_path_expanded.is_file():
-        # It already points to a file, return it
-        resolved_path = argv_path_expanded
+    elif "/" in argv_path:
+        # It already points to a file, resolve it and return as absolute
+        resolved_path = argv_path_expanded.resolve().absolute()
     else:
         # Try to resolve the path using shutil
         resolved_path = abs_path if (abs_path := shutil.which(argv_path_expanded)) else argv_path_expanded

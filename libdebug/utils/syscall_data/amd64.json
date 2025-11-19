@@ -3194,6 +3194,39 @@
                 "unsigned int at_flags",
                 "const char *name"
             ]
+        },
+        {
+            "name": "open_tree_attr",
+            "number": 467,
+            "signature": [
+                "int dfd",
+                "const char *filename",
+                "unsigned flags",
+                "struct mount_attr *uattr",
+                "size_t usize"
+            ]
+        },
+        {
+            "name": "file_getattr",
+            "number": 468,
+            "signature": [
+                "int dfd",
+                "const char *filename",
+                "struct file_attr *ufattr",
+                "size_t usize",
+                "unsigned int at_flags"
+            ]
+        },
+        {
+            "name": "file_setattr",
+            "number": 469,
+            "signature": [
+                "int dfd",
+                "const char *filename",
+                "struct file_attr *ufattr",
+                "size_t usize",
+                "unsigned int at_flags"
+            ]
         }
     ]
 }
