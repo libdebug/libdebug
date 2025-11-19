@@ -759,6 +759,8 @@ class BreakpointTest(TestCase):
         d.terminate()
 
     def test_hw_bp_at_invalid_location(self):
+        # Note: our CI job deselects this test when running inside QEMU i386 VMs
+        # because hardware breakpoints at invalid addresses are unreliable there.
         d = debugger(RESOLVE_EXE("breakpoint_test_2"))
 
         d.run()
