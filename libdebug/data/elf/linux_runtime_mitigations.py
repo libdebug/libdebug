@@ -108,6 +108,8 @@ class LinuxRuntimeMitigations:
         nx = LinuxRuntimeMitigations._parse_nx(elf)
 
         stack_executable = LinuxRuntimeMitigations._parse_stack_executable(elf)
+        # NX off implies executable stack
+        stack_executable = stack_executable or (nx is False)
 
         # FORTIFY_SOURCE
         # adds symbols like __memcpy_chk, __sprintf_chk
@@ -225,9 +227,13 @@ class LinuxRuntimeMitigations:
         Returns:
             bool: True if the stack is executable, False otherwise.
         """
+        # Look up the GNU_STACK program header
         for ph in elf.program_headers.filter("GNU_STACK"):
             return "X" in ph.flags
-        return True
+
+        # DEFAULT_STACK_PERMS is RWX on x86 and x86_64
+        # On other supported architectures, assume non-executable stack if GNU_STACK is missing
+        return elf.arch in ["i386", "amd64"]
 
     @staticmethod
     def _parse_shadowstack(elf: ELF) -> bool:
