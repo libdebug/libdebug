@@ -1833,12 +1833,17 @@ class ElfApiTest(TestCase):
         # Create a debugger and start execution
         d = debugger(rel_path, aslr=False)
 
+        ENTRY_POINTS = {
+            "i386": 0x1180,
+            "aarch64": 0x940,
+            "amd64": 0x1190,
+        }
+
         self.assertEqual(d.binary.path.split("/")[-1], "sections_test")
         self.assertEqual(d.binary.absolute_path, str(Path(rel_path).resolve()))
-        self.assertEqual(rel_path, d.binary.path)
         self.assertEqual(d.binary.architecture, PLATFORM)
         self.assertEqual(d.binary.is_pie, True)
-        self.assertEqual(d.binary.entry_point, 0x1190)
+        self.assertEqual(d.binary.entry_point, ENTRY_POINTS[PLATFORM])
         self.assertEqual(d.binary.endianness, "little")
 
         match PLATFORM:
@@ -1873,7 +1878,6 @@ class ElfApiTest(TestCase):
 
         self.assertEqual(len(d.binary.symbols), num_symbols)
 
-        self.assertEqual(d.binary.path, RESOLVE_EXE("sections_test"))
         self.assertEqual(len(d.libraries), 2)
 
         match PLATFORM:

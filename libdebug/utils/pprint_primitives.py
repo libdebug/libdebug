@@ -384,7 +384,7 @@ def pprint_mitigations(elf: ELF, console: Console) -> str:
     tree.add(yn(r_mit.stack_guard, "Stack Guard (canary)", "🛡 "))
     # NX vs Executable Stack (show both succinctly)
     tree.add(nx_status(r_mit.nx))
-    tree.add(print_exec(not r_mit.nx and r_mit.stack_executable))
+    tree.add(print_exec(r_mit.stack_executable))
 
     tree.add(yn(r_mit.pie, "PIE", "🧩 "))
 
