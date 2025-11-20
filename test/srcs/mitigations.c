@@ -69,7 +69,7 @@
 // │ └── 🧪 ASan: Enabled                │
 // ╰─────────────────────────────────────╯
 //
-// gcc -O2 -m32 -fstack-protector -Wl,-z,relro,-z,now -D_FORTIFY_SOURCE=2 -fPIE -fsanitize=address -o ../binaries/amd64/mitigationsv6 mitigations.c
+// gcc -O2 -m32 -fstack-protector -Wl,-z,relro,-z,now -D_FORTIFY_SOURCE=2 -fPIE -fsanitize=address -o ../binaries/amd64/mitigationsv4 mitigations.c
 // --------------------------------------------------------- //
 
 // ------------------ Build Instructions ------------------- //
