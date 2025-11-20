@@ -265,13 +265,22 @@ You can check the [RelroStatus](../../from_pydoc/generated/data/elf/linux_runtim
 You can check if Stack Guard is enabled using the `stack_guard` attribute of the [LinuxRuntimeMitigations](../../from_pydoc/generated/data/elf/linux_runtime_mitigations) object.
 
 ### 👾 NX (Non-eXecutable) Protection
-Non-eXecutable (NX) is a security feature that marks some segment of a process as non-executable. This helps mitigate code injection as a result of buffer overflows.
+Non-eXecutable (NX) is a security feature that marks some segment of a process as non-executable. This helps reduce the risk of code injection, which could otherwise make arbitrary code execution much easier.
 
-**libdebug** follows the same approach as [pwntools](https://docs.pwntools.com/en/stable/elf/elf.html#pwnlib.elf.elf.ELF.nx) to determine if NX is enabled: if there is a `PT_GNU_STACK` program header with the executable flag (`PF_X`) unset, NX is considered enabled, otherwise architecture-specific checks are done.
+**libdebug** follows the same approach as [pwntools](https://docs.pwntools.com/en/stable/elf/elf.html#pwnlib.elf.elf.ELF.nx) to determine if NX is enabled: if there is a `PT_GNU_STACK` program header with the executable flag (`PF_X`) unset, the kernel will enforce NX, otherwise architecture-specific checks are done.
 
-You can check if NX is enabled using the `nx` attribute of the [LinuxRuntimeMitigations](../../from_pydoc/generated/data/elf/linux_runtime_mitigations) object. Other than a boolean value, this attribute may also be `None`, indicating that the check depends on whether the process has `READ_IMPLIES_EXEC` in its [personality](https://man7.org/linux/man-pages/man2/personality.2.html). In this case, the [Binary Report](#binary-report) will s`Depends` for NX.
+You can check if the binary uses NX protections using the `nx` attribute of the [LinuxRuntimeMitigations](../../from_pydoc/generated/data/elf/linux_runtime_mitigations) object. Other than a boolean value, this attribute may also be `None`, indicating that the check depends on whether the process has `READ_IMPLIES_EXEC` in its [personality](https://man7.org/linux/man-pages/man2/personality.2.html). In this case, the [Binary Report](#binary-report) will s`Depends` for NX.
 
 Read more about NX checks in [pwntools' documentation](https://docs.pwntools.com/en/stable/elf/elf.html#pwnlib.elf.elf.ELF.nx).
+
+### 🧵 Stack Executable Permissions
+Legacy software sometimes relied on the stack being executable for correct operation. An example of this is the use of runtime [stack-based trampolines](https://en.wikipedia.org/wiki/Trampoline_(computing)#Stack_trampolines) which GCC traditionally used for nested functions. The GNU loader decides the stack page permissions based on the `PT_GNU_STACK` program header flags. If the `PF_X` flag is set, the stack will be mapped as executable, otherwise it will be non-executable. Legacy executables do not include a `PT_GNU_STACK` program header, in which case the default stack permissions depend on the architecture. The GNU loader defines `DEFAULT_STACK_PERMS` for this purpose. The general case (e.g. AArch64) is `RW` \[[Source](https://elixir.bootlin.com/glibc/glibc-2.42/source/sysdeps/generic/stackinfo.h#L27)\], but on i386 and AMD64 (among others) it is `RWX` \[[x86_64 Source](https://elixir.bootlin.com/glibc/glibc-2.42/source/sysdeps/x86_64/stackinfo.h#L37), [x86 Source](https://elixir.bootlin.com/glibc/glibc-2.42/source/sysdeps/i386/stackinfo.h#L31)\].
+
+Independently of page permissions, execution permissions will not be enforced if the NX (Non-eXecutable) feature is not enabled (see [NX (Non-eXecutable) Protection](#nx-non-xecutable-protection)).
+
+**libdebug** checks if the stack is executable by looking for a `PT_GNU_STACK` program header. If found, it checks if the `PF_X` flag is set. If not found, it falls back to the architecture-specific default stack permissions defined by the GNU loader.
+
+You can check if the stack is executable using the `stack_executable` attribute of the [LinuxRuntimeMitigations](../../from_pydoc/generated/data/elf/linux_runtime_mitigations) object.
 
 ### 🧩 Position-Independent Executable
 Position-Independent Executable (PIE) is a security feature that allows the operating system to load an executable at any address in memory, rather than at a fixed address. This is achieved by compiling the executable with position-independent code (PIC), which uses relative addressing instead of absolute addressing. PIE is often used in conjunction with [Address Space Layout Randomization (ASLR)](https://en.wikipedia.org/wiki/Address_space_layout_randomization) to make it more difficult for attackers to predict the location of code and data in memory.
