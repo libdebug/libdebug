@@ -5,6 +5,8 @@
 #
 
 import os
+import sys
+from multiprocessing import set_start_method
 
 from libdebug import debugger
 from libdebug.utils.libcontext import libcontext
@@ -37,3 +39,9 @@ def base_of(d) -> int:
 BASE = _base_address()
 
 CPUINFO = Path("/proc/cpuinfo").read_text()
+
+# Python 3.14 changed the default start method on Unix to 'forkserver', but this breaks our tests
+# Not sure why they would do that, because now functions cannot be easily pickled and this is
+# a huge limitation
+if sys.version_info >= (3, 14):
+    set_start_method('fork')
