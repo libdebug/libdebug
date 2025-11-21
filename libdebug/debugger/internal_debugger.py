@@ -669,7 +669,18 @@ class InternalDebugger:
         if isinstance(position, str):
             address = self.resolve_symbol(position, file)
         else:
-            address = self.resolve_address(position, file)
+            try:
+                address = self.resolve_address(position, file)
+            except ValueError:
+                if hardware and file == "absolute":
+                    liblog.warning(
+                        "Could not resolve address %#x in the memory maps. "
+                        "Assuming it is a valid address for a hardware breakpoint.",
+                        position,
+                    )
+                    address = position
+                else:
+                    raise
             position = hex(address)
 
         if condition != "x" and not hardware:
