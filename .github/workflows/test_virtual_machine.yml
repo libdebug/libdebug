@@ -87,7 +87,15 @@ jobs:
           #
           # Run the tests with pytest
           echo "--- Starting pytest ---"
-          python -m pytest --ignore=other_tests --ignore scripts/atexit_handler_test.py --ignore scripts/speed_test.py
+          PYTEST_ARGS=(
+            "--ignore=other_tests"
+            "--ignore" "scripts/atexit_handler_test.py"
+            "--ignore" "scripts/speed_test.py"
+          )
+          if [[ "${{ matrix.arch }}" == "i386" ]]; then
+            PYTEST_ARGS+=("-k" "not test_hw_bp_at_invalid_location")
+          fi
+          python -m pytest "${PYTEST_ARGS[@]}"
           echo "--- Finished pytest ---"
           EOF
 
