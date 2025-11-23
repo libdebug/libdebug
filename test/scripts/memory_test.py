@@ -11,7 +11,10 @@ from unittest import TestCase
 from utils.binary_utils import RESOLVE_EXE, base_of
 from utils.thread_utils import FUN_ARG_0, STACK_POINTER
 
-from libdebug import debugger
+from libdebug import debugger, libcontext
+from libdebug.liblog import liblog
+from libdebug.memory.chunked_memory_view import ChunkedMemoryView
+from libdebug.memory.direct_memory_view import DirectMemoryView
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.platform_utils import get_platform_gp_register_size
 
@@ -528,6 +531,119 @@ class MemoryTest(TestCase):
         
         d.terminate()
 
+    def test_fast_memory_not_available(self):
+        # In some systems, such as inside nsjail and similar, ProcFS
+        # is mounted as RO, so fast memory access is not available.
+        # This test attempts to ensure that we can detect this condition
+        d = debugger(RESOLVE_EXE("memory_test"))
+
+        # When you create a Debugger instance, ProcessMemoryManager is initialized
+        # but since the debugged process doesn't exist yet, no memory access can be
+        # performed
+        self.assertIsNotNone(d._internal_debugger._process_memory_manager)
+
+        # The InternalDebugger calls is_available() on ProcessMemoryManager
+        # to determine if fast memory access is available once the process is started
+        call_amount = 0
+        def custom_is_available():
+            nonlocal call_amount
+            call_amount += 1
+            return True
+
+        # We hijack the is_available method to always return True
+        d._internal_debugger._process_memory_manager.is_available = custom_is_available
+
+        # We start the process, calling is_available() once
+        d.run()
+
+        self.assertEqual(call_amount, 1)
+
+        # If we set fast_memory to True when debugging is enabled, is_available() is called again
+        d.fast_memory = True
+
+        self.assertEqual(call_amount, 2)
+
+        # Instead, if we set fast_memory to False, is_available() is not called
+        d.fast_memory = False
+
+        # The same happens if we set it to True when the process is not being debugged
+        d.kill()
+        d.fast_memory = True
+
+        self.assertEqual(call_amount, 2)
+
+        # We now replace the is_available method to return False, simulating a situation
+        # where fast memory access is not available
+        d._internal_debugger._process_memory_manager.is_available = lambda: False
+
+        # Calling d.run() will not raise an exception, but fast_memory will be set to False
+        # and a warning will be logged
+        with self.assertLogs("libdebug", level="WARNING") as cm:
+            d.run()
+
+        self.assertIn("Fast memory access is not available for the current process.", cm.output[0])
+        self.assertFalse(d.fast_memory)
+
+        # Instead, attempting to force fast_memory to True will raise an exception
+        with self.assertRaises(RuntimeError) as cm:
+            d.fast_memory = True
+        self.assertIn("Fast memory access is not available for the current process.", str(cm.exception))
+
+        # Setting fast_memory to False is always allowed
+        d.fast_memory = False
+
+        # We can now check that memory access works correctly, even if it using the slower method
+        self.assertIsInstance(d.memory, ChunkedMemoryView)
+
+        bp = d.breakpoint("change_memory")
+
+        d.cont()
+
+        self.assertEqual(d.instruction_pointer, bp.address)
+
+        address = FUN_ARG_0(d)
+        prev = bytes(range(256))
+
+        self.assertEqual(d.memory[address, 256], prev)
+
+        d.memory[address + 128 :] = b"abcd123456"
+        prev = prev[:128] + b"abcd123456" + prev[138:]
+
+        self.assertEqual(d.memory[address : address + 256], prev)
+
+        d.kill()
+
+        # We can now check what happens if fast_memory becomes available at runtime
+        # this would never really happen, but why not
+        d.run()
+
+        bp = d.breakpoint("change_memory")
+
+        d.cont()
+
+        self.assertIsInstance(d.memory, ChunkedMemoryView)
+
+        # We can restore is_available() to True and fast_memory should then
+        # be usable again
+        d._internal_debugger._process_memory_manager.is_available = lambda: True
+        d.fast_memory = True
+
+        self.assertIsInstance(d.memory, DirectMemoryView)
+
+        address = FUN_ARG_0(d)
+        prev = bytes(range(256))
+
+        self.assertEqual(d.memory[address, 256], prev)
+
+        d.memory[address + 128 :] = b"abcd123456"
+        prev = prev[:128] + b"abcd123456" + prev[138:]
+
+        self.assertEqual(d.memory[address : address + 256], prev)
+
+        d.kill()
+
+        d.terminate()
+
     def test_telescope_depth(self):
         d = debugger(RESOLVE_EXE("telescope_test"))
     
@@ -725,6 +841,43 @@ class MemoryTest(TestCase):
         self.assertIn("max_str_len must be greater than 0.", str(cm.exception))
 
         d.wait()
+
+        d.kill()
+        d.terminate()
+
+    def test_memory_access_in_callback(self):
+        d = debugger(RESOLVE_EXE("memory_test_3"))
+
+        prev_logger = liblog.debugger_logger
+        liblog.debugger_logger = self.logger
+        self.logger.setLevel("DEBUG")
+        self.log_handler.setLevel("DEBUG")
+
+        with libcontext.tmp(debugger_logger="DEBUG"):
+            d.run()
+
+            memory_values = []
+
+            def callback(t, _):
+                memory_values.append(t.mem[FUN_ARG_0(t), 8])
+                t.mem[FUN_ARG_0(t)] = (1).to_bytes(4, "little") + (0).to_bytes(4, "little")
+
+            d.breakpoint("do_nothing", callback=callback)
+
+            d.cont()
+            d.wait()
+
+        self.assertEqual(len(memory_values), 1)
+        self.assertEqual(memory_values[0], (0).to_bytes(4, "little") + (1).to_bytes(4, "little"))
+
+        # Let's ensure we don't print the erroneous message "Process is running. Waiting for it to stop before reading memory."
+        captured_log = self.log_capture_string.getvalue()
+        self.assertNotIn("Process is running. Waiting for it to stop before reading memory.", captured_log)
+        self.assertNotIn("Process is running. Waiting for it to stop before writing to memory.", captured_log)
+
+        liblog.debugger_logger = prev_logger
+        self.log_handler.setLevel("WARNING")
+        self.logger.setLevel("WARNING")
 
         d.kill()
         d.terminate()

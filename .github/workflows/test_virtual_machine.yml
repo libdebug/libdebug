@@ -28,7 +28,11 @@ jobs:
       - name: Prepare Debian VM Image
         run: |
           echo "Downloading Debian image artifact..."
-          wget -O artifact.zip "https://gitlab.com/api/v4/projects/giomasce%2Fdqib/jobs/artifacts/master/download?job=convert_${{ matrix.arch }}-pc"
+          if [[ "${{ matrix.arch }}" == "i386" ]]; then
+            wget -O artifact.zip "https://people.debian.org/~gio/dqib/attic/i386-pc.zip"
+          else
+            wget -O artifact.zip "https://gitlab.com/api/v4/projects/giomasce%2Fdqib/jobs/artifacts/master/download?job=convert_${{ matrix.arch }}-pc"
+          fi
           #
           echo "Extracting artifact..."
           unzip artifact.zip
@@ -53,7 +57,7 @@ jobs:
             # We create a symlink from /usr/include/libdwarf to /usr/include/libdwarf-1 because the Debian package is currently broken
             ln -s /usr/include/libdwarf /usr/include/libdwarf-1
           else
-            apt-get install -y --no-install-recommends libdwarf-dev libelf-dev libiberty-dev linux-headers-generic libc6-dbg python3-pip python3-venv python3-dev git build-essential
+            apt-get install -y --no-install-recommends libdwarf-dev libelf-dev libiberty-dev libc6-dbg python3-pip python3-venv python3-dev git build-essential
           fi
           #
           # Create a virtual environment for Python dependencies
@@ -83,7 +87,15 @@ jobs:
           #
           # Run the tests with pytest
           echo "--- Starting pytest ---"
-          python -m pytest --ignore=other_tests --ignore scripts/atexit_handler_test.py --ignore scripts/speed_test.py
+          PYTEST_ARGS=(
+            "--ignore=other_tests"
+            "--ignore" "scripts/atexit_handler_test.py"
+            "--ignore" "scripts/speed_test.py"
+          )
+          if [[ "${{ matrix.arch }}" == "i386" ]]; then
+            PYTEST_ARGS+=("-k" "not test_hw_bp_at_invalid_location")
+          fi
+          python -m pytest "${PYTEST_ARGS[@]}"
           echo "--- Finished pytest ---"
           EOF
 

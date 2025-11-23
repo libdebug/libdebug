@@ -1458,6 +1458,7 @@ class SignalCatchTest(TestCase):
         self.assertEqual(cs.hit_count, 5)
         
         d.kill()
+        d.terminate()
         
     def test_catch_sigtrap_sync_bp(self):
         d = debugger(RESOLVE_EXE("./sigtrap_test"))
@@ -1483,6 +1484,7 @@ class SignalCatchTest(TestCase):
         self.assertTrue(bp.hit_count, 5)
         
         d.kill()
+        d.terminate()
         
     def test_catch_sigtrap_async(self):
         d = debugger(RESOLVE_EXE("./sigtrap_test"))
@@ -1503,6 +1505,7 @@ class SignalCatchTest(TestCase):
         self.assertEqual(cs.hit_count, 5)
         
         d.kill()
+        d.terminate()
         
     def test_catch_sigtrap_async_bp(self):
         d = debugger(RESOLVE_EXE("./sigtrap_test"))
@@ -1527,6 +1530,7 @@ class SignalCatchTest(TestCase):
         self.assertTrue(bp.hit_count, 5)        
         
         d.kill()
+        d.terminate()
 
     def test_catch_sigtrap_all(self):
         d = debugger(RESOLVE_EXE("./sigtrap_test"))
@@ -1548,6 +1552,7 @@ class SignalCatchTest(TestCase):
         self.assertEqual(cs.hit_count, 5)
         
         d.kill()
+        d.terminate()
         
     def test_catch_sigtrap_all_bp(self):
         d = debugger(RESOLVE_EXE("./sigtrap_test"))
@@ -1573,6 +1578,7 @@ class SignalCatchTest(TestCase):
         self.assertTrue(bp.hit_count, 5)
         
         d.kill()
+        d.terminate()
 
     # Verify that debugging signals are properly filtered out by the status handler
     # before processing external signal handlers

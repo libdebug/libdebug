@@ -275,9 +275,3 @@ class I386PtraceRegisterHolder(PtraceRegisterHolder):
             setattr(target_class, name_zmm, _get_property_fp_zmm0(name_zmm, index))
 
             self._vector_fp_registers.append((name_xmm, name_ymm, name_zmm))
-
-    def cleanup(self: I386PtraceRegisterHolder) -> None:
-        """Clean up the register accessors from the class."""
-        for attr_name, attr_value in list(I386Registers.__dict__.items()):
-            if isinstance(attr_value, property):
-                delattr(I386Registers, attr_name)

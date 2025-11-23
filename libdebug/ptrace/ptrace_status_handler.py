@@ -13,7 +13,6 @@ from typing import TYPE_CHECKING
 from libdebug.architectures.ptrace_software_breakpoint_patcher import (
     software_breakpoint_byte_size,
 )
-from libdebug.debugger.internal_debugger_instance_manager import provide_internal_debugger
 from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_constants import SYSCALL_SIGTRAP, StopEvents
 from libdebug.state.resume_context import EventType
@@ -24,6 +23,7 @@ if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
     from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
+    from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.ptrace.ptrace_interface import PtraceInterface
     from libdebug.state.thread_context import ThreadContext
 
@@ -31,9 +31,9 @@ if TYPE_CHECKING:
 class PtraceStatusHandler:
     """This class handles the states return by the waitpid calls on the debugger process."""
 
-    def __init__(self: PtraceStatusHandler) -> None:
+    def __init__(self: PtraceStatusHandler, internal_debugger: InternalDebugger) -> None:
         """Initializes the PtraceStatusHandler class."""
-        self.internal_debugger = provide_internal_debugger(self)
+        self.internal_debugger = internal_debugger
         self.ptrace_interface: PtraceInterface = self.internal_debugger.debugging_interface
         self.forward_signal: bool = True
         self._assume_race_sigstop: bool = (
