@@ -76,6 +76,7 @@ if TYPE_CHECKING:
 
     from libdebug.commlink.pipe_manager import PipeManager
     from libdebug.data.env_dict import EnvDict
+    from libdebug.data.event_type import EventType
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.data.registers import Registers
@@ -174,6 +175,9 @@ class InternalDebugger:
     resume_context: ResumeContext
     """Context that indicates if the debugger should resume the debugged process."""
 
+    event_callbacks: dict[EventType, Callable[[InternalDebugger, ResumeContext], None]]
+    """Callbacks executed when specific resume events occur."""
+
     debugger: Debugger
     """The debugger object."""
 
@@ -254,6 +258,7 @@ class InternalDebugger:
         self._snapshot_count = 0
         self.serialization_helper = SerializationHelper()
         self.children = []
+        self.event_callbacks = {}
 
         # We register this debugger so that we can clean it up on exit.
         register_internal_debugger(self)
@@ -281,6 +286,7 @@ class InternalDebugger:
         self._is_running = False
         self.resume_context.clear()
         self.children.clear()
+        self.event_callbacks.clear()
 
     def start_up(self: InternalDebugger) -> None:
         """Starts up the context."""
@@ -429,6 +435,8 @@ class InternalDebugger:
         child_internal_debugger.fast_memory = self.fast_memory
         child_internal_debugger.kill_on_exit = self.kill_on_exit
         child_internal_debugger.follow_children = self.follow_children
+        child_internal_debugger.event_callbacks = self.event_callbacks.copy()
+        child_internal_debugger.pprint_syscalls = self.pprint_syscalls
 
         # Create the new Debugger instance for the child process
         child_debugger = Debugger()
@@ -878,6 +886,22 @@ class InternalDebugger:
                 self.__threaded_handle_syscall(handler)
 
         return handler
+
+    def hook_event(
+        self: InternalDebugger,
+        event: EventType,
+        callback: Callable[[InternalDebugger, ResumeContext], None],
+    ) -> None:
+        """Register a callback for a specific resume event type."""
+        if event in self.event_callbacks:
+            raise ValueError(f"Event {event} already has a registered callback.")
+        self.event_callbacks[event] = callback
+
+    def unhook_event(self: InternalDebugger, event: EventType) -> None:
+        """Remove the callback associated with the provided event type."""
+        if event not in self.event_callbacks:
+            raise ValueError(f"Event {event} is not currently hooked.")
+        del self.event_callbacks[event]
 
     @change_state_function_process
     def hijack_syscall(
@@ -1672,8 +1696,19 @@ class InternalDebugger:
 
             if self.resume_context.resume:
                 self.debugging_interface.cont()
-            else:
+                continue
+
+            # We check if we have any event callbacks to execute
+            for event_type in list(self.resume_context.event_type.values()):
+                callback = self.event_callbacks.get(event_type)
+                if callback:
+                    callback(self, self.resume_context)
+            # The callbacks might have changed the resume flag
+            if not self.resume_context.resume:
+                # Callback wants this event to become synchronous
                 break
+
+            self.debugging_interface.cont()
 
         self.set_stopped()
 

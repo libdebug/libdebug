@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from libdebug.data.argument_list import ArgumentList
@@ -29,6 +30,7 @@ if TYPE_CHECKING:
 
     from libdebug.commlink.pipe_manager import PipeManager
     from libdebug.data.breakpoint import Breakpoint
+    from libdebug.data.event_type import EventType
     from libdebug.data.gdb_resume_event import GdbResumeEvent
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.memory_map_list import MemoryMapList
@@ -41,6 +43,7 @@ if TYPE_CHECKING:
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
     from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
     from libdebug.snapshots.snapshot import Snapshot
+    from libdebug.state.resume_context import ResumeContext
     from libdebug.state.thread_context import ThreadContext
 
 
@@ -237,6 +240,18 @@ class Debugger:
             SyscallHandler: The SyscallHandler object.
         """
         return self._internal_debugger.handle_syscall(syscall, on_enter, on_exit, recursive)
+
+    def hook_event(
+        self: Debugger,
+        event: EventType,
+        callback: Callable[[InternalDebugger, ResumeContext], None],
+    ) -> None:
+        """Hook a callback to a specific resume event type."""
+        self._internal_debugger.hook_event(event, callback)
+
+    def unhook_event(self: Debugger, event: EventType) -> None:
+        """Remove the callback associated with the given event type."""
+        self._internal_debugger.unhook_event(event)
 
     def hijack_syscall(
         self: Debugger,
@@ -456,6 +471,30 @@ class Debugger:
 
         self._internal_debugger.argv = value
 
+    @property
+    def current_argv(self: Debugger) -> list[str]:
+        """The current arguments, as reported by /proc/PID/cmdline."""
+        self._internal_debugger._ensure_process_stopped()
+        pid = self._internal_debugger.process_id
+        if not pid:
+            raise RuntimeError("Process is not running; cannot read /proc/PID/cmdline.")
+
+        try:
+            with Path(f"/proc/{pid}/cmdline").open("rb") as cmdline:
+                argv = cmdline.read().split(b"\0")
+        except OSError as exc:
+            raise RuntimeError("Could not read /proc/PID/cmdline; process might not exist anymore.") from exc
+
+        if argv and argv[-1] == b"":
+            argv = argv[:-1]
+        return [arg.decode("latin-1") for arg in argv]
+
+    @property
+    def resume_context(self: Debugger) -> ResumeContext:
+        """The current resume context of the debugged process."""
+        self._internal_debugger._ensure_process_stopped()
+        return self._internal_debugger.resume_context
+
     def _configure_env_dict(self: Debugger) -> None:
         """Sets up the EnvDict with the before callback."""
 
@@ -524,6 +563,19 @@ class Debugger:
         # This must be done last, otherwise we might get in an inconsistent state
         # if one of the previous checks fails
         self._internal_debugger._has_path_different_from_argv0 = True
+
+    @property
+    def current_path(self: Debugger) -> str | None:
+        """The current binary path, read from /proc/PID/exe if available."""
+        self._internal_debugger._ensure_process_stopped()
+        pid = self._internal_debugger.process_id
+        if not pid:
+            return None
+
+        try:
+            return Path(f"/proc/{pid}/exe").resolve().as_posix()
+        except OSError as exc:
+            raise RuntimeError("Could not resolve /proc/PID/exe; the process may have exited.") from exc
 
     @property
     def kill_on_exit(self: Debugger) -> bool:

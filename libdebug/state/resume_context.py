@@ -1,31 +1,33 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2023-2025 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
+
+from libdebug.data.event_type import EventType
 
 if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
 
 
+@dataclass
 class ResumeContext:
-    """A class representing the context of the resume decision."""
+    """Represents the context used to decide whether execution should resume."""
 
-    def __init__(self: ResumeContext) -> None:
-        """Initializes the ResumeContext."""
-        self.resume: bool = True
-        self.force_interrupt: bool = False
-        self.is_a_step: bool = False
-        self.is_startup: bool = False
-        self.block_on_signal: bool = False
-        self.threads_with_signals_to_forward: list[int] = []
-        self.event_type: dict[int, EventType] = {}
-        self.event_hit_ref: dict[int, Breakpoint] = {}
-        self.is_in_callback: bool = False
+    resume: bool = True
+    force_interrupt: bool = False
+    is_a_step: bool = False
+    is_startup: bool = False
+    block_on_signal: bool = False
+    threads_with_signals_to_forward: list[int] = field(default_factory=list)
+    event_type: dict[int, EventType] = field(default_factory=dict)
+    event_hit_ref: dict[int, Breakpoint] = field(default_factory=dict)
+    is_in_callback: bool = False
 
     def clear(self: ResumeContext) -> None:
         """Clears the context."""
@@ -61,20 +63,3 @@ class ResumeContext:
                     event_str += f"{event} on thread {tid}."
 
         return event_str
-
-
-class EventType:
-    """A class representing the type of event that caused the resume decision."""
-
-    UNKNOWN = "Unknown Event"
-    BREAKPOINT = "Breakpoint"
-    SYSCALL = "Syscall"
-    SIGNAL = "Signal"
-    USER_INTERRUPT = "User Interrupt"
-    STEP = "Step"
-    STARTUP = "Process Startup"
-    CLONE = "Thread Clone"
-    FORK = "Process Fork"
-    EXIT = "Process Exit"
-    SECCOMP = "Seccomp"
-    EXEC = "Process Exec"
