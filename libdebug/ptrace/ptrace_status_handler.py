@@ -67,9 +67,9 @@ class PtraceStatusHandler:
         # We also need to clear the caches of the debugger
         self.internal_debugger.clear_all_caches()
 
-        # At this point, we are still executing the old binary, stopped before the end
-        # of the execve syscall. All breakpoints, syscall hooks, and signal handlers would
-        # still be valid, but we can clear them now, as they won't be valid after continuing
+        # At this point, we are already executing the new binary.
+        # Breakpoints, syscall hooks, and signal handlers are no longer guaranteed to be valid,
+        # so we clear the internal state now.
         self.internal_debugger.clear_internal_state()
 
     def _handle_exit(
@@ -468,7 +468,7 @@ class PtraceStatusHandler:
                     )
                     self.forward_signal = False
                     self.internal_debugger.resume_context.event_type[pid] = EventType.EXIT
-                case StopEvents.FORK_EVENT:
+                case StopEvents.FORK_EVENT | StopEvents.VFORK_EVENT:
                     # The process has been forked
                     message = self.ptrace_interface._get_event_msg(pid)
                     liblog.debugger(
@@ -480,6 +480,7 @@ class PtraceStatusHandler:
                         self.internal_debugger.set_child_debugger(message)
                     self.forward_signal = False
                     self.internal_debugger.resume_context.event_type[pid] = EventType.FORK
+                    self.internal_debugger.resume_context.resume = False
                 case StopEvents.EXEC_EVENT:
                     # The process has executed a new program
                     liblog.debugger(f"Process {pid} executed a new program")
