@@ -60,6 +60,6 @@ class ResumeContext:
                     hit_ref = self.event_hit_ref[tid]
                     event_str += f"Signal {hit_ref.signal} on thread {tid}."
                 else:
-                    event_str += f"{event} on thread {tid}."
+                    event_str += f"{event.value} on thread {tid}."
 
         return event_str

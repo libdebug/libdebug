@@ -39,7 +39,7 @@ class MultiprocessingTest(TestCase):
         d.cont()
 
         self.assertIn(d.process_id, d.resume_context.event_type)
-        self.assertEqual(d.resume_context.event_type[d.process_id], EventType.FORK)
+        self.assertEqual(d.resume_context.event_type.get(d.process_id), EventType.FORK)
 
         d.cont()
         
@@ -74,7 +74,7 @@ class MultiprocessingTest(TestCase):
         d.cont()
 
         self.assertIn(d.process_id, d.resume_context.event_type)
-        self.assertEqual(d.resume_context.event_type[d.process_id], EventType.FORK)
+        self.assertEqual(d.resume_context.event_type.get(d.process_id), EventType.FORK)
 
         d.cont()
         
