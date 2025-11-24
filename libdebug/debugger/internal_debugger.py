@@ -887,6 +887,7 @@ class InternalDebugger:
 
         return handler
 
+    @change_state_function_process
     def hook_event(
         self: InternalDebugger,
         event: EventType,
@@ -897,6 +898,7 @@ class InternalDebugger:
             raise ValueError(f"Event {event} already has a registered callback.")
         self.event_callbacks[event] = callback
 
+    @change_state_function_process
     def unhook_event(self: InternalDebugger, event: EventType) -> None:
         """Remove the callback associated with the provided event type."""
         if event not in self.event_callbacks:
