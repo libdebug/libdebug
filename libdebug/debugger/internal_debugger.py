@@ -59,7 +59,7 @@ from libdebug.utils.file_utils import ensure_file_executable
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.platform_utils import get_platform_gp_register_size
 from libdebug.utils.pprint_primitives import pprint_maps_util, pprint_memory_util
-from libdebug.utils.safe_tcsetgrp import safe_tcsetpgrp
+from libdebug.utils.safe_tcsetpgrp import safe_tcsetpgrp
 from libdebug.utils.signal_utils import (
     resolve_signal_name,
     resolve_signal_number,
