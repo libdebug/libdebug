@@ -361,7 +361,10 @@ class InternalDebugger:
             # next child. This must happen in the main thread because `safe_tcsetpgrp`
             # temporarily manipulates signal handlers, and Python only delivers signals
             # to the main thread.
-            safe_tcsetpgrp(0, os.getpgrp())
+            try:
+                safe_tcsetpgrp(0, os.getpgrp())
+            except OSError as e:
+                liblog.debugger(f"Failed to set terminal foreground process group: {e}")
 
         self.__polling_thread_command_queue.put((self.__threaded_run, (redirect_pipes,)))
 
