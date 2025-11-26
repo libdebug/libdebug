@@ -59,6 +59,7 @@ from libdebug.utils.file_utils import ensure_file_executable
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.platform_utils import get_platform_gp_register_size
 from libdebug.utils.pprint_primitives import pprint_maps_util, pprint_memory_util
+from libdebug.utils.safe_tcsetgrp import safe_tcsetpgrp
 from libdebug.utils.signal_utils import (
     resolve_signal_name,
     resolve_signal_number,
@@ -342,6 +343,25 @@ class InternalDebugger:
 
         if not self.__polling_thread_command_queue.empty():
             raise RuntimeError("Polling thread command queue not empty.")
+
+        if not redirect_pipes:
+            # Give the terminal back to our own process group.
+            #
+            # When running without pipe redirection, libdebug transfers the terminal's
+            # foreground process group to the child so the child can read from stdin.
+            # After the child exits, the terminal still believes that the (now-dead)
+            # child's process group is the foreground owner. Our process group is then
+            # treated as a background group by the terminal.
+            #
+            # If we attempt another run in this state, any call to `tcsetpgrp` or any
+            # terminal I/O may trigger `SIGTTOU`.
+            #
+            # To prevent this, we explicitly reclaim ownership of the terminal by setting
+            # the terminal's foreground process group back to our own before spawning the
+            # next child. This must happen in the main thread because `safe_tcsetpgrp`
+            # temporarily manipulates signal handlers, and Python only delivers signals
+            # to the main thread.
+            safe_tcsetpgrp(0, os.getpgrp())
 
         self.__polling_thread_command_queue.put((self.__threaded_run, (redirect_pipes,)))
 
