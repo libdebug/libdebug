@@ -39,7 +39,12 @@ class AliasedProperty(property):
 
 
 def check_alias(*alias_names: str) -> Callable:
-    """Decorator to mark a function or method with alias names.
+    """Decorator to register alternate names for a function or method.
+
+    This helper exists solely for `alias_test`, where we verify that alias
+    names expose the same docstring, arguments, and typing info as the
+    original callable. Applying this decorator only stores metadata and does
+    not create an alias on its own.
 
     Args:
         *alias_names: One or more alias names to associate with the decorated object.
@@ -55,10 +60,13 @@ def check_alias(*alias_names: str) -> Callable:
 
 
 def check_aliased_property(*alias_names: str) -> Callable:
-    """Decorator to create a property with alias names.
+    """Decorator to record alternate names for a property.
 
-    This decorator creates an AliasedProperty that can store alias information
-    for use with the AliasedClass metaclass.
+    It builds an AliasedProperty containing those aliases solely for
+    `alias_test`, which confirms that every alias shares the same docstring,
+    arguments, and typing details as the original property implementation.
+    Like `check_alias`, it merely tags metadata and does not create aliases by
+    itself.
 
     Args:
         *alias_names: One or more alias names for the property.
