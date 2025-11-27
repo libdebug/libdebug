@@ -8,13 +8,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from libdebug.debugger.mixins.base import EngineBoundMixin
 from libdebug.utils.oop.alias import check_alias
 
 if TYPE_CHECKING:
     from libdebug.commlink.pipe_manager import PipeManager
 
 
-class ExecutionMixin:
+class ExecutionMixin(EngineBoundMixin):
     """Process lifecycle controls and single-stepping helpers."""
 
     @check_alias("r")

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 
+from libdebug.debugger.mixins.base import EngineBoundMixin
 from libdebug.liblog import liblog
 from libdebug.utils.oop.alias import check_alias
 from libdebug.utils.syscall_utils import (
@@ -16,7 +17,7 @@ from libdebug.utils.syscall_utils import (
 )
 
 
-class DisplayMixin:
+class DisplayMixin(EngineBoundMixin):
     """Utilities that pretty print debugger data and shape representation."""
 
     # Pretty-print helpers

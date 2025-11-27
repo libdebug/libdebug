@@ -8,12 +8,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from libdebug.debugger.mixins.base import EngineBoundMixin
+
 if TYPE_CHECKING:
     from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
     from libdebug.snapshots.snapshot import Snapshot
 
 
-class SnapshotMixin:
+class SnapshotMixin(EngineBoundMixin):
     """Snapshot management helpers."""
 
     def create_snapshot(self: SnapshotMixin, level: str = "base", name: str | None = None) -> ProcessSnapshot:

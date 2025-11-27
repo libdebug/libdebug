@@ -36,5 +36,3 @@ class Debugger(
     to `super().__init__`. If a mixin adds its own `__init__`, make it cooperative by
     calling `super().__init__()` (no arguments) so later mixins still run.
     """
-
-    pass

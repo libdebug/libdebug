@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from libdebug.debugger.mixins.base import EngineBoundMixin
 from libdebug.utils.oop.alias import check_aliased_property
 
 if TYPE_CHECKING:
@@ -23,7 +24,7 @@ if TYPE_CHECKING:
     from libdebug.state.thread_context import ThreadContext
 
 
-class IntrospectionMixin:
+class IntrospectionMixin(EngineBoundMixin):
     """Read-only accessors for debugger state."""
 
     def resolve_symbol(self: IntrospectionMixin, symbol: str, file: str = "binary") -> int:

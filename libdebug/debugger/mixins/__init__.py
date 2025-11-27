@@ -4,6 +4,7 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+from libdebug.debugger.mixins.base import EngineBoundMixin
 from libdebug.debugger.mixins.breakpoints import BreakpointMixin
 from libdebug.debugger.mixins.configuration import ConfigurationMixin
 from libdebug.debugger.mixins.core import DebuggerCoreMixin
@@ -19,6 +20,7 @@ __all__ = [
     "ConfigurationMixin",
     "DebuggerCoreMixin",
     "DisplayMixin",
+    "EngineBoundMixin",
     "ExecutionMixin",
     "GdbMixin",
     "IntrospectionMixin",

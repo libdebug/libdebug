@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from libdebug.debugger.mixins.base import EngineBoundMixin
 from libdebug.utils.oop.alias import check_alias
 
 if TYPE_CHECKING:
@@ -19,7 +20,7 @@ if TYPE_CHECKING:
     from libdebug.state.thread_context import ThreadContext
 
 
-class BreakpointMixin:
+class BreakpointMixin(EngineBoundMixin):
     """Breakpoint, signal catcher and syscall handler helpers."""
 
     @check_alias("bp")
