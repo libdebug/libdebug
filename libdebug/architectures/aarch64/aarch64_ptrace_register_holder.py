@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from libdebug.architectures.aarch64.aarch64_registers import Aarch64Registers
+from libdebug.architectures.shared.flags_accessor import build_aarch64_pstate_property
 from libdebug.ptrace.ptrace_register_holder import PtraceRegisterHolder
 
 if TYPE_CHECKING:
@@ -227,7 +228,10 @@ class Aarch64PtraceRegisterHolder(PtraceRegisterHolder):
             setattr(target_class, name_32, _get_property_32(name_64))
 
         for reg in AARCH64_SPECIAL_REGS:
-            setattr(target_class, reg, _get_property_64(reg))
+            if reg == "pstate":
+                setattr(target_class, reg, build_aarch64_pstate_property(reg))
+            else:
+                setattr(target_class, reg, _get_property_64(reg))
 
         # setup the floating point registers
         for i in range(32):

@@ -273,6 +273,64 @@ class RegisterTest(TestCase):
         d.terminate()
 
     @skipUnless(PLATFORM == "aarch64", "Requires aarch64")
+    def test_pstate_accessor(self):
+        d = debugger(RESOLVE_EXE("basic_test"))
+
+        d.run()
+
+        bp = d.breakpoint(0x4008A4)
+
+        d.cont()
+        self.assertEqual(d.regs.pc, bp.address)
+
+        base_state = (
+            (1 << 31)  # N
+            | (1 << 30)  # Z
+            | (1 << 25)  # TCO
+            | (1 << 20)  # IL
+            | (0b10 << 10)  # BTYPE
+            | (1 << 8)  # A
+            | 0b10101  # M field
+        )
+
+        d.regs.pstate = base_state
+
+        state = d.regs.pstate
+        self.assertEqual(int(state), base_state)
+        self.assertEqual(state.N, 1)
+        self.assertEqual(state.Z, 1)
+        self.assertEqual(state.TCO, 1)
+        self.assertEqual(state.IL, 1)
+        self.assertEqual(state.BTYPE, 0b10)
+        self.assertEqual(state.A, 1)
+        self.assertEqual(state.M, 0b10101)
+
+        d.regs.pstate.N = False
+        d.regs.pstate.D = True
+        d.regs.pstate.BTYPE = 0b01
+        d.regs.pstate.M = 0b11100
+
+        expected_state = base_state
+        expected_state &= ~(1 << 31)
+        expected_state |= 1 << 9
+        expected_state &= ~(0b11 << 10)
+        expected_state |= 0b01 << 10
+        expected_state &= ~0b11111
+        expected_state |= 0b11100
+
+        self.assertEqual(int(d.regs.pstate), expected_state)
+        self.assertEqual(d.regs.pstate.N, 0)
+        self.assertEqual(d.regs.pstate.D, 1)
+        self.assertEqual(d.regs.pstate.BTYPE, 0b01)
+        self.assertEqual(d.regs.pstate.M, 0b11100)
+
+        d.regs.pstate.value = expected_state | (1 << 24)
+        self.assertEqual(d.regs.pstate.DIT, 1)
+
+        d.kill()
+        d.terminate()
+
+    @skipUnless(PLATFORM == "aarch64", "Requires aarch64")
     def test_registers_aarch64(self):
         d = debugger(RESOLVE_EXE("basic_test"))
         d.run()

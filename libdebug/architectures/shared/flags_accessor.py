@@ -6,65 +6,49 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeVar
 
 if TYPE_CHECKING:
     from libdebug.data.registers import Registers
 
-
-def _build_flag_property(bit: int, width: int = 1) -> property:
-    mask = (1 << width) - 1
-
-    def getter(self: X86FlagsAccessor) -> int:
-        return self._read_raw() >> bit & mask
-
-    def setter(self: X86FlagsAccessor, value: int | bool) -> None:
-        value_int = (1 if value else 0) if isinstance(value, bool) else int(value)
-        if value_int < 0 or value_int > mask:
-            raise ValueError(f"Value {value_int} does not fit in a {width}-bit flag")
-
-        raw_value = self._read_raw()
-        raw_value &= ~(mask << bit)
-        raw_value |= (value_int & mask) << bit
-        self._write_raw(raw_value)
-
-    return property(getter, setter, None, f"bitfield_{bit}")
+AccessorType = TypeVar("AccessorType", bound="BitfieldRegisterAccessor")
 
 
-class X86FlagsAccessor:
-    """Helper that exposes the x86 FLAGS register both as an int and via flag attributes."""
+class BitfieldRegisterAccessor:
+    """Base helper that exposes a register with bitfield helpers."""
 
     __slots__ = ("_bit_mask", "_register_name", "_registers")
+    _repr_name = "Bitfield"
 
     def __init__(self, registers: Registers, register_name: str, bit_width: int) -> None:
-        """Bind the accessor to a register set and backing register name."""
+        """Bind the accessor to the provided register set."""
         self._registers = registers
         self._register_name = register_name
         self._bit_mask = (1 << bit_width) - 1
 
-    def __repr__(self) -> str:
-        """Return a developer-friendly representation of the FLAGS value."""
-        return f"Flags({int(self):#x})"
+    def __repr__(self) -> str:  # pragma: no cover - trivial formatting
+        """Return a developer-friendly representation of the bitfield."""
+        return f"{self._repr_name}({int(self):#x})"
 
     def __str__(self) -> str:
-        """Return the hex representation of the FLAGS register."""
+        """Return the hexadecimal representation of the bitfield."""
         return f"{int(self):#x}"
 
     def __format__(self, format_spec: str) -> str:
-        """Format the FLAGS value according to the provided specifier."""
+        """Format the bitfield according to the provided specifier."""
         return format(int(self), format_spec)
 
     def __int__(self) -> int:
-        """Return the current FLAGS value as an integer."""
+        """Return the register value as an integer."""
         return self._read_raw()
 
     def __index__(self) -> int:
-        """Allow use of the accessor wherever an index is required."""
+        """Allow direct usage in slicing or other index contexts."""
         return self._read_raw()
 
     def __eq__(self, other: object) -> bool:
-        """Compare FLAGS values against ints or other accessors."""
-        if isinstance(other, X86FlagsAccessor):
+        """Compare the register value against ints or other accessors."""
+        if isinstance(other, BitfieldRegisterAccessor):
             return int(self) == int(other)
         if isinstance(other, int):
             return int(self) == other
@@ -82,43 +66,108 @@ class X86FlagsAccessor:
 
     @property
     def value(self) -> int:
-        """Return the raw FLAGS register value."""
+        """Return the raw value of the backing register."""
         return self._read_raw()
 
     @value.setter
     def value(self, new_value: int) -> None:
+        """Overwrite the backing register with a raw value."""
         self._write_raw(new_value)
 
-    CF = _build_flag_property(0)
-    PF = _build_flag_property(2)
-    AF = _build_flag_property(4)
-    ZF = _build_flag_property(6)
-    SF = _build_flag_property(7)
-    TF = _build_flag_property(8)
-    IF = _build_flag_property(9)
-    DF = _build_flag_property(10)
-    OF = _build_flag_property(11)
-    IOPL = _build_flag_property(12, width=2)
-    NT = _build_flag_property(14)
-    RF = _build_flag_property(16)
-    VM = _build_flag_property(17)
-    AC = _build_flag_property(18)
-    VIF = _build_flag_property(19)
-    VIP = _build_flag_property(20)
-    ID = _build_flag_property(21)
+
+def _build_bitfield_property(bit: int, width: int = 1) -> property:
+    mask = (1 << width) - 1
+
+    def getter(self: BitfieldRegisterAccessor) -> int:
+        return self._read_raw() >> bit & mask
+
+    def setter(self: BitfieldRegisterAccessor, value: int | bool) -> None:
+        value_int = (1 if value else 0) if isinstance(value, bool) else int(value)
+        if value_int < 0 or value_int > mask:
+            raise ValueError(f"Value {value_int} does not fit in a {width}-bit flag")
+
+        raw_value = self._read_raw()
+        raw_value &= ~(mask << bit)
+        raw_value |= (value_int & mask) << bit
+        self._write_raw(raw_value)
+
+    return property(getter, setter, None, f"bitfield_{bit}")
 
 
-def build_x86_flags_property(register_name: str, bit_width: int) -> property:
-    """Return a property exposing the FLAGS register with bitfield helpers."""
+def _build_register_accessor_property(
+    register_name: str,
+    bit_width: int,
+    accessor_type: type[AccessorType],
+) -> property:
     mask = (1 << bit_width) - 1
 
-    def getter(registers: Registers) -> X86FlagsAccessor:
+    def getter(registers: Registers) -> AccessorType:
         registers._internal_debugger._ensure_process_stopped_regs()
-        return X86FlagsAccessor(registers, register_name, bit_width)
+        return accessor_type(registers, register_name, bit_width)
 
-    def setter(registers: Registers, value: int | X86FlagsAccessor | bool) -> None:
+    def setter(registers: Registers, value: int | BitfieldRegisterAccessor | bool) -> None:
         registers._internal_debugger._ensure_process_stopped_regs()
         raw_value = int(value)
         setattr(registers.register_file, register_name, raw_value & mask)
 
     return property(getter, setter, None, register_name)
+
+
+class X86FlagsAccessor(BitfieldRegisterAccessor):
+    """Expose the x86 FLAGS register as both an int and attribute-backed bitfields."""
+
+    __slots__ = ()
+    _repr_name = "Flags"
+
+    CF = _build_bitfield_property(0)
+    PF = _build_bitfield_property(2)
+    AF = _build_bitfield_property(4)
+    ZF = _build_bitfield_property(6)
+    SF = _build_bitfield_property(7)
+    TF = _build_bitfield_property(8)
+    IF = _build_bitfield_property(9)
+    DF = _build_bitfield_property(10)
+    OF = _build_bitfield_property(11)
+    IOPL = _build_bitfield_property(12, width=2)
+    NT = _build_bitfield_property(14)
+    RF = _build_bitfield_property(16)
+    VM = _build_bitfield_property(17)
+    AC = _build_bitfield_property(18)
+    VIF = _build_bitfield_property(19)
+    VIP = _build_bitfield_property(20)
+    ID = _build_bitfield_property(21)
+
+
+class ArmPstateAccessor(BitfieldRegisterAccessor):
+    """Expose the aarch64 PSTATE register with named bitfields."""
+
+    __slots__ = ()
+    _repr_name = "PState"
+
+    N = _build_bitfield_property(31)
+    Z = _build_bitfield_property(30)
+    C = _build_bitfield_property(29)
+    V = _build_bitfield_property(28)
+    TCO = _build_bitfield_property(25)
+    DIT = _build_bitfield_property(24)
+    UAO = _build_bitfield_property(23)
+    PAN = _build_bitfield_property(22)
+    SS = _build_bitfield_property(21)
+    IL = _build_bitfield_property(20)
+    SSBS = _build_bitfield_property(12)
+    BTYPE = _build_bitfield_property(10, width=2)
+    D = _build_bitfield_property(9)
+    A = _build_bitfield_property(8)
+    I = _build_bitfield_property(7)  # noqa: E741 - architectural name
+    F = _build_bitfield_property(6)
+    M = _build_bitfield_property(0, width=5)
+
+
+def build_x86_flags_property(register_name: str, bit_width: int) -> property:
+    """Return a property exposing the FLAGS register with bitfield helpers."""
+    return _build_register_accessor_property(register_name, bit_width, X86FlagsAccessor)
+
+
+def build_aarch64_pstate_property(register_name: str) -> property:
+    """Return a property exposing the PSTATE register with bitfield helpers."""
+    return _build_register_accessor_property(register_name, 64, ArmPstateAccessor)
