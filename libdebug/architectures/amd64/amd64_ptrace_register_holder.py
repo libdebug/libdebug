@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from libdebug.architectures.amd64.amd64_registers import Amd64Registers
+from libdebug.architectures.shared.flags_accessor import build_x86_flags_property
 from libdebug.ptrace.ptrace_register_holder import PtraceRegisterHolder
 
 if TYPE_CHECKING:
@@ -116,113 +117,6 @@ def _get_property_8h(name: str) -> property:
         setattr(self.register_file, name, value)
 
     return property(getter, setter, None, name)
-
-
-def _build_flag_property(bit: int, width: int = 1) -> property:
-    mask = (1 << width) - 1
-
-    def getter(self: EflagsAccessor) -> int:
-        return self._read_raw() >> bit & mask
-
-    def setter(self: EflagsAccessor, value: int | bool) -> None:
-        value_int = (1 if value else 0) if isinstance(value, bool) else int(value)
-        if value_int < 0 or value_int > mask:
-            raise ValueError(f"Value {value_int} does not fit in a {width}-bit flag")
-
-        raw_value = self._read_raw()
-        raw_value &= ~(mask << bit)
-        raw_value |= (value_int & mask) << bit
-        self._write_raw(raw_value)
-
-    return property(getter, setter, None, f"bitfield_{bit}")
-
-
-class EflagsAccessor:
-    """Helper that exposes the amd64 FLAGS register both as an int and via flag attributes."""
-
-    __slots__ = ("_registers",)
-
-    def __init__(self, registers: Amd64Registers) -> None:
-        """Bind the accessor to the provided register set."""
-        self._registers = registers
-
-    def __repr__(self) -> str:
-        """Return a developer-friendly representation of the FLAGS value."""
-        return f"Eflags({int(self):#x})"
-
-    def __str__(self) -> str:
-        """Return the hex representation of the FLAGS register."""
-        return f"{int(self):#x}"
-
-    def __format__(self, format_spec: str) -> str:
-        """Format the FLAGS value according to the provided specifier."""
-        return format(int(self), format_spec)
-
-    def __int__(self) -> int:
-        """Return the current FLAGS value as an integer."""
-        return self._read_raw()
-
-    def __index__(self) -> int:
-        """Allow use of the accessor wherever an index is required."""
-        return self._read_raw()
-
-    def __eq__(self, other: object) -> bool:
-        """Compare FLAGS values against ints or other accessors."""
-        if isinstance(other, EflagsAccessor):
-            return int(self) == int(other)
-        if isinstance(other, int):
-            return int(self) == other
-        return NotImplemented
-
-    def _read_raw(self) -> int:
-        registers = self._registers
-        registers._internal_debugger._ensure_process_stopped_regs()
-        return int(registers.register_file.eflags)
-
-    def _write_raw(self, value: int) -> None:
-        registers = self._registers
-        registers._internal_debugger._ensure_process_stopped_regs()
-        registers.register_file.eflags = int(value) & 0xFFFFFFFFFFFFFFFF
-
-    @property
-    def value(self) -> int:
-        """Return the raw FLAGS register value."""
-        return self._read_raw()
-
-    @value.setter
-    def value(self, new_value: int) -> None:
-        self._write_raw(new_value)
-
-    CF = _build_flag_property(0)
-    PF = _build_flag_property(2)
-    AF = _build_flag_property(4)
-    ZF = _build_flag_property(6)
-    SF = _build_flag_property(7)
-    TF = _build_flag_property(8)
-    IF = _build_flag_property(9)
-    DF = _build_flag_property(10)
-    OF = _build_flag_property(11)
-    IOPL = _build_flag_property(12, width=2)
-    NT = _build_flag_property(14)
-    RF = _build_flag_property(16)
-    VM = _build_flag_property(17)
-    AC = _build_flag_property(18)
-    VIF = _build_flag_property(19)
-    VIP = _build_flag_property(20)
-    ID = _build_flag_property(21)
-
-
-def _get_property_eflags() -> property:
-    def getter(self: Amd64Registers) -> EflagsAccessor:
-        self._internal_debugger._ensure_process_stopped_regs()
-        return EflagsAccessor(self)
-
-    def setter(self: Amd64Registers, value: int | EflagsAccessor) -> None:
-        self._internal_debugger._ensure_process_stopped_regs()
-        raw_value = int(value)
-        self.register_file.eflags = raw_value & 0xFFFFFFFFFFFFFFFF
-
-    return property(getter, setter, None, "eflags")
 
 
 def _get_property_fp_xmm0(name: str, index: int) -> property:
@@ -457,7 +351,7 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
 
         for name in AMD64_SPECIAL_REGS:
             if name == "eflags":
-                setattr(target_class, name, _get_property_eflags())
+                setattr(target_class, name, build_x86_flags_property(name, 64))
             else:
                 setattr(target_class, name, _get_property_64(name))
 

@@ -568,6 +568,56 @@ class RegisterTest(TestCase):
         d.kill()
         d.terminate()
 
+    @skipUnless(PLATFORM == "i386", "Requires i386")
+    def test_eflags_accessor_i386(self):
+        d = debugger(RESOLVE_EXE("basic_test"))
+
+        d.run()
+
+        bp = d.breakpoint(0x8049186)
+
+        d.cont()
+        self.assertEqual(d.regs.eip, bp.address)
+
+        base_flags = (1 << 0) | (1 << 2) | (0b10 << 12) | (1 << 17)
+        d.regs.eflags = base_flags
+
+        flags = d.regs.eflags
+        self.assertEqual(int(flags), base_flags)
+        self.assertEqual(flags.CF, 1)
+        self.assertEqual(flags.PF, 1)
+        self.assertEqual(flags.IOPL, 0b10)
+        self.assertEqual(flags.VM, 1)
+
+        d.regs.eflags.CF = False
+        d.regs.eflags.ZF = True
+        d.regs.eflags.IOPL = 0b01
+        d.regs.eflags.VM = False
+
+        expected_flags = base_flags
+        expected_flags &= ~(1 << 0)
+        expected_flags |= 1 << 6
+        expected_flags &= ~(0b11 << 12)
+        expected_flags |= 0b01 << 12
+        expected_flags &= ~(1 << 17)
+
+        self.assertEqual(int(d.regs.eflags), expected_flags)
+        self.assertEqual(d.regs.eflags.CF, 0)
+        self.assertEqual(d.regs.eflags.ZF, 1)
+        self.assertEqual(d.regs.eflags.IOPL, 0b01)
+        self.assertEqual(d.regs.eflags.VM, 0)
+
+        flags.value = expected_flags | (1 << 11)
+        self.assertEqual(int(d.regs.eflags), expected_flags | (1 << 11))
+
+        d.regs.eflags.CF = True
+        d.regs.eflags.ZF = False
+        self.assertEqual(d.regs.eflags.CF, 1)
+        self.assertEqual(d.regs.eflags.ZF, 0)
+
+        d.kill()
+        d.terminate()
+
     @skipUnless(PLATFORM == "amd64", "Requires amd64")
     def test_register_find_amd64(self):
         d = debugger(RESOLVE_EXE("basic_test"))

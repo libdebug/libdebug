@@ -22,6 +22,7 @@ from libdebug.architectures.i386.i386_ptrace_register_holder import (
     I386_SPECIAL_REGS,
     I386PtraceRegisterHolder,
 )
+from libdebug.architectures.shared.flags_accessor import build_x86_flags_property
 
 if TYPE_CHECKING:
     from libdebug.state.thread_context import ThreadContext
@@ -74,7 +75,10 @@ class I386OverAMD64PtraceRegisterHolder(I386PtraceRegisterHolder):
             setattr(target_class, name_8l, _get_property_8l(name_64))
 
         for name in I386_SPECIAL_REGS:
-            setattr(target_class, name, _get_property_32(name))
+            if name == "eflags":
+                setattr(target_class, name, build_x86_flags_property(name, 32))
+            else:
+                setattr(target_class, name, _get_property_32(name))
 
         # setup special registers
         target_class.eip = _get_property_32("rip")
