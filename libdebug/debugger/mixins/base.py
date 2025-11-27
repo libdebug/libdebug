@@ -8,17 +8,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from libdebug.debugger.mixins.base import EngineBoundMixin
-
 if TYPE_CHECKING:
     from libdebug.debugger.internal_debugger import InternalDebugger
 
 
-class DebuggerCoreMixin(EngineBoundMixin):
-    """Core lifecycle glue shared by all debugger variants."""
+class EngineBoundMixin:
+    """Mixin base declaring the internal debugger dependency."""
 
-    def __init__(self, internal_debugger: InternalDebugger) -> None:
-        """Wire the internal debugger; prefer the public `debugger` factory."""
-        self._internal_debugger = internal_debugger
-        self._internal_debugger.start_up()
-        super().__init__()
+    _internal_debugger: InternalDebugger

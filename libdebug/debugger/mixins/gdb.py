@@ -8,11 +8,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from libdebug.debugger.mixins.base import EngineBoundMixin
+
 if TYPE_CHECKING:
     from libdebug.data.gdb_resume_event import GdbResumeEvent
 
 
-class GdbMixin:
+class GdbMixin(EngineBoundMixin):
     """Migration to and from GDB."""
 
     def gdb(

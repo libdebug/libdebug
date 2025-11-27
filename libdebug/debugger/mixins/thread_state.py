@@ -8,13 +8,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from libdebug.debugger.mixins.base import EngineBoundMixin
 from libdebug.utils.oop.alias import check_aliased_property
 
 if TYPE_CHECKING:
     from libdebug.data.registers import Registers
 
 
-class ThreadStateMixin:
+class ThreadStateMixin(EngineBoundMixin):
     """Helpers to inspect or mutate the main thread state."""
 
     @property

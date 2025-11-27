@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from libdebug.data.argument_list import ArgumentList
 from libdebug.data.env_dict import EnvDict
+from libdebug.debugger.mixins.base import EngineBoundMixin
 from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.elf_utils import elf_architecture, resolve_argv_path
 from libdebug.utils.signal_utils import (
@@ -17,10 +18,14 @@ from libdebug.utils.signal_utils import (
 )
 
 
-class ConfigurationMixin:
+class ConfigurationMixin(EngineBoundMixin):
     """Configuration and setup helpers for the debugger."""
 
+    _previous_argv: list[str]
+    """A copy of the previous argv state, used internally to detect changes to argv[0]."""
+
     def __init__(self: ConfigurationMixin) -> None:
+        """Install argv/env callbacks after the engine is wired."""
         super().__init__()
         self._configure_argument_list(self._internal_debugger.argv)
         self._configure_env_dict()
