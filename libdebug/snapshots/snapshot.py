@@ -54,6 +54,8 @@ class Snapshot:
 
         for reg_name in all_regs:
             reg_value = thread.regs.__getattribute__(reg_name)
+            if isinstance(reg_value, int):
+                reg_value = int(reg_value)
             self.regs.__setattr__(reg_name, reg_value)
 
     def _save_memory_maps(self: Snapshot, debugger: InternalDebugger, writable_only: bool) -> None:

@@ -82,7 +82,16 @@ def _pprint_reg(registers: Registers, maps: MemoryMapList, register: str) -> Non
     style = ""
     formatted_attr = f"{attr:#x}"
 
-    if maps := maps.filter(attr):
+    lookup_value: int | str | None
+    if isinstance(attr, (int, str)):
+        lookup_value = attr
+    else:
+        try:
+            lookup_value = int(attr)
+        except (TypeError, ValueError):
+            lookup_value = None
+
+    if isinstance(lookup_value, (int, str)) and (maps := maps.filter(lookup_value)):
         permissions = maps[0].permissions
         if "rwx" in permissions:
             color = ANSIColors.RED
