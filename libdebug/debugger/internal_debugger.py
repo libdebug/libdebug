@@ -432,8 +432,7 @@ class InternalDebugger:
         child_internal_debugger.follow_children = self.follow_children
 
         # Create the new Debugger instance for the child process
-        child_debugger = Debugger()
-        child_debugger.post_init_(child_internal_debugger)
+        child_debugger = Debugger(child_internal_debugger)
         child_internal_debugger.debugger = child_debugger
         child_debugger.arch = self.arch
 

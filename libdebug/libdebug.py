@@ -46,6 +46,12 @@ def debugger(
 
     Returns:
         Debugger: The `Debugger` object.
+
+    Notes:
+        The public constructor is the `debugger` factory. The `Debugger` class itself is
+        composed of mixins and expects an `InternalDebugger` when instantiated; this keeps
+        advanced users free to subclass with their own mixins while everyday users rely on
+        the factory for setup.
     """
     if isinstance(argv, str):
         argv = ArgumentList([argv])
@@ -81,9 +87,7 @@ def debugger(
     internal_debugger.follow_children = follow_children
     internal_debugger._has_path_different_from_argv0 = has_path_different_from_argv0
 
-    debugger = Debugger()
-    debugger.post_init_(internal_debugger)
-
+    debugger = Debugger(internal_debugger)
     internal_debugger.debugger = debugger
 
     # If we are attaching, we assume the architecture is the same as the current platform

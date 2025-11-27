@@ -14,14 +14,14 @@ With libdebug you have full control of your debugged executable:
 - Debug on Linux systems based on AMD64, AArch64, and i386
 
 Classes:
-    Debugger: The main debugger class that provides all methods to run and interact with processes.
+    Debugger: The main debugger class, composed of mixins, that provides all methods to run and interact with processes.
     Breakpoint: Represents a breakpoint that can be set in the debugged process.
     SignalCatcher: Handles signal catching and hijacking functionality.
     SyscallHandler: Manages system call handling and hijacking.
     ThreadContext: Provides access to thread-specific information and state.
 
 Functions:
-    debugger: Factory function to create a Debugger instance with the specified configuration.
+    debugger: Factory function to create a Debugger instance with the specified configuration. Prefer this over instantiating Debugger directly (constructor expects an InternalDebugger for mixin composition).
 
 Objects:
     libcontext: Singleton configuration object for libdebug settings and terminal configuration.
