@@ -21,7 +21,7 @@ Classes:
     ThreadContext: Provides access to thread-specific information and state.
 
 Functions:
-    debugger: Factory function to create a Debugger instance with the specified configuration. Prefer this over instantiating Debugger directly (constructor expects an InternalDebugger for mixin composition).
+    debugger: Factory function to create a Debugger instance (or subclass via `cls`) with the specified configuration. Prefer this over instantiating Debugger directly (constructor expects an InternalDebugger for mixin composition).
 
 Objects:
     libcontext: Singleton configuration object for libdebug settings and terminal configuration.

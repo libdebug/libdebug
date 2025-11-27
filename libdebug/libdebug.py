@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+from typing import TypeVar
+
 from elftools.common.exceptions import ELFError
 
 from libdebug.data.argument_list import ArgumentList
@@ -15,6 +17,8 @@ from libdebug.liblog import liblog
 from libdebug.utils.elf_utils import elf_architecture, resolve_argv_path
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.thread_exceptions import setup_signal_handler
+
+DebuggerT = TypeVar("DebuggerT", bound=Debugger)
 
 
 def debugger(
@@ -29,7 +33,8 @@ def debugger(
     fast_memory: bool = True,
     kill_on_exit: bool = True,
     follow_children: bool = True,
-) -> Debugger:
+    cls: type[DebuggerT] = Debugger,
+) -> DebuggerT:
     """This function is used to create a new `Debugger` object. It returns a `Debugger` object.
 
     Args:
@@ -43,15 +48,16 @@ def debugger(
         fast_memory (bool, optional): Whether to use a faster memory reading method. Defaults to True.
         kill_on_exit (bool, optional): Whether to kill the debugged process when the debugger exits. Defaults to True.
         follow_children (bool, optional): Whether to follow child processes. Defaults to True, which means that a new debugger will be created for each child process automatically.
+        cls (type[DebuggerT], optional): The `Debugger` subclass to instantiate. Defaults to `Debugger`.
 
     Returns:
-        Debugger: The `Debugger` object.
+        DebuggerT: The `Debugger` object (or subclass if `cls` is provided).
 
     Notes:
         The public constructor is the `debugger` factory. The `Debugger` class itself is
         composed of mixins and expects an `InternalDebugger` when instantiated; this keeps
         advanced users free to subclass with their own mixins while everyday users rely on
-        the factory for setup.
+        the factory for setup. Use `cls` to inject a custom subclass with extra mixins.
     """
     if isinstance(argv, str):
         argv = ArgumentList([argv])
@@ -87,7 +93,7 @@ def debugger(
     internal_debugger.follow_children = follow_children
     internal_debugger._has_path_different_from_argv0 = has_path_different_from_argv0
 
-    debugger = Debugger(internal_debugger)
+    debugger = cls(internal_debugger)
     internal_debugger.debugger = debugger
 
     # If we are attaching, we assume the architecture is the same as the current platform
