@@ -491,8 +491,7 @@ class InternalDebugger:
         child_internal_debugger.preserve_event_hooks_on_exec = self.preserve_event_hooks_on_exec
 
         # Create the new Debugger instance for the child process
-        child_debugger = Debugger()
-        child_debugger.post_init_(child_internal_debugger)
+        child_debugger = Debugger(child_internal_debugger)
         child_internal_debugger.debugger = child_debugger
         child_debugger.arch = self.arch
 
