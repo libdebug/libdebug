@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, ClassVar, TypeVar
 
 if TYPE_CHECKING:
     from libdebug.data.registers import Registers
@@ -19,6 +19,7 @@ class BitfieldRegisterAccessor:
 
     __slots__ = ("_bit_mask", "_register_name", "_registers")
     _repr_name = "Bitfield"
+    BIT_FIELDS: ClassVar[tuple[tuple[str, int, int], ...]] = ()
 
     def __init__(self, registers: Registers, register_name: str, bit_width: int) -> None:
         """Bind the accessor to the provided register set."""
@@ -28,6 +29,9 @@ class BitfieldRegisterAccessor:
 
     def __repr__(self) -> str:  # pragma: no cover - trivial formatting
         """Return a developer-friendly representation of the bitfield."""
+        summary = self.describe()
+        if summary:
+            return f"{self._repr_name}({int(self):#x}; {summary})"
         return f"{self._repr_name}({int(self):#x})"
 
     def __str__(self) -> str:
@@ -74,6 +78,20 @@ class BitfieldRegisterAccessor:
         """Overwrite the backing register with a raw value."""
         self._write_raw(new_value)
 
+    def describe(self) -> str:
+        """Return a compact textual description of non-zero bitfields."""
+        entries: list[str] = []
+        raw_value = self._read_raw()
+        for name, bit, width in self.BIT_FIELDS:
+            mask = (1 << width) - 1
+            value = (raw_value >> bit) & mask
+            if width == 1:
+                if value:
+                    entries.append(name)
+            elif value:
+                entries.append(f"{name}={value:#x}")
+        return ", ".join(entries)
+
 
 def _build_bitfield_property(bit: int, width: int = 1) -> property:
     mask = (1 << width) - 1
@@ -119,6 +137,26 @@ class X86FlagsAccessor(BitfieldRegisterAccessor):
     __slots__ = ()
     _repr_name = "Flags"
 
+    BIT_FIELDS: ClassVar[tuple[tuple[str, int, int], ...]] = (
+        ("CF", 0, 1),
+        ("PF", 2, 1),
+        ("AF", 4, 1),
+        ("ZF", 6, 1),
+        ("SF", 7, 1),
+        ("TF", 8, 1),
+        ("IF", 9, 1),
+        ("DF", 10, 1),
+        ("OF", 11, 1),
+        ("IOPL", 12, 2),
+        ("NT", 14, 1),
+        ("RF", 16, 1),
+        ("VM", 17, 1),
+        ("AC", 18, 1),
+        ("VIF", 19, 1),
+        ("VIP", 20, 1),
+        ("ID", 21, 1),
+    )
+
     CF = _build_bitfield_property(0)
     PF = _build_bitfield_property(2)
     AF = _build_bitfield_property(4)
@@ -143,6 +181,26 @@ class ArmPstateAccessor(BitfieldRegisterAccessor):
 
     __slots__ = ()
     _repr_name = "PState"
+
+    BIT_FIELDS: ClassVar[tuple[tuple[str, int, int], ...]] = (
+        ("N", 31, 1),
+        ("Z", 30, 1),
+        ("C", 29, 1),
+        ("V", 28, 1),
+        ("TCO", 25, 1),
+        ("DIT", 24, 1),
+        ("UAO", 23, 1),
+        ("PAN", 22, 1),
+        ("SS", 21, 1),
+        ("IL", 20, 1),
+        ("SSBS", 12, 1),
+        ("BTYPE", 10, 2),
+        ("D", 9, 1),
+        ("A", 8, 1),
+        ("I", 7, 1),  # noqa: E741 - architectural name
+        ("F", 6, 1),
+        ("M", 0, 5),
+    )
 
     N = _build_bitfield_property(31)
     Z = _build_bitfield_property(30)
