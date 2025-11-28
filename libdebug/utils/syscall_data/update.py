@@ -2,7 +2,7 @@
 
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2025 Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2025 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -36,6 +36,13 @@ p.add_argument(
     help="Whether to fetch the syscall definition from the remote server.",
     default=False,
     dest="remote",
+)
+p.add_argument(
+    "--arch",
+    "-a",
+    type=str,
+    help="Architecture for which to fetch the syscall definitions (e.g., amd64, aarch64, i386).",
+    dest="arch",
 )
 
 
@@ -104,9 +111,15 @@ if __name__ == "__main__":
         if args.input_file:
             raise ValueError("Cannot specify both input file and remote fetch")
 
-        syscalls = fetch_remote_syscall_definition(libcontext.platform)
+        if not args.arch:
+            args.arch = libcontext.platform
 
-        compress_syscall_data(syscalls, STATIC_FOLDER_PATH / f"{libcontext.platform}.json")
+        if args.arch not in ["amd64", "aarch64", "i386"]:
+            raise ValueError("Architecture must be one of: amd64, aarch64, i386")
+
+        syscalls = fetch_remote_syscall_definition(args.arch)
+
+        compress_syscall_data(syscalls, STATIC_FOLDER_PATH / f"{args.arch}.json")
     else:
         if not args.input_file:
             raise ValueError("Input file must be specified when not fetching remotely")
