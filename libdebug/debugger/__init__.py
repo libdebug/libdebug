@@ -3,18 +3,18 @@ from libdebug.debugger.mixins import (
     BreakpointMixin,
     ConfigurationMixin,
     DebuggerCoreMixin,
-    GdbMixin,
-    IntrospectionMixin,
     DisplayMixin,
     ExecutionMixin,
+    GdbMixin,
+    IntrospectionMixin,
     SnapshotMixin,
     ThreadStateMixin,
 )
 
 __all__ = [
-    "Debugger",
     "BreakpointMixin",
     "ConfigurationMixin",
+    "Debugger",
     "DebuggerCoreMixin",
     "DisplayMixin",
     "ExecutionMixin",
