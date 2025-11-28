@@ -16,7 +16,22 @@ The following is an example of how to interact with the `RAX` register in a debu
 | Reading   |   `read_value = d.regs.rax`   |
 | Writing   | `d.regs.rax = read_value + 1` |
 
-Note that the register values are read and written as Python integers. This is true for all registers except for floating point ones, which are coherent with their type. To avoid confusion, we list available registers and their types below. Related registers are available to access as well.
+Note that the register values are read and written as Python integers. This is true for all registers except for floating point ones, which are coherent with their type. Some architectural status registers also expose convenient bitfield helpers so you can toggle individual flags without manually masking integer values:
+
+```python
+# amd64 / i386: tweak FLAGS directly or through individual bits
+d.regs.eflags = 0x202
+d.regs.eflags.CF = 1
+d.regs.eflags.IOPL = 0b01
+d.regs.eflags.ZF = False  # accepts booleans or ints
+
+# aarch64: control processor state bits
+d.regs.pstate.N = True
+d.regs.pstate.BTYPE = 0b10
+d.regs.pstate.D = False
+```
+
+When assigned a plain integer, these registers behave like before; when accessed through attributes they transparently map to the documented flag bits (CF/ZF/… for x86, N/Z/C/V/BTYPE/… for Arm). To avoid confusion, we list available registers and their types below. Related registers are available to access as well.
 
 === "AMD64"
     | Register  | Type          | Related       | Description                                       |
@@ -40,7 +55,7 @@ Note that the register values are read and written as Python integers. This is t
     | R15       | Integer        | R15D, R15W, R15B| General-purpose register                          |
     | RIP       | Integer        | EIP             | Instruction pointer                               |
     | **Flags** |
-    | EFLAGS    | Integer        |           | Flags register                                    |
+    | EFLAGS    | Integer        |           | Flags register (bitfield helper: `CF`, `ZF`, `IOPL`, …) |
     | **Segment Registers** |
     | CS        | Integer        |                 | Code segment                                      |
     | DS        | Integer        |                 | Data segment                                      |
@@ -116,7 +131,7 @@ Note that the register values are read and written as Python integers. This is t
     | ESP       | Integer        | SP             | Stack pointer                                     |
     | EIP       | Integer        | IP             | Instruction pointer                               |
     | **Flags** |
-    | EFLAGS    | Integer        |                | Flags register                                    |
+    | EFLAGS    | Integer        |                | Flags register (bitfield helper: `CF`, `ZF`, `IOPL`, …) |
     | **Segment Registers** |
     | CS        | Integer        |                | Code segment                                      |
     | DS        | Integer        |                | Data segment                                      |
@@ -182,7 +197,7 @@ Note that the register values are read and written as Python integers. This is t
     | SP        | Integer          |                  | Stack pointer                                    |
     | PC        | Integer          |                  | Program counter                                  |
     | **Flags** |
-    | PSTATE      | Integer          |                  | [Processor state in exception handling](https://developer.arm.com/documentation/100933/0100/Processor-state-in-exception-handling)            |
+    | PSTATE      | Integer          |                  | [Processor state](https://developer.arm.com/documentation/100933/0100/Processor-state-in-exception-handling) (bitfield helper: `N`, `Z`, `BTYPE`, `M`, …) |
     | **Vector Registers (SIMD/FP)** |
     | V0        | Integer   |                  | Vector or scalar register                        |
     | V1        | Integer   |                  | Vector or scalar register                        |

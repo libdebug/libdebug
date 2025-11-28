@@ -6,6 +6,7 @@
 
 import re
 
+from libdebug.architectures.shared.flags_accessor import BitfieldRegisterAccessor
 from libdebug.data.memory_map_list import MemoryMapList
 from libdebug.data.registers import Registers
 from libdebug.data.symbol_list import SymbolList
@@ -80,9 +81,17 @@ def _pprint_reg(registers: Registers, maps: MemoryMapList, register: str) -> Non
     attr = getattr(registers, register)
     color = ""
     style = ""
-    formatted_attr = f"{attr:#x}"
 
-    if maps := maps.filter(attr):
+    lookup_value: int | str | None
+    if isinstance(attr, (int, str)):
+        lookup_value = attr
+    else:
+        try:
+            lookup_value = int(attr)
+        except (TypeError, ValueError):
+            lookup_value = None
+
+    if isinstance(lookup_value, (int, str)) and (maps := maps.filter(lookup_value)):
         permissions = maps[0].permissions
         if "rwx" in permissions:
             color = ANSIColors.RED
@@ -94,8 +103,18 @@ def _pprint_reg(registers: Registers, maps: MemoryMapList, register: str) -> Non
         elif "r" in permissions:
             color = ANSIColors.GREEN
 
-    if color or style:
-        formatted_attr = f"{color}{style}{attr:#x}{ANSIColors.RESET}"
+    if lookup_value is None:
+        formatted_attr = str(attr)
+    else:
+        formatted_attr = f"{lookup_value:#x}"
+        if color or style:
+            formatted_attr = f"{color}{style}{formatted_attr}{ANSIColors.RESET}"
+
+    if isinstance(attr, BitfieldRegisterAccessor):
+        summary = attr.describe()
+        if summary:
+            formatted_attr = f"{formatted_attr} ({summary})"
+
     print(f"{ANSIColors.RED}{register}{ANSIColors.RESET}\t{formatted_attr}")
 
 
