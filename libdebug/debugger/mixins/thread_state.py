@@ -160,7 +160,7 @@ class ThreadStateMixin(EngineBoundMixin):
         return self.threads[0].dead
 
     @property
-    def zombie(self: ThreadStateMixin) -> None:
+    def zombie(self: ThreadStateMixin) -> bool:
         """Whether the main thread is a zombie."""
         if not self.threads:
             raise RuntimeError("No threads available. Did you call `run` or `attach`?")
