@@ -6,14 +6,17 @@
 
 from __future__ import annotations
 
+from abc import ABCMeta
 from inspect import isdatadescriptor, isfunction, ismethod, signature
 from typing import TYPE_CHECKING
+
+from libdebug.debugger.debugger_meta import DebuggerMeta
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
 
-class AliasedClass(type):
+class AliasedClass(DebuggerMeta, ABCMeta):
     """Metaclass that ensures aliased methods and properties have identical signatures and docstrings.
 
     This metaclass validates that methods and properties marked with __aliases__ have
@@ -130,24 +133,27 @@ class AliasedClass(type):
         """
         new_cls = super().__new__(cls, name, bases, namespace)
 
-        # We validate all aliased attributes in the class namespace
-        # and in the bases (to support inheritance)
-        for base in bases:
+        # Validate aliased attributes declared on the class and throughout the MRO
+        checked: set[tuple[type, str]] = set()
+        for base in new_cls.mro():
             for attr_name, attr_value in base.__dict__.items():
-                if hasattr(attr_value, "__aliases__"):
-                    for alias_name in attr_value.__aliases__:
-                        if hasattr(new_cls, alias_name):
-                            alias_value = getattr(new_cls, alias_name)
-                            if isfunction(attr_value) or ismethod(attr_value):
-                                cls._validate_function_alias(cls, attr_value, alias_value, attr_name, alias_name)
-                            elif isdatadescriptor(attr_value):
-                                cls._validate_property_alias(cls, attr_value, alias_value, attr_name, alias_name)
-                            else:
-                                raise TypeError(
-                                    f"Alias '{alias_name}' of '{attr_name}' must be a function, method, or data descriptor",
-                                )
+                if not hasattr(attr_value, "__aliases__"):
+                    continue
+                key = (base, attr_name)
+                if key in checked:
+                    continue
+                checked.add(key)
+                for alias_name in attr_value.__aliases__:
+                    if hasattr(new_cls, alias_name):
+                        alias_value = getattr(new_cls, alias_name)
+                        if isfunction(attr_value) or ismethod(attr_value):
+                            cls._validate_function_alias(cls, attr_value, alias_value, attr_name, alias_name)
+                        elif isdatadescriptor(attr_value):
+                            cls._validate_property_alias(cls, attr_value, alias_value, attr_name, alias_name)
                         else:
-                            raise AttributeError(
-                                f"Alias '{alias_name}' for '{attr_name}' does not exist in class '{name}'",
+                            raise TypeError(
+                                f"Alias '{alias_name}' of '{attr_name}' must be a function, method, or data descriptor",
                             )
+                    else:
+                        raise AttributeError(f"Alias '{alias_name}' for '{attr_name}' does not exist in class '{name}'")
         return new_cls
