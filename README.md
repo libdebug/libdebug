@@ -224,6 +224,3 @@ If you intend to use libdebug in your projects, you can also cite the software u
 	doi = {10.5281/zenodo.13151549},
 }
 ```
-### Extending the Debugger
-
-The public entrypoint remains the `debugger(...)` factory, which wires up the internal state for you. The underlying `Debugger` class is built from mixins: advanced users can subclass it and combine additional mixins as long as their `__init__` accepts an `InternalDebugger` and calls `super().__init__(internal_debugger)`. If a custom mixin defines its own `__init__`, keep it argument-less (or accept `*args, **kwargs`) and call `super().__init__()` so the cooperative chain runs and the internal debugger is already available. You can also pass `cls=MyDebuggerSubclass` to the factory to get your custom subclass with proper typing.
