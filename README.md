@@ -224,4 +224,3 @@ If you intend to use libdebug in your projects, you can also cite the software u
 	doi = {10.5281/zenodo.13151549},
 }
 ```
-

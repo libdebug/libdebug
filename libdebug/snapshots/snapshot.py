@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Francesco Panebianco, Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2025 Francesco Panebianco, Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -9,17 +9,12 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from libdebug.debugger.internal_debugger import InternalDebugger
-    from libdebug.snapshots.diff import Diff
-    from libdebug.snapshots.memory.snapshot_memory_view import SnapshotMemoryView
-    from libdebug.state.thread_context import ThreadContext
-
 from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
 from libdebug.liblog import liblog
 from libdebug.snapshots.memory.memory_map_snapshot import MemoryMapSnapshot
 from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
 from libdebug.snapshots.registers.snapshot_registers import SnapshotRegisters
+from libdebug.utils.oop.alias import check_alias, check_aliased_property
 from libdebug.utils.platform_utils import get_platform_gp_register_size
 from libdebug.utils.pprint_primitives import (
     pprint_backtrace_util,
@@ -29,6 +24,11 @@ from libdebug.utils.pprint_primitives import (
     pprint_registers_util,
 )
 
+if TYPE_CHECKING:
+    from libdebug.debugger.internal_debugger import InternalDebugger
+    from libdebug.snapshots.diff import Diff
+    from libdebug.snapshots.memory.snapshot_memory_view import SnapshotMemoryView
+    from libdebug.state.thread_context import ThreadContext
 
 class Snapshot:
     """This object represents a snapshot of a system task.
@@ -90,7 +90,7 @@ class Snapshot:
         """Alias for regs."""
         return self.regs
 
-    @property
+    @check_aliased_property("mem")
     def memory(self: Snapshot) -> SnapshotMemoryView:
         """Returns a view of the memory of the thread."""
         if self._memory is None:
@@ -103,7 +103,10 @@ class Snapshot:
 
     @property
     def mem(self: Snapshot) -> SnapshotMemoryView:
-        """Alias for memory."""
+        """Alias for the `memory` property.
+
+        Returns a view of the memory of the thread.
+        """
         return self.memory
 
     @abstractmethod
@@ -122,6 +125,7 @@ class Snapshot:
         stack_unwinder = stack_unwinding_provider(self.arch)
         return stack_unwinder.unwind(self)
 
+    @check_alias("pprint_regs")
     def pprint_registers(self: Snapshot) -> None:
         """Pretty prints the thread's registers."""
         pprint_registers_util(self.regs, self.maps, self.regs._generic_regs)
@@ -133,6 +137,7 @@ class Snapshot:
         """
         self.pprint_registers()
 
+    @check_alias("pprint_regs_all")
     def pprint_registers_all(self: Snapshot) -> None:
         """Pretty prints all the thread's registers."""
         pprint_registers_all_util(
@@ -219,4 +224,3 @@ class Snapshot:
             self.maps,
             integer_mode=integer_mode,
         )
-
