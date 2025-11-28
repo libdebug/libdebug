@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from libdebug.debugger.debugger_meta import DebuggerMeta
 from libdebug.debugger.mixins.breakpoints import BreakpointMixin
 from libdebug.debugger.mixins.configuration import ConfigurationMixin
 from libdebug.debugger.mixins.core import DebuggerCoreMixin
@@ -27,6 +28,7 @@ class Debugger(
     ThreadStateMixin,
     DisplayMixin,
     SnapshotMixin,
+    metaclass=DebuggerMeta,
 ):
     """Main libdebug debugger composed of mixins.
 
