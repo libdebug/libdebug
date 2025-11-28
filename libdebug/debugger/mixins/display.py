@@ -31,7 +31,7 @@ class DisplayMixin(EngineBoundMixin):
         self._internal_debugger.pprint_maps()
 
     def pprint_backtrace(self: DisplayMixin) -> None:
-        """Pretty pints the current backtrace of the main thread."""
+        """Pretty prints the current backtrace of the main thread."""
         if not self.threads:
             raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         self.threads[0].pprint_backtrace()
@@ -138,7 +138,7 @@ class DisplayMixin(EngineBoundMixin):
 
     @syscalls_to_pprint.setter
     def syscalls_to_pprint(self: DisplayMixin, value: list[int | str] | None) -> None:
-        """Get the syscalls to pretty print.
+        """Set the syscalls to pretty print.
 
         Args:
             value (list[int | str] | None): The syscalls to pretty print.
@@ -173,7 +173,7 @@ class DisplayMixin(EngineBoundMixin):
 
     @syscalls_to_not_pprint.setter
     def syscalls_to_not_pprint(self: DisplayMixin, value: list[int | str] | None) -> None:
-        """Get the syscalls to not pretty print.
+        """Set the syscalls to not pretty print.
 
         Args:
             value (list[int | str] | None): The syscalls to not pretty print.
