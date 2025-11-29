@@ -13,6 +13,8 @@ from libdebug.data.event_type import EventType
 
 if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
+    from libdebug.data.signal_catcher import SignalCatcher
+    from libdebug.data.syscall_handler import SyscallHandler
 
 
 @dataclass(eq=False)
@@ -20,22 +22,28 @@ class ResumeContext:
     """Represents the context used to decide whether execution should resume."""
 
     resume: bool = True
-    force_interrupt: bool = False
-    is_a_step: bool = False
-    is_startup: bool = False
-    block_on_signal: bool = False
+    """Indicates whether to resume execution when inside an asynchronous callback."""
+
     threads_with_signals_to_forward: list[int] = field(default_factory=list)
+    """List of thread IDs with signals to forward upon resuming execution."""
+
     event_type: dict[int, EventType] = field(default_factory=dict)
-    event_hit_ref: dict[int, Breakpoint] = field(default_factory=dict)
-    is_in_callback: bool = False
+    """Dictionary mapping thread IDs to the type of event that caused the stop."""
+
+    event_hit_ref: dict[int, Breakpoint | SyscallHandler | SignalCatcher] = field(default_factory=dict)
+    """Dictionary mapping thread IDs to the breakpoint, syscall handler, or signal catcher that was hit."""
+
+    _is_in_callback: bool = False
+    _is_startup: bool = False
+    _is_a_step: bool = False
+    _force_interrupt: bool = False
 
     def clear(self: ResumeContext) -> None:
         """Clears the context."""
         self.resume = True
-        self.force_interrupt = False
-        self.is_a_step = False
-        self.is_startup = False
-        self.block_on_signal = False
+        self._force_interrupt = False
+        self._is_a_step = False
+        self._is_startup = False
         self.threads_with_signals_to_forward.clear()
         self.event_type.clear()
         self.event_hit_ref.clear()

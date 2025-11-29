@@ -416,8 +416,8 @@ class PtraceStatusHandler:
             liblog.debugger("Child thread %d stopped on syscall", pid)
             self._handle_syscall(pid)
             self.forward_signal = False
-        elif signum == signal.SIGSTOP and self.internal_debugger.resume_context.force_interrupt:
-            # The user has requested an interrupt, we need to stop the process despite the ohter signals
+        elif signum == signal.SIGSTOP and self.internal_debugger.resume_context._force_interrupt:
+            # The user has requested an interrupt, we need to stop the process despite the other signals
             liblog.debugger(
                 "Child thread %d stopped with signal %s",
                 pid,
@@ -425,18 +425,18 @@ class PtraceStatusHandler:
             )
             self.internal_debugger.resume_context.event_type[pid] = EventType.USER_INTERRUPT
             self.internal_debugger.resume_context.resume = False
-            self.internal_debugger.resume_context.force_interrupt = False
+            self.internal_debugger.resume_context._force_interrupt = False
             self.forward_signal = False
         elif signum == signal.SIGTRAP:
             # The trap decides if we hit a breakpoint. If so, it decides whether we should stop or
             # continue the execution and wait for the next trap
             self._handle_breakpoints(pid)
 
-            if self.internal_debugger.resume_context.is_a_step:
+            if self.internal_debugger.resume_context._is_a_step:
                 # The process is stepping, we need to stop the execution
                 self.internal_debugger.resume_context.event_type[pid] = EventType.STEP
                 self.internal_debugger.resume_context.resume = False
-                self.internal_debugger.resume_context.is_a_step = False
+                self.internal_debugger.resume_context._is_a_step = False
                 self.forward_signal = False
 
             event = status >> 8
@@ -497,7 +497,7 @@ class PtraceStatusHandler:
         self.forward_signal = True
 
         if os.WIFSTOPPED(status):
-            if self.internal_debugger.resume_context.is_startup:
+            if self.internal_debugger.resume_context._is_startup:
                 # The process has just started
                 return
             signum = os.WSTOPSIG(status)
@@ -540,7 +540,7 @@ class PtraceStatusHandler:
         self._assume_race_sigstop = True
 
         # We declare in the ResumeContext that we are executing a few callbacks
-        self.internal_debugger.resume_context.is_in_callback = True
+        self.internal_debugger.resume_context._is_in_callback = True
 
         for pid, status in result:
             if pid != -1:
@@ -548,7 +548,7 @@ class PtraceStatusHandler:
                 self._handle_change(pid, status, result)
 
         # Callbacks are done
-        self.internal_debugger.resume_context.is_in_callback = False
+        self.internal_debugger.resume_context._is_in_callback = False
 
         if self._assume_race_sigstop:
             # Resume the process if the stop was due to a race condition with SIGSTOP sent by the debugger

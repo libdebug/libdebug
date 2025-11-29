@@ -562,7 +562,7 @@ class InternalDebugger:
         if not self.running:
             return
 
-        self.resume_context.force_interrupt = True
+        self.resume_context._force_interrupt = True
         os.kill(self.process_id, SIGSTOP)
 
         self.wait()
@@ -2052,7 +2052,7 @@ class InternalDebugger:
             if not debuggee_died:
                 # This is racy, but the side-effect is us printing a warning
                 # and not much else
-                if self.resume_context.is_in_callback:
+                if self.resume_context._is_in_callback:
                     # We have no way to stop the callback, let's notify the user
                     liblog.warning(
                         "Timeout occurred while executing a callback. Asynchronous callbacks cannot be interrupted.",
