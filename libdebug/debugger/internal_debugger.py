@@ -895,7 +895,10 @@ class InternalDebugger:
     ) -> None:
         """Register a callback for a specific resume event type."""
         if event in self.event_callbacks:
-            raise ValueError(f"Event {event} already has a registered callback.")
+            liblog.warning(
+                "Event %s already has a registered callback. Overriding it.",
+                event,
+            )
         self.event_callbacks[event] = callback
 
     @change_state_function_process
