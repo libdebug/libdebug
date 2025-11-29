@@ -15,6 +15,7 @@ from libdebug.data.env_dict import EnvDict
 from libdebug.liblog import liblog
 from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.elf_utils import elf_architecture, resolve_argv_path
+from libdebug.utils.oop.alias import check_alias, check_aliased_property
 from libdebug.utils.signal_utils import (
     get_all_signal_numbers,
     resolve_signal_name,
@@ -71,6 +72,7 @@ class Debugger:
         self._configure_argument_list(self._internal_debugger.argv)
         self._configure_env_dict()
 
+    @check_alias("r")
     def run(self: Debugger, timeout: float = -1, redirect_pipes: bool = True) -> PipeManager | None:
         """Starts the process and waits for it to stop.
 
@@ -100,14 +102,17 @@ class Debugger:
         """
         self._internal_debugger.terminate()
 
+    @check_alias("c")
     def cont(self: Debugger) -> None:
         """Continues the process."""
         self._internal_debugger.cont()
 
+    @check_alias("int")
     def interrupt(self: Debugger) -> None:
         """Interrupts the process."""
         self._internal_debugger.interrupt()
 
+    @check_alias("w")
     def wait(self: Debugger) -> None:
         """Waits for the process to stop."""
         self._internal_debugger.wait()
@@ -138,6 +143,7 @@ class Debugger:
         """Get the symbols of the process."""
         return self._internal_debugger.symbols
 
+    @check_alias("bp")
     def breakpoint(
         self: Debugger,
         position: int | str,
@@ -159,6 +165,7 @@ class Debugger:
         """
         return self._internal_debugger.breakpoint(position, hardware, condition, length, callback, file)
 
+    @check_alias("wp")
     def watchpoint(
         self: Debugger,
         position: int | str,
@@ -335,17 +342,19 @@ class Debugger:
         hardware: bool = False,
         condition: str = "x",
         length: int = 1,
-        callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
+        callback: None | bool | Callable[[ThreadContext, Breakpoint], None] = None,
         file: str = "hybrid",
     ) -> Breakpoint:
         """Alias for the `breakpoint` method.
+
+        Sets a breakpoint at the specified location.
 
         Args:
             position (int | bytes): The location of the breakpoint.
             hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software. Defaults to False.
             condition (str, optional): The trigger condition for the breakpoint. Defaults to None.
             length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
-            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the breakpoint is hit. Defaults to None.
+            callback (None | bool | Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the breakpoint is hit. If True, an empty callback will be set. Defaults to None.
             file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
         return self._internal_debugger.breakpoint(position, hardware, condition, length, callback, file)
@@ -355,7 +364,7 @@ class Debugger:
         position: int | str,
         condition: str = "w",
         length: int = 1,
-        callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
+        callback: None | bool | Callable[[ThreadContext, Breakpoint], None] = None,
         file: str = "hybrid",
     ) -> Breakpoint:
         """Alias for the `watchpoint` method.
@@ -366,7 +375,7 @@ class Debugger:
             position (int | bytes): The location of the breakpoint.
             condition (str, optional): The trigger condition for the watchpoint (either "w", "rw" or "x"). Defaults to "w".
             length (int, optional): The size of the word in being watched (1, 2, 4 or 8). Defaults to 1.
-            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the watchpoint is hit. Defaults to None.
+            callback (None | bool | Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the watchpoint is hit. If True, an empty callback will be set. Defaults to None.
             file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
         return self._internal_debugger.breakpoint(
@@ -949,7 +958,7 @@ class Debugger:
             raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         return self.threads[0].zombie
 
-    @property
+    @check_aliased_property("mem")
     def memory(self: Debugger) -> AbstractMemoryView:
         """The memory view of the process."""
         return self._internal_debugger.memory
@@ -958,24 +967,24 @@ class Debugger:
     def mem(self: Debugger) -> AbstractMemoryView:
         """Alias for the `memory` property.
 
-        Get the memory view of the process.
+        The memory view of the process.
         """
         return self._internal_debugger.memory
 
-    @property
+    @check_aliased_property("pid")
     def process_id(self: Debugger) -> int:
         """The process ID."""
         return self._internal_debugger.process_id
 
     @property
     def pid(self: Debugger) -> int:
-        """Alias for `process_id` property.
+        """Alias for the `process_id` property.
 
         The process ID.
         """
         return self._internal_debugger.process_id
 
-    @property
+    @check_aliased_property("tid")
     def thread_id(self: Debugger) -> int:
         """The thread ID of the main thread."""
         if not self.threads:
@@ -984,11 +993,13 @@ class Debugger:
 
     @property
     def tid(self: Debugger) -> int:
-        """Alias for `thread_id` property.
+        """Alias for the `thread_id` property.
 
         The thread ID of the main thread.
         """
-        return self._thread_id
+        if not self.threads:
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
+        return self.threads[0].tid
 
     @property
     def running(self: Debugger) -> bool:
@@ -1053,6 +1064,7 @@ class Debugger:
             raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         self.threads[0].pprint_backtrace()
 
+    @check_alias("pprint_regs")
     def pprint_registers(self: Debugger) -> None:
         """Pretty prints the main thread's registers."""
         if not self.threads:
@@ -1066,6 +1078,7 @@ class Debugger:
         """
         self.pprint_registers()
 
+    @check_alias("pprint_regs_all")
     def pprint_registers_all(self: Debugger) -> None:
         """Pretty prints all the main thread's registers."""
         if not self.threads:
@@ -1098,10 +1111,12 @@ class Debugger:
         """
         self._internal_debugger.pprint_memory(start, end, file, override_word_size, integer_mode)
 
+    @check_alias("si")
     def step(self: Debugger) -> None:
         """Executes a single instruction of the process."""
         self._internal_debugger.step(self)
 
+    @check_alias("su")
     def step_until(
         self: Debugger,
         position: int | str,
@@ -1117,6 +1132,7 @@ class Debugger:
         """
         self._internal_debugger.step_until(self, position, max_steps, file)
 
+    @check_alias("fin")
     def finish(self: Debugger, heuristic: str = "backtrace") -> None:
         """Continues execution until the current function returns or the process stops.
 
@@ -1129,6 +1145,7 @@ class Debugger:
         """
         self._internal_debugger.finish(self, heuristic=heuristic)
 
+    @check_alias("ni")
     def next(self: Debugger) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._internal_debugger.next(self)
@@ -1144,6 +1161,7 @@ class Debugger:
         self: Debugger,
         position: int | str,
         max_steps: int = -1,
+        file: str = "hybrid",
     ) -> None:
         """Alias for the `step_until` method.
 
@@ -1152,11 +1170,14 @@ class Debugger:
         Args:
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
-        self._internal_debugger.step_until(self, position, max_steps)
+        self._internal_debugger.step_until(self, position, max_steps, file)
 
     def fin(self: Debugger, heuristic: str = "backtrace") -> None:
-        """Alias for the `finish` method. Continues execution until the current function returns or the process stops.
+        """Alias for the `finish` method.
+
+        Continues execution until the current function returns or the process stops.
 
         The command requires a heuristic to determine the end of the function. The available heuristics are:
         - `backtrace`: The debugger will place a breakpoint on the saved return address found on the stack and continue execution on all threads.
@@ -1168,7 +1189,10 @@ class Debugger:
         self._internal_debugger.finish(self, heuristic)
 
     def ni(self: Debugger) -> None:
-        """Alias for the `next` method. Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
+        """Alias for the `next` method.
+
+        Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
+        """
         self._internal_debugger.next(self)
 
     def __repr__(self: Debugger) -> str:
