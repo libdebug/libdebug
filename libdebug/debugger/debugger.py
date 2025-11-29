@@ -244,7 +244,7 @@ class Debugger:
     def hook_event(
         self: Debugger,
         event: EventType,
-        callback: Callable[[InternalDebugger, ResumeContext], None],
+        callback: Callable[[Debugger, ResumeContext], None],
     ) -> None:
         """Hook a callback to a specific resume event type."""
         self._internal_debugger.hook_event(event, callback)

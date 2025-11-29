@@ -175,7 +175,7 @@ class InternalDebugger:
     resume_context: ResumeContext
     """Context that indicates if the debugger should resume the debugged process."""
 
-    event_callbacks: dict[EventType, Callable[[InternalDebugger, ResumeContext], None]]
+    event_callbacks: dict[EventType, Callable[[Debugger, ResumeContext], None]]
     """Callbacks executed when specific resume events occur."""
 
     debugger: Debugger
@@ -891,7 +891,7 @@ class InternalDebugger:
     def hook_event(
         self: InternalDebugger,
         event: EventType,
-        callback: Callable[[InternalDebugger, ResumeContext], None],
+        callback: Callable[[Debugger, ResumeContext], None],
     ) -> None:
         """Register a callback for a specific resume event type."""
         if event in self.event_callbacks:
@@ -1707,7 +1707,7 @@ class InternalDebugger:
             for event_type in list(self.resume_context.event_type.values()):
                 callback = self.event_callbacks.get(event_type)
                 if callback:
-                    callback(self, self.resume_context)
+                    callback(self.debugger, self.resume_context)
             # The callbacks might have changed the resume flag
             if not self.resume_context.resume:
                 # Callback wants this event to become synchronous
