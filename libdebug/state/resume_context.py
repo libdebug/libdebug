@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
 
 
-@dataclass
+@dataclass(eq=False)
 class ResumeContext:
     """Represents the context used to decide whether execution should resume."""
 
