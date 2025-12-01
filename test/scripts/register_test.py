@@ -7,17 +7,29 @@
 import sys
 from io import StringIO
 from unittest import TestCase, skipUnless
-from utils.binary_utils import PLATFORM, RESOLVE_EXE
+from utils.binary_utils import PLATFORM, RESOLVE_EXE, base_of
 
 from libdebug import debugger
 
 match PLATFORM:
     case "amd64":
         REGISTER_ACCESS = "rip"
+        FLAGS_BRANCH_OFFSET = 0x11e9
+        FLAGS_CALL_OFFSET = 0x11f8
+        FLAGS_AFTER_TEST_OFFSET = 0x11eb
+        FLAGS_AFTER_FALLTHROUGH_OFFSET = 0x11ed
     case "aarch64":
         REGISTER_ACCESS = "pc"
+        FLAGS_BRANCH_OFFSET = 0x910
+        FLAGS_CALL_OFFSET = 0x920
+        FLAGS_AFTER_TEST_OFFSET = 0x914
+        FLAGS_AFTER_FALLTHROUGH_OFFSET = 0x918
     case "i386":
         REGISTER_ACCESS = "eip"
+        FLAGS_BRANCH_OFFSET = 0x1283
+        FLAGS_CALL_OFFSET = 0x1291
+        FLAGS_AFTER_TEST_OFFSET = 0x1285
+        FLAGS_AFTER_FALLTHROUGH_OFFSET = 0x1287
     case _:
         raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
 
@@ -326,6 +338,39 @@ class RegisterTest(TestCase):
 
         d.regs.pstate.value = expected_state | (1 << 24)
         self.assertEqual(d.regs.pstate.DIT, 1)
+
+        d.kill()
+        d.terminate()
+
+    def test_eflags_branch_override(self):
+        d = debugger(RESOLVE_EXE("memory_test"))
+
+        d.run()
+
+        base = base_of(d)
+        branch_bp = d.breakpoint(base + FLAGS_BRANCH_OFFSET)
+        validate_call_bp = d.breakpoint(base + FLAGS_CALL_OFFSET)
+
+        d.cont()
+        self.assertEqual(d.instruction_pointer, branch_bp.address)
+
+        d.step()  # execute `test eax, eax` / `cmp x0, #0`
+        self.assertEqual(d.instruction_pointer, base + FLAGS_AFTER_TEST_OFFSET)
+
+        if PLATFORM in ("i386", "amd64"):
+            self.assertEqual(d.regs.eflags.ZF, 0)
+            d.regs.eflags.ZF = 1  # force the subsequent JNE to fall through
+        elif PLATFORM == "aarch64":
+            self.assertEqual(d.regs.pstate.Z, 0)
+            d.regs.pstate.Z = 1  # force the subsequent B.NE to fall through
+        else:
+            raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
+
+        d.step()
+        self.assertEqual(d.instruction_pointer, base + FLAGS_AFTER_FALLTHROUGH_OFFSET)
+
+        d.cont()
+        self.assertEqual(d.instruction_pointer, validate_call_bp.address)
 
         d.kill()
         d.terminate()
