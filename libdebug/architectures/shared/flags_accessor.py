@@ -21,64 +21,64 @@ class BitfieldRegisterAccessor:
     _repr_name = "Bitfield"
     BIT_FIELDS: ClassVar[tuple[tuple[str, int, int], ...]] = ()
 
-    def __init__(self, registers: Registers, register_name: str, bit_width: int) -> None:
+    def __init__(self: BitfieldRegisterAccessor, registers: Registers, register_name: str, bit_width: int) -> None:
         """Bind the accessor to the provided register set."""
         self._registers = registers
         self._register_name = register_name
         self._bit_mask = (1 << bit_width) - 1
 
-    def __repr__(self) -> str:  # pragma: no cover - trivial formatting
-        """Return a developer-friendly representation of the bitfield."""
+    def __repr__(self: BitfieldRegisterAccessor) -> str:
+        """Return a detailed representation of the bitfield."""
         summary = self.describe()
         if summary:
             return f"{self._repr_name}({int(self):#x}; {summary})"
         return f"{self._repr_name}({int(self):#x})"
 
-    def __str__(self) -> str:
+    def __str__(self: BitfieldRegisterAccessor) -> str:
         """Return the hexadecimal representation of the bitfield."""
         return f"{int(self):#x}"
 
-    def __format__(self, format_spec: str) -> str:
+    def __format__(self: BitfieldRegisterAccessor, format_spec: str) -> str:
         """Format the bitfield according to the provided specifier."""
         return format(int(self), format_spec)
 
-    def __int__(self) -> int:
+    def __int__(self: BitfieldRegisterAccessor) -> int:
         """Return the register value as an integer."""
         return self._read_raw()
 
-    def __index__(self) -> int:
+    def __index__(self: BitfieldRegisterAccessor) -> int:
         """Allow direct usage in slicing or other index contexts."""
         return self._read_raw()
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self: BitfieldRegisterAccessor, other: object) -> bool:
         """Compare the register value against ints or other accessors."""
         if isinstance(other, BitfieldRegisterAccessor):
             return int(self) == int(other)
         if isinstance(other, int):
             return int(self) == other
-        return NotImplemented
+        raise NotImplementedError(f"Cannot compare {type(self)} against {type(other)}")
 
-    def _read_raw(self) -> int:
+    def _read_raw(self: BitfieldRegisterAccessor) -> int:
         registers = self._registers
         registers._internal_debugger._ensure_process_stopped_regs()
         return int(getattr(registers.register_file, self._register_name)) & self._bit_mask
 
-    def _write_raw(self, value: int) -> None:
+    def _write_raw(self: BitfieldRegisterAccessor, value: int) -> None:
         registers = self._registers
         registers._internal_debugger._ensure_process_stopped_regs()
         setattr(registers.register_file, self._register_name, int(value) & self._bit_mask)
 
     @property
-    def value(self) -> int:
+    def value(self: BitfieldRegisterAccessor) -> int:
         """Return the raw value of the backing register."""
         return self._read_raw()
 
     @value.setter
-    def value(self, new_value: int) -> None:
+    def value(self: BitfieldRegisterAccessor, new_value: int) -> None:
         """Overwrite the backing register with a raw value."""
         self._write_raw(new_value)
 
-    def describe(self) -> str:
+    def describe(self: BitfieldRegisterAccessor) -> str:
         """Return a compact textual description of non-zero bitfields."""
         entries: list[str] = []
         raw_value = self._read_raw()
@@ -197,7 +197,7 @@ class ArmPstateAccessor(BitfieldRegisterAccessor):
         ("BTYPE", 10, 2),
         ("D", 9, 1),
         ("A", 8, 1),
-        ("I", 7, 1),  # noqa: E741 - architectural name
+        ("I", 7, 1),
         ("F", 6, 1),
         ("M", 0, 5),
     )
