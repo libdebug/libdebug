@@ -72,6 +72,11 @@ class PtraceStatusHandler:
         # so we clear the internal state now.
         self.internal_debugger.clear_internal_state()
 
+        if self.internal_debugger.fast_memory:
+            # Re-initialize the ProcessMemoryManager for the new process image
+            self.internal_debugger._process_memory_manager.close()
+            self.internal_debugger._process_memory_manager.open(self.internal_debugger.process_id)
+
     def _handle_exit(
         self: PtraceStatusHandler,
         thread_id: int,
