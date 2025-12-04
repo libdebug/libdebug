@@ -33,7 +33,7 @@ If you want to stay up to date with the most cutting-edge features (and you don'
 python3 -m pip install git+https://github.com/libdebug/libdebug.git@dev
 ```
 
-Please visit the [build guide](https://docs.libdebug.org/development/building_libdebug/) for more information on how to manually build libdebug from source.
+Please visit the [build guide](https://docs.libdebug.org/latest/development/building_libdebug/) for more information on how to manually build libdebug from source.
 
 ## Your first script
 

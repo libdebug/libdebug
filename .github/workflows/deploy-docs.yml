@@ -1,0 +1,51 @@
+name: Deploy Documentation
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Allows manual triggering
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Required for mike to access git history for versioning
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install Markdown \
+                      mike \
+                      mkdocs \
+                      mkdocs-autorefs \
+                      mkdocs-get-deps \
+                      mkdocs-material \
+                      mkdocs-material-extensions \
+                      mkdocstrings \
+                      mkdocstrings-python
+
+      - name: Configure Git User
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Run Code Scraper Script
+        run: |
+          cd docs
+          python scrape_code.py
+
+      - name: Deploy with Mike
+        run: |
+          mike deploy rolling --push
