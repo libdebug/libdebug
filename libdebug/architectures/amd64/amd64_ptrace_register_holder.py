@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from libdebug.architectures.amd64.amd64_registers import Amd64Registers
+from libdebug.architectures.shared.flags_accessor import build_x86_flags_property
 from libdebug.ptrace.ptrace_register_holder import PtraceRegisterHolder
 
 if TYPE_CHECKING:
@@ -349,7 +350,10 @@ class Amd64PtraceRegisterHolder(PtraceRegisterHolder):
             setattr(target_class, name_8l, _get_property_8l(name_64))
 
         for name in AMD64_SPECIAL_REGS:
-            setattr(target_class, name, _get_property_64(name))
+            if name == "eflags":
+                setattr(target_class, name, build_x86_flags_property(name, 64))
+            else:
+                setattr(target_class, name, _get_property_64(name))
 
         # setup special registers
         target_class.rip = _get_property_64("rip")

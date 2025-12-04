@@ -7,17 +7,29 @@
 import sys
 from io import StringIO
 from unittest import TestCase, skipUnless
-from utils.binary_utils import PLATFORM, RESOLVE_EXE
+from utils.binary_utils import PLATFORM, RESOLVE_EXE, base_of
 
 from libdebug import debugger
 
 match PLATFORM:
     case "amd64":
         REGISTER_ACCESS = "rip"
+        FLAGS_BRANCH_OFFSET = 0x11e9
+        FLAGS_CALL_OFFSET = 0x11f8
+        FLAGS_AFTER_TEST_OFFSET = 0x11eb
+        FLAGS_AFTER_FALLTHROUGH_OFFSET = 0x11ed
     case "aarch64":
         REGISTER_ACCESS = "pc"
+        FLAGS_BRANCH_OFFSET = 0x910
+        FLAGS_CALL_OFFSET = 0x920
+        FLAGS_AFTER_TEST_OFFSET = 0x914
+        FLAGS_AFTER_FALLTHROUGH_OFFSET = 0x918
     case "i386":
         REGISTER_ACCESS = "eip"
+        FLAGS_BRANCH_OFFSET = 0x1283
+        FLAGS_CALL_OFFSET = 0x1291
+        FLAGS_AFTER_TEST_OFFSET = 0x1285
+        FLAGS_AFTER_FALLTHROUGH_OFFSET = 0x1287
     case _:
         raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
 
@@ -219,6 +231,147 @@ class RegisterTest(TestCase):
         self.assertTrue(d.regs.dh, 0x44)
 
         d.cont()
+        d.kill()
+        d.terminate()
+
+    @skipUnless(PLATFORM == "amd64", "Requires amd64")
+    def test_eflags_accessor(self):
+        d = debugger(RESOLVE_EXE("basic_test"))
+
+        d.run()
+
+        bp = d.breakpoint(0x4011CA)
+
+        d.cont()
+        self.assertEqual(d.regs.rip, bp.address)
+
+        base_flags = (1 << 0) | (1 << 7) | (0b11 << 12) | (1 << 21)
+        d.regs.eflags = base_flags
+
+        flags = d.regs.eflags
+        self.assertEqual(int(flags), base_flags)
+        self.assertEqual(flags.CF, 1)
+        self.assertEqual(flags.SF, 1)
+        self.assertEqual(flags.IOPL, 0b11)
+        self.assertEqual(flags.ID, 1)
+
+        d.regs.eflags.CF = 0
+        d.regs.eflags.ZF = 1
+        d.regs.eflags.IOPL = 0b01
+        d.regs.eflags.ID = 0
+
+        expected_flags = base_flags
+        expected_flags &= ~(1 << 0)
+        expected_flags |= 1 << 6
+        expected_flags &= ~(0b11 << 12)
+        expected_flags |= 0b01 << 12
+        expected_flags &= ~(1 << 21)
+
+        self.assertEqual(int(d.regs.eflags), expected_flags)
+        self.assertEqual(d.regs.eflags.CF, 0)
+        self.assertEqual(d.regs.eflags.ZF, 1)
+        self.assertEqual(d.regs.eflags.IOPL, 0b01)
+        self.assertEqual(d.regs.eflags.ID, 0)
+
+        flags.value = expected_flags | (1 << 11)
+        self.assertEqual(int(d.regs.eflags), expected_flags | (1 << 11))
+
+        d.regs.eflags.CF = True
+        d.regs.eflags.SF = False
+        self.assertEqual(d.regs.eflags.CF, 1)
+        self.assertEqual(d.regs.eflags.SF, 0)
+
+        d.kill()
+        d.terminate()
+
+    @skipUnless(PLATFORM == "aarch64", "Requires aarch64")
+    def test_pstate_accessor(self):
+        d = debugger(RESOLVE_EXE("basic_test"))
+
+        d.run()
+
+        bp = d.breakpoint(0x4008A4)
+
+        d.cont()
+        self.assertEqual(d.regs.pc, bp.address)
+
+        base_state = (
+            (1 << 31)  # N
+            | (1 << 30)  # Z
+            | (1 << 25)  # TCO
+            | (1 << 20)  # IL
+            | (0b10 << 10)  # BTYPE
+            | (1 << 8)  # A
+            | 0b10101  # M field
+        )
+
+        d.regs.pstate = base_state
+
+        state = d.regs.pstate
+        self.assertEqual(int(state), base_state)
+        self.assertEqual(state.N, 1)
+        self.assertEqual(state.Z, 1)
+        self.assertEqual(state.TCO, 1)
+        self.assertEqual(state.IL, 1)
+        self.assertEqual(state.BTYPE, 0b10)
+        self.assertEqual(state.A, 1)
+        self.assertEqual(state.M, 0b10101)
+
+        d.regs.pstate.N = False
+        d.regs.pstate.D = True
+        d.regs.pstate.BTYPE = 0b01
+        d.regs.pstate.M = 0b11100
+
+        expected_state = base_state
+        expected_state &= ~(1 << 31)
+        expected_state |= 1 << 9
+        expected_state &= ~(0b11 << 10)
+        expected_state |= 0b01 << 10
+        expected_state &= ~0b11111
+        expected_state |= 0b11100
+
+        self.assertEqual(int(d.regs.pstate), expected_state)
+        self.assertEqual(d.regs.pstate.N, 0)
+        self.assertEqual(d.regs.pstate.D, 1)
+        self.assertEqual(d.regs.pstate.BTYPE, 0b01)
+        self.assertEqual(d.regs.pstate.M, 0b11100)
+
+        d.regs.pstate.value = expected_state | (1 << 24)
+        self.assertEqual(d.regs.pstate.DIT, 1)
+
+        d.kill()
+        d.terminate()
+
+    def test_eflags_branch_override(self):
+        d = debugger(RESOLVE_EXE("memory_test"))
+
+        d.run()
+
+        base = base_of(d)
+        branch_bp = d.breakpoint(base + FLAGS_BRANCH_OFFSET)
+        validate_call_bp = d.breakpoint(base + FLAGS_CALL_OFFSET)
+
+        d.cont()
+        self.assertEqual(d.instruction_pointer, branch_bp.address)
+
+        d.step()  # execute `test eax, eax` / `cmp x0, #0`
+        self.assertEqual(d.instruction_pointer, base + FLAGS_AFTER_TEST_OFFSET)
+
+        if PLATFORM in ("i386", "amd64"):
+            self.assertEqual(d.regs.eflags.ZF, 0)
+            d.regs.eflags.ZF = 1  # force the subsequent JNE to fall through
+        elif PLATFORM == "aarch64":
+            self.assertEqual(d.regs.pstate.Z, 0)
+            d.regs.pstate.Z = 1  # force the subsequent B.NE to fall through
+        else:
+            raise NotImplementedError(f"Platform {PLATFORM} not supported by this test")
+
+        d.step()
+        self.assertEqual(d.instruction_pointer, base + FLAGS_AFTER_FALLTHROUGH_OFFSET)
+
+        d.cont()
+        self.assertEqual(d.instruction_pointer, validate_call_bp.address)
+
         d.kill()
         d.terminate()
 
@@ -514,6 +667,56 @@ class RegisterTest(TestCase):
         self.assertEqual(d.regs.dh, 0x45)
 
         d.cont()
+
+        d.kill()
+        d.terminate()
+
+    @skipUnless(PLATFORM == "i386", "Requires i386")
+    def test_eflags_accessor_i386(self):
+        d = debugger(RESOLVE_EXE("basic_test"))
+
+        d.run()
+
+        bp = d.breakpoint(0x8049186)
+
+        d.cont()
+        self.assertEqual(d.regs.eip, bp.address)
+
+        base_flags = (1 << 0) | (1 << 2) | (0b10 << 12) | (1 << 17)
+        d.regs.eflags = base_flags
+
+        flags = d.regs.eflags
+        self.assertEqual(int(flags), base_flags)
+        self.assertEqual(flags.CF, 1)
+        self.assertEqual(flags.PF, 1)
+        self.assertEqual(flags.IOPL, 0b10)
+        self.assertEqual(flags.VM, 1)
+
+        d.regs.eflags.CF = False
+        d.regs.eflags.ZF = True
+        d.regs.eflags.IOPL = 0b01
+        d.regs.eflags.VM = False
+
+        expected_flags = base_flags
+        expected_flags &= ~(1 << 0)
+        expected_flags |= 1 << 6
+        expected_flags &= ~(0b11 << 12)
+        expected_flags |= 0b01 << 12
+        expected_flags &= ~(1 << 17)
+
+        self.assertEqual(int(d.regs.eflags), expected_flags)
+        self.assertEqual(d.regs.eflags.CF, 0)
+        self.assertEqual(d.regs.eflags.ZF, 1)
+        self.assertEqual(d.regs.eflags.IOPL, 0b01)
+        self.assertEqual(d.regs.eflags.VM, 0)
+
+        flags.value = expected_flags | (1 << 11)
+        self.assertEqual(int(d.regs.eflags), expected_flags | (1 << 11))
+
+        d.regs.eflags.CF = True
+        d.regs.eflags.ZF = False
+        self.assertEqual(d.regs.eflags.CF, 1)
+        self.assertEqual(d.regs.eflags.ZF, 0)
 
         d.kill()
         d.terminate()
