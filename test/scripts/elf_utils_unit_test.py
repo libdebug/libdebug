@@ -5,6 +5,7 @@
 #
 
 import os
+import shutil
 from unittest import TestCase
 
 from libdebug.utils.elf_utils import resolve_argv_path
@@ -12,17 +13,19 @@ from libdebug.utils.elf_utils import resolve_argv_path
 
 class ELFUtilsUnitTest(TestCase):
     def test_resolve_argv_path(self):
-        # Let's ensure that "/usr/bin/ls" and "/usr/bin/cat" exist for this test to be valid
-        self.assertTrue(os.path.exists("/usr/bin/ls"))
-        self.assertTrue(os.path.exists("/usr/bin/cat"))
+        ls_path = shutil.which("ls")
+        cat_path = shutil.which("cat")
+        self.assertIsNotNone(ls_path, "Cannot resolve `ls` in PATH on this system")
+        self.assertIsNotNone(cat_path, "Cannot resolve `cat` in PATH on this system")
 
         # Absolute paths should be returned as-is
-        self.assertEqual(resolve_argv_path("/usr/bin/ls"), "/usr/bin/ls")
-        self.assertEqual(resolve_argv_path("/usr/bin/does_not_exist"), "/usr/bin/does_not_exist")
+        self.assertEqual(resolve_argv_path(ls_path), ls_path)
+        invalid_abs = os.path.join(os.path.dirname(ls_path), "does_not_exist")
+        self.assertEqual(resolve_argv_path(invalid_abs), invalid_abs)
 
         # Commands in PATH should be resolved correctly
-        self.assertEqual(resolve_argv_path("ls"), "/usr/bin/ls")
-        self.assertEqual(resolve_argv_path("cat"), "/usr/bin/cat")
+        self.assertEqual(resolve_argv_path("ls"), ls_path)
+        self.assertEqual(resolve_argv_path("cat"), cat_path)
 
         # Commands not in PATH should be returned as-is
         self.assertEqual(resolve_argv_path("does_not_exist"), "does_not_exist")
@@ -31,10 +34,10 @@ class ELFUtilsUnitTest(TestCase):
         # Let's assume the cwd is /home/user/libdebug/test for this test
         # We are checking that ./ls is resolved to /home/user/libdebug/test/ls
         self.assertEqual(resolve_argv_path("./ls"), os.path.abspath("./ls"))
-        self.assertNotEqual(resolve_argv_path("./ls"), "/usr/bin/ls")
+        self.assertNotEqual(resolve_argv_path("./ls"), ls_path)
         # ../cat is resolved to /home/user/libdebug/cat instead
         self.assertEqual(resolve_argv_path("../cat"), os.path.abspath("../cat"))
-        self.assertNotEqual(resolve_argv_path("../cat"), "/usr/bin/cat")
+        self.assertNotEqual(resolve_argv_path("../cat"), cat_path)
 
         # Relative-to-home paths should be resolved correctly
         home = os.path.expanduser("~")
