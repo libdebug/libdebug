@@ -1,0 +1,678 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper &#8212; libdebug 0.5.2 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=3ee479438cf8b5e0d341" rel="stylesheet" />
+<link href="../../../../_static/styles/bootstrap.css?digest=3ee479438cf8b5e0d341" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=3ee479438cf8b5e0d341" rel="stylesheet" />
+
+  
+  <link href="../../../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=3ee479438cf8b5e0d341" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/code-tabs.css?v=1bc26e2f" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=3ee479438cf8b5e0d341" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=3ee479438cf8b5e0d341" />
+  <script src="../../../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=3ee479438cf8b5e0d341"></script>
+
+    <script src="../../../../_static/documentation_options.js?v=8e576371"></script>
+    <script src="../../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/code-tabs.js?v=c983d12e"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/libdebug/architectures/amd64/amd64_ptrace_hw_bp_helper';</script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">libdebug 0.5.2 documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav class="navbar-nav">
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../../../../basic_features.html">
+    Basic Features
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../../../../breakpoints.html">
+    Breakpoints
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../../../../handle_syscalls.html">
+    Syscalls
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../../../../catch_signals.html">
+    Signals
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../../../../multithreading.html">
+    Multithreading
+  </a>
+</li>
+
+            <li class="nav-item dropdown pst-header-nav-item">
+                <button class="btn dropdown-toggle nav-item" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../quality_of_life.html">
+    Quality of Life
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../logging.html">
+    Logging
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../examples.html">
+    Code Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../libdebug.html">
+    libdebug package
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <div class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav class="navbar-nav">
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../../../../basic_features.html">
+    Basic Features
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../../../../breakpoints.html">
+    Breakpoints
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../../../../handle_syscalls.html">
+    Syscalls
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../../../../catch_signals.html">
+    Signals
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../../../../multithreading.html">
+    Multithreading
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../../../../quality_of_life.html">
+    Quality of Life
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../../../../logging.html">
+    Logging
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../../../../examples.html">
+    Code Examples
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../../../../libdebug.html">
+    libdebug package
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page">libdebug.arc...</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># This file is part of libdebug Python library (https://github.com/libdebug/libdebug).</span>
+<span class="c1"># Copyright (c) 2023-2024 Roberto Alessandro Bertolini. All rights reserved.</span>
+<span class="c1"># Licensed under the MIT license. See LICENSE file in the project root for details.</span>
+<span class="c1">#</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
+
+<span class="kn">from</span> <span class="nn">libdebug.architectures.ptrace_hardware_breakpoint_manager</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">PtraceHardwareBreakpointManager</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">libdebug.liblog</span> <span class="kn">import</span> <span class="n">liblog</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Callable</span>
+
+    <span class="kn">from</span> <span class="nn">libdebug.data.breakpoint</span> <span class="kn">import</span> <span class="n">Breakpoint</span>
+    <span class="kn">from</span> <span class="nn">libdebug.state.thread_context</span> <span class="kn">import</span> <span class="n">ThreadContext</span>
+
+
+<span class="n">AMD64_DBGREGS_OFF</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;DR0&quot;</span><span class="p">:</span> <span class="mh">0x350</span><span class="p">,</span>
+    <span class="s2">&quot;DR1&quot;</span><span class="p">:</span> <span class="mh">0x358</span><span class="p">,</span>
+    <span class="s2">&quot;DR2&quot;</span><span class="p">:</span> <span class="mh">0x360</span><span class="p">,</span>
+    <span class="s2">&quot;DR3&quot;</span><span class="p">:</span> <span class="mh">0x368</span><span class="p">,</span>
+    <span class="s2">&quot;DR4&quot;</span><span class="p">:</span> <span class="mh">0x370</span><span class="p">,</span>
+    <span class="s2">&quot;DR5&quot;</span><span class="p">:</span> <span class="mh">0x378</span><span class="p">,</span>
+    <span class="s2">&quot;DR6&quot;</span><span class="p">:</span> <span class="mh">0x380</span><span class="p">,</span>
+    <span class="s2">&quot;DR7&quot;</span><span class="p">:</span> <span class="mh">0x388</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">AMD64_DBGREGS_CTRL_LOCAL</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;DR0&quot;</span><span class="p">:</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;DR1&quot;</span><span class="p">:</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;DR2&quot;</span><span class="p">:</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;DR3&quot;</span><span class="p">:</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">6</span><span class="p">}</span>
+<span class="n">AMD64_DBGREGS_CTRL_COND</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;DR0&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span> <span class="s2">&quot;DR1&quot;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span> <span class="s2">&quot;DR2&quot;</span><span class="p">:</span> <span class="mi">24</span><span class="p">,</span> <span class="s2">&quot;DR3&quot;</span><span class="p">:</span> <span class="mi">28</span><span class="p">}</span>
+<span class="n">AMD64_DBGREGS_CTRL_COND_VAL</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;rw&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">}</span>
+<span class="n">AMD64_DBGREGS_CTRL_LEN</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;DR0&quot;</span><span class="p">:</span> <span class="mi">18</span><span class="p">,</span> <span class="s2">&quot;DR1&quot;</span><span class="p">:</span> <span class="mi">22</span><span class="p">,</span> <span class="s2">&quot;DR2&quot;</span><span class="p">:</span> <span class="mi">26</span><span class="p">,</span> <span class="s2">&quot;DR3&quot;</span><span class="p">:</span> <span class="mi">30</span><span class="p">}</span>
+<span class="n">AMD64_DBGREGS_CTRL_LEN_VAL</span> <span class="o">=</span> <span class="p">{</span><span class="mi">1</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">:</span> <span class="mi">3</span><span class="p">}</span>
+
+<span class="n">AMD64_DBREGS_COUNT</span> <span class="o">=</span> <span class="mi">4</span>
+
+
+<div class="viewcode-block" id="Amd64PtraceHardwareBreakpointManager">
+<a class="viewcode-back" href="../../../../libdebug.architectures.amd64.html#libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager">[docs]</a>
+<span class="k">class</span> <span class="nc">Amd64PtraceHardwareBreakpointManager</span><span class="p">(</span><span class="n">PtraceHardwareBreakpointManager</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A hardware breakpoint manager for the amd64 architecture.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        thread (ThreadContext): The target thread.</span>
+<span class="sd">        peek_user (callable): A function that reads a number of bytes from the target thread registers.</span>
+<span class="sd">        poke_user (callable): A function that writes a number of bytes to the target thread registers.</span>
+<span class="sd">        breakpoint_count (int): The number of hardware breakpoints set.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">:</span> <span class="n">Amd64PtraceHardwareBreakpointManager</span><span class="p">,</span>
+        <span class="n">thread</span><span class="p">:</span> <span class="n">ThreadContext</span><span class="p">,</span>
+        <span class="n">peek_user</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="nb">int</span><span class="p">],</span>
+        <span class="n">poke_user</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="kc">None</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initializes the hardware breakpoint manager.&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">thread</span><span class="p">,</span> <span class="n">peek_user</span><span class="p">,</span> <span class="n">poke_user</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">breakpoint_registers</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Breakpoint</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;DR0&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;DR1&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;DR2&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;DR3&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="p">}</span>
+
+<div class="viewcode-block" id="Amd64PtraceHardwareBreakpointManager.install_breakpoint">
+<a class="viewcode-back" href="../../../../libdebug.architectures.amd64.html#libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.install_breakpoint">[docs]</a>
+    <span class="k">def</span> <span class="nf">install_breakpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Amd64PtraceHardwareBreakpointManager</span><span class="p">,</span> <span class="n">bp</span><span class="p">:</span> <span class="n">Breakpoint</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Installs a hardware breakpoint at the provided location.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">breakpoint_count</span> <span class="o">&gt;=</span> <span class="n">AMD64_DBREGS_COUNT</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;No more hardware breakpoints available.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Find the first available breakpoint register</span>
+        <span class="n">register</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">reg</span> <span class="k">for</span> <span class="n">reg</span><span class="p">,</span> <span class="n">bp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">breakpoint_registers</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">bp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Installing hardware breakpoint on register </span><span class="si">{</span><span class="n">register</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Write the breakpoint address in the register</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">poke_user</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thread</span><span class="o">.</span><span class="n">thread_id</span><span class="p">,</span> <span class="n">AMD64_DBGREGS_OFF</span><span class="p">[</span><span class="n">register</span><span class="p">],</span> <span class="n">bp</span><span class="o">.</span><span class="n">address</span><span class="p">)</span>
+
+        <span class="c1"># Set the breakpoint control register</span>
+        <span class="n">ctrl</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">AMD64_DBGREGS_CTRL_LOCAL</span><span class="p">[</span><span class="n">register</span><span class="p">]</span>
+            <span class="o">|</span> <span class="p">(</span><span class="n">AMD64_DBGREGS_CTRL_COND_VAL</span><span class="p">[</span><span class="n">bp</span><span class="o">.</span><span class="n">condition</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="n">AMD64_DBGREGS_CTRL_COND</span><span class="p">[</span><span class="n">register</span><span class="p">])</span>
+            <span class="o">|</span> <span class="p">(</span><span class="n">AMD64_DBGREGS_CTRL_LEN_VAL</span><span class="p">[</span><span class="n">bp</span><span class="o">.</span><span class="n">length</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="n">AMD64_DBGREGS_CTRL_LEN</span><span class="p">[</span><span class="n">register</span><span class="p">])</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Read the current value of the register</span>
+        <span class="n">current_ctrl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">peek_user</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thread</span><span class="o">.</span><span class="n">thread_id</span><span class="p">,</span> <span class="n">AMD64_DBGREGS_OFF</span><span class="p">[</span><span class="s2">&quot;DR7&quot;</span><span class="p">])</span>
+
+        <span class="c1"># Clear condition and length fields for the current register</span>
+        <span class="n">current_ctrl</span> <span class="o">&amp;=</span> <span class="o">~</span><span class="p">(</span><span class="mh">0x3</span> <span class="o">&lt;&lt;</span> <span class="n">AMD64_DBGREGS_CTRL_COND</span><span class="p">[</span><span class="n">register</span><span class="p">])</span>
+        <span class="n">current_ctrl</span> <span class="o">&amp;=</span> <span class="o">~</span><span class="p">(</span><span class="mh">0x3</span> <span class="o">&lt;&lt;</span> <span class="n">AMD64_DBGREGS_CTRL_LEN</span><span class="p">[</span><span class="n">register</span><span class="p">])</span>
+
+        <span class="c1"># Set the new value of the register</span>
+        <span class="n">current_ctrl</span> <span class="o">|=</span> <span class="n">ctrl</span>
+
+        <span class="c1"># Write the new value of the register</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">poke_user</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thread</span><span class="o">.</span><span class="n">thread_id</span><span class="p">,</span> <span class="n">AMD64_DBGREGS_OFF</span><span class="p">[</span><span class="s2">&quot;DR7&quot;</span><span class="p">],</span> <span class="n">current_ctrl</span><span class="p">)</span>
+
+        <span class="c1"># Save the breakpoint</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">breakpoint_registers</span><span class="p">[</span><span class="n">register</span><span class="p">]</span> <span class="o">=</span> <span class="n">bp</span>
+
+        <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Hardware breakpoint installed on register </span><span class="si">{</span><span class="n">register</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">breakpoint_count</span> <span class="o">+=</span> <span class="mi">1</span></div>
+
+
+<div class="viewcode-block" id="Amd64PtraceHardwareBreakpointManager.remove_breakpoint">
+<a class="viewcode-back" href="../../../../libdebug.architectures.amd64.html#libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.remove_breakpoint">[docs]</a>
+    <span class="k">def</span> <span class="nf">remove_breakpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Amd64PtraceHardwareBreakpointManager</span><span class="p">,</span> <span class="n">bp</span><span class="p">:</span> <span class="n">Breakpoint</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Removes a hardware breakpoint at the provided location.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">breakpoint_count</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;No more hardware breakpoints to remove.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Find the breakpoint register</span>
+        <span class="n">register</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">reg</span> <span class="k">for</span> <span class="n">reg</span><span class="p">,</span> <span class="n">bp_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">breakpoint_registers</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">bp_</span> <span class="o">==</span> <span class="n">bp</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">register</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Hardware breakpoint not found.&quot;</span><span class="p">)</span>
+
+        <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Removing hardware breakpoint on register </span><span class="si">{</span><span class="n">register</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Clear the breakpoint address in the register</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">poke_user</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thread</span><span class="o">.</span><span class="n">thread_id</span><span class="p">,</span> <span class="n">AMD64_DBGREGS_OFF</span><span class="p">[</span><span class="n">register</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Read the current value of the control register</span>
+        <span class="n">current_ctrl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">peek_user</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thread</span><span class="o">.</span><span class="n">thread_id</span><span class="p">,</span> <span class="n">AMD64_DBGREGS_OFF</span><span class="p">[</span><span class="s2">&quot;DR7&quot;</span><span class="p">])</span>
+
+        <span class="c1"># Clear the breakpoint control register</span>
+        <span class="n">current_ctrl</span> <span class="o">&amp;=</span> <span class="o">~</span><span class="n">AMD64_DBGREGS_CTRL_LOCAL</span><span class="p">[</span><span class="n">register</span><span class="p">]</span>
+
+        <span class="c1"># Write the new value of the register</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">poke_user</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thread</span><span class="o">.</span><span class="n">thread_id</span><span class="p">,</span> <span class="n">AMD64_DBGREGS_OFF</span><span class="p">[</span><span class="s2">&quot;DR7&quot;</span><span class="p">],</span> <span class="n">current_ctrl</span><span class="p">)</span>
+
+        <span class="c1"># Remove the breakpoint</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">breakpoint_registers</span><span class="p">[</span><span class="n">register</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Hardware breakpoint removed from register </span><span class="si">{</span><span class="n">register</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">breakpoint_count</span> <span class="o">-=</span> <span class="mi">1</span></div>
+
+
+<div class="viewcode-block" id="Amd64PtraceHardwareBreakpointManager.available_breakpoints">
+<a class="viewcode-back" href="../../../../libdebug.architectures.amd64.html#libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.available_breakpoints">[docs]</a>
+    <span class="k">def</span> <span class="nf">available_breakpoints</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Amd64PtraceHardwareBreakpointManager</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the number of available hardware breakpoint registers.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">AMD64_DBREGS_COUNT</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">breakpoint_count</span></div>
+
+
+<div class="viewcode-block" id="Amd64PtraceHardwareBreakpointManager.is_watchpoint_hit">
+<a class="viewcode-back" href="../../../../libdebug.architectures.amd64.html#libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.is_watchpoint_hit">[docs]</a>
+    <span class="k">def</span> <span class="nf">is_watchpoint_hit</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Amd64PtraceHardwareBreakpointManager</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Breakpoint</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Checks if a watchpoint has been hit.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Breakpoint | None: The watchpoint that has been hit, or None if no watchpoint has been hit.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dr6</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">peek_user</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thread</span><span class="o">.</span><span class="n">thread_id</span><span class="p">,</span> <span class="n">AMD64_DBGREGS_OFF</span><span class="p">[</span><span class="s2">&quot;DR6&quot;</span><span class="p">])</span>
+
+        <span class="n">watchpoint</span><span class="p">:</span> <span class="n">Breakpoint</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Check the DR6 register to see which watchpoint has been hit</span>
+        <span class="k">if</span> <span class="n">dr6</span> <span class="o">&amp;</span> <span class="mh">0x1</span><span class="p">:</span>
+            <span class="n">watchpoint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">breakpoint_registers</span><span class="p">[</span><span class="s2">&quot;DR0&quot;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">dr6</span> <span class="o">&amp;</span> <span class="mh">0x2</span><span class="p">:</span>
+            <span class="n">watchpoint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">breakpoint_registers</span><span class="p">[</span><span class="s2">&quot;DR1&quot;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">dr6</span> <span class="o">&amp;</span> <span class="mh">0x4</span><span class="p">:</span>
+            <span class="n">watchpoint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">breakpoint_registers</span><span class="p">[</span><span class="s2">&quot;DR2&quot;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">dr6</span> <span class="o">&amp;</span> <span class="mh">0x8</span><span class="p">:</span>
+            <span class="n">watchpoint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">breakpoint_registers</span><span class="p">[</span><span class="s2">&quot;DR3&quot;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">watchpoint</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">watchpoint</span><span class="o">.</span><span class="n">condition</span> <span class="o">==</span> <span class="s2">&quot;x&quot;</span><span class="p">:</span>
+            <span class="c1"># It is a breakpoint, we do not care here</span>
+            <span class="n">watchpoint</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="n">watchpoint</span></div>
+</div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../../_static/scripts/bootstrap.js?digest=3ee479438cf8b5e0d341"></script>
+<script src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=3ee479438cf8b5e0d341"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024, Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.3.7.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.15.3.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

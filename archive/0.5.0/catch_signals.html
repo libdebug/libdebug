@@ -1,0 +1,641 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Signals &#8212; libdebug 0.5.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=362ab14a" />
+    <link rel="stylesheet" type="text/css" href="_static/code-tabs.css?v=1bc26e2f" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="_static/documentation_options.js?v=1dd76d02"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/code-tabs.js?v=c983d12e"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'catch_signals';</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Multithreading" href="multithreading.html" />
+    <link rel="prev" title="Syscalls" href="handle_syscalls.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">libdebug 0.5.0 documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="basic_features.html">
+    Basic Features
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="breakpoints.html">
+    Breakpoints
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="handle_syscalls.html">
+    Syscalls
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Signals
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="multithreading.html">
+    Multithreading
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="quality_of_life.html">
+    Quality of Life
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="logging.html">
+    Logging
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="libdebug.html">
+    libdebug package
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="basic_features.html">
+    Basic Features
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="breakpoints.html">
+    Breakpoints
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="handle_syscalls.html">
+    Syscalls
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Signals
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="multithreading.html">
+    Multithreading
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="quality_of_life.html">
+    Quality of Life
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="logging.html">
+    Logging
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="libdebug.html">
+    libdebug package
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"></div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">Signals</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="signals">
+<h1>Signals<a class="headerlink" href="#signals" title="Link to this heading">#</a></h1>
+<p>libdebug supports catching of signals. You can, in fact, execute a callback or pause the script when a specific signal directed at the debugged process is intercepted by the tracer.</p>
+<p>The following is the signature of the callback function:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">callback</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="n">ThreadContext</span><span class="p">,</span> <span class="n">catcher</span><span class="p">:</span> <span class="n">SignalCatcher</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</pre></div>
+</div>
+<p>along with the thread where the signal was intercepted from, the callback is also passed the <cite>SignalCatcher</cite> object.</p>
+<p>When registering a signal catcher, you can either specify the signal number or the conventional signal name (e.g. ‘SIGINT’).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define the callback function</span>
+<span class="k">def</span> <span class="nf">catcher_SIGUSR1</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">catcher</span><span class="p">):</span>
+    <span class="n">t</span><span class="o">.</span><span class="n">signal</span> <span class="o">=</span> <span class="mh">0x0</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Look mum, I&#39;m catching a signal&quot;</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">catcher_SIGINT</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">catcher</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Look mum, I&#39;m catching another signal&quot;</span><span class="p">)</span>
+
+<span class="c1"># Register the signal catchers</span>
+<span class="n">catcher1</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">catch_signal</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="n">catcher_SIGUSR1</span><span class="p">)</span>
+<span class="n">catcher2</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">catch_signal</span><span class="p">(</span><span class="s1">&#39;SIGINT&#39;</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="n">catcher_SIGINT</span><span class="p">)</span>
+
+<span class="n">d</span><span class="o">.</span><span class="n">cont</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>You can also decide to pause the script when a signal is caught by not specifying a callback function.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">catcher</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">catch_signal</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">d</span><span class="o">.</span><span class="n">cont</span><span class="p">()</span>
+
+<span class="n">d</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+<span class="k">if</span> <span class="n">catcher</span><span class="o">.</span><span class="n">hit_on</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Signal 10 was caught&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>You can enable and disable a signal catcher <cite>catcher</cite> with the <cite>catcher.enable()</cite> and <cite>catcher.disable()</cite> functions, respectively.</p>
+<p>As with breakpoints and syscall handlers, you can access the <cite>hit_count</cite> property to get the number of times the signal was caught:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">while</span> <span class="n">catcher</span><span class="o">.</span><span class="n">hit_count</span> <span class="o">&lt;</span> <span class="mi">100</span><span class="p">:</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">cont</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Hit count: </span><span class="si">{</span><span class="n">catcher</span><span class="o">.</span><span class="n">hit_count</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note: You cannot catch <strong>SIGSTOP</strong>, <strong>SIGTRAP</strong>, and <strong>SIGKILL</strong>.</p>
+<p>These signals are internally used by ptrace and the debugger, or are enforced by the kernel to be passed directly to the child process without the possibility of being caught.</p>
+<p>Just like with syscalls, there can be at most one user-defined catcher for each signal.</p>
+<p>If a new catcher is defined for a signal that is already catched or hijacked, the new catcher will replace the old one, and a warning is printed.</p>
+<section id="signal-filtering">
+<h2>Signal Filtering<a class="headerlink" href="#signal-filtering" title="Link to this heading">#</a></h2>
+<p>Instead of setting a catcher on signals, you might want to filter which signals are not to be forwarded to the debugged process during execution.</p>
+<p>By default, all signals not related to libdebug internals are forwarded. For example, SIGSTOP is never passed to the process.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d</span><span class="o">.</span><span class="n">signals_to_block</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="s1">&#39;SIGINT&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">13</span><span class="p">]</span>
+</pre></div>
+</div>
+</section>
+<section id="arbitrary-signals">
+<h2>Arbitrary Signals<a class="headerlink" href="#arbitrary-signals" title="Link to this heading">#</a></h2>
+<p>You can also send an arbitrary signal to the process. The signal will be forwarded upon calling <cite>d.cont()</cite>, just before continuing the execution.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d</span><span class="o">.</span><span class="n">signal</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="n">d</span><span class="o">.</span><span class="n">cont</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The same syntax will work in multithreaded applications, by setting the signal on the desired thread context object.  See <a class="reference internal" href="multithreading.html"><span class="doc">Multithreading</span></a> for more information.</p>
+</section>
+<section id="signal-hijacking">
+<h2>Signal Hijacking<a class="headerlink" href="#signal-hijacking" title="Link to this heading">#</a></h2>
+<p>libdebug also provides a direct way to intercept a signal and modify it before sending it to the child process. In other words, it allows you to hijack an incoming signal and change it to a different signal. This works in a similar way to syscall hijacking.</p>
+<p>When registering a signal hijack, you can either specify the signal number or the conventional signal name (e.g. ‘SIGINT’).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">catcher1</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">hijack_signal</span><span class="p">(</span><span class="s2">&quot;SIGQUIT&quot;</span><span class="p">,</span> <span class="s2">&quot;SIGTERM&quot;</span><span class="p">)</span>
+<span class="n">catcher2</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">hijack_signal</span><span class="p">(</span><span class="s2">&quot;SIGINT&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note: Just like with catchers, you cannot hijack <strong>SIGSTOP</strong>, <strong>SIGTRAP</strong>, and <strong>SIGKILL</strong>.</p>
+<p>These signals are internally used by ptrace and the debugger, or are enforced by the kernel to be passed directly to the child process without the possibility of being caught.</p>
+<section id="hijacking-loop-detection">
+<h3>Hijacking Loop Detection<a class="headerlink" href="#hijacking-loop-detection" title="Link to this heading">#</a></h3>
+<p>When carelessly hijacking syscalls, it could happen that loops are created. libdebug automatically performs checks to avoid these situations with signal hijacking and raises an exception if an infinite loop is detected.</p>
+<p>For example, the following code raises a <cite>RuntimeError</cite>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">catcher1</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">hijack_signal</span><span class="p">(</span><span class="s2">&quot;SIGPIPE&quot;</span><span class="p">,</span> <span class="s2">&quot;SIGINT&quot;</span><span class="p">)</span>
+<span class="n">catcher2</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">hijack_signal</span><span class="p">(</span><span class="s2">&quot;SIGINT&quot;</span><span class="p">,</span> <span class="s2">&quot;SIGPIPE&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="recursion">
+<h3>Recursion<a class="headerlink" href="#recursion" title="Link to this heading">#</a></h3>
+<p>Mixing signal catching and hijacking can become messy. Because of this, libdebug provides users with the choice of whether to execute the catcher for a signal that was triggered <em>by</em> a hijack.</p>
+<p>This behavior is enabled by the parameter <cite>recursive</cite>, available when instantiating a hijack or a catcher. By default, the parameter is set to False.</p>
+<p>In the following example, we replace the SIGINT signal with a SIGPIPE, but we do not want to execute the callback function for the SIGPIPE signal.</p>
+<p>For this reason, we set <cite>recursive</cite> to False upon registering the hijack.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">catcher_SIGPIPE</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="n">ThreadContext</span><span class="p">,</span> <span class="n">catcher</span><span class="p">:</span> <span class="n">SignalCatcher</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;entering write&quot;</span><span class="p">)</span>
+
+<span class="n">d</span><span class="o">.</span><span class="n">catch_signal</span><span class="p">(</span><span class="s2">&quot;SIGPIPE&quot;</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="n">catcher_SIGPIPE</span><span class="p">)</span>
+<span class="n">d</span><span class="o">.</span><span class="n">hijack_signal</span><span class="p">(</span><span class="s2">&quot;SIGINT&quot;</span><span class="p">,</span> <span class="s2">&quot;SIGPIPE&quot;</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="handle_syscalls.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Syscalls</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="multithreading.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Multithreading</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#signal-filtering">Signal Filtering</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#arbitrary-signals">Arbitrary Signals</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#signal-hijacking">Signal Hijacking</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hijacking-loop-detection">Hijacking Loop Detection</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#recursion">Recursion</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="_sources/catch_signals.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024, Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.3.7.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.15.4.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

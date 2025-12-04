@@ -1,0 +1,784 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Basic Features &#8212; libdebug 0.5.1 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=3ee479438cf8b5e0d341" rel="stylesheet" />
+<link href="_static/styles/bootstrap.css?digest=3ee479438cf8b5e0d341" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=3ee479438cf8b5e0d341" rel="stylesheet" />
+
+  
+  <link href="_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=3ee479438cf8b5e0d341" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="_static/code-tabs.css?v=1bc26e2f" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=3ee479438cf8b5e0d341" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=3ee479438cf8b5e0d341" />
+  <script src="_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=3ee479438cf8b5e0d341"></script>
+
+    <script src="_static/documentation_options.js?v=b9afe91b"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/code-tabs.js?v=c983d12e"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'basic_features';</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Breakpoints" href="breakpoints.html" />
+    <link rel="prev" title="Quick Start" href="index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">libdebug 0.5.1 documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav class="navbar-nav">
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item pst-header-nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Basic Features
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="breakpoints.html">
+    Breakpoints
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="handle_syscalls.html">
+    Syscalls
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="catch_signals.html">
+    Signals
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="multithreading.html">
+    Multithreading
+  </a>
+</li>
+
+            <li class="nav-item dropdown pst-header-nav-item">
+                <button class="btn dropdown-toggle nav-item" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="quality_of_life.html">
+    Quality of Life
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="logging.html">
+    Logging
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="libdebug.html">
+    libdebug package
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+    </div>
+  
+
+  
+    <button class="sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav class="navbar-nav">
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item pst-header-nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Basic Features
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="breakpoints.html">
+    Breakpoints
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="handle_syscalls.html">
+    Syscalls
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="catch_signals.html">
+    Signals
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="multithreading.html">
+    Multithreading
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="quality_of_life.html">
+    Quality of Life
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="logging.html">
+    Logging
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="libdebug.html">
+    libdebug package
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"></div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">Basic Features</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="basic-features">
+<h1>Basic Features<a class="headerlink" href="#basic-features" title="Link to this heading">#</a></h1>
+<p>When writing a script to debug a program, the first step is to create a Debugger object <a class="reference internal" href="libdebug.debugger.html#libdebug.debugger.debugger.Debugger" title="libdebug.debugger.debugger.Debugger"><code class="xref py py-class docutils literal notranslate"><span class="pre">libdebug.debugger.debugger.Debugger</span></code></a>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">libdebug</span> <span class="kn">import</span> <span class="n">debugger</span>
+<span class="n">debugger</span> <span class="o">=</span> <span class="n">debugger</span><span class="p">(</span><span class="n">argv</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;./program&quot;</span><span class="p">,</span> <span class="s2">&quot;arg1&quot;</span><span class="p">,</span> <span class="s2">&quot;arg2&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>This will be your main interface to the debugger. You can either pass the name of the executable as a string, or a list of argv parameters for the execution.</p>
+<p>Just as you would expect, you can also pass environment variables to the program using the env parameter. Here, the variables are passed as a string-string dictionary.</p>
+<p>By default, debugged programs are run with ASLR disabled. If you want to enable it, you can set the <cite>aslr</cite> parameter to True.</p>
+<p>You can also choose to debug the program starting from the just after the <em>execve</em> call, following the flow of the loader. By default, the debugger will continue to the entry point of the binary before giving you control. You can change this behavior by setting the <cite>continue_to_binary_entrypoint</cite> parameter to False.</p>
+<p>Please note that this feature assumes the binary is well-formed. If the ELF header is corrupt, the binary entrypoint will not be resolved correctly. As such, setting this parameter to False is a good practice when you don’t want libdebug to rely on that information.</p>
+<p>Creating a debugger object will not start the execution automatically. In fact, you can reuse the same debugger to iteratively run multiple instances of the program. This is particularly useful for smart bruteforcing or fuzzing scripts.</p>
+<p>As for the other parameters of the debugger, we will mention them later in the documentation.</p>
+<section id="running-the-program">
+<h2>Running the program<a class="headerlink" href="#running-the-program" title="Link to this heading">#</a></h2>
+<p>After creating the debugger object, you can start the execution of the program using the <cite>run()</cite> method. This method will start execution on a child process and, unless otherwise specified, continue to the entry point.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d</span> <span class="o">=</span> <span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;program&quot;</span><span class="p">)</span>
+<span class="n">pipes</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The <cite>run()</cite> command returns a <cite>PipeManager</cite> object, which you can use to interact with the program’s standard input, output, and error. To read more about the PipeManager interface, please refer to the PipeManager documentation <a class="reference internal" href="libdebug.utils.html#libdebug.utils.pipe_manager.PipeManager" title="libdebug.utils.pipe_manager.PipeManager"><code class="xref py py-class docutils literal notranslate"><span class="pre">libdebug.utils.pipe_manager.PipeManager</span></code></a>. Please note that breakpoints are not kept between different runs of the program. If you want to set a breakpoint again, you should do so after the program has restarted.</p>
+</section>
+<section id="the-command-queue">
+<h2>The command queue<a class="headerlink" href="#the-command-queue" title="Link to this heading">#</a></h2>
+<p>Control flow commands, register access and memory access are all done through the command queue. This is a FIFO queue of commands that are executed in order.</p>
+<p>While the inner workings of the command queue are transparent to the user, it is important to understand how its handling impacts the flow of the debugging script:</p>
+<p>By default, a command is polled from the queue when the execution stops, either as a result of handling a breakpoint, a signal, or other similar events.
+In the following example, the content of the RAX register is printed after the program hits the breakpoint or stops for any other reason:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d</span> <span class="o">=</span> <span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;program&quot;</span><span class="p">)</span>
+
+<span class="n">d</span><span class="o">.</span><span class="n">breakpoint</span><span class="p">(</span><span class="s2">&quot;func&quot;</span><span class="p">)</span>
+
+<span class="n">d</span><span class="o">.</span><span class="n">cont</span><span class="p">()</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;RAX: </span><span class="si">{</span><span class="nb">hex</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">regs</span><span class="o">.</span><span class="n">rax</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This flow is similar to how a GDB script would work, allowing for a more intuitive starting point. If you would like to have more control, however, you can disable this behavior to make sure the command queue is polled as soon as possible.</p>
+<p>This can be done by setting the <cite>auto_interrupt_on_command</cite> parameter to True when creating the debugger object. In this new scenario, we would have to modify the script to recreate the previous flow.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d</span> <span class="o">=</span> <span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;program&quot;</span><span class="p">,</span> <span class="n">auto_interrupt_on_command</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">d</span><span class="o">.</span><span class="n">breakpoint</span><span class="p">(</span><span class="s2">&quot;func&quot;</span><span class="p">)</span>
+
+<span class="n">d</span><span class="o">.</span><span class="n">cont</span><span class="p">()</span>
+<span class="n">d</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;RAX: </span><span class="si">{</span><span class="nb">hex</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">regs</span><span class="o">.</span><span class="n">rax</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The <cite>wait()</cite> method waits for the running process to stop before going forward with the script. Adding the <cite>d.wait()</cite> command will make sure the register access doesn’t happen before hitting the breakpoint or any other stopping event. If the <cite>wait()</cite> method is omitted, the register access will happen as soon as possible after the continue command is issued. Please remember that accessing a property like registers will stop the process. Sending a continue command afterwards will make the process run again.</p>
+<p>You can manually send a stopping signal to the program using the <cite>interrupt()</cite> method. This will stop the execution of the program and allow you to access the registers and memory. The syntax is as follows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d</span><span class="o">.</span><span class="n">interrupt</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="register-access">
+<h1>Register Access<a class="headerlink" href="#register-access" title="Link to this heading">#</a></h1>
+<p id="register-access-paragraph">libdebug offers a simple register access interface for supported architectures. The registers are accessed through the regs attribute of the debugger object. The field includes both general purpose and special registers, as well as the flags register. Effectively, any register that can be accessed by an assembly instruction, can also be accessed through the regs attribute. The debugger specifically exposes properties of the main thread, including the registers. See <a class="reference internal" href="multithreading.html"><span class="doc">Multithreading</span></a> to learn how to access registers and other properties from different threads.</p>
+</section>
+<section id="memory-access">
+<h1>Memory Access<a class="headerlink" href="#memory-access" title="Link to this heading">#</a></h1>
+<p>Memory access is done through the memory attribute of the debugger object or the ThreadContext. Since virtual memory is shared between threads, accessing one or the other makes no difference.
+When reading from memory, a <em>bytes-like</em> object is returned. The memory API is flexible, allowing you to access memory in different ways. The following methods are available:</p>
+<ul class="simple">
+<li><p><strong>Single byte access</strong></p></li>
+</ul>
+<p>You can access a single byte of memory by providing the address as an integer. For example, to access the byte at address 0x1000, you would use the following code:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="mh">0x1000</span><span class="p">]</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><strong>Slice access</strong></p></li>
+</ul>
+<p>You can access a range of bytes by providing the start and end addresses as integers. For example, to access the bytes from 0x1000 to 0x1010, you would use the following code:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="mh">0x1000</span><span class="p">:</span><span class="mh">0x1010</span><span class="p">]</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><strong>Base and length</strong></p></li>
+</ul>
+<p>You can access a range of bytes by providing the base address and the length as integers. For example, to access the bytes from 0x1000 to 0x1010, you would use the following code:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="mh">0x1000</span><span class="p">,</span> <span class="mh">0x10</span><span class="p">]</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><strong>Symbol access</strong></p></li>
+</ul>
+<p>You can access memory by providing a symbol name. For example, to access the bytes from the address of the symbol <cite>main_arena</cite> to the address of the symbol <cite>main_arena+8</cite>, you would use the following code:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="s2">&quot;main_arena&quot;</span><span class="p">,</span> <span class="mh">0x8</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>or</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="s2">&quot;main_arena&quot;</span><span class="p">:</span><span class="s2">&quot;main_arena+8&quot;</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>Writing to memory works in a similar way. You can write a <em>bytes-like</em> object to memory using the addressing methods you already know:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">rsp</span><span class="p">,</span> <span class="mh">0x10</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;AAAAAAABC&quot;</span>
+<span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="s2">&quot;main_arena&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;12345678&quot;</span>
+</pre></div>
+</div>
+<p>Please note that proving a shorter byte-like object than the length you are trying to write will result in zero padding.
+If the byte-like object is longer than the length you are trying to write, the FULL object will be written to memory ignoring the range you provided. A warning is printed in this case.</p>
+<section id="absolute-and-relative-addressing">
+<h2>Absolute and Relative Addressing<a class="headerlink" href="#absolute-and-relative-addressing" title="Link to this heading">#</a></h2>
+<p>When accessing memory, you can use both absolute and relative addressing. Absolute addressing is the most common way to access memory, where you provide the exact address you want to access. Relative addressing is a more advanced way to access memory, where you provide an address relative to a base address.
+By default, the memory access in libdebug is done using an hybrid addressing mode. This means that libdebug will try to resolve the address as an absolute address first. If the address is not found, libdebug will try to resolve the address as a relative address, using as base the one of the binary. In this case, a warning will be printed.
+You can force the addressing mode by using the following syntax:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="mh">0x1000</span><span class="p">,</span> <span class="mh">0x10</span><span class="p">,</span> <span class="s2">&quot;absolute&quot;</span><span class="p">]</span>
+<span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="mh">0x1000</span><span class="p">,</span> <span class="mh">0x10</span><span class="p">,</span> <span class="s2">&quot;hybrid&quot;</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>If you specify a full or a substring of a file name, libdebug will search for the memory map of the file and use the base address of the file as the base address for the relative addressing. If the file is not found or multiple matches are found, an exception is raised.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="mh">0x1000</span><span class="p">,</span> <span class="mh">0x10</span><span class="p">,</span> <span class="s2">&quot;file_name&quot;</span><span class="p">]</span>
+<span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="mh">0x1000</span><span class="p">,</span> <span class="mh">0x10</span><span class="p">,</span> <span class="s2">&quot;other_file_name&quot;</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>You can also use the wildcard string “binary” to use the base address of the binary as the base address for the relative addressing. The same behavior is applied if you pass a string corresponding to the binary name.</p>
+</section>
+</section>
+<section id="control-flow-commands">
+<h1>Control Flow Commands<a class="headerlink" href="#control-flow-commands" title="Link to this heading">#</a></h1>
+<p>The control flow commands are the main way to interact with the debugger. They allow you to set breakpoints, step through the program, and control the execution flow. The following commands are available:</p>
+<section id="stepping">
+<h2>Stepping<a class="headerlink" href="#stepping" title="Link to this heading">#</a></h2>
+<p>When debuggin an executable, it is sometimes useful to step through the program one assembly instruction at a time. Just like in other debuggers, libdebug offers the step commands to help you with this task.</p>
+<section id="single-step">
+<h3>Single Step<a class="headerlink" href="#single-step" title="Link to this heading">#</a></h3>
+<p>The <cite>step</cite> command will execute the next instruction and stop the execution. The syntax is as follows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="step-until">
+<h3>Step Until<a class="headerlink" href="#step-until" title="Link to this heading">#</a></h3>
+<p>Sometimes, you may want to step through the program until a specific address is reached. The <cite>step_until</cite> command will execute steps (hardware step if available) until the program counter reaches the specified address.</p>
+<p>Optionally, you can specify a maximum number of steps that are performed before returning. The syntax is as follows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d</span><span class="o">.</span><span class="n">step_until</span><span class="p">(</span><span class="n">position</span><span class="o">=</span><span class="mh">0x40003b</span><span class="p">,</span> <span class="n">max_steps</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="continuing">
+<h2>Continuing<a class="headerlink" href="#continuing" title="Link to this heading">#</a></h2>
+<p>Exactly as you would expect, the <cite>cont()</cite> command will continue the execution of the program until a breakpoint is hit or the program stops for any other reason. The syntax is as follows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d</span><span class="o">.</span><span class="n">cont</span><span class="p">()</span>
+</pre></div>
+</div>
+<section id="finish">
+<h3>Finish<a class="headerlink" href="#finish" title="Link to this heading">#</a></h3>
+<p>The <cite>finish</cite> command is a more advanced version of the continue command. It will continue the execution of the program until the current function returns, a breakpoint is hit or the program stop for any other reason.</p>
+<p>Please note that the concept of “current function” is not as simple as it may seem. Boundaries between functions can become nuanced as a result of compiler optimizations, packing and inlining.</p>
+<p>Because of this, the finish command needs to use one of the available heuristics to resolve the end of the function.</p>
+<p>Remember that some cases may not be handled correctly by any of the heuristics, causing unexpected behavior. The syntax is as follows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d</span><span class="o">.</span><span class="n">finish</span><span class="p">(</span><span class="n">heuristic</span><span class="o">=</span><span class="s2">&quot;backtrace&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The available heuristics are:</p>
+<ul class="simple">
+<li><p><strong>backtrace</strong>: This heuristic uses the saved return address found on the stack or on a dedicated register to find the return address of the current function. A breakpoint is applied to the resolved address and execution is continued. This is the fastest heuristic and is fairly reliable, but it may not work in the presence of self-modifying code.</p></li>
+<li><p><strong>step-mode</strong>: This heuristic steps one instruction at a time until the ret instruction is executed in the current frame (nested calls are handled). This is a reliable heuristic, but is slow and fails in the case of internal tailcalls or similar optimizations.</p></li>
+</ul>
+<p>The default heuristic when none is specified is “backtrace”.</p>
+</section>
+</section>
+</section>
+<section id="detach-and-gdb-migration">
+<h1>Detach and GDB Migration<a class="headerlink" href="#detach-and-gdb-migration" title="Link to this heading">#</a></h1>
+<p>If at any time during your script you want to take a more interactive approach to debugging, you can use the <cite>gdb()</cite> method. This will temporarily detach libdebug from the program and give you control over the program using GDB. Quitting GDB will return control to libdebug. The syntax is as follows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d</span><span class="o">.</span><span class="n">gdb</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Optionally, you can specify <cite>open_in_new_process=False</cite> to execute GDB on the same process as the script. This way you can have gdb inlined in the same terminal session. You will be able to return to your script by using the command <cite>goback</cite>. The syntax is as follows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d</span><span class="o">.</span><span class="n">gdb</span><span class="p">(</span><span class="n">open_in_new_process</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Depending on your use case, you may want to detach from the program and continue execution without either libdebug or GDB. The <cite>detach()</cite> method will detach libdebug from the program and continue execution. The syntax is as follows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>An alternative to running the program from the beginning and to resume libdebug control after detaching is to use the <cite>attach()</cite> method. The syntax is as follows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="graceful-termination">
+<h1>Graceful Termination<a class="headerlink" href="#graceful-termination" title="Link to this heading">#</a></h1>
+<p>If you want to kill the process being debugged, you can use the <cite>kill()</cite> method. When repeatedly running new instances of debugged program, remember to call the <cite>kill()</cite> command on old instances to avoid large memory usage. The syntax is as follows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d</span><span class="o">.</span><span class="n">kill</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>When you are done with the debugger object, you can terminate the background thread using the <cite>terminate()</cite> method. This will free up resources and should be used only when the debugger object is no longer needed. The syntax is as follows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="post-mortem-analysis">
+<h1>Post Mortem Analysis<a class="headerlink" href="#post-mortem-analysis" title="Link to this heading">#</a></h1>
+<p>You can check at every moment if the whole process (or a specific thread) is dead by using the <cite>dead</cite> property. The syntax is as follows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="ow">not</span> <span class="n">d</span><span class="o">.</span><span class="n">dead</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The process is not dead&quot;</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The process is dead&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Moreover, after the process has died, you can check the exit code and the exit signal by using the <cite>exit_code</cite> and <cite>exit_signal</cite> properties, respectively. The syntax is as follows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">dead</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The process exited with code </span><span class="si">{</span><span class="n">d</span><span class="o">.</span><span class="n">exit_code</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">dead</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The process exited with signal </span><span class="si">{</span><span class="n">d</span><span class="o">.</span><span class="n">exit_signal</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>You can also access registers after the process has died. This is useful for <em>post-mortem</em> analysis.</p>
+</section>
+<section id="supported-architectures">
+<h1>Supported Architectures<a class="headerlink" href="#supported-architectures" title="Link to this heading">#</a></h1>
+<p>libdebug currently only supports Linux under the x86_64 (AMD64) architecture. Support for other architectures is planned for future releases. Stay tuned.</p>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Quick Start</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="breakpoints.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Breakpoints</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#">Basic Features</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#running-the-program">Running the program</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#the-command-queue">The command queue</a></li>
+</ul>
+</li>
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#register-access">Register Access</a></li>
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#memory-access">Memory Access</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#absolute-and-relative-addressing">Absolute and Relative Addressing</a></li>
+</ul>
+</li>
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#control-flow-commands">Control Flow Commands</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#stepping">Stepping</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#single-step">Single Step</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#step-until">Step Until</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#continuing">Continuing</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#finish">Finish</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#detach-and-gdb-migration">Detach and GDB Migration</a></li>
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#graceful-termination">Graceful Termination</a></li>
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#post-mortem-analysis">Post Mortem Analysis</a></li>
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#supported-architectures">Supported Architectures</a></li>
+</ul>
+
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="_sources/basic_features.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="_static/scripts/bootstrap.js?digest=3ee479438cf8b5e0d341"></script>
+<script src="_static/scripts/pydata-sphinx-theme.js?digest=3ee479438cf8b5e0d341"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024, Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.3.7.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.15.3.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

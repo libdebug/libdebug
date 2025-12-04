@@ -1,0 +1,1018 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>setup &#8212; libdebug 0.5.2 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../_static/code-tabs.css?v=1bc26e2f" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../_static/documentation_options.js?v=8e576371"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/code-tabs.js?v=c983d12e"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/setup';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">libdebug 0.5.2 documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../basic_features.html">
+    Basic Features
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../breakpoints.html">
+    Breakpoints
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../handle_syscalls.html">
+    Syscalls
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../catch_signals.html">
+    Signals
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../multithreading.html">
+    Multithreading
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../quality_of_life.html">
+    Quality of Life
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../logging.html">
+    Logging
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../examples.html">
+    Code Examples
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../libdebug.html">
+    libdebug package
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <div class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../basic_features.html">
+    Basic Features
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../breakpoints.html">
+    Breakpoints
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../handle_syscalls.html">
+    Syscalls
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../catch_signals.html">
+    Signals
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../multithreading.html">
+    Multithreading
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../quality_of_life.html">
+    Quality of Life
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../logging.html">
+    Logging
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples.html">
+    Code Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../libdebug.html">
+    libdebug package
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page">setup</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for setup</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+
+<span class="c1"># Copyright (c) 2009 Giampaolo Rodola&#39;. All rights reserved.</span>
+<span class="c1"># Use of this source code is governed by a BSD-style license that can be</span>
+<span class="c1"># found in the LICENSE file.</span>
+
+<span class="sd">&quot;&quot;&quot;Cross-platform lib for process and system monitoring in Python.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">ast</span>
+<span class="kn">import</span> <span class="nn">contextlib</span>
+<span class="kn">import</span> <span class="nn">glob</span>
+<span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">platform</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">struct</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+
+<span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
+    <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">setuptools</span>
+        <span class="kn">from</span> <span class="nn">setuptools</span> <span class="kn">import</span> <span class="n">Extension</span>
+        <span class="kn">from</span> <span class="nn">setuptools</span> <span class="kn">import</span> <span class="n">setup</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="n">setuptools</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="kn">from</span> <span class="nn">distutils.core</span> <span class="kn">import</span> <span class="n">Extension</span>
+        <span class="kn">from</span> <span class="nn">distutils.core</span> <span class="kn">import</span> <span class="n">setup</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">wheel.bdist_wheel</span> <span class="kn">import</span> <span class="n">bdist_wheel</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">&quot;CIBUILDWHEEL&quot;</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">:</span>
+            <span class="k">raise</span>
+        <span class="n">bdist_wheel</span> <span class="o">=</span> <span class="kc">None</span>
+
+<span class="n">HERE</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+
+<span class="c1"># ...so we can import _common.py and _compat.py</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">HERE</span><span class="p">,</span> <span class="s2">&quot;psutil&quot;</span><span class="p">))</span>
+
+<span class="kn">from</span> <span class="nn">_common</span> <span class="kn">import</span> <span class="n">AIX</span>  <span class="c1"># NOQA</span>
+<span class="kn">from</span> <span class="nn">_common</span> <span class="kn">import</span> <span class="n">BSD</span>  <span class="c1"># NOQA</span>
+<span class="kn">from</span> <span class="nn">_common</span> <span class="kn">import</span> <span class="n">FREEBSD</span>  <span class="c1"># NOQA</span>
+<span class="kn">from</span> <span class="nn">_common</span> <span class="kn">import</span> <span class="n">LINUX</span>  <span class="c1"># NOQA</span>
+<span class="kn">from</span> <span class="nn">_common</span> <span class="kn">import</span> <span class="n">MACOS</span>  <span class="c1"># NOQA</span>
+<span class="kn">from</span> <span class="nn">_common</span> <span class="kn">import</span> <span class="n">NETBSD</span>  <span class="c1"># NOQA</span>
+<span class="kn">from</span> <span class="nn">_common</span> <span class="kn">import</span> <span class="n">OPENBSD</span>  <span class="c1"># NOQA</span>
+<span class="kn">from</span> <span class="nn">_common</span> <span class="kn">import</span> <span class="n">POSIX</span>  <span class="c1"># NOQA</span>
+<span class="kn">from</span> <span class="nn">_common</span> <span class="kn">import</span> <span class="n">SUNOS</span>  <span class="c1"># NOQA</span>
+<span class="kn">from</span> <span class="nn">_common</span> <span class="kn">import</span> <span class="n">WINDOWS</span>  <span class="c1"># NOQA</span>
+<span class="kn">from</span> <span class="nn">_common</span> <span class="kn">import</span> <span class="n">hilite</span>  <span class="c1"># NOQA</span>
+<span class="kn">from</span> <span class="nn">_compat</span> <span class="kn">import</span> <span class="n">PY3</span>  <span class="c1"># NOQA</span>
+<span class="kn">from</span> <span class="nn">_compat</span> <span class="kn">import</span> <span class="n">which</span>  <span class="c1"># NOQA</span>
+
+
+<span class="n">PYPY</span> <span class="o">=</span> <span class="s1">&#39;__pypy__&#39;</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">builtin_module_names</span>
+<span class="n">PY36_PLUS</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+<span class="n">PY37_PLUS</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>
+<span class="n">CP36_PLUS</span> <span class="o">=</span> <span class="n">PY36_PLUS</span> <span class="ow">and</span> <span class="n">sys</span><span class="o">.</span><span class="n">implementation</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;cpython&quot;</span>
+<span class="n">CP37_PLUS</span> <span class="o">=</span> <span class="n">PY37_PLUS</span> <span class="ow">and</span> <span class="n">sys</span><span class="o">.</span><span class="n">implementation</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;cpython&quot;</span>
+
+<span class="n">macros</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">if</span> <span class="n">POSIX</span><span class="p">:</span>
+    <span class="n">macros</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;PSUTIL_POSIX&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="k">if</span> <span class="n">BSD</span><span class="p">:</span>
+    <span class="n">macros</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;PSUTIL_BSD&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+<span class="c1"># Needed to determine _Py_PARSE_PID in case it&#39;s missing (Python 2, PyPy).</span>
+<span class="c1"># Taken from Lib/test/test_fcntl.py.</span>
+<span class="c1"># XXX: not bullet proof as the (long long) case is missing.</span>
+<span class="k">if</span> <span class="n">struct</span><span class="o">.</span><span class="n">calcsize</span><span class="p">(</span><span class="s1">&#39;l&#39;</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">8</span><span class="p">:</span>
+    <span class="n">macros</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s1">&#39;PSUTIL_SIZEOF_PID_T&#39;</span><span class="p">,</span> <span class="s1">&#39;4&#39;</span><span class="p">))</span>  <span class="c1"># int</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">macros</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s1">&#39;PSUTIL_SIZEOF_PID_T&#39;</span><span class="p">,</span> <span class="s1">&#39;8&#39;</span><span class="p">))</span>  <span class="c1"># long</span>
+
+
+<span class="n">sources</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;psutil/_psutil_common.c&#39;</span><span class="p">]</span>
+<span class="k">if</span> <span class="n">POSIX</span><span class="p">:</span>
+    <span class="n">sources</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;psutil/_psutil_posix.c&#39;</span><span class="p">)</span>
+
+
+<span class="n">extras_require</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;test&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">&quot;enum34; python_version &lt;= &#39;3.4&#39;&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ipaddress; python_version &lt; &#39;3.0&#39;&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;mock; python_version &lt; &#39;3.0&#39;&quot;</span><span class="p">,</span>
+<span class="p">]}</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">PYPY</span><span class="p">:</span>
+    <span class="n">extras_require</span><span class="p">[</span><span class="s1">&#39;test&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+        <span class="s2">&quot;pywin32; sys.platform == &#39;win32&#39;&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;wmi; sys.platform == &#39;win32&#39;&quot;</span><span class="p">])</span>
+
+
+<div class="viewcode-block" id="get_version">
+<a class="viewcode-back" href="../setup.html#setup.get_version">[docs]</a>
+<span class="k">def</span> <span class="nf">get_version</span><span class="p">():</span>
+    <span class="n">INIT</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">HERE</span><span class="p">,</span> <span class="s1">&#39;psutil/__init__.py&#39;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">INIT</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;__version__&#39;</span><span class="p">):</span>
+                <span class="n">ret</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; = &#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">assert</span> <span class="n">ret</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="n">ret</span>
+                <span class="k">for</span> <span class="n">num</span> <span class="ow">in</span> <span class="n">ret</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">):</span>
+                    <span class="k">assert</span> <span class="n">num</span><span class="o">.</span><span class="n">isdigit</span><span class="p">(),</span> <span class="n">ret</span>
+                <span class="k">return</span> <span class="n">ret</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;couldn&#39;t find version string&quot;</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+
+
+
+<span class="n">VERSION</span> <span class="o">=</span> <span class="n">get_version</span><span class="p">()</span>
+<span class="n">macros</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s1">&#39;PSUTIL_VERSION&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">VERSION</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))))</span>
+
+<span class="c1"># Py_LIMITED_API lets us create a single wheel which works with multiple</span>
+<span class="c1"># python versions, including unreleased ones.</span>
+<span class="k">if</span> <span class="n">bdist_wheel</span> <span class="ow">and</span> <span class="n">CP36_PLUS</span> <span class="ow">and</span> <span class="p">(</span><span class="n">MACOS</span> <span class="ow">or</span> <span class="n">LINUX</span><span class="p">):</span>
+    <span class="n">py_limited_api</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;py_limited_api&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+    <span class="n">macros</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s1">&#39;Py_LIMITED_API&#39;</span><span class="p">,</span> <span class="s1">&#39;0x03060000&#39;</span><span class="p">))</span>
+<span class="k">elif</span> <span class="n">bdist_wheel</span> <span class="ow">and</span> <span class="n">CP37_PLUS</span> <span class="ow">and</span> <span class="n">WINDOWS</span><span class="p">:</span>
+    <span class="c1"># PyErr_SetFromWindowsErr / PyErr_SetFromWindowsErrWithFilename are</span>
+    <span class="c1"># part of the stable API/ABI starting with CPython 3.7</span>
+    <span class="n">py_limited_api</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;py_limited_api&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+    <span class="n">macros</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s1">&#39;Py_LIMITED_API&#39;</span><span class="p">,</span> <span class="s1">&#39;0x03070000&#39;</span><span class="p">))</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">py_limited_api</span> <span class="o">=</span> <span class="p">{}</span>
+
+
+<div class="viewcode-block" id="get_long_description">
+<a class="viewcode-back" href="../setup.html#setup.get_long_description">[docs]</a>
+<span class="k">def</span> <span class="nf">get_long_description</span><span class="p">():</span>
+    <span class="n">script</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">HERE</span><span class="p">,</span> <span class="s2">&quot;scripts&quot;</span><span class="p">,</span> <span class="s2">&quot;internal&quot;</span><span class="p">,</span> <span class="s2">&quot;convert_readme.py&quot;</span><span class="p">)</span>
+    <span class="n">readme</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">HERE</span><span class="p">,</span> <span class="s1">&#39;README.rst&#39;</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">([</span><span class="n">sys</span><span class="o">.</span><span class="n">executable</span><span class="p">,</span> <span class="n">script</span><span class="p">,</span> <span class="n">readme</span><span class="p">],</span>
+                         <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span>
+                         <span class="n">universal_newlines</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">returncode</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">stderr</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">stdout</span></div>
+
+
+
+<div class="viewcode-block" id="silenced_output">
+<a class="viewcode-back" href="../setup.html#setup.silenced_output">[docs]</a>
+<span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">silenced_output</span><span class="p">(</span><span class="n">stream_name</span><span class="p">):</span>
+    <span class="k">class</span> <span class="nc">DummyFile</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">):</span>
+        <span class="c1"># see: https://github.com/giampaolo/psutil/issues/678</span>
+        <span class="n">errors</span> <span class="o">=</span> <span class="s2">&quot;ignore&quot;</span>
+
+        <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+            <span class="k">pass</span>
+
+    <span class="n">orig</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sys</span><span class="p">,</span> <span class="n">stream_name</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">sys</span><span class="p">,</span> <span class="n">stream_name</span><span class="p">,</span> <span class="n">DummyFile</span><span class="p">())</span>
+        <span class="k">yield</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">sys</span><span class="p">,</span> <span class="n">stream_name</span><span class="p">,</span> <span class="n">orig</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="missdeps">
+<a class="viewcode-back" href="../setup.html#setup.missdeps">[docs]</a>
+<span class="k">def</span> <span class="nf">missdeps</span><span class="p">(</span><span class="n">cmdline</span><span class="p">):</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;psutil could not be installed from sources&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">SUNOS</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">which</span><span class="p">(</span><span class="s2">&quot;gcc&quot;</span><span class="p">):</span>
+        <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot; because gcc is not installed. &quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;. Perhaps Python header files are not installed. &quot;</span>
+    <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;Try running:</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;  </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">cmdline</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">hilite</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">,</span> <span class="n">bold</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="unix_can_compile">
+<a class="viewcode-back" href="../setup.html#setup.unix_can_compile">[docs]</a>
+<span class="k">def</span> <span class="nf">unix_can_compile</span><span class="p">(</span><span class="n">c_code</span><span class="p">):</span>
+    <span class="kn">from</span> <span class="nn">distutils.errors</span> <span class="kn">import</span> <span class="n">CompileError</span>
+    <span class="kn">from</span> <span class="nn">distutils.unixccompiler</span> <span class="kn">import</span> <span class="n">UnixCCompiler</span>
+
+    <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">(</span>
+            <span class="n">suffix</span><span class="o">=</span><span class="s1">&#39;.c&#39;</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;wt&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">c_code</span><span class="p">)</span>
+
+    <span class="n">tempdir</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">compiler</span> <span class="o">=</span> <span class="n">UnixCCompiler</span><span class="p">()</span>
+        <span class="c1"># https://github.com/giampaolo/psutil/pull/1568</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;CC&#39;</span><span class="p">):</span>
+            <span class="n">compiler</span><span class="o">.</span><span class="n">set_executable</span><span class="p">(</span><span class="s1">&#39;compiler_so&#39;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;CC&#39;</span><span class="p">))</span>
+        <span class="k">with</span> <span class="n">silenced_output</span><span class="p">(</span><span class="s1">&#39;stderr&#39;</span><span class="p">):</span>
+            <span class="k">with</span> <span class="n">silenced_output</span><span class="p">(</span><span class="s1">&#39;stdout&#39;</span><span class="p">):</span>
+                <span class="n">compiler</span><span class="o">.</span><span class="n">compile</span><span class="p">([</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">],</span> <span class="n">output_dir</span><span class="o">=</span><span class="n">tempdir</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">CompileError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">tempdir</span><span class="p">)</span></div>
+
+
+
+<span class="k">if</span> <span class="n">WINDOWS</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">get_winver</span><span class="p">():</span>
+        <span class="n">maj</span><span class="p">,</span> <span class="nb">min</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">getwindowsversion</span><span class="p">()[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">return</span> <span class="s1">&#39;0x0</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">((</span><span class="n">maj</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span> <span class="o">+</span> <span class="nb">min</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">getwindowsversion</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">6</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;this Windows version is too old (&lt; Windows Vista); &quot;</span>
+        <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;psutil 3.4.2 is the latest version which supports Windows &quot;</span>
+        <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;2000, XP and 2003 server&quot;</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="n">macros</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;PSUTIL_WINDOWS&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">macros</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+        <span class="c1"># be nice to mingw, see:</span>
+        <span class="c1"># http://www.mingw.org/wiki/Use_more_recent_defined_functions</span>
+        <span class="p">(</span><span class="s1">&#39;_WIN32_WINNT&#39;</span><span class="p">,</span> <span class="n">get_winver</span><span class="p">()),</span>
+        <span class="p">(</span><span class="s1">&#39;_AVAIL_WINVER_&#39;</span><span class="p">,</span> <span class="n">get_winver</span><span class="p">()),</span>
+        <span class="p">(</span><span class="s1">&#39;_CRT_SECURE_NO_WARNINGS&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+        <span class="c1"># see: https://github.com/giampaolo/psutil/issues/348</span>
+        <span class="p">(</span><span class="s1">&#39;PSAPI_VERSION&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+    <span class="p">])</span>
+
+    <span class="n">ext</span> <span class="o">=</span> <span class="n">Extension</span><span class="p">(</span>
+        <span class="s1">&#39;psutil._psutil_windows&#39;</span><span class="p">,</span>
+        <span class="n">sources</span><span class="o">=</span><span class="p">(</span>
+            <span class="n">sources</span> <span class="o">+</span>
+            <span class="p">[</span><span class="s2">&quot;psutil/_psutil_windows.c&quot;</span><span class="p">]</span> <span class="o">+</span>
+            <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;psutil/arch/windows/*.c&quot;</span><span class="p">)</span>
+        <span class="p">),</span>
+        <span class="n">define_macros</span><span class="o">=</span><span class="n">macros</span><span class="p">,</span>
+        <span class="n">libraries</span><span class="o">=</span><span class="p">[</span>
+            <span class="s2">&quot;psapi&quot;</span><span class="p">,</span> <span class="s2">&quot;kernel32&quot;</span><span class="p">,</span> <span class="s2">&quot;advapi32&quot;</span><span class="p">,</span> <span class="s2">&quot;shell32&quot;</span><span class="p">,</span> <span class="s2">&quot;netapi32&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ws2_32&quot;</span><span class="p">,</span> <span class="s2">&quot;PowrProf&quot;</span><span class="p">,</span> <span class="s2">&quot;pdh&quot;</span><span class="p">,</span>
+        <span class="p">],</span>
+        <span class="c1"># extra_compile_args=[&quot;/W 4&quot;],</span>
+        <span class="c1"># extra_link_args=[&quot;/DEBUG&quot;],</span>
+        <span class="o">**</span><span class="n">py_limited_api</span>
+    <span class="p">)</span>
+
+<span class="k">elif</span> <span class="n">MACOS</span><span class="p">:</span>
+    <span class="n">macros</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;PSUTIL_OSX&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">ext</span> <span class="o">=</span> <span class="n">Extension</span><span class="p">(</span>
+        <span class="s1">&#39;psutil._psutil_osx&#39;</span><span class="p">,</span>
+        <span class="n">sources</span><span class="o">=</span><span class="p">(</span>
+            <span class="n">sources</span> <span class="o">+</span>
+            <span class="p">[</span><span class="s2">&quot;psutil/_psutil_osx.c&quot;</span><span class="p">]</span> <span class="o">+</span>
+            <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;psutil/arch/osx/*.c&quot;</span><span class="p">)</span>
+        <span class="p">),</span>
+        <span class="n">define_macros</span><span class="o">=</span><span class="n">macros</span><span class="p">,</span>
+        <span class="n">extra_link_args</span><span class="o">=</span><span class="p">[</span>
+            <span class="s1">&#39;-framework&#39;</span><span class="p">,</span> <span class="s1">&#39;CoreFoundation&#39;</span><span class="p">,</span> <span class="s1">&#39;-framework&#39;</span><span class="p">,</span> <span class="s1">&#39;IOKit&#39;</span>
+        <span class="p">],</span>
+        <span class="o">**</span><span class="n">py_limited_api</span><span class="p">)</span>
+
+<span class="k">elif</span> <span class="n">FREEBSD</span><span class="p">:</span>
+    <span class="n">macros</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;PSUTIL_FREEBSD&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">ext</span> <span class="o">=</span> <span class="n">Extension</span><span class="p">(</span>
+        <span class="s1">&#39;psutil._psutil_bsd&#39;</span><span class="p">,</span>
+        <span class="n">sources</span><span class="o">=</span><span class="p">(</span>
+            <span class="n">sources</span> <span class="o">+</span>
+            <span class="p">[</span><span class="s2">&quot;psutil/_psutil_bsd.c&quot;</span><span class="p">]</span> <span class="o">+</span>
+            <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;psutil/arch/bsd/*.c&quot;</span><span class="p">)</span> <span class="o">+</span>
+            <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;psutil/arch/freebsd/*.c&quot;</span><span class="p">)</span>
+        <span class="p">),</span>
+        <span class="n">define_macros</span><span class="o">=</span><span class="n">macros</span><span class="p">,</span>
+        <span class="n">libraries</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;devstat&quot;</span><span class="p">],</span>
+        <span class="o">**</span><span class="n">py_limited_api</span><span class="p">)</span>
+
+<span class="k">elif</span> <span class="n">OPENBSD</span><span class="p">:</span>
+    <span class="n">macros</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;PSUTIL_OPENBSD&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">ext</span> <span class="o">=</span> <span class="n">Extension</span><span class="p">(</span>
+        <span class="s1">&#39;psutil._psutil_bsd&#39;</span><span class="p">,</span>
+        <span class="n">sources</span><span class="o">=</span><span class="p">(</span>
+            <span class="n">sources</span> <span class="o">+</span>
+            <span class="p">[</span><span class="s2">&quot;psutil/_psutil_bsd.c&quot;</span><span class="p">]</span> <span class="o">+</span>
+            <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;psutil/arch/bsd/*.c&quot;</span><span class="p">)</span> <span class="o">+</span>
+            <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;psutil/arch/openbsd/*.c&quot;</span><span class="p">)</span>
+        <span class="p">),</span>
+        <span class="n">define_macros</span><span class="o">=</span><span class="n">macros</span><span class="p">,</span>
+        <span class="n">libraries</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;kvm&quot;</span><span class="p">],</span>
+        <span class="o">**</span><span class="n">py_limited_api</span><span class="p">)</span>
+
+<span class="k">elif</span> <span class="n">NETBSD</span><span class="p">:</span>
+    <span class="n">macros</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;PSUTIL_NETBSD&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">ext</span> <span class="o">=</span> <span class="n">Extension</span><span class="p">(</span>
+        <span class="s1">&#39;psutil._psutil_bsd&#39;</span><span class="p">,</span>
+        <span class="n">sources</span><span class="o">=</span><span class="p">(</span>
+            <span class="n">sources</span> <span class="o">+</span>
+            <span class="p">[</span><span class="s2">&quot;psutil/_psutil_bsd.c&quot;</span><span class="p">]</span> <span class="o">+</span>
+            <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;psutil/arch/bsd/*.c&quot;</span><span class="p">)</span> <span class="o">+</span>
+            <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;psutil/arch/netbsd/*.c&quot;</span><span class="p">)</span>
+        <span class="p">),</span>
+        <span class="n">define_macros</span><span class="o">=</span><span class="n">macros</span><span class="p">,</span>
+        <span class="n">libraries</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;kvm&quot;</span><span class="p">],</span>
+        <span class="o">**</span><span class="n">py_limited_api</span><span class="p">)</span>
+
+<span class="k">elif</span> <span class="n">LINUX</span><span class="p">:</span>
+    <span class="c1"># see: https://github.com/giampaolo/psutil/issues/659</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">unix_can_compile</span><span class="p">(</span><span class="s2">&quot;#include &lt;linux/ethtool.h&gt;&quot;</span><span class="p">):</span>
+        <span class="n">macros</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;PSUTIL_ETHTOOL_MISSING_TYPES&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+    <span class="n">macros</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;PSUTIL_LINUX&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">ext</span> <span class="o">=</span> <span class="n">Extension</span><span class="p">(</span>
+        <span class="s1">&#39;psutil._psutil_linux&#39;</span><span class="p">,</span>
+        <span class="n">sources</span><span class="o">=</span><span class="p">(</span>
+            <span class="n">sources</span> <span class="o">+</span>
+            <span class="p">[</span><span class="s2">&quot;psutil/_psutil_linux.c&quot;</span><span class="p">]</span> <span class="o">+</span>
+            <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;psutil/arch/linux/*.c&quot;</span><span class="p">)</span>
+        <span class="p">),</span>
+        <span class="n">define_macros</span><span class="o">=</span><span class="n">macros</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">py_limited_api</span><span class="p">)</span>
+
+<span class="k">elif</span> <span class="n">SUNOS</span><span class="p">:</span>
+    <span class="n">macros</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;PSUTIL_SUNOS&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">ext</span> <span class="o">=</span> <span class="n">Extension</span><span class="p">(</span>
+        <span class="s1">&#39;psutil._psutil_sunos&#39;</span><span class="p">,</span>
+        <span class="n">sources</span><span class="o">=</span><span class="n">sources</span> <span class="o">+</span> <span class="p">[</span>
+            <span class="s1">&#39;psutil/_psutil_sunos.c&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;psutil/arch/solaris/v10/ifaddrs.c&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;psutil/arch/solaris/environ.c&#39;</span>
+        <span class="p">],</span>
+        <span class="n">define_macros</span><span class="o">=</span><span class="n">macros</span><span class="p">,</span>
+        <span class="n">libraries</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;kstat&#39;</span><span class="p">,</span> <span class="s1">&#39;nsl&#39;</span><span class="p">,</span> <span class="s1">&#39;socket&#39;</span><span class="p">],</span>
+        <span class="o">**</span><span class="n">py_limited_api</span><span class="p">)</span>
+
+<span class="k">elif</span> <span class="n">AIX</span><span class="p">:</span>
+    <span class="n">macros</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;PSUTIL_AIX&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">ext</span> <span class="o">=</span> <span class="n">Extension</span><span class="p">(</span>
+        <span class="s1">&#39;psutil._psutil_aix&#39;</span><span class="p">,</span>
+        <span class="n">sources</span><span class="o">=</span><span class="n">sources</span> <span class="o">+</span> <span class="p">[</span>
+            <span class="s1">&#39;psutil/_psutil_aix.c&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;psutil/arch/aix/net_connections.c&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;psutil/arch/aix/common.c&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;psutil/arch/aix/ifaddrs.c&#39;</span><span class="p">],</span>
+        <span class="n">libraries</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;perfstat&#39;</span><span class="p">],</span>
+        <span class="n">define_macros</span><span class="o">=</span><span class="n">macros</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">py_limited_api</span><span class="p">)</span>
+
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="s1">&#39;platform </span><span class="si">%s</span><span class="s1"> is not supported&#39;</span> <span class="o">%</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="n">POSIX</span><span class="p">:</span>
+    <span class="n">posix_extension</span> <span class="o">=</span> <span class="n">Extension</span><span class="p">(</span>
+        <span class="s1">&#39;psutil._psutil_posix&#39;</span><span class="p">,</span>
+        <span class="n">define_macros</span><span class="o">=</span><span class="n">macros</span><span class="p">,</span>
+        <span class="n">sources</span><span class="o">=</span><span class="n">sources</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">py_limited_api</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">SUNOS</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">get_sunos_update</span><span class="p">():</span>
+            <span class="c1"># See https://serverfault.com/q/524883</span>
+            <span class="c1"># for an explanation of Solaris /etc/release</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;/etc/release&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">update</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(?&lt;=s10s_u)[0-9]{1,2}&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>
+                <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">update</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span> <span class="k">if</span> <span class="n">update</span> <span class="k">else</span> <span class="mi">0</span>
+
+        <span class="n">posix_extension</span><span class="o">.</span><span class="n">libraries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;socket&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">platform</span><span class="o">.</span><span class="n">release</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;5.10&#39;</span><span class="p">:</span>
+            <span class="c1"># Detect Solaris 5.10, update &gt;= 4, see:</span>
+            <span class="c1"># https://github.com/giampaolo/psutil/pull/1638</span>
+            <span class="k">if</span> <span class="n">get_sunos_update</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="c1"># MIB compliance starts with SunOS 5.10 Update 4:</span>
+                <span class="n">posix_extension</span><span class="o">.</span><span class="n">define_macros</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s1">&#39;NEW_MIB_COMPLIANT&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="n">posix_extension</span><span class="o">.</span><span class="n">sources</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;psutil/arch/solaris/v10/ifaddrs.c&#39;</span><span class="p">)</span>
+            <span class="n">posix_extension</span><span class="o">.</span><span class="n">define_macros</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s1">&#39;PSUTIL_SUNOS10&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Other releases are by default considered to be new mib compliant.</span>
+            <span class="n">posix_extension</span><span class="o">.</span><span class="n">define_macros</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s1">&#39;NEW_MIB_COMPLIANT&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="n">AIX</span><span class="p">:</span>
+        <span class="n">posix_extension</span><span class="o">.</span><span class="n">sources</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;psutil/arch/aix/ifaddrs.c&#39;</span><span class="p">)</span>
+
+    <span class="n">extensions</span> <span class="o">=</span> <span class="p">[</span><span class="n">ext</span><span class="p">,</span> <span class="n">posix_extension</span><span class="p">]</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">extensions</span> <span class="o">=</span> <span class="p">[</span><span class="n">ext</span><span class="p">]</span>
+
+<span class="n">cmdclass</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="k">if</span> <span class="n">py_limited_api</span><span class="p">:</span>
+<div class="viewcode-block" id="bdist_wheel_abi3">
+<a class="viewcode-back" href="../setup.html#setup.bdist_wheel_abi3">[docs]</a>
+    <span class="k">class</span> <span class="nc">bdist_wheel_abi3</span><span class="p">(</span><span class="n">bdist_wheel</span><span class="p">):</span>
+<div class="viewcode-block" id="bdist_wheel_abi3.get_tag">
+<a class="viewcode-back" href="../setup.html#setup.bdist_wheel_abi3.get_tag">[docs]</a>
+        <span class="k">def</span> <span class="nf">get_tag</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">python</span><span class="p">,</span> <span class="n">abi</span><span class="p">,</span> <span class="n">plat</span> <span class="o">=</span> <span class="n">bdist_wheel</span><span class="o">.</span><span class="n">get_tag</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">python</span><span class="p">,</span> <span class="s2">&quot;abi3&quot;</span><span class="p">,</span> <span class="n">plat</span></div>
+</div>
+
+
+    <span class="n">cmdclass</span><span class="p">[</span><span class="s2">&quot;bdist_wheel&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">bdist_wheel_abi3</span>
+
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../setup.html#setup.main">[docs]</a>
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;psutil&#39;</span><span class="p">,</span>
+        <span class="n">version</span><span class="o">=</span><span class="n">VERSION</span><span class="p">,</span>
+        <span class="n">cmdclass</span><span class="o">=</span><span class="n">cmdclass</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="vm">__doc__</span> <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">if</span> <span class="vm">__doc__</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">long_description</span><span class="o">=</span><span class="n">get_long_description</span><span class="p">(),</span>
+        <span class="n">long_description_content_type</span><span class="o">=</span><span class="s1">&#39;text/x-rst&#39;</span><span class="p">,</span>
+        <span class="n">keywords</span><span class="o">=</span><span class="p">[</span>
+            <span class="s1">&#39;ps&#39;</span><span class="p">,</span> <span class="s1">&#39;top&#39;</span><span class="p">,</span> <span class="s1">&#39;kill&#39;</span><span class="p">,</span> <span class="s1">&#39;free&#39;</span><span class="p">,</span> <span class="s1">&#39;lsof&#39;</span><span class="p">,</span> <span class="s1">&#39;netstat&#39;</span><span class="p">,</span> <span class="s1">&#39;nice&#39;</span><span class="p">,</span> <span class="s1">&#39;tty&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;ionice&#39;</span><span class="p">,</span> <span class="s1">&#39;uptime&#39;</span><span class="p">,</span> <span class="s1">&#39;taskmgr&#39;</span><span class="p">,</span> <span class="s1">&#39;process&#39;</span><span class="p">,</span> <span class="s1">&#39;df&#39;</span><span class="p">,</span> <span class="s1">&#39;iotop&#39;</span><span class="p">,</span> <span class="s1">&#39;iostat&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;ifconfig&#39;</span><span class="p">,</span> <span class="s1">&#39;taskset&#39;</span><span class="p">,</span> <span class="s1">&#39;who&#39;</span><span class="p">,</span> <span class="s1">&#39;pidof&#39;</span><span class="p">,</span> <span class="s1">&#39;pmap&#39;</span><span class="p">,</span> <span class="s1">&#39;smem&#39;</span><span class="p">,</span> <span class="s1">&#39;pstree&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;monitoring&#39;</span><span class="p">,</span> <span class="s1">&#39;ulimit&#39;</span><span class="p">,</span> <span class="s1">&#39;prlimit&#39;</span><span class="p">,</span> <span class="s1">&#39;smem&#39;</span><span class="p">,</span> <span class="s1">&#39;performance&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;metrics&#39;</span><span class="p">,</span> <span class="s1">&#39;agent&#39;</span><span class="p">,</span> <span class="s1">&#39;observability&#39;</span><span class="p">,</span>
+        <span class="p">],</span>
+        <span class="n">author</span><span class="o">=</span><span class="s1">&#39;Giampaolo Rodola&#39;</span><span class="p">,</span>
+        <span class="n">author_email</span><span class="o">=</span><span class="s1">&#39;g.rodola@gmail.com&#39;</span><span class="p">,</span>
+        <span class="n">url</span><span class="o">=</span><span class="s1">&#39;https://github.com/giampaolo/psutil&#39;</span><span class="p">,</span>
+        <span class="n">platforms</span><span class="o">=</span><span class="s1">&#39;Platform Independent&#39;</span><span class="p">,</span>
+        <span class="n">license</span><span class="o">=</span><span class="s1">&#39;BSD-3-Clause&#39;</span><span class="p">,</span>
+        <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;psutil&#39;</span><span class="p">,</span> <span class="s1">&#39;psutil.tests&#39;</span><span class="p">],</span>
+        <span class="n">ext_modules</span><span class="o">=</span><span class="n">extensions</span><span class="p">,</span>
+        <span class="n">classifiers</span><span class="o">=</span><span class="p">[</span>
+            <span class="s1">&#39;Development Status :: 5 - Production/Stable&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Environment :: Console&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Environment :: Win32 (MS Windows)&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Intended Audience :: Developers&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Intended Audience :: Information Technology&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Intended Audience :: System Administrators&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;License :: OSI Approved :: BSD License&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Operating System :: MacOS :: MacOS X&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Operating System :: Microsoft :: Windows :: Windows 10&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Operating System :: Microsoft :: Windows :: Windows 7&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Operating System :: Microsoft :: Windows :: Windows 8&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Operating System :: Microsoft :: Windows :: Windows 8.1&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Operating System :: Microsoft :: Windows :: Windows Server 2003&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Operating System :: Microsoft :: Windows :: Windows Server 2008&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Operating System :: Microsoft :: Windows :: Windows Vista&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Operating System :: Microsoft&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Operating System :: OS Independent&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Operating System :: POSIX :: AIX&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Operating System :: POSIX :: BSD :: FreeBSD&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Operating System :: POSIX :: BSD :: NetBSD&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Operating System :: POSIX :: BSD :: OpenBSD&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Operating System :: POSIX :: BSD&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Operating System :: POSIX :: Linux&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Operating System :: POSIX :: SunOS/Solaris&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Operating System :: POSIX&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Programming Language :: C&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Programming Language :: Python :: 2&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Programming Language :: Python :: 2.7&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Programming Language :: Python :: 3&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Programming Language :: Python :: Implementation :: CPython&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Programming Language :: Python :: Implementation :: PyPy&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Programming Language :: Python&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Topic :: Software Development :: Libraries :: Python Modules&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Topic :: Software Development :: Libraries&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Topic :: System :: Benchmark&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Topic :: System :: Hardware :: Hardware Drivers&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Topic :: System :: Hardware&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Topic :: System :: Monitoring&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Topic :: System :: Networking :: Monitoring :: Hardware Watchdog&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Topic :: System :: Networking :: Monitoring&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Topic :: System :: Networking&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Topic :: System :: Operating System&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Topic :: System :: Systems Administration&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Topic :: Utilities&#39;</span><span class="p">,</span>
+        <span class="p">],</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">setuptools</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+            <span class="n">python_requires</span><span class="o">=</span><span class="p">(</span>
+                <span class="s2">&quot;&gt;=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*&quot;</span><span class="p">),</span>
+            <span class="n">extras_require</span><span class="o">=</span><span class="n">extras_require</span><span class="p">,</span>
+            <span class="n">zip_safe</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="n">success</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">setup</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">success</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">success</span> <span class="ow">and</span> <span class="n">POSIX</span> <span class="ow">and</span> \
+                <span class="n">cmd</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s2">&quot;build&quot;</span><span class="p">,</span> <span class="s2">&quot;install&quot;</span><span class="p">,</span> <span class="s2">&quot;sdist&quot;</span><span class="p">,</span> <span class="s2">&quot;bdist&quot;</span><span class="p">,</span>
+                                <span class="s2">&quot;develop&quot;</span><span class="p">)):</span>
+            <span class="n">py3</span> <span class="o">=</span> <span class="s2">&quot;3&quot;</span> <span class="k">if</span> <span class="n">PY3</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+            <span class="k">if</span> <span class="n">LINUX</span><span class="p">:</span>
+                <span class="n">pyimpl</span> <span class="o">=</span> <span class="s2">&quot;pypy&quot;</span> <span class="k">if</span> <span class="n">PYPY</span> <span class="k">else</span> <span class="s2">&quot;python&quot;</span>
+                <span class="k">if</span> <span class="n">which</span><span class="p">(</span><span class="s1">&#39;dpkg&#39;</span><span class="p">):</span>
+                    <span class="n">missdeps</span><span class="p">(</span><span class="s2">&quot;sudo apt-get install gcc </span><span class="si">%s%s</span><span class="s2">-dev&quot;</span> <span class="o">%</span>
+                             <span class="p">(</span><span class="n">pyimpl</span><span class="p">,</span> <span class="n">py3</span><span class="p">))</span>
+                <span class="k">elif</span> <span class="n">which</span><span class="p">(</span><span class="s1">&#39;rpm&#39;</span><span class="p">):</span>
+                    <span class="n">missdeps</span><span class="p">(</span><span class="s2">&quot;sudo yum install gcc </span><span class="si">%s%s</span><span class="s2">-devel&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">pyimpl</span><span class="p">,</span> <span class="n">py3</span><span class="p">))</span>
+                <span class="k">elif</span> <span class="n">which</span><span class="p">(</span><span class="s1">&#39;apk&#39;</span><span class="p">):</span>
+                    <span class="n">missdeps</span><span class="p">(</span><span class="s2">&quot;sudo apk add gcc </span><span class="si">%s%s</span><span class="s2">-dev&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">pyimpl</span><span class="p">,</span> <span class="n">py3</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="n">MACOS</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">hilite</span><span class="p">(</span><span class="s2">&quot;XCode (https://developer.apple.com/xcode/) &quot;</span>
+                             <span class="s2">&quot;is not installed&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">),</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">FREEBSD</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">which</span><span class="p">(</span><span class="s1">&#39;pkg&#39;</span><span class="p">):</span>
+                    <span class="n">missdeps</span><span class="p">(</span><span class="s2">&quot;pkg install gcc python</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">py3</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">which</span><span class="p">(</span><span class="s1">&#39;mport&#39;</span><span class="p">):</span>   <span class="c1"># MidnightBSD</span>
+                    <span class="n">missdeps</span><span class="p">(</span><span class="s2">&quot;mport install gcc python</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">py3</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">OPENBSD</span><span class="p">:</span>
+                <span class="n">missdeps</span><span class="p">(</span><span class="s2">&quot;pkg_add -v gcc python</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">py3</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">NETBSD</span><span class="p">:</span>
+                <span class="n">missdeps</span><span class="p">(</span><span class="s2">&quot;pkgin install gcc python</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">py3</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">SUNOS</span><span class="p">:</span>
+                <span class="n">missdeps</span><span class="p">(</span><span class="s2">&quot;sudo ln -s /usr/bin/gcc /usr/local/bin/cc &amp;&amp; &quot;</span>
+                         <span class="s2">&quot;pkg install gcc&quot;</span><span class="p">)</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024, Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.15.4.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

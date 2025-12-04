@@ -1,0 +1,1249 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>libdebug.ptrace.ptrace_interface &#8212; libdebug 0.5.4 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/code-tabs.css?v=1bc26e2f" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../../_static/documentation_options.js?v=e1a677a5"></script>
+    <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/code-tabs.js?v=c983d12e"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/libdebug/ptrace/ptrace_interface';</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">libdebug 0.5.4 documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../basic_features.html">
+    Basic Features
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../breakpoints.html">
+    Breakpoints
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../handle_syscalls.html">
+    Syscalls
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../catch_signals.html">
+    Signals
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../multithreading.html">
+    Multithreading
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../quality_of_life.html">
+    Quality of Life
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../logging.html">
+    Logging
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../examples.html">
+    Code Examples
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../libdebug.html">
+    libdebug package
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <div class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../basic_features.html">
+    Basic Features
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../breakpoints.html">
+    Breakpoints
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../handle_syscalls.html">
+    Syscalls
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../catch_signals.html">
+    Signals
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../multithreading.html">
+    Multithreading
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quality_of_life.html">
+    Quality of Life
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../logging.html">
+    Logging
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples.html">
+    Code Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../libdebug.html">
+    libdebug package
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page">libdebug.ptr...</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for libdebug.ptrace.ptrace_interface</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># This file is part of libdebug Python library (https://github.com/libdebug/libdebug).</span>
+<span class="c1"># Copyright (c) 2023-2024 Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.</span>
+<span class="c1"># Licensed under the MIT license. See LICENSE file in the project root for details.</span>
+<span class="c1">#</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span> <span class="nn">errno</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pty</span>
+<span class="kn">import</span> <span class="nn">tty</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
+
+<span class="kn">from</span> <span class="nn">libdebug.architectures.ptrace_hardware_breakpoint_provider</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ptrace_hardware_breakpoint_manager_provider</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">libdebug.architectures.register_helper</span> <span class="kn">import</span> <span class="n">register_holder_provider</span>
+<span class="kn">from</span> <span class="nn">libdebug.cffi</span> <span class="kn">import</span> <span class="n">_ptrace_cffi</span>
+<span class="kn">from</span> <span class="nn">libdebug.data.breakpoint</span> <span class="kn">import</span> <span class="n">Breakpoint</span>
+<span class="kn">from</span> <span class="nn">libdebug.debugger.internal_debugger_instance_manager</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">extend_internal_debugger</span><span class="p">,</span>
+    <span class="n">provide_internal_debugger</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">libdebug.interfaces.debugging_interface</span> <span class="kn">import</span> <span class="n">DebuggingInterface</span>
+<span class="kn">from</span> <span class="nn">libdebug.liblog</span> <span class="kn">import</span> <span class="n">liblog</span>
+<span class="kn">from</span> <span class="nn">libdebug.ptrace.ptrace_status_handler</span> <span class="kn">import</span> <span class="n">PtraceStatusHandler</span>
+<span class="kn">from</span> <span class="nn">libdebug.state.thread_context</span> <span class="kn">import</span> <span class="n">ThreadContext</span>
+<span class="kn">from</span> <span class="nn">libdebug.utils.debugging_utils</span> <span class="kn">import</span> <span class="n">normalize_and_validate_address</span>
+<span class="kn">from</span> <span class="nn">libdebug.utils.elf_utils</span> <span class="kn">import</span> <span class="n">get_entry_point</span>
+<span class="kn">from</span> <span class="nn">libdebug.utils.pipe_manager</span> <span class="kn">import</span> <span class="n">PipeManager</span>
+<span class="kn">from</span> <span class="nn">libdebug.utils.process_utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">disable_self_aslr</span><span class="p">,</span>
+    <span class="n">get_process_maps</span><span class="p">,</span>
+    <span class="n">invalidate_process_cache</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">JUMPSTART_LOCATION</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span>
+    <span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span> <span class="o">/</span> <span class="s2">&quot;..&quot;</span> <span class="o">/</span> <span class="s2">&quot;..&quot;</span> <span class="o">/</span> <span class="s2">&quot;ptrace&quot;</span> <span class="o">/</span> <span class="s2">&quot;jumpstart&quot;</span> <span class="o">/</span> <span class="s2">&quot;jumpstart&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">(),</span>
+<span class="p">)</span>
+
+<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">os</span><span class="p">,</span> <span class="s2">&quot;posix_spawn&quot;</span><span class="p">):</span>
+    <span class="kn">from</span> <span class="nn">os</span> <span class="kn">import</span> <span class="n">POSIX_SPAWN_CLOSE</span><span class="p">,</span> <span class="n">POSIX_SPAWN_DUP2</span><span class="p">,</span> <span class="n">posix_spawn</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">libdebug.utils.posix_spawn</span> <span class="kn">import</span> <span class="p">(</span>
+        <span class="n">POSIX_SPAWN_CLOSE</span><span class="p">,</span>
+        <span class="n">POSIX_SPAWN_DUP2</span><span class="p">,</span>
+        <span class="n">posix_spawn</span><span class="p">,</span>
+    <span class="p">)</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">libdebug.architectures.ptrace_hardware_breakpoint_manager</span> <span class="kn">import</span> <span class="p">(</span>
+        <span class="n">PtraceHardwareBreakpointManager</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="kn">from</span> <span class="nn">libdebug.data.memory_map</span> <span class="kn">import</span> <span class="n">MemoryMap</span>
+    <span class="kn">from</span> <span class="nn">libdebug.data.signal_catcher</span> <span class="kn">import</span> <span class="n">SignalCatcher</span>
+    <span class="kn">from</span> <span class="nn">libdebug.data.syscall_handler</span> <span class="kn">import</span> <span class="n">SyscallHandler</span>
+    <span class="kn">from</span> <span class="nn">libdebug.debugger.internal_debugger</span> <span class="kn">import</span> <span class="n">InternalDebugger</span>
+
+
+<div class="viewcode-block" id="PtraceInterface">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_interface.PtraceInterface">[docs]</a>
+<span class="k">class</span> <span class="nc">PtraceInterface</span><span class="p">(</span><span class="n">DebuggingInterface</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The interface used by `_InternalDebugger` to communicate with the `ptrace` debugging backend.&quot;&quot;&quot;</span>
+
+    <span class="n">hardware_bp_helpers</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">PtraceHardwareBreakpointManager</span><span class="p">]</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The hardware breakpoint managers (one for each thread).&quot;&quot;&quot;</span>
+
+    <span class="n">process_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The process ID of the debugged process.&quot;&quot;&quot;</span>
+
+    <span class="n">detached</span><span class="p">:</span> <span class="nb">bool</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Whether the process was detached or not.&quot;&quot;&quot;</span>
+
+    <span class="n">_internal_debugger</span><span class="p">:</span> <span class="n">InternalDebugger</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The internal debugger instance.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">lib_trace</span> <span class="o">=</span> <span class="n">_ptrace_cffi</span><span class="o">.</span><span class="n">lib</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ffi</span> <span class="o">=</span> <span class="n">_ptrace_cffi</span><span class="o">.</span><span class="n">ffi</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span> <span class="o">=</span> <span class="n">provide_internal_debugger</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_global_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ffi</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s2">&quot;struct global_state*&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_global_state</span><span class="o">.</span><span class="n">t_HEAD</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ffi</span><span class="o">.</span><span class="n">NULL</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_global_state</span><span class="o">.</span><span class="n">dead_t_HEAD</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ffi</span><span class="o">.</span><span class="n">NULL</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_global_state</span><span class="o">.</span><span class="n">b_HEAD</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ffi</span><span class="o">.</span><span class="n">NULL</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">process_id</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">detached</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">hardware_bp_helpers</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_disabled_aslr</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+
+<div class="viewcode-block" id="PtraceInterface.reset">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_interface.PtraceInterface.reset">[docs]</a>
+    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Resets the state of the interface.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hardware_bp_helpers</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lib_trace</span><span class="o">.</span><span class="n">free_thread_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_state</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lib_trace</span><span class="o">.</span><span class="n">free_breakpoints</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_state</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_set_options</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Sets the tracer options.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lib_trace</span><span class="o">.</span><span class="n">ptrace_set_options</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">process_id</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PtraceInterface.run">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_interface.PtraceInterface.run">[docs]</a>
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Runs the specified process.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_disabled_aslr</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">aslr_enabled</span><span class="p">:</span>
+            <span class="n">disable_self_aslr</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_disabled_aslr</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="n">argv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">argv</span>
+        <span class="n">env</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">env</span>
+
+        <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;Running </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">argv</span><span class="p">)</span>
+
+        <span class="c1"># Setup ptrace wait status handler after debugging_context has been properly initialized</span>
+        <span class="k">with</span> <span class="n">extend_internal_debugger</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">status_handler</span> <span class="o">=</span> <span class="n">PtraceStatusHandler</span><span class="p">()</span>
+
+        <span class="c1"># Creating pipes for stdin, stdout, stderr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stdin_read</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stdin_write</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">pipe</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stdout_read</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stdout_write</span> <span class="o">=</span> <span class="n">pty</span><span class="o">.</span><span class="n">openpty</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stderr_read</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stderr_write</span> <span class="o">=</span> <span class="n">pty</span><span class="o">.</span><span class="n">openpty</span><span class="p">()</span>
+
+        <span class="c1"># Setting stdout, stderr to raw mode to avoid terminal control codes interfering with the</span>
+        <span class="c1"># output</span>
+        <span class="n">tty</span><span class="o">.</span><span class="n">setraw</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stdout_read</span><span class="p">)</span>
+        <span class="n">tty</span><span class="o">.</span><span class="n">setraw</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stderr_read</span><span class="p">)</span>
+
+        <span class="c1"># argv[1] is the length of the custom environment variables</span>
+        <span class="c1"># argv[2:2 + env_len] is the custom environment variables</span>
+        <span class="c1"># argv[2 + env_len] should be NULL</span>
+        <span class="c1"># argv[2 + env_len + 1:] is the new argv</span>
+        <span class="k">if</span> <span class="n">env</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">env_len</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="n">env</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">env_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">env</span><span class="p">)</span>
+
+        <span class="n">argv</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">JUMPSTART_LOCATION</span><span class="p">,</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">env_len</span><span class="p">),</span>
+            <span class="o">*</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">items</span><span class="p">()],</span>
+            <span class="s2">&quot;NULL&quot;</span><span class="p">,</span>
+            <span class="o">*</span><span class="n">argv</span><span class="p">,</span>
+        <span class="p">]</span>
+
+        <span class="n">child_pid</span> <span class="o">=</span> <span class="n">posix_spawn</span><span class="p">(</span>
+            <span class="n">JUMPSTART_LOCATION</span><span class="p">,</span>
+            <span class="n">argv</span><span class="p">,</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">,</span>
+            <span class="n">file_actions</span><span class="o">=</span><span class="p">[</span>
+                <span class="p">(</span><span class="n">POSIX_SPAWN_CLOSE</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stdin_write</span><span class="p">),</span>
+                <span class="p">(</span><span class="n">POSIX_SPAWN_CLOSE</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stdout_read</span><span class="p">),</span>
+                <span class="p">(</span><span class="n">POSIX_SPAWN_CLOSE</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stderr_read</span><span class="p">),</span>
+                <span class="p">(</span><span class="n">POSIX_SPAWN_DUP2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stdin_read</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="p">(</span><span class="n">POSIX_SPAWN_DUP2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stdout_write</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+                <span class="p">(</span><span class="n">POSIX_SPAWN_DUP2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stderr_write</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+                <span class="p">(</span><span class="n">POSIX_SPAWN_CLOSE</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stdin_read</span><span class="p">),</span>
+                <span class="p">(</span><span class="n">POSIX_SPAWN_CLOSE</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stdout_write</span><span class="p">),</span>
+                <span class="p">(</span><span class="n">POSIX_SPAWN_CLOSE</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stderr_write</span><span class="p">),</span>
+            <span class="p">],</span>
+            <span class="n">setpgroup</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">process_id</span> <span class="o">=</span> <span class="n">child_pid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">detached</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">process_id</span> <span class="o">=</span> <span class="n">child_pid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_new_thread</span><span class="p">(</span><span class="n">child_pid</span><span class="p">)</span>
+        <span class="n">continue_to_entry_point</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">autoreach_entrypoint</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_setup_parent</span><span class="p">(</span><span class="n">continue_to_entry_point</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">pipe_manager</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_setup_pipe</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="PtraceInterface.attach">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_interface.PtraceInterface.attach">[docs]</a>
+    <span class="k">def</span> <span class="nf">attach</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">,</span> <span class="n">pid</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Attaches to the specified process.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            pid (int): the pid of the process to attach to.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Setup ptrace wait status handler after debugging_context has been properly initialized</span>
+        <span class="k">with</span> <span class="n">extend_internal_debugger</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">status_handler</span> <span class="o">=</span> <span class="n">PtraceStatusHandler</span><span class="p">()</span>
+
+        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lib_trace</span><span class="o">.</span><span class="n">ptrace_attach</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">res</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">errno_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ffi</span><span class="o">.</span><span class="n">errno</span>
+            <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="n">errno_val</span><span class="p">,</span> <span class="n">errno</span><span class="o">.</span><span class="n">errorcode</span><span class="p">[</span><span class="n">errno_val</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">process_id</span> <span class="o">=</span> <span class="n">pid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">detached</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">process_id</span> <span class="o">=</span> <span class="n">pid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_new_thread</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+        <span class="c1"># If we are attaching to a process, we don&#39;t want to continue to the entry point</span>
+        <span class="c1"># which we have probably already passed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_setup_parent</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PtraceInterface.detach">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_interface.PtraceInterface.detach">[docs]</a>
+    <span class="k">def</span> <span class="nf">detach</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Detaches from the process.&quot;&quot;&quot;</span>
+        <span class="c1"># We must disable all breakpoints before detaching</span>
+        <span class="k">for</span> <span class="n">bp</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">breakpoints</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
+            <span class="k">if</span> <span class="n">bp</span><span class="o">.</span><span class="n">enabled</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">unset_breakpoint</span><span class="p">(</span><span class="n">bp</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">lib_trace</span><span class="o">.</span><span class="n">ptrace_detach_and_cont</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_id</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">detached</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="PtraceInterface.kill">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_interface.PtraceInterface.kill">[docs]</a>
+    <span class="k">def</span> <span class="nf">kill</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Instantly terminates the process.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">detached</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lib_trace</span><span class="o">.</span><span class="n">ptrace_detach_for_kill</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_id</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># If we detached from the process, there&#39;s no reason to attempt to detach again</span>
+            <span class="c1"># We can just kill the process</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">kill</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">process_id</span><span class="p">,</span> <span class="mi">9</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">waitpid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">process_id</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PtraceInterface.cont">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_interface.PtraceInterface.cont">[docs]</a>
+    <span class="k">def</span> <span class="nf">cont</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Continues the execution of the process.&quot;&quot;&quot;</span>
+
+        <span class="c1"># Forward signals to the threads</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">resume_context</span><span class="o">.</span><span class="n">threads_with_signals_to_forward</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">forward_signal</span><span class="p">()</span>
+
+        <span class="c1"># Enable all breakpoints if they were disabled for a single step</span>
+        <span class="n">changed</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">bp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">breakpoints</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">bp</span><span class="o">.</span><span class="n">_disabled_for_step</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="n">bp</span><span class="o">.</span><span class="n">_changed</span><span class="p">:</span>
+                <span class="n">changed</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bp</span><span class="p">)</span>
+                <span class="n">bp</span><span class="o">.</span><span class="n">_changed</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">for</span> <span class="n">bp</span> <span class="ow">in</span> <span class="n">changed</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">bp</span><span class="o">.</span><span class="n">enabled</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">set_breakpoint</span><span class="p">(</span><span class="n">bp</span><span class="p">,</span> <span class="n">insert</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">unset_breakpoint</span><span class="p">(</span><span class="n">bp</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">handler</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">handled_syscalls</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">handler</span><span class="o">.</span><span class="n">enabled</span> <span class="ow">or</span> <span class="n">handler</span><span class="o">.</span><span class="n">on_enter_pprint</span> <span class="ow">or</span> <span class="n">handler</span><span class="o">.</span><span class="n">on_exit_pprint</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_global_state</span><span class="o">.</span><span class="n">handle_syscall_enabled</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">break</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_global_state</span><span class="o">.</span><span class="n">handle_syscall_enabled</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lib_trace</span><span class="o">.</span><span class="n">cont_all_and_set_bps</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_global_state</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">process_id</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">result</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">errno_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ffi</span><span class="o">.</span><span class="n">errno</span>
+            <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="n">errno_val</span><span class="p">,</span> <span class="n">errno</span><span class="o">.</span><span class="n">errorcode</span><span class="p">[</span><span class="n">errno_val</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="PtraceInterface.step">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_interface.PtraceInterface.step">[docs]</a>
+    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">,</span> <span class="n">thread</span><span class="p">:</span> <span class="n">ThreadContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Executes a single instruction of the process.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            thread (ThreadContext): The thread to step.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Disable all breakpoints for the single step</span>
+        <span class="k">for</span> <span class="n">bp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">breakpoints</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">bp</span><span class="o">.</span><span class="n">_disabled_for_step</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lib_trace</span><span class="o">.</span><span class="n">singlestep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_state</span><span class="p">,</span> <span class="n">thread</span><span class="o">.</span><span class="n">thread_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">result</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">errno_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ffi</span><span class="o">.</span><span class="n">errno</span>
+            <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="n">errno_val</span><span class="p">,</span> <span class="n">errno</span><span class="o">.</span><span class="n">errorcode</span><span class="p">[</span><span class="n">errno_val</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">resume_context</span><span class="o">.</span><span class="n">is_a_step</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="PtraceInterface.step_until">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_interface.PtraceInterface.step_until">[docs]</a>
+    <span class="k">def</span> <span class="nf">step_until</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">,</span> <span class="n">thread</span><span class="p">:</span> <span class="n">ThreadContext</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">max_steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Executes instructions of the specified thread until the specified address is reached.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            thread (ThreadContext): The thread to step.</span>
+<span class="sd">            address (int): The address to reach.</span>
+<span class="sd">            max_steps (int): The maximum number of steps to execute.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Disable all breakpoints for the single step</span>
+        <span class="k">for</span> <span class="n">bp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">breakpoints</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">bp</span><span class="o">.</span><span class="n">_disabled_for_step</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lib_trace</span><span class="o">.</span><span class="n">step_until</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_global_state</span><span class="p">,</span>
+            <span class="n">thread</span><span class="o">.</span><span class="n">thread_id</span><span class="p">,</span>
+            <span class="n">address</span><span class="p">,</span>
+            <span class="n">max_steps</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">result</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">errno_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ffi</span><span class="o">.</span><span class="n">errno</span>
+            <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="n">errno_val</span><span class="p">,</span> <span class="n">errno</span><span class="o">.</span><span class="n">errorcode</span><span class="p">[</span><span class="n">errno_val</span><span class="p">])</span>
+
+        <span class="c1"># As the wait is done internally, we must invalidate the cache</span>
+        <span class="n">invalidate_process_cache</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="PtraceInterface.finish">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_interface.PtraceInterface.finish">[docs]</a>
+    <span class="k">def</span> <span class="nf">finish</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">,</span> <span class="n">thread</span><span class="p">:</span> <span class="n">ThreadContext</span><span class="p">,</span> <span class="n">heuristic</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Continues execution until the current function returns.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            thread (ThreadContext): The thread to step.</span>
+<span class="sd">            heuristic (str): The heuristic to use.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">heuristic</span> <span class="o">==</span> <span class="s2">&quot;step-mode&quot;</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lib_trace</span><span class="o">.</span><span class="n">stepping_finish</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_global_state</span><span class="p">,</span>
+                <span class="n">thread</span><span class="o">.</span><span class="n">thread_id</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">result</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="n">errno_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ffi</span><span class="o">.</span><span class="n">errno</span>
+                <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="n">errno_val</span><span class="p">,</span> <span class="n">errno</span><span class="o">.</span><span class="n">errorcode</span><span class="p">[</span><span class="n">errno_val</span><span class="p">])</span>
+
+            <span class="c1"># As the wait is done internally, we must invalidate the cache</span>
+            <span class="n">invalidate_process_cache</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">heuristic</span> <span class="o">==</span> <span class="s2">&quot;backtrace&quot;</span><span class="p">:</span>
+            <span class="c1"># Breakpoint to return address</span>
+            <span class="n">last_saved_instruction_pointer</span> <span class="o">=</span> <span class="n">thread</span><span class="o">.</span><span class="n">current_return_address</span><span class="p">()</span>
+
+            <span class="c1"># If a breakpoint already exists at the return address, we don&#39;t need to set a new one</span>
+            <span class="n">found</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">ip_breakpoint</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="k">for</span> <span class="n">bp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">breakpoints</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">bp</span><span class="o">.</span><span class="n">address</span> <span class="o">==</span> <span class="n">last_saved_instruction_pointer</span><span class="p">:</span>
+                    <span class="n">found</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="n">ip_breakpoint</span> <span class="o">=</span> <span class="n">bp</span>
+                    <span class="k">break</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">found</span><span class="p">:</span>
+                <span class="c1"># Check if we have enough hardware breakpoints available</span>
+                <span class="c1"># Otherwise we use a software breakpoint</span>
+                <span class="n">install_hw_bp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hardware_bp_helpers</span><span class="p">[</span><span class="n">thread</span><span class="o">.</span><span class="n">thread_id</span><span class="p">]</span><span class="o">.</span><span class="n">available_breakpoints</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+                <span class="n">ip_breakpoint</span> <span class="o">=</span> <span class="n">Breakpoint</span><span class="p">(</span><span class="n">last_saved_instruction_pointer</span><span class="p">,</span> <span class="n">hardware</span><span class="o">=</span><span class="n">install_hw_bp</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">set_breakpoint</span><span class="p">(</span><span class="n">ip_breakpoint</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="n">ip_breakpoint</span><span class="o">.</span><span class="n">enabled</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_enable_breakpoint</span><span class="p">(</span><span class="n">ip_breakpoint</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">cont</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+
+            <span class="c1"># Remove the breakpoint if it was set by us</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">found</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">unset_breakpoint</span><span class="p">(</span><span class="n">ip_breakpoint</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unimplemented heuristic </span><span class="si">{</span><span class="n">heuristic</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_setup_pipe</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Sets up the pipe manager for the child process.</span>
+
+<span class="sd">        Close the read end for stdin and the write ends for stdout and stderr</span>
+<span class="sd">        in the parent process since we are going to write to stdin and read from</span>
+<span class="sd">        stdout and stderr</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stdin_read</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stdout_write</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stderr_write</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="c1"># TODO: custom exception</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Closing fds failed: </span><span class="si">%r</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+        <span class="k">return</span> <span class="n">PipeManager</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stdin_write</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stdout_read</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stderr_read</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_setup_parent</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">,</span> <span class="n">continue_to_entry_point</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Sets up the parent process after the child process has been created or attached to.&quot;&quot;&quot;</span>
+        <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;Polling child process status&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">resume_context</span><span class="o">.</span><span class="n">is_startup</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">resume_context</span><span class="o">.</span><span class="n">is_startup</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;Child process ready, setting options&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_options</span><span class="p">()</span>
+        <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;Options set&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">continue_to_entry_point</span><span class="p">:</span>
+            <span class="c1"># Now that the process is running, we must continue until we have reached the entry point</span>
+            <span class="n">entry_point</span> <span class="o">=</span> <span class="n">get_entry_point</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+            <span class="c1"># For PIE binaries, the entry point is a relative address</span>
+            <span class="n">entry_point</span> <span class="o">=</span> <span class="n">normalize_and_validate_address</span><span class="p">(</span><span class="n">entry_point</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">maps</span><span class="p">())</span>
+
+            <span class="n">bp</span> <span class="o">=</span> <span class="n">Breakpoint</span><span class="p">(</span><span class="n">entry_point</span><span class="p">,</span> <span class="n">hardware</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_breakpoint</span><span class="p">(</span><span class="n">bp</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cont</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">unset_breakpoint</span><span class="p">(</span><span class="n">bp</span><span class="p">)</span>
+
+        <span class="n">invalidate_process_cache</span><span class="p">()</span>
+
+<div class="viewcode-block" id="PtraceInterface.wait">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_interface.PtraceInterface.wait">[docs]</a>
+    <span class="k">def</span> <span class="nf">wait</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Waits for the process to stop. Returns True if the wait has to be repeated.&quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lib_trace</span><span class="o">.</span><span class="n">wait_all_and_update_regs</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_global_state</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">process_id</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="n">result</span>
+
+        <span class="n">invalidate_process_cache</span><span class="p">()</span>
+
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">while</span> <span class="n">cursor</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ffi</span><span class="o">.</span><span class="n">NULL</span><span class="p">:</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">cursor</span><span class="o">.</span><span class="n">tid</span><span class="p">,</span> <span class="n">cursor</span><span class="o">.</span><span class="n">status</span><span class="p">))</span>
+            <span class="n">cursor</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">next</span>
+
+        <span class="c1"># Check the result of the waitpid and handle the changes.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status_handler</span><span class="o">.</span><span class="n">manage_change</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">lib_trace</span><span class="o">.</span><span class="n">free_thread_status_list</span><span class="p">(</span><span class="n">result</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PtraceInterface.forward_signal">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_interface.PtraceInterface.forward_signal">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward_signal</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the signals to forward to the threads.&quot;&quot;&quot;</span>
+        <span class="c1"># change the global_state</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_state</span><span class="o">.</span><span class="n">t_HEAD</span>
+        <span class="n">threads</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">resume_context</span><span class="o">.</span><span class="n">threads_with_signals_to_forward</span>
+
+        <span class="k">while</span> <span class="n">cursor</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ffi</span><span class="o">.</span><span class="n">NULL</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">cursor</span><span class="o">.</span><span class="n">tid</span> <span class="ow">in</span> <span class="n">threads</span><span class="p">:</span>
+                <span class="n">thread</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">get_thread_by_id</span><span class="p">(</span><span class="n">cursor</span><span class="o">.</span><span class="n">tid</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">thread</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="c1"># The thread is dead in the meantime</span>
+                    <span class="k">continue</span>
+                <span class="k">if</span> <span class="n">thread</span><span class="o">.</span><span class="n">_signal_number</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">thread</span><span class="o">.</span><span class="n">_signal_number</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">signals_to_block</span><span class="p">:</span>
+                    <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Forwarding signal </span><span class="si">{</span><span class="n">thread</span><span class="o">.</span><span class="n">_signal_number</span><span class="si">}</span><span class="s2"> to thread </span><span class="si">{</span><span class="n">cursor</span><span class="o">.</span><span class="n">tid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="c1"># Set the signal to forward</span>
+                    <span class="n">cursor</span><span class="o">.</span><span class="n">signal_to_forward</span> <span class="o">=</span> <span class="n">thread</span><span class="o">.</span><span class="n">_signal_number</span>
+                    <span class="c1"># Reset the signal to forward</span>
+                    <span class="n">thread</span><span class="o">.</span><span class="n">_signal_number</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">cursor</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">next</span>
+
+        <span class="c1"># Clear the list of threads with signals to forward</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">resume_context</span><span class="o">.</span><span class="n">threads_with_signals_to_forward</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="PtraceInterface.migrate_to_gdb">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_interface.PtraceInterface.migrate_to_gdb">[docs]</a>
+    <span class="k">def</span> <span class="nf">migrate_to_gdb</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Migrates the current process to GDB.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lib_trace</span><span class="o">.</span><span class="n">ptrace_detach_for_migration</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_id</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PtraceInterface.migrate_from_gdb">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_interface.PtraceInterface.migrate_from_gdb">[docs]</a>
+    <span class="k">def</span> <span class="nf">migrate_from_gdb</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Migrates the current process from GDB.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lib_trace</span><span class="o">.</span><span class="n">ptrace_reattach_from_gdb</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_id</span><span class="p">)</span>
+
+        <span class="n">invalidate_process_cache</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status_handler</span><span class="o">.</span><span class="n">check_for_new_threads</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">process_id</span><span class="p">)</span>
+
+        <span class="c1"># We have to reinstall any hardware breakpoint</span>
+        <span class="k">for</span> <span class="n">bp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">breakpoints</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">bp</span><span class="o">.</span><span class="n">hardware</span> <span class="ow">and</span> <span class="n">bp</span><span class="o">.</span><span class="n">enabled</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">helper</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hardware_bp_helpers</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                    <span class="n">helper</span><span class="o">.</span><span class="n">remove_breakpoint</span><span class="p">(</span><span class="n">bp</span><span class="p">)</span>
+                    <span class="n">helper</span><span class="o">.</span><span class="n">install_breakpoint</span><span class="p">(</span><span class="n">bp</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PtraceInterface.register_new_thread">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_interface.PtraceInterface.register_new_thread">[docs]</a>
+    <span class="k">def</span> <span class="nf">register_new_thread</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">,</span> <span class="n">new_thread_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Registers a new thread.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            new_thread_id (int): The new thread ID.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># The FFI implementation returns a pointer to the register file</span>
+        <span class="n">register_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lib_trace</span><span class="o">.</span><span class="n">register_thread</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_global_state</span><span class="p">,</span>
+            <span class="n">new_thread_id</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">register_holder</span> <span class="o">=</span> <span class="n">register_holder_provider</span><span class="p">(</span><span class="n">register_file</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">extend_internal_debugger</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="p">):</span>
+            <span class="n">thread</span> <span class="o">=</span> <span class="n">ThreadContext</span><span class="p">(</span><span class="n">new_thread_id</span><span class="p">,</span> <span class="n">register_holder</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">insert_new_thread</span><span class="p">(</span><span class="n">thread</span><span class="p">)</span>
+        <span class="n">thread_hw_bp_helper</span> <span class="o">=</span> <span class="n">ptrace_hardware_breakpoint_manager_provider</span><span class="p">(</span>
+            <span class="n">thread</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_peek_user</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_poke_user</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hardware_bp_helpers</span><span class="p">[</span><span class="n">new_thread_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">thread_hw_bp_helper</span>
+
+        <span class="c1"># For any hardware breakpoints, we need to reapply them to the new thread</span>
+        <span class="k">for</span> <span class="n">bp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">breakpoints</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">bp</span><span class="o">.</span><span class="n">hardware</span><span class="p">:</span>
+                <span class="n">thread_hw_bp_helper</span><span class="o">.</span><span class="n">install_breakpoint</span><span class="p">(</span><span class="n">bp</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PtraceInterface.unregister_thread">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_interface.PtraceInterface.unregister_thread">[docs]</a>
+    <span class="k">def</span> <span class="nf">unregister_thread</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">,</span>
+        <span class="n">thread_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">exit_code</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">exit_signal</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Unregisters a thread.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            thread_id (int): The thread ID.</span>
+<span class="sd">            exit_code (int): The exit code of the thread.</span>
+<span class="sd">            exit_signal (int): The exit signal of the thread.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lib_trace</span><span class="o">.</span><span class="n">unregister_thread</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_state</span><span class="p">,</span> <span class="n">thread_id</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">set_thread_as_dead</span><span class="p">(</span><span class="n">thread_id</span><span class="p">,</span> <span class="n">exit_code</span><span class="o">=</span><span class="n">exit_code</span><span class="p">,</span> <span class="n">exit_signal</span><span class="o">=</span><span class="n">exit_signal</span><span class="p">)</span>
+
+        <span class="c1"># Remove the hardware breakpoint manager for the thread</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hardware_bp_helpers</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">thread_id</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_set_sw_breakpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">,</span> <span class="n">bp</span><span class="p">:</span> <span class="n">Breakpoint</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Sets a software breakpoint at the specified address.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            bp (Breakpoint): The breakpoint to set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lib_trace</span><span class="o">.</span><span class="n">register_breakpoint</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_global_state</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">process_id</span><span class="p">,</span>
+            <span class="n">bp</span><span class="o">.</span><span class="n">address</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_unset_sw_breakpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">,</span> <span class="n">bp</span><span class="p">:</span> <span class="n">Breakpoint</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Unsets a software breakpoint at the specified address.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            bp (Breakpoint): The breakpoint to unset.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lib_trace</span><span class="o">.</span><span class="n">unregister_breakpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_state</span><span class="p">,</span> <span class="n">bp</span><span class="o">.</span><span class="n">address</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_enable_breakpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">,</span> <span class="n">bp</span><span class="p">:</span> <span class="n">Breakpoint</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Enables a breakpoint at the specified address.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            bp (Breakpoint): The breakpoint to enable.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lib_trace</span><span class="o">.</span><span class="n">enable_breakpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_state</span><span class="p">,</span> <span class="n">bp</span><span class="o">.</span><span class="n">address</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_disable_breakpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">,</span> <span class="n">bp</span><span class="p">:</span> <span class="n">Breakpoint</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Disables a breakpoint at the specified address.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            bp (Breakpoint): The breakpoint to disable.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lib_trace</span><span class="o">.</span><span class="n">disable_breakpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_state</span><span class="p">,</span> <span class="n">bp</span><span class="o">.</span><span class="n">address</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PtraceInterface.set_breakpoint">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_interface.PtraceInterface.set_breakpoint">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_breakpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">,</span> <span class="n">bp</span><span class="p">:</span> <span class="n">Breakpoint</span><span class="p">,</span> <span class="n">insert</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Sets a breakpoint at the specified address.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            bp (Breakpoint): The breakpoint to set.</span>
+<span class="sd">            insert (bool): Whether the breakpoint has to be inserted or just enabled.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">bp</span><span class="o">.</span><span class="n">hardware</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">helper</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hardware_bp_helpers</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                <span class="n">helper</span><span class="o">.</span><span class="n">install_breakpoint</span><span class="p">(</span><span class="n">bp</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">insert</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_set_sw_breakpoint</span><span class="p">(</span><span class="n">bp</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_enable_breakpoint</span><span class="p">(</span><span class="n">bp</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">insert</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">breakpoints</span><span class="p">[</span><span class="n">bp</span><span class="o">.</span><span class="n">address</span><span class="p">]</span> <span class="o">=</span> <span class="n">bp</span></div>
+
+
+<div class="viewcode-block" id="PtraceInterface.unset_breakpoint">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_interface.PtraceInterface.unset_breakpoint">[docs]</a>
+    <span class="k">def</span> <span class="nf">unset_breakpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">,</span> <span class="n">bp</span><span class="p">:</span> <span class="n">Breakpoint</span><span class="p">,</span> <span class="n">delete</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Restores the breakpoint at the specified address.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            bp (Breakpoint): The breakpoint to unset.</span>
+<span class="sd">            delete (bool): Whether the breakpoint has to be deleted or just disabled.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">bp</span><span class="o">.</span><span class="n">hardware</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">helper</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hardware_bp_helpers</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                <span class="n">helper</span><span class="o">.</span><span class="n">remove_breakpoint</span><span class="p">(</span><span class="n">bp</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">delete</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_unset_sw_breakpoint</span><span class="p">(</span><span class="n">bp</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_disable_breakpoint</span><span class="p">(</span><span class="n">bp</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">delete</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">breakpoints</span><span class="p">[</span><span class="n">bp</span><span class="o">.</span><span class="n">address</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="PtraceInterface.set_syscall_handler">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_interface.PtraceInterface.set_syscall_handler">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_syscall_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">,</span> <span class="n">handler</span><span class="p">:</span> <span class="n">SyscallHandler</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Sets a handler for a syscall.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            handler (HandledSyscall): The syscall to set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">handled_syscalls</span><span class="p">[</span><span class="n">handler</span><span class="o">.</span><span class="n">syscall_number</span><span class="p">]</span> <span class="o">=</span> <span class="n">handler</span></div>
+
+
+<div class="viewcode-block" id="PtraceInterface.unset_syscall_handler">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_interface.PtraceInterface.unset_syscall_handler">[docs]</a>
+    <span class="k">def</span> <span class="nf">unset_syscall_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">,</span> <span class="n">handler</span><span class="p">:</span> <span class="n">SyscallHandler</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Unsets a handler for a syscall.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            handler (HandledSyscall): The syscall to unset.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">handled_syscalls</span><span class="p">[</span><span class="n">handler</span><span class="o">.</span><span class="n">syscall_number</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="PtraceInterface.set_signal_catcher">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_interface.PtraceInterface.set_signal_catcher">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_signal_catcher</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">,</span> <span class="n">catcher</span><span class="p">:</span> <span class="n">SignalCatcher</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Sets a catcher for a signal.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            catcher (CaughtSignal): The signal to set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">caught_signals</span><span class="p">[</span><span class="n">catcher</span><span class="o">.</span><span class="n">signal_number</span><span class="p">]</span> <span class="o">=</span> <span class="n">catcher</span></div>
+
+
+<div class="viewcode-block" id="PtraceInterface.unset_signal_catcher">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_interface.PtraceInterface.unset_signal_catcher">[docs]</a>
+    <span class="k">def</span> <span class="nf">unset_signal_catcher</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">,</span> <span class="n">catcher</span><span class="p">:</span> <span class="n">SignalCatcher</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Unset a catcher for a signal.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            catcher (CaughtSignal): The signal to unset.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">caught_signals</span><span class="p">[</span><span class="n">catcher</span><span class="o">.</span><span class="n">signal_number</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="PtraceInterface.peek_memory">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_interface.PtraceInterface.peek_memory">[docs]</a>
+    <span class="k">def</span> <span class="nf">peek_memory</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reads the memory at the specified address.&quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lib_trace</span><span class="o">.</span><span class="n">ptrace_peekdata</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">process_id</span><span class="p">,</span> <span class="n">address</span><span class="p">)</span>
+        <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span>
+            <span class="s2">&quot;PEEKDATA at address </span><span class="si">%d</span><span class="s2"> returned with result </span><span class="si">%x</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">address</span><span class="p">,</span>
+            <span class="n">result</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">error</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ffi</span><span class="o">.</span><span class="n">errno</span>
+        <span class="k">if</span> <span class="n">error</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">errno</span><span class="o">.</span><span class="n">errorcode</span><span class="p">[</span><span class="n">error</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="PtraceInterface.poke_memory">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_interface.PtraceInterface.poke_memory">[docs]</a>
+    <span class="k">def</span> <span class="nf">poke_memory</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Writes the memory at the specified address.&quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lib_trace</span><span class="o">.</span><span class="n">ptrace_pokedata</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">process_id</span><span class="p">,</span> <span class="n">address</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span>
+            <span class="s2">&quot;POKEDATA at address </span><span class="si">%d</span><span class="s2"> returned with result </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">address</span><span class="p">,</span>
+            <span class="n">result</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">result</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">error</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ffi</span><span class="o">.</span><span class="n">errno</span>
+            <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">errno</span><span class="o">.</span><span class="n">errorcode</span><span class="p">[</span><span class="n">error</span><span class="p">])</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_peek_user</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">,</span> <span class="n">thread_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reads the memory at the specified address.&quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lib_trace</span><span class="o">.</span><span class="n">ptrace_peekuser</span><span class="p">(</span><span class="n">thread_id</span><span class="p">,</span> <span class="n">address</span><span class="p">)</span>
+        <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span>
+            <span class="s2">&quot;PEEKUSER at address </span><span class="si">%d</span><span class="s2"> returned with result </span><span class="si">%x</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">address</span><span class="p">,</span>
+            <span class="n">result</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">error</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ffi</span><span class="o">.</span><span class="n">errno</span>
+        <span class="k">if</span> <span class="n">error</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">errno</span><span class="o">.</span><span class="n">errorcode</span><span class="p">[</span><span class="n">error</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">_poke_user</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">,</span> <span class="n">thread_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Writes the memory at the specified address.&quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lib_trace</span><span class="o">.</span><span class="n">ptrace_pokeuser</span><span class="p">(</span><span class="n">thread_id</span><span class="p">,</span> <span class="n">address</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span>
+            <span class="s2">&quot;POKEUSER at address </span><span class="si">%d</span><span class="s2"> returned with result </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">address</span><span class="p">,</span>
+            <span class="n">result</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">result</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">error</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ffi</span><span class="o">.</span><span class="n">errno</span>
+            <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">errno</span><span class="o">.</span><span class="n">errorcode</span><span class="p">[</span><span class="n">error</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">_get_event_msg</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">,</span> <span class="n">thread_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the event message.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">lib_trace</span><span class="o">.</span><span class="n">ptrace_geteventmsg</span><span class="p">(</span><span class="n">thread_id</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PtraceInterface.maps">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_interface.PtraceInterface.maps">[docs]</a>
+    <span class="k">def</span> <span class="nf">maps</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceInterface</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">MemoryMap</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the memory maps of the process.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">get_process_maps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">process_id</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024, Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.0.2.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.15.4.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

@@ -1,0 +1,62 @@
+div.tabs > ul.tabbar {
+	margin: 0;
+	padding: 0;
+	display: block;
+	list-style-type: none;
+	overflow: hidden;
+  border: none;
+  font-size: smaller;
+  color: #ffffff;
+}
+
+div.tabs > ul.tabbar > li.tabbutton {
+	margin: 0 5px 0 0;
+	padding: 0px 10px;
+	display: block;
+	cursor: pointer;
+	font-weight: bold;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  border: 1px solid #e1e4e5;
+  border-bottom: none;
+  background-color: #888;
+  float: left;
+  outline: none;
+  transition: 0.3s;
+}
+
+div.tabs > ul.tabbar > li.tabbutton:first-of-type {
+	margin-left: 2px;
+}
+div.tabs > ul.tabbar > li.tabbutton:last-of-type {
+	margin-right: 0;
+}
+div.tabs > ul.tabbar li.tabbutton:hover {
+  background-color: #606060;
+}
+div.tabs > ul.tabbar > li.tabbutton.selected {
+  background-color: #303030;
+  border-color: #4070a0;
+  border-size: 2px;
+}
+div.tabs > ul.tabbar > li.tabbutton.selected:hover {
+	background-color: #606060;
+}
+
+div.tabs > div.codetab > div {
+	margin-top: 0;
+  margin-bottom: 24px;
+  border: 1px solid #e1e4e5;
+}
+
+div.tabs > div.texttab > div {
+	padding: 12px;
+}
+
+div.tabs > div.texttab > div > :last-child {
+  margin-bottom: 0;
+}
+
+div.tabs > div.tab:not(.selected) {
+  display: none;
+}

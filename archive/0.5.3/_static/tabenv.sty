@@ -1,0 +1,39 @@
+% This provides a dumbed down version of the sphinxVerbatim environment for
+% normal (non-verbatim) latex content. When (not if) this breaks in a future
+% sphinx release, see the original file for reference:
+%
+%   sphinx/texinputs/sphinxlatexliteralliterals.sty
+%
+% I have removed most option handling etc, in order to hopefully keep it
+% compatible for a longer time.
+
+\ProvidesFile{tabenv.sty}[2021/11/28 tab boxes]
+
+\RequirePackage{sphinxlatexliterals}
+\usepackage{lipsum}
+
+\newenvironment{tab}{%
+  \parskip\z@skip
+  \vskip\spx@abovecaptionskip
+  %
+  % Write caption (used by sphinxVerbatim@FrameCommand):
+  \def\sphinxVerbatim@Before
+      {\sphinxVerbatim@Title\nointerlineskip
+       \kern\dimexpr-\dp\strutbox+\sphinxbelowcaptionspace
+       \relax}%
+  %
+  % Setup Caption
+  \def\@captype{literalblock}%
+  \capstart
+  \setbox\sphinxVerbatim@TitleBox
+  \hbox{\begin{minipage}{\linewidth}\sphinxVerbatimTitle\end{minipage}}
+  \global\let\sphinxVerbatimTitle\empty
+  \fboxsep\sphinxverbatimsep \fboxrule\sphinxverbatimborder
+  %
+  \let\FrameCommand     \sphinxVerbatim@FrameCommand
+  \let\FirstFrameCommand\sphinxVerbatim@FirstFrameCommand
+  \let\MidFrameCommand  \sphinxVerbatim@MidFrameCommand
+  \let\LastFrameCommand \sphinxVerbatim@LastFrameCommand
+  %
+  \MakeFramed {\FrameRestore}}%
+{\endMakeFramed}

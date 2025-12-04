@@ -1,0 +1,752 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Code Examples &#8212; libdebug 0.5.3 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="_static/code-tabs.css?v=1bc26e2f" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="_static/documentation_options.js?v=2a2fe768"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/code-tabs.js?v=c983d12e"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples';</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="libdebug package" href="libdebug.html" />
+    <link rel="prev" title="Logging" href="logging.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">libdebug 0.5.3 documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="basic_features.html">
+    Basic Features
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="breakpoints.html">
+    Breakpoints
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="handle_syscalls.html">
+    Syscalls
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="catch_signals.html">
+    Signals
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="multithreading.html">
+    Multithreading
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="quality_of_life.html">
+    Quality of Life
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="logging.html">
+    Logging
+  </a>
+</li>
+
+
+<li class=" current active">
+  <a class="nav-link dropdown-item nav-internal" href="#">
+    Code Examples
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="libdebug.html">
+    libdebug package
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="basic_features.html">
+    Basic Features
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="breakpoints.html">
+    Breakpoints
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="handle_syscalls.html">
+    Syscalls
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="catch_signals.html">
+    Signals
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="multithreading.html">
+    Multithreading
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="quality_of_life.html">
+    Quality of Life
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="logging.html">
+    Logging
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Code Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="libdebug.html">
+    libdebug package
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"></div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">Code Examples</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="code-examples">
+<h1>Code Examples<a class="headerlink" href="#code-examples" title="Link to this heading">#</a></h1>
+<p>This section contains some examples of how to use libdebug. They are either snippets taken from our write-ups of CTF challenges, or ad-hoc examples. Please find the binary executables in the test/binaries folder.</p>
+<section id="cyberchallenge-it-2024-workshop">
+<h2>CyberChallenge.IT 2024 - Workshop<a class="headerlink" href="#cyberchallenge-it-2024-workshop" title="Link to this heading">#</a></h2>
+<p>This script was used to show the various features of libdebug during the Workshop at the CyberChallenge.IT 2024 Finals.
+An explanation of the script, along with a brief introduction to libdebug, is available in the <a class="reference external" href="https://www.youtube.com/live/Ten8S50Fy7s?si=w8usHtnN5v6FWipQ&amp;t=8253">official stream of the event</a>, starting from 2:17:00.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">libdebug</span> <span class="kn">import</span> <span class="n">debugger</span>
+<span class="kn">from</span> <span class="nn">string</span> <span class="kn">import</span> <span class="n">ascii_letters</span><span class="p">,</span> <span class="n">digits</span>
+
+
+<span class="c1"># Enable the escape_antidebug option to bypass the ptrace call</span>
+<span class="n">d</span> <span class="o">=</span> <span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;main&quot;</span><span class="p">,</span> <span class="n">escape_antidebug</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">callback</span><span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">__</span><span class="p">):</span>
+    <span class="c1"># This will automatically issue a continue when the breakpoint is hit</span>
+    <span class="k">pass</span>
+
+<span class="k">def</span> <span class="nf">on_enter_nanosleep</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">_</span><span class="p">):</span>
+    <span class="c1"># This sets every argument to NULL to make the syscall fail</span>
+    <span class="n">t</span><span class="o">.</span><span class="n">syscall_arg0</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">t</span><span class="o">.</span><span class="n">syscall_arg1</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">t</span><span class="o">.</span><span class="n">syscall_arg2</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">t</span><span class="o">.</span><span class="n">syscall_arg3</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="n">alphabet</span> <span class="o">=</span> <span class="n">ascii_letters</span> <span class="o">+</span> <span class="n">digits</span> <span class="o">+</span> <span class="s2">&quot;_</span><span class="si">{}</span><span class="s2">&quot;</span>
+
+<span class="n">flag</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;&quot;</span>
+<span class="n">best_hit_count</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">alphabet</span><span class="p">:</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+
+        <span class="c1"># Any time we call run() we have to reset the breakpoint and syscall handler</span>
+        <span class="n">bp</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">breakpoint</span><span class="p">(</span><span class="mh">0x13e1</span><span class="p">,</span> <span class="n">hardware</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="n">callback</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="s2">&quot;binary&quot;</span><span class="p">)</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">handle_syscall</span><span class="p">(</span><span class="s2">&quot;clock_nanosleep&quot;</span><span class="p">,</span> <span class="n">on_enter</span><span class="o">=</span><span class="n">on_enter_nanosleep</span><span class="p">)</span>
+
+        <span class="n">d</span><span class="o">.</span><span class="n">cont</span><span class="p">()</span>
+
+        <span class="n">r</span><span class="o">.</span><span class="n">sendline</span><span class="p">(</span><span class="n">flag</span> <span class="o">+</span> <span class="n">c</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+
+        <span class="c1"># This makes the debugger wait for the process to terminate</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+
+        <span class="n">response</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">recvline</span><span class="p">()</span>
+
+        <span class="c1"># `run()` will automatically kill any still-running process, but it&#39;s good practice to do it manually</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">kill</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="sa">b</span><span class="s2">&quot;Yeah&quot;</span> <span class="ow">in</span> <span class="n">response</span><span class="p">:</span>
+            <span class="c1"># The flag is correct</span>
+            <span class="n">flag</span> <span class="o">+=</span> <span class="n">c</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">flag</span><span class="p">)</span>
+            <span class="k">break</span>
+
+        <span class="k">if</span> <span class="n">bp</span><span class="o">.</span><span class="n">hit_count</span> <span class="o">&gt;</span> <span class="n">best_hit_count</span><span class="p">:</span>
+            <span class="c1"># We have found a new flag character</span>
+            <span class="n">best_hit_count</span> <span class="o">=</span> <span class="n">bp</span><span class="o">.</span><span class="n">hit_count</span>
+            <span class="n">flag</span> <span class="o">+=</span> <span class="n">c</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">flag</span><span class="p">)</span>
+            <span class="k">break</span>
+
+    <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="s2">&quot;}&quot;</span><span class="p">:</span>
+        <span class="k">break</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">flag</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="defcon-quals-2023-nlinks">
+<h2>DEFCON Quals 2023 - nlinks<a class="headerlink" href="#defcon-quals-2023-nlinks" title="Link to this heading">#</a></h2>
+<p>This is a script that solves the challenge <a class="reference external" href="https://github.com/Nautilus-Institute/quals-2023/tree/main/nlinks">nlinks</a> from DEFCON Quals 2023. Please find the binary executables in the test/CTF folder.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">get_passsphrase_from_class_1_binaries</span><span class="p">(</span><span class="n">previous_flag</span><span class="p">):</span>
+    <span class="n">flag</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;&quot;</span>
+
+    <span class="n">d</span> <span class="o">=</span> <span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;CTF/1&quot;</span><span class="p">)</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+
+    <span class="n">bp</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">breakpoint</span><span class="p">(</span><span class="mh">0x7EF1</span><span class="p">,</span> <span class="n">hardware</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="s2">&quot;binary&quot;</span><span class="p">)</span>
+
+    <span class="n">d</span><span class="o">.</span><span class="n">cont</span><span class="p">()</span>
+
+    <span class="n">r</span><span class="o">.</span><span class="n">recvuntil</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;Passphrase:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># We send a fake flag after the valid password</span>
+    <span class="n">r</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">previous_flag</span> <span class="o">+</span> <span class="sa">b</span><span class="s2">&quot;a&quot;</span> <span class="o">*</span> <span class="mi">8</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">8</span><span class="p">):</span>
+        <span class="c1"># Here we reached the breakpoint</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">bp</span><span class="o">.</span><span class="n">hit_on</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Here we should have hit the breakpoint&quot;</span><span class="p">)</span>
+
+        <span class="n">offset</span> <span class="o">=</span> <span class="nb">ord</span><span class="p">(</span><span class="s2">&quot;a&quot;</span><span class="p">)</span> <span class="o">^</span> <span class="n">d</span><span class="o">.</span><span class="n">regs</span><span class="o">.</span><span class="n">rbp</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">regs</span><span class="o">.</span><span class="n">rbp</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">regs</span><span class="o">.</span><span class="n">r13</span>
+
+        <span class="c1"># We calculate the correct character value and append it to the flag</span>
+        <span class="n">flag</span> <span class="o">+=</span> <span class="p">(</span><span class="n">offset</span> <span class="o">^</span> <span class="n">d</span><span class="o">.</span><span class="n">regs</span><span class="o">.</span><span class="n">r13</span><span class="p">)</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;little&quot;</span><span class="p">)</span>
+
+        <span class="n">d</span><span class="o">.</span><span class="n">cont</span><span class="p">()</span>
+
+    <span class="n">r</span><span class="o">.</span><span class="n">recvline</span><span class="p">()</span>
+
+    <span class="n">d</span><span class="o">.</span><span class="n">kill</span><span class="p">()</span>
+
+    <span class="c1"># Here the value of flag is b&quot;\x00\x006\x00\x00\x00(\x00&quot;</span>
+    <span class="k">return</span> <span class="n">flag</span>
+
+<span class="k">def</span> <span class="nf">get_passsphrase_from_class_2_binaries</span><span class="p">(</span><span class="n">previous_flag</span><span class="p">):</span>
+    <span class="n">bitmap</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">lastpos</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">flag</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;&quot;</span>
+
+    <span class="n">d</span> <span class="o">=</span> <span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;CTF/2&quot;</span><span class="p">)</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+
+    <span class="n">bp1</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">breakpoint</span><span class="p">(</span><span class="mh">0xD8C1</span><span class="p">,</span> <span class="n">hardware</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="s2">&quot;binary&quot;</span><span class="p">)</span>
+    <span class="n">bp2</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">breakpoint</span><span class="p">(</span><span class="mh">0x1858</span><span class="p">,</span> <span class="n">hardware</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="s2">&quot;binary&quot;</span><span class="p">)</span>
+    <span class="n">bp3</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">breakpoint</span><span class="p">(</span><span class="mh">0xDBA1</span><span class="p">,</span> <span class="n">hardware</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="s2">&quot;binary&quot;</span><span class="p">)</span>
+
+    <span class="n">d</span><span class="o">.</span><span class="n">cont</span><span class="p">()</span>
+
+    <span class="n">r</span><span class="o">.</span><span class="n">recvuntil</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;Passphrase:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">r</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">previous_flag</span> <span class="o">+</span> <span class="sa">b</span><span class="s2">&quot;a&quot;</span> <span class="o">*</span> <span class="mi">8</span><span class="p">)</span>
+
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">regs</span><span class="o">.</span><span class="n">rip</span> <span class="o">==</span> <span class="n">bp1</span><span class="o">.</span><span class="n">address</span><span class="p">:</span>
+            <span class="c1"># Prepare for the next element in the bitmap</span>
+            <span class="n">lastpos</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">regs</span><span class="o">.</span><span class="n">rbp</span>
+            <span class="n">d</span><span class="o">.</span><span class="n">regs</span><span class="o">.</span><span class="n">rbp</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">regs</span><span class="o">.</span><span class="n">r13</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="n">d</span><span class="o">.</span><span class="n">regs</span><span class="o">.</span><span class="n">rip</span> <span class="o">==</span> <span class="n">bp2</span><span class="o">.</span><span class="n">address</span><span class="p">:</span>
+            <span class="c1"># Update the bitmap</span>
+            <span class="n">bitmap</span><span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">regs</span><span class="o">.</span><span class="n">r12</span> <span class="o">&amp;</span> <span class="mh">0xFF</span><span class="p">]</span> <span class="o">=</span> <span class="n">lastpos</span> <span class="o">&amp;</span> <span class="mh">0xFF</span>
+        <span class="k">elif</span> <span class="n">d</span><span class="o">.</span><span class="n">regs</span><span class="o">.</span><span class="n">rip</span> <span class="o">==</span> <span class="n">bp3</span><span class="o">.</span><span class="n">address</span><span class="p">:</span>
+            <span class="c1"># Use the bitmap to calculate the expected character</span>
+            <span class="n">d</span><span class="o">.</span><span class="n">regs</span><span class="o">.</span><span class="n">rbp</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">regs</span><span class="o">.</span><span class="n">r13</span>
+            <span class="n">wanted</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">regs</span><span class="o">.</span><span class="n">rbp</span>
+            <span class="n">needed</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">8</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">wanted</span> <span class="o">&amp;</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">i</span><span class="p">):</span>
+                    <span class="n">needed</span> <span class="o">|=</span> <span class="n">bitmap</span><span class="p">[</span><span class="mi">2</span><span class="o">**</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">flag</span> <span class="o">+=</span> <span class="nb">chr</span><span class="p">(</span><span class="n">needed</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">bp3</span><span class="o">.</span><span class="n">hit_count</span> <span class="o">==</span> <span class="mi">8</span><span class="p">:</span>
+                <span class="c1"># We have found all the characters</span>
+                <span class="n">d</span><span class="o">.</span><span class="n">cont</span><span class="p">()</span>
+                <span class="k">break</span>
+
+        <span class="n">d</span><span class="o">.</span><span class="n">cont</span><span class="p">()</span>
+
+    <span class="n">d</span><span class="o">.</span><span class="n">kill</span><span class="p">()</span>
+
+    <span class="c1"># Here the value of flag is b&quot;\x00\x00\x00\x01\x00\x00a\x00&quot;</span>
+    <span class="k">return</span> <span class="n">flag</span>
+
+<span class="k">def</span> <span class="nf">get_passsphrase_from_class_3_binaries</span><span class="p">():</span>
+    <span class="n">flag</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;&quot;</span>
+
+    <span class="n">d</span> <span class="o">=</span> <span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;CTF/0&quot;</span><span class="p">)</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+
+    <span class="n">bp</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">breakpoint</span><span class="p">(</span><span class="mh">0x91A1</span><span class="p">,</span> <span class="n">hardware</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="s2">&quot;binary&quot;</span><span class="p">)</span>
+
+    <span class="n">d</span><span class="o">.</span><span class="n">cont</span><span class="p">()</span>
+
+    <span class="n">r</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;a&quot;</span> <span class="o">*</span> <span class="mi">8</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">8</span><span class="p">):</span>
+
+        <span class="c1"># Here we reached the breakpoint</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">bp</span><span class="o">.</span><span class="n">hit_on</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Here we should have hit the breakpoint&quot;</span><span class="p">)</span>
+
+        <span class="n">offset</span> <span class="o">=</span> <span class="nb">ord</span><span class="p">(</span><span class="s2">&quot;a&quot;</span><span class="p">)</span> <span class="o">-</span> <span class="n">d</span><span class="o">.</span><span class="n">regs</span><span class="o">.</span><span class="n">rbp</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">regs</span><span class="o">.</span><span class="n">rbp</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">regs</span><span class="o">.</span><span class="n">r13</span>
+
+        <span class="c1"># We calculate the correct character value and append it to the flag</span>
+        <span class="n">flag</span> <span class="o">+=</span> <span class="nb">chr</span><span class="p">((</span><span class="n">d</span><span class="o">.</span><span class="n">regs</span><span class="o">.</span><span class="n">r13</span> <span class="o">+</span> <span class="n">offset</span><span class="p">)</span> <span class="o">%</span> <span class="mi">256</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;latin-1&quot;</span><span class="p">)</span>
+
+        <span class="n">d</span><span class="o">.</span><span class="n">cont</span><span class="p">()</span>
+
+    <span class="n">r</span><span class="o">.</span><span class="n">recvline</span><span class="p">()</span>
+
+    <span class="n">d</span><span class="o">.</span><span class="n">kill</span><span class="p">()</span>
+
+    <span class="c1"># Here the value of flag is b&quot;BM8\xd3\x02\x00\x00\x00&quot;</span>
+    <span class="k">return</span> <span class="n">flag</span>
+
+<span class="k">def</span> <span class="nf">run_nlinks</span><span class="p">():</span>
+    <span class="n">flag0</span> <span class="o">=</span> <span class="n">get_passsphrase_from_class_3_binaries</span><span class="p">()</span>
+    <span class="n">flag1</span> <span class="o">=</span> <span class="n">get_passsphrase_from_class_1_binaries</span><span class="p">(</span><span class="n">flag0</span><span class="p">)</span>
+    <span class="n">flag2</span> <span class="o">=</span> <span class="n">get_passsphrase_from_class_2_binaries</span><span class="p">(</span><span class="n">flag1</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="n">flag0</span><span class="p">,</span> <span class="n">flag1</span><span class="p">,</span> <span class="n">flag2</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="logging.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Logging</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="libdebug.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">libdebug package</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cyberchallenge-it-2024-workshop">CyberChallenge.IT 2024 - Workshop</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#defcon-quals-2023-nlinks">DEFCON Quals 2023 - nlinks</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="_sources/examples.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024, Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.4.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.15.4.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

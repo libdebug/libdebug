@@ -1,0 +1,812 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>libdebug.architectures.amd64 package &#8212; libdebug 0.5.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=362ab14a" />
+    <link rel="stylesheet" type="text/css" href="_static/code-tabs.css?v=1bc26e2f" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="_static/documentation_options.js?v=1dd76d02"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/code-tabs.js?v=c983d12e"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'libdebug.architectures.amd64';</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="libdebug.builtin package" href="libdebug.builtin.html" />
+    <link rel="prev" title="libdebug.architectures package" href="libdebug.architectures.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">libdebug 0.5.0 documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="basic_features.html">
+    Basic Features
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="breakpoints.html">
+    Breakpoints
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="handle_syscalls.html">
+    Syscalls
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="catch_signals.html">
+    Signals
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="multithreading.html">
+    Multithreading
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="quality_of_life.html">
+    Quality of Life
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="logging.html">
+    Logging
+  </a>
+</li>
+
+
+<li class=" current active">
+  <a class="nav-link dropdown-item nav-internal" href="libdebug.html">
+    libdebug package
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="basic_features.html">
+    Basic Features
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="breakpoints.html">
+    Breakpoints
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="handle_syscalls.html">
+    Syscalls
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="catch_signals.html">
+    Signals
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="multithreading.html">
+    Multithreading
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="quality_of_life.html">
+    Quality of Life
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="logging.html">
+    Logging
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="libdebug.html">
+    libdebug package
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="libdebug.architectures.html">libdebug.architectures package</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">libdebug.architectures.amd64 package</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="libdebug.builtin.html">libdebug.builtin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="libdebug.cffi.html">libdebug.cffi package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="libdebug.data.html">libdebug.data package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="libdebug.debugger.html">libdebug.debugger package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="libdebug.interfaces.html">libdebug.interfaces package</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="libdebug.ptrace.html">libdebug.ptrace package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="libdebug.ptrace.jumpstart.html">libdebug.ptrace.jumpstart package</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="libdebug.state.html">libdebug.state package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="libdebug.utils.html">libdebug.utils package</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="libdebug.html" class="nav-link">libdebug package</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="libdebug.architectures.html" class="nav-link">libdebug.architectures package</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page">libdebug.arc...</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="libdebug-architectures-amd64-package">
+<h1>libdebug.architectures.amd64 package<a class="headerlink" href="#libdebug-architectures-amd64-package" title="Link to this heading">#</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">#</a></h2>
+</section>
+<section id="module-libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper">
+<span id="libdebug-architectures-amd64-amd64-ptrace-hw-bp-helper-module"></span><h2>libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper module<a class="headerlink" href="#module-libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.</span></span><span class="sig-name descname"><span class="pre">Amd64PtraceHardwareBreakpointManager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">thread</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="libdebug.state.html#libdebug.state.thread_context.ThreadContext" title="libdebug.state.thread_context.ThreadContext"><span class="pre">ThreadContext</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">peek_user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">poke_user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libdebug/architectures/amd64/amd64_ptrace_hw_bp_helper.html#Amd64PtraceHardwareBreakpointManager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="libdebug.architectures.html#libdebug.architectures.ptrace_hardware_breakpoint_manager.PtraceHardwareBreakpointManager" title="libdebug.architectures.ptrace_hardware_breakpoint_manager.PtraceHardwareBreakpointManager"><code class="xref py py-class docutils literal notranslate"><span class="pre">PtraceHardwareBreakpointManager</span></code></a></p>
+<p>A hardware breakpoint manager for the amd64 architecture.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.thread">
+<span class="sig-name descname"><span class="pre">thread</span></span><a class="headerlink" href="#libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.thread" title="Link to this definition">#</a></dt>
+<dd><p>The target thread.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="libdebug.state.html#libdebug.state.thread_context.ThreadContext" title="libdebug.state.thread_context.ThreadContext">ThreadContext</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.peek_user">
+<span class="sig-name descname"><span class="pre">peek_user</span></span><a class="headerlink" href="#libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.peek_user" title="Link to this definition">#</a></dt>
+<dd><p>A function that reads a number of bytes from the target thread registers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>callable</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.poke_user">
+<span class="sig-name descname"><span class="pre">poke_user</span></span><a class="headerlink" href="#libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.poke_user" title="Link to this definition">#</a></dt>
+<dd><p>A function that writes a number of bytes to the target thread registers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>callable</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.breakpoint_count">
+<span class="sig-name descname"><span class="pre">breakpoint_count</span></span><a class="headerlink" href="#libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.breakpoint_count" title="Link to this definition">#</a></dt>
+<dd><p>The number of hardware breakpoints set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.install_breakpoint">
+<span class="sig-name descname"><span class="pre">install_breakpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="libdebug.data.html#libdebug.data.breakpoint.Breakpoint" title="libdebug.data.breakpoint.Breakpoint"><span class="pre">Breakpoint</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/architectures/amd64/amd64_ptrace_hw_bp_helper.html#Amd64PtraceHardwareBreakpointManager.install_breakpoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.install_breakpoint" title="Link to this definition">#</a></dt>
+<dd><p>Installs a hardware breakpoint at the provided location.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.remove_breakpoint">
+<span class="sig-name descname"><span class="pre">remove_breakpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="libdebug.data.html#libdebug.data.breakpoint.Breakpoint" title="libdebug.data.breakpoint.Breakpoint"><span class="pre">Breakpoint</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/architectures/amd64/amd64_ptrace_hw_bp_helper.html#Amd64PtraceHardwareBreakpointManager.remove_breakpoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.remove_breakpoint" title="Link to this definition">#</a></dt>
+<dd><p>Removes a hardware breakpoint at the provided location.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.available_breakpoints">
+<span class="sig-name descname"><span class="pre">available_breakpoints</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="_modules/libdebug/architectures/amd64/amd64_ptrace_hw_bp_helper.html#Amd64PtraceHardwareBreakpointManager.available_breakpoints"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.available_breakpoints" title="Link to this definition">#</a></dt>
+<dd><p>Returns the number of available hardware breakpoint registers.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.is_watchpoint_hit">
+<span class="sig-name descname"><span class="pre">is_watchpoint_hit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="libdebug.data.html#libdebug.data.breakpoint.Breakpoint" title="libdebug.data.breakpoint.Breakpoint"><span class="pre">Breakpoint</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/architectures/amd64/amd64_ptrace_hw_bp_helper.html#Amd64PtraceHardwareBreakpointManager.is_watchpoint_hit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.is_watchpoint_hit" title="Link to this definition">#</a></dt>
+<dd><p>Checks if a watchpoint has been hit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The watchpoint that has been hit, or None if no watchpoint has been hit.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="libdebug.data.html#libdebug.data.breakpoint.Breakpoint" title="libdebug.data.breakpoint.Breakpoint">Breakpoint</a> | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-libdebug.architectures.amd64.amd64_ptrace_register_holder">
+<span id="libdebug-architectures-amd64-amd64-ptrace-register-holder-module"></span><h2>libdebug.architectures.amd64.amd64_ptrace_register_holder module<a class="headerlink" href="#module-libdebug.architectures.amd64.amd64_ptrace_register_holder" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="libdebug.architectures.amd64.amd64_ptrace_register_holder.Amd64PtraceRegisterHolder">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">libdebug.architectures.amd64.amd64_ptrace_register_holder.</span></span><span class="sig-name descname"><span class="pre">Amd64PtraceRegisterHolder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">register_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">object</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libdebug/architectures/amd64/amd64_ptrace_register_holder.html#Amd64PtraceRegisterHolder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.architectures.amd64.amd64_ptrace_register_holder.Amd64PtraceRegisterHolder" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="libdebug.ptrace.html#libdebug.ptrace.ptrace_register_holder.PtraceRegisterHolder" title="libdebug.ptrace.ptrace_register_holder.PtraceRegisterHolder"><code class="xref py py-class docutils literal notranslate"><span class="pre">PtraceRegisterHolder</span></code></a></p>
+<p>A class that provides views and setters for the registers of an x86_64 process.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.architectures.amd64.amd64_ptrace_register_holder.Amd64PtraceRegisterHolder.provide_regs_class">
+<span class="sig-name descname"><span class="pre">provide_regs_class</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">type</span></span></span><a class="reference internal" href="_modules/libdebug/architectures/amd64/amd64_ptrace_register_holder.html#Amd64PtraceRegisterHolder.provide_regs_class"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.architectures.amd64.amd64_ptrace_register_holder.Amd64PtraceRegisterHolder.provide_regs_class" title="Link to this definition">#</a></dt>
+<dd><p>Provide a class to hold the register accessors.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.architectures.amd64.amd64_ptrace_register_holder.Amd64PtraceRegisterHolder.apply_on_regs">
+<span class="sig-name descname"><span class="pre">apply_on_regs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#libdebug.architectures.amd64.amd64_registers.Amd64Registers" title="libdebug.architectures.amd64.amd64_registers.Amd64Registers"><span class="pre">Amd64Registers</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_class</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">type</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/architectures/amd64/amd64_ptrace_register_holder.html#Amd64PtraceRegisterHolder.apply_on_regs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.architectures.amd64.amd64_ptrace_register_holder.Amd64PtraceRegisterHolder.apply_on_regs" title="Link to this definition">#</a></dt>
+<dd><p>Apply the register accessors to the Amd64Registers class.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.architectures.amd64.amd64_ptrace_register_holder.Amd64PtraceRegisterHolder.apply_on_thread">
+<span class="sig-name descname"><span class="pre">apply_on_thread</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="libdebug.state.html#libdebug.state.thread_context.ThreadContext" title="libdebug.state.thread_context.ThreadContext"><span class="pre">ThreadContext</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_class</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">type</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/architectures/amd64/amd64_ptrace_register_holder.html#Amd64PtraceRegisterHolder.apply_on_thread"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.architectures.amd64.amd64_ptrace_register_holder.Amd64PtraceRegisterHolder.apply_on_thread" title="Link to this definition">#</a></dt>
+<dd><p>Apply the register accessors to the thread class.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-libdebug.architectures.amd64.amd64_registers">
+<span id="libdebug-architectures-amd64-amd64-registers-module"></span><h2>libdebug.architectures.amd64.amd64_registers module<a class="headerlink" href="#module-libdebug.architectures.amd64.amd64_registers" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="libdebug.architectures.amd64.amd64_registers.Amd64Registers">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">libdebug.architectures.amd64.amd64_registers.</span></span><span class="sig-name descname"><span class="pre">Amd64Registers</span></span><a class="reference internal" href="_modules/libdebug/architectures/amd64/amd64_registers.html#Amd64Registers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.architectures.amd64.amd64_registers.Amd64Registers" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="libdebug.data.html#libdebug.data.registers.Registers" title="libdebug.data.registers.Registers"><code class="xref py py-class docutils literal notranslate"><span class="pre">Registers</span></code></a></p>
+<p>This class holds the state of the architectural-dependent registers of a process.</p>
+</dd></dl>
+
+</section>
+<section id="module-libdebug.architectures.amd64.amd64_stack_unwinder">
+<span id="libdebug-architectures-amd64-amd64-stack-unwinder-module"></span><h2>libdebug.architectures.amd64.amd64_stack_unwinder module<a class="headerlink" href="#module-libdebug.architectures.amd64.amd64_stack_unwinder" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="libdebug.architectures.amd64.amd64_stack_unwinder.Amd64StackUnwinder">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">libdebug.architectures.amd64.amd64_stack_unwinder.</span></span><span class="sig-name descname"><span class="pre">Amd64StackUnwinder</span></span><a class="reference internal" href="_modules/libdebug/architectures/amd64/amd64_stack_unwinder.html#Amd64StackUnwinder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.architectures.amd64.amd64_stack_unwinder.Amd64StackUnwinder" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="libdebug.architectures.html#libdebug.architectures.stack_unwinding_manager.StackUnwindingManager" title="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager"><code class="xref py py-class docutils literal notranslate"><span class="pre">StackUnwindingManager</span></code></a></p>
+<p>Class that provides stack unwinding for the x86_64 architecture.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.architectures.amd64.amd64_stack_unwinder.Amd64StackUnwinder.unwind">
+<span class="sig-name descname"><span class="pre">unwind</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="libdebug.state.html#libdebug.state.thread_context.ThreadContext" title="libdebug.state.thread_context.ThreadContext"><span class="pre">ThreadContext</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span></span></span><a class="reference internal" href="_modules/libdebug/architectures/amd64/amd64_stack_unwinder.html#Amd64StackUnwinder.unwind"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.architectures.amd64.amd64_stack_unwinder.Amd64StackUnwinder.unwind" title="Link to this definition">#</a></dt>
+<dd><p>Unwind the stack of a process.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>target</strong> (<a class="reference internal" href="libdebug.state.html#libdebug.state.thread_context.ThreadContext" title="libdebug.state.thread_context.ThreadContext"><em>ThreadContext</em></a>) – The target ThreadContext.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of return addresses.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.architectures.amd64.amd64_stack_unwinder.Amd64StackUnwinder.get_return_address">
+<span class="sig-name descname"><span class="pre">get_return_address</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="libdebug.state.html#libdebug.state.thread_context.ThreadContext" title="libdebug.state.thread_context.ThreadContext"><span class="pre">ThreadContext</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="_modules/libdebug/architectures/amd64/amd64_stack_unwinder.html#Amd64StackUnwinder.get_return_address"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.architectures.amd64.amd64_stack_unwinder.Amd64StackUnwinder.get_return_address" title="Link to this definition">#</a></dt>
+<dd><p>Get the return address of the current function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>target</strong> (<a class="reference internal" href="libdebug.state.html#libdebug.state.thread_context.ThreadContext" title="libdebug.state.thread_context.ThreadContext"><em>ThreadContext</em></a>) – The target ThreadContext.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The return address.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-libdebug.architectures.amd64.amd64_syscall_hijacker">
+<span id="libdebug-architectures-amd64-amd64-syscall-hijacker-module"></span><h2>libdebug.architectures.amd64.amd64_syscall_hijacker module<a class="headerlink" href="#module-libdebug.architectures.amd64.amd64_syscall_hijacker" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="libdebug.architectures.amd64.amd64_syscall_hijacker.Amd64SyscallHijacker">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">libdebug.architectures.amd64.amd64_syscall_hijacker.</span></span><span class="sig-name descname"><span class="pre">Amd64SyscallHijacker</span></span><a class="reference internal" href="_modules/libdebug/architectures/amd64/amd64_syscall_hijacker.html#Amd64SyscallHijacker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.architectures.amd64.amd64_syscall_hijacker.Amd64SyscallHijacker" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="libdebug.architectures.html#libdebug.architectures.syscall_hijacking_manager.SyscallHijackingManager" title="libdebug.architectures.syscall_hijacking_manager.SyscallHijackingManager"><code class="xref py py-class docutils literal notranslate"><span class="pre">SyscallHijackingManager</span></code></a></p>
+<p>Class that provides syscall hijacking for the x86_64 architecture.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.architectures.amd64.amd64_syscall_hijacker.Amd64SyscallHijacker.allowed_args">
+<span class="sig-name descname"><span class="pre">allowed_args</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">set</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">frozenset({'syscall_arg0',</span> <span class="pre">'syscall_arg1',</span> <span class="pre">'syscall_arg2',</span> <span class="pre">'syscall_arg3',</span> <span class="pre">'syscall_arg4',</span> <span class="pre">'syscall_arg5',</span> <span class="pre">'syscall_number'})</span></em><a class="headerlink" href="#libdebug.architectures.amd64.amd64_syscall_hijacker.Amd64SyscallHijacker.allowed_args" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.architectures.amd64.amd64_syscall_hijacker.Amd64SyscallHijacker.create_hijacker">
+<span class="sig-name descname"><span class="pre">create_hijacker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_syscall</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="libdebug.state.html#libdebug.state.thread_context.ThreadContext" title="libdebug.state.thread_context.ThreadContext"><span class="pre">ThreadContext</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/libdebug/architectures/amd64/amd64_syscall_hijacker.html#Amd64SyscallHijacker.create_hijacker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.architectures.amd64.amd64_syscall_hijacker.Amd64SyscallHijacker.create_hijacker" title="Link to this definition">#</a></dt>
+<dd><p>Create a new hijacker for the given syscall.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>new_syscall</strong> (<em>int</em>) – The new syscall number.</p></li>
+<li><p><strong>**kwargs</strong> – The keyword arguments.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-libdebug.architectures.amd64">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-libdebug.architectures.amd64" title="Link to this heading">#</a></h2>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="libdebug.architectures.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">libdebug.architectures package</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="libdebug.builtin.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">libdebug.builtin package</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper">libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager"><code class="docutils literal notranslate"><span class="pre">Amd64PtraceHardwareBreakpointManager</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.thread"><code class="docutils literal notranslate"><span class="pre">Amd64PtraceHardwareBreakpointManager.thread</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.peek_user"><code class="docutils literal notranslate"><span class="pre">Amd64PtraceHardwareBreakpointManager.peek_user</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.poke_user"><code class="docutils literal notranslate"><span class="pre">Amd64PtraceHardwareBreakpointManager.poke_user</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.breakpoint_count"><code class="docutils literal notranslate"><span class="pre">Amd64PtraceHardwareBreakpointManager.breakpoint_count</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.install_breakpoint"><code class="docutils literal notranslate"><span class="pre">Amd64PtraceHardwareBreakpointManager.install_breakpoint()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.remove_breakpoint"><code class="docutils literal notranslate"><span class="pre">Amd64PtraceHardwareBreakpointManager.remove_breakpoint()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.available_breakpoints"><code class="docutils literal notranslate"><span class="pre">Amd64PtraceHardwareBreakpointManager.available_breakpoints()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.architectures.amd64.amd64_ptrace_hw_bp_helper.Amd64PtraceHardwareBreakpointManager.is_watchpoint_hit"><code class="docutils literal notranslate"><span class="pre">Amd64PtraceHardwareBreakpointManager.is_watchpoint_hit()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-libdebug.architectures.amd64.amd64_ptrace_register_holder">libdebug.architectures.amd64.amd64_ptrace_register_holder module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.architectures.amd64.amd64_ptrace_register_holder.Amd64PtraceRegisterHolder"><code class="docutils literal notranslate"><span class="pre">Amd64PtraceRegisterHolder</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.architectures.amd64.amd64_ptrace_register_holder.Amd64PtraceRegisterHolder.provide_regs_class"><code class="docutils literal notranslate"><span class="pre">Amd64PtraceRegisterHolder.provide_regs_class()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.architectures.amd64.amd64_ptrace_register_holder.Amd64PtraceRegisterHolder.apply_on_regs"><code class="docutils literal notranslate"><span class="pre">Amd64PtraceRegisterHolder.apply_on_regs()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.architectures.amd64.amd64_ptrace_register_holder.Amd64PtraceRegisterHolder.apply_on_thread"><code class="docutils literal notranslate"><span class="pre">Amd64PtraceRegisterHolder.apply_on_thread()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-libdebug.architectures.amd64.amd64_registers">libdebug.architectures.amd64.amd64_registers module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.architectures.amd64.amd64_registers.Amd64Registers"><code class="docutils literal notranslate"><span class="pre">Amd64Registers</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-libdebug.architectures.amd64.amd64_stack_unwinder">libdebug.architectures.amd64.amd64_stack_unwinder module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.architectures.amd64.amd64_stack_unwinder.Amd64StackUnwinder"><code class="docutils literal notranslate"><span class="pre">Amd64StackUnwinder</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.architectures.amd64.amd64_stack_unwinder.Amd64StackUnwinder.unwind"><code class="docutils literal notranslate"><span class="pre">Amd64StackUnwinder.unwind()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.architectures.amd64.amd64_stack_unwinder.Amd64StackUnwinder.get_return_address"><code class="docutils literal notranslate"><span class="pre">Amd64StackUnwinder.get_return_address()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-libdebug.architectures.amd64.amd64_syscall_hijacker">libdebug.architectures.amd64.amd64_syscall_hijacker module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.architectures.amd64.amd64_syscall_hijacker.Amd64SyscallHijacker"><code class="docutils literal notranslate"><span class="pre">Amd64SyscallHijacker</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.architectures.amd64.amd64_syscall_hijacker.Amd64SyscallHijacker.allowed_args"><code class="docutils literal notranslate"><span class="pre">Amd64SyscallHijacker.allowed_args</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.architectures.amd64.amd64_syscall_hijacker.Amd64SyscallHijacker.create_hijacker"><code class="docutils literal notranslate"><span class="pre">Amd64SyscallHijacker.create_hijacker()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-libdebug.architectures.amd64">Module contents</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="_sources/libdebug.architectures.amd64.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024, Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.3.7.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.15.4.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

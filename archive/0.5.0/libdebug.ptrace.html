@@ -1,0 +1,1203 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>libdebug.ptrace package &#8212; libdebug 0.5.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=362ab14a" />
+    <link rel="stylesheet" type="text/css" href="_static/code-tabs.css?v=1bc26e2f" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="_static/documentation_options.js?v=1dd76d02"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/code-tabs.js?v=c983d12e"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'libdebug.ptrace';</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="libdebug.ptrace.jumpstart package" href="libdebug.ptrace.jumpstart.html" />
+    <link rel="prev" title="libdebug.interfaces package" href="libdebug.interfaces.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">libdebug 0.5.0 documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="basic_features.html">
+    Basic Features
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="breakpoints.html">
+    Breakpoints
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="handle_syscalls.html">
+    Syscalls
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="catch_signals.html">
+    Signals
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="multithreading.html">
+    Multithreading
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="quality_of_life.html">
+    Quality of Life
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="logging.html">
+    Logging
+  </a>
+</li>
+
+
+<li class=" current active">
+  <a class="nav-link dropdown-item nav-internal" href="libdebug.html">
+    libdebug package
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="basic_features.html">
+    Basic Features
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="breakpoints.html">
+    Breakpoints
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="handle_syscalls.html">
+    Syscalls
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="catch_signals.html">
+    Signals
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="multithreading.html">
+    Multithreading
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="quality_of_life.html">
+    Quality of Life
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="logging.html">
+    Logging
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="libdebug.html">
+    libdebug package
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="libdebug.architectures.html">libdebug.architectures package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="libdebug.architectures.amd64.html">libdebug.architectures.amd64 package</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="libdebug.builtin.html">libdebug.builtin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="libdebug.cffi.html">libdebug.cffi package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="libdebug.data.html">libdebug.data package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="libdebug.debugger.html">libdebug.debugger package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="libdebug.interfaces.html">libdebug.interfaces package</a></li>
+<li class="toctree-l1 current active has-children"><a class="current reference internal" href="#">libdebug.ptrace package</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="libdebug.ptrace.jumpstart.html">libdebug.ptrace.jumpstart package</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="libdebug.state.html">libdebug.state package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="libdebug.utils.html">libdebug.utils package</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="libdebug.html" class="nav-link">libdebug package</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page">libdebug.ptr...</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="libdebug-ptrace-package">
+<h1>libdebug.ptrace package<a class="headerlink" href="#libdebug-ptrace-package" title="Link to this heading">#</a></h1>
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Link to this heading">#</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="libdebug.ptrace.jumpstart.html">libdebug.ptrace.jumpstart package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="libdebug.ptrace.jumpstart.html#module-libdebug.ptrace.jumpstart">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">#</a></h2>
+</section>
+<section id="module-libdebug.ptrace.ptrace_constants">
+<span id="libdebug-ptrace-ptrace-constants-module"></span><h2>libdebug.ptrace.ptrace_constants module<a class="headerlink" href="#module-libdebug.ptrace.ptrace_constants" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.StopEvents">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">libdebug.ptrace.ptrace_constants.</span></span><span class="sig-name descname"><span class="pre">StopEvents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_constants.html#StopEvents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.StopEvents" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></p>
+<p>An enumeration of the stop events that ptrace can return.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.StopEvents.CLONE_EVENT">
+<span class="sig-name descname"><span class="pre">CLONE_EVENT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">773</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.StopEvents.CLONE_EVENT" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.StopEvents.EXEC_EVENT">
+<span class="sig-name descname"><span class="pre">EXEC_EVENT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1029</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.StopEvents.EXEC_EVENT" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.StopEvents.EXIT_EVENT">
+<span class="sig-name descname"><span class="pre">EXIT_EVENT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1541</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.StopEvents.EXIT_EVENT" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.StopEvents.FORK_EVENT">
+<span class="sig-name descname"><span class="pre">FORK_EVENT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">261</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.StopEvents.FORK_EVENT" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.StopEvents.VFORK_EVENT">
+<span class="sig-name descname"><span class="pre">VFORK_EVENT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">517</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.StopEvents.VFORK_EVENT" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.StopEvents.VFORK_DONE_EVENT">
+<span class="sig-name descname"><span class="pre">VFORK_DONE_EVENT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1285</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.StopEvents.VFORK_DONE_EVENT" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.StopEvents.SECCOMP_EVENT">
+<span class="sig-name descname"><span class="pre">SECCOMP_EVENT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1797</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.StopEvents.SECCOMP_EVENT" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">libdebug.ptrace.ptrace_constants.</span></span><span class="sig-name descname"><span class="pre">Commands</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_constants.html#Commands"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></p>
+<p>An enumeration of the available ptrace commands.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_TRACEME">
+<span class="sig-name descname"><span class="pre">PTRACE_TRACEME</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_TRACEME" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_PEEKTEXT">
+<span class="sig-name descname"><span class="pre">PTRACE_PEEKTEXT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_PEEKTEXT" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_PEEKDATA">
+<span class="sig-name descname"><span class="pre">PTRACE_PEEKDATA</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_PEEKDATA" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_PEEKUSER">
+<span class="sig-name descname"><span class="pre">PTRACE_PEEKUSER</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_PEEKUSER" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_POKETEXT">
+<span class="sig-name descname"><span class="pre">PTRACE_POKETEXT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_POKETEXT" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_POKEDATA">
+<span class="sig-name descname"><span class="pre">PTRACE_POKEDATA</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_POKEDATA" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_POKEUSER">
+<span class="sig-name descname"><span class="pre">PTRACE_POKEUSER</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">6</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_POKEUSER" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_CONT">
+<span class="sig-name descname"><span class="pre">PTRACE_CONT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">7</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_CONT" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_KILL">
+<span class="sig-name descname"><span class="pre">PTRACE_KILL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_KILL" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_SINGLESTEP">
+<span class="sig-name descname"><span class="pre">PTRACE_SINGLESTEP</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">9</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_SINGLESTEP" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_GETREGS">
+<span class="sig-name descname"><span class="pre">PTRACE_GETREGS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">12</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_GETREGS" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_SETREGS">
+<span class="sig-name descname"><span class="pre">PTRACE_SETREGS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">13</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_SETREGS" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_GETFPREGS">
+<span class="sig-name descname"><span class="pre">PTRACE_GETFPREGS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">14</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_GETFPREGS" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_SETFPREGS">
+<span class="sig-name descname"><span class="pre">PTRACE_SETFPREGS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">15</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_SETFPREGS" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_ATTACH">
+<span class="sig-name descname"><span class="pre">PTRACE_ATTACH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_ATTACH" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_DETACH">
+<span class="sig-name descname"><span class="pre">PTRACE_DETACH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">17</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_DETACH" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_GETFPXREGS">
+<span class="sig-name descname"><span class="pre">PTRACE_GETFPXREGS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">18</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_GETFPXREGS" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_SETFPXREGS">
+<span class="sig-name descname"><span class="pre">PTRACE_SETFPXREGS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">19</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_SETFPXREGS" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_SYSCALL">
+<span class="sig-name descname"><span class="pre">PTRACE_SYSCALL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">24</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_SYSCALL" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_SETOPTIONS">
+<span class="sig-name descname"><span class="pre">PTRACE_SETOPTIONS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16896</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_SETOPTIONS" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_GETEVENTMSG">
+<span class="sig-name descname"><span class="pre">PTRACE_GETEVENTMSG</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16897</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_GETEVENTMSG" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_GETSIGINFO">
+<span class="sig-name descname"><span class="pre">PTRACE_GETSIGINFO</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16898</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_GETSIGINFO" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_SETSIGINFO">
+<span class="sig-name descname"><span class="pre">PTRACE_SETSIGINFO</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16899</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_SETSIGINFO" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_GETREGSET">
+<span class="sig-name descname"><span class="pre">PTRACE_GETREGSET</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16900</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_GETREGSET" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_SETREGSET">
+<span class="sig-name descname"><span class="pre">PTRACE_SETREGSET</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16901</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_SETREGSET" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_SEIZE">
+<span class="sig-name descname"><span class="pre">PTRACE_SEIZE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16902</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_SEIZE" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_INTERRUPT">
+<span class="sig-name descname"><span class="pre">PTRACE_INTERRUPT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16903</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_INTERRUPT" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_LISTEN">
+<span class="sig-name descname"><span class="pre">PTRACE_LISTEN</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16904</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_LISTEN" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_PEEKSIGINFO">
+<span class="sig-name descname"><span class="pre">PTRACE_PEEKSIGINFO</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16905</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_PEEKSIGINFO" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_GETSIGMASK">
+<span class="sig-name descname"><span class="pre">PTRACE_GETSIGMASK</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16906</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_GETSIGMASK" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_SETSIGMASK">
+<span class="sig-name descname"><span class="pre">PTRACE_SETSIGMASK</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16907</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_SETSIGMASK" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_SECCOMP_GET_FILTER">
+<span class="sig-name descname"><span class="pre">PTRACE_SECCOMP_GET_FILTER</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16908</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_SECCOMP_GET_FILTER" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_SECCOMP_GET_METADATA">
+<span class="sig-name descname"><span class="pre">PTRACE_SECCOMP_GET_METADATA</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16909</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_SECCOMP_GET_METADATA" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_constants.Commands.PTRACE_GET_SYSCALL_INFO">
+<span class="sig-name descname"><span class="pre">PTRACE_GET_SYSCALL_INFO</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16910</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_GET_SYSCALL_INFO" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-libdebug.ptrace.ptrace_interface">
+<span id="libdebug-ptrace-ptrace-interface-module"></span><h2>libdebug.ptrace.ptrace_interface module<a class="headerlink" href="#module-libdebug.ptrace.ptrace_interface" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">libdebug.ptrace.ptrace_interface.</span></span><span class="sig-name descname"><span class="pre">PtraceInterface</span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_interface.html#PtraceInterface"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="libdebug.interfaces.html#libdebug.interfaces.debugging_interface.DebuggingInterface" title="libdebug.interfaces.debugging_interface.DebuggingInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">DebuggingInterface</span></code></a></p>
+<p>The interface used by <cite>_InternalDebugger</cite> to communicate with the <cite>ptrace</cite> debugging backend.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface.process_id">
+<span class="sig-name descname"><span class="pre">process_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.process_id" title="Link to this definition">#</a></dt>
+<dd><p>The process ID of the debugged process.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface.detached">
+<span class="sig-name descname"><span class="pre">detached</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.detached" title="Link to this definition">#</a></dt>
+<dd><p>Whether the process was detached or not.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface.hardware_bp_helpers">
+<span class="sig-name descname"><span class="pre">hardware_bp_helpers</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="libdebug.architectures.html#libdebug.architectures.ptrace_hardware_breakpoint_manager.PtraceHardwareBreakpointManager" title="libdebug.architectures.ptrace_hardware_breakpoint_manager.PtraceHardwareBreakpointManager"><span class="pre">PtraceHardwareBreakpointManager</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.hardware_bp_helpers" title="Link to this definition">#</a></dt>
+<dd><p>The hardware breakpoint managers (one for each thread).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_interface.html#PtraceInterface.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.reset" title="Link to this definition">#</a></dt>
+<dd><p>Resets the state of the interface.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_interface.html#PtraceInterface.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.run" title="Link to this definition">#</a></dt>
+<dd><p>Runs the specified process.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface.attach">
+<span class="sig-name descname"><span class="pre">attach</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_interface.html#PtraceInterface.attach"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.attach" title="Link to this definition">#</a></dt>
+<dd><p>Attaches to the specified process.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pid</strong> (<em>int</em>) – the pid of the process to attach to.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface.detach">
+<span class="sig-name descname"><span class="pre">detach</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_interface.html#PtraceInterface.detach"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.detach" title="Link to this definition">#</a></dt>
+<dd><p>Detaches from the process.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface.kill">
+<span class="sig-name descname"><span class="pre">kill</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_interface.html#PtraceInterface.kill"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.kill" title="Link to this definition">#</a></dt>
+<dd><p>Instantly terminates the process.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface.cont">
+<span class="sig-name descname"><span class="pre">cont</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_interface.html#PtraceInterface.cont"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.cont" title="Link to this definition">#</a></dt>
+<dd><p>Continues the execution of the process.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface.step">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">thread</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="libdebug.state.html#libdebug.state.thread_context.ThreadContext" title="libdebug.state.thread_context.ThreadContext"><span class="pre">ThreadContext</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_interface.html#PtraceInterface.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.step" title="Link to this definition">#</a></dt>
+<dd><p>Executes a single instruction of the process.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>thread</strong> (<a class="reference internal" href="libdebug.state.html#libdebug.state.thread_context.ThreadContext" title="libdebug.state.thread_context.ThreadContext"><em>ThreadContext</em></a>) – The thread to step.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface.step_until">
+<span class="sig-name descname"><span class="pre">step_until</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">thread</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="libdebug.state.html#libdebug.state.thread_context.ThreadContext" title="libdebug.state.thread_context.ThreadContext"><span class="pre">ThreadContext</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">address</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_interface.html#PtraceInterface.step_until"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.step_until" title="Link to this definition">#</a></dt>
+<dd><p>Executes instructions of the specified thread until the specified address is reached.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>thread</strong> (<a class="reference internal" href="libdebug.state.html#libdebug.state.thread_context.ThreadContext" title="libdebug.state.thread_context.ThreadContext"><em>ThreadContext</em></a>) – The thread to step.</p></li>
+<li><p><strong>address</strong> (<em>int</em>) – The address to reach.</p></li>
+<li><p><strong>max_steps</strong> (<em>int</em>) – The maximum number of steps to execute.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface.finish">
+<span class="sig-name descname"><span class="pre">finish</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">thread</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="libdebug.state.html#libdebug.state.thread_context.ThreadContext" title="libdebug.state.thread_context.ThreadContext"><span class="pre">ThreadContext</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">heuristic</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_interface.html#PtraceInterface.finish"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.finish" title="Link to this definition">#</a></dt>
+<dd><p>Continues execution until the current function returns.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>thread</strong> (<a class="reference internal" href="libdebug.state.html#libdebug.state.thread_context.ThreadContext" title="libdebug.state.thread_context.ThreadContext"><em>ThreadContext</em></a>) – The thread to step.</p></li>
+<li><p><strong>heuristic</strong> (<em>str</em>) – The heuristic to use.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface.wait">
+<span class="sig-name descname"><span class="pre">wait</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_interface.html#PtraceInterface.wait"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.wait" title="Link to this definition">#</a></dt>
+<dd><p>Waits for the process to stop. Returns True if the wait has to be repeated.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface.forward_signal">
+<span class="sig-name descname"><span class="pre">forward_signal</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_interface.html#PtraceInterface.forward_signal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.forward_signal" title="Link to this definition">#</a></dt>
+<dd><p>Set the signals to forward to the threads.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface.migrate_to_gdb">
+<span class="sig-name descname"><span class="pre">migrate_to_gdb</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_interface.html#PtraceInterface.migrate_to_gdb"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.migrate_to_gdb" title="Link to this definition">#</a></dt>
+<dd><p>Migrates the current process to GDB.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface.migrate_from_gdb">
+<span class="sig-name descname"><span class="pre">migrate_from_gdb</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_interface.html#PtraceInterface.migrate_from_gdb"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.migrate_from_gdb" title="Link to this definition">#</a></dt>
+<dd><p>Migrates the current process from GDB.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface.register_new_thread">
+<span class="sig-name descname"><span class="pre">register_new_thread</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_thread_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_interface.html#PtraceInterface.register_new_thread"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.register_new_thread" title="Link to this definition">#</a></dt>
+<dd><p>Registers a new thread.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>new_thread_id</strong> (<em>int</em>) – The new thread ID.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface.unregister_thread">
+<span class="sig-name descname"><span class="pre">unregister_thread</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">thread_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exit_code</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exit_signal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_interface.html#PtraceInterface.unregister_thread"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.unregister_thread" title="Link to this definition">#</a></dt>
+<dd><p>Unregisters a thread.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>thread_id</strong> (<em>int</em>) – The thread ID.</p></li>
+<li><p><strong>exit_code</strong> (<em>int</em>) – The exit code of the thread.</p></li>
+<li><p><strong>exit_signal</strong> (<em>int</em>) – The exit signal of the thread.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface.set_breakpoint">
+<span class="sig-name descname"><span class="pre">set_breakpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="libdebug.data.html#libdebug.data.breakpoint.Breakpoint" title="libdebug.data.breakpoint.Breakpoint"><span class="pre">Breakpoint</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">insert</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_interface.html#PtraceInterface.set_breakpoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.set_breakpoint" title="Link to this definition">#</a></dt>
+<dd><p>Sets a breakpoint at the specified address.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bp</strong> (<a class="reference internal" href="libdebug.data.html#libdebug.data.breakpoint.Breakpoint" title="libdebug.data.breakpoint.Breakpoint"><em>Breakpoint</em></a>) – The breakpoint to set.</p></li>
+<li><p><strong>insert</strong> (<em>bool</em>) – Whether the breakpoint has to be inserted or just enabled.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface.unset_breakpoint">
+<span class="sig-name descname"><span class="pre">unset_breakpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="libdebug.data.html#libdebug.data.breakpoint.Breakpoint" title="libdebug.data.breakpoint.Breakpoint"><span class="pre">Breakpoint</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">delete</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_interface.html#PtraceInterface.unset_breakpoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.unset_breakpoint" title="Link to this definition">#</a></dt>
+<dd><p>Restores the breakpoint at the specified address.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bp</strong> (<a class="reference internal" href="libdebug.data.html#libdebug.data.breakpoint.Breakpoint" title="libdebug.data.breakpoint.Breakpoint"><em>Breakpoint</em></a>) – The breakpoint to unset.</p></li>
+<li><p><strong>delete</strong> (<em>bool</em>) – Whether the breakpoint has to be deleted or just disabled.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface.set_syscall_hook">
+<span class="sig-name descname"><span class="pre">set_syscall_hook</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hook</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SyscallHook</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_interface.html#PtraceInterface.set_syscall_hook"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.set_syscall_hook" title="Link to this definition">#</a></dt>
+<dd><p>Sets a syscall hook.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>hook</strong> (<em>SyscallHook</em>) – The syscall hook to set.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface.unset_syscall_hook">
+<span class="sig-name descname"><span class="pre">unset_syscall_hook</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hook</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SyscallHook</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_interface.html#PtraceInterface.unset_syscall_hook"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.unset_syscall_hook" title="Link to this definition">#</a></dt>
+<dd><p>Unsets a syscall hook.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>hook</strong> (<em>SyscallHook</em>) – The syscall hook to unset.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface.set_signal_hook">
+<span class="sig-name descname"><span class="pre">set_signal_hook</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hook</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SignalHook</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_interface.html#PtraceInterface.set_signal_hook"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.set_signal_hook" title="Link to this definition">#</a></dt>
+<dd><p>Sets a signal hook.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>hook</strong> (<em>SignalHook</em>) – The signal hook to set.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface.unset_signal_hook">
+<span class="sig-name descname"><span class="pre">unset_signal_hook</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hook</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SignalHook</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_interface.html#PtraceInterface.unset_signal_hook"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.unset_signal_hook" title="Link to this definition">#</a></dt>
+<dd><p>Unsets a signal hook.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>hook</strong> (<em>SignalHook</em>) – The signal hook to unset.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface.peek_memory">
+<span class="sig-name descname"><span class="pre">peek_memory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">address</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_interface.html#PtraceInterface.peek_memory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.peek_memory" title="Link to this definition">#</a></dt>
+<dd><p>Reads the memory at the specified address.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface.poke_memory">
+<span class="sig-name descname"><span class="pre">poke_memory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">address</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_interface.html#PtraceInterface.poke_memory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.poke_memory" title="Link to this definition">#</a></dt>
+<dd><p>Writes the memory at the specified address.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_interface.PtraceInterface.maps">
+<span class="sig-name descname"><span class="pre">maps</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="libdebug.data.html#libdebug.data.memory_map.MemoryMap" title="libdebug.data.memory_map.MemoryMap"><span class="pre">MemoryMap</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_interface.html#PtraceInterface.maps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.maps" title="Link to this definition">#</a></dt>
+<dd><p>Returns the memory maps of the process.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-libdebug.ptrace.ptrace_register_holder">
+<span id="libdebug-ptrace-ptrace-register-holder-module"></span><h2>libdebug.ptrace.ptrace_register_holder module<a class="headerlink" href="#module-libdebug.ptrace.ptrace_register_holder" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_register_holder.PtraceRegisterHolder">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">libdebug.ptrace.ptrace_register_holder.</span></span><span class="sig-name descname"><span class="pre">PtraceRegisterHolder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">register_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">object</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_register_holder.html#PtraceRegisterHolder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_register_holder.PtraceRegisterHolder" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="libdebug.data.html#libdebug.data.register_holder.RegisterHolder" title="libdebug.data.register_holder.RegisterHolder"><code class="xref py py-class docutils literal notranslate"><span class="pre">RegisterHolder</span></code></a></p>
+<p>An abstract class that holds the state of the registers of a process, providing setters and getters for them.</p>
+<p>Intended for use with the Ptrace debugging backend.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_register_holder.PtraceRegisterHolder.register_file">
+<span class="sig-name descname"><span class="pre">register_file</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">object</span></em><a class="headerlink" href="#libdebug.ptrace.ptrace_register_holder.PtraceRegisterHolder.register_file" title="Link to this definition">#</a></dt>
+<dd><p>The register file of the target process, as returned by ptrace.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_register_holder.PtraceRegisterHolder.poll">
+<span class="sig-name descname"><span class="pre">poll</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="libdebug.state.html#libdebug.state.thread_context.ThreadContext" title="libdebug.state.thread_context.ThreadContext"><span class="pre">ThreadContext</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_register_holder.html#PtraceRegisterHolder.poll"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_register_holder.PtraceRegisterHolder.poll" title="Link to this definition">#</a></dt>
+<dd><p>Poll the register values from the specified target.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_register_holder.PtraceRegisterHolder.flush">
+<span class="sig-name descname"><span class="pre">flush</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="libdebug.state.html#libdebug.state.thread_context.ThreadContext" title="libdebug.state.thread_context.ThreadContext"><span class="pre">ThreadContext</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_register_holder.html#PtraceRegisterHolder.flush"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_register_holder.PtraceRegisterHolder.flush" title="Link to this definition">#</a></dt>
+<dd><p>Flush the register values from the specified source.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-libdebug.ptrace.ptrace_status_handler">
+<span id="libdebug-ptrace-ptrace-status-handler-module"></span><h2>libdebug.ptrace.ptrace_status_handler module<a class="headerlink" href="#module-libdebug.ptrace.ptrace_status_handler" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_status_handler.PtraceStatusHandler">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">libdebug.ptrace.ptrace_status_handler.</span></span><span class="sig-name descname"><span class="pre">PtraceStatusHandler</span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_status_handler.html#PtraceStatusHandler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_status_handler.PtraceStatusHandler" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>This class handles the states return by the waitpid calls on the debugger process.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_status_handler.PtraceStatusHandler.manage_change">
+<span class="sig-name descname"><span class="pre">manage_change</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_status_handler.html#PtraceStatusHandler.manage_change"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_status_handler.PtraceStatusHandler.manage_change" title="Link to this definition">#</a></dt>
+<dd><p>Manage the result of the waitpid and handle the changes.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="libdebug.ptrace.ptrace_status_handler.PtraceStatusHandler.check_for_new_threads">
+<span class="sig-name descname"><span class="pre">check_for_new_threads</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/libdebug/ptrace/ptrace_status_handler.html#PtraceStatusHandler.check_for_new_threads"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#libdebug.ptrace.ptrace_status_handler.PtraceStatusHandler.check_for_new_threads" title="Link to this definition">#</a></dt>
+<dd><p>Check for new threads in the process and register them.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-libdebug.ptrace">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-libdebug.ptrace" title="Link to this heading">#</a></h2>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="libdebug.interfaces.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">libdebug.interfaces package</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="libdebug.ptrace.jumpstart.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">libdebug.ptrace.jumpstart package</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#subpackages">Subpackages</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-libdebug.ptrace.ptrace_constants">libdebug.ptrace.ptrace_constants module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.StopEvents"><code class="docutils literal notranslate"><span class="pre">StopEvents</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.StopEvents.CLONE_EVENT"><code class="docutils literal notranslate"><span class="pre">StopEvents.CLONE_EVENT</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.StopEvents.EXEC_EVENT"><code class="docutils literal notranslate"><span class="pre">StopEvents.EXEC_EVENT</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.StopEvents.EXIT_EVENT"><code class="docutils literal notranslate"><span class="pre">StopEvents.EXIT_EVENT</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.StopEvents.FORK_EVENT"><code class="docutils literal notranslate"><span class="pre">StopEvents.FORK_EVENT</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.StopEvents.VFORK_EVENT"><code class="docutils literal notranslate"><span class="pre">StopEvents.VFORK_EVENT</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.StopEvents.VFORK_DONE_EVENT"><code class="docutils literal notranslate"><span class="pre">StopEvents.VFORK_DONE_EVENT</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.StopEvents.SECCOMP_EVENT"><code class="docutils literal notranslate"><span class="pre">StopEvents.SECCOMP_EVENT</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands"><code class="docutils literal notranslate"><span class="pre">Commands</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_TRACEME"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_TRACEME</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_PEEKTEXT"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_PEEKTEXT</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_PEEKDATA"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_PEEKDATA</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_PEEKUSER"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_PEEKUSER</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_POKETEXT"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_POKETEXT</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_POKEDATA"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_POKEDATA</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_POKEUSER"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_POKEUSER</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_CONT"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_CONT</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_KILL"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_KILL</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_SINGLESTEP"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_SINGLESTEP</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_GETREGS"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_GETREGS</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_SETREGS"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_SETREGS</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_GETFPREGS"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_GETFPREGS</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_SETFPREGS"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_SETFPREGS</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_ATTACH"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_ATTACH</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_DETACH"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_DETACH</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_GETFPXREGS"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_GETFPXREGS</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_SETFPXREGS"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_SETFPXREGS</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_SYSCALL"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_SYSCALL</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_SETOPTIONS"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_SETOPTIONS</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_GETEVENTMSG"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_GETEVENTMSG</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_GETSIGINFO"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_GETSIGINFO</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_SETSIGINFO"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_SETSIGINFO</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_GETREGSET"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_GETREGSET</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_SETREGSET"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_SETREGSET</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_SEIZE"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_SEIZE</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_INTERRUPT"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_INTERRUPT</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_LISTEN"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_LISTEN</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_PEEKSIGINFO"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_PEEKSIGINFO</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_GETSIGMASK"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_GETSIGMASK</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_SETSIGMASK"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_SETSIGMASK</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_SECCOMP_GET_FILTER"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_SECCOMP_GET_FILTER</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_SECCOMP_GET_METADATA"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_SECCOMP_GET_METADATA</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_constants.Commands.PTRACE_GET_SYSCALL_INFO"><code class="docutils literal notranslate"><span class="pre">Commands.PTRACE_GET_SYSCALL_INFO</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-libdebug.ptrace.ptrace_interface">libdebug.ptrace.ptrace_interface module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface"><code class="docutils literal notranslate"><span class="pre">PtraceInterface</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.process_id"><code class="docutils literal notranslate"><span class="pre">PtraceInterface.process_id</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.detached"><code class="docutils literal notranslate"><span class="pre">PtraceInterface.detached</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.hardware_bp_helpers"><code class="docutils literal notranslate"><span class="pre">PtraceInterface.hardware_bp_helpers</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.reset"><code class="docutils literal notranslate"><span class="pre">PtraceInterface.reset()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.run"><code class="docutils literal notranslate"><span class="pre">PtraceInterface.run()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.attach"><code class="docutils literal notranslate"><span class="pre">PtraceInterface.attach()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.detach"><code class="docutils literal notranslate"><span class="pre">PtraceInterface.detach()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.kill"><code class="docutils literal notranslate"><span class="pre">PtraceInterface.kill()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.cont"><code class="docutils literal notranslate"><span class="pre">PtraceInterface.cont()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.step"><code class="docutils literal notranslate"><span class="pre">PtraceInterface.step()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.step_until"><code class="docutils literal notranslate"><span class="pre">PtraceInterface.step_until()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.finish"><code class="docutils literal notranslate"><span class="pre">PtraceInterface.finish()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.wait"><code class="docutils literal notranslate"><span class="pre">PtraceInterface.wait()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.forward_signal"><code class="docutils literal notranslate"><span class="pre">PtraceInterface.forward_signal()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.migrate_to_gdb"><code class="docutils literal notranslate"><span class="pre">PtraceInterface.migrate_to_gdb()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.migrate_from_gdb"><code class="docutils literal notranslate"><span class="pre">PtraceInterface.migrate_from_gdb()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.register_new_thread"><code class="docutils literal notranslate"><span class="pre">PtraceInterface.register_new_thread()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.unregister_thread"><code class="docutils literal notranslate"><span class="pre">PtraceInterface.unregister_thread()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.set_breakpoint"><code class="docutils literal notranslate"><span class="pre">PtraceInterface.set_breakpoint()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.unset_breakpoint"><code class="docutils literal notranslate"><span class="pre">PtraceInterface.unset_breakpoint()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.set_syscall_hook"><code class="docutils literal notranslate"><span class="pre">PtraceInterface.set_syscall_hook()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.unset_syscall_hook"><code class="docutils literal notranslate"><span class="pre">PtraceInterface.unset_syscall_hook()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.set_signal_hook"><code class="docutils literal notranslate"><span class="pre">PtraceInterface.set_signal_hook()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.unset_signal_hook"><code class="docutils literal notranslate"><span class="pre">PtraceInterface.unset_signal_hook()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.peek_memory"><code class="docutils literal notranslate"><span class="pre">PtraceInterface.peek_memory()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.poke_memory"><code class="docutils literal notranslate"><span class="pre">PtraceInterface.poke_memory()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_interface.PtraceInterface.maps"><code class="docutils literal notranslate"><span class="pre">PtraceInterface.maps()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-libdebug.ptrace.ptrace_register_holder">libdebug.ptrace.ptrace_register_holder module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_register_holder.PtraceRegisterHolder"><code class="docutils literal notranslate"><span class="pre">PtraceRegisterHolder</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_register_holder.PtraceRegisterHolder.register_file"><code class="docutils literal notranslate"><span class="pre">PtraceRegisterHolder.register_file</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_register_holder.PtraceRegisterHolder.poll"><code class="docutils literal notranslate"><span class="pre">PtraceRegisterHolder.poll()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_register_holder.PtraceRegisterHolder.flush"><code class="docutils literal notranslate"><span class="pre">PtraceRegisterHolder.flush()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-libdebug.ptrace.ptrace_status_handler">libdebug.ptrace.ptrace_status_handler module</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_status_handler.PtraceStatusHandler"><code class="docutils literal notranslate"><span class="pre">PtraceStatusHandler</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_status_handler.PtraceStatusHandler.manage_change"><code class="docutils literal notranslate"><span class="pre">PtraceStatusHandler.manage_change()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#libdebug.ptrace.ptrace_status_handler.PtraceStatusHandler.check_for_new_threads"><code class="docutils literal notranslate"><span class="pre">PtraceStatusHandler.check_for_new_threads()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-libdebug.ptrace">Module contents</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="_sources/libdebug.ptrace.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024, Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.3.7.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.15.4.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

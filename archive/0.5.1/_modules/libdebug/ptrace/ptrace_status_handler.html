@@ -1,0 +1,949 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>libdebug.ptrace.ptrace_status_handler &#8212; libdebug 0.5.1 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=3ee479438cf8b5e0d341" rel="stylesheet" />
+<link href="../../../_static/styles/bootstrap.css?digest=3ee479438cf8b5e0d341" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=3ee479438cf8b5e0d341" rel="stylesheet" />
+
+  
+  <link href="../../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=3ee479438cf8b5e0d341" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/code-tabs.css?v=1bc26e2f" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=3ee479438cf8b5e0d341" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=3ee479438cf8b5e0d341" />
+  <script src="../../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=3ee479438cf8b5e0d341"></script>
+
+    <script src="../../../_static/documentation_options.js?v=b9afe91b"></script>
+    <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/code-tabs.js?v=c983d12e"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/libdebug/ptrace/ptrace_status_handler';</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">libdebug 0.5.1 documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav class="navbar-nav">
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../../../basic_features.html">
+    Basic Features
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../../../breakpoints.html">
+    Breakpoints
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../../../handle_syscalls.html">
+    Syscalls
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../../../catch_signals.html">
+    Signals
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../../../multithreading.html">
+    Multithreading
+  </a>
+</li>
+
+            <li class="nav-item dropdown pst-header-nav-item">
+                <button class="btn dropdown-toggle nav-item" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../quality_of_life.html">
+    Quality of Life
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../logging.html">
+    Logging
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../libdebug.html">
+    libdebug package
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <div class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav class="navbar-nav">
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../../../basic_features.html">
+    Basic Features
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../../../breakpoints.html">
+    Breakpoints
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../../../handle_syscalls.html">
+    Syscalls
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../../../catch_signals.html">
+    Signals
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../../../multithreading.html">
+    Multithreading
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../../../quality_of_life.html">
+    Quality of Life
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../../../logging.html">
+    Logging
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../../../libdebug.html">
+    libdebug package
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page">libdebug.ptr...</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for libdebug.ptrace.ptrace_status_handler</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># This file is part of libdebug Python library (https://github.com/libdebug/libdebug).</span>
+<span class="c1"># Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.</span>
+<span class="c1"># Licensed under the MIT license. See LICENSE file in the project root for details.</span>
+<span class="c1">#</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">signal</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
+
+<span class="kn">from</span> <span class="nn">libdebug.architectures.ptrace_software_breakpoint_patcher</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">software_breakpoint_byte_size</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">libdebug.debugger.internal_debugger_instance_manager</span> <span class="kn">import</span> <span class="n">provide_internal_debugger</span>
+<span class="kn">from</span> <span class="nn">libdebug.liblog</span> <span class="kn">import</span> <span class="n">liblog</span>
+<span class="kn">from</span> <span class="nn">libdebug.ptrace.ptrace_constants</span> <span class="kn">import</span> <span class="n">SYSCALL_SIGTRAP</span><span class="p">,</span> <span class="n">StopEvents</span>
+<span class="kn">from</span> <span class="nn">libdebug.utils.signal_utils</span> <span class="kn">import</span> <span class="n">resolve_signal_name</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">libdebug.data.breakpoint</span> <span class="kn">import</span> <span class="n">Breakpoint</span>
+    <span class="kn">from</span> <span class="nn">libdebug.data.signal_catcher</span> <span class="kn">import</span> <span class="n">SignalCatcher</span>
+    <span class="kn">from</span> <span class="nn">libdebug.data.syscall_handler</span> <span class="kn">import</span> <span class="n">SyscallHandler</span>
+    <span class="kn">from</span> <span class="nn">libdebug.interfaces.debugging_interface</span> <span class="kn">import</span> <span class="n">DebuggingInterface</span>
+    <span class="kn">from</span> <span class="nn">libdebug.state.thread_context</span> <span class="kn">import</span> <span class="n">ThreadContext</span>
+
+
+<div class="viewcode-block" id="PtraceStatusHandler">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_status_handler.PtraceStatusHandler">[docs]</a>
+<span class="k">class</span> <span class="nc">PtraceStatusHandler</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;This class handles the states return by the waitpid calls on the debugger process.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceStatusHandler</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initializes the PtraceStatusHandler class.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span> <span class="o">=</span> <span class="n">provide_internal_debugger</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ptrace_interface</span><span class="p">:</span> <span class="n">DebuggingInterface</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">debugging_interface</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">forward_signal</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_assume_race_sigstop</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="kc">True</span>  <span class="c1"># Assume the stop is due to a race condition with SIGSTOP sent by the debugger</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_handle_clone</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceStatusHandler</span><span class="p">,</span> <span class="n">thread_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">results</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># https://go.googlesource.com/debug/+/a09ead70f05c87ad67bd9a131ff8352cf39a6082/doc/ptrace-nptl.txt</span>
+        <span class="c1"># &quot;At this time, the new thread will exist, but will initially</span>
+        <span class="c1"># be stopped with a SIGSTOP.  The new thread will automatically be</span>
+        <span class="c1"># traced and will inherit the PTRACE_O_TRACECLONE option from its</span>
+        <span class="c1"># parent.  The attached process should wait on the new thread to receive</span>
+        <span class="c1"># the SIGSTOP notification.&quot;</span>
+
+        <span class="c1"># Check if we received the SIGSTOP notification for the new thread</span>
+        <span class="c1"># If not, we need to wait for it</span>
+        <span class="c1"># 4991 == (WIFSTOPPED &amp;&amp; WSTOPSIG(status) == SIGSTOP)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">thread_id</span><span class="p">,</span> <span class="mi">4991</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">waitpid</span><span class="p">(</span><span class="n">thread_id</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ptrace_interface</span><span class="o">.</span><span class="n">register_new_thread</span><span class="p">(</span><span class="n">thread_id</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_handle_exit</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">:</span> <span class="n">PtraceStatusHandler</span><span class="p">,</span>
+        <span class="n">thread_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">exit_code</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">exit_signal</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">get_thread_by_id</span><span class="p">(</span><span class="n">thread_id</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptrace_interface</span><span class="o">.</span><span class="n">unregister_thread</span><span class="p">(</span><span class="n">thread_id</span><span class="p">,</span> <span class="n">exit_code</span><span class="o">=</span><span class="n">exit_code</span><span class="p">,</span> <span class="n">exit_signal</span><span class="o">=</span><span class="n">exit_signal</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_handle_breakpoints</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceStatusHandler</span><span class="p">,</span> <span class="n">thread_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="n">thread</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">get_thread_by_id</span><span class="p">(</span><span class="n">thread_id</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">thread</span><span class="p">,</span> <span class="s2">&quot;instruction_pointer&quot;</span><span class="p">):</span>
+            <span class="c1"># This is a signal trap hit on process startup</span>
+            <span class="c1"># Do not resume the process until the user decides to do so</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">resume_context</span><span class="o">.</span><span class="n">resume</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">forward_signal</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">return</span>
+
+        <span class="n">ip</span> <span class="o">=</span> <span class="n">thread</span><span class="o">.</span><span class="n">instruction_pointer</span>
+
+        <span class="n">bp</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="n">Breakpoint</span>
+
+        <span class="n">enabled_breakpoints</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">bp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">breakpoints</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">bp</span><span class="o">.</span><span class="n">enabled</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">bp</span><span class="o">.</span><span class="n">_disabled_for_step</span><span class="p">:</span>
+                <span class="n">enabled_breakpoints</span><span class="p">[</span><span class="n">bp</span><span class="o">.</span><span class="n">address</span><span class="p">]</span> <span class="o">=</span> <span class="n">bp</span>
+
+        <span class="n">bp</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">ip</span> <span class="ow">in</span> <span class="n">enabled_breakpoints</span><span class="p">:</span>
+            <span class="c1"># Hardware breakpoint hit</span>
+            <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;Hardware breakpoint hit at 0x</span><span class="si">%x</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">ip</span><span class="p">)</span>
+            <span class="n">bp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">breakpoints</span><span class="p">[</span><span class="n">ip</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># If the trap was caused by a software breakpoint, we need to restore the original instruction</span>
+            <span class="c1"># and set the instruction pointer to the previous instruction.</span>
+            <span class="n">ip</span> <span class="o">-=</span> <span class="n">software_breakpoint_byte_size</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">ip</span> <span class="ow">in</span> <span class="n">enabled_breakpoints</span><span class="p">:</span>
+                <span class="c1"># Software breakpoint hit</span>
+                <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;Software breakpoint hit at 0x</span><span class="si">%x</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">ip</span><span class="p">)</span>
+                <span class="n">bp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">breakpoints</span><span class="p">[</span><span class="n">ip</span><span class="p">]</span>
+
+                <span class="c1"># Set the instruction pointer to the previous instruction</span>
+                <span class="n">thread</span><span class="o">.</span><span class="n">instruction_pointer</span> <span class="o">=</span> <span class="n">ip</span>
+
+                <span class="c1"># Link the breakpoint to the thread, so that we can step over it</span>
+                <span class="n">bp</span><span class="o">.</span><span class="n">_linked_thread_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">thread_id</span><span class="p">)</span>
+
+        <span class="c1"># Manage watchpoints</span>
+        <span class="k">if</span> <span class="n">bp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">bp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptrace_interface</span><span class="o">.</span><span class="n">hardware_bp_helpers</span><span class="p">[</span><span class="n">thread_id</span><span class="p">]</span><span class="o">.</span><span class="n">is_watchpoint_hit</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">bp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;Watchpoint hit at 0x</span><span class="si">%x</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">bp</span><span class="o">.</span><span class="n">address</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">bp</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">forward_signal</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">bp</span><span class="o">.</span><span class="n">hit_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="k">if</span> <span class="n">bp</span><span class="o">.</span><span class="n">callback</span><span class="p">:</span>
+                <span class="n">bp</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span><span class="n">thread</span><span class="p">,</span> <span class="n">bp</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># If the breakpoint has no callback, we need to stop the process despite the other signals</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">resume_context</span><span class="o">.</span><span class="n">resume</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">_manage_syscall_on_enter</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">:</span> <span class="n">PtraceStatusHandler</span><span class="p">,</span>
+        <span class="n">handler</span><span class="p">:</span> <span class="n">SyscallHandler</span><span class="p">,</span>
+        <span class="n">thread</span><span class="p">:</span> <span class="n">ThreadContext</span><span class="p">,</span>
+        <span class="n">syscall_number</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">hijacked_set</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Manage the on_enter callback of a syscall.&quot;&quot;&quot;</span>
+        <span class="c1"># Call the user-defined callback if it exists</span>
+        <span class="k">if</span> <span class="n">handler</span><span class="o">.</span><span class="n">on_enter_user</span> <span class="ow">and</span> <span class="n">handler</span><span class="o">.</span><span class="n">enabled</span><span class="p">:</span>
+            <span class="n">old_args</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">thread</span><span class="o">.</span><span class="n">syscall_arg0</span><span class="p">,</span>
+                <span class="n">thread</span><span class="o">.</span><span class="n">syscall_arg1</span><span class="p">,</span>
+                <span class="n">thread</span><span class="o">.</span><span class="n">syscall_arg2</span><span class="p">,</span>
+                <span class="n">thread</span><span class="o">.</span><span class="n">syscall_arg3</span><span class="p">,</span>
+                <span class="n">thread</span><span class="o">.</span><span class="n">syscall_arg4</span><span class="p">,</span>
+                <span class="n">thread</span><span class="o">.</span><span class="n">syscall_arg5</span><span class="p">,</span>
+            <span class="p">]</span>
+            <span class="n">handler</span><span class="o">.</span><span class="n">on_enter_user</span><span class="p">(</span><span class="n">thread</span><span class="p">,</span> <span class="n">handler</span><span class="p">)</span>
+
+            <span class="c1"># Check if the syscall number has changed</span>
+            <span class="n">syscall_number_after_callback</span> <span class="o">=</span> <span class="n">thread</span><span class="o">.</span><span class="n">syscall_number</span>
+
+            <span class="k">if</span> <span class="n">syscall_number_after_callback</span> <span class="o">!=</span> <span class="n">syscall_number</span><span class="p">:</span>
+                <span class="c1"># Pretty print the syscall number before the callback</span>
+                <span class="k">if</span> <span class="n">handler</span><span class="o">.</span><span class="n">on_enter_pprint</span><span class="p">:</span>
+                    <span class="n">handler</span><span class="o">.</span><span class="n">on_enter_pprint</span><span class="p">(</span>
+                        <span class="n">thread</span><span class="p">,</span>
+                        <span class="n">syscall_number</span><span class="p">,</span>
+                        <span class="n">hijacked</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="n">old_args</span><span class="o">=</span><span class="n">old_args</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="c1"># The syscall number has changed</span>
+                <span class="k">if</span> <span class="n">syscall_number_after_callback</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">handled_syscalls</span><span class="p">:</span>
+                    <span class="n">callback_hijack</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">handled_syscalls</span><span class="p">[</span><span class="n">syscall_number_after_callback</span><span class="p">]</span>
+
+                    <span class="c1"># Check if the new syscall has to be handled recursively</span>
+                    <span class="k">if</span> <span class="n">handler</span><span class="o">.</span><span class="n">recursive</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">syscall_number_after_callback</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">hijacked_set</span><span class="p">:</span>
+                            <span class="n">hijacked_set</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">syscall_number_after_callback</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="c1"># The syscall has already been hijacked in the current chain</span>
+                            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                                <span class="s2">&quot;Syscall hijacking loop detected. Check your code to avoid infinite loops.&quot;</span><span class="p">,</span>
+                            <span class="p">)</span>
+
+                        <span class="c1"># Call recursively the function to manage the new syscall</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_manage_syscall_on_enter</span><span class="p">(</span>
+                            <span class="n">callback_hijack</span><span class="p">,</span>
+                            <span class="n">thread</span><span class="p">,</span>
+                            <span class="n">syscall_number_after_callback</span><span class="p">,</span>
+                            <span class="n">hijacked_set</span><span class="p">,</span>
+                        <span class="p">)</span>
+                    <span class="k">elif</span> <span class="n">callback_hijack</span><span class="o">.</span><span class="n">on_enter_pprint</span><span class="p">:</span>
+                        <span class="c1"># Pretty print the syscall number</span>
+                        <span class="n">callback_hijack</span><span class="o">.</span><span class="n">on_enter_pprint</span><span class="p">(</span><span class="n">thread</span><span class="p">,</span> <span class="n">syscall_number_after_callback</span><span class="p">)</span>
+                        <span class="n">callback_hijack</span><span class="o">.</span><span class="n">_has_entered</span> <span class="o">=</span> <span class="kc">True</span>
+                        <span class="n">callback_hijack</span><span class="o">.</span><span class="n">_skip_exit</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># Skip the exit callback of the syscall that has been hijacked</span>
+                        <span class="n">callback_hijack</span><span class="o">.</span><span class="n">_has_entered</span> <span class="o">=</span> <span class="kc">True</span>
+                        <span class="n">callback_hijack</span><span class="o">.</span><span class="n">_skip_exit</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">elif</span> <span class="n">handler</span><span class="o">.</span><span class="n">on_enter_pprint</span><span class="p">:</span>
+                <span class="c1"># Pretty print the syscall number</span>
+                <span class="n">handler</span><span class="o">.</span><span class="n">on_enter_pprint</span><span class="p">(</span><span class="n">thread</span><span class="p">,</span> <span class="n">syscall_number</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">handler</span><span class="o">.</span><span class="n">_has_entered</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">handler</span><span class="o">.</span><span class="n">_has_entered</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">elif</span> <span class="n">handler</span><span class="o">.</span><span class="n">on_enter_pprint</span><span class="p">:</span>
+            <span class="c1"># Pretty print the syscall number</span>
+            <span class="n">handler</span><span class="o">.</span><span class="n">on_enter_pprint</span><span class="p">(</span><span class="n">thread</span><span class="p">,</span> <span class="n">syscall_number</span><span class="p">)</span>
+            <span class="n">handler</span><span class="o">.</span><span class="n">_has_entered</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">elif</span> <span class="n">handler</span><span class="o">.</span><span class="n">on_exit_pprint</span> <span class="ow">or</span> <span class="n">handler</span><span class="o">.</span><span class="n">on_exit_user</span><span class="p">:</span>
+            <span class="c1"># The syscall has been entered but the user did not define an on_enter callback</span>
+            <span class="n">handler</span><span class="o">.</span><span class="n">_has_entered</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">handler</span><span class="o">.</span><span class="n">on_enter_user</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">handler</span><span class="o">.</span><span class="n">on_exit_user</span> <span class="ow">and</span> <span class="n">handler</span><span class="o">.</span><span class="n">enabled</span><span class="p">:</span>
+            <span class="c1"># If the syscall has no callback, we need to stop the process despite the other signals</span>
+            <span class="n">handler</span><span class="o">.</span><span class="n">_has_entered</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">resume_context</span><span class="o">.</span><span class="n">resume</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">_handle_syscall</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceStatusHandler</span><span class="p">,</span> <span class="n">thread_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Handle a syscall trap.&quot;&quot;&quot;</span>
+        <span class="n">thread</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">get_thread_by_id</span><span class="p">(</span><span class="n">thread_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">thread</span><span class="p">,</span> <span class="s2">&quot;syscall_number&quot;</span><span class="p">):</span>
+            <span class="c1"># This is another spurious trap, we don&#39;t know what to do with it</span>
+            <span class="k">return</span>
+
+        <span class="n">syscall_number</span> <span class="o">=</span> <span class="n">thread</span><span class="o">.</span><span class="n">syscall_number</span>
+
+        <span class="k">if</span> <span class="n">syscall_number</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">handled_syscalls</span><span class="p">:</span>
+            <span class="c1"># This is a syscall we don&#39;t care about</span>
+            <span class="c1"># Resume the execution</span>
+            <span class="k">return</span>
+
+        <span class="n">handler</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">handled_syscalls</span><span class="p">[</span><span class="n">syscall_number</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">handler</span><span class="o">.</span><span class="n">_has_entered</span><span class="p">:</span>
+            <span class="c1"># The syscall is being entered</span>
+            <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span>
+                <span class="s2">&quot;Syscall </span><span class="si">%d</span><span class="s2"> entered on thread </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">syscall_number</span><span class="p">,</span>
+                <span class="n">thread_id</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_manage_syscall_on_enter</span><span class="p">(</span>
+                <span class="n">handler</span><span class="p">,</span>
+                <span class="n">thread</span><span class="p">,</span>
+                <span class="n">syscall_number</span><span class="p">,</span>
+                <span class="p">{</span><span class="n">syscall_number</span><span class="p">},</span>
+            <span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># The syscall is being exited</span>
+            <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;Syscall </span><span class="si">%d</span><span class="s2"> exited on thread </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">syscall_number</span><span class="p">,</span> <span class="n">thread_id</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">handler</span><span class="o">.</span><span class="n">enabled</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">handler</span><span class="o">.</span><span class="n">_skip_exit</span><span class="p">:</span>
+                <span class="c1"># Increment the hit count only if the syscall has been handled</span>
+                <span class="n">handler</span><span class="o">.</span><span class="n">hit_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="c1"># Call the user-defined callback if it exists</span>
+            <span class="k">if</span> <span class="n">handler</span><span class="o">.</span><span class="n">on_exit_user</span> <span class="ow">and</span> <span class="n">handler</span><span class="o">.</span><span class="n">enabled</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">handler</span><span class="o">.</span><span class="n">_skip_exit</span><span class="p">:</span>
+                <span class="c1"># Pretty print the return value before the callback</span>
+                <span class="k">if</span> <span class="n">handler</span><span class="o">.</span><span class="n">on_exit_pprint</span><span class="p">:</span>
+                    <span class="n">return_value_before_callback</span> <span class="o">=</span> <span class="n">thread</span><span class="o">.</span><span class="n">syscall_return</span>
+                <span class="n">handler</span><span class="o">.</span><span class="n">on_exit_user</span><span class="p">(</span><span class="n">thread</span><span class="p">,</span> <span class="n">handler</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">handler</span><span class="o">.</span><span class="n">on_exit_pprint</span><span class="p">:</span>
+                    <span class="n">return_value_after_callback</span> <span class="o">=</span> <span class="n">thread</span><span class="o">.</span><span class="n">syscall_return</span>
+                    <span class="k">if</span> <span class="n">return_value_after_callback</span> <span class="o">!=</span> <span class="n">return_value_before_callback</span><span class="p">:</span>
+                        <span class="n">handler</span><span class="o">.</span><span class="n">on_exit_pprint</span><span class="p">(</span>
+                            <span class="p">(</span><span class="n">return_value_before_callback</span><span class="p">,</span> <span class="n">return_value_after_callback</span><span class="p">),</span>
+                        <span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">handler</span><span class="o">.</span><span class="n">on_exit_pprint</span><span class="p">(</span><span class="n">return_value_after_callback</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">handler</span><span class="o">.</span><span class="n">on_exit_pprint</span><span class="p">:</span>
+                <span class="c1"># Pretty print the return value</span>
+                <span class="n">handler</span><span class="o">.</span><span class="n">on_exit_pprint</span><span class="p">(</span><span class="n">thread</span><span class="o">.</span><span class="n">syscall_return</span><span class="p">)</span>
+
+            <span class="n">handler</span><span class="o">.</span><span class="n">_has_entered</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">handler</span><span class="o">.</span><span class="n">_skip_exit</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">handler</span><span class="o">.</span><span class="n">on_enter_user</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">handler</span><span class="o">.</span><span class="n">on_exit_user</span> <span class="ow">and</span> <span class="n">handler</span><span class="o">.</span><span class="n">enabled</span><span class="p">:</span>
+                <span class="c1"># If the syscall has no callback, we need to stop the process despite the other signals</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">resume_context</span><span class="o">.</span><span class="n">resume</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">_manage_caught_signal</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">:</span> <span class="n">PtraceStatusHandler</span><span class="p">,</span>
+        <span class="n">catcher</span><span class="p">:</span> <span class="n">SignalCatcher</span><span class="p">,</span>
+        <span class="n">thread</span><span class="p">:</span> <span class="n">ThreadContext</span><span class="p">,</span>
+        <span class="n">signal_number</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">hijacked_set</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">catcher</span><span class="o">.</span><span class="n">enabled</span><span class="p">:</span>
+            <span class="n">catcher</span><span class="o">.</span><span class="n">hit_count</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span>
+                <span class="s2">&quot;Caught signal </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%d</span><span class="s2">) hit on thread </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">resolve_signal_name</span><span class="p">(</span><span class="n">signal_number</span><span class="p">),</span>
+                <span class="n">signal_number</span><span class="p">,</span>
+                <span class="n">thread</span><span class="o">.</span><span class="n">thread_id</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">catcher</span><span class="o">.</span><span class="n">callback</span><span class="p">:</span>
+                <span class="c1"># Execute the user-defined callback</span>
+                <span class="n">catcher</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span><span class="n">thread</span><span class="p">,</span> <span class="n">catcher</span><span class="p">)</span>
+
+                <span class="n">new_signal_number</span> <span class="o">=</span> <span class="n">thread</span><span class="o">.</span><span class="n">_signal_number</span>
+
+                <span class="k">if</span> <span class="n">new_signal_number</span> <span class="o">!=</span> <span class="n">signal_number</span><span class="p">:</span>
+                    <span class="c1"># The signal number has changed</span>
+                    <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span>
+                        <span class="s2">&quot;Signal </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%d</span><span class="s2">) has been hijacked to </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%d</span><span class="s2">)&quot;</span><span class="p">,</span>
+                        <span class="n">resolve_signal_name</span><span class="p">(</span><span class="n">signal_number</span><span class="p">),</span>
+                        <span class="n">signal_number</span><span class="p">,</span>
+                        <span class="n">resolve_signal_name</span><span class="p">(</span><span class="n">new_signal_number</span><span class="p">),</span>
+                        <span class="n">new_signal_number</span><span class="p">,</span>
+                    <span class="p">)</span>
+
+                    <span class="k">if</span> <span class="n">catcher</span><span class="o">.</span><span class="n">recursive</span> <span class="ow">and</span> <span class="n">new_signal_number</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">caught_signals</span><span class="p">:</span>
+                        <span class="n">hijack_cath_signal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">caught_signals</span><span class="p">[</span><span class="n">new_signal_number</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="n">new_signal_number</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">hijacked_set</span><span class="p">:</span>
+                            <span class="n">hijacked_set</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">new_signal_number</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="c1"># The signal has already been replaced in the current chain</span>
+                            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                                <span class="s2">&quot;Signal hijacking loop detected. Check your script to avoid infinite loops.&quot;</span><span class="p">,</span>
+                            <span class="p">)</span>
+                        <span class="c1"># Call recursively the function to manage the new signal</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_manage_caught_signal</span><span class="p">(</span>
+                            <span class="n">hijack_cath_signal</span><span class="p">,</span>
+                            <span class="n">thread</span><span class="p">,</span>
+                            <span class="n">new_signal_number</span><span class="p">,</span>
+                            <span class="n">hijacked_set</span><span class="p">,</span>
+                        <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># If the caught signal has no callback, we need to stop the process despite the other signals</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">resume_context</span><span class="o">.</span><span class="n">resume</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">_handle_signal</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceStatusHandler</span><span class="p">,</span> <span class="n">thread</span><span class="p">:</span> <span class="n">ThreadContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Handle the signal trap.&quot;&quot;&quot;</span>
+        <span class="n">signal_number</span> <span class="o">=</span> <span class="n">thread</span><span class="o">.</span><span class="n">_signal_number</span>
+
+        <span class="k">if</span> <span class="n">signal_number</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">caught_signals</span><span class="p">:</span>
+            <span class="n">catcher</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">caught_signals</span><span class="p">[</span><span class="n">signal_number</span><span class="p">]</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_manage_caught_signal</span><span class="p">(</span><span class="n">catcher</span><span class="p">,</span> <span class="n">thread</span><span class="p">,</span> <span class="n">signal_number</span><span class="p">,</span> <span class="p">{</span><span class="n">signal_number</span><span class="p">})</span>
+
+    <span class="k">def</span> <span class="nf">_internal_signal_handler</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">:</span> <span class="n">PtraceStatusHandler</span><span class="p">,</span>
+        <span class="n">pid</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">signum</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">results</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+        <span class="n">status</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Internal handler for signals used by the debugger.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">signum</span> <span class="o">==</span> <span class="n">SYSCALL_SIGTRAP</span><span class="p">:</span>
+            <span class="c1"># We hit a syscall</span>
+            <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;Child thread </span><span class="si">%d</span><span class="s2"> stopped on syscall&quot;</span><span class="p">,</span> <span class="n">pid</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_handle_syscall</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">forward_signal</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">elif</span> <span class="n">signum</span> <span class="o">==</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGSTOP</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">resume_context</span><span class="o">.</span><span class="n">force_interrupt</span><span class="p">:</span>
+            <span class="c1"># The user has requested an interrupt, we need to stop the process despite the ohter signals</span>
+            <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span>
+                <span class="s2">&quot;Child thread </span><span class="si">%d</span><span class="s2"> stopped with signal </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">pid</span><span class="p">,</span>
+                <span class="n">resolve_signal_name</span><span class="p">(</span><span class="n">signum</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">resume_context</span><span class="o">.</span><span class="n">resume</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">resume_context</span><span class="o">.</span><span class="n">force_interrupt</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">forward_signal</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">elif</span> <span class="n">signum</span> <span class="o">==</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGTRAP</span><span class="p">:</span>
+            <span class="c1"># The trap decides if we hit a breakpoint. If so, it decides whether we should stop or</span>
+            <span class="c1"># continue the execution and wait for the next trap</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_handle_breakpoints</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">resume_context</span><span class="o">.</span><span class="n">is_a_step</span><span class="p">:</span>
+                <span class="c1"># The process is stepping, we need to stop the execution</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">resume_context</span><span class="o">.</span><span class="n">resume</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">resume_context</span><span class="o">.</span><span class="n">is_a_step</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">forward_signal</span> <span class="o">=</span> <span class="kc">False</span>
+
+            <span class="n">event</span> <span class="o">=</span> <span class="n">status</span> <span class="o">&gt;&gt;</span> <span class="mi">8</span>
+            <span class="k">match</span> <span class="n">event</span><span class="p">:</span>
+                <span class="k">case</span> <span class="n">StopEvents</span><span class="o">.</span><span class="n">CLONE_EVENT</span><span class="p">:</span>
+                    <span class="c1"># The process has been cloned</span>
+                    <span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptrace_interface</span><span class="o">.</span><span class="n">_get_event_msg</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+                    <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Process </span><span class="si">{</span><span class="n">pid</span><span class="si">}</span><span class="s2"> cloned, new thread_id: </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_handle_clone</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">results</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">forward_signal</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">case</span> <span class="n">StopEvents</span><span class="o">.</span><span class="n">SECCOMP_EVENT</span><span class="p">:</span>
+                    <span class="c1"># The process has installed a seccomp</span>
+                    <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Process </span><span class="si">{</span><span class="n">pid</span><span class="si">}</span><span class="s2"> installed a seccomp&quot;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">forward_signal</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">case</span> <span class="n">StopEvents</span><span class="o">.</span><span class="n">EXIT_EVENT</span><span class="p">:</span>
+                    <span class="c1"># The tracee is still alive; it needs</span>
+                    <span class="c1"># to be PTRACE_CONTed or PTRACE_DETACHed to finish exiting.</span>
+                    <span class="c1"># so we don&#39;t call self._handle_exit(pid) here</span>
+                    <span class="c1"># it will be called at the next wait (hopefully)</span>
+                    <span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptrace_interface</span><span class="o">.</span><span class="n">_get_event_msg</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+                    <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Thread </span><span class="si">{</span><span class="n">pid</span><span class="si">}</span><span class="s2"> exited with status: </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">forward_signal</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">case</span> <span class="n">StopEvents</span><span class="o">.</span><span class="n">FORK_EVENT</span><span class="p">:</span>
+                    <span class="c1"># The process has been forked</span>
+                    <span class="n">liblog</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Process </span><span class="si">{</span><span class="n">pid</span><span class="si">}</span><span class="s2"> forked. Continuing execution of the parent process. The child process will be stopped until the user decides to attach to it.&quot;</span>
+                    <span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">forward_signal</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">_handle_change</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceStatusHandler</span><span class="p">,</span> <span class="n">pid</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">status</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">results</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Handle a change in the status of a traced process.&quot;&quot;&quot;</span>
+
+        <span class="c1"># Initialize the forward_signal flag</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">forward_signal</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">WIFSTOPPED</span><span class="p">(</span><span class="n">status</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">resume_context</span><span class="o">.</span><span class="n">is_startup</span><span class="p">:</span>
+                <span class="c1"># The process has just started</span>
+                <span class="k">return</span>
+            <span class="n">signum</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">WSTOPSIG</span><span class="p">(</span><span class="n">status</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">signum</span> <span class="o">!=</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGSTOP</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_assume_race_sigstop</span> <span class="o">=</span> <span class="kc">False</span>
+
+            <span class="c1"># Check if the debugger needs to handle the signal</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_internal_signal_handler</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">signum</span><span class="p">,</span> <span class="n">results</span><span class="p">,</span> <span class="n">status</span><span class="p">)</span>
+
+            <span class="n">thread</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">get_thread_by_id</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">thread</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">thread</span><span class="o">.</span><span class="n">_signal_number</span> <span class="o">=</span> <span class="n">signum</span>
+
+                <span class="c1"># Handle the signal</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_handle_signal</span><span class="p">(</span><span class="n">thread</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_signal</span> <span class="ow">and</span> <span class="n">signum</span> <span class="o">!=</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGSTOP</span><span class="p">:</span>
+                    <span class="c1"># We have to forward the signal to the thread</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">resume_context</span><span class="o">.</span><span class="n">threads_with_signals_to_forward</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">WIFEXITED</span><span class="p">(</span><span class="n">status</span><span class="p">):</span>
+            <span class="c1"># The thread has exited normally</span>
+            <span class="n">exit_code</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">WEXITSTATUS</span><span class="p">(</span><span class="n">status</span><span class="p">)</span>
+            <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;Child process </span><span class="si">%d</span><span class="s2"> exited with exit code </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="n">exit_code</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_handle_exit</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">exit_code</span><span class="o">=</span><span class="n">exit_code</span><span class="p">,</span> <span class="n">exit_signal</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">WIFSIGNALED</span><span class="p">(</span><span class="n">status</span><span class="p">):</span>
+            <span class="c1"># The thread has exited with a signal</span>
+            <span class="n">exit_signal</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">WTERMSIG</span><span class="p">(</span><span class="n">status</span><span class="p">)</span>
+            <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;Child process </span><span class="si">%d</span><span class="s2"> exited with signal </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="n">exit_signal</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_handle_exit</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">exit_code</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">exit_signal</span><span class="o">=</span><span class="n">exit_signal</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PtraceStatusHandler.manage_change">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_status_handler.PtraceStatusHandler.manage_change">[docs]</a>
+    <span class="k">def</span> <span class="nf">manage_change</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceStatusHandler</span><span class="p">,</span> <span class="n">result</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Manage the result of the waitpid and handle the changes.&quot;&quot;&quot;</span>
+        <span class="c1"># Assume that the stop depends on SIGSTOP sent by the debugger</span>
+        <span class="c1"># This is a workaround for some race conditions that may happen</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_assume_race_sigstop</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">for</span> <span class="n">pid</span><span class="p">,</span> <span class="n">status</span> <span class="ow">in</span> <span class="n">result</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">pid</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># Otherwise, this is a spurious trap</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_handle_change</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_assume_race_sigstop</span><span class="p">:</span>
+            <span class="c1"># Resume the process if the stop was due to a race condition with SIGSTOP sent by the debugger</span>
+            <span class="k">return</span></div>
+
+
+<div class="viewcode-block" id="PtraceStatusHandler.check_for_new_threads">
+<a class="viewcode-back" href="../../../libdebug.ptrace.html#libdebug.ptrace.ptrace_status_handler.PtraceStatusHandler.check_for_new_threads">[docs]</a>
+    <span class="k">def</span> <span class="nf">check_for_new_threads</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">PtraceStatusHandler</span><span class="p">,</span> <span class="n">pid</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check for new threads in the process and register them.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">Path</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;/proc/</span><span class="si">{</span><span class="n">pid</span><span class="si">}</span><span class="s2">/task&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">return</span>
+
+        <span class="n">tids</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;/proc/</span><span class="si">{</span><span class="n">pid</span><span class="si">}</span><span class="s2">/task&quot;</span><span class="p">)]</span>
+        <span class="k">for</span> <span class="n">tid</span> <span class="ow">in</span> <span class="n">tids</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="o">.</span><span class="n">get_thread_by_id</span><span class="p">(</span><span class="n">tid</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ptrace_interface</span><span class="o">.</span><span class="n">register_new_thread</span><span class="p">(</span><span class="n">tid</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_debugger</span><span class="p">)</span>
+                <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;Manually registered new thread </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">tid</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../_static/scripts/bootstrap.js?digest=3ee479438cf8b5e0d341"></script>
+<script src="../../../_static/scripts/pydata-sphinx-theme.js?digest=3ee479438cf8b5e0d341"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024, Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.3.7.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.15.3.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
