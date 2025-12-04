@@ -1898,15 +1898,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#libdebug.architectures.amd64.amd64_ptrace_register_holder.Amd64PtraceRegisterHolder.cleanup" class="md-nav__link">
-    <span class="md-ellipsis">
-      cleanup
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#libdebug.architectures.amd64.amd64_ptrace_register_holder.Amd64PtraceRegisterHolder.provide_regs" class="md-nav__link">
     <span class="md-ellipsis">
       provide_regs
@@ -2186,13 +2177,7 @@
 <span class="normal"><a href="#__codelineno-0-446">446</a></span>
 <span class="normal"><a href="#__codelineno-0-447">447</a></span>
 <span class="normal"><a href="#__codelineno-0-448">448</a></span>
-<span class="normal"><a href="#__codelineno-0-449">449</a></span>
-<span class="normal"><a href="#__codelineno-0-450">450</a></span>
-<span class="normal"><a href="#__codelineno-0-451">451</a></span>
-<span class="normal"><a href="#__codelineno-0-452">452</a></span>
-<span class="normal"><a href="#__codelineno-0-453">453</a></span>
-<span class="normal"><a href="#__codelineno-0-454">454</a></span>
-<span class="normal"><a href="#__codelineno-0-455">455</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-284"><a id="__codelineno-0-284" name="__codelineno-0-284"></a><span class="nd">@dataclass</span>
+<span class="normal"><a href="#__codelineno-0-449">449</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-284"><a id="__codelineno-0-284" name="__codelineno-0-284"></a><span class="nd">@dataclass</span>
 </span><span id="__span-0-285"><a id="__codelineno-0-285" name="__codelineno-0-285"></a><span class="k">class</span><span class="w"> </span><span class="nc">Amd64PtraceRegisterHolder</span><span class="p">(</span><span class="n">PtraceRegisterHolder</span><span class="p">):</span>
 </span><span id="__span-0-286"><a id="__codelineno-0-286" name="__codelineno-0-286"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;A class that provides views and setters for the registers of an x86_64 process.&quot;&quot;&quot;</span>
 </span><span id="__span-0-287"><a id="__codelineno-0-287" name="__codelineno-0-287"></a>
@@ -2358,12 +2343,6 @@
 </span><span id="__span-0-447"><a id="__codelineno-0-447" name="__codelineno-0-447"></a>            <span class="nb">setattr</span><span class="p">(</span><span class="n">target_class</span><span class="p">,</span> <span class="n">name_zmm</span><span class="p">,</span> <span class="n">_get_property_fp_zmm1</span><span class="p">(</span><span class="n">name_zmm</span><span class="p">,</span> <span class="n">index</span><span class="p">))</span>
 </span><span id="__span-0-448"><a id="__codelineno-0-448" name="__codelineno-0-448"></a>
 </span><span id="__span-0-449"><a id="__codelineno-0-449" name="__codelineno-0-449"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">_vector_fp_registers</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">name_xmm</span><span class="p">,</span> <span class="n">name_ymm</span><span class="p">,</span> <span class="n">name_zmm</span><span class="p">))</span>
-</span><span id="__span-0-450"><a id="__codelineno-0-450" name="__codelineno-0-450"></a>
-</span><span id="__span-0-451"><a id="__codelineno-0-451" name="__codelineno-0-451"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Amd64PtraceRegisterHolder</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-452"><a id="__codelineno-0-452" name="__codelineno-0-452"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Clean up the register accessors from the Amd64Registers class.&quot;&quot;&quot;</span>
-</span><span id="__span-0-453"><a id="__codelineno-0-453" name="__codelineno-0-453"></a>        <span class="k">for</span> <span class="n">attr_name</span><span class="p">,</span> <span class="n">attr_value</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">Amd64Registers</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
-</span><span id="__span-0-454"><a id="__codelineno-0-454" name="__codelineno-0-454"></a>            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attr_value</span><span class="p">,</span> <span class="nb">property</span><span class="p">):</span>
-</span><span id="__span-0-455"><a id="__codelineno-0-455" name="__codelineno-0-455"></a>                <span class="nb">delattr</span><span class="p">(</span><span class="n">Amd64Registers</span><span class="p">,</span> <span class="n">attr_name</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
               </details>
 
@@ -2775,36 +2754,6 @@
 </span><span id="__span-0-392"><a id="__codelineno-0-392" name="__codelineno-0-392"></a>    <span class="n">target_class</span><span class="o">.</span><span class="n">syscall_arg3</span> <span class="o">=</span> <span class="n">_get_property_64</span><span class="p">(</span><span class="s2">&quot;r10&quot;</span><span class="p">)</span>
 </span><span id="__span-0-393"><a id="__codelineno-0-393" name="__codelineno-0-393"></a>    <span class="n">target_class</span><span class="o">.</span><span class="n">syscall_arg4</span> <span class="o">=</span> <span class="n">_get_property_64</span><span class="p">(</span><span class="s2">&quot;r8&quot;</span><span class="p">)</span>
 </span><span id="__span-0-394"><a id="__codelineno-0-394" name="__codelineno-0-394"></a>    <span class="n">target_class</span><span class="o">.</span><span class="n">syscall_arg5</span> <span class="o">=</span> <span class="n">_get_property_64</span><span class="p">(</span><span class="s2">&quot;r9&quot;</span><span class="p">)</span>
-</span></code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
-<h3 id="libdebug.architectures.amd64.amd64_ptrace_register_holder.Amd64PtraceRegisterHolder.cleanup" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">cleanup</span><span class="p">()</span></code>
-
-</h3>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Clean up the register accessors from the Amd64Registers class.</p>
-
-            <details class="quote">
-              <summary>Source code in <code>libdebug/architectures/amd64/amd64_ptrace_register_holder.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-451">451</a></span>
-<span class="normal"><a href="#__codelineno-0-452">452</a></span>
-<span class="normal"><a href="#__codelineno-0-453">453</a></span>
-<span class="normal"><a href="#__codelineno-0-454">454</a></span>
-<span class="normal"><a href="#__codelineno-0-455">455</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-451"><a id="__codelineno-0-451" name="__codelineno-0-451"></a><span class="k">def</span><span class="w"> </span><span class="nf">cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Amd64PtraceRegisterHolder</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-452"><a id="__codelineno-0-452" name="__codelineno-0-452"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Clean up the register accessors from the Amd64Registers class.&quot;&quot;&quot;</span>
-</span><span id="__span-0-453"><a id="__codelineno-0-453" name="__codelineno-0-453"></a>    <span class="k">for</span> <span class="n">attr_name</span><span class="p">,</span> <span class="n">attr_value</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">Amd64Registers</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
-</span><span id="__span-0-454"><a id="__codelineno-0-454" name="__codelineno-0-454"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attr_value</span><span class="p">,</span> <span class="nb">property</span><span class="p">):</span>
-</span><span id="__span-0-455"><a id="__codelineno-0-455" name="__codelineno-0-455"></a>            <span class="nb">delattr</span><span class="p">(</span><span class="n">Amd64Registers</span><span class="p">,</span> <span class="n">attr_name</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>

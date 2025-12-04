@@ -1907,15 +1907,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#libdebug.architectures.i386.i386_ptrace_register_holder.I386PtraceRegisterHolder.cleanup" class="md-nav__link">
-    <span class="md-ellipsis">
-      cleanup
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#libdebug.architectures.i386.i386_ptrace_register_holder.I386PtraceRegisterHolder.provide_regs" class="md-nav__link">
     <span class="md-ellipsis">
       provide_regs
@@ -2186,13 +2177,7 @@
 <span class="normal"><a href="#__codelineno-0-274">274</a></span>
 <span class="normal"><a href="#__codelineno-0-275">275</a></span>
 <span class="normal"><a href="#__codelineno-0-276">276</a></span>
-<span class="normal"><a href="#__codelineno-0-277">277</a></span>
-<span class="normal"><a href="#__codelineno-0-278">278</a></span>
-<span class="normal"><a href="#__codelineno-0-279">279</a></span>
-<span class="normal"><a href="#__codelineno-0-280">280</a></span>
-<span class="normal"><a href="#__codelineno-0-281">281</a></span>
-<span class="normal"><a href="#__codelineno-0-282">282</a></span>
-<span class="normal"><a href="#__codelineno-0-283">283</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-121"><a id="__codelineno-0-121" name="__codelineno-0-121"></a><span class="nd">@dataclass</span>
+<span class="normal"><a href="#__codelineno-0-277">277</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-121"><a id="__codelineno-0-121" name="__codelineno-0-121"></a><span class="nd">@dataclass</span>
 </span><span id="__span-0-122"><a id="__codelineno-0-122" name="__codelineno-0-122"></a><span class="k">class</span><span class="w"> </span><span class="nc">I386PtraceRegisterHolder</span><span class="p">(</span><span class="n">PtraceRegisterHolder</span><span class="p">):</span>
 </span><span id="__span-0-123"><a id="__codelineno-0-123" name="__codelineno-0-123"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;A class that provides views and setters for the registers of an i386 process.&quot;&quot;&quot;</span>
 </span><span id="__span-0-124"><a id="__codelineno-0-124" name="__codelineno-0-124"></a>
@@ -2349,12 +2334,6 @@
 </span><span id="__span-0-275"><a id="__codelineno-0-275" name="__codelineno-0-275"></a>            <span class="nb">setattr</span><span class="p">(</span><span class="n">target_class</span><span class="p">,</span> <span class="n">name_zmm</span><span class="p">,</span> <span class="n">_get_property_fp_zmm0</span><span class="p">(</span><span class="n">name_zmm</span><span class="p">,</span> <span class="n">index</span><span class="p">))</span>
 </span><span id="__span-0-276"><a id="__codelineno-0-276" name="__codelineno-0-276"></a>
 </span><span id="__span-0-277"><a id="__codelineno-0-277" name="__codelineno-0-277"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">_vector_fp_registers</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">name_xmm</span><span class="p">,</span> <span class="n">name_ymm</span><span class="p">,</span> <span class="n">name_zmm</span><span class="p">))</span>
-</span><span id="__span-0-278"><a id="__codelineno-0-278" name="__codelineno-0-278"></a>
-</span><span id="__span-0-279"><a id="__codelineno-0-279" name="__codelineno-0-279"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">I386PtraceRegisterHolder</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-280"><a id="__codelineno-0-280" name="__codelineno-0-280"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Clean up the register accessors from the class.&quot;&quot;&quot;</span>
-</span><span id="__span-0-281"><a id="__codelineno-0-281" name="__codelineno-0-281"></a>        <span class="k">for</span> <span class="n">attr_name</span><span class="p">,</span> <span class="n">attr_value</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">I386Registers</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
-</span><span id="__span-0-282"><a id="__codelineno-0-282" name="__codelineno-0-282"></a>            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attr_value</span><span class="p">,</span> <span class="nb">property</span><span class="p">):</span>
-</span><span id="__span-0-283"><a id="__codelineno-0-283" name="__codelineno-0-283"></a>                <span class="nb">delattr</span><span class="p">(</span><span class="n">I386Registers</span><span class="p">,</span> <span class="n">attr_name</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
               </details>
 
@@ -2766,36 +2745,6 @@
 </span><span id="__span-0-217"><a id="__codelineno-0-217" name="__codelineno-0-217"></a>    <span class="n">target_class</span><span class="o">.</span><span class="n">syscall_arg3</span> <span class="o">=</span> <span class="n">_get_property_32</span><span class="p">(</span><span class="s2">&quot;esi&quot;</span><span class="p">)</span>
 </span><span id="__span-0-218"><a id="__codelineno-0-218" name="__codelineno-0-218"></a>    <span class="n">target_class</span><span class="o">.</span><span class="n">syscall_arg4</span> <span class="o">=</span> <span class="n">_get_property_32</span><span class="p">(</span><span class="s2">&quot;edi&quot;</span><span class="p">)</span>
 </span><span id="__span-0-219"><a id="__codelineno-0-219" name="__codelineno-0-219"></a>    <span class="n">target_class</span><span class="o">.</span><span class="n">syscall_arg5</span> <span class="o">=</span> <span class="n">_get_property_32</span><span class="p">(</span><span class="s2">&quot;ebp&quot;</span><span class="p">)</span>
-</span></code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
-<h3 id="libdebug.architectures.i386.i386_ptrace_register_holder.I386PtraceRegisterHolder.cleanup" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">cleanup</span><span class="p">()</span></code>
-
-</h3>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Clean up the register accessors from the class.</p>
-
-            <details class="quote">
-              <summary>Source code in <code>libdebug/architectures/i386/i386_ptrace_register_holder.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-279">279</a></span>
-<span class="normal"><a href="#__codelineno-0-280">280</a></span>
-<span class="normal"><a href="#__codelineno-0-281">281</a></span>
-<span class="normal"><a href="#__codelineno-0-282">282</a></span>
-<span class="normal"><a href="#__codelineno-0-283">283</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-279"><a id="__codelineno-0-279" name="__codelineno-0-279"></a><span class="k">def</span><span class="w"> </span><span class="nf">cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">I386PtraceRegisterHolder</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-280"><a id="__codelineno-0-280" name="__codelineno-0-280"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Clean up the register accessors from the class.&quot;&quot;&quot;</span>
-</span><span id="__span-0-281"><a id="__codelineno-0-281" name="__codelineno-0-281"></a>    <span class="k">for</span> <span class="n">attr_name</span><span class="p">,</span> <span class="n">attr_value</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">I386Registers</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
-</span><span id="__span-0-282"><a id="__codelineno-0-282" name="__codelineno-0-282"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attr_value</span><span class="p">,</span> <span class="nb">property</span><span class="p">):</span>
-</span><span id="__span-0-283"><a id="__codelineno-0-283" name="__codelineno-0-283"></a>            <span class="nb">delattr</span><span class="p">(</span><span class="n">I386Registers</span><span class="p">,</span> <span class="n">attr_name</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>

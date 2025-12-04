@@ -1834,18 +1834,27 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#libdebug.debugger.internal_debugger_holder.InternalDebuggerHolder" class="md-nav__link">
+  <a href="#libdebug.debugger.internal_debugger_holder._cleanup_internal_debugger" class="md-nav__link">
     <span class="md-ellipsis">
-      InternalDebuggerHolder
+      _cleanup_internal_debugger
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#libdebug.debugger.internal_debugger_holder._cleanup_internal_debugger" class="md-nav__link">
+  <a href="#libdebug.debugger.internal_debugger_holder.register_internal_debugger" class="md-nav__link">
     <span class="md-ellipsis">
-      _cleanup_internal_debugger
+      register_internal_debugger
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#libdebug.debugger.internal_debugger_holder.remove_internal_debugger_refs" class="md-nav__link">
+    <span class="md-ellipsis">
+      remove_internal_debugger_refs
     </span>
   </a>
   
@@ -1896,69 +1905,6 @@
 
 
 
-<div class="doc doc-object doc-class">
-
-
-
-<h2 id="libdebug.debugger.internal_debugger_holder.InternalDebuggerHolder" class="doc doc-heading">
-            <code>InternalDebuggerHolder</code>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
-  </span>
-
-</h2>
-
-
-    <div class="doc doc-contents ">
-
-
-        <p>A holder for internal debuggers.</p>
-
-
-
-
-
-
-              <details class="quote">
-                <summary>Source code in <code>libdebug/debugger/internal_debugger_holder.py</code></summary>
-                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-24">24</a></span>
-<span class="normal"><a href="#__codelineno-0-25">25</a></span>
-<span class="normal"><a href="#__codelineno-0-26">26</a></span>
-<span class="normal"><a href="#__codelineno-0-27">27</a></span>
-<span class="normal"><a href="#__codelineno-0-28">28</a></span>
-<span class="normal"><a href="#__codelineno-0-29">29</a></span>
-<span class="normal"><a href="#__codelineno-0-30">30</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24"></a><span class="nd">@dataclass</span>
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a><span class="k">class</span><span class="w"> </span><span class="nc">InternalDebuggerHolder</span><span class="p">:</span>
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;A holder for internal debuggers.&quot;&quot;&quot;</span>
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a>
-</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a>    <span class="n">internal_debuggers</span><span class="p">:</span> <span class="n">WeakKeyDictionary</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">WeakKeyDictionary</span><span class="p">)</span>
-</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a>    <span class="n">global_internal_debugger</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a>    <span class="n">internal_debugger_lock</span> <span class="o">=</span> <span class="n">Lock</span><span class="p">()</span>
-</span></code></pre></div></td></tr></table></div>
-              </details>
-
-
-
-  <div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-  </div>
-
-    </div>
-
-</div>
-
 
 <div class="doc doc-object doc-function">
 
@@ -2007,39 +1953,105 @@
 <span class="normal"><a href="#__codelineno-0-65">65</a></span>
 <span class="normal"><a href="#__codelineno-0-66">66</a></span>
 <span class="normal"><a href="#__codelineno-0-67">67</a></span>
-<span class="normal"><a href="#__codelineno-0-68">68</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36"></a><span class="k">def</span><span class="w"> </span><span class="nf">_cleanup_internal_debugger</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-68">68</a></span>
+<span class="normal"><a href="#__codelineno-0-69">69</a></span>
+<span class="normal"><a href="#__codelineno-0-70">70</a></span>
+<span class="normal"><a href="#__codelineno-0-71">71</a></span>
+<span class="normal"><a href="#__codelineno-0-72">72</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36"></a><span class="k">def</span><span class="w"> </span><span class="nf">_cleanup_internal_debugger</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 </span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Cleanup the internal debugger.&quot;&quot;&quot;</span>
-</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38"></a>    <span class="k">for</span> <span class="n">debugger</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">internal_debugger_holder</span><span class="o">.</span><span class="n">internal_debuggers</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
-</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39"></a>        <span class="n">debugger</span><span class="p">:</span> <span class="n">InternalDebugger</span>
-</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40"></a>
-</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41"></a>        <span class="c1"># Restore the original stdin settings, just in case</span>
-</span><span id="__span-0-42"><a id="__codelineno-0-42" name="__codelineno-0-42"></a>        <span class="k">try</span><span class="p">:</span>
-</span><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43"></a>            <span class="k">if</span> <span class="n">debugger</span><span class="o">.</span><span class="n">stdin_settings_backup</span><span class="p">:</span>
-</span><span id="__span-0-44"><a id="__codelineno-0-44" name="__codelineno-0-44"></a>                <span class="n">tcsetattr</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stdin</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="n">TCSANOW</span><span class="p">,</span> <span class="n">debugger</span><span class="o">.</span><span class="n">stdin_settings_backup</span><span class="p">)</span>
-</span><span id="__span-0-45"><a id="__codelineno-0-45" name="__codelineno-0-45"></a>        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-</span><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46"></a>            <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error while restoring the original stdin settings: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47"></a>
-</span><span id="__span-0-48"><a id="__codelineno-0-48" name="__codelineno-0-48"></a>        <span class="c1"># The following logic MUST work in any situation. This includes scenarios where the polling thread is stuck</span>
-</span><span id="__span-0-49"><a id="__codelineno-0-49" name="__codelineno-0-49"></a>        <span class="c1"># due to an endless callback, an unhandled exceptions that break the thread, a logic error in libdebug or a</span>
-</span><span id="__span-0-50"><a id="__codelineno-0-50" name="__codelineno-0-50"></a>        <span class="c1"># race condition causing the thread to wait indefinitely for an event that will never occur.</span>
-</span><span id="__span-0-51"><a id="__codelineno-0-51" name="__codelineno-0-51"></a>
-</span><span id="__span-0-52"><a id="__codelineno-0-52" name="__codelineno-0-52"></a>        <span class="c1"># The key idea here is that we cannot rely on the background threads (both polling and timeout threads),</span>
-</span><span id="__span-0-53"><a id="__codelineno-0-53" name="__codelineno-0-53"></a>        <span class="c1"># as only the main thread is aware of the script termination or the user&#39;s control-C interruption.</span>
-</span><span id="__span-0-54"><a id="__codelineno-0-54" name="__codelineno-0-54"></a>        <span class="k">if</span> <span class="n">debugger</span><span class="o">.</span><span class="n">instanced</span> <span class="ow">and</span> <span class="n">debugger</span><span class="o">.</span><span class="n">kill_on_exit</span><span class="p">:</span>
-</span><span id="__span-0-55"><a id="__codelineno-0-55" name="__codelineno-0-55"></a>            <span class="k">if</span> <span class="n">debugger</span><span class="o">.</span><span class="n">is_debugging</span><span class="p">:</span>
-</span><span id="__span-0-56"><a id="__codelineno-0-56" name="__codelineno-0-56"></a>                <span class="c1"># We will leverage the fact that we are in the wrong thread but the same process to kill the debuggee</span>
-</span><span id="__span-0-57"><a id="__codelineno-0-57" name="__codelineno-0-57"></a>                <span class="c1"># process without relying on the background thread.</span>
-</span><span id="__span-0-58"><a id="__codelineno-0-58" name="__codelineno-0-58"></a>                <span class="k">try</span><span class="p">:</span>
-</span><span id="__span-0-59"><a id="__codelineno-0-59" name="__codelineno-0-59"></a>                    <span class="n">os</span><span class="o">.</span><span class="n">kill</span><span class="p">(</span><span class="n">debugger</span><span class="o">.</span><span class="n">process_id</span><span class="p">,</span> <span class="mi">9</span><span class="p">)</span>
-</span><span id="__span-0-60"><a id="__codelineno-0-60" name="__codelineno-0-60"></a>                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># noqa: BLE001</span>
-</span><span id="__span-0-61"><a id="__codelineno-0-61" name="__codelineno-0-61"></a>                    <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;Error while interrupting debuggee: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
-</span><span id="__span-0-62"><a id="__codelineno-0-62" name="__codelineno-0-62"></a>
-</span><span id="__span-0-63"><a id="__codelineno-0-63" name="__codelineno-0-63"></a>            <span class="c1"># Now we can try to terminate both the polling thread and the timeout thread, if any. Again, we cannot</span>
-</span><span id="__span-0-64"><a id="__codelineno-0-64" name="__codelineno-0-64"></a>            <span class="c1"># trust them, so we just try to notify them that the process is terminating.</span>
-</span><span id="__span-0-65"><a id="__codelineno-0-65" name="__codelineno-0-65"></a>            <span class="k">try</span><span class="p">:</span>
-</span><span id="__span-0-66"><a id="__codelineno-0-66" name="__codelineno-0-66"></a>                <span class="n">debugger</span><span class="o">.</span><span class="n">_atexit_terminate</span><span class="p">()</span>
-</span><span id="__span-0-67"><a id="__codelineno-0-67" name="__codelineno-0-67"></a>            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># noqa: BLE001</span>
-</span><span id="__span-0-68"><a id="__codelineno-0-68" name="__codelineno-0-68"></a>                <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;Error while terminating the internal debugger: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38"></a>    <span class="k">for</span> <span class="n">debugger_ref</span> <span class="ow">in</span> <span class="n">_instanced_debuggers</span><span class="p">:</span>
+</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39"></a>        <span class="n">debugger</span> <span class="o">=</span> <span class="n">debugger_ref</span><span class="p">()</span>
+</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40"></a>        <span class="k">if</span> <span class="n">debugger</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41"></a>            <span class="k">continue</span>
+</span><span id="__span-0-42"><a id="__codelineno-0-42" name="__codelineno-0-42"></a>
+</span><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43"></a>        <span class="c1"># Restore the original stdin settings, just in case</span>
+</span><span id="__span-0-44"><a id="__codelineno-0-44" name="__codelineno-0-44"></a>        <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-0-45"><a id="__codelineno-0-45" name="__codelineno-0-45"></a>            <span class="k">if</span> <span class="n">debugger</span><span class="o">.</span><span class="n">stdin_settings_backup</span><span class="p">:</span>
+</span><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46"></a>                <span class="n">tcsetattr</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stdin</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="n">TCSANOW</span><span class="p">,</span> <span class="n">debugger</span><span class="o">.</span><span class="n">stdin_settings_backup</span><span class="p">)</span>
+</span><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47"></a>        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+</span><span id="__span-0-48"><a id="__codelineno-0-48" name="__codelineno-0-48"></a>            <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error while restoring the original stdin settings: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-0-49"><a id="__codelineno-0-49" name="__codelineno-0-49"></a>
+</span><span id="__span-0-50"><a id="__codelineno-0-50" name="__codelineno-0-50"></a>        <span class="c1"># The following logic MUST work in any situation. This includes scenarios where the polling thread is stuck</span>
+</span><span id="__span-0-51"><a id="__codelineno-0-51" name="__codelineno-0-51"></a>        <span class="c1"># due to an endless callback, an unhandled exceptions that break the thread, a logic error in libdebug or a</span>
+</span><span id="__span-0-52"><a id="__codelineno-0-52" name="__codelineno-0-52"></a>        <span class="c1"># race condition causing the thread to wait indefinitely for an event that will never occur.</span>
+</span><span id="__span-0-53"><a id="__codelineno-0-53" name="__codelineno-0-53"></a>
+</span><span id="__span-0-54"><a id="__codelineno-0-54" name="__codelineno-0-54"></a>        <span class="c1"># The key idea here is that we cannot rely on the background threads (both polling and timeout threads),</span>
+</span><span id="__span-0-55"><a id="__codelineno-0-55" name="__codelineno-0-55"></a>        <span class="c1"># as only the main thread is aware of the script termination or the user&#39;s control-C interruption.</span>
+</span><span id="__span-0-56"><a id="__codelineno-0-56" name="__codelineno-0-56"></a>        <span class="k">if</span> <span class="n">debugger</span><span class="o">.</span><span class="n">instanced</span> <span class="ow">and</span> <span class="n">debugger</span><span class="o">.</span><span class="n">kill_on_exit</span><span class="p">:</span>
+</span><span id="__span-0-57"><a id="__codelineno-0-57" name="__codelineno-0-57"></a>            <span class="k">if</span> <span class="n">debugger</span><span class="o">.</span><span class="n">is_debugging</span><span class="p">:</span>
+</span><span id="__span-0-58"><a id="__codelineno-0-58" name="__codelineno-0-58"></a>                <span class="c1"># We will leverage the fact that we are in the wrong thread but the same process to kill the debuggee</span>
+</span><span id="__span-0-59"><a id="__codelineno-0-59" name="__codelineno-0-59"></a>                <span class="c1"># process without relying on the background thread.</span>
+</span><span id="__span-0-60"><a id="__codelineno-0-60" name="__codelineno-0-60"></a>                <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-0-61"><a id="__codelineno-0-61" name="__codelineno-0-61"></a>                    <span class="n">os</span><span class="o">.</span><span class="n">kill</span><span class="p">(</span><span class="n">debugger</span><span class="o">.</span><span class="n">process_id</span><span class="p">,</span> <span class="mi">9</span><span class="p">)</span>
+</span><span id="__span-0-62"><a id="__codelineno-0-62" name="__codelineno-0-62"></a>                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># noqa: BLE001</span>
+</span><span id="__span-0-63"><a id="__codelineno-0-63" name="__codelineno-0-63"></a>                    <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;Error while interrupting debuggee: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+</span><span id="__span-0-64"><a id="__codelineno-0-64" name="__codelineno-0-64"></a>
+</span><span id="__span-0-65"><a id="__codelineno-0-65" name="__codelineno-0-65"></a>            <span class="c1"># Now we can try to terminate both the polling thread and the timeout thread, if any. Again, we cannot</span>
+</span><span id="__span-0-66"><a id="__codelineno-0-66" name="__codelineno-0-66"></a>            <span class="c1"># trust them, so we just try to notify them that the process is terminating.</span>
+</span><span id="__span-0-67"><a id="__codelineno-0-67" name="__codelineno-0-67"></a>            <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-0-68"><a id="__codelineno-0-68" name="__codelineno-0-68"></a>                <span class="n">debugger</span><span class="o">.</span><span class="n">_atexit_terminate</span><span class="p">()</span>
+</span><span id="__span-0-69"><a id="__codelineno-0-69" name="__codelineno-0-69"></a>            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># noqa: BLE001</span>
+</span><span id="__span-0-70"><a id="__codelineno-0-70" name="__codelineno-0-70"></a>                <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;Error while terminating the internal debugger: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+</span><span id="__span-0-71"><a id="__codelineno-0-71" name="__codelineno-0-71"></a>
+</span><span id="__span-0-72"><a id="__codelineno-0-72" name="__codelineno-0-72"></a>    <span class="n">_instanced_debuggers</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+</span></code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="libdebug.debugger.internal_debugger_holder.register_internal_debugger" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">register_internal_debugger</span><span class="p">(</span><span class="n">debugger</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Register an internal debugger instance.</p>
+
+            <details class="quote">
+              <summary>Source code in <code>libdebug/debugger/internal_debugger_holder.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-25">25</a></span>
+<span class="normal"><a href="#__codelineno-0-26">26</a></span>
+<span class="normal"><a href="#__codelineno-0-27">27</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a><span class="k">def</span><span class="w"> </span><span class="nf">register_internal_debugger</span><span class="p">(</span><span class="n">debugger</span><span class="p">:</span> <span class="n">InternalDebugger</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Register an internal debugger instance.&quot;&quot;&quot;</span>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a>    <span class="n">_instanced_debuggers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ref</span><span class="p">(</span><span class="n">debugger</span><span class="p">))</span>
+</span></code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="libdebug.debugger.internal_debugger_holder.remove_internal_debugger_refs" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">remove_internal_debugger_refs</span><span class="p">(</span><span class="n">debugger</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Remove a reference to an internal debugger instance.</p>
+
+            <details class="quote">
+              <summary>Source code in <code>libdebug/debugger/internal_debugger_holder.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-29">29</a></span>
+<span class="normal"><a href="#__codelineno-0-30">30</a></span>
+<span class="normal"><a href="#__codelineno-0-31">31</a></span>
+<span class="normal"><a href="#__codelineno-0-32">32</a></span>
+<span class="normal"><a href="#__codelineno-0-33">33</a></span>
+<span class="normal"><a href="#__codelineno-0-34">34</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="k">def</span><span class="w"> </span><span class="nf">remove_internal_debugger_refs</span><span class="p">(</span><span class="n">debugger</span><span class="p">:</span> <span class="n">InternalDebugger</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Remove a reference to an internal debugger instance.&quot;&quot;&quot;</span>
+</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31"></a>    <span class="n">updated_debuggers</span> <span class="o">=</span> <span class="p">{</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">_instanced_debuggers</span> <span class="k">if</span> <span class="n">d</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">d</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">debugger</span><span class="p">}</span>
+</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32"></a>    <span class="n">_instanced_debuggers</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33"></a>    <span class="n">_instanced_debuggers</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">updated_debuggers</span><span class="p">)</span>
+</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34"></a>    <span class="n">liblog</span><span class="o">.</span><span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;Removed internal debugger reference: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">debugger</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
