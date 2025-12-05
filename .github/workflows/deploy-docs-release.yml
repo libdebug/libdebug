@@ -1,0 +1,80 @@
+name: Deploy Release Documentation
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Required for mike
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11' # 3.11+ required for tomllib
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r docs/requirements.txt
+
+      - name: Configure Git User
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Run Scraper Script
+        run: |
+          cd docs
+          python scrape_code.py
+
+      - name: Parse and Validate Version
+        id: get_version
+        shell: python
+        run: |
+          import tomllib
+          import sys
+          import re
+          import os
+
+          try:
+              with open("pyproject.toml", "rb") as f:
+                  data = tomllib.load(f)
+          except FileNotFoundError:
+              print("::error::pyproject.toml not found")
+              sys.exit(1)
+
+          # Attempt to find version in common locations (PEP 621 or Poetry)
+          version = data.get("project", {}).get("version") or \
+                    data.get("tool", {}).get("poetry", {}).get("version") or \
+                    data.get("version")
+
+          if not version:
+              print("::error::Version key not found in pyproject.toml")
+              sys.exit(1)
+
+          # Validate format X.X.X
+          if not re.match(r"^\d+\.\d+\.\d+$", version):
+              print(f"::error::Version '{version}' format is invalid. Expected format X.X.X")
+              sys.exit(1)
+
+          print(f"Version found: {version}")
+          
+          # Output to GITHUB_OUTPUT for the next step
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"version={version}\n")
+
+      - name: Deploy Release with Mike
+        env:
+          VERSION: ${{ steps.get_version.outputs.version }}
+        run: |
+          mike deploy --push --update-aliases "$VERSION" latest
