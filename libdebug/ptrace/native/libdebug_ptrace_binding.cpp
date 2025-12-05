@@ -59,8 +59,9 @@ void LibdebugPtraceInterface::check_and_set_fpregs(Thread &t)
 
 void LibdebugPtraceInterface::cont_thread(Thread &t)
 {
+
     if (ptrace(handle_syscall ? PTRACE_SYSCALL : PTRACE_CONT, t.tid, NULL, t.signal_to_forward) == -1) {
-        throw std::runtime_error("ptrace cont failed");
+        throw std::runtime_error("ptrace cont failed on thread " + std::to_string(t.tid));
     }
 
     t.signal_to_forward = 0;
@@ -319,9 +320,19 @@ void LibdebugPtraceInterface::cont_all_and_set_bps(bool handle_syscalls)
 
     prepare_for_run();
 
-    // Continue all the threads
+    // Continue all the threads, leaving threads with signals to deliver as last
+    std::vector<std::reference_wrapper<Thread>> threads_with_signal;
+
     for (auto &t : threads) {
-        cont_thread(t.second);
+        if (t.second.signal_to_forward != 0) {
+            threads_with_signal.push_back(std::ref(t.second));
+        } else {
+            cont_thread(t.second);
+        }
+    }
+
+    for (auto &t : threads_with_signal) {
+        cont_thread(t.get());
     }
 }
 
