@@ -1,5 +1,5 @@
 site_name: Docs / libdebug
-site_url: http://docs.libdebug.org/
+site_url: https://docs.libdebug.org/
 repo_url: https://github.com/libdebug/libdebug
 repo_name: libdebug
 theme:
