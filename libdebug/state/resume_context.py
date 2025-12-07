@@ -1,39 +1,49 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2023-2025 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
+
+from libdebug.data.event_type import EventType
 
 if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint
+    from libdebug.data.signal_catcher import SignalCatcher
+    from libdebug.data.syscall_handler import SyscallHandler
 
 
+@dataclass(eq=False)
 class ResumeContext:
-    """A class representing the context of the resume decision."""
+    """Represents the context used to decide whether execution should resume."""
 
-    def __init__(self: ResumeContext) -> None:
-        """Initializes the ResumeContext."""
-        self.resume: bool = True
-        self.force_interrupt: bool = False
-        self.is_a_step: bool = False
-        self.is_startup: bool = False
-        self.block_on_signal: bool = False
-        self.threads_with_signals_to_forward: list[int] = []
-        self.event_type: dict[int, EventType] = {}
-        self.event_hit_ref: dict[int, Breakpoint] = {}
-        self.is_in_callback: bool = False
+    resume: bool = True
+    """Indicates whether to resume execution when inside an asynchronous callback."""
+
+    threads_with_signals_to_forward: list[int] = field(default_factory=list)
+    """List of thread IDs with signals to forward upon resuming execution."""
+
+    event_type: dict[int, EventType] = field(default_factory=dict)
+    """Dictionary mapping thread IDs to the type of event that caused the stop."""
+
+    event_hit_ref: dict[int, Breakpoint | SyscallHandler | SignalCatcher] = field(default_factory=dict)
+    """Dictionary mapping thread IDs to the breakpoint, syscall handler, or signal catcher that was hit."""
+
+    _is_in_callback: bool = False
+    _is_startup: bool = False
+    _is_a_step: bool = False
+    _force_interrupt: bool = False
 
     def clear(self: ResumeContext) -> None:
         """Clears the context."""
         self.resume = True
-        self.force_interrupt = False
-        self.is_a_step = False
-        self.is_startup = False
-        self.block_on_signal = False
+        self._force_interrupt = False
+        self._is_a_step = False
+        self._is_startup = False
         self.threads_with_signals_to_forward.clear()
         self.event_type.clear()
         self.event_hit_ref.clear()
@@ -58,22 +68,6 @@ class ResumeContext:
                     hit_ref = self.event_hit_ref[tid]
                     event_str += f"Signal {hit_ref.signal} on thread {tid}."
                 else:
-                    event_str += f"{event} on thread {tid}."
+                    event_str += f"{event.value} on thread {tid}."
 
         return event_str
-
-
-class EventType:
-    """A class representing the type of event that caused the resume decision."""
-
-    UNKNOWN = "Unknown Event"
-    BREAKPOINT = "Breakpoint"
-    SYSCALL = "Syscall"
-    SIGNAL = "Signal"
-    USER_INTERRUPT = "User Interrupt"
-    STEP = "Step"
-    STARTUP = "Process Startup"
-    CLONE = "Thread Clone"
-    FORK = "Process Fork"
-    EXIT = "Process Exit"
-    SECCOMP = "Seccomp"
