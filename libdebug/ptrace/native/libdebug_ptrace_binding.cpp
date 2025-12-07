@@ -355,7 +355,9 @@ void LibdebugPtraceInterface::read_siginfo_from_proc(pid_t tid,
 {
     std::string path = "/proc/" + std::to_string(tid) + "/status";
     std::ifstream in(path);
-    if (!in) return;
+    if (!in) {
+        throw std::runtime_error("failed to open " + path);
+    }
 
     std::string line;
     std::string ign_hex, cgt_hex, blk_hex;
