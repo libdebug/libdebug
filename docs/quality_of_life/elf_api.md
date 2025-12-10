@@ -370,7 +370,7 @@ The `runtime_mitigations` property of an [ELF](../../from_pydoc/generated/data/e
 | `ubsan` | `bool` | Binary built with UndefinedBehaviorSanitizer (UBSAN). |
 
 ## :material-flower-tulip-outline: Pretty Printing of ELF Information
-You can pretty print the most relevant information of an ELF file using the following `pprint_...` methods of the [ELF](../../from_pydoc/generated/data/elf/elf) object:
+You can pretty print the most relevant information of an ELF file using the following `pprint_...` methods of the [ELF](../../from_pydoc/generated/data/elf/elf) object. Please note that all the pretty-printing methods in the ELF API require the optional dependency `rich` to be installed.
 
 - `d.binary.pprint_sections()` — Pretty print ELF sections.
 
