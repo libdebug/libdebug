@@ -17,14 +17,14 @@ class ELFList(list):
     """A list of elf files in the target process."""
 
     def __init__(self: ELFList, elfs: list[ELF]) -> None:
-        """Initializes the ELF Dict."""
+        """Initializes the ELFList."""
         super().__init__(elfs)
 
     def _search_by_name(self: ELFList, name: str) -> list[ELF]:
-        """Searches for a elf by name.
+        """Searches for an ELF by partial or exact match of name or path.
 
         Args:
-            name (str): The name of the elf to search for.
+            name (str): The pattern to search for.
 
         Returns:
             list[ELF]: The list of elfs that match the specified name.
@@ -57,11 +57,11 @@ class ELFList(list):
 
         return ELFList(filtered_elfs)
 
-    def __getitem__(self: ELFList, key: str) -> ELFList:
-        """Returns the elf with exactly the specified name.
+    def __getitem__(self: ELFList, key: str | int) -> ELFList:
+        """Returns the elf with exactly the specified name or at the specified index.
 
         Args:
-            key (str, int): The name of the elf to return of the elf in the list.
+            key (str, int): The exact name or path of the ELF or its index.
 
         Returns:
             ELFList[ELF]: List of elfs with the specified name.
@@ -69,7 +69,8 @@ class ELFList(list):
         if not isinstance(key, str):
             return super().__getitem__(key)
 
-        elfs = [elf for elf in self if Path(elf.path).name == key]
+        elfs = [elf for elf in self if key in (Path(elf.path).name, elf.path)]
+
         if not elfs:
             raise KeyError(f"ELF '{key}' not found.")
         return ELFList(elfs)
@@ -83,5 +84,5 @@ class ELFList(list):
         return super().__eq__(other)
 
     def __repr__(self: ELFList) -> str:
-        """Returns the string representation of the ELFDict without the default factory."""
+        """Returns the string representation of the ELFList without the default factory."""
         return f"ELFList({super().__repr__()})"

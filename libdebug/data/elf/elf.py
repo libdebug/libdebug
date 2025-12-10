@@ -7,12 +7,10 @@
 from __future__ import annotations
 
 import functools
+import importlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
-
-from rich.console import Console
-from rich.table import Table
 
 from libdebug.data.elf.dynamic_section import DynamicSection
 from libdebug.data.elf.dynamic_section_list import DynamicSectionList
@@ -317,6 +315,14 @@ class ELF:
 
     def pprint_sections(self: ELF) -> None:
         """Pretty-prints the sections of the ELF file."""
+        if importlib.util.find_spec("rich") is None:
+            raise RuntimeError(
+                "The 'rich' package is required for pprint_binary_report. Install it with 'pip install rich'."
+            )
+
+        from rich.console import Console  # noqa: PLC0415
+        from rich.table import Table  # noqa: PLC0415
+
         console = Console()
         table = Table(title=f"Sections in {self.path}")
 
@@ -343,6 +349,14 @@ class ELF:
 
     def pprint_dynamic_sections(self: ELF) -> None:
         """Pretty-prints the dynamic sections of the ELF file."""
+        if importlib.util.find_spec("rich") is None:
+            raise RuntimeError(
+                "The 'rich' package is required for pprint_binary_report. Install it with 'pip install rich'."
+            )
+
+        from rich.console import Console  # noqa: PLC0415
+        from rich.table import Table  # noqa: PLC0415
+
         console = Console()
         table = Table(title=f"Dynamic Sections in {self.path}")
 
@@ -365,6 +379,14 @@ class ELF:
 
     def pprint_program_headers(self: ELF) -> None:
         """Pretty-prints the program headers of the ELF file."""
+        if importlib.util.find_spec("rich") is None:
+            raise RuntimeError(
+                "The 'rich' package is required for pprint_binary_report. Install it with 'pip install rich'."
+            )
+
+        from rich.console import Console  # noqa: PLC0415
+        from rich.table import Table  # noqa: PLC0415
+
         console = Console()
         table = Table(title=f"Program Headers in {self.path}")
 
@@ -393,6 +415,14 @@ class ELF:
 
     def pprint_gnu_properties(self: ELF) -> None:
         """Pretty-prints the GNU properties of the ELF file."""
+        if importlib.util.find_spec("rich") is None:
+            raise RuntimeError(
+                "The 'rich' package is required for pprint_binary_report. Install it with 'pip install rich'."
+            )
+
+        from rich.console import Console  # noqa: PLC0415
+        from rich.table import Table  # noqa: PLC0415
+
         console = Console()
         table = Table(title=f"GNU Properties in {self.path}")
 

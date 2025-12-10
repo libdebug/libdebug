@@ -5,11 +5,7 @@
 #
 
 import re
-
-from rich.console import Console
-from rich.panel import Panel
-from rich.text import Text
-from rich.tree import Tree
+from typing import TYPE_CHECKING
 
 from libdebug.data.elf.elf import ELF
 from libdebug.data.elf.linux_runtime_mitigations import RelroStatus
@@ -19,6 +15,10 @@ from libdebug.data.symbol_list import SymbolList
 from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
 from libdebug.utils.ansi_escape_codes import ANSIColors
 from libdebug.utils.debugging_utils import resolve_symbol_name_in_maps_util
+
+if TYPE_CHECKING:
+    # Import for type checking only; safe even if 'rich' isn't installed at runtime
+    from rich.console import Console
 
 
 def pprint_maps_util(maps: MemoryMapList | MemoryMapSnapshotList) -> None:
@@ -333,24 +333,24 @@ def pad_colored_string(string: str, length: int) -> str:
     return string
 
 
-def pprint_mitigations(elf: ELF, console: Console) -> str:
+def pprint_mitigations(elf: ELF, console: "Console") -> None:
     """Pretty prints the mitigations of the ELF.
 
     Args:
         elf (ELF): The ELF to print the mitigations of.
         console (Console): The console to print the mitigations to.
-
-    Returns:
-        str: The pretty printed mitigations.
     """
+    # We need to import these here because we don't want to assume it is installed
+    from rich.panel import Panel  # noqa: PLC0415
+    from rich.text import Text  # noqa: PLC0415
+    from rich.tree import Tree  # noqa: PLC0415
+
     r_mit = elf.runtime_mitigations
 
-    def yn(enabled: bool, label: str, emoji: str) -> Text:
-        # Normalize emoji spacing: caller may pass trailing space, ensure exactly one space after
-        emoji = (emoji or "").strip()
+    def yn(enabled: bool, label: str) -> Text:
         color = "green" if enabled else "red"
         state = "Enabled" if enabled else "Disabled"
-        return Text.assemble(emoji, " ", label, ": ", (state, color))
+        return Text.assemble(label, ": ", (state, color))
 
     def nx_status(n_x: bool | None) -> Text:
         if n_x is True:
@@ -362,52 +362,52 @@ def pprint_mitigations(elf: ELF, console: Console) -> str:
         else:
             color = "yellow"
             state = "Depends"
-        return Text.assemble("👾 ", "NX", ": ", (state, color))
+        return Text.assemble("NX", ": ", (state, color))
 
     def print_exec(executable: bool) -> Text:
         color = "red" if executable else "green"
         state = "Executable" if executable else "Non-executable"
-        return Text.assemble("🧵 ", "Stack", ": ", (state, color))
+        return Text.assemble("Stack", ": ", (state, color))
 
     # RELRO with special coloring
     if r_mit.relro == RelroStatus.FULL:
-        relro_text = Text.assemble("🧱 ", "RELRO", ": ", ("Full", "green"))
+        relro_text = Text.assemble("RELRO", ": ", ("Full", "green"))
     elif r_mit.relro == RelroStatus.PARTIAL:
-        relro_text = Text.assemble("🧱 ", "RELRO", ": ", ("Partial", "orange3"))
+        relro_text = Text.assemble("RELRO", ": ", ("Partial", "orange3"))
     else:
-        relro_text = Text.assemble("🧱 ", "RELRO", ": ", ("None", "red"))
+        relro_text = Text.assemble("RELRO", ": ", ("None", "red"))
 
     # Build a tree to keep things tight but readable
     tree = Tree(Text("Runtime Mitigations", style="bold"))
 
     tree.add(relro_text)
-    tree.add(yn(r_mit.stack_guard, "Stack Guard (canary)", "🛡 "))
+    tree.add(yn(r_mit.stack_guard, "Stack Guard (canary)"))
     # NX vs Executable Stack (show both succinctly)
     tree.add(nx_status(r_mit.nx))
     tree.add(print_exec(r_mit.stack_executable))
 
-    tree.add(yn(r_mit.pie, "PIE", "🧩 "))
+    tree.add(yn(r_mit.pie, "PIE"))
 
     if elf.arch in ("i386", "amd64"):
         cet_node = tree.add(Text("Intel CET"))
-        cet_node.add(Text.assemble(Text("↳  ", style="dim"), yn(r_mit.shstk, "Shadow Stack", "☰")))
-        cet_node.add(Text.assemble(Text("↳  ", style="dim"), yn(r_mit.ibt, "IBT", "🧭")))
+        cet_node.add(Text.assemble(Text("↳  ", style="dim"), yn(r_mit.shstk, "Shadow Stack")))
+        cet_node.add(Text.assemble(Text("↳  ", style="dim"), yn(r_mit.ibt, "IBT")))
     elif elf.arch == "aarch64":
         hard_node = tree.add(Text("ARM Architectural Hardening"))
-        hard_node.add(Text.assemble(Text("↳  ", style="dim"), yn(r_mit.shstk, "GCS", "☰")))
-        hard_node.add(Text.assemble(Text("↳  ", style="dim"), yn(r_mit.ibt, "BTI", "🧭")))
+        hard_node.add(Text.assemble(Text("↳  ", style="dim"), yn(r_mit.shstk, "GCS")))
+        hard_node.add(Text.assemble(Text("↳  ", style="dim"), yn(r_mit.ibt, "BTI")))
         # Include AArch64-only features in this group
-        hard_node.add(Text.assemble(Text("↳  ", style="dim"), yn(r_mit.pac, "PAC", "🔐")))
+        hard_node.add(Text.assemble(Text("↳  ", style="dim"), yn(r_mit.pac, "PAC")))
 
     # Fortify
-    tree.add(yn(r_mit.fortify, "FORTIFY_SOURCE", "🏰 "))
+    tree.add(yn(r_mit.fortify, "FORTIFY_SOURCE"))
 
     # Sanitizers (only show if present)
     if r_mit.asan:
-        tree.add(yn(True, "ASan", "🧪 "))
+        tree.add(yn(True, "ASan"))
     if r_mit.msan:
-        tree.add(yn(True, "MSan", "🧪 "))
+        tree.add(yn(True, "MSan"))
     if r_mit.ubsan:
-        tree.add(yn(True, "UBSan", "🧪 "))
+        tree.add(yn(True, "UBSan"))
 
     console.print(Panel.fit(tree, title="Mitigations", border_style="cyan"))
