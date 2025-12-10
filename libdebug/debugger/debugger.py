@@ -1195,7 +1195,7 @@ class Debugger:
         """The ELF object representing the debugged binary."""
         return self._internal_debugger.binary
 
-    @property
+    @check_aliased_property("libs")
     def libraries(self: Debugger) -> ELFList:
         """A list of the loaded shared libraries."""
         return self._internal_debugger.libraries
