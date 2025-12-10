@@ -34,6 +34,7 @@ from libdebug.utils.elf_utils import (
     get_entry_point,
     is_pie,
 )
+from libdebug.utils.oop.alias import check_aliased_property
 
 if TYPE_CHECKING:
     from libdebug.data.symbol_list import SymbolList
@@ -69,11 +70,11 @@ class ELF:
     is_pie: bool = False
     """Whether the ELF file is position-independent (PIE) or not."""
 
-    architecture: str = ""
-    """Architecture of the ELF file (e.g., x86, x86_64, arm, aarch64)."""
-
     endianness: str = ""
     """Endianness of the ELF file (e.g., little, big)."""
+
+    _architecture: str = ""
+    """Architecture of the ELF file (e.g., x86, x86_64, arm, aarch64)."""
 
     _sections: SectionList | None = None
     """List of sections in the ELF file."""
@@ -124,16 +125,21 @@ class ELF:
             absolute_path=str(Path(path).resolve()),
             entry_point=entry_point_,
             is_pie=is_pie_,
-            architecture=architecture_,
+            _architecture=architecture_,
             endianness=endianness_,
             _base_address=base_address,
             _internal_debugger=internal_debugger,
         )
 
+    @check_aliased_property("arch")
+    def architecture(self: ELF) -> str:
+        """The architecture of the ELF file."""
+        return self._architecture
+
     @property
     def arch(self: ELF) -> str:
         """Alias for architecture."""
-        return self.architecture
+        return self._architecture
 
     @functools.cached_property
     def size(self: ELF) -> int:
