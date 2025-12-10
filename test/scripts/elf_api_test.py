@@ -4,18 +4,28 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-from unittest import TestCase, skipUnless
+import io
+import sys
+
+from unittest import TestCase
 from utils.binary_utils import RESOLVE_EXE, RESOLVE_EXE_CROSS
 from libdebug import debugger
-
 from pathlib import Path
 
 from utils.binary_utils import PLATFORM, BASE
 
-
 from libdebug.data.elf.linux_runtime_mitigations import RelroStatus
 
 class ElfApiTest(TestCase):
+    def setUp(self):
+        # Redirect stdout
+        self.capturedOutput = io.StringIO()
+        sys.stdout = self.capturedOutput
+        sys.stderr = self.capturedOutput
+
+    def tearDown(self):
+        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
 
     def test_sections_amd64(self):
         """Tests the sections API."""
@@ -1894,6 +1904,65 @@ class ElfApiTest(TestCase):
                 self.fail(f"Unsupported platform: {PLATFORM}")
  
         d.terminate()
+
+    def test_dlopen_libs_api(self):
+        path = RESOLVE_EXE("dynamic_lib_load")
+        d = debugger(path, aslr=False)
+        d.run()
+
+        self.assertEqual(len(d.libs), 2)
+
+        self.assertEqual(d.libs[0].soname, "libc.so.6")
+
+        match PLATFORM:
+            case "i386":
+                self.assertEqual(d.libs[1].soname, "ld-linux.so.2")
+            case "aarch64":
+                self.assertEqual(d.libs[1].soname, "ld-linux-aarch64.so.1")
+            case "amd64":
+                self.assertEqual(d.libs[1].soname, "ld-linux-x86-64.so.2")
+            case _:
+                raise ValueError(f"Unsupported platform: {PLATFORM}")
+            
+        d.terminate()
+
+        d = debugger(path, aslr=False)
+        d.run()
+
+        match PLATFORM:
+            case "i386":
+                bp_address = 0x12a5
+            case "aarch64":
+                bp_address = 0xa38
+            case "amd64":
+                bp_address = 0x12a5
+
+        # When breakpoint is reached, the binary will already have called dlopen
+        bp = d.breakpoint(bp_address, hardware=True, file="binary")
+
+        d.cont()
+
+        self.assertEqual(bp.hit_on(d), True)
+
+        # Recheck the libs
+        self.assertEqual(len(d.libs), 3)
+
+        self.assertEqual(d.libs[0].soname, "libc.so.6")
+        self.assertEqual(d.libs[1].soname, "libm.so.6")
+
+        match PLATFORM:
+            case "i386":
+                self.assertEqual(d.libs[2].soname, "ld-linux.so.2")
+            case "aarch64":
+                self.assertEqual(d.libs[2].soname, "ld-linux-aarch64.so.1")
+            case "amd64":
+                self.assertEqual(d.libs[2].soname, "ld-linux-x86-64.so.2")
+            case _:
+                raise ValueError(f"Unsupported platform: {PLATFORM}")
+
+
+        d.terminate()
+
 
     def test_binary_mitigations(self):
         """Tests the binary mitigations API."""
