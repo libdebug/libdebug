@@ -30,6 +30,8 @@ if TYPE_CHECKING:
 
     from libdebug.commlink.pipe_manager import PipeManager
     from libdebug.data.breakpoint import Breakpoint
+    from libdebug.data.elf import ELF
+    from libdebug.data.elf_list import ELFList
     from libdebug.data.gdb_resume_event import GdbResumeEvent
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.memory_map_list import MemoryMapList
@@ -1187,3 +1189,25 @@ class Debugger:
             file_path (str): The path to the snapshot file.
         """
         return self._internal_debugger.load_snapshot(file_path)
+
+    @property
+    def binary(self: Debugger) -> ELF:
+        """The ELF object representing the debugged binary."""
+        return self._internal_debugger.binary
+
+    @check_aliased_property("libs")
+    def libraries(self: Debugger) -> ELFList:
+        """A list of the loaded shared libraries."""
+        return self._internal_debugger.libraries
+
+    @property
+    def libs(self: Debugger) -> ELFList:
+        """Alias for the `libraries` property.
+
+        A list of the loaded shared libraries.
+        """
+        return self._internal_debugger.libraries
+
+    def pprint_binary_report(self: InternalDebugger) -> None:
+        """Pretty prints a report of the debugged binary."""
+        self._internal_debugger.pprint_binary_report()

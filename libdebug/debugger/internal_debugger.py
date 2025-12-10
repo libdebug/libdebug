@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import functools
+import importlib
 import os
 import signal
 import sys
@@ -30,6 +31,8 @@ from libdebug.builtin.pretty_print_syscall_handler import (
 )
 from libdebug.data.argument_list import ArgumentList
 from libdebug.data.breakpoint import Breakpoint
+from libdebug.data.elf.elf import ELF
+from libdebug.data.elf.elf_list import ELFList
 from libdebug.data.gdb_resume_event import GdbResumeEvent
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
@@ -58,7 +61,7 @@ from libdebug.utils.elf_utils import get_all_symbols
 from libdebug.utils.file_utils import ensure_file_executable
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.platform_utils import get_platform_gp_register_size
-from libdebug.utils.pprint_primitives import pprint_maps_util, pprint_memory_util
+from libdebug.utils.pprint_primitives import pprint_maps_util, pprint_memory_util, pprint_mitigations
 from libdebug.utils.safe_tcsetpgrp import safe_tcsetpgrp
 from libdebug.utils.signal_utils import (
     resolve_signal_name,
@@ -220,6 +223,9 @@ class InternalDebugger:
     _has_path_different_from_argv0: bool
     """A flag that indicates if the path to the binary is different from the first argument in argv."""
 
+    _elf_parsed_with_aslr: bool = False
+    """A flag that indicates if the ELF files were parsed with ASLR enabled."""
+
     def __init__(self: InternalDebugger) -> None:
         """Initialize the context."""
         # These must be reinitialized on every call to "debugger"
@@ -323,6 +329,11 @@ class InternalDebugger:
         if not self.path:
             raise RuntimeError("No binary file specified.")
 
+        # If ASLR is enabled or the process was not yet run, clear ELF caches
+        if self._elf_parsed_with_aslr or not self.is_debugging:
+            self.clear_elf_caches()
+            self._elf_parsed_with_aslr = False
+
         if timeout <= 0 and timeout != -1:
             raise ValueError("Timeout must be a positive number or -1.")
         if 0 < timeout <= 0.01:
@@ -376,6 +387,8 @@ class InternalDebugger:
         if self.threads:
             self.clear()
             self.debugging_interface.reset()
+
+        self.clear_elf_caches()
 
         self.instanced = True
         self.is_debugging = True
@@ -2081,3 +2094,161 @@ class InternalDebugger:
 
         if "_process_name" in self.__dict__:
             del self._process_name
+
+        if "binary" in self.__dict__:
+            del self.binary
+
+        if "libraries" in self.__dict__:
+            del self.libraries
+
+    def clear_elf_caches(self: InternalDebugger) -> None:
+        """Clears all the ELF caches of the internal debugger."""
+        if "binary" in self.__dict__:
+            del self.binary
+
+        if "libraries" in self.__dict__:
+            del self.libraries
+
+    def _find_libraries_in_traced_process(self: InternalDebugger) -> list[tuple[str, int]]:
+        """Finds all the loaded shared libraries and their base addresses from the live process.
+
+        Returns:
+            list[tuple[str, int]]: A list of tuples containing the path and base address of each loaded shared library.
+        """
+        start_segment = None
+        last_path = None
+        collected_libs = []
+        has_parsed_file = False
+
+        for curr_map in self.maps:
+            if has_parsed_file:
+                if curr_map.backing_file == last_path:
+                    # We already parsed this file, skip it
+                    continue
+
+                # New file
+                has_parsed_file = False
+                start_segment = None
+
+            if last_path != curr_map.backing_file:
+                start_segment = curr_map
+
+            if "x" in curr_map.permissions:
+                if start_segment is None:
+                    liblog.error(f"Could not determine the start of the library segment for {curr_map.backing_file}.")
+                else:
+                    has_parsed_file = True
+
+                    p_backing = Path(curr_map.backing_file)
+                    file_exists = p_backing.exists()
+
+                    if not file_exists:
+                        # The backing file does not exist, skip it
+                        continue
+
+                    p_main = Path(self.path)
+
+                    if Path.samefile(p_backing, p_main):
+                        # Skip the main binary
+                        continue
+
+                    # Check if the segment is from a parsable ELF file
+                    is_parsable_lib = (
+                        "r" in start_segment.permissions
+                        and self.memory[start_segment.start : start_segment.start + 4] == b"\x7fELF"
+                    )
+
+                    # We found an executable segment, if it's not from  an ELF file, skip it
+                    if not is_parsable_lib:
+                        continue
+
+                    collected_libs.append((curr_map.backing_file, start_segment.start))
+
+            last_path = curr_map.backing_file
+
+        return collected_libs
+
+    def _find_linked_libraries(self: InternalDebugger) -> list[str]:
+        """Finds all the linked shared libraries from the binary file.
+
+        Returns:
+            list[str]: A list of paths of each linked shared library.
+        """
+        needed_entries = self.binary.dynamic_sections.filter("NEEDED")
+        return [entry.value for entry in needed_entries]
+
+    @functools.cached_property
+    def binary(self: InternalDebugger) -> ELF:
+        """The ELF object representing the debugged binary."""
+        if self.aslr_enabled:
+            self._elf_parsed_with_aslr = True
+
+        base = self.maps.filter("binary")[0].start if self.is_debugging else 0
+        return ELF.parse(self.path, base, self)
+
+    @functools.cached_property
+    def libraries(self: InternalDebugger) -> ELFList:
+        """A list of the ELF objects representing the loaded shared libraries."""
+        if not self.is_debugging:
+            raise RuntimeError("Process not traced, cannot parse libraries.")
+
+        if self.aslr_enabled:
+            self._elf_parsed_with_aslr = True
+
+        found_libs = self._find_libraries_in_traced_process()
+
+        parsed_libs = []
+
+        for lib_path, base in found_libs:
+            try:
+                curr = ELF.parse(lib_path, base, self)
+
+                if curr.soname is not None:
+                    parsed_libs.append(curr)
+                    liblog.debugger(f"Parsed library {lib_path} at base address {hex(base)}.")
+            except Exception as e:
+                liblog.error(f"Could not parse library {lib_path}: {e}")
+
+        return ELFList(parsed_libs)
+
+    def pprint_binary_report(self: InternalDebugger) -> None:
+        """Prints a report of the binary."""
+        if importlib.util.find_spec("rich") is None:
+            raise RuntimeError(
+                "The 'rich' package is required for pprint_binary_report. Install it with 'pip install rich'."
+            )
+
+        from rich.console import Console  # noqa: PLC0415
+        from rich.table import Column, Table  # noqa: PLC0415
+
+        console = Console()
+
+        table = Table(
+            Column("Attribute", justify="right", style="cyan", no_wrap=True),
+            Column("Value", style="magenta"),
+            title="Binary Report",
+        )
+
+        table.add_row("Path", self.path)
+        table.add_section()
+        table.add_row("Architecture", self.binary.architecture)
+        table.add_row("Endianness", self.binary.endianness)
+        table.add_row("PIE", str(self.binary.is_pie))
+        table.add_row("Base Address", hex(self.binary.base_address) if self.is_debugging else "Process not yet traced")
+        table.add_row("Build ID", self.binary.build_id if self.binary.build_id else "N/A")
+        table.add_section()
+
+        if self.is_debugging:
+            libs = "\n".join(f"{lib.soname} ({lib.path})" for lib in self.libraries)
+            table.add_row("Loaded Libraries", libs)
+        else:
+            linked_libs = "\n".join(self._find_linked_libraries())
+            table.add_row("Linked Libraries", linked_libs if linked_libs else "None")
+
+        # Render the mitigations as a compact panel under the main table
+        console.print(table)
+
+        # ──────────────────────────────
+        # Runtime mitigations (compact)
+        # ──────────────────────────────
+        pprint_mitigations(self.binary, console=console)
