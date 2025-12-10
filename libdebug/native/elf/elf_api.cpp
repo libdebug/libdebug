@@ -5,62 +5,62 @@
 //
 
 #include "elf_api.h"
-#include "external_defines.h"
 
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
-#include <nanobind/stl/vector.h> 
+#include <nanobind/stl/vector.h>
 
-static void sh_flags_str(uint64_t f, std::string& out){
+static void sh_flags_str(uint64_t f, std::string& out, uint16_t e_machine = 0) {
     out.clear();
-    #ifdef SHF_WRITE
-        if (f & SHF_WRITE)      out += 'W';
-    #endif
-    #ifdef SHF_ALLOC
-        if (f & SHF_ALLOC)      out += 'A';
-    #endif
-    #ifdef SHF_EXECINSTR
-        if (f & SHF_EXECINSTR)  out += 'X';
-    #endif
-    #ifdef SHF_MERGE
-        if (f & SHF_MERGE)      out += 'M';
-    #endif
-    #ifdef SHF_STRINGS
-        if (f & SHF_STRINGS)    out += 'S';
-    #endif
-    #ifdef SHF_INFO_LINK
-        if (f & SHF_INFO_LINK)  out += 'I';
-    #endif
-    #ifdef SHF_LINK_ORDER
-        if (f & SHF_LINK_ORDER) out += 'L';
-    #endif
-    #ifdef SHF_OS_NONCONFORMING
-        if (f & SHF_OS_NONCONFORMING) out += 'O';
-    #endif
-    #ifdef SHF_GROUP
-        if (f & SHF_GROUP)      out += 'G';
-    #endif
-    #ifdef SHF_TLS
-        if (f & SHF_TLS)        out += 'T';
-    #endif
-    #ifdef SHF_COMPRESSED
-        if (f & SHF_COMPRESSED) out += 'C';
-    #endif
-    #ifdef SHF_EXCLUDE
-        if (f & SHF_EXCLUDE)    out += 'E';
-    #endif
-    #ifdef SHF_GNU_RETAIN
-        if (f & SHF_GNU_RETAIN) out += " RETAIN";
-    #endif
-    #ifdef SHF_ORDERED
-        if (f & SHF_ORDERED)    out += " ORDERED";
-    #endif
+    if (f & SHF_WRITE)      out += 'W';
+    if (f & SHF_ALLOC)      out += 'A';
+    if (f & SHF_EXECINSTR)  out += 'X';
+    if (f & SHF_MERGE)      out += 'M';
+    if (f & SHF_STRINGS)    out += 'S';
+    if (f & SHF_INFO_LINK)  out += 'I';
+    if (f & SHF_LINK_ORDER) out += 'L';
+    if (f & SHF_OS_NONCONFORMING) out += 'O';
+    if (f & SHF_GROUP)      out += 'G';
+    if (f & SHF_TLS)        out += 'T';
+    if (f & SHF_COMPRESSED) out += 'C';
+    if (f & SHF_EXCLUDE)    out += 'E';
+    if (f & SHF_GNU_RETAIN) out += " RETAIN";
+    if (f & SHF_GNU_MBIND)  out += " MBIND";
+    
+    uint64_t remaining = f & ~(SHF_WRITE | SHF_ALLOC | SHF_EXECINSTR | SHF_MERGE | SHF_STRINGS |
+                            SHF_INFO_LINK | SHF_LINK_ORDER | SHF_OS_NONCONFORMING |
+                            SHF_GROUP | SHF_TLS | SHF_COMPRESSED | SHF_EXCLUDE |
+                            SHF_GNU_RETAIN | SHF_GNU_MBIND);
+    
+    if (e_machine == EM_X86_64)
+    {
+        // x86_64 specific flags
+        if (f & SHF_X86_64_LARGE)
+        {
+            remaining &= ~SHF_X86_64_LARGE;
+            out += " LARGE";
+        }
+        
+    }
+    else if (e_machine == EM_AARCH64)
+    {
+        if (f & SHF_ENTRYSECT)
+        {
+            remaining &= ~SHF_ENTRYSECT;
+            out += " ENTRYSECT";
+        }
+        if (f & SHF_COMDEF)
+        {
+            remaining &= ~SHF_COMDEF;
+            out += " COMDEF";
+        }
+    }
 
-    // Processor specific flags
-    // Externally defined, no need for #ifdef
-    if (f & SHF_X86_64_LARGE) out += " LARGE";
-    if (f & SHF_ENTRYSECT)  out += " ENTRYSECT";
-    if (f & SHF_COMDEF)     out += " COMDEF";
+    if (remaining != 0) {
+        char buf[32];
+        std::snprintf(buf, sizeof(buf), " UNKNOWN_FLAGS_0x%" PRIx64, remaining);
+        out += buf;
+    }
 }
 
 static const char* sh_type_str(uint32_t sh_type, uint16_t e_machine = 0) {
@@ -89,96 +89,56 @@ static const char* sh_type_str(uint32_t sh_type, uint16_t e_machine = 0) {
     }
 
     switch (sh_type) {
-#ifdef SHT_NULL
         case SHT_NULL:          return "NULL";
-#endif
-#ifdef SHT_PROGBITS
         case SHT_PROGBITS:      return "PROGBITS";
-#endif
-#ifdef SHT_SYMTAB
         case SHT_SYMTAB:        return "SYMTAB";
-#endif
-#ifdef SHT_STRTAB
         case SHT_STRTAB:        return "STRTAB";
-#endif
-#ifdef SHT_RELA
         case SHT_RELA:          return "RELA";
-#endif
-#ifdef SHT_HASH
         case SHT_HASH:          return "HASH";
-#endif
-#ifdef SHT_DYNAMIC
         case SHT_DYNAMIC:       return "DYNAMIC";
-#endif
-#ifdef SHT_NOTE
         case SHT_NOTE:          return "NOTE";
-#endif
-#ifdef SHT_NOBITS
         case SHT_NOBITS:        return "NOBITS";
-#endif
-#ifdef SHT_REL
         case SHT_REL:           return "REL";
-#endif
-#ifdef SHT_SHLIB
         case SHT_SHLIB:         return "SHLIB";
-#endif
-#ifdef SHT_DYNSYM
         case SHT_DYNSYM:        return "DYNSYM";
-#endif
-#ifdef SHT_INIT_ARRAY
         case SHT_INIT_ARRAY:    return "INIT_ARRAY";
-#endif
-#ifdef SHT_FINI_ARRAY
         case SHT_FINI_ARRAY:    return "FINI_ARRAY";
-#endif
-#ifdef SHT_PREINIT_ARRAY
         case SHT_PREINIT_ARRAY: return "PREINIT_ARRAY";
-#endif
-#ifdef SHT_GROUP
         case SHT_GROUP:         return "GROUP";
-#endif
-#ifdef SHT_SYMTAB_SHNDX
         case SHT_SYMTAB_SHNDX:  return "SYMTAB_SHNDX";
-#endif
-#ifdef SHT_RELR
         case SHT_RELR:          return "RELR";
-#endif
-// -------------------- GNU extensions -------------------- //
-#ifdef SHT_GNU_ATTRIBUTES
+        // -------------------- Android extensions -------------------- //
+        case SHT_ANDROID_REL:  return "ANDROID_REL";
+        case SHT_ANDROID_RELA: return "ANDROID_RELA";
+        case SHT_ANDROID_RELR: return "ANDROID_RELR";
+        // -------------------- GNU extensions -------------------- //
+        case SHT_GNU_INCREMENTAL_INPUTS: return "GNU_INCREMENTAL_INPUTS";
         case SHT_GNU_ATTRIBUTES: return "GNU_ATTRIBUTES";
-#endif
-#ifdef SHT_GNU_HASH
         case SHT_GNU_HASH:      return "GNU_HASH";
-#endif
-#ifdef SHT_GNU_LIBLIST
         case SHT_GNU_LIBLIST:   return "GNU_LIBLIST";
-#endif
-#ifdef SHT_CHECKSUM
         case SHT_CHECKSUM:      return "CHECKSUM";
-#endif
-#ifdef SHT_SUNW_move
-        case SHT_SUNW_move:     return "SUNW_MOVE";
-#endif
-#ifdef SHT_SUNW_COMDAT
-        case SHT_SUNW_COMDAT:   return "SUNW_COMDAT";
-#endif
-#ifdef SHT_SUNW_syminfo
-        case SHT_SUNW_syminfo:  return "SUNW_SYMINFO";
-#endif
-#ifdef SHT_GNU_verdef
         case SHT_GNU_verdef:    return "GNU_VERDEF";
-#endif
-#ifdef SHT_GNU_verneed
         case SHT_GNU_verneed:   return "GNU_VERNEED";
-#endif
-#ifdef SHT_GNU_versym
         case SHT_GNU_versym:    return "GNU_VERSYM";
-#endif
-#ifndef SHT_GNU_SFRAME
-    #define SHT_GNU_SFRAME 0x6FFFFFF4 // GNU_SFRAME not in elf.h on many toolchain but is parsed by readelf
-#endif
-case SHT_GNU_SFRAME:    return "GNU_SFRAME";
-
+        case SHT_GNU_SFRAME:    return "GNU_SFRAME";
+        case SHT_GNU_OBJECT_ONLY: return "GNU_OBJECT_ONLY";
+        // -------------------- SUNW extensions -------------------- //
+        case SHT_SUNW_move:     return "SUNW_MOVE";
+        case SHT_SUNW_COMDAT:   return "SUNW_COMDAT";
+        case SHT_SUNW_syminfo:  return "SUNW_SYMINFO";
+        // -------------------- LLVM extensions -------------------- //
+        case SHT_LLVM_ODRTAB:              return "LLVM_ODRTAB";
+        case SHT_LLVM_LINKER_OPTIONS:      return "LLVM_LINKER_OPTIONS";
+        case SHT_LLVM_ADDRSIG:             return "LLVM_ADDRSIG";
+        case SHT_LLVM_DEPENDENT_LIBRARIES: return "LLVM_DEPENDENT_LIBRARIES";
+        case SHT_LLVM_SYMPART:             return "LLVM_SYMPART";
+        case SHT_LLVM_PART_EHDR:           return "LLVM_PART_EHDR";
+        case SHT_LLVM_PART_PHDR:           return "LLVM_PART_PHDR";
+        case SHT_LLVM_BB_ADDR_MAP_V0:      return "LLVM_BB_ADDR_MAP_V0";
+        case SHT_LLVM_CALL_GRAPH_PROFILE:  return "LLVM_CALL_GRAPH_PROFILE";
+        case SHT_LLVM_BB_ADDR_MAP:         return "LLVM_BB_ADDR_MAP";
+        case SHT_LLVM_OFFLOADING:          return "LLVM_OFFLOADING";
+        case SHT_LLVM_LTO:                 return "LLVM_LTO";
         default: {
             static thread_local char buf[32];
             std::snprintf(buf, sizeof(buf), "UNKNOWN_0x%" PRIx32, sh_type);
@@ -269,7 +229,7 @@ static void parse_sections_64(const uint8_t *data, size_t sz, int swap, std::vec
         SectionInfo s;
         s.index = i;
         s.type.assign(sh_type_str(sh_type, maybe16(eh->e_machine, swap)));
-        sh_flags_str(sh_flags, s.flags); // convert to string
+        sh_flags_str(sh_flags, s.flags, eh->e_machine); // convert to string
         s.addr = sh_addr;
         s.offset = sh_offset;
         s.size = sh_size;
@@ -336,17 +296,6 @@ static void parse_sections_32(const uint8_t *data, size_t sz, int swap, std::vec
         uint32_t sh_size     = maybe32(sh->sh_size, swap);
         uint32_t sh_addralign= maybe32(sh->sh_addralign, swap);
 
-        // Do we want an exception for non-power-of-two alignments?
-        // if (sh_addralign && !is_p2(sh_addralign)) {
-        //     {
-        //         char buf[128];
-        //         std::snprintf(buf, sizeof(buf),
-        //                       "Non power-of-two sh_addralign for section %u: %" PRIu64,
-        //                       (unsigned)i, (uint64_t)sh_addralign);
-        //         throw std::runtime_error(buf);
-        //     }
-        // }
-
         const char *name_c = "(bad-name)";
         if (sh_name < strtab_sz){
             const char *cand = strtab + sh_name;
@@ -366,7 +315,7 @@ static void parse_sections_32(const uint8_t *data, size_t sz, int swap, std::vec
         SectionInfo s;
         s.index = i;
         s.type.assign(sh_type_str(sh_type, maybe16(eh->e_machine, swap)));
-        sh_flags_str(sh_flags, s.flags); // convert to string
+        sh_flags_str(sh_flags, s.flags, eh->e_machine); // convert to string
         s.addr = sh_addr;
         s.offset = sh_offset;
         s.size = sh_size;
@@ -441,212 +390,78 @@ static const char* dt_tag_name(int64_t tag, uint16_t e_machine) {
     }
 
     switch (tag) {
-#ifdef DT_NULL
         case DT_NULL:            return "NULL";
-#endif
-#ifdef DT_NEEDED
         case DT_NEEDED:          return "NEEDED";
-#endif
-#ifdef DT_PLTRELSZ
         case DT_PLTRELSZ:        return "PLTRELSZ";
-#endif
-#ifdef DT_PLTGOT
         case DT_PLTGOT:          return "PLTGOT";
-#endif
-#ifdef DT_HASH
         case DT_HASH:            return "HASH";
-#endif
-#ifdef DT_STRTAB
         case DT_STRTAB:          return "STRTAB";
-#endif
-#ifdef DT_SYMTAB
         case DT_SYMTAB:          return "SYMTAB";
-#endif
-#ifdef DT_RELA
-        case DT_RELA:            return "RELA";
-#endif
-#ifdef DT_RELASZ
         case DT_RELASZ:          return "RELASZ";
-#endif
-#ifdef DT_RELAENT
         case DT_RELAENT:         return "RELAENT";
-#endif
-#ifdef DT_STRSZ
         case DT_STRSZ:           return "STRSZ";
-#endif
-#ifdef DT_SYMENT
         case DT_SYMENT:          return "SYMENT";
-#endif
-#ifdef DT_INIT
         case DT_INIT:            return "INIT";
-#endif
-#ifdef DT_FINI
         case DT_FINI:            return "FINI";
-#endif
-#ifdef DT_SONAME
         case DT_SONAME:          return "SONAME";
-#endif
-#ifdef DT_RPATH
         case DT_RPATH:           return "RPATH";
-#endif
-#ifdef DT_SYMBOLIC
         case DT_SYMBOLIC:        return "SYMBOLIC";
-#endif
-#ifdef DT_REL
-        case DT_REL:             return "REL";
-#endif
-#ifdef DT_RELSZ
         case DT_RELSZ:           return "RELSZ";
-#endif
-#ifdef DT_RELENT
         case DT_RELENT:          return "RELENT";
-#endif
-#ifdef DT_PLTREL
         case DT_PLTREL:          return "PLTREL";
-#endif
-#ifdef DT_DEBUG
         case DT_DEBUG:           return "DEBUG";
-#endif
-#ifdef DT_TEXTREL
         case DT_TEXTREL:         return "TEXTREL";
-#endif
-#ifdef DT_JMPREL
         case DT_JMPREL:          return "JMPREL";
-#endif
-#ifdef DT_BIND_NOW
         case DT_BIND_NOW:        return "BIND_NOW";
-#endif
-#ifdef DT_INIT_ARRAY
         case DT_INIT_ARRAY:      return "INIT_ARRAY";
-#endif
-#ifdef DT_FINI_ARRAY
         case DT_FINI_ARRAY:      return "FINI_ARRAY";
-#endif
-#ifdef DT_INIT_ARRAYSZ
         case DT_INIT_ARRAYSZ:    return "INIT_ARRAYSZ";
-#endif
-#ifdef DT_FINI_ARRAYSZ
         case DT_FINI_ARRAYSZ:    return "FINI_ARRAYSZ";
-#endif
-#ifdef DT_RUNPATH
         case DT_RUNPATH:         return "RUNPATH";
-#endif
-#ifdef DT_FLAGS
         case DT_FLAGS:           return "FLAGS";
-#endif
-#ifdef DT_PREINIT_ARRAY
         case DT_PREINIT_ARRAY:   return "PREINIT_ARRAY";
-#endif
-#ifdef DT_PREINIT_ARRAYSZ
         case DT_PREINIT_ARRAYSZ: return "PREINIT_ARRAYSZ";
-#endif
+        case DT_SYMTAB_SHNDX: return "SYMTAB_SHNDX";
+        case DT_RELRSZ: return "RELRSZ";
+        case DT_RELR: return "RELR";
+        case DT_RELRENT: return "RELRENT";
+        case DT_GNU_FLAGS_1: return "GNU_FLAGS_1";
+        case DT_GNU_PRELINKED: return "GNU_PRELINKED";
+        case DT_GNU_CONFLICTSZ: return "GNU_CONFLICTSZ";
+        case DT_GNU_LIBLISTSZ: return "GNU_LIBLISTSZ";
+        case DT_CHECKSUM: return "CHECKSUM";
+        case DT_PLTPADSZ: return "PLTPADSZ";
+        case DT_MOVEENT: return "MOVEENT";
+        case DT_MOVESZ: return "MOVESZ";
+        case DT_FEATURE_1: return "FEATURE_1";
+        case DT_POSFLAG_1: return "POSFLAG_1";
+        case DT_SYMINSZ: return "SYMINSZ";
+        case DT_SYMINENT: return "SYMINENT";
+        case DT_GNU_HASH: return "GNU_HASH";
+        case DT_TLSDESC_PLT: return "TLSDESC_PLT";
+        case DT_TLSDESC_GOT: return "TLSDESC_GOT";
+        case DT_GNU_CONFLICT: return "GNU_CONFLICT";
+        case DT_GNU_LIBLIST: return "GNU_LIBLIST";
+        case DT_CONFIG: return "CONFIG";
+        case DT_DEPAUDIT: return "DEPAUDIT";
+        case DT_AUDIT: return "AUDIT";
+        case DT_PLTPAD: return "PLTPAD";
+        case DT_MOVETAB: return "MOVETAB";
+        case DT_SYMINFO: return "SYMINFO";
+        case DT_RELACOUNT: return "RELACOUNT";
+        case DT_RELCOUNT: return "RELCOUNT";
+        case DT_FLAGS_1: return "FLAGS_1";
+        case DT_VERDEF: return "VERDEF";
+        case DT_VERDEFNUM: return "VERDEFNUM";
+        case DT_VERNEED: return "VERNEED";
+        case DT_VERNEEDNUM: return "VERNEEDNUM";
+        case DT_VERSYM: return "VERSYM";
+        case DT_AUXILIARY: return "AUXILIARY";
+        case DT_USED: return "USED";
+        case DT_FILTER: return "FILTER";
+        case DT_REL: return "REL";
+        case DT_RELA: return "RELA";
 
-        // GNU / Extensions
-#ifdef DT_GNU_PRELINKED
-        case DT_GNU_PRELINKED:   return "GNU_PRELINKED";
-#endif
-#ifdef DT_GNU_CONFLICTSZ
-        case DT_GNU_CONFLICTSZ:  return "GNU_CONFLICTSZ";
-#endif
-#ifdef DT_GNU_LIBLISTSZ
-        case DT_GNU_LIBLISTSZ:   return "GNU_LIBLISTSZ";
-#endif
-#ifdef DT_CHECKSUM
-        case DT_CHECKSUM:        return "CHECKSUM";
-#endif
-#ifdef DT_PLTPADSZ
-        case DT_PLTPADSZ:        return "PLTPADSZ";
-#endif
-#ifdef DT_MOVEENT
-        case DT_MOVEENT:         return "MOVEENT";
-#endif
-#ifdef DT_MOVESZ
-        case DT_MOVESZ:          return "MOVESZ";
-#endif
-#ifdef DT_SYMINSZ
-        case DT_SYMINSZ:         return "SYMINSZ";
-#endif
-#ifdef DT_SYMINENT
-        case DT_SYMINENT:        return "SYMINENT";
-#endif
-#ifdef DT_RELACOUNT
-        case DT_RELACOUNT:       return "RELACOUNT";
-#endif
-#ifdef DT_RELCOUNT
-        case DT_RELCOUNT:        return "RELCOUNT";
-#endif
-#ifdef DT_FLAGS_1
-        case DT_FLAGS_1:         return "FLAGS_1";
-#endif
-#ifdef DT_VERDEF
-        case DT_VERDEF:          return "VERDEF";
-#endif
-#ifdef DT_VERDEFNUM
-        case DT_VERDEFNUM:       return "VERDEFNUM";
-#endif
-#ifdef DT_VERNEED
-        case DT_VERNEED:         return "VERNEED";
-#endif
-#ifdef DT_VERNEEDNUM
-        case DT_VERNEEDNUM:      return "VERNEEDNUM";
-#endif
-#ifdef DT_VERSYM
-        case DT_VERSYM:          return "VERSYM";
-#endif
-#ifdef DT_AUXILIARY
-        case DT_AUXILIARY:       return "AUXILIARY";
-#endif
-#ifdef DT_FILTER
-        case DT_FILTER:          return "FILTER";
-#endif
-#ifdef DT_GNU_HASH
-        case DT_GNU_HASH:        return "GNU_HASH";
-#endif
-#ifdef DT_CONFIG
-        case DT_CONFIG:          return "CONFIG";
-#endif
-#ifdef DT_DEPAUDIT
-        case DT_DEPAUDIT:        return "DEPAUDIT";
-#endif
-#ifdef DT_AUDIT
-        case DT_AUDIT:           return "AUDIT";
-#endif
-#ifdef DT_PLTPAD
-        case DT_PLTPAD:          return "PLTPAD";
-#endif
-#ifdef DT_MOVETAB
-        case DT_MOVETAB:         return "MOVETAB";
-#endif
-#ifdef DT_SYMINFO
-        case DT_SYMINFO:         return "SYMINFO";
-#endif
-#ifdef DT_RELRSZ
-        case DT_RELRSZ:          return "RELRSZ";
-#endif
-#ifdef DT_RELR
-        case DT_RELR:            return "RELR";
-#endif
-#ifdef DT_RELRENT
-        case DT_RELRENT:         return "RELRENT";
-#endif
-#ifdef DT_TLSDESC_PLT
-        case DT_TLSDESC_PLT:     return "TLSDESC_PLT";
-#endif
-#ifdef DT_TLSDESC_GOT
-        case DT_TLSDESC_GOT:     return "TLSDESC_GOT";
-#endif
-#ifdef DT_GNU_CONFLICT
-        case DT_GNU_CONFLICT:    return "GNU_CONFLICT";
-#endif
-#ifdef DT_FEATURE_1
-        case DT_FEATURE_1:       return "FEATURE_1";
-#endif
-#ifdef DT_POSFLAG_1
-        case DT_POSFLAG_1:       return "POSFLAG_1";
-#endif
-#ifdef DT_SYMTAB_SHNDX
-        case DT_SYMTAB_SHNDX:    return "SYMTAB_SHNDX";
-#endif
         default:
             static thread_local char buf[32];
             std::snprintf(buf, sizeof(buf), "UNKNOWN_0x%" PRIx64, (uint64_t)tag);
@@ -657,154 +472,123 @@ static const char* dt_tag_name(int64_t tag, uint16_t e_machine) {
 
 static void dt_flags_str(uint64_t flags, std::string& out){
     out.clear();
-    #ifdef DF_ORIGIN
         if (flags & DF_ORIGIN)      out += "ORIGIN ";
-    #endif
-    #ifdef DF_SYMBOLIC
         if (flags & DF_SYMBOLIC)    out += "SYMBOLIC ";
-    #endif
-    #ifdef DF_TEXTREL
         if (flags & DF_TEXTREL)     out += "TEXTREL ";
-    #endif
-    #ifdef DF_BIND_NOW
         if (flags & DF_BIND_NOW)    out += "BIND_NOW ";
-    #endif
-    #ifdef DF_STATIC_TLS
         if (flags & DF_STATIC_TLS)  out += "STATIC_TLS ";
-    #endif
-    if (!out.empty()) out.pop_back(); // remove trailing space
+
+        uint64_t remaining = flags & ~(DF_ORIGIN | DF_SYMBOLIC | DF_TEXTREL | DF_BIND_NOW | DF_STATIC_TLS);
+        if (remaining) {
+            char buf[32];
+            std::snprintf(buf, sizeof(buf), "UNKNOWN_FLAGS_0x%" PRIx64 " ", remaining);
+            out += buf;
+        }
+        if (!out.empty()) out.pop_back(); // remove trailing space
 }
 
 static void dt_flags_1_str(uint64_t flags, std::string& out) {
     out.clear();
-    #ifdef DF_1_NOW
-        if (flags & DF_1_NOW)        out += "NOW ";
-    #endif
-    #ifdef DF_1_GLOBAL
-        if (flags & DF_1_GLOBAL)     out += "GLOBAL ";
-    #endif
-    #ifdef DF_1_GROUP
-        if (flags & DF_1_GROUP)      out += "GROUP ";
-    #endif
-    #ifdef DF_1_NODELETE
-        if (flags & DF_1_NODELETE)   out += "NODELETE ";
-    #endif
-    #ifdef DF_1_LOADFLTR
-        if (flags & DF_1_LOADFLTR)   out += "LOADFLTR ";
-    #endif
-    #ifdef DF_1_INITFIRST
-        if (flags & DF_1_INITFIRST)  out += "INITFIRST ";
-    #endif
-    #ifdef DF_1_NOOPEN
-        if (flags & DF_1_NOOPEN)     out += "NOOPEN ";
-    #endif
-    #ifdef DF_1_ORIGIN
-        if (flags & DF_1_ORIGIN)     out += "ORIGIN ";
-    #endif
-    #ifdef DF_1_DIRECT
-        if (flags & DF_1_DIRECT)     out += "DIRECT ";
-    #endif
-    #ifdef DF_1_TRANS
-        if (flags & DF_1_TRANS)      out += "TRANS ";
-    #endif
-    #ifdef DF_1_INTERPOSE
-        if (flags & DF_1_INTERPOSE)  out += "INTERPOSE ";
-    #endif
-    #ifdef DF_1_NODEFLIB
-        if (flags & DF_1_NODEFLIB)   out += "NODEFLIB ";
-    #endif
-    #ifdef DF_1_NODUMP
-        if (flags & DF_1_NODUMP)     out += "NODUMP ";
-    #endif
-    #ifdef DF_1_CONFALT
-        if (flags & DF_1_CONFALT)    out += "CONFALT ";
-    #endif
-    #ifdef DF_1_ENDFILTEE
-        if (flags & DF_1_ENDFILTEE)  out += "ENDFILTEE ";
-    #endif
-    #ifdef DF_1_DISPRELDNE
-        if (flags & DF_1_DISPRELDNE) out += "DISPRELDNE ";
-    #endif
-    #ifdef DF_1_DISPRELPND
-        if (flags & DF_1_DISPRELPND) out += "DISPRELPND ";
-    #endif
-    #ifdef DF_1_NODIRECT
-        if (flags & DF_1_NODIRECT)   out += "NODIRECT ";
-    #endif
-    #ifdef DF_1_IGNMULDEF
-        if (flags & DF_1_IGNMULDEF)  out += "IGNMULDEF ";
-    #endif
-    #ifdef DF_1_NOKSYMS
-        if (flags & DF_1_NOKSYMS)    out += "NOKSYMS ";
-    #endif
-    #ifdef DF_1_NOHDR
-        if (flags & DF_1_NOHDR)      out += "NOHDR ";
-    #endif
-    #ifdef DF_1_EDITED
-        if (flags & DF_1_EDITED)     out += "EDITED ";
-    #endif
-    #ifdef DF_1_NORELOC
-        if (flags & DF_1_NORELOC)    out += "NORELOC ";
-    #endif
-    #ifdef DF_1_SYMINTPOSE
-        if (flags & DF_1_SYMINTPOSE) out += "SYMINTPOSE ";
-    #endif
-    #ifdef DF_1_GLOBAUDIT
-        if (flags & DF_1_GLOBAUDIT)  out += "GLOBAUDIT ";
-    #endif
-    #ifdef DF_1_SINGLETON
-        if (flags & DF_1_SINGLETON)  out += "SINGLETON ";
-    #endif
-    #ifdef DF_1_STUB
-        if (flags & DF_1_STUB)       out += "STUB ";
-    #endif
-    #ifdef DF_1_PIE
-        if (flags & DF_1_PIE)        out += "PIE ";
-    #endif
-    #ifdef DF_1_KMOD
-        if (flags & DF_1_KMOD)       out += "KMOD ";
-    #endif
-    #ifdef DF_1_WEAKFILTER
-        if (flags & DF_1_WEAKFILTER) out += "WEAKFILTER ";
-    #endif
-    #ifdef DF_1_NOCOMMON
-        if (flags & DF_1_NOCOMMON)   out += "NOCOMMON ";
-    #endif
+    
+    if (flags & DF_1_NOW)        out += "NOW ";
+    if (flags & DF_1_GLOBAL)     out += "GLOBAL ";
+    if (flags & DF_1_GROUP)      out += "GROUP ";
+    if (flags & DF_1_NODELETE)   out += "NODELETE ";
+    if (flags & DF_1_LOADFLTR)   out += "LOADFLTR ";
+    if (flags & DF_1_INITFIRST)  out += "INITFIRST ";
+    if (flags & DF_1_NOOPEN)     out += "NOOPEN ";
+    if (flags & DF_1_ORIGIN)     out += "ORIGIN ";
+    if (flags & DF_1_DIRECT)     out += "DIRECT ";
+    if (flags & DF_1_TRANS)      out += "TRANS ";
+    if (flags & DF_1_INTERPOSE)  out += "INTERPOSE ";
+    if (flags & DF_1_NODEFLIB)   out += "NODEFLIB ";
+    if (flags & DF_1_NODUMP)     out += "NODUMP ";
+    if (flags & DF_1_CONFALT)    out += "CONFALT ";
+    if (flags & DF_1_ENDFILTEE)  out += "ENDFILTEE ";
+    if (flags & DF_1_DISPRELDNE) out += "DISPRELDNE ";
+    if (flags & DF_1_DISPRELPND) out += "DISPRELPND ";
+    if (flags & DF_1_NODIRECT)   out += "NODIRECT ";
+    if (flags & DF_1_IGNMULDEF)  out += "IGNMULDEF ";
+    if (flags & DF_1_NOKSYMS)    out += "NOKSYMS ";
+    if (flags & DF_1_NOHDR)      out += "NOHDR ";
+    if (flags & DF_1_EDITED)     out += "EDITED ";
+    if (flags & DF_1_NORELOC)    out += "NORELOC ";
+    if (flags & DF_1_SYMINTPOSE) out += "SYMINTPOSE ";
+    if (flags & DF_1_GLOBAUDIT)  out += "GLOBAUDIT ";
+    if (flags & DF_1_SINGLETON)  out += "SINGLETON ";
+    if (flags & DF_1_STUB)       out += "STUB ";
+    if (flags & DF_1_PIE)        out += "PIE ";
+    if (flags & DF_1_KMOD)       out += "KMOD ";
+    if (flags & DF_1_WEAKFILTER) out += "WEAKFILTER ";
+    if (flags & DF_1_NOCOMMON)   out += "NOCOMMON ";
+
+    uint64_t remaining = flags & ~(DF_1_NOW | DF_1_GLOBAL | DF_1_GROUP | DF_1_NODELETE | DF_1_LOADFLTR | 
+        DF_1_INITFIRST | DF_1_NOOPEN | DF_1_ORIGIN | DF_1_DIRECT | DF_1_TRANS | DF_1_INTERPOSE | DF_1_NODEFLIB |
+            DF_1_NODUMP | DF_1_CONFALT | DF_1_ENDFILTEE | DF_1_DISPRELDNE | DF_1_DISPRELPND | DF_1_NODIRECT |
+            DF_1_IGNMULDEF | DF_1_NOKSYMS | DF_1_NOHDR | DF_1_EDITED | DF_1_NORELOC | DF_1_SYMINTPOSE | DF_1_GLOBAUDIT |
+            DF_1_SINGLETON | DF_1_STUB | DF_1_PIE | DF_1_KMOD | DF_1_WEAKFILTER | DF_1_NOCOMMON);
+
+    if (remaining)
+    {
+        char buf[64];
+        std::snprintf(buf, sizeof(buf), "UNKNOWN_FLAGS_1_0x%" PRIx64 " ", remaining);
+        out += buf;
+    }
+    
     if (!out.empty()) out.pop_back(); // remove trailing space
 }
 
 static void dt_features_str(uint64_t features, std::string& out) {
     out.clear();
-    #ifdef DTF_1_PARINIT
         if (features & DTF_1_PARINIT)   out += "PARINIT ";
-    #endif
-    #ifdef DTF_1_CONFEXP
         if (features & DTF_1_CONFEXP)   out += "CONFEXP ";
-    #endif
-    if (!out.empty()) out.pop_back(); // remove trailing space
+
+        if (features & ~(DTF_1_PARINIT | DTF_1_CONFEXP)) {
+            char buf[64];
+            std::snprintf(buf, sizeof(buf), "UNKNOWN_FEATURES_0x%" PRIx64 " ", features & ~(DTF_1_PARINIT | DTF_1_CONFEXP));
+            out += buf;
+        }
+
+        if (!out.empty()) out.pop_back(); // remove trailing space
 }
 
 static void dt_posflag_str(uint64_t posflags, std::string& out) {
     out.clear();
-    #ifdef DF_P1_LAZYLOAD
         if (posflags & DF_P1_LAZYLOAD)  out += "LAZYLOAD ";
-    #endif
-    #ifdef DF_P1_GROUPPERM
         if (posflags & DF_P1_GROUPPERM) out += "GROUPPERM ";
-    #endif
+
+        uint64_t remaining = posflags & ~(DF_P1_LAZYLOAD | DF_P1_GROUPPERM);
+        if (remaining) {
+            char buf[64];
+            std::snprintf(buf, sizeof(buf), "UNKNOWN_POSFLAGS_0x%" PRIx64 " ", remaining);
+            out += buf;
+        }
+
+        if (!out.empty()) out.pop_back(); // remove trailing space
+}
+
+static void dt_gnu_flags_1_str(uint64_t gnu_flags_1, std::string& out) {
+    out.clear();
+    if (gnu_flags_1 & DF_GNU_1_UNIQUE)    out += "UNIQUE ";
+    
+    uint64_t remaining = gnu_flags_1 & ~(DF_GNU_1_UNIQUE);
+    if (remaining) {
+        char buf[64];
+        std::snprintf(buf, sizeof(buf), "UNKNOWN_GNU_FLAGS_1_0x%" PRIx64 " ", remaining);
+        out += buf;
+    }
     if (!out.empty()) out.pop_back(); // remove trailing space
 }
 
 static void dt_pltrel_str(uint64_t pltrel, std::string& out) {
     out.clear();
-    #ifdef DT_RELA
-        if (pltrel == DT_RELA) out += "RELA";
-    #endif
-    #ifdef DT_REL
-        if (pltrel == DT_REL)  out += "REL";
-    #endif
-    if (out.empty()) {
-        out += "UNKNOWN";
+    if (pltrel == DT_RELA) out += "RELA";
+    if (pltrel == DT_REL)  out += "REL";
+    
+    if (pltrel != DT_RELA && pltrel != DT_REL) {
+        char buf[64];
+        std::snprintf(buf, sizeof(buf), "UNKNOWN_PLTREL_0x%" PRIx64, pltrel);
+        out += buf;
     }
 }
 
@@ -813,239 +597,114 @@ static DynSectionValueType dt_value_type(int64_t tag, uint16_t e_machine) {
 
     if (e_machine == EM_AARCH64) {
         switch (tag) {
-            case DT_AARCH64_BTI_PLT:
-            case DT_AARCH64_PAC_PLT:
-            case DT_AARCH64_VARIANT_PCS:
-            case DT_AARCH64_MEMTAG_MODE:
-            case DT_AARCH64_MEMTAG_STACK:
-                return DynSectionValueType::DYN_VAL_NUM; // on / off or complex parsing
-            default: break;
+            case DT_AARCH64_BTI_PLT:  // on / off
+            case DT_AARCH64_PAC_PLT:  // on / off
+            case DT_AARCH64_MEMTAG_MODE: // 0 -> Synchronous, 1 -> Asynchronous
+            case DT_AARCH64_MEMTAG_STACK: // 0 -> no tagging, 1 -> tag stack frames
+            case DT_AARCH64_VARIANT_PCS: // Bitmask of PCS features
+                return DynSectionValueType::DYN_VAL_NUM;
+            default:
+                break;
         }
     }
     else if (e_machine == EM_X86_64) {
         switch (tag) {
-            case DT_X86_64_PLT:
-            case DT_X86_64_PLTSZ:
-            case DT_X86_64_PLTENT:
-                return DynSectionValueType::DYN_VAL_NUM;   // sizes or complex parsing
-            default: break;
+            case DT_X86_64_PLT: // Address of PLT
+                return DynSectionValueType::DYN_VAL_ADDR;
+            case DT_X86_64_PLTSZ: // Size of PLT
+            case DT_X86_64_PLTENT: // Size of each PLT entry
+                return DynSectionValueType::DYN_VAL_NUM;
+            default:
+                break;
         }
     }
 
     // --- Generic tags --------------------------------------------------------
     switch (tag) {
         // String-table offsets (need STRTAB)
-#if defined(DT_NEEDED)
-        case DT_NEEDED:         return DynSectionValueType::DYN_VAL_STR;
-#endif
-#if defined(DT_SONAME)
-        case DT_SONAME:         return DynSectionValueType::DYN_VAL_STR;
-#endif
-#if defined(DT_RPATH)
-        case DT_RPATH:          return DynSectionValueType::DYN_VAL_STR;
-#endif
-#if defined(DT_RUNPATH)
-        case DT_RUNPATH:        return DynSectionValueType::DYN_VAL_STR;
-#endif
-#if defined(DT_AUXILIARY)
-        case DT_AUXILIARY:      return DynSectionValueType::DYN_VAL_STR;
-#endif
-#if defined(DT_FILTER)
-        case DT_FILTER:         return DynSectionValueType::DYN_VAL_STR;
-#endif
+        case DT_NEEDED:
+        case DT_SONAME:
+        case DT_RPATH:
+        case DT_RUNPATH:
+        case DT_AUXILIARY:
+        case DT_FILTER:
+            return DynSectionValueType::DYN_VAL_STR;
 
         // Pointers / addresses
-#if defined(DT_PLTGOT)
-        case DT_PLTGOT:         return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-#if defined(DT_HASH)
-        case DT_HASH:           return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-#if defined(DT_STRTAB)
-        case DT_STRTAB:         return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-#if defined(DT_SYMTAB)
-        case DT_SYMTAB:         return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-#if defined(DT_RELA)
-        case DT_RELA:           return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-#if defined(DT_INIT)
-        case DT_INIT:           return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-#if defined(DT_FINI)
-        case DT_FINI:           return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-#if defined(DT_REL)
-        case DT_REL:            return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-#if defined(DT_JMPREL)
-        case DT_JMPREL:         return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-#if defined(DT_DEBUG)
-        case DT_DEBUG:          return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-#if defined(DT_INIT_ARRAY)
-        case DT_INIT_ARRAY:     return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-#if defined(DT_FINI_ARRAY)
-        case DT_FINI_ARRAY:     return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-#if defined(DT_GNU_HASH)
-        case DT_GNU_HASH:       return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-#if defined(DT_VERSYM)
-        case DT_VERSYM:         return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-#if defined(DT_VERNEED)
-        case DT_VERNEED:        return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-#if defined(DT_VERDEF)
-        case DT_VERDEF:         return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-#if defined(DT_RELR)
-        case DT_RELR:           return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-#if defined(DT_SYMTAB_SHNDX)
-        case DT_SYMTAB_SHNDX:   return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-#if defined(DT_PREINIT_ARRAY)
-        case DT_PREINIT_ARRAY:  return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-#if defined(DT_TLSDESC_PLT)
-        case DT_TLSDESC_PLT:    return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-#if defined(DT_TLSDESC_GOT)
-        case DT_TLSDESC_GOT:    return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-#if defined(DT_GNU_CONFLICT)
-        case DT_GNU_CONFLICT:   return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-#if defined(DT_CONFIG)
-        case DT_CONFIG:         return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-#if defined(DT_DEPAUDIT)
-        case DT_DEPAUDIT:       return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-#if defined(DT_AUDIT)
-        case DT_AUDIT:          return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-#if defined(DT_PLTPAD)
-        case DT_PLTPAD:         return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-#if defined(DT_MOVETAB)
-        case DT_MOVETAB:        return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-#if defined(DT_SYMINFO)
-        case DT_SYMINFO:        return DynSectionValueType::DYN_VAL_ADDR;
-#endif
-
-// Sizes / counts / enums / flags
-#if defined(DT_RELASZ)
-        case DT_RELASZ:         return DynSectionValueType::DYN_VAL_NUM;
-#endif
-#if defined(DT_RELAENT)
-        case DT_RELAENT:        return DynSectionValueType::DYN_VAL_NUM;
-#endif
-#if defined(DT_STRSZ)
-        case DT_STRSZ:          return DynSectionValueType::DYN_VAL_NUM;
-#endif
-#if defined(DT_SYMENT)
-        case DT_SYMENT:         return DynSectionValueType::DYN_VAL_NUM;
-#endif
-#if defined(DT_RELSZ)
-        case DT_RELSZ:          return DynSectionValueType::DYN_VAL_NUM;
-#endif
-#if defined(DT_RELENT)
-        case DT_RELENT:         return DynSectionValueType::DYN_VAL_NUM;
-#endif
-#if defined(DT_TEXTREL)
-        case DT_TEXTREL:        return DynSectionValueType::DYN_VAL_NUM;
-#endif
-#if defined(DT_BIND_NOW)
-        case DT_BIND_NOW:       return DynSectionValueType::DYN_VAL_NUM;
-#endif
-#if defined(DT_INIT_ARRAYSZ)
-        case DT_INIT_ARRAYSZ:   return DynSectionValueType::DYN_VAL_NUM;
-#endif
-#if defined(DT_FINI_ARRAYSZ)
-        case DT_FINI_ARRAYSZ:   return DynSectionValueType::DYN_VAL_NUM;
-#endif
-#if defined(DT_VERNEEDNUM)
-        case DT_VERNEEDNUM:     return DynSectionValueType::DYN_VAL_NUM;
-#endif
-#if defined(DT_VERDEFNUM)
-        case DT_VERDEFNUM:      return DynSectionValueType::DYN_VAL_NUM;
-#endif
-#if defined(DT_NULL)
-        case DT_NULL:           return DynSectionValueType::DYN_VAL_NUM;
-#endif
-#if defined(DT_SYMBOLIC)
-        case DT_SYMBOLIC:       return DynSectionValueType::DYN_VAL_NUM;
-#endif
-#if defined(DT_PREINIT_ARRAYSZ)
-        case DT_PREINIT_ARRAYSZ:return DynSectionValueType::DYN_VAL_NUM;
-#endif
-#if defined(DT_RELRSZ)
-        case DT_RELRSZ:         return DynSectionValueType::DYN_VAL_NUM;
-#endif
-#if defined(DT_RELRENT)
-        case DT_RELRENT:        return DynSectionValueType::DYN_VAL_NUM;
-#endif
-#if defined(DT_GNU_PRELINKED)
-        case DT_GNU_PRELINKED:  return DynSectionValueType::DYN_VAL_NUM;
-#endif
-#if defined(DT_GNU_CONFLICTSZ)
-        case DT_GNU_CONFLICTSZ: return DynSectionValueType::DYN_VAL_NUM;
-#endif
-#if defined(DT_GNU_LIBLISTSZ)
-        case DT_GNU_LIBLISTSZ:  return DynSectionValueType::DYN_VAL_NUM;
-#endif
-#if defined(DT_CHECKSUM)
-        case DT_CHECKSUM:       return DynSectionValueType::DYN_VAL_NUM;
-#endif
-#if defined(DT_PLTPADSZ)
-        case DT_PLTPADSZ:       return DynSectionValueType::DYN_VAL_NUM;
-#endif
-#if defined(DT_MOVEENT)
-        case DT_MOVEENT:        return DynSectionValueType::DYN_VAL_NUM;
-#endif
-#if defined(DT_MOVESZ)
-        case DT_MOVESZ:         return DynSectionValueType::DYN_VAL_NUM;
-#endif
-#if defined(DT_SYMINSZ)
-        case DT_SYMINSZ:        return DynSectionValueType::DYN_VAL_NUM;
-#endif
-#if defined(DT_SYMINENT)
-        case DT_SYMINENT:       return DynSectionValueType::DYN_VAL_NUM;
-#endif
-#if defined(DT_RELACOUNT)
-        case DT_RELACOUNT:      return DynSectionValueType::DYN_VAL_NUM;
-#endif
-#if defined(DT_RELCOUNT)
-        case DT_RELCOUNT:       return DynSectionValueType::DYN_VAL_NUM;
-#endif
+        case DT_PLTGOT:
+        case DT_HASH:
+        case DT_STRTAB:
+        case DT_SYMTAB:
+        case DT_INIT:
+        case DT_FINI:
+        case DT_JMPREL:
+        case DT_DEBUG:
+        case DT_INIT_ARRAY:
+        case DT_FINI_ARRAY:
+        case DT_GNU_HASH:
+        case DT_VERSYM:
+        case DT_VERNEED:
+        case DT_VERDEF:
+        case DT_RELR:
+        case DT_SYMTAB_SHNDX:
+        case DT_PREINIT_ARRAY:
+        case DT_TLSDESC_PLT:
+        case DT_TLSDESC_GOT:
+        case DT_GNU_CONFLICT:
+        case DT_CONFIG:
+        case DT_DEPAUDIT:
+        case DT_AUDIT:
+        case DT_PLTPAD:
+        case DT_MOVETAB:
+        case DT_SYMINFO:
+        case DT_RELA:
+        case DT_REL:
+        case DT_GNU_LIBLIST:
+            return DynSectionValueType::DYN_VAL_ADDR;
 
         // Flag sets
-#if defined(DT_FLAGS)
         case DT_FLAGS:          return DynSectionValueType::DYN_VAL_FLAGS;
-#endif
-#if defined(DT_FLAGS_1)
         case DT_FLAGS_1:        return DynSectionValueType::DYN_VAL_FLAGS1;
-#endif
-#if defined(DT_FEATURE_1)
         case DT_FEATURE_1:      return DynSectionValueType::DYN_VAL_FEATURES;
-#endif
-#if defined(DT_POSFLAG_1)
         case DT_POSFLAG_1:      return DynSectionValueType::DYN_VAL_POSFLAG1;
-#endif
-
-#if defined(DT_PLTREL)
         case DT_PLTREL:       return DynSectionValueType::DYN_VAL_PLTREL;
-#endif
+        case DT_GNU_FLAGS_1:   return DynSectionValueType::DYN_VAL_GNU_FLAGS_1;
+
+        // Sizes / counts / offsets
+        // They can be handled by default case
+        // ----------------------------------------------------
+        // case DT_RELASZ:
+        // case DT_RELAENT:
+        // case DT_STRSZ:
+        // case DT_SYMENT:
+        // case DT_RELSZ:
+        // case DT_RELENT:
+        // case DT_TEXTREL:
+        // case DT_BIND_NOW:
+        // case DT_INIT_ARRAYSZ:
+        // case DT_FINI_ARRAYSZ:
+        // case DT_VERNEEDNUM:
+        // case DT_VERDEFNUM:
+        // case DT_NULL:
+        // case DT_SYMBOLIC:
+        // case DT_PREINIT_ARRAYSZ:
+        // case DT_RELRSZ:
+        // case DT_RELRENT:
+        // case DT_GNU_PRELINKED:
+        // case DT_GNU_CONFLICTSZ:
+        // case DT_GNU_LIBLISTSZ:
+        // case DT_CHECKSUM:
+        // case DT_PLTPADSZ:
+        // case DT_MOVEENT:
+        // case DT_MOVESZ:
+        // case DT_SYMINSZ:
+        // case DT_SYMINENT: 
+        // case DT_RELACOUNT:
+        // case DT_RELCOUNT:
+        //     return DynSectionValueType::DYN_VAL_NUM;
 
         default:
-            return DynSectionValueType::DYN_VAL_NUM; // sensible default
+            return DynSectionValueType::DYN_VAL_NUM;
     }
 }
 
@@ -1187,6 +846,10 @@ static void parse_dynamic_64(const uint8_t* data, size_t sz, int swap, std::vect
         {
             dt_pltrel_str(e.val, di.val_str);
         }
+        else if (di.val_type == DynSectionValueType::DYN_VAL_GNU_FLAGS_1)
+        {
+            dt_gnu_flags_1_str(e.val, di.val_str);
+        }
         out.push_back(std::move(di));
     }
 }
@@ -1278,6 +941,10 @@ static void parse_dynamic_32(const uint8_t* data, size_t sz, int swap, std::vect
         {
             dt_pltrel_str(e.val, di.val_str);
         }
+        else if (di.val_type == DynSectionValueType::DYN_VAL_GNU_FLAGS_1)
+        {
+            dt_gnu_flags_1_str(e.val, di.val_str);
+        }
         out.push_back(std::move(di));
     }
 }
@@ -1323,103 +990,36 @@ static const char* p_type_str(Elf64_Word p_type, uint16_t e_machine)
 
     switch (p_type)
     {
-#ifdef PT_NULL
         case PT_NULL: return "NULL";
-#endif
-#ifdef PT_LOAD
         case PT_LOAD: return "LOAD";
-#endif
-#ifdef PT_DYNAMIC
         case PT_DYNAMIC: return "DYNAMIC";
-#endif
-#ifdef PT_INTERP
         case PT_INTERP: return "INTERP";
-#endif
-#ifdef PT_NOTE
         case PT_NOTE: return "NOTE";
-#endif
-#ifdef PT_SHLIB
         case PT_SHLIB: return "SHLIB";
-#endif
-#ifdef PT_PHDR
         case PT_PHDR: return "PHDR";
-#endif
-#ifdef PT_TLS
         case PT_TLS: return "TLS";
-#endif
-#ifdef PT_NUM
         case PT_NUM: return "NUM";
-#endif
-#ifdef PT_GNU_EH_FRAME
+        case PT_SUNW_UNWIND: return "SUNW_UNWIND";
         case PT_GNU_EH_FRAME: return "GNU_EH_FRAME";
-#endif
-#ifdef PT_GNU_STACK
         case PT_GNU_STACK: return "GNU_STACK";
-#endif
-#ifdef PT_GNU_RELRO
         case PT_GNU_RELRO: return "GNU_RELRO";
-#endif
-#ifdef PT_GNU_PROPERTY
         case PT_GNU_PROPERTY: return "GNU_PROPERTY";
-#endif
-#ifdef PT_GNU_SFRAME
         case PT_GNU_SFRAME: return "GNU_SFRAME";
-#endif
-#ifdef PT_SUNWBSS
+        case PT_OPENBSD_MUTABLE:   return "OPENBSD_MUTABLE";
+        case PT_OPENBSD_RANDOMIZE: return "OPENBSD_RANDOMIZE";
+        case PT_OPENBSD_WXNEEDED:  return "OPENBSD_WXNEEDED";
+        case PT_OPENBSD_NOBTCFI:   return "OPENBSD_NOBTCFI";
+        case PT_OPENBSD_SYSCALLS:  return "OPENBSD_SYSCALLS";
+        case PT_OPENBSD_BOOTDATA:  return "OPENBSD_BOOTDATA";
         case PT_SUNWBSS: return "SUNWBSS";
-#endif
-#ifdef PT_SUNWSTACK
         case PT_SUNWSTACK: return "SUNWSTACK";
-#endif
-#ifdef PT_HP_TLS
-        case PT_HP_TLS: return "HP_TLS";
-#endif
-#ifdef PT_HP_CORE_NONE
-        case PT_HP_CORE_NONE: return "HP_CORE_NONE";
-#endif
-#ifdef PT_HP_CORE_VERSION
-        case PT_HP_CORE_VERSION: return "HP_CORE_VERSION";
-#endif
-#ifdef PT_HP_CORE_KERNEL
-        case PT_HP_CORE_KERNEL: return "HP_CORE_KERNEL";
-#endif
-#ifdef PT_HP_CORE_COMM
-        case PT_HP_CORE_COMM: return "HP_CORE_COMM";
-#endif
-#ifdef PT_HP_CORE_PROC
-        case PT_HP_CORE_PROC: return "HP_CORE_PROC";
-#endif
-#ifdef PT_HP_CORE_LOADABLE
-        case PT_HP_CORE_LOADABLE: return "HP_CORE_LOADABLE";
-#endif
-#ifdef PT_HP_CORE_STACK
-        case PT_HP_CORE_STACK: return "HP_CORE_STACK";
-#endif
-#ifdef PT_HP_CORE_SHM
-        case PT_HP_CORE_SHM: return "HP_CORE_SHM";
-#endif
-#ifdef PT_HP_CORE_MMF
-        case PT_HP_CORE_MMF: return "HP_CORE_MMF";
-#endif
-#ifdef PT_HP_PARALLEL
-        case PT_HP_PARALLEL: return "HP_PARALLEL";
-#endif
-#ifdef PT_HP_FASTBIND
-        case PT_HP_FASTBIND: return "HP_FASTBIND";
-#endif
-#ifdef PT_HP_OPT_ANNOT
-        case PT_HP_OPT_ANNOT: return "HP_OPT_ANNOT";
-#endif
-#ifdef PT_HP_HSL_ANNOT
-        case PT_HP_HSL_ANNOT: return "HP_HSL_ANNOT";
-#endif
-#ifdef PT_HP_STACK
-        case PT_HP_STACK: return "HP_STACK";
-#endif
-    default:
-        char buf[32];
-        std::snprintf(buf, sizeof(buf), "UNKNOWN 0x%" PRIx32, p_type);
-        return strdup(buf);
+        case PT_SUNWDTRACE: return "SUNWDTRACE";
+        case PT_SUNWCAP: return "SUNWCAP";
+
+        default:
+            static thread_local char buf[32];
+            std::snprintf(buf, sizeof(buf), "UNKNOWN 0x%" PRIx32, p_type);
+            return buf;
     }
 } 
 
@@ -1436,56 +1036,11 @@ static void pflags_str(Elf64_Word f, std::string& out, uint16_t e_machine)
     uint32_t other = (f & ~(PF_R | PF_W | PF_X));
     uint32_t remaining = other;
     
-    if (other)
-    {
-        if (!out.empty()) out += ' ';
-        
-        #ifdef PF_HP_PAGE_SIZE
-            if (other & PF_HP_PAGE_SIZE) {
-                out += "HP_PAGE_SIZE ";
-                remaining &= ~PF_HP_PAGE_SIZE;
-            }
-        #endif
-        #ifdef PF_HP_FAR_SHARED
-            if (other & PF_HP_FAR_SHARED) {
-                out += "HP_FAR_SHARED ";
-                remaining &= ~PF_HP_FAR_SHARED;
-            }
-        #endif
-        #ifdef PF_HP_NEAR_SHARED
-            if (other & PF_HP_NEAR_SHARED) {
-                out += "HP_NEAR_SHARED ";
-                remaining &= ~PF_HP_NEAR_SHARED;
-            }
-        #endif
-        #ifdef PF_HP_CODE
-            if (other & PF_HP_CODE) {
-                out += "HP_CODE ";
-                remaining &= ~PF_HP_CODE;
-            }
-        #endif
-        #ifdef PF_HP_MODIFY
-            if (other & PF_HP_MODIFY) {
-                out += "HP_MODIFY ";
-                remaining &= ~PF_HP_MODIFY;
-            }
-        #endif
-        #ifdef PF_HP_LAZYSWAP
-            if (other & PF_HP_LAZYSWAP) {
-                out += "HP_LAZYSWAP ";
-                remaining &= ~PF_HP_LAZYSWAP;
-            }
-        #endif
-        #ifdef PF_HP_SBP
-            if (other & PF_HP_SBP) {
-                out += "HP_SBP ";
-                remaining &= ~PF_HP_SBP;
-            }
-        #endif
+    if (other) {
+        char buf[32];
+        std::snprintf(buf, sizeof(buf), " | 0x%" PRIx32, other);
+        out += buf;
     }
-
-    // Remove trailing space if any
-    if (!out.empty() && out.back() == ' ') out.pop_back();
 }
 
 // If e_phnum == PN_XNUM (0xffff), true phnum is sh_info of section 0.
@@ -1672,8 +1227,6 @@ static void internal_parse_program_headers(const uint8_t* data, size_t sz, std::
     }
 }
 
-// Implement missing functions here
-
 // -------------------- GNU property note parsing -------------------- //
 
 static inline size_t align_up_sz(size_t x, size_t a) {
@@ -1695,6 +1248,15 @@ static std::string decode_aarch64_feature_1_and(uint32_t mask) {
     if (mask & GNU_PROPERTY_AARCH64_FEATURE_1_BTI) v.push_back("BTI");
     if (mask & GNU_PROPERTY_AARCH64_FEATURE_1_PAC) v.push_back("PAC");
     if (mask & GNU_PROPERTY_AARCH64_FEATURE_1_GCS) v.push_back("GCS");
+
+    uint32_t remaining = mask & ~(GNU_PROPERTY_AARCH64_FEATURE_1_BTI |
+                                     GNU_PROPERTY_AARCH64_FEATURE_1_PAC |
+                                     GNU_PROPERTY_AARCH64_FEATURE_1_GCS);
+    if (remaining) {
+        char buf[32];
+        std::snprintf(buf, sizeof(buf), "0x%" PRIx32, remaining);
+        v.push_back(buf);
+    }
     return join(v);
 }
 
@@ -1704,6 +1266,12 @@ static std::string decode_x86_feature_1_and(uint32_t mask) {
     if (mask & GNU_PROPERTY_X86_FEATURE_1_SHSTK) v.push_back("SHSTK");
     if (mask & GNU_PROPERTY_X86_FEATURE_1_LAM_U48) v.push_back("LAM_U48");
     if (mask & GNU_PROPERTY_X86_FEATURE_1_LAM_U57) v.push_back("LAM_U57");
+
+    uint32_t remaining = mask & ~(GNU_PROPERTY_X86_FEATURE_1_IBT |
+                                     GNU_PROPERTY_X86_FEATURE_1_SHSTK |
+                                     GNU_PROPERTY_X86_FEATURE_1_LAM_U48 |
+                                     GNU_PROPERTY_X86_FEATURE_1_LAM_U57);
+
     return join(v);
 }
 
@@ -1713,6 +1281,12 @@ static std::string decode_x86_isa_1(uint32_t mask) {
     if (mask & GNU_PROPERTY_X86_ISA_1_V2)       v.push_back("V2");
     if (mask & GNU_PROPERTY_X86_ISA_1_V3)       v.push_back("V3");
     if (mask & GNU_PROPERTY_X86_ISA_1_V4)       v.push_back("V4");
+
+    uint32_t remaining = mask & ~(GNU_PROPERTY_X86_ISA_1_BASELINE |
+                                     GNU_PROPERTY_X86_ISA_1_V2 |
+                                     GNU_PROPERTY_X86_ISA_1_V3 |
+                                     GNU_PROPERTY_X86_ISA_1_V4);
+
     return join(v);
 }
 
@@ -1736,6 +1310,32 @@ static std::string decode_x86_compat_isa_1(uint32_t mask) {
     if (mask & GNU_PROPERTY_X86_COMPAT_ISA_1_AVX512VL)  v.push_back("AVX512VL");
     if (mask & GNU_PROPERTY_X86_COMPAT_ISA_1_AVX512DQ)  v.push_back("AVX512DQ");
     if (mask & GNU_PROPERTY_X86_COMPAT_ISA_1_AVX512BW)  v.push_back("AVX512BW");
+
+    uint32_t remaining = mask & ~(GNU_PROPERTY_X86_COMPAT_ISA_1_486 |
+                                     GNU_PROPERTY_X86_COMPAT_ISA_1_586 |
+                                     GNU_PROPERTY_X86_COMPAT_ISA_1_686 |
+                                     GNU_PROPERTY_X86_COMPAT_ISA_1_SSE |
+                                     GNU_PROPERTY_X86_COMPAT_ISA_1_SSE2 |
+                                     GNU_PROPERTY_X86_COMPAT_ISA_1_SSE3 |
+                                     GNU_PROPERTY_X86_COMPAT_ISA_1_SSSE3 |
+                                     GNU_PROPERTY_X86_COMPAT_ISA_1_SSE4_1 |
+                                     GNU_PROPERTY_X86_COMPAT_ISA_1_SSE4_2 |
+                                     GNU_PROPERTY_X86_COMPAT_ISA_1_AVX |
+                                     GNU_PROPERTY_X86_COMPAT_ISA_1_AVX2 |
+                                     GNU_PROPERTY_X86_COMPAT_ISA_1_AVX512F |
+                                     GNU_PROPERTY_X86_COMPAT_ISA_1_AVX512CD |
+                                     GNU_PROPERTY_X86_COMPAT_ISA_1_AVX512ER |
+                                     GNU_PROPERTY_X86_COMPAT_ISA_1_AVX512PF |
+                                     GNU_PROPERTY_X86_COMPAT_ISA_1_AVX512VL |
+                                     GNU_PROPERTY_X86_COMPAT_ISA_1_AVX512DQ |
+                                     GNU_PROPERTY_X86_COMPAT_ISA_1_AVX512BW);
+
+    if (remaining) {
+        char buf[32];
+        std::snprintf(buf, sizeof(buf), "0x%" PRIx32, remaining);
+        v.push_back(buf);
+    }
+
     return join(v);
 }
 
@@ -1753,38 +1353,91 @@ static std::string decode_x86_feature_2_and(uint32_t mask) {
     if (mask & GNU_PROPERTY_X86_FEATURE_2_XSAVEC) v.push_back("XSAVEC");
     if (mask & GNU_PROPERTY_X86_FEATURE_2_TMM) v.push_back("TMM");
     if (mask & GNU_PROPERTY_X86_FEATURE_2_MASK) v.push_back("MASK");
+
+    uint32_t remaining = mask & ~(GNU_PROPERTY_X86_FEATURE_2_X86 |
+                                     GNU_PROPERTY_X86_FEATURE_2_MMX |
+                                     GNU_PROPERTY_X86_FEATURE_2_X87 |
+                                     GNU_PROPERTY_X86_FEATURE_2_XMM |
+                                     GNU_PROPERTY_X86_FEATURE_2_YMM |
+                                     GNU_PROPERTY_X86_FEATURE_2_ZMM |
+                                     GNU_PROPERTY_X86_FEATURE_2_FXSR |
+                                     GNU_PROPERTY_X86_FEATURE_2_XSAVE |
+                                     GNU_PROPERTY_X86_FEATURE_2_XSAVEOPT |
+                                     GNU_PROPERTY_X86_FEATURE_2_XSAVEC |
+                                     GNU_PROPERTY_X86_FEATURE_2_TMM |
+                                     GNU_PROPERTY_X86_FEATURE_2_MASK);
+
+    if (remaining) {
+        char buf[32];
+        std::snprintf(buf, sizeof(buf), "0x%" PRIx32, remaining);
+        v.push_back(buf);
+    }
+
     return join(v);
 }
 
 static std::string decode_x86_compat_2_isa_1(uint32_t mask) {
     std::vector<const char*> v;
     if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_CMOV) v.push_back("CMOV");
-        if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_SSE) v.push_back("SSE");
-        if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_SSE2) v.push_back("SSE2");
-        if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_SSE3) v.push_back("SSE3");
-        if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_SSSE3) v.push_back("SSSE3");
-        if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_SSE4_1) v.push_back("SSE4_1");
-        if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_SSE4_2) v.push_back("SSE4_2");
-        if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX) v.push_back("AVX");
-        if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX2) v.push_back("AVX2");
-        if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_FMA) v.push_back("FMA");
-        if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512F) v.push_back("AVX512F");
-        if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512CD) v.push_back("AVX512CD");
-        if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512ER) v.push_back("AVX512ER");
-        if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512PF) v.push_back("AVX512PF");
-        if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512VL) v.push_back("AVX512VL");
-        if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512DQ) v.push_back("AVX512DQ");
-        if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512BW) v.push_back("AVX512BW");
-        if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512_4FMAPS) v.push_back("AVX512_4FMAPS");
-        if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512_4VNNIW) v.push_back("AVX512_4VNNIW");
-        if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512_BITALG) v.push_back("AVX512_BITALG");
-        if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512_IFMA) v.push_back("AVX512_IFMA");
-        if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512_VBMI) v.push_back("AVX512_VBMI");
-        if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512_VBMI2) v.push_back("AVX512_VBMI2");
-        if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512_VNNI) v.push_back("AVX512_VNNI");
-        if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512_BF16) v.push_back("AVX512_BF16");
-        return join(v);
+    if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_SSE) v.push_back("SSE");
+    if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_SSE2) v.push_back("SSE2");
+    if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_SSE3) v.push_back("SSE3");
+    if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_SSSE3) v.push_back("SSSE3");
+    if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_SSE4_1) v.push_back("SSE4_1");
+    if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_SSE4_2) v.push_back("SSE4_2");
+    if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX) v.push_back("AVX");
+    if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX2) v.push_back("AVX2");
+    if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_FMA) v.push_back("FMA");
+    if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512F) v.push_back("AVX512F");
+    if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512CD) v.push_back("AVX512CD");
+    if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512ER) v.push_back("AVX512ER");
+    if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512PF) v.push_back("AVX512PF");
+    if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512VL) v.push_back("AVX512VL");
+    if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512DQ) v.push_back("AVX512DQ");
+    if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512BW) v.push_back("AVX512BW");
+    if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512_4FMAPS) v.push_back("AVX512_4FMAPS");
+    if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512_4VNNIW) v.push_back("AVX512_4VNNIW");
+    if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512_BITALG) v.push_back("AVX512_BITALG");
+    if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512_IFMA) v.push_back("AVX512_IFMA");
+    if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512_VBMI) v.push_back("AVX512_VBMI");
+    if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512_VBMI2) v.push_back("AVX512_VBMI2");
+    if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512_VNNI) v.push_back("AVX512_VNNI");
+    if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512_BF16) v.push_back("AVX512_BF16");
+
+    uint32_t remaining = mask & ~(GNU_PROPERTY_X86_COMPAT_2_ISA_1_CMOV |
+                                     GNU_PROPERTY_X86_COMPAT_2_ISA_1_SSE |
+                                     GNU_PROPERTY_X86_COMPAT_2_ISA_1_SSE2 |
+                                     GNU_PROPERTY_X86_COMPAT_2_ISA_1_SSE3 |
+                                     GNU_PROPERTY_X86_COMPAT_2_ISA_1_SSSE3 |
+                                     GNU_PROPERTY_X86_COMPAT_2_ISA_1_SSE4_1 |
+                                     GNU_PROPERTY_X86_COMPAT_2_ISA_1_SSE4_2 |
+                                     GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX |
+                                     GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX2 |
+                                     GNU_PROPERTY_X86_COMPAT_2_ISA_1_FMA |
+                                     GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512F |
+                                     GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512CD |
+                                     GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512ER |
+                                     GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512PF |
+                                     GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512VL |
+                                     GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512DQ |
+                                     GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512BW |
+                                     GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512_4FMAPS |
+                                     GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512_4VNNIW |
+                                     GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512_BITALG |
+                                     GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512_IFMA |
+                                     GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512_VBMI |
+                                     GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512_VBMI2 |
+                                     GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512_VNNI |
+                                     GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512_BF16);
+
+    if (remaining) {
+        char buf[32];
+        std::snprintf(buf, sizeof(buf), "0x%" PRIx32, remaining);
+        v.push_back(buf);
     }
+
+    return join(v);
+}
 
 static const char* gnu_property_type_str(uint32_t pr_type, uint16_t e_machine) {
     // Property types are in external defines, no need for #ifdef
@@ -1812,15 +1465,15 @@ static const char* gnu_property_type_str(uint32_t pr_type, uint16_t e_machine) {
     }
     
     switch (pr_type) {
-        case GNU_PROPERTY_STACK_SIZE:                 return "STACK_SIZE";
-        case GNU_PROPERTY_NO_COPY_ON_PROTECTED:       return "NO_COPY_ON_PROTECTED";
+        case GNU_PROPERTY_STACK_SIZE:             return "STACK_SIZE";
+        case GNU_PROPERTY_NO_COPY_ON_PROTECTED:   return "NO_COPY_ON_PROTECTED";
         case GNU_PROPERTY_MEMORY_SEAL:            return "MEMORY_SEALS";
-        case GNU_PROPERTY_1_NEEDED:                   return "1_NEEDED";
+        case GNU_PROPERTY_1_NEEDED:               return "1_NEEDED";
 
         default: {
-            static thread_local char buf[48];
+            char buf[48];
             std::snprintf(buf, sizeof(buf), "UNKNOWN_0x%08x", pr_type);
-            return buf;
+            return strdup(buf);
         }
     }
 }
@@ -1857,45 +1510,55 @@ static void parse_gnu_property_descs(const uint8_t* desc, size_t descsz, int swa
                 pd.is_bit_mask = true;
                 pd.bit_mnemonics.assign(decode_aarch64_feature_1_and(mask));
             }
-            else
+            else if (e_machine == EM_386 || e_machine == EM_X86_64)
             {
                 // x86 and generic types
                 switch (pr_type) {
-                case GNU_PROPERTY_X86_FEATURE_1_AND:
-                    pd.is_bit_mask = true;
-                    pd.bit_mnemonics.assign(decode_x86_feature_1_and(mask));
-                    break;
-                case GNU_PROPERTY_X86_ISA_1_USED:
-                case GNU_PROPERTY_X86_ISA_1_NEEDED:
-                    pd.is_bit_mask = false;
-                    pd.bit_mnemonics.assign(decode_x86_isa_1(mask));
-                    break;
-                case GNU_PROPERTY_X86_COMPAT_ISA_1_USED:
-                case GNU_PROPERTY_X86_COMPAT_ISA_1_NEEDED:
-                    pd.is_bit_mask = true;
-                    pd.bit_mnemonics.assign(decode_x86_compat_isa_1(mask));
-                    break;
-                case GNU_PROPERTY_X86_FEATURE_2_NEEDED:
-                case GNU_PROPERTY_X86_FEATURE_2_USED:
-                    pd.is_bit_mask = true;
-                    pd.bit_mnemonics.assign(decode_x86_feature_2_and(mask));
-                    break;
-                case GNU_PROPERTY_X86_COMPAT_2_ISA_1_NEEDED:
-                case GNU_PROPERTY_X86_COMPAT_2_ISA_1_USED:
-                    pd.is_bit_mask = true;
-                    pd.bit_mnemonics.assign(decode_x86_compat_2_isa_1(mask));
-                    break;
-                case GNU_PROPERTY_1_NEEDED:
-                    pd.is_bit_mask = true;
-                    if(mask == GNU_PROPERTY_1_NEEDED_INDIRECT_EXTERN_ACCESS)
-                        pd.bit_mnemonics.assign("INDIRECT_EXTERN_ACCESS");
-                    else
-                        pd.bit_mnemonics.clear();
-                default:
-                    pd.is_bit_mask = false;
-                    pd.bit_mnemonics.clear();
-                    break;
-                }
+                    case GNU_PROPERTY_X86_FEATURE_1_AND:
+                        pd.is_bit_mask = true;
+                        pd.bit_mnemonics.assign(decode_x86_feature_1_and(mask));
+                        break;
+                    case GNU_PROPERTY_X86_ISA_1_USED:
+                    case GNU_PROPERTY_X86_ISA_1_NEEDED:
+                        pd.is_bit_mask = false;
+                        pd.bit_mnemonics.assign(decode_x86_isa_1(mask));
+                        break;
+                    case GNU_PROPERTY_X86_COMPAT_ISA_1_USED:
+                    case GNU_PROPERTY_X86_COMPAT_ISA_1_NEEDED:
+                        pd.is_bit_mask = true;
+                        pd.bit_mnemonics.assign(decode_x86_compat_isa_1(mask));
+                        break;
+                    case GNU_PROPERTY_X86_FEATURE_2_NEEDED:
+                    case GNU_PROPERTY_X86_FEATURE_2_USED:
+                        pd.is_bit_mask = true;
+                        pd.bit_mnemonics.assign(decode_x86_feature_2_and(mask));
+                        break;
+                    case GNU_PROPERTY_X86_COMPAT_2_ISA_1_NEEDED:
+                    case GNU_PROPERTY_X86_COMPAT_2_ISA_1_USED:
+                        pd.is_bit_mask = true;
+                        pd.bit_mnemonics.assign(decode_x86_compat_2_isa_1(mask));
+                        break;
+                    case GNU_PROPERTY_1_NEEDED:
+                        pd.is_bit_mask = true;
+                        if (mask & GNU_PROPERTY_1_NEEDED_INDIRECT_EXTERN_ACCESS)
+                            pd.bit_mnemonics.assign("INDIRECT_EXTERN_ACCESS");
+                        if (mask & ~GNU_PROPERTY_1_NEEDED_INDIRECT_EXTERN_ACCESS) {
+                            if (!pd.bit_mnemonics.empty())
+                                pd.bit_mnemonics.append(" ");
+                            char buf[32];
+                            std::snprintf(buf, sizeof(buf), "0x%" PRIx32, mask & ~GNU_PROPERTY_1_NEEDED_INDIRECT_EXTERN_ACCESS);
+                            pd.bit_mnemonics.append(buf);
+                        }
+                    default:
+                        pd.is_bit_mask = false;
+                        pd.bit_mnemonics.assign("UNKNOWN_ARCH_SPECIFIC");
+                        break;
+                }   
+            }
+            else
+            {
+                pd.is_bit_mask = false;
+                pd.bit_mnemonics.assign("UNKNOWN_ARCH_SPECIFIC");
             }
         }
         else
@@ -2169,7 +1832,8 @@ NB_MODULE(libdebug_elf_api, m) {
         .value("FLAGS1", DynSectionValueType::DYN_VAL_FLAGS1)
         .value("FEATURES", DynSectionValueType::DYN_VAL_FEATURES)
         .value("POSFLAG1", DynSectionValueType::DYN_VAL_POSFLAG1)
-        .value("PLTREL", DynSectionValueType::DYN_VAL_PLTREL);
+        .value("PLTREL", DynSectionValueType::DYN_VAL_PLTREL)
+        .value("GNU_FLAGS_1", DynSectionValueType::DYN_VAL_GNU_FLAGS_1);
 
     nb::class_<DynamicSectionInfo>(m, "DynamicEntry", "ELF DT_* dynamic entry")
         .def_ro("tag", &DynamicSectionInfo::tag, "Human-readable DT_* name (or 'UNKNOWN')")

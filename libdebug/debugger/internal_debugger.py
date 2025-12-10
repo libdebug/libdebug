@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import functools
+import importlib
 import os
 import signal
 import sys
@@ -20,8 +21,6 @@ from threading import Event, Thread, current_thread
 from typing import TYPE_CHECKING
 
 from psutil import STATUS_ZOMBIE, Error, Process, ZombieProcess, process_iter
-from rich.console import Console
-from rich.table import Column, Table
 
 from libdebug.architectures.breakpoint_validator import validate_hardware_breakpoint
 from libdebug.architectures.syscall_hijacker import SyscallHijacker
@@ -2182,6 +2181,14 @@ class InternalDebugger:
 
     def pprint_binary_report(self: InternalDebugger) -> None:
         """Prints a report of the binary."""
+        if importlib.util.find_spec("rich") is None:
+            raise RuntimeError(
+                "The 'rich' package is required for pprint_binary_report. Install it with 'pip install rich'."
+            )
+
+        from rich.console import Console  # noqa: PLC0415
+        from rich.table import Column, Table  # noqa: PLC0415
+
         console = Console()
 
         table = Table(

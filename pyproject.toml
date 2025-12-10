@@ -47,8 +47,13 @@ dependencies = [
     "pyelftools",
     "prompt-toolkit",
     "requests",
+]
+
+[project.optional-dependencies]
+dev = [
     "rich",
 ]
+
 
 [project.urls]
 homepage = "https://libdebug.org"

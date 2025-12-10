@@ -55,9 +55,7 @@ This property returns an [ELFList](../../from_pydoc/generated/data/elf/elf_list)
 
     On the other hand, the list will also include libraries that were dynamically loaded with `dlopen()` during execution, even if not listed as needed dependencies of the binary. Be sure to access the `libraries` property after the process has loaded all the libraries you are interested in.
 
-<!--- TODO: Change library search to make it by SONAME instead... -->
-
-The [ELFList](../../from_pydoc/generated/data/elf/elf_list) object offers two methods to filter the libraries: `filter()` and the `[]` operator. While the first allows to find elves by name or path, the `[]` operator expects the exact match of the filename, whereas the `filter()` method can handle partial matches.
+The [ELFList](../../from_pydoc/generated/data/elf/elf_list) object offers two methods to filter the libraries: `filter()` and the `[]` operator. While the `filter()` allows to search the ELF with a *partial* or exact match on the filename or path, the `[]` operator only works with an *exact match* of the filename or path.
 
 !!! ABSTRACT "Function Signature"
     ```python
@@ -70,7 +68,7 @@ The [ELFList](../../from_pydoc/generated/data/elf/elf_list) object offers two me
     libc = d.libraries.filter('libc')[0] # (1)!
     ```
 
-    1. Careful! Since the `filter()` method returns all partial matches, this could return `libc.so.6`, `libcurl.so.4`, `libcrypto.so.3`, `libcapstone.so.5`, etc.
+    1. Careful! Since the `filter()` method returns all partial matches, this could return `libc.so.6`, `libcurl.so.4`, `libcrypto.so.3`, `libcapstone.so.5`, to name a few. Beware that the order of libraries in the list is not guaranteed to be consistent across runs, so make sure to check that you got the right library.
 
     Exact matching with `[]`:
     ```python
@@ -234,7 +232,7 @@ As always, the `filter()` method allows partial matching, while the `[]` operato
 The `symbols` property of an [ELF](../../from_pydoc/generated/data/elf/elf) object returns a [SymbolList](../../from_pydoc/generated/data/symbol_list) object containing all symbols defined or exported by the ELF file. A deep dive into symbol resolution and filtering can be found in the [:material-alphabetical: Symbol Resolution](../symbols/) documentation.
 
 ## :material-security: Linux Runtime Mitigations
-The ELF API also includes the parsing of Linux runtime security mitigations supported by the binary. To those who are used to [pwntools](https://github.com/Gallopsled/pwntools), this is similar to the `checksec` functionality. Before seeing how to access mitigation information, let's make a brief introduction to each mitigation htat **libdebug** can parse.
+The ELF API also includes the parsing of Linux runtime security mitigations supported by the binary. To those who are used to [pwntools](https://github.com/Gallopsled/pwntools), this is similar to the `checksec` functionality. Before seeing how to access mitigation information, let's make a brief introduction to each mitigation that **libdebug** can parse.
 
 !!! WARNING "Damn Heuristics"
     Note that many mitigation checks are heuristic and may not be completely reliable. Some detections depend on runtime configuration or hardware, and others can be intentionally concealed.
@@ -269,14 +267,14 @@ Non-eXecutable (NX) is a security feature that marks some segment of a process a
 
 **libdebug** follows the same approach as [pwntools](https://docs.pwntools.com/en/stable/elf/elf.html#pwnlib.elf.elf.ELF.nx) to determine if NX is enabled: if there is a `PT_GNU_STACK` program header with the executable flag (`PF_X`) unset, the kernel will enforce NX, otherwise architecture-specific checks are done.
 
-You can check if the binary uses NX protections using the `nx` attribute of the [LinuxRuntimeMitigations](../../from_pydoc/generated/data/elf/linux_runtime_mitigations) object. Other than a boolean value, this attribute may also be `None`, indicating that the check depends on whether the process has `READ_IMPLIES_EXEC` in its [personality](https://man7.org/linux/man-pages/man2/personality.2.html). In this case, the [Binary Report](#binary-report) will s`Depends` for NX.
+You can check if the binary uses NX protections using the `nx` attribute of the [LinuxRuntimeMitigations](../../from_pydoc/generated/data/elf/linux_runtime_mitigations) object. Other than a boolean value, this attribute may also be `None`, indicating that the check depends on whether the process has `READ_IMPLIES_EXEC` in its [personality](https://man7.org/linux/man-pages/man2/personality.2.html). In this case, the [Binary Report](#binary-report) will print `Depends` for NX.
 
 Read more about NX checks in [pwntools' documentation](https://docs.pwntools.com/en/stable/elf/elf.html#pwnlib.elf.elf.ELF.nx).
 
 ### 🧵 Stack Executable Permissions
 Legacy software sometimes relied on the stack being executable for correct operation. An example of this is the use of runtime [stack-based trampolines](https://en.wikipedia.org/wiki/Trampoline_(computing)#Stack_trampolines) which GCC traditionally used for nested functions. The GNU loader decides the stack page permissions based on the `PT_GNU_STACK` program header flags. If the `PF_X` flag is set, the stack will be mapped as executable, otherwise it will be non-executable. Legacy executables do not include a `PT_GNU_STACK` program header, in which case the default stack permissions depend on the architecture. The GNU loader defines `DEFAULT_STACK_PERMS` for this purpose. The general case (e.g. AArch64) is `RW` \[[Source](https://elixir.bootlin.com/glibc/glibc-2.42/source/sysdeps/generic/stackinfo.h#L27)\], but on i386 and AMD64 (among others) it is `RWX` \[[x86_64 Source](https://elixir.bootlin.com/glibc/glibc-2.42/source/sysdeps/x86_64/stackinfo.h#L37), [x86 Source](https://elixir.bootlin.com/glibc/glibc-2.42/source/sysdeps/i386/stackinfo.h#L31)\].
 
-Independently of page permissions, execution permissions will not be enforced if the NX (Non-eXecutable) feature is not enabled (see [NX (Non-eXecutable) Protection](#nx-non-xecutable-protection)).
+Independently of page permissions, execution permissions will not be enforced if the NX (Non-eXecutable) feature is disabled (see [NX (Non-eXecutable) Protection](#nx-non-xecutable-protection)).
 
 **libdebug** checks if the stack is executable by looking for a `PT_GNU_STACK` program header. If found, it checks if the `PF_X` flag is set. If not found, it falls back to the architecture-specific default stack permissions defined by the GNU loader.
 
@@ -329,12 +327,11 @@ You can check if Indirect Branch Tracking / Branch Target Identification is supp
 Sanitizers are runtime instrumentation tools that help detect various types of bugs and vulnerabilities in programs during development. In this sense, they are not strictly a mitigation, but may be used in CTF challenges to harden binaries.
 
 Common sanitizers include:
-
-For more information on sanitizers in GCC, read [here](https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html).
-
 - Address Sanitizer (ASAN): Detects memory errors such as buffer overflows, use-after-free, and memory leaks.
 - Memory Sanitizer (MSAN): Detects uninitialized memory reads.
 - Undefined Behavior Sanitizer (UBSAN): Detects undefined behavior in C/C++ programs, such as integer overflows, null pointer dereferences, and type mismatches.
+
+For more information on sanitizers in GCC, read [here](https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html).
 
 **libdebug** checks for the presence of sanitizer-specific stings (e.g., `__asan_*`, `__msan_*`, `__ubsan_*`) in the ELF's symbol table to determine if a binary was built with a specific sanitizer.
 

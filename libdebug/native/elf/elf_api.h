@@ -15,7 +15,8 @@
 #include <vector>
 #include <functional>
 #include <algorithm>
-#include <elf.h>
+
+#include "external_defines.h"
 
 #include "../utils/binary_utils.h"
 
@@ -55,7 +56,8 @@ enum class DynSectionValueType {
     DYN_VAL_FLAGS1,
     DYN_VAL_FEATURES,
     DYN_VAL_POSFLAG1,
-    DYN_VAL_PLTREL
+    DYN_VAL_PLTREL,
+    DYN_VAL_GNU_FLAGS_1
 };
 
 struct RawDynEnt {
