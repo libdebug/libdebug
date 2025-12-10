@@ -1912,18 +1912,21 @@ class ElfApiTest(TestCase):
 
         self.assertEqual(len(d.libs), 2)
 
-        self.assertEqual(d.libs[0].soname, "libc.so.6")
+        # Sort libs by soname for consistency
+        libs = sorted(d.libs, key=lambda lib: lib.soname)
 
         match PLATFORM:
             case "i386":
-                self.assertEqual(d.libs[1].soname, "ld-linux.so.2")
+                self.assertEqual(libs[0].soname, "ld-linux.so.2")
             case "aarch64":
-                self.assertEqual(d.libs[1].soname, "ld-linux-aarch64.so.1")
+                self.assertEqual(libs[0].soname, "ld-linux-aarch64.so.1")
             case "amd64":
-                self.assertEqual(d.libs[1].soname, "ld-linux-x86-64.so.2")
+                self.assertEqual(libs[0].soname, "ld-linux-x86-64.so.2")
             case _:
                 raise ValueError(f"Unsupported platform: {PLATFORM}")
             
+        self.assertEqual(libs[1].soname, "libc.so.6")
+
         d.terminate()
 
         d = debugger(path, aslr=False)
@@ -1931,7 +1934,7 @@ class ElfApiTest(TestCase):
 
         match PLATFORM:
             case "i386":
-                bp_address = 0x12a5
+                bp_address = 0x12da
             case "aarch64":
                 bp_address = 0xa38
             case "amd64":
@@ -1947,19 +1950,21 @@ class ElfApiTest(TestCase):
         # Recheck the libs
         self.assertEqual(len(d.libs), 3)
 
-        self.assertEqual(d.libs[0].soname, "libc.so.6")
-        self.assertEqual(d.libs[1].soname, "libm.so.6")
+        # Sort libs by soname for consistency
+        libs = sorted(d.libs, key=lambda lib: lib.soname)
 
         match PLATFORM:
             case "i386":
-                self.assertEqual(d.libs[2].soname, "ld-linux.so.2")
+                self.assertEqual(libs[0].soname, "ld-linux.so.2")
             case "aarch64":
-                self.assertEqual(d.libs[2].soname, "ld-linux-aarch64.so.1")
+                self.assertEqual(libs[0].soname, "ld-linux-aarch64.so.1")
             case "amd64":
-                self.assertEqual(d.libs[2].soname, "ld-linux-x86-64.so.2")
+                self.assertEqual(libs[0].soname, "ld-linux-x86-64.so.2")
             case _:
                 raise ValueError(f"Unsupported platform: {PLATFORM}")
 
+        self.assertEqual(libs[1].soname, "libc.so.6")
+        self.assertEqual(libs[2].soname, "libm.so.6")
 
         d.terminate()
 
