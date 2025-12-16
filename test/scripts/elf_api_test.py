@@ -1934,7 +1934,7 @@ class ElfApiTest(TestCase):
 
         match PLATFORM:
             case "i386":
-                bp_address = 0x12da
+                bp_address = 0x74e
             case "aarch64":
                 bp_address = 0xa38
             case "amd64":
