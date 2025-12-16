@@ -333,12 +333,12 @@ class ELF:
         table = Table(title=f"Sections in {self.path}")
 
         table.add_column("Name", style="cyan", no_wrap=True)
-        table.add_column("Type", style="magenta")
-        table.add_column("Flags", style="green")
-        table.add_column("Address", style="yellow")
-        table.add_column("Offset", style="blue")
-        table.add_column("Size", style="red")
-        table.add_column("Align", style="white")
+        table.add_column("Type", style="magenta", justify="right")
+        table.add_column("Flags", style="green", justify="right")
+        table.add_column("Address", style="yellow", justify="right")
+        table.add_column("Offset", style="blue", justify="right")
+        table.add_column("Size", style="red", justify="right")
+        table.add_column("Align", style="white", justify="right")
 
         for section in self.sections:
             table.add_row(
@@ -367,7 +367,7 @@ class ELF:
         table = Table(title=f"Dynamic Sections in {self.path}")
 
         table.add_column("Tag", style="cyan", no_wrap=True)
-        table.add_column("Value", style="magenta")
+        table.add_column("Value", style="magenta", justify="right")
 
         for dyn_section in self.dynamic_sections:
             if dyn_section.is_value_address and isinstance(dyn_section.value, int):
@@ -397,13 +397,13 @@ class ELF:
         table = Table(title=f"Program Headers in {self.path}")
 
         table.add_column("Type", style="cyan", no_wrap=True)
-        table.add_column("Offset", style="magenta")
-        table.add_column("Vaddr", style="green")
-        table.add_column("Paddr", style="yellow")
-        table.add_column("Filesz", style="blue")
-        table.add_column("Memsz", style="red")
-        table.add_column("Flags", style="white")
-        table.add_column("Align", style="white")
+        table.add_column("Offset", style="magenta", justify="right")
+        table.add_column("Vaddr", style="green", justify="right")
+        table.add_column("Paddr", style="yellow", justify="right")
+        table.add_column("Filesz", style="blue", justify="right")
+        table.add_column("Memsz", style="red", justify="right")
+        table.add_column("Flags", style="white", justify="right")
+        table.add_column("Align", style="white", justify="right")
 
         for ph in self.program_headers:
             table.add_row(
@@ -433,7 +433,7 @@ class ELF:
         table = Table(title=f"GNU Properties in {self.path}")
 
         table.add_column("Type", style="cyan", no_wrap=True)
-        table.add_column("Data", style="magenta")
+        table.add_column("Data", style="magenta", justify="right")
 
         for prop in self.gnu_properties:
             if isinstance(prop.value, int):
