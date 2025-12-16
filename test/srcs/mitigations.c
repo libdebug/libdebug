@@ -52,7 +52,7 @@
 // │ └── 🏰 FORTIFY_SOURCE: Disabled       │
 // ╰───────────────────────────────────────╯
 //
-// gcc -O0 -U_FORTIFY_SOURCE=0 -no-pie -z norelro -fno-stack-protector -Wl,-z,execstack -fcf-protection=none -o ../binaries/amd64/mitigationsv3 mitigations.c
+// gcc -O0 -D_FORTIFY_SOURCE=0 -no-pie -z norelro -fno-stack-protector -Wl,-z,execstack -fcf-protection=none -o ../binaries/amd64/mitigationsv3 mitigations.c
 // ---------
 // v4
 // ╭──────────── Mitigations ────────────╮
@@ -177,11 +177,12 @@
 // │ └── 🏰 FORTIFY_SOURCE: Disabled       │
 // ╰───────────────────────────────────────╯
 // Natively compiled on an ARM VM
-// gcc -O2 -fstack-protector -fPIE -pie -Wl,-z,relro -march=armv8.5-a -mbranch-protection=standard \
+/* gcc -O2 -fstack-protector -fPIE -pie -Wl,-z,relro -march=armv8.5-a -mbranch-protection=standard \
 -B/opt/glibc-pacbti/lib \
 -L/opt/glibc-pacbti/lib -Wl,--rpath=/opt/glibc-pacbti/lib \
 -Wl,--dynamic-linker=/opt/glibc-pacbti/lib/ld-linux-aarch64.so.1 \
 -o mitigationsv3 mitigations.c
+*/
 // --------- //
 // v4
 // ╭──────────── Mitigations ──────────────╮
@@ -197,9 +198,11 @@
 // │ │   └── ↳  🔐 PAC: Disabled          │
 // │ └── 🏰 FORTIFY_SOURCE: Disabled       │
 // ╰───────────────────────────────────────╯
-// aarch64-linux-gnu-gcc -O0 -no-pie -z norelro \
+/*
+aarch64-linux-gnu-gcc -O0 -no-pie -z norelro \
  -fno-stack-protector -Wl,-z,execstack \
   -o ../binaries/aarch64/mitigationsv4 mitigations.c
+*/
 // --------------------------------------------------------- //
 
 int called_function(int x) 
