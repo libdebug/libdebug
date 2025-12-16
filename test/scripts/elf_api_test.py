@@ -1910,7 +1910,7 @@ class ElfApiTest(TestCase):
         d = debugger(path, aslr=False)
         d.run()
 
-        self.assertEqual(len(d.libs), 2)
+        self.assertEqual(len(d.libs), 2 if PLATFORM != "i386" else 3) # i386 has libdl.so.2 to do dlopen
 
         # Sort libs by soname for consistency
         libs = sorted(d.libs, key=lambda lib: lib.soname)
@@ -1948,7 +1948,7 @@ class ElfApiTest(TestCase):
         self.assertEqual(bp.hit_on(d), True)
 
         # Recheck the libs
-        self.assertEqual(len(d.libs), 3)
+        self.assertEqual(len(d.libs), 3 if PLATFORM != "i386" else 4) # i386 has libdl.so.2 to do dlopen
 
         # Sort libs by soname for consistency
         libs = sorted(d.libs, key=lambda lib: lib.soname)
@@ -1956,15 +1956,19 @@ class ElfApiTest(TestCase):
         match PLATFORM:
             case "i386":
                 self.assertEqual(libs[0].soname, "ld-linux.so.2")
+                self.assertEqual(libs[1].soname, "libc.so.6")
+                self.assertEqual(libs[2].soname, "libdl.so.2")
+                self.assertEqual(libs[3].soname, "libm.so.6")
             case "aarch64":
                 self.assertEqual(libs[0].soname, "ld-linux-aarch64.so.1")
+                self.assertEqual(libs[1].soname, "libc.so.6")
+                self.assertEqual(libs[2].soname, "libm.so.6")
             case "amd64":
                 self.assertEqual(libs[0].soname, "ld-linux-x86-64.so.2")
+                self.assertEqual(libs[1].soname, "libc.so.6")
+                self.assertEqual(libs[2].soname, "libm.so.6")
             case _:
                 raise ValueError(f"Unsupported platform: {PLATFORM}")
-
-        self.assertEqual(libs[1].soname, "libc.so.6")
-        self.assertEqual(libs[2].soname, "libm.so.6")
 
         d.terminate()
 
