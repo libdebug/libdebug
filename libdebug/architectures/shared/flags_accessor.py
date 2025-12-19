@@ -61,12 +61,14 @@ class BitfieldRegisterAccessor:
     def _read_raw(self: BitfieldRegisterAccessor) -> int:
         registers = self._registers
         registers._internal_debugger._ensure_process_stopped_regs()
-        return int(getattr(registers.register_file, self._register_name)) & self._bit_mask
+        return getattr(registers.register_file, self._register_name) & self._bit_mask
 
     def _write_raw(self: BitfieldRegisterAccessor, value: int) -> None:
+        if not isinstance(value, int) or (value & ~self._bit_mask):
+            raise ValueError(f"Value {value} does not fit in the bitfield mask {self._bit_mask:#x}")
         registers = self._registers
         registers._internal_debugger._ensure_process_stopped_regs()
-        setattr(registers.register_file, self._register_name, int(value) & self._bit_mask)
+        setattr(registers.register_file, self._register_name, value & self._bit_mask)
 
     @property
     def value(self: BitfieldRegisterAccessor) -> int:
@@ -93,23 +95,34 @@ class BitfieldRegisterAccessor:
         return ", ".join(entries)
 
 
-def _build_bitfield_property(bit: int, width: int = 1) -> property:
-    mask = (1 << width) - 1
+def _build_bitfield_property_by_name(field_name: str) -> property:
+    """Build a property that looks up bit position and width from BIT_FIELDS at runtime."""
 
     def getter(self: BitfieldRegisterAccessor) -> int:
-        return self._read_raw() >> bit & mask
+        # Look up the field metadata from BIT_FIELDS
+        for name, bit, width in self.BIT_FIELDS:
+            if name == field_name:
+                mask = (1 << width) - 1
+                return self._read_raw() >> bit & mask
+        raise AttributeError(f"Field {field_name} not found in BIT_FIELDS")
 
     def setter(self: BitfieldRegisterAccessor, value: int | bool) -> None:
-        value_int = (1 if value else 0) if isinstance(value, bool) else int(value)
-        if value_int < 0 or value_int > mask:
-            raise ValueError(f"Value {value_int} does not fit in a {width}-bit flag")
+        # Look up the field metadata from BIT_FIELDS
+        for name, bit, width in self.BIT_FIELDS:
+            if name == field_name:
+                mask = (1 << width) - 1
+                value_int = (1 if value else 0) if isinstance(value, bool) else int(value)
+                if value_int < 0 or value_int > mask:
+                    raise ValueError(f"Value {value_int} does not fit in a {width}-bit flag")
 
-        raw_value = self._read_raw()
-        raw_value &= ~(mask << bit)
-        raw_value |= (value_int & mask) << bit
-        self._write_raw(raw_value)
+                raw_value = self._read_raw()
+                raw_value &= ~(mask << bit)
+                raw_value |= (value_int & mask) << bit
+                self._write_raw(raw_value)
+                return
+        raise AttributeError(f"Field {field_name} not found in BIT_FIELDS")
 
-    return property(getter, setter, None, f"bitfield_{bit}")
+    return property(getter, setter, None, f"bitfield_{field_name}")
 
 
 def _build_register_accessor_property(
@@ -125,7 +138,16 @@ def _build_register_accessor_property(
 
     def setter(registers: Registers, value: int | BitfieldRegisterAccessor | bool) -> None:
         registers._internal_debugger._ensure_process_stopped_regs()
-        raw_value = int(value)
+        if isinstance(value, BitfieldRegisterAccessor):
+            raw_value = int(value)
+        elif isinstance(value, bool):
+            raw_value = 1 if value else 0
+        elif isinstance(value, int):
+            if value < 0 or value > mask:
+                raise ValueError(f"Value {value} does not fit in the register mask {mask:#x}")
+            raw_value = value
+        else:
+            raise TypeError(f"Cannot set register {register_name} with value of type {type(value)}")
         setattr(registers.register_file, register_name, raw_value & mask)
 
     return property(getter, setter, None, register_name)
@@ -157,23 +179,23 @@ class X86FlagsAccessor(BitfieldRegisterAccessor):
         ("ID", 21, 1),
     )
 
-    CF = _build_bitfield_property(0)
-    PF = _build_bitfield_property(2)
-    AF = _build_bitfield_property(4)
-    ZF = _build_bitfield_property(6)
-    SF = _build_bitfield_property(7)
-    TF = _build_bitfield_property(8)
-    IF = _build_bitfield_property(9)
-    DF = _build_bitfield_property(10)
-    OF = _build_bitfield_property(11)
-    IOPL = _build_bitfield_property(12, width=2)
-    NT = _build_bitfield_property(14)
-    RF = _build_bitfield_property(16)
-    VM = _build_bitfield_property(17)
-    AC = _build_bitfield_property(18)
-    VIF = _build_bitfield_property(19)
-    VIP = _build_bitfield_property(20)
-    ID = _build_bitfield_property(21)
+    CF = _build_bitfield_property_by_name("CF")
+    PF = _build_bitfield_property_by_name("PF")
+    AF = _build_bitfield_property_by_name("AF")
+    ZF = _build_bitfield_property_by_name("ZF")
+    SF = _build_bitfield_property_by_name("SF")
+    TF = _build_bitfield_property_by_name("TF")
+    IF = _build_bitfield_property_by_name("IF")
+    DF = _build_bitfield_property_by_name("DF")
+    OF = _build_bitfield_property_by_name("OF")
+    IOPL = _build_bitfield_property_by_name("IOPL")
+    NT = _build_bitfield_property_by_name("NT")
+    RF = _build_bitfield_property_by_name("RF")
+    VM = _build_bitfield_property_by_name("VM")
+    AC = _build_bitfield_property_by_name("AC")
+    VIF = _build_bitfield_property_by_name("VIF")
+    VIP = _build_bitfield_property_by_name("VIP")
+    ID = _build_bitfield_property_by_name("ID")
 
 
 class ArmPstateAccessor(BitfieldRegisterAccessor):
@@ -202,23 +224,23 @@ class ArmPstateAccessor(BitfieldRegisterAccessor):
         ("M", 0, 5),
     )
 
-    N = _build_bitfield_property(31)
-    Z = _build_bitfield_property(30)
-    C = _build_bitfield_property(29)
-    V = _build_bitfield_property(28)
-    TCO = _build_bitfield_property(25)
-    DIT = _build_bitfield_property(24)
-    UAO = _build_bitfield_property(23)
-    PAN = _build_bitfield_property(22)
-    SS = _build_bitfield_property(21)
-    IL = _build_bitfield_property(20)
-    SSBS = _build_bitfield_property(12)
-    BTYPE = _build_bitfield_property(10, width=2)
-    D = _build_bitfield_property(9)
-    A = _build_bitfield_property(8)
-    I = _build_bitfield_property(7)  # noqa: E741 - architectural name
-    F = _build_bitfield_property(6)
-    M = _build_bitfield_property(0, width=5)
+    N = _build_bitfield_property_by_name("N")
+    Z = _build_bitfield_property_by_name("Z")
+    C = _build_bitfield_property_by_name("C")
+    V = _build_bitfield_property_by_name("V")
+    TCO = _build_bitfield_property_by_name("TCO")
+    DIT = _build_bitfield_property_by_name("DIT")
+    UAO = _build_bitfield_property_by_name("UAO")
+    PAN = _build_bitfield_property_by_name("PAN")
+    SS = _build_bitfield_property_by_name("SS")
+    IL = _build_bitfield_property_by_name("IL")
+    SSBS = _build_bitfield_property_by_name("SSBS")
+    BTYPE = _build_bitfield_property_by_name("BTYPE")
+    D = _build_bitfield_property_by_name("D")
+    A = _build_bitfield_property_by_name("A")
+    I = _build_bitfield_property_by_name("I")  # noqa: E741 - architectural name
+    F = _build_bitfield_property_by_name("F")
+    M = _build_bitfield_property_by_name("M")
 
 
 def build_x86_flags_property(register_name: str, bit_width: int) -> property:

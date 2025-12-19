@@ -686,7 +686,7 @@ class RegisterTest(TestCase):
         d.regs.eflags = base_flags
 
         flags = d.regs.eflags
-        self.assertEqual(int(flags), base_flags)
+        self.assertEqual(flags, base_flags)
         self.assertEqual(flags.CF, 1)
         self.assertEqual(flags.PF, 1)
         self.assertEqual(flags.IOPL, 0b10)
