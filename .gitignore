@@ -146,3 +146,6 @@ libdebug/utils/syscalls/
 
 # Native stubs
 *.pyi
+
+# GDB
+.gdb_history
