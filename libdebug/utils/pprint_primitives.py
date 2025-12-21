@@ -83,15 +83,15 @@ def _pprint_reg(registers: Registers, maps: MemoryMapList, register: str) -> Non
     style = ""
 
     lookup_value: int | str | None
-    if isinstance(attr, (int, str)):
+    if isinstance(attr, int | str):
         lookup_value = attr
     else:
         try:
             lookup_value = int(attr)
-        except (TypeError, ValueError):
-            lookup_value = None
+        except (TypeError, ValueError) as e:
+            raise TypeError(f"Cannot convert register {register} value to int for pprint") from e
 
-    if isinstance(lookup_value, (int, str)) and (maps := maps.filter(lookup_value)):
+    if isinstance(lookup_value, int | str) and (maps := maps.filter(lookup_value)):
         permissions = maps[0].permissions
         if "rwx" in permissions:
             color = ANSIColors.RED
@@ -103,15 +103,13 @@ def _pprint_reg(registers: Registers, maps: MemoryMapList, register: str) -> Non
         elif "r" in permissions:
             color = ANSIColors.GREEN
 
-    if lookup_value is None:
-        formatted_attr = str(attr)
-    else:
-        formatted_attr = f"{lookup_value:#x}"
-        if color or style:
-            formatted_attr = f"{color}{style}{formatted_attr}{ANSIColors.RESET}"
+
+    formatted_attr = f"{lookup_value:#x}"
+    if color or style:
+        formatted_attr = f"{color}{style}{formatted_attr}{ANSIColors.RESET}"
 
     if isinstance(attr, BitfieldRegisterAccessor):
-        summary = attr.describe()
+        summary = attr._describe()
         if summary:
             formatted_attr = f"{formatted_attr} ({summary})"
 

@@ -19,7 +19,7 @@ class BitfieldRegisterAccessor:
 
     __slots__ = ("_bit_mask", "_register_name", "_registers")
     _repr_name = "Bitfield"
-    BIT_FIELDS: ClassVar[tuple[tuple[str, int, int], ...]] = ()
+    BIT_FIELDS: ClassVar[dict[str, tuple[int, int]]] = {}
 
     def __init__(self: BitfieldRegisterAccessor, registers: Registers, register_name: str, bit_width: int) -> None:
         """Bind the accessor to the provided register set."""
@@ -29,7 +29,7 @@ class BitfieldRegisterAccessor:
 
     def __repr__(self: BitfieldRegisterAccessor) -> str:
         """Return a detailed representation of the bitfield."""
-        summary = self.describe()
+        summary = self._describe()
         if summary:
             return f"{self._repr_name}({int(self):#x}; {summary})"
         return f"{self._repr_name}({int(self):#x})"
@@ -78,13 +78,15 @@ class BitfieldRegisterAccessor:
     @value.setter
     def value(self: BitfieldRegisterAccessor, new_value: int) -> None:
         """Overwrite the backing register with a raw value."""
+        if not isinstance(new_value, int):
+            raise TypeError(f"Cannot set bitfield value with value of type {type(new_value)}")
         self._write_raw(new_value)
 
-    def describe(self: BitfieldRegisterAccessor) -> str:
+    def _describe(self: BitfieldRegisterAccessor) -> str:
         """Return a compact textual description of non-zero bitfields."""
         entries: list[str] = []
         raw_value = self._read_raw()
-        for name, bit, width in self.BIT_FIELDS:
+        for name, (bit, width) in self.BIT_FIELDS.items():
             mask = (1 << width) - 1
             value = (raw_value >> bit) & mask
             if width == 1:
@@ -100,27 +102,27 @@ def _build_bitfield_property_by_name(field_name: str) -> property:
 
     def getter(self: BitfieldRegisterAccessor) -> int:
         # Look up the field metadata from BIT_FIELDS
-        for name, bit, width in self.BIT_FIELDS:
-            if name == field_name:
-                mask = (1 << width) - 1
-                return self._read_raw() >> bit & mask
-        raise AttributeError(f"Field {field_name} not found in BIT_FIELDS")
+        if field_name not in self.BIT_FIELDS:
+            raise AttributeError(f"Field {field_name} not found in BIT_FIELDS")
+        bit, width = self.BIT_FIELDS[field_name]
+        mask = (1 << width) - 1
+        return self._read_raw() >> bit & mask
 
     def setter(self: BitfieldRegisterAccessor, value: int | bool) -> None:
+        if not isinstance(value, int | bool):
+            raise TypeError(f"Cannot set field {field_name} with value of type {type(value)}")
         # Look up the field metadata from BIT_FIELDS
-        for name, bit, width in self.BIT_FIELDS:
-            if name == field_name:
-                mask = (1 << width) - 1
-                value_int = (1 if value else 0) if isinstance(value, bool) else int(value)
-                if value_int < 0 or value_int > mask:
-                    raise ValueError(f"Value {value_int} does not fit in a {width}-bit flag")
-
-                raw_value = self._read_raw()
-                raw_value &= ~(mask << bit)
-                raw_value |= (value_int & mask) << bit
-                self._write_raw(raw_value)
-                return
-        raise AttributeError(f"Field {field_name} not found in BIT_FIELDS")
+        if field_name not in self.BIT_FIELDS:
+            raise AttributeError(f"Field {field_name} not found in BIT_FIELDS")
+        bit, width = self.BIT_FIELDS[field_name]
+        mask = (1 << width) - 1
+        value_int = int(value)
+        if not 0 <= value_int <= mask:
+            raise ValueError(f"Value {value_int} does not fit in a {width}-bit flag")
+        raw_value = self._read_raw()
+        raw_value &= ~(mask << bit)
+        raw_value |= (value_int & mask) << bit
+        self._write_raw(raw_value)
 
     return property(getter, setter, None, f"bitfield_{field_name}")
 
@@ -138,16 +140,14 @@ def _build_register_accessor_property(
 
     def setter(registers: Registers, value: int | BitfieldRegisterAccessor | bool) -> None:
         registers._internal_debugger._ensure_process_stopped_regs()
-        if isinstance(value, BitfieldRegisterAccessor):
+        if isinstance(value, BitfieldRegisterAccessor | bool):
             raw_value = int(value)
-        elif isinstance(value, bool):
-            raw_value = 1 if value else 0
         elif isinstance(value, int):
-            if value < 0 or value > mask:
-                raise ValueError(f"Value {value} does not fit in the register mask {mask:#x}")
             raw_value = value
         else:
             raise TypeError(f"Cannot set register {register_name} with value of type {type(value)}")
+        if not 0 <= raw_value <= mask:
+            raise ValueError(f"Value {value} does not fit in the register mask {mask:#x}")
         setattr(registers.register_file, register_name, raw_value & mask)
 
     return property(getter, setter, None, register_name)
@@ -159,25 +159,25 @@ class X86FlagsAccessor(BitfieldRegisterAccessor):
     __slots__ = ()
     _repr_name = "Flags"
 
-    BIT_FIELDS: ClassVar[tuple[tuple[str, int, int], ...]] = (
-        ("CF", 0, 1),
-        ("PF", 2, 1),
-        ("AF", 4, 1),
-        ("ZF", 6, 1),
-        ("SF", 7, 1),
-        ("TF", 8, 1),
-        ("IF", 9, 1),
-        ("DF", 10, 1),
-        ("OF", 11, 1),
-        ("IOPL", 12, 2),
-        ("NT", 14, 1),
-        ("RF", 16, 1),
-        ("VM", 17, 1),
-        ("AC", 18, 1),
-        ("VIF", 19, 1),
-        ("VIP", 20, 1),
-        ("ID", 21, 1),
-    )
+    BIT_FIELDS: ClassVar[dict[str, tuple[int, int]]] = {
+        "CF": (0, 1),
+        "PF": (2, 1),
+        "AF": (4, 1),
+        "ZF": (6, 1),
+        "SF": (7, 1),
+        "TF": (8, 1),
+        "IF": (9, 1),
+        "DF": (10, 1),
+        "OF": (11, 1),
+        "IOPL": (12, 2),
+        "NT": (14, 1),
+        "RF": (16, 1),
+        "VM": (17, 1),
+        "AC": (18, 1),
+        "VIF": (19, 1),
+        "VIP": (20, 1),
+        "ID": (21, 1),
+    }
 
     CF = _build_bitfield_property_by_name("CF")
     PF = _build_bitfield_property_by_name("PF")
@@ -204,25 +204,25 @@ class ArmPstateAccessor(BitfieldRegisterAccessor):
     __slots__ = ()
     _repr_name = "PState"
 
-    BIT_FIELDS: ClassVar[tuple[tuple[str, int, int], ...]] = (
-        ("N", 31, 1),
-        ("Z", 30, 1),
-        ("C", 29, 1),
-        ("V", 28, 1),
-        ("TCO", 25, 1),
-        ("DIT", 24, 1),
-        ("UAO", 23, 1),
-        ("PAN", 22, 1),
-        ("SS", 21, 1),
-        ("IL", 20, 1),
-        ("SSBS", 12, 1),
-        ("BTYPE", 10, 2),
-        ("D", 9, 1),
-        ("A", 8, 1),
-        ("I", 7, 1),
-        ("F", 6, 1),
-        ("M", 0, 5),
-    )
+    BIT_FIELDS: ClassVar[dict[str, tuple[int, int]]] = {
+        "N": (31, 1),
+        "Z": (30, 1),
+        "C": (29, 1),
+        "V": (28, 1),
+        "TCO": (25, 1),
+        "DIT": (24, 1),
+        "UAO": (23, 1),
+        "PAN": (22, 1),
+        "SS": (21, 1),
+        "IL": (20, 1),
+        "SSBS": (12, 1),
+        "BTYPE": (10, 2),
+        "D": (9, 1),
+        "A": (8, 1),
+        "I": (7, 1),
+        "F": (6, 1),
+        "M": (0, 5),
+    }
 
     N = _build_bitfield_property_by_name("N")
     Z = _build_bitfield_property_by_name("Z")
