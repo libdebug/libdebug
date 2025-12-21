@@ -56,7 +56,7 @@ class BitfieldRegisterAccessor:
             return int(self) == int(other)
         if isinstance(other, int):
             return int(self) == other
-        raise NotImplementedError(f"Cannot compare {type(self)} against {type(other)}")
+        raise NotImplemented # noqa: F901
 
     def _read_raw(self: BitfieldRegisterAccessor) -> int:
         registers = self._registers
@@ -64,7 +64,9 @@ class BitfieldRegisterAccessor:
         return getattr(registers.register_file, self._register_name) & self._bit_mask
 
     def _write_raw(self: BitfieldRegisterAccessor, value: int) -> None:
-        if not isinstance(value, int) or (value & ~self._bit_mask):
+        if not isinstance(value, int):
+            raise TypeError(f"Cannot write bitfield with value of type {type(value)}")
+        if value & ~self._bit_mask:
             raise ValueError(f"Value {value} does not fit in the bitfield mask {self._bit_mask:#x}")
         registers = self._registers
         registers._internal_debugger._ensure_process_stopped_regs()
@@ -106,7 +108,7 @@ def _build_bitfield_property_by_name(field_name: str) -> property:
             raise AttributeError(f"Field {field_name} not found in BIT_FIELDS")
         bit, width = self.BIT_FIELDS[field_name]
         mask = (1 << width) - 1
-        return self._read_raw() >> bit & mask
+        return (self._read_raw() >> bit) & mask
 
     def setter(self: BitfieldRegisterAccessor, value: int | bool) -> None:
         if not isinstance(value, int | bool):
@@ -147,7 +149,7 @@ def _build_register_accessor_property(
         else:
             raise TypeError(f"Cannot set register {register_name} with value of type {type(value)}")
         if not 0 <= raw_value <= mask:
-            raise ValueError(f"Value {value} does not fit in the register mask {mask:#x}")
+            raise ValueError(f"Value {raw_value} does not fit in the register mask {mask:#x}")
         setattr(registers.register_file, register_name, raw_value & mask)
 
     return property(getter, setter, None, register_name)
