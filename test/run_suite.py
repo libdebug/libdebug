@@ -30,10 +30,6 @@ def fast_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.DebuggerArgumentTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.ElfApiTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.ELFUtilsUnitTest))
-<<<<<<< HEAD
->>>>>>> refs/rewritten/origin
-=======
->>>>>>> 0536ed99 (Merge pt 2)
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.FindPointersTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.FinishTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.FloatingPointTest))
