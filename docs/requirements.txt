@@ -1,0 +1,9 @@
+Markdown
+mike
+mkdocs
+mkdocs-autorefs
+mkdocs-get-deps
+mkdocs-material
+mkdocs-material-extensions
+mkdocstrings
+mkdocstrings-python
