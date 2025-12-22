@@ -31,7 +31,9 @@ d.regs.pstate.BTYPE = 0b10
 d.regs.pstate.D = False
 ```
 
-When assigned a plain integer, these registers behave like before; when accessed through attributes they transparently map to the documented flag bits (CF/ZF/… for x86, N/Z/C/V/BTYPE/… for Arm). To avoid confusion, we list available registers and their types below. Related registers are available to access as well.
+When assigned a plain integer, these registers behave like a regular register assignment. When the mnemonic for a specific flag bit is accessed, the assignment transparently maps to the documented flag bits within the register (e.g., `CF`/`ZF`/... for x86, and `N`/`Z`/`C`/`V`/`BTYPE/... for ARM).
+
+To avoid confusion, we list available registers and their types below.
 
 === "AMD64"
     | Register  | Type          | Related       | Description                                       |
@@ -55,7 +57,7 @@ When assigned a plain integer, these registers behave like before; when accessed
     | R15       | Integer        | R15D, R15W, R15B| General-purpose register                          |
     | RIP       | Integer        | EIP             | Instruction pointer                               |
     | **Flags** |
-    | EFLAGS    | Integer        |           | Flags register (bitfield helper: `CF`, `ZF`, `IOPL`, …) |
+    | EFLAGS    | Integer        | Bit Accessors   | Flags register (bitfield helper: `CF`, `ZF`, `IOPL`, …) |
     | **Segment Registers** |
     | CS        | Integer        |                 | Code segment                                      |
     | DS        | Integer        |                 | Data segment                                      |
@@ -131,7 +133,7 @@ When assigned a plain integer, these registers behave like before; when accessed
     | ESP       | Integer        | SP             | Stack pointer                                     |
     | EIP       | Integer        | IP             | Instruction pointer                               |
     | **Flags** |
-    | EFLAGS    | Integer        |                | Flags register (bitfield helper: `CF`, `ZF`, `IOPL`, …) |
+    | EFLAGS    | Integer        | Bit Accessors  | Flags register (bitfield helper: `CF`, `ZF`, `IOPL`, …) |
     | **Segment Registers** |
     | CS        | Integer        |                | Code segment                                      |
     | DS        | Integer        |                | Data segment                                      |
@@ -197,7 +199,7 @@ When assigned a plain integer, these registers behave like before; when accessed
     | SP        | Integer          |                  | Stack pointer                                    |
     | PC        | Integer          |                  | Program counter                                  |
     | **Flags** |
-    | PSTATE      | Integer          |                  | [Processor state](https://developer.arm.com/documentation/100933/0100/Processor-state-in-exception-handling) (bitfield helper: `N`, `Z`, `BTYPE`, `M`, …) |
+    | PSTATE      | Integer          | Bit Accessors  | [Processor state](https://developer.arm.com/documentation/100933/0100/Processor-state-in-exception-handling) (bitfield helper: `N`, `Z`, `BTYPE`, `M`, …) |
     | **Vector Registers (SIMD/FP)** |
     | V0        | Integer   |                  | Vector or scalar register                        |
     | V1        | Integer   |                  | Vector or scalar register                        |
