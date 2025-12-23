@@ -57,7 +57,7 @@ To avoid confusion, we list available registers and their types below.
     | R15       | Integer        | R15D, R15W, R15B| General-purpose register                          |
     | RIP       | Integer        | EIP             | Instruction pointer                               |
     | **Flags** |
-    | EFLAGS    | Integer        | Bit Accessors   | Flags register (bitfield helper: `CF`, `ZF`, `IOPL`, …) |
+    | EFLAGS    | Integer        \| Bit Accessors |  | Flags register (bitfield helper: `CF`, `ZF`, `IOPL`, …) |
     | **Segment Registers** |
     | CS        | Integer        |                 | Code segment                                      |
     | DS        | Integer        |                 | Data segment                                      |
@@ -133,7 +133,7 @@ To avoid confusion, we list available registers and their types below.
     | ESP       | Integer        | SP             | Stack pointer                                     |
     | EIP       | Integer        | IP             | Instruction pointer                               |
     | **Flags** |
-    | EFLAGS    | Integer        | Bit Accessors  | Flags register (bitfield helper: `CF`, `ZF`, `IOPL`, …) |
+    | EFLAGS    | Integer        \| Bit Accessors | | Flags register (bitfield helper: `CF`, `ZF`, `IOPL`, …) |
     | **Segment Registers** |
     | CS        | Integer        |                | Code segment                                      |
     | DS        | Integer        |                | Data segment                                      |
@@ -199,7 +199,7 @@ To avoid confusion, we list available registers and their types below.
     | SP        | Integer          |                  | Stack pointer                                    |
     | PC        | Integer          |                  | Program counter                                  |
     | **Flags** |
-    | PSTATE      | Integer          | Bit Accessors  | [Processor state](https://developer.arm.com/documentation/100933/0100/Processor-state-in-exception-handling) (bitfield helper: `N`, `Z`, `BTYPE`, `M`, …) |
+    | PSTATE      | Integer          \| Bit Accessors | | [Processor state](https://developer.arm.com/documentation/100933/0100/Processor-state-in-exception-handling) (bitfield helper: `N`, `Z`, `BTYPE`, `M`, …) |
     | **Vector Registers (SIMD/FP)** |
     | V0        | Integer   |                  | Vector or scalar register                        |
     | V1        | Integer   |                  | Vector or scalar register                        |
