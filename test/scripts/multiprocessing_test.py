@@ -37,11 +37,6 @@ class MultiprocessingTest(TestCase):
         bp = d.bp(AFTER_FORK_BASIC, file="binary", hardware=True)
 
         d.cont()
-
-        self.assertIn(d.process_id, d.resume_context.event_type)
-        self.assertEqual(d.resume_context.event_type.get(d.process_id), EventType.FORK)
-
-        d.cont()
         
         self.assertTrue(bp.hit_on(d))
         self.assertEqual(len(d.children), 1)
@@ -70,11 +65,6 @@ class MultiprocessingTest(TestCase):
 
         # Breakpoint after the fork
         bp = d.bp(AFTER_FORK_BASIC, file="binary", hardware=False)
-
-        d.cont()
-
-        self.assertIn(d.process_id, d.resume_context.event_type)
-        self.assertEqual(d.resume_context.event_type.get(d.process_id), EventType.FORK)
 
         d.cont()
         
@@ -107,11 +97,6 @@ class MultiprocessingTest(TestCase):
         bp_parent = d.bp(AFTER_FORK_STRESS, file="binary", hardware=True)
 
         d.cont()
-
-        self.assertIn(d.process_id, d.resume_context.event_type)
-        self.assertEqual(d.resume_context.event_type.get(d.process_id), EventType.FORK)
-
-        d.cont()
         
         self.assertTrue(bp_parent.hit_on(d))
         self.assertEqual(len(d.children), 1)
@@ -127,11 +112,6 @@ class MultiprocessingTest(TestCase):
         # The process is already at the breakpoint address (after fork), we need to skip it
         # and wait for the next hit
         dd.step()
-
-        dd.cont()
-
-        self.assertIn(dd.process_id, dd.resume_context.event_type)
-        self.assertEqual(dd.resume_context.event_type.get(dd.process_id), EventType.FORK)
 
         dd.cont()
         
@@ -151,11 +131,6 @@ class MultiprocessingTest(TestCase):
         # The process is already at the breakpoint address (after fork), we need to skip it
         # and wait for the next hit
         ddd.step()
-
-        ddd.cont()
-
-        self.assertIn(ddd.process_id, ddd.resume_context.event_type)
-        self.assertEqual(ddd.resume_context.event_type.get(ddd.process_id), EventType.FORK)
 
         ddd.cont()
 
@@ -179,11 +154,6 @@ class MultiprocessingTest(TestCase):
         dddd.step()
         
         dddd.cont()
-
-        self.assertIn(dddd.process_id, dddd.resume_context.event_type)
-        self.assertEqual(dddd.resume_context.event_type.get(dddd.process_id), EventType.FORK)
-
-        dddd.cont()
         
         self.assertTrue(bp_child3.hit_on(dddd))
         self.assertFalse(bp_child3.hit_on(ddd))
@@ -206,10 +176,6 @@ class MultiprocessingTest(TestCase):
         # and wait for the next hit
         ddddd.step()
 
-        ddddd.cont()
-        self.assertIn(ddddd.process_id, ddddd.resume_context.event_type)
-        self.assertEqual(ddddd.resume_context.event_type.get(ddddd.process_id), EventType.FORK)
-        
         ddddd.cont()
         
         self.assertTrue(bp_child4.hit_on(ddddd))
@@ -264,11 +230,6 @@ class MultiprocessingTest(TestCase):
 
         d.cont()
 
-        self.assertIn(d.process_id, d.resume_context.event_type)
-        self.assertEqual(d.resume_context.event_type.get(d.process_id), EventType.FORK)
-
-        d.cont()
-
         self.assertTrue(bp_parent.hit_on(d))
         self.assertEqual(len(d.children), 1)
         
@@ -283,11 +244,6 @@ class MultiprocessingTest(TestCase):
         # The process is already at the breakpoint address (after fork), we need to skip it
         # and wait for the next hit
         dd.step()
-
-        dd.cont()
-
-        self.assertIn(dd.process_id, dd.resume_context.event_type)
-        self.assertEqual(dd.resume_context.event_type.get(dd.process_id), EventType.FORK)
 
         dd.cont()
 
@@ -308,11 +264,6 @@ class MultiprocessingTest(TestCase):
         # and wait for the next hit
         ddd.step()
         
-        ddd.cont()
-
-        self.assertIn(ddd.process_id, ddd.resume_context.event_type)
-        self.assertEqual(ddd.resume_context.event_type.get(ddd.process_id), EventType.FORK)
-
         ddd.cont()
 
         self.assertTrue(bp_child2.hit_on(ddd))
@@ -336,11 +287,6 @@ class MultiprocessingTest(TestCase):
         
         dddd.cont()
 
-        self.assertIn(dddd.process_id, dddd.resume_context.event_type)
-        self.assertEqual(dddd.resume_context.event_type.get(dddd.process_id), EventType.FORK)
-
-        dddd.cont()
-
         self.assertTrue(bp_child3.hit_on(dddd))
         self.assertFalse(bp_child3.hit_on(ddd))
         self.assertFalse(bp_child3.hit_on(dd))
@@ -362,11 +308,6 @@ class MultiprocessingTest(TestCase):
         # and wait for the next hit
         ddddd.step()
         
-        ddddd.cont()
-
-        self.assertIn(ddddd.process_id, ddddd.resume_context.event_type)
-        self.assertEqual(ddddd.resume_context.event_type.get(ddddd.process_id), EventType.FORK)
-
         ddddd.cont()
 
         self.assertTrue(bp_child4.hit_on(ddddd))
@@ -421,11 +362,6 @@ class MultiprocessingTest(TestCase):
 
         d.cont()
 
-        self.assertIn(d.process_id, d.resume_context.event_type)
-        self.assertEqual(d.resume_context.event_type.get(d.process_id), EventType.FORK)
-
-        d.cont()
-
         self.assertTrue(bp.hit_on(d))
         self.assertEqual(len(d.children), 0)
 
@@ -446,11 +382,6 @@ class MultiprocessingTest(TestCase):
 
         # Breakpoint after the fork in the parent
         bp_parent = d.bp(AFTER_FORK_STRESS, file="binary", hardware=True)
-
-        d.cont()
-
-        self.assertIn(d.process_id, d.resume_context.event_type)
-        self.assertEqual(d.resume_context.event_type.get(d.process_id), EventType.FORK)
 
         d.cont()
 
