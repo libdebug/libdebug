@@ -29,6 +29,9 @@ def debugger(
     fast_memory: bool = True,
     kill_on_exit: bool = True,
     follow_children: bool = True,
+    stop_on_fork: bool = False,
+    stop_on_exec: bool = False,
+    stop_on_clone: bool = False,
 ) -> Debugger:
     """This function is used to create a new `Debugger` object. It returns a `Debugger` object.
 
@@ -43,6 +46,9 @@ def debugger(
         fast_memory (bool, optional): Whether to use a faster memory reading method. Defaults to True.
         kill_on_exit (bool, optional): Whether to kill the debugged process when the debugger exits. Defaults to True.
         follow_children (bool, optional): Whether to follow child processes. Defaults to True, which means that a new debugger will be created for each child process automatically.
+        stop_on_fork (bool, optional): Whether to stop the debugged process on fork. Defaults to False.
+        stop_on_exec (bool, optional): Whether to stop the debugged process on exec. Defaults to False.
+        stop_on_clone (bool, optional): Whether to stop the debugged process on clone. Defaults to False.
 
     Returns:
         Debugger: The `Debugger` object.
@@ -83,6 +89,9 @@ def debugger(
 
     debugger = Debugger()
     debugger.post_init_(internal_debugger)
+    debugger.stop_on_fork = stop_on_fork
+    debugger.stop_on_exec = stop_on_exec
+    debugger.stop_on_clone = stop_on_clone
 
     internal_debugger.debugger = debugger
 

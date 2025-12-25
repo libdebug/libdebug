@@ -31,6 +31,8 @@ from libdebug.builtin.pretty_print_syscall_handler import (
 )
 from libdebug.data.argument_list import ArgumentList
 from libdebug.data.breakpoint import Breakpoint
+from libdebug.data.event_hook import EventHook
+from libdebug.data.event_type import EventType
 from libdebug.data.gdb_resume_event import GdbResumeEvent
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
@@ -81,8 +83,6 @@ if TYPE_CHECKING:
 
     from libdebug.commlink.pipe_manager import PipeManager
     from libdebug.data.env_dict import EnvDict
-    from libdebug.data.event_hook import EventHook
-    from libdebug.data.event_type import EventType
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.data.registers import Registers
@@ -229,6 +229,24 @@ class InternalDebugger:
     _has_path_different_from_argv0: bool
     """A flag that indicates if the path to the binary is different from the first argument in argv."""
 
+    stop_on_fork: bool
+    """A flag that indicates if the debugger should stop on fork events."""
+
+    stop_on_exec: bool
+    """A flag that indicates if the debugger should stop on exec events."""
+
+    stop_on_clone: bool
+    """A flag that indicates if the debugger should stop on clone events."""
+
+    _stop_on_fork_hook: EventHook | None
+    """An internal hook used to track fork events when stop_on_fork is enabled."""
+
+    _stop_on_exec_hook: EventHook | None
+    """An internal hook used to track exec events when stop_on_exec is enabled."""
+
+    _stop_on_clone_hook: EventHook | None
+    """An internal hook used to track clone events when stop_on_clone is enabled."""
+
     def __init__(self: InternalDebugger) -> None:
         """Initialize the context."""
         # These must be reinitialized on every call to "debugger"
@@ -265,6 +283,9 @@ class InternalDebugger:
         self.serialization_helper = SerializationHelper()
         self.children = []
         self.event_hooks = defaultdict(list)
+        self._stop_on_fork_hook = None
+        self._stop_on_exec_hook = None
+        self._stop_on_clone_hook = None
 
         # We register this debugger so that we can clean it up on exit.
         register_internal_debugger(self)
@@ -293,6 +314,9 @@ class InternalDebugger:
         self.resume_context.clear()
         self.children.clear()
         self.event_hooks.clear()
+        self._stop_on_fork_hook = None
+        self._stop_on_exec_hook = None
+        self._stop_on_clone_hook = None
 
     def start_up(self: InternalDebugger) -> None:
         """Starts up the context."""
@@ -323,6 +347,18 @@ class InternalDebugger:
     def _background_invalid_call(self: InternalDebugger, *_: ..., **__: ...) -> None:
         """Raises an error when an invalid call is made in background mode."""
         raise RuntimeError("This method is not available in a callback.")
+
+    def _setup_utility_hooks(self: InternalDebugger) -> None:
+        """Sets up the utility hooks on fork/exec/clone events."""
+        if self._stop_on_fork_hook or self._stop_on_exec_hook or self._stop_on_clone_hook:
+            raise RuntimeError("Inconsistent state, utility hooks already set.")
+
+        if self._stop_on_fork:
+            self._stop_on_fork_hook = self.__set_stop_hook(EventType.FORK)
+        if self._stop_on_exec:
+            self._stop_on_exec_hook = self.__set_stop_hook(EventType.EXEC)
+        if self._stop_on_clone:
+            self._stop_on_clone_hook = self.__set_stop_hook(EventType.CLONE)
 
     def run(self: InternalDebugger, timeout: float = -1, redirect_pipes: bool = True) -> PipeManager | None:
         """Starts the process and waits for it to stop.
@@ -363,6 +399,8 @@ class InternalDebugger:
             liblog.debugger("Enabling anti-debugging escape mechanism.")
             self._enable_antidebug_escaping()
 
+        self._setup_utility_hooks()
+
         if timeout > 0:
             self.enqueue_timeout_command(timeout)
 
@@ -397,6 +435,8 @@ class InternalDebugger:
         self.__polling_thread_command_queue.put((self.__threaded_attach, (pid,)))
 
         self._join_and_check_status()
+
+        self._setup_utility_hooks()
 
         self._process_memory_manager.open(self.process_id)
         if self.fast_memory and not self._process_memory_manager.is_available():
@@ -442,6 +482,9 @@ class InternalDebugger:
         child_internal_debugger.kill_on_exit = self.kill_on_exit
         child_internal_debugger.follow_children = self.follow_children
         child_internal_debugger.pprint_syscalls = self.pprint_syscalls
+        child_internal_debugger.stop_on_fork = self.stop_on_fork
+        child_internal_debugger.stop_on_exec = self.stop_on_exec
+        child_internal_debugger.stop_on_clone = self.stop_on_clone
 
         # Create the new Debugger instance for the child process
         child_debugger = Debugger()
@@ -916,18 +959,17 @@ class InternalDebugger:
     def hook_event(
         self: InternalDebugger,
         event: EventType,
-        post_hook: bool,
         callback: None | bool | Callable[[ThreadContext, EventHook], None],
+        post_hook: bool,
     ) -> None:
         """Hook a callback to a specific resume event type.
 
         Args:
             event (EventType): The event type to hook the callback to.
-            post_hook (bool, optional): Whether the hook is a post-hook or pre-hook. Defaults to True.
-            callback (Callable[[ThreadContext, EventHook], None] | None, optional): The callback to execute when the event is triggered. If True, an empty callback will be set. Defaults to None.
+            callback (Callable[[ThreadContext, EventHook], None] | None, optional): The callback to execute when the event is triggered. If True, an empty callback will be set.
+            post_hook (bool, optional): Whether the hook is a post-hook or pre-hook.
         """
         if callback is True:
-
             def callback(_: ThreadContext, __: EventHook) -> None:
                 pass
 
@@ -1965,6 +2007,68 @@ class InternalDebugger:
     def set_stopped(self: InternalDebugger) -> None:
         """Set the state of the process to stopped."""
         self._is_running = False
+
+    def __set_stop_hook(self: InternalDebugger, event_type: EventType) -> EventHook:
+        def stop_hook(t: ThreadContext, _: EventHook) -> None:
+            t.resume_context.resume = False
+        return self.hook_event(event_type, callback=stop_hook, post_hook=True)
+
+    @property
+    def stop_on_fork(self: InternalDebugger) -> bool:
+        """Get whether the debugger stops on fork events."""
+        return self._stop_on_fork
+
+    @stop_on_fork.setter
+    def stop_on_fork(self: InternalDebugger, value: bool) -> None:
+        """Set whether the debugger stops on fork events.
+
+        Args:
+            value (bool): True to stop on fork events, False otherwise.
+        """
+        self._stop_on_fork = value
+        if not value and self._stop_on_fork_hook:
+            self.remove_hook(self._stop_on_fork_hook)
+            self._stop_on_fork_hook = None
+        elif value and not self._stop_on_fork_hook:
+            self._stop_on_fork_hook = self.__set_stop_hook(EventType.FORK)
+
+    @property
+    def stop_on_exec(self: InternalDebugger) -> bool:
+        """Get whether the debugger stops on exec events."""
+        return self._stop_on_exec
+
+    @stop_on_exec.setter
+    def stop_on_exec(self: InternalDebugger, value: bool) -> None:
+        """Set whether the debugger stops on exec events.
+
+        Args:
+            value (bool): True to stop on exec events, False otherwise.
+        """
+        self._stop_on_exec = value
+        if not value and self._stop_on_exec_hook:
+            self.remove_hook(self._stop_on_exec_hook)
+            self._stop_on_exec_hook = None
+        elif value and not self._stop_on_exec_hook:
+            self._stop_on_exec_hook = self.__set_stop_hook(EventType.EXEC)
+
+    @property
+    def stop_on_clone(self: InternalDebugger) -> bool:
+        """Get whether the debugger stops on clone events."""
+        return self._stop_on_clone
+
+    @stop_on_clone.setter
+    def stop_on_clone(self: InternalDebugger, value: bool) -> None:
+        """Set whether the debugger stops on clone events.
+
+        Args:
+            value (bool): True to stop on clone events, False otherwise.
+        """
+        self._stop_on_clone = value
+        if not value and self._stop_on_clone_hook:
+            self.remove_hook(self._stop_on_clone_hook)
+            self._stop_on_clone_hook = None
+        elif value and not self._stop_on_clone_hook:
+            self._stop_on_clone_hook = self.__set_stop_hook(EventType.CLONE)
 
     @change_state_function_process
     def create_snapshot(self: Debugger, level: str = "base", name: str | None = None) -> ProcessSnapshot:

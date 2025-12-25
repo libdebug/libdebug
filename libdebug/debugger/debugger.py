@@ -62,7 +62,7 @@ class Debugger:
     """A copy of the previous argv state, used internally to detect changes to argv[0]."""
 
     def __init__(self: Debugger) -> None:
-        pass
+        """Do not use this constructor directly. Use the `debugger` function instead."""
 
     def post_init_(self: Debugger, internal_debugger: InternalDebugger) -> None:
         """Do not use this constructor directly. Use the `debugger` function instead."""
@@ -252,8 +252,9 @@ class Debugger:
     def hook_event(
         self: Debugger,
         event: EventType,
-        post_hook: bool = True,
         callback: None | bool | Callable[[ThreadContext, EventHook], None] = None,
+        *,
+        post_hook: bool = True,
     ) -> EventHook:
         """Hook a callback to a specific resume event type.
 
@@ -277,6 +278,42 @@ class Debugger:
     def unhook_event(self: Debugger, hook: EventHook) -> EventHook:
         """Remove the handler associated with the given hook."""
         self._internal_debugger.unhook_event(hook)
+
+    @property
+    def stop_on_fork(self: Debugger) -> bool:
+        """Get whether the debugger stops on fork."""
+        return self._internal_debugger._stop_on_fork
+
+    @stop_on_fork.setter
+    def stop_on_fork(self: Debugger, value: bool) -> None:
+        """Set whether the debugger stops on fork."""
+        if not isinstance(value, bool):
+            raise TypeError("stop_on_fork must be a boolean value")
+        self._internal_debugger._stop_on_fork = value
+
+    @property
+    def stop_on_exec(self: Debugger) -> bool:
+        """Get whether the debugger stops on exec."""
+        return self._internal_debugger._stop_on_exec
+
+    @stop_on_exec.setter
+    def stop_on_exec(self: Debugger, value: bool) -> None:
+        """Set whether the debugger stops on exec."""
+        if not isinstance(value, bool):
+            raise TypeError("stop_on_exec must be a boolean value")
+        self._internal_debugger._stop_on_exec = value
+
+    @property
+    def stop_on_clone(self: Debugger) -> bool:
+        """Get whether the debugger stops on clone."""
+        return self._internal_debugger._stop_on_clone
+
+    @stop_on_clone.setter
+    def stop_on_clone(self: Debugger, value: bool) -> None:
+        """Set whether the debugger stops on clone."""
+        if not isinstance(value, bool):
+            raise TypeError("stop_on_clone must be a boolean value")
+        self._internal_debugger._stop_on_clone = value
 
     def hijack_syscall(
         self: Debugger,
