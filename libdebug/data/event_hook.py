@@ -22,7 +22,7 @@ class EventHook:
     """An event hook for debugger events.
 
     Attributes:
-        event (str): The name of the event.
+        event (EventType): The type of event hooked.
         callback (Callable[..., None]): The callback to execute when the event is triggered.
         post_hook (bool): Whether the hook is a post-hook or pre-hook.
         hit_count (int): The number of times this event hook has been triggered.
@@ -74,4 +74,4 @@ class EventHook:
 
     def __repr__(self: EventHook) -> str:
         """Return a string representation of the EventHook."""
-        return f"EventHook(type={self.event_type.name}, is_post_hook={self.is_post_hook}, enabled={self.enabled}, hit_count={self.hit_count})"
+        return f"EventHook(type={self.event.name}, is_post_hook={self.is_post_hook}, enabled={self.enabled}, hit_count={self.hit_count})"

@@ -961,7 +961,7 @@ class InternalDebugger:
         event: EventType,
         callback: None | bool | Callable[[ThreadContext, EventHook], None],
         post_hook: bool,
-    ) -> None:
+    ) -> EventHook:
         """Hook a callback to a specific resume event type.
 
         Args:
@@ -975,6 +975,7 @@ class InternalDebugger:
 
         hook = EventHook(event, callback, _post_hook=post_hook, _internal_debugger=self)
         self.event_hooks[event].append(hook)
+        return hook
 
     @change_state_function_process
     def unhook_event(self: InternalDebugger, hook: EventHook) -> None:
@@ -2027,7 +2028,7 @@ class InternalDebugger:
         """
         self._stop_on_fork = value
         if not value and self._stop_on_fork_hook:
-            self.remove_hook(self._stop_on_fork_hook)
+            self.unhook_event(self._stop_on_fork_hook)
             self._stop_on_fork_hook = None
         elif value and not self._stop_on_fork_hook:
             self._stop_on_fork_hook = self.__set_stop_hook(EventType.FORK)
@@ -2046,7 +2047,7 @@ class InternalDebugger:
         """
         self._stop_on_exec = value
         if not value and self._stop_on_exec_hook:
-            self.remove_hook(self._stop_on_exec_hook)
+            self.unhook_event(self._stop_on_exec_hook)
             self._stop_on_exec_hook = None
         elif value and not self._stop_on_exec_hook:
             self._stop_on_exec_hook = self.__set_stop_hook(EventType.EXEC)
@@ -2065,7 +2066,7 @@ class InternalDebugger:
         """
         self._stop_on_clone = value
         if not value and self._stop_on_clone_hook:
-            self.remove_hook(self._stop_on_clone_hook)
+            self.unhook_event(self._stop_on_clone_hook)
             self._stop_on_clone_hook = None
         elif value and not self._stop_on_clone_hook:
             self._stop_on_clone_hook = self.__set_stop_hook(EventType.CLONE)

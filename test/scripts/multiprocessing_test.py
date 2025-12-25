@@ -8,7 +8,6 @@ from unittest import TestCase
 from utils.binary_utils import PLATFORM, BASE, RESOLVE_EXE
 
 from libdebug import debugger
-from libdebug.data.event_type import EventType
 
 match PLATFORM:
     case "amd64":

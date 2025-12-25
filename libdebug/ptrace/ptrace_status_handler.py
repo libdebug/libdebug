@@ -573,7 +573,7 @@ class PtraceStatusHandler:
                     )
                     self.forward_signal = False
                     self.internal_debugger.resume_context.event_type[pid] = EventType.EXIT
-                    # Execute ost hooks for exit event
+                    # Execute post hooks for exit event
                     self._execute_post_hooks(EventType.EXIT, thread)
                 case StopEvents.FORK_EVENT | StopEvents.VFORK_EVENT:
                     # The process has been forked
