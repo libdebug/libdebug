@@ -72,10 +72,9 @@ class PtraceStatusHandler:
         # so we clear the internal state now.
         self.internal_debugger.clear_internal_state()
 
-        if self.internal_debugger.fast_memory:
-            # Re-initialize the ProcessMemoryManager for the new process image
-            self.internal_debugger._process_memory_manager.close()
-            self.internal_debugger._process_memory_manager.open(self.internal_debugger.process_id)
+        # We need to close the fast memory manager, as the /proc/pid/mem file descriptor is no longer valid
+        # If fast memory access is needed again, it will be reopened automatically on the next memory access
+        self.internal_debugger._process_memory_manager.close()
 
     def _handle_exit(
         self: PtraceStatusHandler,
@@ -554,10 +553,6 @@ class PtraceStatusHandler:
 
         # Callbacks are done
         self.internal_debugger.resume_context._is_in_callback = False
-
-        if self._assume_race_sigstop:
-            # Resume the process if the stop was due to a race condition with SIGSTOP sent by the debugger
-            return
 
     def check_for_changes_in_threads(self: PtraceStatusHandler, pid: int) -> None:
         """Check for new threads in the process and register them."""
