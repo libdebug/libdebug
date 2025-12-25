@@ -2248,3 +2248,9 @@ class InternalDebugger:
 
         # Clear the signal catchers
         self.caught_signals.clear()
+
+        # Clear the event hooks
+        self.event_hooks.clear()
+        self._stop_on_fork_hook = None
+        self._stop_on_exec_hook = None
+        self._stop_on_clone_hook = None
