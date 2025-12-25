@@ -2255,3 +2255,7 @@ class InternalDebugger:
         self._stop_on_fork_hook = None
         self._stop_on_exec_hook = None
         self._stop_on_clone_hook = None
+
+        # We actually need to reinstall any utility hooks here, as they have been invalidated
+        # but should be preserved after internal state clearing
+        self._setup_utility_hooks()

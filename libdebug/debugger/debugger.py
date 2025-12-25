@@ -260,8 +260,8 @@ class Debugger:
 
         Args:
             event (EventType): The event type to hook the callback to.
-            post_hook (bool, optional): Whether the hook is a post-hook or pre-hook. Defaults to True.
             callback (Callable[[ThreadContext, EventHook], None] | None, optional): The callback to execute when the event is triggered. If True, an empty callback will be set. Defaults to None.
+            post_hook (bool, optional): Whether the hook is a post-hook or pre-hook. Defaults to True.
         """
         if not isinstance(event, EventType):
             raise TypeError("event must be an instance of EventType")

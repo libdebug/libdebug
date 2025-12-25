@@ -58,6 +58,7 @@ else:
     install()
 
 from libdebug.data.breakpoint import Breakpoint
+from libdebug.data.event_hook import EventHook
 from libdebug.data.event_type import EventType
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
@@ -70,6 +71,7 @@ from libdebug.utils.libcontext import libcontext
 __all__ = [
     "Breakpoint",
     "Debugger",
+    "EventHook",
     "EventType",
     "ResumeContext",
     "SignalCatcher",
