@@ -11,6 +11,7 @@ import functools
 import os
 import signal
 import sys
+from collections import defaultdict
 from pathlib import Path
 from queue import Queue
 from signal import SIGKILL, SIGSTOP, SIGTRAP
@@ -80,6 +81,7 @@ if TYPE_CHECKING:
 
     from libdebug.commlink.pipe_manager import PipeManager
     from libdebug.data.env_dict import EnvDict
+    from libdebug.data.event_hook import EventHook
     from libdebug.data.event_type import EventType
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.memory_map_list import MemoryMapList
@@ -179,7 +181,7 @@ class InternalDebugger:
     resume_context: ResumeContext
     """Context that indicates if the debugger should resume the debugged process."""
 
-    event_callbacks: dict[EventType, Callable[[Debugger, ResumeContext], None]]
+    event_hooks: dict[EventType, list[EventHook]]
     """Callbacks executed when specific resume events occur."""
 
     debugger: Debugger
@@ -262,7 +264,7 @@ class InternalDebugger:
         self._snapshot_count = 0
         self.serialization_helper = SerializationHelper()
         self.children = []
-        self.event_callbacks = {}
+        self.event_hooks = defaultdict(list)
 
         # We register this debugger so that we can clean it up on exit.
         register_internal_debugger(self)
@@ -290,7 +292,7 @@ class InternalDebugger:
         self._is_running = False
         self.resume_context.clear()
         self.children.clear()
-        self.event_callbacks.clear()
+        self.event_hooks.clear()
 
     def start_up(self: InternalDebugger) -> None:
         """Starts up the context."""
@@ -439,7 +441,6 @@ class InternalDebugger:
         child_internal_debugger.fast_memory = self.fast_memory
         child_internal_debugger.kill_on_exit = self.kill_on_exit
         child_internal_debugger.follow_children = self.follow_children
-        child_internal_debugger.event_callbacks = self.event_callbacks.copy()
         child_internal_debugger.pprint_syscalls = self.pprint_syscalls
 
         # Create the new Debugger instance for the child process
@@ -915,22 +916,34 @@ class InternalDebugger:
     def hook_event(
         self: InternalDebugger,
         event: EventType,
-        callback: Callable[[Debugger, ResumeContext], None],
+        post_hook: bool,
+        callback: None | bool | Callable[[ThreadContext, EventHook], None],
     ) -> None:
-        """Register a callback for a specific resume event type."""
-        if event in self.event_callbacks:
-            liblog.warning(
-                "Event %s already has a registered callback. Overriding it.",
-                event,
-            )
-        self.event_callbacks[event] = callback
+        """Hook a callback to a specific resume event type.
+
+        Args:
+            event (EventType): The event type to hook the callback to.
+            post_hook (bool, optional): Whether the hook is a post-hook or pre-hook. Defaults to True.
+            callback (Callable[[ThreadContext, EventHook], None] | None, optional): The callback to execute when the event is triggered. If True, an empty callback will be set. Defaults to None.
+        """
+        if callback is True:
+
+            def callback(_: ThreadContext, __: EventHook) -> None:
+                pass
+
+        hook = EventHook(event, callback, _post_hook=post_hook, _internal_debugger=self)
+        self.event_hooks[event].append(hook)
 
     @change_state_function_process
-    def unhook_event(self: InternalDebugger, event: EventType) -> None:
+    def unhook_event(self: InternalDebugger, hook: EventHook) -> None:
         """Remove the callback associated with the provided event type."""
-        if event not in self.event_callbacks:
-            raise ValueError(f"Event {event} is not currently hooked.")
-        del self.event_callbacks[event]
+        if hook.event not in self.event_hooks:
+            raise ValueError("The provided event hook is not registered.")
+
+        try:
+            self.event_hooks[hook.event].remove(hook)
+        except ValueError as e:
+            raise ValueError("The provided event hook is not registered.") from e
 
     @change_state_function_process
     def hijack_syscall(
@@ -1719,25 +1732,21 @@ class InternalDebugger:
                 # All threads are dead
                 liblog.debugger("All threads dead")
                 break
+
             self.resume_context.resume = True
 
             self.debugging_interface.wait()
 
+            # If nothing touched the resume flag, it means that we only processed
+            # asynchronous events, so we can issue another continue and go back to waiting
+            # until the next event
             if self.resume_context.resume:
                 self.debugging_interface.cont()
                 continue
-
-            # We check if we have any event callbacks to execute
-            for event_type in list(self.resume_context.event_type.values()):
-                callback = self.event_callbacks.get(event_type)
-                if callback:
-                    callback(self.debugger, self.resume_context)
-            # The callbacks might have changed the resume flag
-            if not self.resume_context.resume:
-                # Callback wants this event to become synchronous
-                break
-
-            self.debugging_interface.cont()
+            # If we get it here, it means that we have processed a stop event
+            # which is synchronous, so we must break the loop and return
+            # in the main thread
+            break
 
         self.set_stopped()
 

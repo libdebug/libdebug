@@ -12,7 +12,8 @@ class EventType(Enum):
 
     UNKNOWN = "Unknown Event"
     BREAKPOINT = "Breakpoint"
-    SYSCALL = "Syscall"
+    SYSCALL_ENTRY = "Syscall Entry"
+    SYSCALL_EXIT = "Syscall Exit"
     SIGNAL = "Signal"
     USER_INTERRUPT = "User Interrupt"
     STEP = "Step"

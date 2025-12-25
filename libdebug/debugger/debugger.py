@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 
 from libdebug.data.argument_list import ArgumentList
 from libdebug.data.env_dict import EnvDict
+from libdebug.data.event_type import EventType
 from libdebug.liblog import liblog
 from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.elf_utils import elf_architecture, resolve_argv_path
@@ -31,7 +32,7 @@ if TYPE_CHECKING:
 
     from libdebug.commlink.pipe_manager import PipeManager
     from libdebug.data.breakpoint import Breakpoint
-    from libdebug.data.event_type import EventType
+    from libdebug.data.event_hook import EventHook
     from libdebug.data.gdb_resume_event import GdbResumeEvent
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.memory_map_list import MemoryMapList
@@ -251,14 +252,31 @@ class Debugger:
     def hook_event(
         self: Debugger,
         event: EventType,
-        callback: Callable[[Debugger, ResumeContext], None],
-    ) -> None:
-        """Hook a callback to a specific resume event type."""
-        self._internal_debugger.hook_event(event, callback)
+        post_hook: bool = True,
+        callback: None | bool | Callable[[ThreadContext, EventHook], None] = None,
+    ) -> EventHook:
+        """Hook a callback to a specific resume event type.
 
-    def unhook_event(self: Debugger, event: EventType) -> None:
-        """Remove the callback associated with the given event type."""
-        self._internal_debugger.unhook_event(event)
+        Args:
+            event (EventType): The event type to hook the callback to.
+            post_hook (bool, optional): Whether the hook is a post-hook or pre-hook. Defaults to True.
+            callback (Callable[[ThreadContext, EventHook], None] | None, optional): The callback to execute when the event is triggered. If True, an empty callback will be set. Defaults to None.
+        """
+        if not isinstance(event, EventType):
+            raise TypeError("event must be an instance of EventType")
+        if event in {EventType.STARTUP, EventType.USER_INTERRUPT, EventType.UNKNOWN}:
+            raise ValueError(f"Cannot hook to event type {event.name}")
+        if not post_hook and event in {
+            EventType.STEP,
+            EventType.SECCOMP,
+            EventType.EXIT,
+        }:
+            raise ValueError(f"Cannot set pre-hook for event type {event.name}. Please use post-hook instead.")
+        self._internal_debugger.hook_event(event, post_hook, callback)
+
+    def unhook_event(self: Debugger, hook: EventHook) -> EventHook:
+        """Remove the handler associated with the given hook."""
+        self._internal_debugger.unhook_event(hook)
 
     def hijack_syscall(
         self: Debugger,

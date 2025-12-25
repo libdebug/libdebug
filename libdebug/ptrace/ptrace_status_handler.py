@@ -20,12 +20,17 @@ from libdebug.utils.process_utils import get_process_tasks
 from libdebug.utils.signal_utils import resolve_signal_name
 
 if TYPE_CHECKING:
-    from libdebug.data.breakpoint import Breakpoint
+    from collections.abc import Iterable
+
+    from libdebug.data.event_hook import EventHook
     from libdebug.data.signal_catcher import SignalCatcher
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.ptrace.ptrace_interface import PtraceInterface
     from libdebug.state.thread_context import ThreadContext
+
+
+ResultList = list[tuple[int, int]]
 
 
 class PtraceStatusHandler:
@@ -40,7 +45,55 @@ class PtraceStatusHandler:
             True  # Assume the stop is due to a race condition with SIGSTOP sent by the debugger
         )
 
-    def _handle_clone(self: PtraceStatusHandler, thread_id: int, results: list) -> None:
+    def _get_pre_event_hooks(self: PtraceStatusHandler, event_type: EventType) -> Iterable[EventHook]:
+        for hook in self.internal_debugger.event_hooks[event_type]:
+            if hook._enabled and not hook.is_post_hook:
+                yield hook
+
+    def _get_post_event_hooks(self: PtraceStatusHandler, event_type: EventType) -> Iterable[EventHook]:
+        for hook in self.internal_debugger.event_hooks[event_type]:
+            if hook._enabled and hook.is_post_hook:
+                yield hook
+
+    def _execute_pre_hooks(self: PtraceStatusHandler, event_type: EventType, thread: ThreadContext) -> None:
+        """Execute all pre-hooks for the given event type."""
+        for hook in self._get_pre_event_hooks(event_type):
+            hook.hit_count += 1
+            if hook.callback:
+                try:
+                    hook.callback(thread, hook)
+                except Exception as e:
+                    liblog.error(
+                        "Exception raised in pre-hook callback for event %s: %s",
+                        event_type.name,
+                        e,
+                    )
+                    raise RuntimeError("Unhandled exception in event hook callback") from e
+                self._check_gdb_migration_status()
+
+    def _execute_post_hooks(self: PtraceStatusHandler, event_type: EventType, thread: ThreadContext) -> bool:
+        """Execute all post-hooks for the given event type."""
+        # We try to keep the same logic we've always had:
+        # as long as we have ran at least one callback for an event,
+        # we resume the execution instead of triggering a stop.
+        should_resume = False
+        for hook in self._get_post_event_hooks(event_type):
+            hook.hit_count += 1
+            if hook.callback:
+                try:
+                    hook.callback(thread, hook)
+                    should_resume = True
+                except Exception as e:
+                    liblog.error(
+                        "Exception raised in post-hook callback for event %s: %s",
+                        event_type.name,
+                        e,
+                    )
+                    raise RuntimeError("Unhandled exception in event hook callback") from e
+                self._check_gdb_migration_status()
+        return should_resume
+
+    def _handle_clone(self: PtraceStatusHandler, thread_id: int, results: ResultList) -> None:
         # https://go.googlesource.com/debug/+/a09ead70f05c87ad67bd9a131ff8352cf39a6082/doc/ptrace-nptl.txt
         # "At this time, the new thread will exist, but will initially
         # be stopped with a SIGSTOP.  The new thread will automatically be
@@ -108,8 +161,6 @@ class PtraceStatusHandler:
 
         ip = thread.instruction_pointer
 
-        bp: None | Breakpoint
-
         bp = self.internal_debugger.breakpoints.get(ip)
         if bp and bp._enabled and not bp._disabled_for_step:
             # Hardware breakpoint hit
@@ -138,11 +189,15 @@ class PtraceStatusHandler:
             bp = self.ptrace_interface.get_hit_watchpoint(thread_id)
             if bp:
                 liblog.debugger("Watchpoint hit at 0x%x", bp.address)
+
         if bp:
             self.internal_debugger.resume_context.event_hit_ref[thread_id] = bp
             self.internal_debugger.resume_context.event_type[thread_id] = EventType.BREAKPOINT
             self.forward_signal = False
             bp.hit_count += 1
+
+            # Execute pre-hooks for breakpoint event
+            self._execute_pre_hooks(EventType.BREAKPOINT, thread)
 
             if bp.callback:
                 try:
@@ -153,8 +208,13 @@ class PtraceStatusHandler:
 
                 self._check_gdb_migration_status()
             else:
-                # If the breakpoint has no callback, we need to stop the process despite the other signals
-                self.internal_debugger.resume_context.resume = False
+                # Let's execute post-hooks for breakpoint event, as there is no user-defined callback
+                should_resume = self._execute_post_hooks(EventType.BREAKPOINT, thread)
+
+                # If the breakpoint has no callback, we stop if there were no post-hooks executed for this event
+                # Note that we might have executed a callback that instead changed the resume context
+                # So we must not discard the current value of the resume context, only && it with our local decision
+                self.internal_debugger.resume_context.resume &= should_resume
 
     def _manage_syscall_on_enter(
         self: PtraceStatusHandler,
@@ -164,6 +224,9 @@ class PtraceStatusHandler:
         hijacked_set: set[int],
     ) -> None:
         """Manage the on_enter callback of a syscall."""
+        # Call the pre-hooks for the syscall entry event if any
+        self._execute_pre_hooks(EventType.SYSCALL_ENTRY, thread)
+
         # Call the user-defined callback if it exists
         if handler.on_enter_user and handler._enabled:
             old_args = [
@@ -242,11 +305,60 @@ class PtraceStatusHandler:
         elif handler.on_exit_pprint or handler.on_exit_user:
             # The syscall has been entered but the user did not define an on_enter callback
             handler._has_entered = True
-        if not handler.on_enter_user and not handler.on_exit_user and handler._enabled:
-            # If the syscall has no callback, we need to stop the process despite the other signals
-            self.internal_debugger.resume_context.event_type[thread.thread_id] = EventType.SYSCALL
+        if not handler.on_enter_user and handler._enabled:
+            # Execute post-hooks for syscall entry event, as there is no on_enter callback
             handler._has_entered = True
-            self.internal_debugger.resume_context.resume = False
+            should_resume = self._execute_post_hooks(EventType.SYSCALL_ENTRY, thread)
+            if not handler.on_exit_user:
+                # If the syscall has no on_exit callback either, we evaluate the resume decision of the post-hooks
+                self.internal_debugger.resume_context.resume &= should_resume
+
+    def _manage_syscall_on_exit(
+        self: PtraceStatusHandler,
+        handler: SyscallHandler,
+        thread: ThreadContext,
+    ) -> None:
+        # Execute the pre-hooks for the syscall exit event if any
+        self._execute_pre_hooks(EventType.SYSCALL_EXIT, thread)
+
+        if handler._enabled and not handler._skip_exit:
+            # Increment the hit count only if the syscall has been handled
+            handler.hit_count += 1
+
+        # Call the user-defined callback if it exists
+        if handler.on_exit_user and handler._enabled and not handler._skip_exit:
+            # Pretty print the return value before the callback
+            if handler.on_exit_pprint:
+                return_value_before_callback = thread.syscall_return
+
+            try:
+                handler.on_exit_user(thread, handler)
+            except Exception as e:
+                liblog.error("Exception raised in on-exit callback for syscall %d: %s", handler.syscall_number, e)
+                raise RuntimeError("Unhandled exception in syscall callback") from e
+
+            self._check_gdb_migration_status()
+
+            if handler.on_exit_pprint:
+                return_value_after_callback = thread.syscall_return
+                if return_value_after_callback != return_value_before_callback:
+                    handler.on_exit_pprint(
+                        (return_value_before_callback, return_value_after_callback),
+                    )
+                else:
+                    handler.on_exit_pprint(return_value_after_callback)
+        elif handler.on_exit_pprint:
+            # Pretty print the return value
+            handler.on_exit_pprint(thread.syscall_return)
+
+        handler._has_entered = False
+        handler._skip_exit = False
+        if not handler.on_exit_user and handler._enabled:
+            # Execute the post-hooks for the syscall exit event
+            should_resume = self._execute_post_hooks(EventType.SYSCALL_EXIT, thread)
+            if not handler.on_enter_user:
+                # If the syscall has no on-enter callback, we need to decide based on the post-hooks
+                self.internal_debugger.resume_context.resume &= should_resume
 
     def _handle_syscall(self: PtraceStatusHandler, thread_id: int) -> bool:
         """Handle a syscall trap."""
@@ -277,53 +389,24 @@ class PtraceStatusHandler:
                 thread_id,
             )
 
+            self.internal_debugger.resume_context.event_type[thread_id] = EventType.SYSCALL_ENTRY
+
             self._manage_syscall_on_enter(
                 handler,
                 thread,
                 syscall_number,
                 {syscall_number},
             )
-
         else:
             # The syscall is being exited
             liblog.debugger("Syscall %d exited on thread %d", syscall_number, thread_id)
 
-            if handler._enabled and not handler._skip_exit:
-                # Increment the hit count only if the syscall has been handled
-                handler.hit_count += 1
+            self.internal_debugger.resume_context.event_type[thread_id] = EventType.SYSCALL_EXIT
 
-            # Call the user-defined callback if it exists
-            if handler.on_exit_user and handler._enabled and not handler._skip_exit:
-                # Pretty print the return value before the callback
-                if handler.on_exit_pprint:
-                    return_value_before_callback = thread.syscall_return
-
-                try:
-                    handler.on_exit_user(thread, handler)
-                except Exception as e:
-                    liblog.error("Exception raised in on-exit callback for syscall %d: %s", handler.syscall_number, e)
-                    raise RuntimeError("Unhandled exception in syscall callback") from e
-
-                self._check_gdb_migration_status()
-
-                if handler.on_exit_pprint:
-                    return_value_after_callback = thread.syscall_return
-                    if return_value_after_callback != return_value_before_callback:
-                        handler.on_exit_pprint(
-                            (return_value_before_callback, return_value_after_callback),
-                        )
-                    else:
-                        handler.on_exit_pprint(return_value_after_callback)
-            elif handler.on_exit_pprint:
-                # Pretty print the return value
-                handler.on_exit_pprint(thread.syscall_return)
-
-            handler._has_entered = False
-            handler._skip_exit = False
-            if not handler.on_enter_user and not handler.on_exit_user and handler._enabled:
-                # If the syscall has no callback, we need to stop the process despite the other signals
-                self.internal_debugger.resume_context.event_type[thread_id] = EventType.SYSCALL
-                self.internal_debugger.resume_context.resume = False
+            self._manage_syscall_on_exit(
+                handler,
+                thread,
+            )
 
     def _manage_caught_signal(
         self: PtraceStatusHandler,
@@ -332,6 +415,9 @@ class PtraceStatusHandler:
         signal_number: int,
         hijacked_set: set[int],
     ) -> None:
+        self.internal_debugger.resume_context.event_hit_ref[thread.thread_id] = catcher
+        self.internal_debugger.resume_context.event_type[thread.thread_id] = EventType.SIGNAL
+
         if catcher._enabled:
             catcher.hit_count += 1
             liblog.debugger(
@@ -340,6 +426,10 @@ class PtraceStatusHandler:
                 signal_number,
                 thread.thread_id,
             )
+
+            # We run the pre-hooks for the signal event
+            self._execute_pre_hooks(EventType.SIGNAL, thread)
+
             if catcher.callback:
                 # Execute the user-defined callback
                 try:
@@ -383,34 +473,36 @@ class PtraceStatusHandler:
                             hijacked_set,
                         )
             else:
-                # If the caught signal has no callback, we need to stop the process despite the other signals
-                self.internal_debugger.resume_context.event = EventType.SIGNAL
-                self.internal_debugger.resume_context.resume = False
+                # If the caught signal has no callback, we need to  run the post-hooks for the signal event
+                should_resume = self._execute_post_hooks(EventType.SIGNAL, thread)
 
-    def _handle_signal(self: PtraceStatusHandler, thread: ThreadContext) -> bool:
+                # If there were no post-hooks executed for this event, we stop the execution
+                self.internal_debugger.resume_context.resume &= should_resume
+
+    def _handle_signal(self: PtraceStatusHandler, thread: ThreadContext) -> None:
         """Handle the signal trap."""
         signal_number = thread._signal_number
 
         if signal_number in self.internal_debugger.caught_signals:
             catcher = self.internal_debugger.caught_signals[signal_number]
-
-            self._manage_caught_signal(catcher, thread, signal_number, {signal_number})
         elif -1 in self.internal_debugger.caught_signals and signal_number not in (
             signal.SIGSTOP,
             signal.SIGKILL,
         ):
             # Handle all signals is enabled
             catcher = self.internal_debugger.caught_signals[-1]
+        else:
+            # This is a signal we don't care about
+            # Resume the execution
+            return
 
-            self.internal_debugger.resume_context.event_hit_ref[thread.thread_id] = catcher
-
-            self._manage_caught_signal(catcher, thread, signal_number, {signal_number})
+        self._manage_caught_signal(catcher, thread, signal_number, {signal_number})
 
     def _internal_signal_handler(
         self: PtraceStatusHandler,
         pid: int,
         signum: int,
-        results: list,
+        results: ResultList,
         status: int,
         thread: ThreadContext,
     ) -> None:
@@ -439,9 +531,12 @@ class PtraceStatusHandler:
             if self.internal_debugger.resume_context._is_a_step:
                 # The process is stepping, we need to stop the execution
                 self.internal_debugger.resume_context.event_type[pid] = EventType.STEP
-                self.internal_debugger.resume_context.resume = False
                 self.internal_debugger.resume_context._is_a_step = False
                 self.forward_signal = False
+
+                # Execute post hooks for step event
+                should_resume = self._execute_post_hooks(EventType.STEP, thread)
+                self.internal_debugger.resume_context.resume &= should_resume
 
             event = status >> 8
             match event:
@@ -451,14 +546,20 @@ class PtraceStatusHandler:
                     liblog.debugger(
                         f"Process {pid} cloned, new thread_id: {message}",
                     )
+                    # Execute pre-hooks for clone event
+                    self._execute_pre_hooks(EventType.CLONE, thread)
                     self._handle_clone(message, results)
                     self.forward_signal = False
                     self.internal_debugger.resume_context.event_type[pid] = EventType.CLONE
+                    # Execute post-hooks for clone event
+                    self._execute_post_hooks(EventType.CLONE, thread)
                 case StopEvents.SECCOMP_EVENT:
                     # The process has installed a seccomp
                     liblog.debugger(f"Process {pid} installed a seccomp")
                     self.forward_signal = False
                     self.internal_debugger.resume_context.event_type[pid] = EventType.SECCOMP
+                    # Execute post hooks for seccomp event
+                    self._execute_post_hooks(EventType.SECCOMP, thread)
                 case StopEvents.EXIT_EVENT:
                     # The tracee is still alive; it needs
                     # to be PTRACE_CONTed or PTRACE_DETACHed to finish exiting.
@@ -472,30 +573,38 @@ class PtraceStatusHandler:
                     )
                     self.forward_signal = False
                     self.internal_debugger.resume_context.event_type[pid] = EventType.EXIT
+                    # Execute ost hooks for exit event
+                    self._execute_post_hooks(EventType.EXIT, thread)
                 case StopEvents.FORK_EVENT | StopEvents.VFORK_EVENT:
                     # The process has been forked
                     message = self.ptrace_interface._get_event_msg(pid)
                     liblog.debugger(
                         f"Process {pid} forked with new pid: {message}",
                     )
+                    # Execute pre-hooks for fork event
+                    self._execute_pre_hooks(EventType.FORK, thread)
                     # We need to detach from the child process and attach to it again with a new debugger
                     self.ptrace_interface.lib_trace.detach_from_child(message, self.internal_debugger.follow_children)
                     if self.internal_debugger.follow_children:
                         self.internal_debugger.set_child_debugger(message)
                     self.forward_signal = False
                     self.internal_debugger.resume_context.event_type[pid] = EventType.FORK
-                    self.internal_debugger.resume_context.resume = False
+                    # Execute post-hooks for fork event
+                    self._execute_post_hooks(EventType.FORK, thread)
                 case StopEvents.EXEC_EVENT:
                     # The process has executed a new program
                     liblog.debugger(f"Process {pid} executed a new program")
+                    # Execute pre-hooks for exec event
+                    self._execute_pre_hooks(EventType.EXEC, thread)
                     self._handle_exec()
                     # We do not forward the signal, otherwise we would kill the new process
                     self.forward_signal = False
                     # We interrupt the process to allow the user to handle the exec event
                     self.internal_debugger.resume_context.event_type[pid] = EventType.EXEC
-                    self.internal_debugger.resume_context.resume = False
+                    # Execute post-hooks for exec event
+                    self._execute_post_hooks(EventType.EXEC, thread)
 
-    def _handle_change(self: PtraceStatusHandler, pid: int, status: int, results: list) -> None:
+    def _handle_change(self: PtraceStatusHandler, pid: int, status: int, results: ResultList) -> None:
         """Handle a change in the status of a traced process."""
         # Initialize the forward_signal flag
         self.forward_signal = True
@@ -537,7 +646,7 @@ class PtraceStatusHandler:
             liblog.debugger("Child process %d exited with signal %d", pid, exit_signal)
             self._handle_exit(pid, exit_code=None, exit_signal=exit_signal)
 
-    def manage_change(self: PtraceStatusHandler, result: list[tuple]) -> None:
+    def manage_change(self: PtraceStatusHandler, result: ResultList) -> None:
         """Manage the result of the waitpid and handle the changes."""
         # Assume that the stop depends on SIGSTOP sent by the debugger
         # This is a workaround for some race conditions that may happen

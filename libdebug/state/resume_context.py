@@ -61,7 +61,7 @@ class ResumeContext:
                         )
                     else:
                         event_str += f"Breakpoint at {hit_ref.address:#x} on thread {tid}."
-                elif event == EventType.SYSCALL:
+                elif event in (EventType.SYSCALL_ENTRY, EventType.SYSCALL_EXIT):
                     hit_ref = self.event_hit_ref[tid]
                     event_str += f"Syscall {hit_ref.syscall_number} on thread {tid}."
                 elif event == EventType.SIGNAL:
