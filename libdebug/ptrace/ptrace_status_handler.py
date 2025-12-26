@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from libdebug.state.thread_context import ThreadContext
 
 
-ResultList = list[tuple[int, int]]
+ThreadStatusList = list[tuple[int, int, int]]  # pid, status, extra_info
 
 
 class PtraceStatusHandler:
@@ -93,7 +93,7 @@ class PtraceStatusHandler:
                 self._check_gdb_migration_status()
         return should_resume
 
-    def _handle_clone(self: PtraceStatusHandler, thread_id: int, results: ResultList) -> None:
+    def _handle_clone(self: PtraceStatusHandler, thread_id: int, results: ThreadStatusList) -> None:
         # https://go.googlesource.com/debug/+/a09ead70f05c87ad67bd9a131ff8352cf39a6082/doc/ptrace-nptl.txt
         # "At this time, the new thread will exist, but will initially
         # be stopped with a SIGSTOP.  The new thread will automatically be
@@ -502,8 +502,9 @@ class PtraceStatusHandler:
         self: PtraceStatusHandler,
         pid: int,
         signum: int,
-        results: ResultList,
+        results: ThreadStatusList,
         status: int,
+        extra_info: int,
         thread: ThreadContext,
     ) -> None:
         """Internal handler for signals used by the debugger."""
@@ -542,13 +543,13 @@ class PtraceStatusHandler:
             match event:
                 case StopEvents.CLONE_EVENT:
                     # The process has been cloned
-                    message = self.ptrace_interface._get_event_msg(pid)
+                    new_tid = extra_info
                     liblog.debugger(
-                        f"Process {pid} cloned, new thread_id: {message}",
+                        f"Process {pid} cloned, new thread_id: {new_tid}",
                     )
                     # Execute pre-hooks for clone event
                     self._execute_pre_hooks(EventType.CLONE, thread)
-                    self._handle_clone(message, results)
+                    self._handle_clone(extra_info, results)
                     self.forward_signal = False
                     self.internal_debugger.resume_context.event_type[pid] = EventType.CLONE
                     # Execute post-hooks for clone event
@@ -565,11 +566,11 @@ class PtraceStatusHandler:
                     # to be PTRACE_CONTed or PTRACE_DETACHed to finish exiting.
                     # so we don't call self._handle_exit(pid) here
                     # it will be called at the next wait (hopefully)
-                    message = self.ptrace_interface._get_event_msg(pid)
+                    new_tid = extra_info
                     # Mark the thread as a zombie
                     thread._zombie = True
                     liblog.debugger(
-                        f"Thread {pid} exited with status: {message}",
+                        f"Thread {pid} exited with status: {new_tid}",
                     )
                     self.forward_signal = False
                     self.internal_debugger.resume_context.event_type[pid] = EventType.EXIT
@@ -577,16 +578,16 @@ class PtraceStatusHandler:
                     self._execute_post_hooks(EventType.EXIT, thread)
                 case StopEvents.FORK_EVENT | StopEvents.VFORK_EVENT:
                     # The process has been forked
-                    message = self.ptrace_interface._get_event_msg(pid)
+                    new_tid = extra_info
                     liblog.debugger(
-                        f"Process {pid} forked with new pid: {message}",
+                        f"Process {pid} forked with new pid: {new_tid}",
                     )
                     # Execute pre-hooks for fork event
                     self._execute_pre_hooks(EventType.FORK, thread)
                     # We need to detach from the child process and attach to it again with a new debugger
-                    self.ptrace_interface.lib_trace.detach_from_child(message, self.internal_debugger.follow_children)
+                    self.ptrace_interface.lib_trace.detach_from_child(new_tid, self.internal_debugger.follow_children)
                     if self.internal_debugger.follow_children:
-                        self.internal_debugger.set_child_debugger(message)
+                        self.internal_debugger.set_child_debugger(new_tid)
                     self.forward_signal = False
                     self.internal_debugger.resume_context.event_type[pid] = EventType.FORK
                     # Execute post-hooks for fork event
@@ -604,7 +605,13 @@ class PtraceStatusHandler:
                     # Execute post-hooks for exec event
                     self._execute_post_hooks(EventType.EXEC, thread)
 
-    def _handle_change(self: PtraceStatusHandler, pid: int, status: int, results: ResultList) -> None:
+    def _handle_change(
+        self: PtraceStatusHandler,
+        pid: int,
+        status: int,
+        extra_info: int,
+        results: ThreadStatusList,
+    ) -> None:
         """Handle a change in the status of a traced process."""
         # Initialize the forward_signal flag
         self.forward_signal = True
@@ -621,7 +628,7 @@ class PtraceStatusHandler:
             thread = self.internal_debugger.get_thread_by_id(pid)
 
             # Check if the debugger needs to handle the signal
-            self._internal_signal_handler(pid, signum, results, status, thread)
+            self._internal_signal_handler(pid, signum, results, status, extra_info, thread)
 
             if signum != SYSCALL_SIGTRAP and thread is not None:
                 thread._signal_number = signum & 0x7F
@@ -646,7 +653,7 @@ class PtraceStatusHandler:
             liblog.debugger("Child process %d exited with signal %d", pid, exit_signal)
             self._handle_exit(pid, exit_code=None, exit_signal=exit_signal)
 
-    def manage_change(self: PtraceStatusHandler, result: ResultList) -> None:
+    def manage_change(self: PtraceStatusHandler, result: ThreadStatusList) -> None:
         """Manage the result of the waitpid and handle the changes."""
         # Assume that the stop depends on SIGSTOP sent by the debugger
         # This is a workaround for some race conditions that may happen
@@ -655,10 +662,10 @@ class PtraceStatusHandler:
         # We declare in the ResumeContext that we are executing a few callbacks
         self.internal_debugger.resume_context._is_in_callback = True
 
-        for pid, status in result:
+        for pid, status, extra_info in result:
             if pid != -1:
                 # Otherwise, this is a spurious trap
-                self._handle_change(pid, status, result)
+                self._handle_change(pid, status, extra_info, result)
 
         # Callbacks are done
         self.internal_debugger.resume_context._is_in_callback = False

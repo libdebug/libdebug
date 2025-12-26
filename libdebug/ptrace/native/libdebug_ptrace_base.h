@@ -1,6 +1,6 @@
 //
 // This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-// Copyright (c) 2024 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
+// Copyright (c) 2024-2025 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for details.
 //
 
@@ -10,6 +10,7 @@
 #include <nanobind/stl/list.h>
 #include <nanobind/stl/map.h>
 #include <nanobind/stl/pair.h>
+#include <nanobind/stl/tuple.h>
 #include <nanobind/stl/array.h>
 #include <nanobind/stl/shared_ptr.h>
 
@@ -63,8 +64,5 @@ struct Thread
     int signal_to_forward;
 };
 
-struct ThreadStatus
-{
-    pid_t tid;
-    int status;
-};
+typedef std::tuple<pid_t, int, unsigned long> ThreadStatus;
+typedef std::vector<ThreadStatus> ThreadStatusList;
