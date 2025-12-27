@@ -15,7 +15,7 @@ from libdebug.architectures.ptrace_software_breakpoint_patcher import (
 )
 from libdebug.data.event_type import EventType
 from libdebug.liblog import liblog
-from libdebug.ptrace.ptrace_constants import SYSCALL_SIGTRAP, StopEvents
+from libdebug.ptrace.ptrace_constants import SYSCALL_SIGTRAP, SigtrapCodes, StopEvents
 from libdebug.utils.process_utils import get_process_tasks
 from libdebug.utils.signal_utils import resolve_signal_name
 
@@ -150,14 +150,6 @@ class PtraceStatusHandler:
 
     def _handle_breakpoints(self: PtraceStatusHandler, thread_id: int) -> None:
         thread = self.internal_debugger.get_thread_by_id(thread_id)
-
-        if not hasattr(thread, "instruction_pointer"):
-            # This is a signal trap hit on process startup
-            # Do not resume the process until the user decides to do so
-            self.internal_debugger.resume_context.event_type[thread_id] = EventType.STARTUP
-            self.internal_debugger.resume_context.resume = False
-            self.forward_signal = False
-            return
 
         ip = thread.instruction_pointer
 
@@ -498,6 +490,130 @@ class PtraceStatusHandler:
 
         self._manage_caught_signal(catcher, thread, signal_number, {signal_number})
 
+    def _handle_single_step(self: PtraceStatusHandler, pid: int, thread: ThreadContext) -> None:
+        """Handle a single step event."""
+        self._execute_pre_hooks(EventType.STEP, thread)
+        liblog.debugger(f"Single step event on thread {pid}")
+        self.internal_debugger.resume_context.event_type[pid] = EventType.STEP
+        self.forward_signal = False
+
+        # Execute post hooks for step event
+        should_resume = self._execute_post_hooks(EventType.STEP, thread)
+        self.internal_debugger.resume_context.resume &= should_resume
+
+    def _handle_ptrace_event(
+        self: PtraceStatusHandler,
+        pid: int,
+        results: ThreadStatusList,
+        status: int,
+        new_tid: int,
+        thread: ThreadContext,
+    ) -> None:
+        """Handle a ptrace event."""
+        liblog.debugger(f"Ptrace event on thread {pid}")
+        self.forward_signal = False
+        event = status >> 8
+        match event:
+            case StopEvents.CLONE_EVENT:
+                # The process has been cloned
+                liblog.debugger(
+                    f"Process {pid} cloned, new thread_id: {new_tid}",
+                )
+                # Execute pre-hooks for clone event
+                self._execute_pre_hooks(EventType.CLONE, thread)
+                self._handle_clone(new_tid, results)
+                self.forward_signal = False
+                self.internal_debugger.resume_context.event_type[pid] = EventType.CLONE
+                # Execute post-hooks for clone event
+                self._execute_post_hooks(EventType.CLONE, thread)
+            case StopEvents.SECCOMP_EVENT:
+                # The process has installed a seccomp
+                liblog.debugger(f"Process {pid} installed a seccomp")
+                self.forward_signal = False
+                self.internal_debugger.resume_context.event_type[pid] = EventType.SECCOMP
+                # Execute post hooks for seccomp event
+                self._execute_post_hooks(EventType.SECCOMP, thread)
+            case StopEvents.EXIT_EVENT:
+                # The tracee is still alive; it needs
+                # to be PTRACE_CONTed or PTRACE_DETACHed to finish exiting.
+                # so we don't call self._handle_exit(pid) here
+                # it will be called at the next wait (hopefully)
+                # Mark the thread as a zombie
+                thread._zombie = True
+                liblog.debugger(
+                    f"Thread {pid} exited with status: {new_tid}",
+                )
+                self.forward_signal = False
+                self.internal_debugger.resume_context.event_type[pid] = EventType.EXIT
+                # Execute post hooks for exit event
+                self._execute_post_hooks(EventType.EXIT, thread)
+            case StopEvents.FORK_EVENT | StopEvents.VFORK_EVENT:
+                # The process has been forked
+                liblog.debugger(
+                    f"Process {pid} forked with new pid: {new_tid}",
+                )
+                # Execute pre-hooks for fork event
+                self._execute_pre_hooks(EventType.FORK, thread)
+                # We need to detach from the child process and attach to it again with a new debugger
+                self.ptrace_interface.lib_trace.detach_from_child(new_tid, self.internal_debugger.follow_children)
+                if self.internal_debugger.follow_children:
+                    self.internal_debugger.set_child_debugger(new_tid)
+                self.forward_signal = False
+                self.internal_debugger.resume_context.event_type[pid] = EventType.FORK
+                # Execute post-hooks for fork event
+                self._execute_post_hooks(EventType.FORK, thread)
+            case StopEvents.EXEC_EVENT:
+                # The process has executed a new program
+                liblog.debugger(f"Process {pid} executed a new program")
+                # Execute pre-hooks for exec event
+                self._execute_pre_hooks(EventType.EXEC, thread)
+                self._handle_exec()
+                # We do not forward the signal, otherwise we would kill the new process
+                self.forward_signal = False
+                # We interrupt the process to allow the user to handle the exec event
+                self.internal_debugger.resume_context.event_type[pid] = EventType.EXEC
+                # Execute post-hooks for exec event
+                self._execute_post_hooks(EventType.EXEC, thread)
+            case _:
+                liblog.debugger(f"Unknown ptrace event {event} on thread {pid}")
+
+    def _handle_debugger_sigtrap(
+        self: PtraceStatusHandler,
+        pid: int,
+        signum: int,
+        results: ThreadStatusList,
+        status: int,
+        extra_info: int,
+        thread: ThreadContext,
+    ) -> None:
+        """Handle a SIGTRAP signal."""
+        if not hasattr(thread, "instruction_pointer"):
+            # This is a signal trap hit on process startup
+            # Do not resume the process until the user decides to do so
+            self.internal_debugger.resume_context.event_type[thread.thread_id] = EventType.STARTUP
+            self.internal_debugger.resume_context.resume = False
+            self.forward_signal = False
+            return
+
+        if not (status >> 16):
+            # This is a SIGTRAP not linked to a ptrace event
+            # It can be a breakpoint hit or a single step
+            si_type = extra_info & 0xFF
+            match si_type:
+                case SigtrapCodes.TRAP_BRKPT:
+                    # self._handle_software_breakpoint(pid, signum, results, status, extra_info, thread)
+                    self._handle_breakpoints(pid)
+                case SigtrapCodes.TRAP_HWBKPT:
+                    # self._handle_hardware_breakpoint(pid, signum, results, status, extra_info, thread)
+                    self._handle_breakpoints(pid)
+                case SigtrapCodes.TRAP_TRACE:
+                    self._handle_single_step(pid, thread)
+                case _:
+                    liblog.debugger(f"Unknown SIGTRAP type {si_type} on thread {pid}")
+        else:
+            # This is a ptrace event
+            self._handle_ptrace_event(pid, results, status, extra_info, thread)
+
     def _internal_signal_handler(
         self: PtraceStatusHandler,
         pid: int,
@@ -525,85 +641,7 @@ class PtraceStatusHandler:
             self.internal_debugger.resume_context._force_interrupt = False
             self.forward_signal = False
         elif signum == signal.SIGTRAP:
-            # The trap decides if we hit a breakpoint. If so, it decides whether we should stop or
-            # continue the execution and wait for the next trap
-            self._handle_breakpoints(pid)
-
-            if self.internal_debugger.resume_context._is_a_step:
-                # The process is stepping, we need to stop the execution
-                self.internal_debugger.resume_context.event_type[pid] = EventType.STEP
-                self.internal_debugger.resume_context._is_a_step = False
-                self.forward_signal = False
-
-                # Execute post hooks for step event
-                should_resume = self._execute_post_hooks(EventType.STEP, thread)
-                self.internal_debugger.resume_context.resume &= should_resume
-
-            event = status >> 8
-            match event:
-                case StopEvents.CLONE_EVENT:
-                    # The process has been cloned
-                    new_tid = extra_info
-                    liblog.debugger(
-                        f"Process {pid} cloned, new thread_id: {new_tid}",
-                    )
-                    # Execute pre-hooks for clone event
-                    self._execute_pre_hooks(EventType.CLONE, thread)
-                    self._handle_clone(extra_info, results)
-                    self.forward_signal = False
-                    self.internal_debugger.resume_context.event_type[pid] = EventType.CLONE
-                    # Execute post-hooks for clone event
-                    self._execute_post_hooks(EventType.CLONE, thread)
-                case StopEvents.SECCOMP_EVENT:
-                    # The process has installed a seccomp
-                    liblog.debugger(f"Process {pid} installed a seccomp")
-                    self.forward_signal = False
-                    self.internal_debugger.resume_context.event_type[pid] = EventType.SECCOMP
-                    # Execute post hooks for seccomp event
-                    self._execute_post_hooks(EventType.SECCOMP, thread)
-                case StopEvents.EXIT_EVENT:
-                    # The tracee is still alive; it needs
-                    # to be PTRACE_CONTed or PTRACE_DETACHed to finish exiting.
-                    # so we don't call self._handle_exit(pid) here
-                    # it will be called at the next wait (hopefully)
-                    new_tid = extra_info
-                    # Mark the thread as a zombie
-                    thread._zombie = True
-                    liblog.debugger(
-                        f"Thread {pid} exited with status: {new_tid}",
-                    )
-                    self.forward_signal = False
-                    self.internal_debugger.resume_context.event_type[pid] = EventType.EXIT
-                    # Execute post hooks for exit event
-                    self._execute_post_hooks(EventType.EXIT, thread)
-                case StopEvents.FORK_EVENT | StopEvents.VFORK_EVENT:
-                    # The process has been forked
-                    new_tid = extra_info
-                    liblog.debugger(
-                        f"Process {pid} forked with new pid: {new_tid}",
-                    )
-                    # Execute pre-hooks for fork event
-                    self._execute_pre_hooks(EventType.FORK, thread)
-                    # We need to detach from the child process and attach to it again with a new debugger
-                    self.ptrace_interface.lib_trace.detach_from_child(new_tid, self.internal_debugger.follow_children)
-                    if self.internal_debugger.follow_children:
-                        self.internal_debugger.set_child_debugger(new_tid)
-                    self.forward_signal = False
-                    self.internal_debugger.resume_context.event_type[pid] = EventType.FORK
-                    # Execute post-hooks for fork event
-                    self._execute_post_hooks(EventType.FORK, thread)
-                case StopEvents.EXEC_EVENT:
-                    # The process has executed a new program
-                    liblog.debugger(f"Process {pid} executed a new program")
-                    # Execute pre-hooks for exec event
-                    self._execute_pre_hooks(EventType.EXEC, thread)
-                    self._handle_exec()
-                    # We do not forward the signal, otherwise we would kill the new process
-                    self.forward_signal = False
-                    # We interrupt the process to allow the user to handle the exec event
-                    self.internal_debugger.resume_context.event_type[pid] = EventType.EXEC
-                    # Execute post-hooks for exec event
-                    self._execute_post_hooks(EventType.EXEC, thread)
+            self._handle_debugger_sigtrap(pid, signum, results, status, extra_info, thread)
 
     def _handle_change(
         self: PtraceStatusHandler,

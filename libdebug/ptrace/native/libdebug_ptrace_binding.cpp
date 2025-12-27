@@ -505,13 +505,8 @@ unsigned long LibdebugPtraceInterface::get_stop_event_extra_info(const pid_t pid
     }
 
     // Now, the si.si_code tells us various info about the stop event
-    // If si_code == TRAP_BRKPT (1), we hit a breakpoint
-    if (si.si_code == TRAP_BRKPT) {
-        // We hit a software breakpoint, we can return the address as well as the TRAP_BRKPT code
-        return (unsigned long)si.si_addr << 8 | TRAP_BRKPT;
-    }
     // If si_code == TRAP_TRACE (2), we did a single step
-    else if (si.si_code == TRAP_TRACE) {
+    if (si.si_code == TRAP_TRACE) {
         // We are stepping, we have no extra info to return
         return TRAP_TRACE;
     }
@@ -520,16 +515,54 @@ unsigned long LibdebugPtraceInterface::get_stop_event_extra_info(const pid_t pid
         // We hit a hardware breakpoint, we can return the TRAP_HWBKPT code as well as the address
         return (unsigned long)si.si_addr << 8 | TRAP_HWBKPT;
     }
-    // If si_code == 0x80 (SI_KERNEL), this is a syscall-stop
-    // We should not be getting here, as PTRACE_O_TRACESYSGOOD should mask the signal, but idk
-    else if (si.si_code == 0x80) {
-        // Syscall-stop, no extra info to return
-        return 0x80;
-    }
-    // If si_code <= 0, the stop was caused by a signal
-    else if (si.si_code <= 0) {
-        // We return nothing special, just the si_code
-        return si.si_code << 8;
+    // If si_code == 0x80 (SI_KERNEL) or si_code == 0x00 (SI_USER)
+    // this is not a syscall stop, even though it looks like one
+    // The kernel is stupid and doesn't really know what this event is, so we need to handle it ourselves
+    // If si_code == TRAP_BRKPT (1), we probably hit a software breakpoint, but the kernel sometimes
+    // misreports steps as breakpoints, so we need to check ourselves too (sigh)
+    else if (si.si_code == 0x80 || si.si_code == 0x00 || si.si_code == TRAP_BRKPT) {
+        // Let's check if we have hit a software breakpoint
+        unsigned long ip;
+        Thread &t = try_get_thread(pid);
+
+        // We need to fetch the current registers, as they might be stale
+        getregs(t);
+
+        ip = INSTRUCTION_POINTER(t.regs);
+        // We need to decrement the instruction pointer by the size of the breakpoint instruction
+        ip -= BREAKPOINT_SIZE;
+        auto sw_it = software_breakpoints.find(ip);
+        if (sw_it != software_breakpoints.end() && sw_it->second.enabled) {
+            // We hit a software breakpoint on this thread
+            return (unsigned long)ip << 8 | TRAP_BRKPT;
+        }
+        // Let's check if we have hit a hardware breakpoint
+        ip = INSTRUCTION_POINTER(t.regs);
+        auto hw_it = t.hardware_breakpoints.find(ip);
+        if (hw_it != t.hardware_breakpoints.end() && hw_it->second.enabled) {
+            // We hit a hardware breakpoint on this thread
+            return (unsigned long)ip << 8 | TRAP_HWBKPT;
+        }
+        // We might have hit a software breakpoint that we didn't register
+        // We need to decrement the instruction pointer by the size of the breakpoint instruction
+        ip = INSTRUCTION_POINTER(t.regs) - BREAKPOINT_SIZE;
+        try {
+            unsigned long memory_value = peek_data(ip);
+            if (IS_SW_BREAKPOINT(memory_value)) {
+                return (unsigned long)ip << 8 | TRAP_BRKPT;
+            }
+        } catch (...) {
+            // Could not read memory, just ignore IT
+        }
+
+        // Now the fun part, if si_code was BRKPT but we didn't find any breakpoint,
+        // it means we probably hit a single step that the kernel misreported
+        if (si.si_code == TRAP_BRKPT) {
+            return TRAP_TRACE;
+        } else {
+            // Unknown si_code, return it as is
+            return si.si_code << 8;
+        }
     }
     // For other si_code values, we don't have extra info to return
     else {

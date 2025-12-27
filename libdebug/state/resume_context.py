@@ -35,14 +35,12 @@ class ResumeContext:
 
     _is_in_callback: bool = False
     _is_startup: bool = False
-    _is_a_step: bool = False
     _force_interrupt: bool = False
 
     def clear(self: ResumeContext) -> None:
         """Clears the context."""
         self.resume = True
         self._force_interrupt = False
-        self._is_a_step = False
         self._is_startup = False
         self.threads_with_signals_to_forward.clear()
         self.event_type.clear()

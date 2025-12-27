@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2023-2025 Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -67,3 +67,12 @@ class Commands(IntEnum):
     PTRACE_SECCOMP_GET_FILTER = 0x420C
     PTRACE_SECCOMP_GET_METADATA = 0x420D
     PTRACE_GET_SYSCALL_INFO = 0x420E
+
+
+# Taken from siginfo.h
+class SigtrapCodes(IntEnum):
+    """An enumeration of the possible si_code values for SIGTRAP."""
+
+    TRAP_BRKPT = 1
+    TRAP_TRACE = 2
+    TRAP_HWBKPT = 4

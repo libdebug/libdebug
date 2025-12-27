@@ -301,8 +301,6 @@ class PtraceInterface(DebuggingInterface):
 
         self.lib_trace.step(thread.thread_id)
 
-        self._internal_debugger.resume_context._is_a_step = True
-
     def step_until(self: PtraceInterface, thread: ThreadContext, address: int, max_steps: int) -> None:
         """Executes instructions of the specified thread until the specified address is reached.
 
