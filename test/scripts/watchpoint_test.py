@@ -743,10 +743,10 @@ class WatchpointTest(TestCase):
 
         self.assertEqual(len(global_char_ip), 2)
         self.assertEqual(len(global_int_ip), 1)
-        self.assertEqual(len(global_long_ip), 3) # There is one extra hit performed by the exit routine of libc
+        self.assertEqual(len(global_long_ip), 2)
         self.assertEqual(wp1.hit_count, 2)
         self.assertEqual(wp2.hit_count, 1)
-        self.assertEqual(wp3.hit_count, 3) # There is one extra hit performed by the exit routine of libc
+        self.assertEqual(wp3.hit_count, 2)
 
     @skipUnless(PLATFORM == "i386", "Requires i386")
     def test_watchpoint_disable_i386(self):
