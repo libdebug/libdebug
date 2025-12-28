@@ -528,9 +528,9 @@ unsigned long LibdebugPtraceInterface::get_stop_event_extra_info(const pid_t pid
         // We need to fetch the current registers, as they might be stale
         getregs(t);
 
-        ip = INSTRUCTION_POINTER(t.regs);
-        // We need to decrement the instruction pointer by the size of the breakpoint instruction
-        ip -= BREAKPOINT_SIZE;
+        // We need to adjust the instruction pointer based on the architecture
+        // On x86, IP points after the INT3, so we decrement. On aarch64, PC points to the BRK instruction.
+        ip = INSTRUCTION_POINTER(t.regs) - SW_BP_IP_ADJUST;
         auto sw_it = software_breakpoints.find(ip);
         if (sw_it != software_breakpoints.end() && sw_it->second.enabled) {
             // We hit a software breakpoint on this thread
@@ -544,8 +544,8 @@ unsigned long LibdebugPtraceInterface::get_stop_event_extra_info(const pid_t pid
             return (unsigned long)ip << 8 | TRAP_HWBKPT;
         }
         // We might have hit a software breakpoint that we didn't register
-        // We need to decrement the instruction pointer by the size of the breakpoint instruction
-        ip = INSTRUCTION_POINTER(t.regs) - BREAKPOINT_SIZE;
+        // We need to adjust the instruction pointer based on the architecture
+        ip = INSTRUCTION_POINTER(t.regs) - SW_BP_IP_ADJUST;
         try {
             unsigned long memory_value = peek_data(ip);
             if (IS_SW_BREAKPOINT(memory_value)) {
@@ -557,12 +557,7 @@ unsigned long LibdebugPtraceInterface::get_stop_event_extra_info(const pid_t pid
 
         // Now the fun part, if si_code was BRKPT but we didn't find any breakpoint,
         // it means we probably hit a single step that the kernel misreported
-        if (si.si_code == TRAP_BRKPT) {
-            return TRAP_TRACE;
-        } else {
-            // Unknown si_code, return it as is
-            return si.si_code << 8;
-        }
+        return TRAP_TRACE;
     }
     // For other si_code values, we don't have extra info to return
     else {
