@@ -617,7 +617,7 @@ class PipeManager:
             optional (bool, optional): whether to ignore the wait for the received input if the command is executed when the process is stopped. Defaults to False.
 
         Returns:
-            tuple[int, bytes]: index of the matched pattern and the received data before the pattern.
+            tuple[int, bytes]: index of the matched pattern and the received data.
         """
         if not isinstance(patterns, list) or (
             len(patterns) == 0 or any(not isinstance(p, (bytes, str)) for p in patterns)
@@ -663,8 +663,9 @@ class PipeManager:
 
                 event = self._internal_debugger.resume_context.get_event_type()
 
+                stream_name = "stderr" if stderr else "stdout"
                 raise RuntimeError(
-                    f"Receive until error. The debugged process has stopped due to the following event(s). {event}",
+                    f"Match receive until error on {stream_name}. The debugged process has stopped due to the following event(s). {event}",
                 )
 
             # Check for each pattern if it is in the buffer
