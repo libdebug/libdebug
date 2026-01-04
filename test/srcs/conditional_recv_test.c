@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
 typedef enum {
     COND_NONE = 0,
@@ -28,36 +29,50 @@ void break_here()
 int main(int argc, char** argv, char** envp)
 {
     setvbuf(stdout, NULL, _IOLBF, 0);
+    setvbuf(stderr, NULL, _IOLBF, 0);
     puts("Conditional receive test program");
+
+    int file_select = 0;
+
+    if (argc > 1)
+    {
+        if (strcmp(argv[1], "stderr") == 0)
+        {
+            file_select = 1;
+        }
+    }
+
+    FILE* out_file = (file_select == 0) ? stdout : stderr;
     
     srand((unsigned int)time(NULL));
     
-    condition = (conditions_t)(abs(rand() % 6) + 1);
+    condition = (conditions_t)((rand() % 6) + 1);
 
     switch (condition)
     {
     case COND_BREATHE:
-        puts("Breathe!");
+        fputs("Breathe!", out_file);
         break;
     case COND_SUNFLOWER:
-        puts("Sunflower.");
+        fputs("Sunflower.", out_file);
         break;
     case COND_RAINBOW:
-        puts("Rainbow.");
+        fputs("Rainbow.", out_file);
         break;
     case COND_THREE:
-        puts("Three to the right.");
+        fputs("Three to the right.", out_file);
         break;
     case COND_FOUR:
-        puts("Four to the left.");
+        fputs("Four to the left.", out_file);
         break;
     case COND_450:
-        puts("450");
+        fputs("450", out_file);
         break;
     default:
-        puts("This should never happen!");
+        fputs("This should never happen!", out_file);
         break;
     }
+    fflush(out_file);
 
     break_here();
 }

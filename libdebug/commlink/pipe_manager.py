@@ -620,7 +620,7 @@ class PipeManager:
             tuple[int, bytes]: index of the matched pattern and the received data before the pattern.
         """
         if not isinstance(patterns, list) or (
-            len(patterns) == 0 and any(not isinstance(p, (bytes, str)) for p in patterns)
+            len(patterns) == 0 or any(not isinstance(p, (bytes, str)) for p in patterns)
         ):
             raise ValueError("Patterns must be a non-empty list of bytes or str")
 
@@ -659,19 +659,21 @@ class PipeManager:
             ):
                 # We will not receive more data, the child process is not running
                 if optional:
-                    return b""
+                    return (-1, bytes(matcher.consumed_bytes))
+
                 event = self._internal_debugger.resume_context.get_event_type()
+
                 raise RuntimeError(
                     f"Receive until error. The debugged process has stopped due to the following event(s). {event}",
                 )
 
             # Check for each pattern if it is in the buffer
-            stdout_buffer_data = buffer.get_data()
-            pattern_found, match_end_index = matcher.stateful_search(stdout_buffer_data)
+            stream_buffer_data = buffer.get_data()
+            pattern_found, match_end_index = matcher.stateful_search(stream_buffer_data)
 
             if pattern_found >= 0:
-                unused_tail = stdout_buffer_data[match_end_index:]
-                buffer.overwrite(unused_tail) # Remove the matched pattern and the preceding data from the buffer
+                unused_tail = stream_buffer_data[match_end_index:]
+                buffer.overwrite(unused_tail)  # Remove the matched pattern and the preceding data from the buffer
                 break
 
             buffer.clear()

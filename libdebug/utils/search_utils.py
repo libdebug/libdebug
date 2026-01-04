@@ -6,6 +6,8 @@
 
 from __future__ import annotations
 
+from collections import deque
+
 from libdebug.liblog import liblog
 
 
@@ -34,7 +36,7 @@ class AhoCorasickMatcher:
     class _Node:
         """A node in the Aho-Corasick trie."""
 
-        def __init__(self: AhoCorasickMatcher._Node, pattern: str) -> None:
+        def __init__(self: AhoCorasickMatcher._Node, pattern: bytes) -> None:
             self.pattern = pattern
             # Children nodes mapped by byte value
             self.children: dict[int, AhoCorasickMatcher._Node] = {}
@@ -44,7 +46,11 @@ class AhoCorasickMatcher:
             self.output: int = -1
 
     def __init__(self: AhoCorasickMatcher, patterns: list[bytes]) -> None:
-        """State of the simplified Aho-Corasick procedure."""
+        """State of the simplified Aho-Corasick procedure.
+
+        Args:
+            patterns (list[bytes]): List of byte patterns to search for.
+        """
         self.root = self._Node(b"")
         self.patterns = patterns
         self.state = self.root
@@ -82,7 +88,7 @@ class AhoCorasickMatcher:
                     curr_node.output = self.patterns.index(pattern)
 
     def _build_failure_links(self) -> None:
-        queue = []
+        queue = deque()
 
         self.root.fail_link = self.root
 
@@ -93,7 +99,7 @@ class AhoCorasickMatcher:
 
         # 2. BFS
         while len(queue) > 0:
-            parent_node = queue.pop(0)  # We are currently at the PARENT
+            parent_node = queue.popleft()  # We are currently at the PARENT
 
             # Calculate fail links for all children of this parent
             for char, child_node in parent_node.children.items():
