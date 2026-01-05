@@ -40,6 +40,10 @@ if TYPE_CHECKING:
     from libdebug.data.symbol_list import SymbolList
     from libdebug.debugger.internal_debugger import InternalDebugger
 
+if libcontext.rich_available:
+    from rich.console import Console
+    from rich.table import Table
+
 
 @dataclass
 class ELF:
@@ -284,9 +288,6 @@ class ELF:
         """Pretty-prints the sections of the ELF file."""
         libcontext.require_rich()
 
-        from rich.console import Console  # noqa: PLC0415
-        from rich.table import Table  # noqa: PLC0415
-
         console = Console()
         table = Table(title=f"Sections in {self.path}")
 
@@ -315,9 +316,6 @@ class ELF:
         """Pretty-prints the dynamic sections of the ELF file."""
         libcontext.require_rich()
 
-        from rich.console import Console  # noqa: PLC0415
-        from rich.table import Table  # noqa: PLC0415
-
         console = Console()
         table = Table(title=f"Dynamic Sections in {self.path}")
 
@@ -341,9 +339,6 @@ class ELF:
     def pprint_program_headers(self: ELF) -> None:
         """Pretty-prints the program headers of the ELF file."""
         libcontext.require_rich()
-
-        from rich.console import Console  # noqa: PLC0415
-        from rich.table import Table  # noqa: PLC0415
 
         console = Console()
         table = Table(title=f"Program Headers in {self.path}")
@@ -374,9 +369,6 @@ class ELF:
     def pprint_gnu_properties(self: ELF) -> None:
         """Pretty-prints the GNU properties of the ELF file."""
         libcontext.require_rich()
-
-        from rich.console import Console  # noqa: PLC0415
-        from rich.table import Table  # noqa: PLC0415
 
         console = Console()
         table = Table(title=f"GNU Properties in {self.path}")

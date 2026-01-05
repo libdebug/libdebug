@@ -21,6 +21,12 @@ if TYPE_CHECKING:
     # Import for type checking only; safe even if 'rich' isn't installed at runtime
     from rich.console import Console
 
+if libcontext.rich_available:
+    # We need to import these here because we don't want to assume it is installed
+    from rich.panel import Panel
+    from rich.text import Text
+    from rich.tree import Tree
+
 
 def pprint_maps_util(maps: MemoryMapList | MemoryMapSnapshotList) -> None:
     """Prints the memory maps of the process."""
@@ -342,11 +348,6 @@ def pprint_mitigations(elf: ELF, console: "Console") -> None:
         console (Console): The console to print the mitigations to.
     """
     libcontext.require_rich()
-    # We need to import these here because we don't want to assume it is installed
-    from rich.panel import Panel  # noqa: PLC0415
-    from rich.text import Text  # noqa: PLC0415
-    from rich.tree import Tree  # noqa: PLC0415
-
     r_mit = elf.runtime_mitigations
 
     def yn(enabled: bool, label: str) -> Text:

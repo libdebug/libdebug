@@ -211,6 +211,15 @@ class LibContext:
                 "The 'rich' library is required for this feature. Please install it using 'pip install rich'.",
             )
 
+    @property
+    def rich_available(self: LibContext) -> bool:
+        """Check if the 'rich' library is available.
+
+        Returns:
+            bool: True if 'rich' is available, False otherwise.
+        """
+        return self._rich_available
+
     @contextmanager
     def tmp(self: LibContext, **kwargs: ...) -> ...:
         """Context manager that temporarily changes the library context. Use "with" statement."""
