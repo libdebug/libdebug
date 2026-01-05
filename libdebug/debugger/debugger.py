@@ -1208,6 +1208,6 @@ class Debugger:
         """
         return self._internal_debugger.libraries
 
-    def pprint_binary_report(self: InternalDebugger) -> None:
+    def pprint_binary_report(self: Debugger) -> None:
         """Pretty prints a report of the debugged binary."""
         self._internal_debugger.pprint_binary_report()

@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import importlib
 import platform
 import sys
 from contextlib import contextmanager
@@ -23,6 +24,7 @@ class LibContext:
     _debugger_logger_levels: list[str]
     _general_logger_levels: list[str]
     _debuginfod_server: str
+    _rich_available: bool
 
     def __new__(cls: type):
         """Create a new instance of the class if it does not exist yet.
@@ -50,6 +52,8 @@ class LibContext:
         self._general_logger = "INFO"
 
         self._debuginfod_server = "https://debuginfod.elfutils.org/"
+
+        self._rich_available = importlib.util.find_spec("rich") is not None
 
         # Adjust log levels based on command-line arguments
         if len(sys.argv) > 1:
@@ -199,6 +203,13 @@ class LibContext:
         for key, value in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, value)
+
+    def require_rich(self: LibContext) -> None:
+        """Ensure that the 'rich' library is available, otherwise raise an ImportError."""
+        if not self._rich_available:
+            raise ImportError(
+                "The 'rich' library is required for this feature. Please install it using 'pip install rich'.",
+            )
 
     @contextmanager
     def tmp(self: LibContext, **kwargs: ...) -> ...:

@@ -7,18 +7,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from libdebug.data.elf.elf import ELF
+from libdebug.data.elf.elf import ELF
 
 
-class ELFList(list):
+class ELFList(list[ELF]):
     """A list of elf files in the target process."""
-
-    def __init__(self: ELFList, elfs: list[ELF]) -> None:
-        """Initializes the ELFList."""
-        super().__init__(elfs)
 
     def _search_by_name(self: ELFList, name: str) -> list[ELF]:
         """Searches for an ELF by partial or exact match of name or path.
@@ -57,14 +51,14 @@ class ELFList(list):
 
         return ELFList(filtered_elfs)
 
-    def __getitem__(self: ELFList, key: str | int) -> ELFList:
-        """Returns the elf with exactly the specified name or at the specified index.
+    def __getitem__(self: ELFList, key: str | int) -> ELFList | ELF:
+        """Returns a list of ELF objects with exactly the specified name or at the ELF at the specified index.
 
         Args:
             key (str, int): The exact name or path of the ELF or its index.
 
         Returns:
-            ELFList[ELF]: List of elfs with the specified name.
+            ELFList[ELF] | ELF: List of elfs with the specified name or the elf at the specified index.
         """
         if not isinstance(key, str):
             return super().__getitem__(key)
@@ -74,14 +68,6 @@ class ELFList(list):
         if not elfs:
             raise KeyError(f"ELF '{key}' not found.")
         return ELFList(elfs)
-
-    def __hash__(self) -> int:
-        """Return the hash of the elf list."""
-        return hash(id(self))
-
-    def __eq__(self, other: object) -> bool:
-        """Check if the elf list is equal to another object."""
-        return super().__eq__(other)
 
     def __repr__(self: ELFList) -> str:
         """Returns the string representation of the ELFList without the default factory."""

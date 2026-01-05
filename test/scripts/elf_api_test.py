@@ -16,6 +16,22 @@ from utils.binary_utils import PLATFORM, BASE
 
 from libdebug.data.elf.linux_runtime_mitigations import RelroStatus
 
+ENTRY_POINTS = {
+            "i386": 0x1180,
+            "aarch64": 0x940,
+            "amd64": 0x1190,
+        }
+
+match PLATFORM:
+    case "i386":
+        gt_build_id = "3ffb142e23aeef6017d9cae1e90da130dae0a697"
+    case "aarch64":
+        gt_build_id = "93beda343351604e97878bbb8605dc4a13644d76"
+    case "amd64":
+        gt_build_id = "de1a4f0ca53a82f9590cc4a3cfaaec5fe86aabaf"
+    case _:
+        raise RuntimeError(f"Unsupported platform: {PLATFORM}")
+
 class ElfApiTest(TestCase):
     def setUp(self):
         # Redirect stdout
@@ -1843,28 +1859,12 @@ class ElfApiTest(TestCase):
         # Create a debugger and start execution
         d = debugger(rel_path, aslr=False)
 
-        ENTRY_POINTS = {
-            "i386": 0x1180,
-            "aarch64": 0x940,
-            "amd64": 0x1190,
-        }
-
         self.assertEqual(d.binary.path.split("/")[-1], "sections_test")
         self.assertEqual(d.binary.absolute_path, str(Path(rel_path).resolve()))
         self.assertEqual(d.binary.architecture, PLATFORM)
         self.assertEqual(d.binary.is_pie, True)
         self.assertEqual(d.binary.entry_point, ENTRY_POINTS[PLATFORM])
         self.assertEqual(d.binary.endianness, "little")
-
-        match PLATFORM:
-            case "i386":
-                gt_build_id = "3ffb142e23aeef6017d9cae1e90da130dae0a697"
-            case "aarch64":
-                gt_build_id = "93beda343351604e97878bbb8605dc4a13644d76"
-            case "amd64":
-                gt_build_id = "de1a4f0ca53a82f9590cc4a3cfaaec5fe86aabaf"
-            case _:
-                self.fail(f"Unsupported platform: {PLATFORM}")
 
         self.assertEqual(d.binary.build_id, gt_build_id)
 

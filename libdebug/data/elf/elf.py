@@ -7,7 +7,6 @@
 from __future__ import annotations
 
 import functools
-import importlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -34,6 +33,7 @@ from libdebug.utils.elf_utils import (
     get_entry_point,
     is_pie,
 )
+from libdebug.utils.libcontext import libcontext
 from libdebug.utils.oop.alias import check_aliased_property
 
 if TYPE_CHECKING:
@@ -76,29 +76,8 @@ class ELF:
     _architecture: str = ""
     """Architecture of the ELF file (e.g., x86, x86_64, arm, aarch64)."""
 
-    _sections: SectionList | None = None
-    """List of sections in the ELF file."""
-
-    _dynamic_sections: DynamicSectionList | None = None
-    """List of dynamic sections in the ELF file."""
-
-    _program_headers: ProgramHeaderList | None = None
-    """List of program headers in the ELF file."""
-
-    _gnu_properties: GNUPropertyList | None = None
-    """List of GNU properties in the ELF file."""
-
-    _build_id: str | None = None
-    """Build ID of the ELF file, if available."""
-
     _base_address: int = 0x0
     """Base address where the ELF file is loaded in memory."""
-
-    _symbols: SymbolList | None = None
-    """List of symbols in the ELF file."""
-
-    _runtime_mitigations: LinuxRuntimeMitigations | None = None
-    """The Linux runtime mitigations of the ELF file."""
 
     _internal_debugger: InternalDebugger | None = None
     """The instance of InternalDebugger"""
@@ -146,64 +125,57 @@ class ELF:
         """The size of the ELF file in bytes."""
         return Path(self.path).stat().st_size
 
-    @property
+    @functools.cached_property
     def sections(self: ELF) -> SectionList:
         """The list of sections in the ELF file."""
-        if self._sections is None:
-            table = get_elf_sections(self.path)
+        table = get_elf_sections(self.path)
 
-            parsed_sections = [
-                Section(
-                    name=section_info.name,
-                    section_type=section_info.type,
-                    flags=section_info.flags,
-                    address=section_info.addr,
-                    offset=section_info.offset,
-                    size=section_info.size,
-                    address_align=section_info.addralign,
-                    reference_file=self.absolute_path,
-                )
-                for section_info in table.sections
-            ]
+        parsed_sections = [
+            Section(
+                name=section_info.name,
+                section_type=section_info.type,
+                flags=section_info.flags,
+                address=section_info.addr,
+                offset=section_info.offset,
+                size=section_info.size,
+                address_align=section_info.addralign,
+                reference_file=self.absolute_path,
+            )
+            for section_info in table.sections
+        ]
 
-            self._sections = SectionList(parsed_sections)
-        return self._sections
+        return SectionList(parsed_sections)
 
-    @property
+    @functools.cached_property
     def dynamic_sections(self: ELF) -> DynamicSectionList:
         """The list of dynamic sections in the ELF file."""
-        if self._dynamic_sections is None:
-            table = get_elf_dynamic_sections(self.path)
+        table = get_elf_dynamic_sections(self.path)
 
-            parsed_dynamic_sections = [
-                DynamicSection(
-                    tag=dyn_section.tag,
-                    # Value can be either an int or a str depending on the type of the dynamic section
-                    value=(
-                        dyn_section.val
-                        if dyn_section.val_type
-                        in (
-                            DynSectionValueType.NONE,
-                            DynSectionValueType.NUM,
-                            DynSectionValueType.ADDR,
-                        )
-                        else dyn_section.val_str
-                    ),
-                    is_value_address=dyn_section.val_type == DynSectionValueType.ADDR,
-                    reference_file=self.absolute_path,
-                )
-                for dyn_section in table.entries
-            ]
+        parsed_dynamic_sections = [
+            DynamicSection(
+                tag=dyn_section.tag,
+                # Value can be either an int or a str depending on the type of the dynamic section
+                value=(
+                    dyn_section.val
+                    if dyn_section.val_type
+                    in (
+                        DynSectionValueType.NONE,
+                        DynSectionValueType.NUM,
+                        DynSectionValueType.ADDR,
+                    )
+                    else dyn_section.val_str
+                ),
+                is_value_address=dyn_section.val_type == DynSectionValueType.ADDR,
+                reference_file=self.absolute_path,
+            )
+            for dyn_section in table.entries
+        ]
 
-            self._dynamic_sections = DynamicSectionList(parsed_dynamic_sections)
-        return self._dynamic_sections
+        return DynamicSectionList(parsed_dynamic_sections)
 
-    @property
+    @functools.cached_property
     def build_id(self: ELF) -> str | None:
         """The build ID of the ELF file, if available."""
-        if self._build_id is not None:
-            return self._build_id
-
         id_section = None
 
         for section in self.sections:
@@ -216,8 +188,7 @@ class ELF:
                 f.seek(id_section.offset)
                 data = f.read(id_section.size)
                 if len(data) >= 16:
-                    self._build_id = data[16:].hex()
-                    return self._build_id
+                    return data[16:].hex()
 
         return None
 
@@ -229,22 +200,20 @@ class ELF:
 
         return self._base_address
 
-    @property
+    @functools.cached_property
     def symbols(self: ELF) -> SymbolList:
         """The list of symbols in the ELF file."""
-        if self._symbols is None:
-            if not self._internal_debugger.is_debugging:
-                raise ValueError("You must run or attach to the process before accessing symbols.")
+        if not self._internal_debugger.is_debugging:
+            raise ValueError("You must run or attach to the process before accessing symbols.")
 
-            full_path_elf = Path(self.absolute_path)
+        full_path_elf = Path(self.absolute_path)
 
-            self._symbols = SymbolList(
-                [sym for sym in self._internal_debugger.symbols if full_path_elf.samefile(Path(sym.backing_file))],
-                maps_source=self._internal_debugger,
-            )
-        return self._symbols
+        return SymbolList(
+            [sym for sym in self._internal_debugger.symbols if full_path_elf.samefile(Path(sym.backing_file))],
+            maps_source=self._internal_debugger,
+        )
 
-    @property
+    @functools.cached_property
     def soname(self: ELF) -> str | None:
         """The SONAME of the ELF file, if available.
 
@@ -256,75 +225,64 @@ class ELF:
             return soname_entries[0].value if isinstance(soname_entries[0].value, str) else None
         return None
 
-    @property
+    @functools.cached_property
     def program_headers(self: ELF) -> ProgramHeaderList:
         """The program headers of the ELF file."""
-        if self._program_headers is None:
-            table = get_elf_program_headers(self.path)
+        table = get_elf_program_headers(self.path)
 
-            parsed_program_headers = [
-                ProgramHeader(
-                    header_type=ph_info.type,
-                    offset=ph_info.offset,
-                    vaddr=ph_info.vaddr,
-                    paddr=ph_info.paddr,
-                    filesz=ph_info.filesz,
-                    memsz=ph_info.memsz,
-                    flags=ph_info.flags,
-                    align=ph_info.align,
-                    reference_file=self.absolute_path,
-                )
-                for ph_info in table.headers
-            ]
+        parsed_program_headers = [
+            ProgramHeader(
+                header_type=ph_info.type,
+                offset=ph_info.offset,
+                vaddr=ph_info.vaddr,
+                paddr=ph_info.paddr,
+                filesz=ph_info.filesz,
+                memsz=ph_info.memsz,
+                flags=ph_info.flags,
+                align=ph_info.align,
+                reference_file=self.absolute_path,
+            )
+            for ph_info in table.headers
+        ]
 
-            self._program_headers = ProgramHeaderList(parsed_program_headers)
+        return ProgramHeaderList(parsed_program_headers)
 
-        return self._program_headers
-
-    @property
+    @functools.cached_property
     def gnu_properties(self: ELF) -> GNUPropertyList:
         """The GNU properties of the ELF file."""
-        if self._gnu_properties is None:
-            table = get_elf_gnu_property_notes(self.path)
+        table = get_elf_gnu_property_notes(self.path)
 
-            parsed_gnu_properties = []
+        parsed_gnu_properties = []
 
-            for note in table.properties:
-                pr_type = note.type
+        for note in table.properties:
+            pr_type = note.type
 
-                # Determine the value based on the note content
-                if note.is_bit_mask or note.bit_mnemonics:
-                    value = note.bit_mnemonics
-                elif len(note.data) in (4, 8):
-                    value = int.from_bytes(note.data, byteorder=self.endianness)
-                else:
-                    value = note.data
+            # Determine the value based on the note content
+            if note.is_bit_mask or note.bit_mnemonics:
+                value = note.bit_mnemonics
+            elif len(note.data) in (4, 8):
+                value = int.from_bytes(note.data, byteorder=self.endianness)
+            else:
+                value = note.data
 
-                parsed_gnu_properties.append(
-                    GNUProperty(
-                        pr_type=pr_type,
-                        value=value,
-                        reference_file=self.absolute_path,
-                    ),
-                )
+            parsed_gnu_properties.append(
+                GNUProperty(
+                    pr_type=pr_type,
+                    value=value,
+                    reference_file=self.absolute_path,
+                ),
+            )
 
-            self._gnu_properties = GNUPropertyList(parsed_gnu_properties)
+        return GNUPropertyList(parsed_gnu_properties)
 
-        return self._gnu_properties
-
-    @property
+    @functools.cached_property
     def runtime_mitigations(self: ELF) -> LinuxRuntimeMitigations:
         """The Linux runtime mitigations of the ELF file."""
-        if self._runtime_mitigations is None:
-            self._runtime_mitigations = LinuxRuntimeMitigations.parse_elf(self, self._internal_debugger.is_debugging)
-        return self._runtime_mitigations
+        return LinuxRuntimeMitigations.parse_elf(self, self._internal_debugger.is_debugging)
 
     def pprint_sections(self: ELF) -> None:
         """Pretty-prints the sections of the ELF file."""
-        if importlib.util.find_spec("rich") is None:
-            raise RuntimeError(
-                "The 'rich' package is required for pprint_binary_report. Install it with 'pip install rich'."
-            )
+        libcontext.require_rich()
 
         from rich.console import Console  # noqa: PLC0415
         from rich.table import Table  # noqa: PLC0415
@@ -355,10 +313,7 @@ class ELF:
 
     def pprint_dynamic_sections(self: ELF) -> None:
         """Pretty-prints the dynamic sections of the ELF file."""
-        if importlib.util.find_spec("rich") is None:
-            raise RuntimeError(
-                "The 'rich' package is required for pprint_binary_report. Install it with 'pip install rich'."
-            )
+        libcontext.require_rich()
 
         from rich.console import Console  # noqa: PLC0415
         from rich.table import Table  # noqa: PLC0415
@@ -385,10 +340,7 @@ class ELF:
 
     def pprint_program_headers(self: ELF) -> None:
         """Pretty-prints the program headers of the ELF file."""
-        if importlib.util.find_spec("rich") is None:
-            raise RuntimeError(
-                "The 'rich' package is required for pprint_binary_report. Install it with 'pip install rich'."
-            )
+        libcontext.require_rich()
 
         from rich.console import Console  # noqa: PLC0415
         from rich.table import Table  # noqa: PLC0415
@@ -421,10 +373,7 @@ class ELF:
 
     def pprint_gnu_properties(self: ELF) -> None:
         """Pretty-prints the GNU properties of the ELF file."""
-        if importlib.util.find_spec("rich") is None:
-            raise RuntimeError(
-                "The 'rich' package is required for pprint_binary_report. Install it with 'pip install rich'."
-            )
+        libcontext.require_rich()
 
         from rich.console import Console  # noqa: PLC0415
         from rich.table import Table  # noqa: PLC0415

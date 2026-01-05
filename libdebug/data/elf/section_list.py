@@ -12,10 +12,6 @@ from libdebug.data.elf.section import Section
 class SectionList(list[Section]):
     """A list of sections in an ELF."""
 
-    def __init__(self: SectionList, sections: list[Section]) -> None:
-        """Initializes the SectionList."""
-        super().__init__(sections)
-
     def _search_by_address(self: SectionList, address: int) -> SectionList:
         """Searches for a section by relative address.
 
@@ -100,14 +96,6 @@ class SectionList(list[Section]):
         if not sections:
             raise KeyError(f"Section '{key}' not found.")
         return SectionList(sections)
-
-    def __hash__(self) -> int:
-        """Return the hash of the section list."""
-        return hash(id(self))
-
-    def __eq__(self, other: object) -> bool:
-        """Check if the section list is equal to another object."""
-        return super().__eq__(other)
 
     def __repr__(self: SectionList) -> str:
         """Returns the string representation of the SectionList without the default factory."""

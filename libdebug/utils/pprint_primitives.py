@@ -15,6 +15,7 @@ from libdebug.data.symbol_list import SymbolList
 from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
 from libdebug.utils.ansi_escape_codes import ANSIColors
 from libdebug.utils.debugging_utils import resolve_symbol_name_in_maps_util
+from libdebug.utils.libcontext import libcontext
 
 if TYPE_CHECKING:
     # Import for type checking only; safe even if 'rich' isn't installed at runtime
@@ -340,6 +341,7 @@ def pprint_mitigations(elf: ELF, console: "Console") -> None:
         elf (ELF): The ELF to print the mitigations of.
         console (Console): The console to print the mitigations to.
     """
+    libcontext.require_rich()
     # We need to import these here because we don't want to assume it is installed
     from rich.panel import Panel  # noqa: PLC0415
     from rich.text import Text  # noqa: PLC0415
@@ -390,14 +392,13 @@ def pprint_mitigations(elf: ELF, console: "Console") -> None:
 
     if elf.arch in ("i386", "amd64"):
         cet_node = tree.add(Text("Intel CET"))
-        cet_node.add(Text.assemble(Text("↳  ", style="dim"), yn(r_mit.shstk, "Shadow Stack")))
-        cet_node.add(Text.assemble(Text("↳  ", style="dim"), yn(r_mit.ibt, "IBT")))
+        cet_node.add(yn(r_mit.shstk, "Shadow Stack"))
+        cet_node.add(yn(r_mit.ibt, "IBT"))
     elif elf.arch == "aarch64":
         hard_node = tree.add(Text("ARM Architectural Hardening"))
-        hard_node.add(Text.assemble(Text("↳  ", style="dim"), yn(r_mit.shstk, "GCS")))
-        hard_node.add(Text.assemble(Text("↳  ", style="dim"), yn(r_mit.ibt, "BTI")))
-        # Include AArch64-only features in this group
-        hard_node.add(Text.assemble(Text("↳  ", style="dim"), yn(r_mit.pac, "PAC")))
+        hard_node.add(yn(r_mit.shstk, "GCS"))
+        hard_node.add(yn(r_mit.ibt, "BTI"))
+        hard_node.add(yn(r_mit.pac, "PAC"))
 
     # Fortify
     tree.add(yn(r_mit.fortify, "FORTIFY_SOURCE"))

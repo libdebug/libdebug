@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 import functools
-import importlib
 import os
 import signal
 import sys
@@ -2128,41 +2127,35 @@ class InternalDebugger:
 
                 # New file
                 has_parsed_file = False
-                start_segment = None
 
             if last_path != curr_map.backing_file:
+                has_parsed_file = True
                 start_segment = curr_map
 
-            if "x" in curr_map.permissions:
-                if start_segment is None:
-                    liblog.error(f"Could not determine the start of the library segment for {curr_map.backing_file}.")
-                else:
-                    has_parsed_file = True
+                p_backing = Path(curr_map.backing_file)
+                file_exists = p_backing.exists()
 
-                    p_backing = Path(curr_map.backing_file)
-                    file_exists = p_backing.exists()
+                if not file_exists:
+                    # The backing file does not exist, skip it
+                    continue
 
-                    if not file_exists:
-                        # The backing file does not exist, skip it
-                        continue
+                p_main = Path(self.path)
 
-                    p_main = Path(self.path)
+                if Path.samefile(p_backing, p_main):
+                    # Skip the main binary
+                    continue
 
-                    if Path.samefile(p_backing, p_main):
-                        # Skip the main binary
-                        continue
+                # Check if the segment is from a parsable ELF file
+                is_parsable_lib = (
+                    "r" in start_segment.permissions
+                    and self.memory[start_segment.start : start_segment.start + 4] == b"\x7fELF"
+                )
 
-                    # Check if the segment is from a parsable ELF file
-                    is_parsable_lib = (
-                        "r" in start_segment.permissions
-                        and self.memory[start_segment.start : start_segment.start + 4] == b"\x7fELF"
-                    )
+                # We found a mapped file but it is not a parsable ELF, skip it
+                if not is_parsable_lib:
+                    continue
 
-                    # We found an executable segment, if it's not from  an ELF file, skip it
-                    if not is_parsable_lib:
-                        continue
-
-                    collected_libs.append((curr_map.backing_file, start_segment.start))
+                collected_libs.append((curr_map.backing_file, start_segment.start))
 
             last_path = curr_map.backing_file
 
@@ -2197,7 +2190,7 @@ class InternalDebugger:
 
         found_libs = self._find_libraries_in_traced_process()
 
-        parsed_libs = []
+        parsed_libs = ELFList()
 
         for lib_path, base in found_libs:
             try:
@@ -2209,14 +2202,11 @@ class InternalDebugger:
             except Exception as e:
                 liblog.error(f"Could not parse library {lib_path}: {e}")
 
-        return ELFList(parsed_libs)
+        return parsed_libs
 
     def pprint_binary_report(self: InternalDebugger) -> None:
         """Prints a report of the binary."""
-        if importlib.util.find_spec("rich") is None:
-            raise RuntimeError(
-                "The 'rich' package is required for pprint_binary_report. Install it with 'pip install rich'."
-            )
+        libcontext.require_rich()
 
         from rich.console import Console  # noqa: PLC0415
         from rich.table import Column, Table  # noqa: PLC0415

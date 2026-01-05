@@ -12,10 +12,6 @@ from libdebug.data.elf.gnu_property import GNUProperty
 class GNUPropertyList(list[GNUProperty]):
     """A list of GNU properties in an ELF."""
 
-    def __init__(self: GNUPropertyList, properties: list[GNUPropertyList]) -> None:
-        """Initializes the GNUProperty list."""
-        super().__init__(properties)
-
     def _search_by_type(self: GNUPropertyList, pr_type: str) -> GNUPropertyList:
         """Searches for a GNU property by type.
 
@@ -50,14 +46,6 @@ class GNUPropertyList(list[GNUProperty]):
             raise TypeError("The value must be a string.")
 
         return GNUPropertyList(filtered_properties)
-
-    def __hash__(self) -> int:
-        """Return the hash of the GNU Properties list."""
-        return hash(id(self))
-
-    def __eq__(self, other: object) -> bool:
-        """Check if the GNU Properties list is equal to another object."""
-        return super().__eq__(other)
 
     def __repr__(self: GNUPropertyList) -> str:
         """Returns the string representation of the GNUPropertyList without the default factory."""

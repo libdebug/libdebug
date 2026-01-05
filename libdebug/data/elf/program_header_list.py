@@ -12,10 +12,6 @@ from libdebug.data.elf.program_header import ProgramHeader
 class ProgramHeaderList(list[ProgramHeader]):
     """A list of program headers in an ELF."""
 
-    def __init__(self: ProgramHeaderList, headers: list[ProgramHeader]) -> None:
-        """Initializes the ProgramHeader list."""
-        super().__init__(headers)
-
     def _search_by_type(self: ProgramHeader, header_type: str) -> ProgramHeaderList:
         """Searches for a program header by type.
 
@@ -50,14 +46,6 @@ class ProgramHeaderList(list[ProgramHeader]):
             raise TypeError("The value must be a string.")
 
         return ProgramHeaderList(filtered_headers)
-
-    def __hash__(self) -> int:
-        """Return the hash of the program header list."""
-        return hash(id(self))
-
-    def __eq__(self, other: object) -> bool:
-        """Check if the program header list is equal to another object."""
-        return super().__eq__(other)
 
     def __repr__(self: ProgramHeaderList) -> str:
         """Returns the string representation of the program header without the default factory."""
