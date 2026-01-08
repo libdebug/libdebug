@@ -2030,7 +2030,7 @@ class InternalDebugger:
         if not value and self._stop_on_fork_hook:
             self.unhook_event(self._stop_on_fork_hook)
             self._stop_on_fork_hook = None
-        elif value and not self._stop_on_fork_hook:
+        elif value and not self._stop_on_fork_hook and self.instanced:
             self._stop_on_fork_hook = self.__set_stop_hook(EventType.FORK)
 
     @property
@@ -2049,7 +2049,7 @@ class InternalDebugger:
         if not value and self._stop_on_exec_hook:
             self.unhook_event(self._stop_on_exec_hook)
             self._stop_on_exec_hook = None
-        elif value and not self._stop_on_exec_hook:
+        elif value and not self._stop_on_exec_hook and self.instanced:
             self._stop_on_exec_hook = self.__set_stop_hook(EventType.EXEC)
 
     @property
@@ -2068,7 +2068,7 @@ class InternalDebugger:
         if not value and self._stop_on_clone_hook:
             self.unhook_event(self._stop_on_clone_hook)
             self._stop_on_clone_hook = None
-        elif value and not self._stop_on_clone_hook:
+        elif value and not self._stop_on_clone_hook and self.instanced:
             self._stop_on_clone_hook = self.__set_stop_hook(EventType.CLONE)
 
     @change_state_function_process
