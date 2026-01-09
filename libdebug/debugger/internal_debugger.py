@@ -51,6 +51,7 @@ from libdebug.utils.debugger_wrappers import (
     background_alias,
     change_state_function_process,
     change_state_function_thread,
+    invalidates_volatile,
 )
 from libdebug.utils.debugging_utils import (
     normalize_and_validate_address,
@@ -75,7 +76,7 @@ from libdebug.utils.thread_exceptions import raise_exception_to_main_thread
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from typing import Any
+    from typing import Any, Dict
 
     from libdebug.commlink.pipe_manager import PipeManager
     from libdebug.data.env_dict import EnvDict
@@ -222,8 +223,8 @@ class InternalDebugger:
     _has_path_different_from_argv0: bool
     """A flag that indicates if the path to the binary is different from the first argument in argv."""
 
-    _elf_parsed_with_aslr: bool = False
-    """A flag that indicates if the ELF files were parsed with ASLR enabled."""
+    _cached_libs: Dict[str, ELF]
+    """A cache of the parsed libraries in the debugged process. Maps backing file path to ELF object."""
 
     def __init__(self: InternalDebugger) -> None:
         """Initialize the context."""
@@ -260,6 +261,7 @@ class InternalDebugger:
         self._snapshot_count = 0
         self.serialization_helper = SerializationHelper()
         self.children = []
+        self._cached_libs = {}
 
         # We register this debugger so that we can clean it up on exit.
         register_internal_debugger(self)
@@ -328,11 +330,7 @@ class InternalDebugger:
         if not self.path:
             raise RuntimeError("No binary file specified.")
 
-        # If ASLR is enabled or the process was not yet run, clear ELF caches
-        if self._elf_parsed_with_aslr or not self.is_debugging:
-            self.clear_elf_caches()
-            self._elf_parsed_with_aslr = False
-
+        self.clear_elf_caches()
         if timeout <= 0 and timeout != -1:
             raise ValueError("Timeout must be a positive number or -1.")
         if 0 < timeout <= 0.01:
@@ -542,6 +540,7 @@ class InternalDebugger:
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
+    @invalidates_volatile
     def cont(self: InternalDebugger) -> None:
         """Continues the process."""
         self.__polling_thread_command_queue.put((self.__threaded_cont, ()))
@@ -991,6 +990,7 @@ class InternalDebugger:
         return handler
 
     @change_state_function_process
+    @invalidates_volatile
     def gdb(
         self: InternalDebugger,
         migrate_breakpoints: bool = True,
@@ -1234,6 +1234,7 @@ class InternalDebugger:
         self._is_migrated_to_gdb = False
 
     @change_state_function_thread
+    @invalidates_volatile
     def step(self: InternalDebugger, thread: ThreadContext) -> None:
         """Executes a single instruction of the process.
 
@@ -1253,6 +1254,7 @@ class InternalDebugger:
             self.resume_context.resume = True
 
     @change_state_function_thread
+    @invalidates_volatile
     def step_until(
         self: InternalDebugger,
         thread: ThreadContext,
@@ -1289,6 +1291,7 @@ class InternalDebugger:
             self.resume_context.resume = True
 
     @change_state_function_thread
+    @invalidates_volatile
     def finish(self: InternalDebugger, thread: ThreadContext, heuristic: str = "backtrace") -> None:
         """Continues execution until the current function returns or the process stops.
 
@@ -1313,6 +1316,7 @@ class InternalDebugger:
             self.resume_context.resume = True
 
     @change_state_function_thread
+    @invalidates_volatile
     def next(self: InternalDebugger, thread: ThreadContext) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         if not self._is_in_background():
@@ -2094,17 +2098,24 @@ class InternalDebugger:
         if "_process_name" in self.__dict__:
             del self._process_name
 
-        if "binary" in self.__dict__:
-            del self.binary
-
-        if "libraries" in self.__dict__:
-            del self.libraries
+        self.clear_elf_caches()
 
     def clear_elf_caches(self: InternalDebugger) -> None:
         """Clears all the ELF caches of the internal debugger."""
         if "binary" in self.__dict__:
             del self.binary
 
+        if "libraries" in self.__dict__:
+            del self.libraries
+
+        self._cached_libs.clear()
+
+    def clear_volatile_caches(self: InternalDebugger) -> None:
+        """
+        Clears all caches that require revalidation once the process state changes.
+
+        This function should be called whenever the debugger performs a step, continue, or any similar operation.
+        """
         if "libraries" in self.__dict__:
             del self.libraries
 
@@ -2127,6 +2138,12 @@ class InternalDebugger:
 
                 # New file
                 has_parsed_file = False
+
+            if curr_map.backing_file in self._cached_libs:
+                collected_libs.append((curr_map.backing_file, -1))  # Base address is already cached
+                last_path = curr_map.backing_file
+                has_parsed_file = True
+                continue
 
             if last_path != curr_map.backing_file:
                 has_parsed_file = True
@@ -2173,9 +2190,6 @@ class InternalDebugger:
     @functools.cached_property
     def binary(self: InternalDebugger) -> ELF:
         """The ELF object representing the debugged binary."""
-        if self.aslr_enabled:
-            self._elf_parsed_with_aslr = True
-
         base = self.maps.filter("binary")[0].start if self.is_debugging else 0
         return ELF.parse(self.path, base, self)
 
@@ -2185,23 +2199,24 @@ class InternalDebugger:
         if not self.is_debugging:
             raise RuntimeError("Process not traced, cannot parse libraries.")
 
-        if self.aslr_enabled:
-            self._elf_parsed_with_aslr = True
-
         found_libs = self._find_libraries_in_traced_process()
 
         parsed_libs = ELFList()
 
         for lib_path, base in found_libs:
-            try:
-                curr = ELF.parse(lib_path, base, self)
+            curr = self._cached_libs.get(lib_path)
+            if curr is None:
+                try:
+                    curr = ELF.parse(lib_path, base, self)
 
-                if curr.soname is not None:
-                    parsed_libs.append(curr)
-                    liblog.debugger(f"Parsed library {lib_path} at base address {hex(base)}.")
-            except Exception as e:
-                liblog.error(f"Could not parse library {lib_path}: {e}")
+                    if curr.soname is not None:
+                        # Cache the parsed library
+                        self._cached_libs[lib_path] = curr
+                        liblog.debugger(f"Parsed library {lib_path} at base address {hex(base)}.")
+                except Exception as e:
+                    liblog.error(f"Could not parse library {lib_path}: {e}")
 
+            parsed_libs.append(curr)
         return parsed_libs
 
     def pprint_binary_report(self: InternalDebugger) -> None:

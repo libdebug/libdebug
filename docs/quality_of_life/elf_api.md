@@ -48,12 +48,10 @@ Most useful information is right here in the binary. However, to interact with t
 ### :material-library-shelves: Libraries
 This property returns an [ELFList](../../from_pydoc/generated/data/elf/elf_list) object containing instances of the [ELF](../../from_pydoc/generated/data/elf/elf) class representing the ELF files of all the shared libraries loaded in the process. There is also an alias for this property called `libs`.
 
-<!--- TODO: Review the caching policy of d.libraries so that every time it is called it checks for new maps? -->
-
 !!! WARNING "Traced Process Required"
     Since the list of libraries is retrieved from the memory maps of the process, the `libraries` property is only available once the process is being traced (i.e., after a `d.run()` or `d.attach()` call).
 
-    On the other hand, the list will also include libraries that were dynamically loaded with `dlopen()` during execution, even if not listed as needed dependencies of the binary. Be sure to access the `libraries` property after the process has loaded all the libraries you are interested in.
+    On the other hand, the list will also include libraries that were dynamically loaded with `dlopen()` during execution, even if not listed as needed dependencies of the binary.
 
 The [ELFList](../../from_pydoc/generated/data/elf/elf_list) object offers two methods to filter the libraries: `filter()` and the `[]` operator. While the `filter()` allows to search the ELF with a *partial* or exact match on the filename or path, the `[]` operator only works with an *exact match* of the filename or path.
 

@@ -20,7 +20,7 @@ class RelroStatus(str, Enum):
     NONE = "none"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class LinuxRuntimeMitigations:
     """Represents the Linux runtime mitigations for a process.
 

@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class DynamicSection:
     """Represents a dynamic section in an ELF file."""
 

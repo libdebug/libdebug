@@ -85,3 +85,13 @@ def background_alias(alias_method: callable) -> callable:
         return inner
 
     return _background_alias
+
+def invalidates_volatile(method: callable) -> callable:
+    """Decorator to invalidate volatile caches after executing a method."""
+
+    @wraps(method)
+    def wrapper(self: InternalDebugger, *args: ..., **kwargs: ...) -> ...:
+        self.clear_volatile_caches()
+        return method(self, *args, **kwargs)
+
+    return wrapper

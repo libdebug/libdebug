@@ -4,9 +4,6 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-import io
-import sys
-
 from unittest import TestCase
 from utils.binary_utils import RESOLVE_EXE, RESOLVE_EXE_CROSS
 from libdebug import debugger
@@ -16,33 +13,34 @@ from utils.binary_utils import PLATFORM, BASE
 
 from libdebug.data.elf.linux_runtime_mitigations import RelroStatus
 
-ENTRY_POINTS = {
-            "i386": 0x1180,
-            "aarch64": 0x940,
-            "amd64": 0x1190,
-        }
-
 match PLATFORM:
     case "i386":
+        entry_point = 0x1180
+        dl_open_test_bp = 0x74e
         gt_build_id = "3ffb142e23aeef6017d9cae1e90da130dae0a697"
+        LIBC_SONAME = "libc.so.6"
+        LD_SONAME = "ld-linux.so.2"
+        num_symbols = 50
     case "aarch64":
+        entry_point = 0x940
+        dl_open_test_bp = 0xa38
         gt_build_id = "93beda343351604e97878bbb8605dc4a13644d76"
+        LIBC_SONAME = "libc.so.6"
+        LD_SONAME = "ld-linux-aarch64.so.1"
+        num_symbols = 117
     case "amd64":
+        entry_point = 0x1190
+        dl_open_test_bp = 0x12a5
         gt_build_id = "de1a4f0ca53a82f9590cc4a3cfaaec5fe86aabaf"
+        LIBC_SONAME = "libc.so.6"
+        LD_SONAME = "ld-linux-x86-64.so.2"
+        num_symbols = 46
     case _:
         raise RuntimeError(f"Unsupported platform: {PLATFORM}")
+    
+LIBM_SONAME = "libm.so.6"
 
 class ElfApiTest(TestCase):
-    def setUp(self):
-        # Redirect stdout
-        self.capturedOutput = io.StringIO()
-        sys.stdout = self.capturedOutput
-        sys.stderr = self.capturedOutput
-
-    def tearDown(self):
-        sys.stdout = sys.__stdout__
-        sys.stderr = sys.__stderr__
-
     def test_sections_amd64(self):
         """Tests the sections API."""
         # Create a debugger and start execution
@@ -1863,7 +1861,7 @@ class ElfApiTest(TestCase):
         self.assertEqual(d.binary.absolute_path, str(Path(rel_path).resolve()))
         self.assertEqual(d.binary.architecture, PLATFORM)
         self.assertEqual(d.binary.is_pie, True)
-        self.assertEqual(d.binary.entry_point, ENTRY_POINTS[PLATFORM])
+        self.assertEqual(d.binary.entry_point, entry_point)
         self.assertEqual(d.binary.endianness, "little")
 
         self.assertEqual(d.binary.build_id, gt_build_id)
@@ -1876,32 +1874,12 @@ class ElfApiTest(TestCase):
 
         self.assertEqual(d.binary.base_address, BASE)
 
-        match PLATFORM:
-            case "i386":
-                num_symbols = 50
-            case "aarch64":
-                num_symbols = 117
-            case "amd64":
-                num_symbols = 46
-            case _:
-                self.fail(f"Unsupported platform: {PLATFORM}")
-
         self.assertEqual(len(d.binary.symbols), num_symbols)
 
         self.assertEqual(len(d.libraries), 2)
 
-        match PLATFORM:
-            case "i386":
-                self.assertEqual("libc.so.6", d.libraries[0].soname)
-                self.assertEqual("ld-linux.so.2", d.libraries[1].soname)
-            case "aarch64":
-                self.assertEqual("libc.so.6", d.libraries[0].soname)
-                self.assertEqual("ld-linux-aarch64.so.1", d.libraries[1].soname)
-            case "amd64":
-                self.assertEqual("libc.so.6", d.libraries[0].soname)
-                self.assertEqual("ld-linux-x86-64.so.2", d.libraries[1].soname)
-            case _:
-                self.fail(f"Unsupported platform: {PLATFORM}")
+        self.assertEqual(LIBC_SONAME, d.libraries[0].soname)
+        self.assertEqual(LD_SONAME, d.libraries[1].soname)
  
         d.terminate()
 
@@ -1915,33 +1893,16 @@ class ElfApiTest(TestCase):
         # Sort libs by soname for consistency
         libs = sorted(d.libs, key=lambda lib: lib.soname)
 
-        match PLATFORM:
-            case "i386":
-                self.assertEqual(libs[0].soname, "ld-linux.so.2")
-            case "aarch64":
-                self.assertEqual(libs[0].soname, "ld-linux-aarch64.so.1")
-            case "amd64":
-                self.assertEqual(libs[0].soname, "ld-linux-x86-64.so.2")
-            case _:
-                raise ValueError(f"Unsupported platform: {PLATFORM}")
-            
-        self.assertEqual(libs[1].soname, "libc.so.6")
+        self.assertEqual(libs[0].soname, LD_SONAME)
+        self.assertEqual(libs[1].soname, LIBC_SONAME)
 
         d.terminate()
 
         d = debugger(path, aslr=False)
         d.run()
 
-        match PLATFORM:
-            case "i386":
-                bp_address = 0x74e
-            case "aarch64":
-                bp_address = 0xa38
-            case "amd64":
-                bp_address = 0x12a5
-
         # When breakpoint is reached, the binary will already have called dlopen
-        bp = d.breakpoint(bp_address, hardware=True, file="binary")
+        bp = d.breakpoint(dl_open_test_bp, hardware=True, file="binary")
 
         d.cont()
 
@@ -1953,22 +1914,81 @@ class ElfApiTest(TestCase):
         # Sort libs by soname for consistency
         libs = sorted(d.libs, key=lambda lib: lib.soname)
 
+        self.assertEqual(libs[0].soname, LD_SONAME)
+        self.assertEqual(libs[1].soname, LIBC_SONAME)
+
         match PLATFORM:
             case "i386":
-                self.assertEqual(libs[0].soname, "ld-linux.so.2")
-                self.assertEqual(libs[1].soname, "libc.so.6")
                 self.assertEqual(libs[2].soname, "libdl.so.2")
-                self.assertEqual(libs[3].soname, "libm.so.6")
-            case "aarch64":
-                self.assertEqual(libs[0].soname, "ld-linux-aarch64.so.1")
-                self.assertEqual(libs[1].soname, "libc.so.6")
-                self.assertEqual(libs[2].soname, "libm.so.6")
-            case "amd64":
-                self.assertEqual(libs[0].soname, "ld-linux-x86-64.so.2")
-                self.assertEqual(libs[1].soname, "libc.so.6")
-                self.assertEqual(libs[2].soname, "libm.so.6")
+                self.assertEqual(libs[3].soname, LIBM_SONAME)
+            case "aarch64" | "amd64":
+                self.assertEqual(libs[2].soname, LIBM_SONAME)
             case _:
                 raise ValueError(f"Unsupported platform: {PLATFORM}")
+
+        d.terminate()
+
+    def test_dlopen_libs_api_caching(self):
+        path = RESOLVE_EXE("dynamic_lib_load")
+        d = debugger(path, aslr=False)
+
+        # Check for caching of libraries property
+        self.assertFalse("libraries" in d._internal_debugger.__dict__)
+
+        d.run()
+
+        self.assertFalse("libraries" in d._internal_debugger.__dict__)
+
+        self.assertEqual(len(d.libs), 2 if PLATFORM != "i386" else 3) # i386 has libdl.so.2 to do dlopen
+
+        self.assertTrue("libraries" in d._internal_debugger.__dict__)
+
+        # Sort libs by soname for consistency
+        libs = sorted(d.libs, key=lambda lib: lib.soname)
+
+        self.assertEqual(libs[0].soname, LD_SONAME)
+        self.assertEqual(libs[1].soname, LIBC_SONAME)
+
+        d.kill()
+
+        d.run()
+        self.assertFalse("libraries" in d._internal_debugger.__dict__)
+
+        self.assertEqual(len(d.libs), 2 if PLATFORM != "i386" else 3) # i386 has libdl.so.2 to do dlopen
+
+        # When breakpoint is reached, the binary will already have called dlopen
+        bp = d.breakpoint(dl_open_test_bp, hardware=True, file="binary")
+
+        self.assertTrue("libraries" in d._internal_debugger.__dict__)
+        d.cont()
+
+        self.assertEqual(bp.hit_on(d), True)
+        self.assertFalse("libraries" in d._internal_debugger.__dict__)
+
+        # Recheck the libs
+        self.assertEqual(len(d.libs), 3 if PLATFORM != "i386" else 4) # i386 has libdl.so.2 to do dlopen
+
+        # Sort libs by soname for consistency
+        libs = sorted(d.libs, key=lambda lib: lib.soname)
+
+        self.assertEqual(libs[0].soname, LD_SONAME)
+        self.assertEqual(libs[1].soname, LIBC_SONAME)
+
+        match PLATFORM:
+            case "i386":
+                self.assertEqual(libs[2].soname, "libdl.so.2")
+                self.assertEqual(libs[3].soname, LIBM_SONAME)
+            case "aarch64" | "amd64":
+                self.assertEqual(libs[2].soname, LIBM_SONAME)
+            case _:
+                raise ValueError(f"Unsupported platform: {PLATFORM}")
+
+        # dlclose will have been called, so libm should be unloaded    
+        d.finish()
+
+        self.assertFalse("libraries" in d._internal_debugger.__dict__)
+        self.assertEqual(len(d.libs), 2 if PLATFORM != "i386" else 3) # i386 has libdl.so.2 to do dlopen
+        self.assertTrue("libraries" in d._internal_debugger.__dict__)
 
         d.terminate()
 

@@ -37,7 +37,6 @@ from libdebug.utils.libcontext import libcontext
 from libdebug.utils.oop.alias import check_aliased_property
 
 if TYPE_CHECKING:
-    from libdebug.data.symbol_list import SymbolList
     from libdebug.debugger.internal_debugger import InternalDebugger
 
 if libcontext.rich_available:
@@ -45,7 +44,7 @@ if libcontext.rich_available:
     from rich.table import Table
 
 
-@dataclass
+@dataclass(frozen=True)
 class ELF:
     """An ELF file involved in the target process.
 

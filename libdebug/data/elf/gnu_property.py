@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class GNUProperty:
     """Represents a GNU Property parsed from a note in an ELF file."""
 
