@@ -61,7 +61,3 @@ class RegisterHolder(ABC):
     @abstractmethod
     def provide_special_regs(self: RegisterHolder) -> list[str]:
         """Provide the list of special registers, which are not intended for general-purpose use."""
-
-    @abstractmethod
-    def cleanup(self: RegisterHolder) -> None:
-        """Clean up the register accessors from the class."""

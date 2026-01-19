@@ -90,3 +90,18 @@ The [Debugger](../../from_pydoc/generated/debugger/debugger/) object has many mo
 | `follow_children` | `bool` | Whether to automatically monitor child processes. Defaults to True. |
 | **Return Value** |
 |[Debugger](../../from_pydoc/generated/debugger/debugger/) | `Debugger` | The debugger object |
+
+!!! TIP "Changing argv and env across runs"
+    You can change `argv`, `env`, and `path` attributes of the [Debugger](../../from_pydoc/generated/debugger/debugger/) object across runs.
+    For consistency, you **cannot** change them when you are tracing a process (e.g., after a [forcibly killing](../kill_and_post_mortem)) and you **cannot** read them when you are tracing a process that is not stopped. 
+
+    ```python
+    d = debugger(argv=["test", "argv1"])
+
+    for element in candidates:
+        d.run()
+        ...
+        d.kill()
+        d.argv[1] = element
+    ```
+

@@ -1,0 +1,85 @@
+# .github/workflows/changelog.yml
+name: Build changelog on release
+
+on:
+  push:
+    tags: ['*.*.*']
+
+permissions:
+  contents: write
+  pull-requests: write
+
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # If this is a Release event, switch to the branch the release was cut from
+      - name: Checkout release target branch
+        if: ${{ github.event_name == 'release' }}
+        run: |
+          BR="${{ github.event.release.target_commitish }}"
+          git fetch origin "$BR":"$BR"
+          git checkout "$BR"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Towncrier
+        run: |
+          python -m pip install --upgrade pip
+          pip install towncrier tomli
+
+      # Read name, version, and optional codename; put them into both outputs and env vars
+      - name: Read metadata from pyproject.toml
+        id: meta
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os, pathlib
+          try:
+              import tomllib  # Py 3.11+
+          except ModuleNotFoundError:
+              import tomli as tomllib
+          data = tomllib.loads(pathlib.Path("pyproject.toml").read_text(encoding="utf-8"))
+          name = data["project"]["name"]
+          ver  = data["project"]["version"]
+          code = data.get("tool", {}).get("libdebug", {}).get("codename", "")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fo:
+              fo.write(f"name={name}\nversion={ver}\ncodename={code}\n")
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as fe:
+              fe.write(f"NAME={name}\nVER={ver}\nCODE={code}\n")
+          PY
+
+      - name: Build changelog with Towncrier
+        run: |
+          set -euo pipefail
+          # Compose the monolithic version string you verified locally
+          if [ -n "${CODE:-}" ]; then
+            VSTR="$NAME $VER - $CODE"
+          else
+            VSTR="$NAME $VER"
+          fi
+          echo "Version string: $VSTR"
+          towncrier build --yes --version "$VSTR"
+
+      # Do NOT commit/push directly to protected branch.
+      # Create a PR with the working tree changes instead.
+      - name: Open PR with CHANGELOG update
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "doc: update CHANGEsLOG for ${{ github.ref_name }}"
+          title: "doc: update CHANGELOG for ${{ github.ref_name }}"
+          body: "Automated Towncrier changelog for tag `${{ github.ref_name }}`."
+          branch: chore/changelog-${{ github.ref_name }}
+          base: ${{ github.event_name == 'release'
+                    && github.event.release.target_commitish
+                    || github.event.repository.default_branch }}
+          delete-branch: true

@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024  Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2024-2025 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -8,20 +8,23 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from libdebug.debugger.internal_debugger_instance_manager import extend_internal_debugger, provide_internal_debugger
+from libdebug.data.memory_map import MemoryMap
 from libdebug.liblog import liblog
 
 if TYPE_CHECKING:
-    from libdebug.data.memory_map import MemoryMap
+    from libdebug.debugger.internal_debugger import InternalDebugger
 
-
-class MemoryMapList(list):
+class MemoryMapList(list[MemoryMap]):
     """A list of memory maps of the target process."""
 
-    def __init__(self: MemoryMapList, memory_maps: list[MemoryMap]) -> None:
+    def __init__(
+        self: MemoryMapList,
+        memory_maps: list[MemoryMap],
+        internal_debugger: InternalDebugger,
+    ) -> None:
         """Initializes the MemoryMapList."""
         super().__init__(memory_maps)
-        self._internal_debugger = provide_internal_debugger(self)
+        self._internal_debugger = internal_debugger
 
     def _search_by_address(self: MemoryMapList, address: int) -> list[MemoryMap]:
         for vmap in self:
@@ -48,7 +51,7 @@ class MemoryMapList(list):
 
         return filtered_maps
 
-    def filter(self: MemoryMapList, value: int | str) -> MemoryMapList[MemoryMap]:
+    def filter(self: MemoryMapList, value: int | str) -> MemoryMapList:
         """Filters the memory maps according to the specified value.
 
         If the value is an integer, it is treated as an address.
@@ -58,7 +61,7 @@ class MemoryMapList(list):
             value (int | str): The value to search for.
 
         Returns:
-            MemoryMapList[MemoryMap]: The memory maps matching the specified value.
+            MemoryMapList: The memory maps matching the specified value.
         """
         if isinstance(value, int):
             filtered_maps = self._search_by_address(value)
@@ -67,8 +70,7 @@ class MemoryMapList(list):
         else:
             raise TypeError("The value must be an integer or a string.")
 
-        with extend_internal_debugger(self._internal_debugger):
-            return MemoryMapList(filtered_maps)
+        return MemoryMapList(filtered_maps, self._internal_debugger)
 
     def __hash__(self) -> int:
         """Return the hash of the memory map list."""

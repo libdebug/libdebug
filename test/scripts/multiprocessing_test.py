@@ -53,6 +53,9 @@ class MultiprocessingTest(TestCase):
 
         d.kill()
         dd.kill()
+
+        dd.terminate()
+        d.terminate()
         
     def test_multiprocessing_sw_bp(self):
         d = debugger(RESOLVE_EXE("multiprocessing_input"))
@@ -80,6 +83,9 @@ class MultiprocessingTest(TestCase):
 
         d.kill()
         dd.kill()
+
+        dd.terminate()
+        d.terminate()
         
     def test_multiprocessing_stress_hw_bp(self):
         d = debugger(RESOLVE_EXE("multiprocessing_stress_input"))
@@ -206,6 +212,13 @@ class MultiprocessingTest(TestCase):
         ddddd.kill()
         dddddd.kill()
 
+        dddddd.terminate()
+        ddddd.terminate()
+        dddd.terminate()
+        ddd.terminate()
+        dd.terminate()
+        d.terminate()
+
     def test_multiprocessing_stress_sw_bp(self):
         d = debugger(RESOLVE_EXE("multiprocessing_stress_input"))
         
@@ -330,6 +343,13 @@ class MultiprocessingTest(TestCase):
         dddd.kill()
         ddddd.kill()
         dddddd.kill()
+
+        dddddd.terminate()
+        ddddd.terminate()
+        dddd.terminate()
+        ddd.terminate()
+        dd.terminate()
+        d.terminate()
         
     def test_multiprocessing_no_follow(self):
         d = debugger(RESOLVE_EXE("multiprocessing_input"), follow_children=False)
@@ -351,6 +371,8 @@ class MultiprocessingTest(TestCase):
 
         d.wait()
         d.kill()
+
+        d.terminate()
         
     def test_multiprocessing_stress_no_follow(self):
         d = debugger(RESOLVE_EXE("multiprocessing_stress_input"), follow_children=False)
@@ -372,3 +394,5 @@ class MultiprocessingTest(TestCase):
         
         d.wait()
         d.kill()
+
+        d.terminate()

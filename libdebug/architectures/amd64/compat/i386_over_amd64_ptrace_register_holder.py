@@ -115,9 +115,3 @@ class I386OverAMD64PtraceRegisterHolder(I386PtraceRegisterHolder):
         target_class.syscall_arg3 = _get_property_32("rsi")
         target_class.syscall_arg4 = _get_property_32("rdi")
         target_class.syscall_arg5 = _get_property_32("rbp")
-
-    def cleanup(self: I386OverAMD64PtraceRegisterHolder) -> None:
-        """Clean up the register accessors from the I386OverAMD64Registers class."""
-        for attr_name, attr_value in list(I386OverAMD64Registers.__dict__.items()):
-            if isinstance(attr_value, property):
-                delattr(I386OverAMD64Registers, attr_name)

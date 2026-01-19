@@ -28,17 +28,14 @@ from libdebug.builtin.pretty_print_syscall_handler import (
     pprint_on_enter,
     pprint_on_exit,
 )
+from libdebug.data.argument_list import ArgumentList
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.gdb_resume_event import GdbResumeEvent
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
 from libdebug.data.terminals import TerminalTypes
 from libdebug.debugger.debugger import Debugger
-from libdebug.debugger.internal_debugger_instance_manager import (
-    extend_internal_debugger,
-    link_to_internal_debugger,
-    remove_internal_debugger_refs,
-)
+from libdebug.debugger.internal_debugger_holder import register_internal_debugger, remove_internal_debugger_refs
 from libdebug.interfaces.interface_helper import provide_debugging_interface
 from libdebug.liblog import liblog
 from libdebug.memory.chunked_memory_view import ChunkedMemoryView
@@ -62,6 +59,7 @@ from libdebug.utils.file_utils import ensure_file_executable
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.platform_utils import get_platform_gp_register_size
 from libdebug.utils.pprint_primitives import pprint_maps_util, pprint_memory_util
+from libdebug.utils.safe_tcsetpgrp import safe_tcsetpgrp
 from libdebug.utils.signal_utils import (
     resolve_signal_name,
     resolve_signal_number,
@@ -78,6 +76,7 @@ if TYPE_CHECKING:
     from typing import Any
 
     from libdebug.commlink.pipe_manager import PipeManager
+    from libdebug.data.env_dict import EnvDict
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.data.registers import Registers
@@ -101,13 +100,13 @@ class InternalDebugger:
     arch: str
     """The architecture of the debugged process."""
 
-    argv: list[str]
+    argv: ArgumentList
     """The command line arguments of the debugged process."""
 
     path: str
     """The path to the binary of the debugged process."""
 
-    env: dict[str, str] | None
+    env: EnvDict | None
     """The environment variables of the debugged process."""
 
     escape_antidebug: bool
@@ -218,12 +217,15 @@ class InternalDebugger:
     _snapshot_count: int
     """The counter used to assign an ID to each snapshot."""
 
+    _has_path_different_from_argv0: bool
+    """A flag that indicates if the path to the binary is different from the first argument in argv."""
+
     def __init__(self: InternalDebugger) -> None:
         """Initialize the context."""
         # These must be reinitialized on every call to "debugger"
         self.aslr_enabled = False
         self.autoreach_entrypoint = True
-        self.argv = []
+        self.argv = ArgumentList()
         self.env = {}
         self.escape_antidebug = False
         self.breakpoints = {}
@@ -254,6 +256,9 @@ class InternalDebugger:
         self.serialization_helper = SerializationHelper()
         self.children = []
 
+        # We register this debugger so that we can clean it up on exit.
+        register_internal_debugger(self)
+
     def clear(self: InternalDebugger) -> None:
         """Reinitializes the context, so it is ready for a new run."""
         # These must be reinitialized on every call to "run"
@@ -280,18 +285,19 @@ class InternalDebugger:
 
     def start_up(self: InternalDebugger) -> None:
         """Starts up the context."""
-        # The context is linked to itself
-        link_to_internal_debugger(self, self)
-
         self.start_processing_thread()
-        with extend_internal_debugger(self):
-            self.debugging_interface = provide_debugging_interface()
-            self._fast_memory = DirectMemoryView(self._fast_read_memory, self._fast_write_memory)
-            self._slow_memory = ChunkedMemoryView(
-                self._peek_memory,
-                self._poke_memory,
-                unit_size=get_platform_gp_register_size(libcontext.platform),
-            )
+        self.debugging_interface = provide_debugging_interface(self)
+        self._fast_memory = DirectMemoryView(
+            self,
+            self._fast_read_memory,
+            self._fast_write_memory,
+        )
+        self._slow_memory = ChunkedMemoryView(
+            self,
+            self._peek_memory,
+            self._poke_memory,
+            unit_size=get_platform_gp_register_size(libcontext.platform),
+        )
 
     def start_processing_thread(self: InternalDebugger) -> None:
         """Starts the thread that will poll the traced process for state change."""
@@ -314,7 +320,7 @@ class InternalDebugger:
             timeout (float): The timeout in seconds. If -1, no timeout is set.
             redirect_pipes (bool): Whether to hook and redirect the pipes of the process to a PipeManager.
         """
-        if not self.argv:
+        if not self.path:
             raise RuntimeError("No binary file specified.")
 
         if timeout <= 0 and timeout != -1:
@@ -353,6 +359,12 @@ class InternalDebugger:
             raise RuntimeError("Something went wrong during pipe initialization.")
 
         self._process_memory_manager.open(self.process_id)
+        if self.fast_memory and not self._process_memory_manager.is_available():
+            liblog.warning(
+                "The procfs memory interface could not be accessed (it could be read-only or not mounted). "
+                "Fast memory access is not available for the current process.",
+            )
+            self.fast_memory = False
 
         return self.pipe_manager
 
@@ -376,6 +388,12 @@ class InternalDebugger:
         self._join_and_check_status()
 
         self._process_memory_manager.open(self.process_id)
+        if self.fast_memory and not self._process_memory_manager.is_available():
+            liblog.warning(
+                "The procfs memory interface could not be accessed (it could be read-only or not mounted). "
+                "Fast memory access is not available for the current process.",
+            )
+            self.fast_memory = False
 
     def detach(self: InternalDebugger) -> None:
         """Detaches from the process."""
@@ -403,6 +421,7 @@ class InternalDebugger:
         child_internal_debugger = InternalDebugger()
         child_internal_debugger.argv = self.argv
         child_internal_debugger.path = self.path
+        child_internal_debugger._has_path_different_from_argv0 = self._has_path_different_from_argv0
         child_internal_debugger.env = self.env
         child_internal_debugger.aslr_enabled = self.aslr_enabled
         child_internal_debugger.autoreach_entrypoint = self.autoreach_entrypoint
@@ -506,12 +525,8 @@ class InternalDebugger:
 
         self.cleanup_timeout_thread()
 
-        # Remove elemement from internal_debugger_holder to avoid memleaks
+        # Clean up our reference in the holder
         remove_internal_debugger_refs(self)
-
-        # Clean up the register accessors
-        for thread in self.threads:
-            thread._register_holder.cleanup()
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
@@ -553,14 +568,34 @@ class InternalDebugger:
 
         self._join_and_check_status()
 
-        if self.threads[0].dead or not self.running:
-            # Most of the time the function returns here, as there was a wait already
+        if not self.threads[0].dead and self.running:
+            # Most of the time the function will not enter here, as there was a wait already
             # queued by the previous command
-            return
+            self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
 
-        self.__polling_thread_command_queue.put((self.__threaded_wait, ()))
+            self._join_and_check_status()
 
-        self._join_and_check_status()
+        if self.threads[0].dead:
+            # Give the terminal back to our own process group.
+            #
+            # When running without pipe redirection, libdebug transfers the terminal's
+            # foreground process group to the child so the child can read from stdin.
+            # After the child exits, the terminal still believes that the (now-dead)
+            # child's process group is the foreground owner. Our process group is then
+            # treated as a background group by the terminal.
+            #
+            # If we attempt another run in this state, any call to `tcsetpgrp` or any
+            # terminal I/O may trigger `SIGTTOU`.
+            #
+            # To prevent this, we explicitly reclaim ownership of the terminal by setting
+            # the terminal's foreground process group back to our own before spawning the
+            # next child. This must happen in the main thread because `safe_tcsetpgrp`
+            # temporarily manipulates signal handlers, and Python only delivers signals
+            # to the main thread.
+            try:
+                safe_tcsetpgrp(0, os.getpgrp())
+            except OSError as e:
+                liblog.debugger(f"Failed to set terminal foreground process group: {e}")
 
     @property
     @change_state_function_process
@@ -655,7 +690,18 @@ class InternalDebugger:
         if isinstance(position, str):
             address = self.resolve_symbol(position, file)
         else:
-            address = self.resolve_address(position, file)
+            try:
+                address = self.resolve_address(position, file)
+            except ValueError:
+                if hardware and file == "absolute":
+                    liblog.warning(
+                        "Could not resolve address %#x in the memory maps. "
+                        "Assuming it is a valid address for a hardware breakpoint.",
+                        position,
+                    )
+                    address = position
+                else:
+                    raise
             position = hex(address)
 
         if condition != "x" and not hardware:
@@ -666,12 +712,10 @@ class InternalDebugger:
             def callback(_: ThreadContext, __: Breakpoint) -> None:
                 pass
 
-        bp = Breakpoint(address, position, 0, hardware, callback, condition.lower(), length)
+        bp = Breakpoint(address, position, 0, hardware, callback, condition.lower(), length, self)
 
         if hardware:
             validate_hardware_breakpoint(self.arch, bp)
-
-        link_to_internal_debugger(bp, self)
 
         if not self._is_in_background():
             # Go through the queue and wait for it to be done
@@ -738,9 +782,7 @@ class InternalDebugger:
             def callback(_: ThreadContext, __: SignalCatcher) -> None:
                 pass
 
-        catcher = SignalCatcher(signal_number, callback, recursive)
-
-        link_to_internal_debugger(catcher, self)
+        catcher = SignalCatcher(signal_number, callback, recursive, _internal_debugger=self)
 
         if not self._is_in_background():
             # Go through the queue and wait for it to be done
@@ -843,9 +885,8 @@ class InternalDebugger:
                 None,
                 None,
                 recursive,
+                _internal_debugger=self,
             )
-
-            link_to_internal_debugger(handler, self)
 
             if not self._is_in_background():
                 # Go through the queue and wait for it to be done
@@ -922,9 +963,8 @@ class InternalDebugger:
                 None,
                 None,
                 recursive,
+                _internal_debugger=self,
             )
-
-            link_to_internal_debugger(handler, self)
 
             if not self._is_in_background():
                 # Go through the queue and wait for it to be done
@@ -1303,9 +1343,8 @@ class InternalDebugger:
                     None,
                     pprint_on_enter,
                     pprint_on_exit,
+                    _internal_debugger=self,
                 )
-
-                link_to_internal_debugger(handler, self)
 
                 # We have to disable the handler since it is not user-defined
                 handler.disable()
@@ -1452,8 +1491,7 @@ class InternalDebugger:
             # If no explicit backing file is specified, we try resolving the symbol in the main map
             filtered_maps = self.maps.filter("binary")
             try:
-                with extend_internal_debugger(self):
-                    return resolve_symbol_in_maps(symbol, filtered_maps)
+                return resolve_symbol_in_maps(symbol, filtered_maps)
             except ValueError:
                 liblog.warning(
                     f"No backing file specified for the symbol `{symbol}`. Resolving the symbol in ALL the maps (slow!)",
@@ -1462,8 +1500,7 @@ class InternalDebugger:
             # Otherwise, we resolve the symbol in all the maps: as this can be slow,
             # we issue a warning with the file containing it
             maps = self.maps
-            with extend_internal_debugger(self):
-                address = resolve_symbol_in_maps(symbol, maps)
+            address = resolve_symbol_in_maps(symbol, maps)
 
             filtered_maps = self.maps.filter(address)
             if len(filtered_maps) != 1:
@@ -1483,15 +1520,13 @@ class InternalDebugger:
 
         filtered_maps = self.maps.filter(backing_file)
 
-        with extend_internal_debugger(self):
-            return resolve_symbol_in_maps(symbol, filtered_maps)
+        return resolve_symbol_in_maps(symbol, filtered_maps)
 
     @property
     def symbols(self: InternalDebugger) -> SymbolList[Symbol]:
         """Get the symbols of the process."""
         backing_files = {vmap.backing_file for vmap in self.maps}
-        with extend_internal_debugger(self):
-            return get_all_symbols(backing_files)
+        return get_all_symbols(backing_files, self)
 
     def _background_ensure_process_stopped(self: InternalDebugger) -> None:
         """Validates the state of the process."""
@@ -1765,14 +1800,15 @@ class InternalDebugger:
         if not self.is_debugging:
             raise RuntimeError("Process not running, cannot access memory.")
 
-        if self.running:
-            # Reading memory while the process is running could lead to concurrency issues
-            # and corrupted values
-            liblog.debugger(
-                "Process is running. Waiting for it to stop before reading memory.",
-            )
+        if not self._is_in_background():
+            if self.running:
+                # Reading memory while the process is running could lead to concurrency issues
+                # and corrupted values
+                liblog.debugger(
+                    "Process is running. Waiting for it to stop before reading memory.",
+                )
 
-        self._ensure_process_stopped()
+            self._ensure_process_stopped()
 
         return self._process_memory_manager.read(address, size)
 
@@ -1783,7 +1819,7 @@ class InternalDebugger:
             raise RuntimeError("Process not running, cannot access memory.")
 
         if self.running:
-            # Reading memory while the process is running could lead to concurrency issues
+            # Writing memory while the process is running could lead to concurrency issues
             # and corrupted values
             liblog.debugger(
                 "Process is running. Waiting for it to stop before writing to memory.",
@@ -1802,14 +1838,15 @@ class InternalDebugger:
         if not self.is_debugging:
             raise RuntimeError("Process not running, cannot access memory.")
 
-        if self.running:
-            # Reading memory while the process is running could lead to concurrency issues
-            # and corrupted values
-            liblog.debugger(
-                "Process is running. Waiting for it to stop before writing to memory.",
-            )
+        if not self._is_in_background():
+            if self.running:
+                # Writing memory while the process is running could lead to concurrency issues
+                # and corrupted values
+                liblog.debugger(
+                    "Process is running. Waiting for it to stop before writing to memory.",
+                )
 
-        self._ensure_process_stopped()
+            self._ensure_process_stopped()
 
         self._process_memory_manager.write(address, data)
 
@@ -1849,9 +1886,8 @@ class InternalDebugger:
             on_exit_ptrace,
             None,
             None,
+            _internal_debugger=self,
         )
-
-        link_to_internal_debugger(handler, self)
 
         self.__polling_thread_command_queue.put((self.__threaded_handle_syscall, (handler,)))
 
@@ -2036,3 +2072,12 @@ class InternalDebugger:
 
             # Signal that the command has been executed
             self.__timeout_thread_command_queue.task_done()
+
+    def clear_all_caches(self: InternalDebugger) -> None:
+        """Clears all the caches of the internal debugger."""
+        # The cached properties can be cleared by deleting the attribute
+        if "_process_full_path" in self.__dict__:
+            del self._process_full_path
+
+        if "_process_name" in self.__dict__:
+            del self._process_name

@@ -26,7 +26,14 @@ Documentation: https://docs.libdebug.org
 python3 -m pip install libdebug
 ```
 
-Please visit the [build guide](https://docs.libdebug.org/development/building_libdebug/) for more information on how to manually build libdebug from source.
+### Install from another branch
+If you want to stay up to date with the most cutting-edge features (and you don't mind being on an unstable branch) you can install from a different branch (e.g., `dev`).
+
+```bash
+python3 -m pip install git+https://github.com/libdebug/libdebug.git@dev
+```
+
+Please visit the [build guide](https://docs.libdebug.org/latest/development/building_libdebug/) for more information on how to manually build libdebug from source.
 
 ## Your first script
 
@@ -188,20 +195,20 @@ d.kill()
 We've published a poster on libdebug. If you use libdebug in your research, you can cite the associated poster paper:
 ```bibtex
 @inproceedings{10.1145/3658644.3691391,
-author = {Digregorio, Gabriele and Bertolini, Roberto Alessandro and Panebianco, Francesco and Polino, Mario},
-title = {Poster: libdebug, Build Your Own Debugger for a Better (Hello) World},
-year = {2024},
-isbn = {9798400706363},
-publisher = {Association for Computing Machinery},
-address = {New York, NY, USA},
-url = {https://doi.org/10.1145/3658644.3691391},
-doi = {10.1145/3658644.3691391},
-booktitle = {Proceedings of the 2024 on ACM SIGSAC Conference on Computer and Communications Security},
-pages = {4976–4978},
-numpages = {3},
-keywords = {debugging, reverse engineering, software security},
-location = {Salt Lake City, UT, USA},
-series = {CCS '24}
+	author = {Digregorio, Gabriele and Bertolini, Roberto Alessandro and Panebianco, Francesco and Polino, Mario},
+	title = {Poster: libdebug, Build Your Own Debugger for a Better (Hello) World},
+	year = {2024},
+	isbn = {9798400706363},
+	publisher = {Association for Computing Machinery},
+	address = {New York, NY, USA},
+	url = {https://doi.org/10.1145/3658644.3691391},
+	doi = {10.1145/3658644.3691391},
+	booktitle = {Proceedings of the 2024 on ACM SIGSAC Conference on Computer and Communications Security},
+	pages = {4976–4978},
+	numpages = {3},
+	keywords = {debugging, reverse engineering, software security},
+	location = {Salt Lake City, UT, USA},
+	series = {CCS '24}
 }
 ```
 

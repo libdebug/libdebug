@@ -1,0 +1,32 @@
+# .github/workflows/changelog-fragment.yml
+name: Changelog fragment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+
+jobs:
+  fragment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for news fragment
+        run: |
+          PR_NUMBER=$(jq -r .pull_request.number "$GITHUB_EVENT_PATH")
+          ALLOWED_TYPES="feature improvement bugfix ci test doc"
+
+          shopt -s nullglob
+          found=false
+          for t in $ALLOWED_TYPES; do
+            if compgen -G "newsfragments/${PR_NUMBER}.${t}.md" > /dev/null; then
+              echo "::notice:: Found news fragment: newsfragments/${PR_NUMBER}.${t}.md"
+              found=true
+              break
+            fi
+          done
+
+          if [ "$found" = false ]; then
+            echo "::error::No changelog fragment found. Add newsfragments/${PR_NUMBER}.{feature,improvement,bugfix,test,doc}.md (see CONTRIBUTING.md → Changelog fragments)."
+            exit 1   # <- red job when missing
+          fi

@@ -32,6 +32,11 @@ To update the syscall definitions for your current platform's architecture by fe
 ./update.py --remote
 ```
 
+You can also specify the architecture explicitly:
+```bash
+./update.py --remote --arch i386
+```
+
 Alternatively, to compress a locally available syscall data file:
 ```bash
 ./update.py --input_file /path/to/your/syscall_data.json

@@ -9,29 +9,30 @@ import logging
 from unittest import TestCase
 from utils.binary_utils import RESOLVE_EXE
 from libdebug import debugger
-import os
 import tempfile
+import sys
 
 class SnapshotsTest(TestCase):
     def setUp(self) -> None:
+        self.capturedOutput = io.StringIO()
+        sys.stdout = self.capturedOutput
         # Redirect logging to a string buffer
         self.log_capture_string = io.StringIO()
         self.log_handler = logging.StreamHandler(self.log_capture_string)
-        self.log_handler.setLevel(logging.WARNING)
-
         self.logger = logging.getLogger("libdebug")
         self.original_handlers = self.logger.handlers
         self.logger.handlers = []
         self.logger.addHandler(self.log_handler)
         self.logger.setLevel(logging.WARNING)
-
+        
     def tearDown(self):
+        # Restore stdout
+        self.capturedOutput.close()
+        sys.stdout = sys.__stdout__
         # Remove the custom handler
         self.logger.removeHandler(self.log_handler)
-
         # Restore the original handlers
         self.logger.handlers = self.original_handlers
-
         # Close the log capture string buffer
         self.log_capture_string.close()
 
@@ -69,8 +70,8 @@ class SnapshotsTest(TestCase):
             saved_backtrace = ts1.backtrace()
 
         # Try saving
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp_file:
-            save_path = tmp_file.name
+        tmp_file = tempfile.NamedTemporaryFile(suffix=".json")
+        save_path = tmp_file.name
 
         ts1.save(save_path)
         ts1_restored = d.load_snapshot(save_path)
@@ -104,6 +105,8 @@ class SnapshotsTest(TestCase):
 
         d.kill()
         d.terminate()
+
+        tmp_file.close()
 
     def test_thread_writable_snapshot(self):
         # Create a debugger and start execution
@@ -155,8 +158,8 @@ class SnapshotsTest(TestCase):
         for i, spc in enumerate(current_backtrace):
             self.assertEqual(spc, saved_backtrace[i])
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp_file:
-            save_path = tmp_file.name
+        tmp_file = tempfile.NamedTemporaryFile(suffix=".json")
+        save_path = tmp_file.name
 
         ts1.save(save_path)
         ts1_restored = d.load_snapshot(save_path)
@@ -207,6 +210,8 @@ class SnapshotsTest(TestCase):
         d.kill()
         d.terminate()
 
+        tmp_file.close()
+
     def test_thread_full_snapshot(self):
         # Create a debugger and start execution
         d = debugger(RESOLVE_EXE("process_snapshot_test"), auto_interrupt_on_command=False, aslr=False, fast_memory=True)
@@ -253,8 +258,8 @@ class SnapshotsTest(TestCase):
         for i, spc in enumerate(current_backtrace):
             self.assertEqual(spc, saved_backtrace[i])
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp_file:
-            save_path = tmp_file.name
+        tmp_file = tempfile.NamedTemporaryFile(suffix=".json")
+        save_path = tmp_file.name
 
         ts1.save(save_path)
         ts1_restored = d.load_snapshot(save_path)
@@ -300,6 +305,8 @@ class SnapshotsTest(TestCase):
 
         d.kill()
         d.terminate()
+
+        tmp_file.close()
 
     def test_process_base_snapshot(self):
         
@@ -354,8 +361,8 @@ class SnapshotsTest(TestCase):
                         thread.regs.__getattribute__(reg_name)
                     )
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp_file:
-            save_path = tmp_file.name
+        tmp_file = tempfile.NamedTemporaryFile(suffix=".json")
+        save_path = tmp_file.name
 
         ps1.save(save_path)
         ps1_restored = d.load_snapshot(save_path)
@@ -404,6 +411,8 @@ class SnapshotsTest(TestCase):
 
         d.kill()
         d.terminate()
+
+        tmp_file.close()
 
     def test_process_full_snapshot(self):
         # Create a debugger and start
@@ -470,8 +479,8 @@ class SnapshotsTest(TestCase):
                         thread.regs.__getattribute__(reg_name)
                     )
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp_file:
-            save_path = tmp_file.name
+        tmp_file = tempfile.NamedTemporaryFile(suffix=".json")
+        save_path = tmp_file.name
 
         ps1.save(save_path)
         ps1_restored = d.load_snapshot(save_path)
@@ -533,6 +542,8 @@ class SnapshotsTest(TestCase):
         d.kill()
         d.terminate()
 
+        tmp_file.close()
+
     def test_diff_thread_base_full(self):
         # Create a debugger and start
         d = debugger(RESOLVE_EXE("process_snapshot_test"), auto_interrupt_on_command=False, aslr=False, fast_memory=True)
@@ -590,8 +601,8 @@ class SnapshotsTest(TestCase):
         self.assertEqual(symbol1, symbol2)
         
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp_file:
-            save_path = tmp_file.name
+        tmp_file = tempfile.NamedTemporaryFile(suffix=".json")
+        save_path = tmp_file.name
 
         ps1.save(save_path)
         ps1_restored = d.load_snapshot(save_path)
@@ -604,3 +615,5 @@ class SnapshotsTest(TestCase):
 
         self.assertEqual(symbol1, restored_symbol1)
         d.terminate()
+
+        tmp_file.close()

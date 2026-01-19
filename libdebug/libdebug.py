@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from elftools.common.exceptions import ELFError
 
+from libdebug.data.argument_list import ArgumentList
+from libdebug.data.env_dict import EnvDict
 from libdebug.debugger.debugger import Debugger
 from libdebug.debugger.internal_debugger import InternalDebugger
 from libdebug.liblog import liblog
@@ -46,12 +48,25 @@ def debugger(
         Debugger: The `Debugger` object.
     """
     if isinstance(argv, str):
-        argv = [argv]
+        argv = ArgumentList([argv])
+    elif isinstance(argv, list):
+        argv = ArgumentList(argv)
+    elif argv is None:
+        argv = ArgumentList()
+
+    # We must note inside the debugger if the path is different from the first argument in argv
+    # We use this parameter to determine if we need to resolve the path again
+    has_path_different_from_argv0 = path is not None
 
     if path:
         path = resolve_argv_path(path)
     elif argv:
         path = resolve_argv_path(argv[0])
+
+    if env is not None:
+        if not isinstance(env, dict):
+            raise TypeError("env must be a dictionary or None")
+        env = EnvDict(env)
 
     internal_debugger = InternalDebugger()
     internal_debugger.argv = argv
@@ -64,6 +79,7 @@ def debugger(
     internal_debugger.fast_memory = fast_memory
     internal_debugger.kill_on_exit = kill_on_exit
     internal_debugger.follow_children = follow_children
+    internal_debugger._has_path_different_from_argv0 = has_path_different_from_argv0
 
     debugger = Debugger()
     debugger.post_init_(internal_debugger)

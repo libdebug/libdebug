@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2025  Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
+# Copyright (c) 2023-2025 Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -9,8 +9,12 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
+from libdebug.data.argument_list import ArgumentList
+from libdebug.data.env_dict import EnvDict
 from libdebug.liblog import liblog
 from libdebug.utils.arch_mappings import map_arch
+from libdebug.utils.elf_utils import elf_architecture, resolve_argv_path
+from libdebug.utils.oop.alias import check_alias, check_aliased_property
 from libdebug.utils.signal_utils import (
     get_all_signal_numbers,
     resolve_signal_name,
@@ -50,6 +54,9 @@ class Debugger:
     _internal_debugger: InternalDebugger
     """The internal debugger object."""
 
+    _previous_argv: list[str]
+    """A copy of the previous argv state, used internally to detect changes to argv[0]."""
+
     def __init__(self: Debugger) -> None:
         pass
 
@@ -58,6 +65,11 @@ class Debugger:
         self._internal_debugger = internal_debugger
         self._internal_debugger.start_up()
 
+        # We need to install the proper callbacks on the ArgumentList
+        self._configure_argument_list(self._internal_debugger.argv)
+        self._configure_env_dict()
+
+    @check_alias("r")
     def run(self: Debugger, timeout: float = -1, redirect_pipes: bool = True) -> PipeManager | None:
         """Starts the process and waits for it to stop.
 
@@ -87,14 +99,17 @@ class Debugger:
         """
         self._internal_debugger.terminate()
 
+    @check_alias("c")
     def cont(self: Debugger) -> None:
         """Continues the process."""
         self._internal_debugger.cont()
 
+    @check_alias("int")
     def interrupt(self: Debugger) -> None:
         """Interrupts the process."""
         self._internal_debugger.interrupt()
 
+    @check_alias("w")
     def wait(self: Debugger) -> None:
         """Waits for the process to stop."""
         self._internal_debugger.wait()
@@ -125,6 +140,7 @@ class Debugger:
         """Get the symbols of the process."""
         return self._internal_debugger.symbols
 
+    @check_alias("bp")
     def breakpoint(
         self: Debugger,
         position: int | str,
@@ -146,6 +162,7 @@ class Debugger:
         """
         return self._internal_debugger.breakpoint(position, hardware, condition, length, callback, file)
 
+    @check_alias("wp")
     def watchpoint(
         self: Debugger,
         position: int | str,
@@ -272,15 +289,16 @@ class Debugger:
         """Waits for the GDB process to migrate back to libdebug."""
         self._internal_debugger.wait_for_gdb()
 
-    def r(self: Debugger, redirect_pipes: bool = True) -> PipeManager | None:
+    def r(self: Debugger, timeout: float = -1, redirect_pipes: bool = True) -> PipeManager | None:
         """Alias for the `run` method.
 
         Starts the process and waits for it to stop.
 
         Args:
+            timeout (float): The timeout for the process to run. If -1, the process will run indefinitely.
             redirect_pipes (bool): Whether to hook and redirect the pipes of the process to a PipeManager.
         """
-        return self._internal_debugger.run(redirect_pipes)
+        return self._internal_debugger.run(timeout, redirect_pipes)
 
     def c(self: Debugger) -> None:
         """Alias for the `cont` method.
@@ -309,17 +327,19 @@ class Debugger:
         hardware: bool = False,
         condition: str = "x",
         length: int = 1,
-        callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
+        callback: None | bool | Callable[[ThreadContext, Breakpoint], None] = None,
         file: str = "hybrid",
     ) -> Breakpoint:
         """Alias for the `breakpoint` method.
+
+        Sets a breakpoint at the specified location.
 
         Args:
             position (int | bytes): The location of the breakpoint.
             hardware (bool, optional): Whether the breakpoint should be hardware-assisted or purely software. Defaults to False.
             condition (str, optional): The trigger condition for the breakpoint. Defaults to None.
             length (int, optional): The length of the breakpoint. Only for watchpoints. Defaults to 1.
-            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the breakpoint is hit. Defaults to None.
+            callback (None | bool | Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the breakpoint is hit. If True, an empty callback will be set. Defaults to None.
             file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
         return self._internal_debugger.breakpoint(position, hardware, condition, length, callback, file)
@@ -329,7 +349,7 @@ class Debugger:
         position: int | str,
         condition: str = "w",
         length: int = 1,
-        callback: None | Callable[[ThreadContext, Breakpoint], None] = None,
+        callback: None | bool | Callable[[ThreadContext, Breakpoint], None] = None,
         file: str = "hybrid",
     ) -> Breakpoint:
         """Alias for the `watchpoint` method.
@@ -340,7 +360,7 @@ class Debugger:
             position (int | bytes): The location of the breakpoint.
             condition (str, optional): The trigger condition for the watchpoint (either "w", "rw" or "x"). Defaults to "w".
             length (int, optional): The size of the word in being watched (1, 2, 4 or 8). Defaults to 1.
-            callback (Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the watchpoint is hit. Defaults to None.
+            callback (None | bool | Callable[[ThreadContext, Breakpoint], None], optional): A callback to be called when the watchpoint is hit. If True, an empty callback will be set. Defaults to None.
             file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
         return self._internal_debugger.breakpoint(
@@ -361,6 +381,158 @@ class Debugger:
     def arch(self: Debugger, value: str) -> None:
         """Set the architecture of the process."""
         self._internal_debugger.arch = map_arch(value)
+
+    def _configure_argument_list(self: Debugger, argv: ArgumentList) -> None:
+        """Sets up the ArgumentList with the before/after callbacks, and freezes argv[0] if needed."""
+        # If the user has not specified a different path, and argv is not empty, we should freeze argv[0]
+        if not self._internal_debugger._has_path_different_from_argv0 and argv and argv[0]:
+            argv.prevent_empty = True
+        else:
+            argv.prevent_empty = False
+
+        # We register a _before_callback that stores a copy of the current argv state
+        def _before_callback(_: list[str]) -> None:
+            """Store a copy of the current argv state."""
+            # Changing argv is not allowed while the process is being debugged.
+            if self._internal_debugger.is_debugging:
+                raise RuntimeError("Cannot change argv while the process is running. Please kill it first.")
+
+            self._previous_argv = list(self._internal_debugger.argv) if self._internal_debugger.argv else []
+
+        # The _after callback should check if argv[0] has changed and update the path accordingly
+        def _after_callback(new_argv: list[str]) -> None:
+            """An after callback that updates the path if argv[0] has changed."""
+            if not hasattr(self, "_previous_argv"):
+                raise RuntimeError("The _previous_argv attribute is not set. This should not happen.")
+
+            try:
+                if (
+                    not self._internal_debugger._has_path_different_from_argv0
+                    and new_argv
+                    and new_argv[0] != self._previous_argv[0]
+                ):
+                    self._internal_debugger.clear_all_caches()
+                    # Changing path can also change the architecture, so we need to update it
+                    resolved_path = resolve_argv_path(new_argv[0])
+                    self.arch = elf_architecture(resolved_path)
+                    self._internal_debugger.path = resolved_path
+            except Exception:
+                # We revert to the previous argv state if something goes wrong
+                self._internal_debugger.argv = ArgumentList(self._previous_argv)
+                raise
+
+        # Set the callbacks on the ArgumentList
+        argv.set_callbacks(_before_callback, _after_callback)
+
+    @property
+    def argv(self: Debugger) -> ArgumentList:
+        """The command line arguments of the debugged process."""
+        self._internal_debugger._ensure_process_stopped()
+        return self._internal_debugger.argv
+
+    @argv.setter
+    def argv(self: Debugger, value: str | list[str] | ArgumentList) -> None:
+        """Set the command line arguments of the debugged process."""
+        self._internal_debugger._ensure_process_stopped()
+
+        # Changing argv is not allowed while the process is being debugged.
+        if self._internal_debugger.is_debugging:
+            raise RuntimeError("Cannot change argv while the process is running. Please kill it first.")
+
+        if not isinstance(value, str | list | ArgumentList):
+            raise TypeError("argv must be a string or a list of strings")
+        if isinstance(value, str):
+            value = ArgumentList([value])
+        elif isinstance(value, list):
+            value = ArgumentList(value)
+
+        # We need to install on the ArgumentList the proper callbacks
+        self._configure_argument_list(value)
+
+        # We have to check whether argv[0] has changed
+        # if so, we should invalidate everything and resolve the path again
+        # but that should be done only if path depended on argv[0]
+        if (
+            not self._internal_debugger._has_path_different_from_argv0
+            and self._internal_debugger.argv
+            and value[0] != self._internal_debugger.argv[0]
+        ):
+            self._internal_debugger.clear_all_caches()
+            # Changing path can also change the architecture, so we need to update it
+            resolved_path = resolve_argv_path(value[0])
+            self.arch = elf_architecture(resolved_path)
+            self._internal_debugger.path = resolved_path
+
+        self._internal_debugger.argv = value
+
+    def _configure_env_dict(self: Debugger) -> None:
+        """Sets up the EnvDict with the before callback."""
+
+        # We register a _before_callback that ensure that the process
+        # is not being debugged when the environment is changed
+        def _before_callback() -> None:
+            """Ensure that the process is not being debugged when the environment is changed."""
+            # Changing env is not allowed while the process is being debugged.
+            if self._internal_debugger.is_debugging:
+                raise RuntimeError("Cannot change env while the process is running. Please kill it first.")
+
+        if self._internal_debugger.env is not None:
+            # If the env is already set, we just need to set the callback
+            self._internal_debugger.env.set_callback(_before_callback)
+
+    @property
+    def env(self: Debugger) -> EnvDict | None:
+        """The environment variables of the debugged process."""
+        self._internal_debugger._ensure_process_stopped()
+        return self._internal_debugger.env
+
+    @env.setter
+    def env(self: Debugger, value: dict[str, str] | None) -> None:
+        """Set the environment variables of the debugged process."""
+        self._internal_debugger._ensure_process_stopped()
+
+        # Changing env is not allowed while the process is being debugged.
+        if self._internal_debugger.is_debugging:
+            raise RuntimeError("Cannot change env while the process is running. Please kill it first.")
+
+        if value is not None and not isinstance(value, dict):
+            raise TypeError("env must be a dictionary or None")
+
+        self._internal_debugger.env = EnvDict(value) if value is not None else None
+        self._configure_env_dict()
+
+    @property
+    def path(self: Debugger) -> str:
+        """The resolved path to the debugged binary."""
+        self._internal_debugger._ensure_process_stopped()
+        return self._internal_debugger.path
+
+    @path.setter
+    def path(self: Debugger, value: str) -> None:
+        """Set the path to the debugged binary."""
+        self._internal_debugger._ensure_process_stopped()
+        if self._internal_debugger.is_debugging:
+            raise RuntimeError("Cannot change path while the process is running. Please kill it first.")
+
+        if not isinstance(value, str):
+            raise TypeError("path must be a string")
+
+        self._internal_debugger.clear_all_caches()
+
+        # resolve_argv_path can fail if the path is not valid
+        resolved_path = resolve_argv_path(value)
+
+        # Changing path can also change the architecture, so we need to update it
+        self.arch = elf_architecture(resolved_path)
+        self._internal_debugger.path = resolved_path
+
+        # We can also unfreeze argv[0] if it was frozen
+        self._internal_debugger.argv.prevent_empty = False
+
+        # We must note inside the debugger if the path is different from the first argument in argv
+        # This must be done last, otherwise we might get in an inconsistent state
+        # if one of the previous checks fails
+        self._internal_debugger._has_path_different_from_argv0 = True
 
     @property
     def kill_on_exit(self: Debugger) -> bool:
@@ -565,8 +737,25 @@ class Debugger:
         Args:
             value (bool): the value to set.
         """
+        self._internal_debugger._ensure_process_stopped()
+
         if not isinstance(value, bool):
             raise TypeError("fast_memory must be a boolean")
+
+        # If the process is currently being debugged and we are enabling fast_memory, we must
+        # ensure that fast_memory is actually available
+        # Setting fast_memory to False is always allowed, and if the process is not being debugged
+        # we have to perform the check at startup instead
+        if (
+            value
+            and self._internal_debugger.is_debugging
+            and not self._internal_debugger._process_memory_manager.is_available()
+        ):
+            raise RuntimeError(
+                "The procfs memory interface could not be accessed (it could be read-only or not mounted). "
+                "Fast memory access is not available for the current process.",
+            )
+
         self._internal_debugger.fast_memory = value
 
     @property
@@ -717,7 +906,7 @@ class Debugger:
             raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         return self.threads[0].zombie
 
-    @property
+    @check_aliased_property("mem")
     def memory(self: Debugger) -> AbstractMemoryView:
         """The memory view of the process."""
         return self._internal_debugger.memory
@@ -726,24 +915,24 @@ class Debugger:
     def mem(self: Debugger) -> AbstractMemoryView:
         """Alias for the `memory` property.
 
-        Get the memory view of the process.
+        The memory view of the process.
         """
         return self._internal_debugger.memory
 
-    @property
+    @check_aliased_property("pid")
     def process_id(self: Debugger) -> int:
         """The process ID."""
         return self._internal_debugger.process_id
 
     @property
     def pid(self: Debugger) -> int:
-        """Alias for `process_id` property.
+        """Alias for the `process_id` property.
 
         The process ID.
         """
         return self._internal_debugger.process_id
 
-    @property
+    @check_aliased_property("tid")
     def thread_id(self: Debugger) -> int:
         """The thread ID of the main thread."""
         if not self.threads:
@@ -752,11 +941,13 @@ class Debugger:
 
     @property
     def tid(self: Debugger) -> int:
-        """Alias for `thread_id` property.
+        """Alias for the `thread_id` property.
 
         The thread ID of the main thread.
         """
-        return self._thread_id
+        if not self.threads:
+            raise RuntimeError("No threads available. Did you call `run` or `attach`?")
+        return self.threads[0].tid
 
     @property
     def running(self: Debugger) -> bool:
@@ -821,6 +1012,7 @@ class Debugger:
             raise RuntimeError("No threads available. Did you call `run` or `attach`?")
         self.threads[0].pprint_backtrace()
 
+    @check_alias("pprint_regs")
     def pprint_registers(self: Debugger) -> None:
         """Pretty prints the main thread's registers."""
         if not self.threads:
@@ -834,6 +1026,7 @@ class Debugger:
         """
         self.pprint_registers()
 
+    @check_alias("pprint_regs_all")
     def pprint_registers_all(self: Debugger) -> None:
         """Pretty prints all the main thread's registers."""
         if not self.threads:
@@ -866,10 +1059,12 @@ class Debugger:
         """
         self._internal_debugger.pprint_memory(start, end, file, override_word_size, integer_mode)
 
+    @check_alias("si")
     def step(self: Debugger) -> None:
         """Executes a single instruction of the process."""
         self._internal_debugger.step(self)
 
+    @check_alias("su")
     def step_until(
         self: Debugger,
         position: int | str,
@@ -885,6 +1080,7 @@ class Debugger:
         """
         self._internal_debugger.step_until(self, position, max_steps, file)
 
+    @check_alias("fin")
     def finish(self: Debugger, heuristic: str = "backtrace") -> None:
         """Continues execution until the current function returns or the process stops.
 
@@ -897,6 +1093,7 @@ class Debugger:
         """
         self._internal_debugger.finish(self, heuristic=heuristic)
 
+    @check_alias("ni")
     def next(self: Debugger) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         self._internal_debugger.next(self)
@@ -912,6 +1109,7 @@ class Debugger:
         self: Debugger,
         position: int | str,
         max_steps: int = -1,
+        file: str = "hybrid",
     ) -> None:
         """Alias for the `step_until` method.
 
@@ -920,11 +1118,14 @@ class Debugger:
         Args:
             position (int | bytes): The location to reach.
             max_steps (int, optional): The maximum number of steps to execute. Defaults to -1.
+            file (str, optional): The user-defined backing file to resolve the address in. Defaults to "hybrid" (libdebug will first try to solve the address as an absolute address, then as a relative address w.r.t. the "binary" map file).
         """
-        self._internal_debugger.step_until(self, position, max_steps)
+        self._internal_debugger.step_until(self, position, max_steps, file)
 
     def fin(self: Debugger, heuristic: str = "backtrace") -> None:
-        """Alias for the `finish` method. Continues execution until the current function returns or the process stops.
+        """Alias for the `finish` method.
+
+        Continues execution until the current function returns or the process stops.
 
         The command requires a heuristic to determine the end of the function. The available heuristics are:
         - `backtrace`: The debugger will place a breakpoint on the saved return address found on the stack and continue execution on all threads.
@@ -936,7 +1137,10 @@ class Debugger:
         self._internal_debugger.finish(self, heuristic)
 
     def ni(self: Debugger) -> None:
-        """Alias for the `next` method. Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
+        """Alias for the `next` method.
+
+        Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns.
+        """
         self._internal_debugger.next(self)
 
     def __repr__(self: Debugger) -> str:

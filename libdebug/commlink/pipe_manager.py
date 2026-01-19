@@ -16,7 +16,6 @@ from typing import TYPE_CHECKING
 
 from libdebug.commlink.buffer_data import BufferData
 from libdebug.commlink.libterminal import LibTerminal
-from libdebug.debugger.internal_debugger_instance_manager import extend_internal_debugger, provide_internal_debugger
 from libdebug.liblog import liblog
 
 if TYPE_CHECKING:
@@ -29,10 +28,17 @@ class PipeManager:
     timeout_default: int = 2
     prompt_default: str = "$ "
 
-    def __init__(self: PipeManager, stdin_write: int, stdout_read: int, stderr_read: int) -> None:
+    def __init__(
+        self: PipeManager,
+        internal_debugger: InternalDebugger,
+        stdin_write: int,
+        stdout_read: int,
+        stderr_read: int,
+    ) -> None:
         """Initializes the PipeManager class.
 
         Args:
+            internal_debugger (InternalDebugger): instance of the internal debugger.
             stdin_write (int): file descriptor for stdin write.
             stdout_read (int): file descriptor for stdout read.
             stderr_read (int): file descriptor for stderr read.
@@ -42,7 +48,7 @@ class PipeManager:
         self._stderr_read: int = stderr_read
         self._stderr_is_open: bool = True
         self._stdout_is_open: bool = True
-        self._internal_debugger: InternalDebugger = provide_internal_debugger(self)
+        self._internal_debugger = internal_debugger
 
         self.__stdout_buffer: BufferData = BufferData(b"")
         self.__stderr_buffer: BufferData = BufferData(b"")
@@ -137,6 +143,23 @@ class PipeManager:
         os.close(self._stdin_write)
         os.close(self._stdout_read)
         os.close(self._stderr_read)
+        self._stdin_write = None
+        self._stdout_read = None
+        self._stderr_read = None
+
+    def __del__(self: PipeManager) -> None:
+        """Destructor for the PipeManager class."""
+        try:
+            if self._stdin_write is not None:
+                os.close(self._stdin_write)
+            if self._stdout_read is not None:
+                os.close(self._stdout_read)
+            if self._stderr_read is not None:
+                os.close(self._stderr_read)
+        except OSError:
+            # The pipes might have been already closed, even though
+            # they haven't been explicitly closed by the user.
+            pass
 
     def _buffered_recv(self: PipeManager, numb: int, timeout: int, stderr: bool) -> bytes:
         """Receives at most numb bytes from the child process stdout or stderr.
@@ -625,8 +648,9 @@ class PipeManager:
         liblog.info("Calling interactive mode")
 
         # Set up and run the terminal
-        with extend_internal_debugger(self):
-            libterminal = LibTerminal(prompt, self.sendline, self.__end_interactive_event, auto_quit)
+        libterminal = LibTerminal(
+            self._internal_debugger, prompt, self.sendline, self.__end_interactive_event, auto_quit
+        )
 
         # Receive data from the child process's stdout and stderr pipes
         self._recv_for_interactive()

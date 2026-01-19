@@ -293,7 +293,7 @@ class AtexitHandlerTest(TestCase):
             self.assertNotIn(pid, psutil.pids())
     
     def test_attach_2(self):
-        p = process(RESOLVE_EXE("infinite_loop_test"))
+        p = process(RESOLVE_EXE("infinite_loop_test"), env={})
 
         d = debugger()
 
@@ -313,3 +313,6 @@ class AtexitHandlerTest(TestCase):
         
         # Even if we kill the process, the next call should not raise an exception
         _cleanup_internal_debugger()
+
+        p.close()
+        del p

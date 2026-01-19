@@ -1,24 +1,31 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2024 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2023-2025 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
+
+from __future__ import annotations
 
 import functools
 import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from libdebug.data.memory_map import MemoryMap
 from libdebug.data.memory_map_list import MemoryMapList
 from libdebug.native import libdebug_linux_binding
 
+if TYPE_CHECKING:
+    from libdebug.debugger.internal_debugger import InternalDebugger
+
 
 @functools.cache
-def get_process_maps(process_id: int) -> MemoryMapList[MemoryMap]:
+def get_process_maps(process_id: int, internal_debugger: InternalDebugger) -> MemoryMapList[MemoryMap]:
     """Returns the memory maps of the specified process.
 
     Args:
         process_id (int): The PID of the process whose memory maps should be returned.
+        internal_debugger (InternalDebugger): The internal debugger instance.
 
     Returns:
         list: A list of `MemoryMap` objects, each representing a memory map of the specified process.
@@ -26,7 +33,7 @@ def get_process_maps(process_id: int) -> MemoryMapList[MemoryMap]:
     with Path(f"/proc/{process_id}/maps").open() as maps_file:
         maps = maps_file.readlines()
 
-    return MemoryMapList([MemoryMap.parse(vmap) for vmap in maps])
+    return MemoryMapList([MemoryMap.parse(vmap) for vmap in maps], internal_debugger)
 
 
 @functools.cache

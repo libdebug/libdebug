@@ -39,7 +39,7 @@ match PLATFORM:
 
 class AttachDetachTest(unittest.TestCase):
     def test_attach(self):
-        r = process(RESOLVE_EXE("attach_test"))
+        r = process(RESOLVE_EXE("attach_test"), env={})
 
         d = debugger()
         d.attach(r.pid)
@@ -55,6 +55,9 @@ class AttachDetachTest(unittest.TestCase):
 
         d.kill()
         d.terminate()
+
+        r.close()
+        del r
         
     def test_attach_multithread(self):
         r = subprocess.Popen([RESOLVE_EXE("multithread_input")], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
@@ -85,7 +88,7 @@ class AttachDetachTest(unittest.TestCase):
         d.terminate()
 
     def test_attach_and_detach_1(self):
-        r = process(RESOLVE_EXE("attach_test"))
+        r = process(RESOLVE_EXE("attach_test"), env={})
 
         d = debugger()
 
@@ -99,6 +102,9 @@ class AttachDetachTest(unittest.TestCase):
 
         r.kill()
         d.terminate()
+
+        r.close()
+        del r
 
     def test_attach_and_detach_2(self):
         d = debugger(RESOLVE_EXE("attach_test"))
@@ -137,7 +143,7 @@ class AttachDetachTest(unittest.TestCase):
         d.terminate()
 
     def test_attach_and_detach_4(self):
-        r = process(RESOLVE_EXE("attach_test"))
+        r = process(RESOLVE_EXE("attach_test"), env={})
 
         d = debugger()
         d.attach(r.pid)
@@ -149,3 +155,6 @@ class AttachDetachTest(unittest.TestCase):
         # Kill the process
         r.kill()
         d.terminate()
+
+        r.close()
+        del r

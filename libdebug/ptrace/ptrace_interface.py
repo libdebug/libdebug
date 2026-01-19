@@ -22,11 +22,6 @@ from libdebug.architectures.register_helper import register_holder_provider
 from libdebug.architectures.thread_context_helper import thread_context_class_provider
 from libdebug.commlink.pipe_manager import PipeManager
 from libdebug.data.breakpoint import Breakpoint
-from libdebug.debugger.internal_debugger_instance_manager import (
-    extend_internal_debugger,
-    link_to_internal_debugger,
-    provide_internal_debugger,
-)
 from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_native_interface_provider import provide_new_interface
@@ -77,11 +72,11 @@ class PtraceInterface(DebuggingInterface):
     _internal_debugger: InternalDebugger
     """The internal debugger instance."""
 
-    def __init__(self: PtraceInterface) -> None:
+    def __init__(self: PtraceInterface, internal_debugger: InternalDebugger) -> None:
         """Initializes the PtraceInterface."""
         self.lib_trace = provide_new_interface()
 
-        self._internal_debugger = provide_internal_debugger(self)
+        self._internal_debugger = internal_debugger
         self.process_id = 0
         self.detached = False
         self._disabled_aslr = False
@@ -107,8 +102,7 @@ class PtraceInterface(DebuggingInterface):
         liblog.debugger("Running %s", argv)
 
         # Setup ptrace wait status handler after debugging_context has been properly initialized
-        with extend_internal_debugger(self):
-            self.status_handler = PtraceStatusHandler()
+        self.status_handler = PtraceStatusHandler(self._internal_debugger)
 
         file_actions = []
 
@@ -198,8 +192,7 @@ class PtraceInterface(DebuggingInterface):
             pid (int): the pid of the process to attach to.
         """
         # Setup ptrace wait status handler after debugging_context has been properly initialized
-        with extend_internal_debugger(self):
-            self.status_handler = PtraceStatusHandler()
+        self.status_handler = PtraceStatusHandler(self._internal_debugger)
 
         # Attach to all the tasks of the process
         self._attach_to_all_tasks(pid)
@@ -373,8 +366,11 @@ class PtraceInterface(DebuggingInterface):
                 # Otherwise we use a software breakpoint
                 install_hw_bp = self.lib_trace.get_remaining_hw_breakpoint_count(thread.thread_id) > 0
 
-                ip_breakpoint = Breakpoint(last_saved_instruction_pointer, hardware=install_hw_bp)
-                link_to_internal_debugger(ip_breakpoint, self._internal_debugger)
+                ip_breakpoint = Breakpoint(
+                    last_saved_instruction_pointer,
+                    hardware=install_hw_bp,
+                    _internal_debugger=self._internal_debugger,
+                )
                 self.set_breakpoint(ip_breakpoint)
             elif not ip_breakpoint.enabled:
                 self._enable_breakpoint(ip_breakpoint)
@@ -423,8 +419,11 @@ class PtraceInterface(DebuggingInterface):
                 # Check if we have enough hardware breakpoints available
                 # Otherwise we use a software breakpoint
                 install_hw_bp = self.lib_trace.get_remaining_hw_breakpoint_count(thread.thread_id) > 0
-                ip_breakpoint = Breakpoint(skip_address, hardware=install_hw_bp)
-                link_to_internal_debugger(ip_breakpoint, self._internal_debugger)
+                ip_breakpoint = Breakpoint(
+                    skip_address,
+                    hardware=install_hw_bp,
+                    _internal_debugger=self._internal_debugger,
+                )
                 self.set_breakpoint(ip_breakpoint)
             elif not ip_breakpoint.enabled:
                 self._enable_breakpoint(ip_breakpoint)
@@ -457,8 +456,13 @@ class PtraceInterface(DebuggingInterface):
             os.close(self.stderr_write)
         except Exception as e:
             raise Exception("Closing fds failed: %r", e) from e
-        with extend_internal_debugger(self):
-            return PipeManager(self.stdin_write, self.stdout_read, self.stderr_read)
+
+        return PipeManager(
+            self._internal_debugger,
+            self.stdin_write,
+            self.stdout_read,
+            self.stderr_read,
+        )
 
     def _setup_parent(self: PtraceInterface, continue_to_entry_point: bool) -> None:
         """Sets up the parent process after the child process has been created or attached to."""
@@ -482,9 +486,7 @@ class PtraceInterface(DebuggingInterface):
                 liblog.error(f"Failed to get the entry point for the given binary: {e}")
             else:
                 # Only if we think we have found a valid entry point location, we attempt to reach it
-                bp = Breakpoint(entry_point, hardware=True)
-                # Link the breakpoint to self
-                link_to_internal_debugger(bp, self._internal_debugger)
+                bp = Breakpoint(entry_point, hardware=True, _internal_debugger=self._internal_debugger)
                 self.set_breakpoint(bp)
                 self.cont()
                 self.wait()
@@ -570,10 +572,8 @@ class PtraceInterface(DebuggingInterface):
         register_file, fp_register_file = self.lib_trace.register_thread(new_thread_id)
 
         register_holder = register_holder_provider(self._internal_debugger.arch, register_file, fp_register_file)
-        thread_context_class = thread_context_class_provider(self._internal_debugger.arch)
-
-        with extend_internal_debugger(self._internal_debugger):
-            thread = thread_context_class(new_thread_id, register_holder)
+        ThreadContextImplementation = thread_context_class_provider(self._internal_debugger.arch) # noqa: N806
+        thread = ThreadContextImplementation(new_thread_id, register_holder, self._internal_debugger)
 
         self._internal_debugger.insert_new_thread(thread)
 
@@ -800,8 +800,7 @@ class PtraceInterface(DebuggingInterface):
 
     def get_maps(self: PtraceInterface) -> MemoryMapList[MemoryMap]:
         """Returns the memory maps of the process."""
-        with extend_internal_debugger(self):
-            return get_process_maps(self.process_id)
+        return get_process_maps(self.process_id, self._internal_debugger)
 
     def get_hit_watchpoint(self: PtraceInterface, thread_id: int) -> Breakpoint:
         """Returns the watchpoint that has been hit."""
