@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Francesco Panebianco. All rights reserved.
+# Copyright (c) 2024-2026 Francesco Panebianco, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -11,8 +11,8 @@ from base64 import b64decode, b64encode
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from libdebug.data.symbol import Symbol
 from libdebug.data.symbol_list import SymbolList
+from libdebug.native.libdebug_debug_sym_parser import Symbol, SymbolBinding, SymbolType, SymbolVisibility
 from libdebug.snapshots.memory.memory_map_snapshot import MemoryMapSnapshot
 from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
 from libdebug.snapshots.memory.snapshot_memory_view import SnapshotMemoryView
@@ -24,6 +24,29 @@ from libdebug.snapshots.thread.thread_snapshot import ThreadSnapshot
 if TYPE_CHECKING:
     from libdebug.snapshots.snapshot import Snapshot
 
+
+def _create_symbol_from_dict(saved_symbol: dict) -> Symbol:
+    """Create a Symbol instance from a saved dictionary."""
+    return Symbol(
+        name=saved_symbol["name"],
+        demangled_name=saved_symbol.get("demangled_name") or "",
+        low_pc=saved_symbol["start"],
+        high_pc=saved_symbol["end"],
+        type=SymbolType(saved_symbol.get("symbol_type", 0)),
+        binding=SymbolBinding(saved_symbol.get("binding", 1)),
+        visibility=SymbolVisibility(saved_symbol.get("visibility", 0)),
+        section_index=saved_symbol.get("section_index", 0),
+        is_tls=saved_symbol.get("is_tls", False),
+        tls_offset=saved_symbol.get("tls_offset") or 0,
+        tls_module_id=saved_symbol.get("tls_module_id") or -1,
+        version=saved_symbol.get("version") or "",
+        is_plt=saved_symbol.get("is_plt", False),
+        is_got=saved_symbol.get("is_got", False),
+        backing_file=saved_symbol["backing_file"],
+        reference_file=saved_symbol["reference_file"],
+        reference_build_id=saved_symbol["reference_build_id"] or "",
+        is_external=saved_symbol["is_external"],
+    )
 
 class JSONSerializer:
     """Helper class to serialize and deserialize snapshots using JSON format."""
@@ -123,15 +146,7 @@ class JSONSerializer:
         raw_loaded_symbols = snapshot_dict.get("symbols", None)
         if raw_loaded_symbols is not None:
             sym_list = [
-                Symbol(
-                    saved_symbol["start"],
-                    saved_symbol["end"],
-                    saved_symbol["name"],
-                    saved_symbol["backing_file"],
-                    saved_symbol["reference_file"],
-                    saved_symbol["reference_build_id"],
-                    saved_symbol["is_external"],
-                )
+                _create_symbol_from_dict(saved_symbol)
                 for saved_symbol in raw_loaded_symbols
             ]
             sym_list = SymbolList(sym_list, loaded_snap)
@@ -182,6 +197,17 @@ class JSONSerializer:
                     "reference_file": symbol.reference_file,
                     "reference_build_id": symbol.reference_build_id,
                     "is_external": symbol.is_external,
+                    "symbol_type": symbol.symbol_type.value if symbol.symbol_type else 0,
+                    "binding": symbol.binding.value if symbol.binding else 1,
+                    "visibility": symbol.visibility.value if symbol.visibility else 0,
+                    "section_index": getattr(symbol, "section_index", 0),
+                    "is_tls": getattr(symbol, "is_tls", False),
+                    "tls_offset": getattr(symbol, "tls_offset", None),
+                    "tls_module_id": getattr(symbol, "tls_module_id", None),
+                    "demangled_name": getattr(symbol, "demangled_name", None),
+                    "version": getattr(symbol, "version", None),
+                    "is_plt": getattr(symbol, "is_plt", False),
+                    "is_got": getattr(symbol, "is_got", False),
                 }
                 for symbol in memory._symbol_ref
             ]
@@ -220,7 +246,7 @@ class JSONSerializer:
                     "threads": thread_snapshots,
                     "_process_full_path": snapshot._process_full_path,
                     "_process_name": snapshot._process_name,
-                }
+                },
             )
         else:
             # ThreadSnapshot-specific data
@@ -230,7 +256,7 @@ class JSONSerializer:
                     "regs": {reg_name: getattr(snapshot.regs, reg_name) for reg_name in all_reg_names},
                     "_process_full_path": snapshot._process_full_path,
                     "_process_name": snapshot._process_name,
-                }
+                },
             )
 
         with Path(out_path).open("w") as file:

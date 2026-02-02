@@ -9,13 +9,22 @@
 const ElfInfo read_elf_info(const std::string &name, const int)
 {
     // This function is intentionally left empty as a placeholder.
-    // It should be implemented in the actual codebase.
-    return {"", "", {}};
+    // It should be implemented when libdwarf/libelf are available.
+    ElfInfo info;
+    info.build_id = "";
+    info.debuglink = "";
+    info.is_pie = false;
+    info.entry_point = 0;
+    return info;
 }
 
-SymbolVector collect_external_symbols(const std::string &name, const int)
+SymbolVector collect_external_symbols(const std::string &debug_file_path,
+                                        const std::string &reference_path,
+                                        const std::string &build_id,
+                                        const int debug_info_level)
 {
     // This function is intentionally left empty as a placeholder.
-    // It should be implemented in the actual codebase.
+    // It should be implemented when libdwarf/libelf are available.
     return {};
 }
+

@@ -46,6 +46,7 @@ from libdebug.memory.process_memory_manager import ProcessMemoryManager
 from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
 from libdebug.snapshots.serialization.serialization_helper import SerializationHelper
 from libdebug.state.resume_context import ResumeContext
+from libdebug.symbols.symbol_manager import SymbolManager
 from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.debugger_wrappers import (
     background_alias,
@@ -53,11 +54,7 @@ from libdebug.utils.debugger_wrappers import (
     change_state_function_thread,
     invalidates_volatile,
 )
-from libdebug.utils.debugging_utils import (
-    normalize_and_validate_address,
-    resolve_symbol_in_maps,
-)
-from libdebug.utils.elf_utils import get_all_symbols
+from libdebug.utils.debugging_utils import normalize_and_validate_address
 from libdebug.utils.file_utils import ensure_file_executable
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.platform_utils import get_platform_gp_register_size
@@ -83,10 +80,10 @@ if TYPE_CHECKING:
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.data.registers import Registers
-    from libdebug.data.symbol import Symbol
     from libdebug.data.symbol_list import SymbolList
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
+    from libdebug.native.libdebug_debug_sym_parser import Symbol
     from libdebug.snapshots.snapshot import Snapshot
     from libdebug.state.thread_context import ThreadContext
 
@@ -262,6 +259,7 @@ class InternalDebugger:
         self.serialization_helper = SerializationHelper()
         self.children = []
         self._cached_libs = {}
+        self._symbol_manager = SymbolManager(self)
 
         # We register this debugger so that we can clean it up on exit.
         register_internal_debugger(self)
@@ -1507,7 +1505,7 @@ class InternalDebugger:
             # If no explicit backing file is specified, we try resolving the symbol in the main map
             filtered_maps = self.maps.filter("binary")
             try:
-                return resolve_symbol_in_maps(symbol, filtered_maps)
+                return self._symbol_manager.resolve_symbol(symbol, filtered_maps)
             except ValueError:
                 liblog.warning(
                     f"No backing file specified for the symbol `{symbol}`. Resolving the symbol in ALL the maps (slow!)",
@@ -1516,7 +1514,7 @@ class InternalDebugger:
             # Otherwise, we resolve the symbol in all the maps: as this can be slow,
             # we issue a warning with the file containing it
             maps = self.maps
-            address = resolve_symbol_in_maps(symbol, maps)
+            address = self._symbol_manager.resolve_symbol(symbol, maps)
 
             filtered_maps = self.maps.filter(address)
             if len(filtered_maps) != 1:
@@ -1536,13 +1534,12 @@ class InternalDebugger:
 
         filtered_maps = self.maps.filter(backing_file)
 
-        return resolve_symbol_in_maps(symbol, filtered_maps)
+        return self._symbol_manager.resolve_symbol(symbol, filtered_maps)
 
     @property
     def symbols(self: InternalDebugger) -> SymbolList[Symbol]:
         """Get the symbols of the process."""
-        backing_files = {vmap.backing_file for vmap in self.maps}
-        return get_all_symbols(backing_files, self)
+        return self._symbol_manager.get_all_symbols(self.maps)
 
     def _background_ensure_process_stopped(self: InternalDebugger) -> None:
         """Validates the state of the process."""

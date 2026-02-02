@@ -226,7 +226,7 @@ if(BUILD_SYMBOLS)
 
     add_library(libdebug_sym_parser_lib STATIC
       libdebug/native/symbols/debug_sym_parser.cpp
-      libdebug/native/symbols/debug_sym_parser_new.cpp
+      libdebug/native/symbols/debug_sym_parser_dwarf.cpp
     )
   else()
     message(STATUS "Using legacy libdwarf API")
@@ -250,7 +250,8 @@ if(BUILD_SYMBOLS)
     libdebug_debug_sym_parser
     LTO
     STABLE_ABI
-    libdebug/native/symbols/debug_sym_parser_shared.cpp
+      libdebug/native/symbols/debug_sym_parser_shared.cpp
+      libdebug/native/symbols/debug_sym_structs.cpp
   )
 else()
   # We build a dummy module that does not depend on libdwarf or libelf
@@ -260,6 +261,7 @@ else()
     STABLE_ABI
     libdebug/native/symbols/debug_sym_parser_dummy.cpp
     libdebug/native/symbols/debug_sym_parser_shared.cpp
+    libdebug/native/symbols/debug_sym_structs.cpp
   )
 endif()
 
