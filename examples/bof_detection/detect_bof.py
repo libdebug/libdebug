@@ -10,7 +10,6 @@ import iced_x86 as iced
 import magic
 
 from libdebug import debugger, libcontext
-from libdebug.utils.debugging_utils import resolve_address_in_maps
 
 libcontext.sym_lvl = 5
 
@@ -195,7 +194,7 @@ for test_padding_len in range(0, MAX_TEST_LEN, 4):
 
             # If the current rip corresponds to a known symbol, print the symbol
             try:
-                symbol = resolve_address_in_maps(curr_rip, d.maps)
+                symbol = d._internal_debugger._symbol_manager.resolve_address(curr_rip, d.maps)
 
                 if not symbol.startswith("0x"):
                     print_color(f"<{symbol}> ", color=LT_COLOR_CYAN, end="")

@@ -13,8 +13,8 @@ from libdebug.memory.abstract_memory_view import AbstractMemoryView
 from libdebug.utils.debugging_utils import normalize_and_validate_address
 
 if TYPE_CHECKING:
-    from libdebug.data.symbol import Symbol
     from libdebug.data.symbol_list import SymbolList
+    from libdebug.native.libdebug_debug_sym_parser import Symbol
     from libdebug.snapshots.memory.memory_map_snapshot_list import MemoryMapSnapshotList
     from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
     from libdebug.snapshots.thread.thread_snapshot import ThreadSnapshot

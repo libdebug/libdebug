@@ -8,7 +8,7 @@ from unittest import TestCase
 from utils.binary_utils import RESOLVE_EXE
 
 from libdebug.data.symbol_list import SymbolList
-from libdebug.data.symbol import Symbol
+from libdebug.native.libdebug_debug_sym_parser import Symbol
 
 from libdebug import debugger
 

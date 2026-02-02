@@ -31,17 +31,17 @@ if TYPE_CHECKING:
     from libdebug.commlink.pipe_manager import PipeManager
     from libdebug.data.breakpoint import Breakpoint
     from libdebug.data.elf import ELF
-    from libdebug.data.elf_list import ELFList
+    from libdebug.data.elf.elf_list import ELFList
     from libdebug.data.gdb_resume_event import GdbResumeEvent
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.data.registers import Registers
     from libdebug.data.signal_catcher import SignalCatcher
-    from libdebug.data.symbol import Symbol
     from libdebug.data.symbol_list import SymbolList
     from libdebug.data.syscall_handler import SyscallHandler
     from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
+    from libdebug.native.libdebug_debug_sym_parser import Symbol
     from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
     from libdebug.snapshots.snapshot import Snapshot
     from libdebug.state.thread_context import ThreadContext

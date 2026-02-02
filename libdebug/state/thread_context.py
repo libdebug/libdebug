@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING
 from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
 from libdebug.liblog import liblog
 from libdebug.snapshots.thread.thread_snapshot import ThreadSnapshot
-from libdebug.utils.debugging_utils import resolve_address_in_maps
 from libdebug.utils.oop.alias import check_alias, check_aliased_property
 from libdebug.utils.pprint_primitives import pprint_backtrace_util, pprint_registers_all_util, pprint_registers_util
 from libdebug.utils.signal_utils import resolve_signal_name, resolve_signal_number
@@ -240,7 +239,7 @@ class ThreadContext(ABC):
         backtrace = stack_unwinder.unwind(self)
         if as_symbols:
             maps = self._internal_debugger.debugging_interface.get_maps()
-            backtrace = [resolve_address_in_maps(x, maps) for x in backtrace]
+            backtrace = [self._internal_debugger._symbol_manager.resolve_address(x, maps) for x in backtrace]
         return backtrace
 
     def pprint_backtrace(self: ThreadContext) -> None:

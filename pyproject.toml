@@ -89,8 +89,12 @@ line-ending = "auto"
 minimum-version = "0.4"
 build-dir = "build/{wheel_tag}"
 wheel.py-api = "cp312"
+# Enable automatic C++ rebuilding when you change files in editable mode
+editable.rebuild = true
+editable.verbose = true
 
 [tool.scikit-build.sdist]
+include = ["libdebug/**/*.pyi"] # Include generated .pyi files in sdist
 exclude = ["test", "docs", "media", "examples", ".github", "*/__pycache__", "newsfragments"]
 
 [tool.libdebug]

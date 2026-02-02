@@ -180,7 +180,7 @@ nanobind_add_stub(
   libdebug_ptrace_binding_stub
   MODULE libdebug_ptrace_binding
   DEPENDS libdebug_ptrace_binding
-  OUTPUT libdebug_ptrace_binding.pyi
+  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/libdebug/ptrace/native/libdebug_ptrace_binding.pyi"
   PYTHON_PATH "."
 )
 
@@ -197,7 +197,7 @@ nanobind_add_stub(
   libdebug_linux_binding_stub
   MODULE libdebug_linux_binding
   DEPENDS libdebug_linux_binding
-  OUTPUT libdebug_linux_binding.pyi
+  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/libdebug/native/libdebug_linux_binding.pyi"
   PYTHON_PATH "."
 )
 
@@ -215,7 +215,7 @@ nanobind_add_stub(
   libdebug_elf_api_stub
   MODULE libdebug_elf_api
   DEPENDS libdebug_elf_api
-  OUTPUT libdebug_elf_api.pyi
+  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/libdebug/native/libdebug_elf_api.pyi"
   PYTHON_PATH "."
 )
 
@@ -226,7 +226,7 @@ if(BUILD_SYMBOLS)
 
     add_library(libdebug_sym_parser_lib STATIC
       libdebug/native/symbols/debug_sym_parser.cpp
-      libdebug/native/symbols/debug_sym_parser_new.cpp
+      libdebug/native/symbols/debug_sym_parser_dwarf.cpp
     )
   else()
     message(STATUS "Using legacy libdwarf API")
@@ -250,7 +250,8 @@ if(BUILD_SYMBOLS)
     libdebug_debug_sym_parser
     LTO
     STABLE_ABI
-    libdebug/native/symbols/debug_sym_parser_shared.cpp
+      libdebug/native/symbols/debug_sym_parser_shared.cpp
+      libdebug/native/symbols/debug_sym_structs.cpp
   )
 else()
   # We build a dummy module that does not depend on libdwarf or libelf
@@ -260,6 +261,7 @@ else()
     STABLE_ABI
     libdebug/native/symbols/debug_sym_parser_dummy.cpp
     libdebug/native/symbols/debug_sym_parser_shared.cpp
+    libdebug/native/symbols/debug_sym_structs.cpp
   )
 endif()
 
@@ -268,7 +270,7 @@ nanobind_add_stub(
   libdebug_debug_sym_parser_stub
   MODULE libdebug_debug_sym_parser
   DEPENDS libdebug_debug_sym_parser
-  OUTPUT libdebug_debug_sym_parser.pyi
+  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/libdebug/native/libdebug_debug_sym_parser.pyi"
   PYTHON_PATH "."
 )
 
