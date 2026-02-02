@@ -180,7 +180,7 @@ nanobind_add_stub(
   libdebug_ptrace_binding_stub
   MODULE libdebug_ptrace_binding
   DEPENDS libdebug_ptrace_binding
-  OUTPUT libdebug_ptrace_binding.pyi
+  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/libdebug/ptrace/native/libdebug_ptrace_binding.pyi"
   PYTHON_PATH "."
 )
 
@@ -197,7 +197,7 @@ nanobind_add_stub(
   libdebug_linux_binding_stub
   MODULE libdebug_linux_binding
   DEPENDS libdebug_linux_binding
-  OUTPUT libdebug_linux_binding.pyi
+  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/libdebug/native/libdebug_linux_binding.pyi"
   PYTHON_PATH "."
 )
 
@@ -215,7 +215,7 @@ nanobind_add_stub(
   libdebug_elf_api_stub
   MODULE libdebug_elf_api
   DEPENDS libdebug_elf_api
-  OUTPUT libdebug_elf_api.pyi
+  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/libdebug/native/libdebug_elf_api.pyi"
   PYTHON_PATH "."
 )
 
@@ -270,7 +270,7 @@ nanobind_add_stub(
   libdebug_debug_sym_parser_stub
   MODULE libdebug_debug_sym_parser
   DEPENDS libdebug_debug_sym_parser
-  OUTPUT libdebug_debug_sym_parser.pyi
+  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/libdebug/native/libdebug_debug_sym_parser.pyi"
   PYTHON_PATH "."
 )
 
