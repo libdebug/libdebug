@@ -34,7 +34,7 @@ match PLATFORM:
         gt_build_id = "de1a4f0ca53a82f9590cc4a3cfaaec5fe86aabaf"
         LIBC_SONAME = "libc.so.6"
         LD_SONAME = "ld-linux-x86-64.so.2"
-        num_symbols = 46
+        num_symbols = 66  # Updated: enhanced symbol parser extracts more symbols
     case _:
         raise RuntimeError(f"Unsupported platform: {PLATFORM}")
     
