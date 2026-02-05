@@ -72,6 +72,8 @@ print(f"RAX is {hex(d.regs.rax)}") # (8)!
 
 # Write to memory
 d.memory[0x10ad, 8, "binary"] = b"Hello!\x00\x00" # (9)!
+
+d.terminate() # (10)!
 ```
 
 1. A debugger is created for the `test` executable
@@ -83,6 +85,7 @@ d.memory[0x10ad, 8, "binary"] = b"Hello!\x00\x00" # (9)!
 7. Wait for the process to print `libdebug is like sushi` on the standard output
 8. The value of the RAX register is read and printed when the process is stopped at the `my_breakpoint` breakpoint
 9. A memory write is performed at address `0x10ad` in the binary
+10. Kill the process and dispose of the debugger
 
 The above script will run the binary `test` in the working directory and set two breakpoints: one at the function `function` and another at `f2`. 
 
