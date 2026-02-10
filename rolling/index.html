@@ -2457,6 +2457,8 @@
 </span><span id="__span-2-25"><a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a>
 </span><span id="__span-2-26"><a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a><span class="c1"># Write to memory</span>
 </span><span id="__span-2-27"><a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="mh">0x10ad</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="s2">&quot;binary&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;Hello!</span><span class="se">\x00\x00</span><span class="s2">&quot;</span> <span class="c1"># (9)!</span>
+</span><span id="__span-2-28"><a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a>
+</span><span id="__span-2-29"><a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a><span class="n">d</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span> <span class="c1"># (10)!</span>
 </span></code></pre></div>
 <ol>
 <li>A debugger is created for the <code>test</code> executable</li>
@@ -2468,6 +2470,7 @@
 <li>Wait for the process to print <code>libdebug is like sushi</code> on the standard output</li>
 <li>The value of the RAX register is read and printed when the process is stopped at the <code>my_breakpoint</code> breakpoint</li>
 <li>A memory write is performed at address <code>0x10ad</code> in the binary</li>
+<li>Kill the process and dispose of the debugger</li>
 </ol>
 <p>The above script will run the binary <code>test</code> in the working directory and set two breakpoints: one at the function <code>function</code> and another at <code>f2</code>. </p>
 <p>The first breakpoint has no callback, so it will just stop the execution and wait for your script to interact with the process. When the process stops at this breakpoint, you can read and write memory, access registers, and so on. In the example, we print the value of the RAX register and write a string to memory. Then, we continue the execution of the process.</p>
