@@ -51,7 +51,7 @@ class LinuxRuntimeMitigations:
     stack_guard: bool = False
     """Stack canary (stack guard) enabled or not."""
 
-    nx: bool = False
+    nx: bool | None = False
     """Non-Executable (NX) stack enabled or not."""
 
     stack_executable: bool = False
@@ -103,7 +103,7 @@ class LinuxRuntimeMitigations:
         relro = LinuxRuntimeMitigations._parse_relro(elf)
 
         # Symbols require starting a process in libdebug, so I'm just gonna look for the string
-        # Yes, it's enogh for the mitigation, albeit not ideal
+        # Yes, it's enough for the mitigation, albeit not ideal
         strings_of_interest = []
 
         # .plt symbols will not be in the list of symbols, so we should use a heuristic lookup

@@ -19,7 +19,7 @@ class Section:
     section_type: str
     """The mnemonic of the type of the section from the define (e.g., PROGBITS, SYMTAB)."""
 
-    flags: int
+    flags: str
     """The flags associated with the section (e.g., X, W, R)."""
 
     address: int

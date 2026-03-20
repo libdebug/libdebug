@@ -12,7 +12,7 @@ from libdebug.data.elf.program_header import ProgramHeader
 class ProgramHeaderList(list[ProgramHeader]):
     """A list of program headers in an ELF."""
 
-    def _search_by_type(self: ProgramHeader, header_type: str) -> ProgramHeaderList:
+    def _search_by_type(self: ProgramHeaderList, header_type: str) -> ProgramHeaderList:
         """Searches for a program header by type.
 
         Args:

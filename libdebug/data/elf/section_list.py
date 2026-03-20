@@ -31,7 +31,7 @@ class SectionList(list[Section]):
 
         if target:
             return [
-                section,
+                target,
             ]
         else:
             raise ValueError(

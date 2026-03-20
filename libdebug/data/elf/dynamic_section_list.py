@@ -12,7 +12,7 @@ from libdebug.data.elf.dynamic_section import DynamicSection
 class DynamicSectionList(list[DynamicSection]):
     """A list of dynamic sections in an ELF."""
 
-    def _search_by_tag(self: DynamicSection, tag: str) -> DynamicSectionList:
+    def _search_by_tag(self: DynamicSectionList, tag: str) -> DynamicSectionList:
         """Searches for a dynamic section by tag.
 
         Args:
@@ -49,4 +49,4 @@ class DynamicSectionList(list[DynamicSection]):
 
     def __repr__(self: DynamicSectionList) -> str:
         """Returns the string representation of the DynamicSection without the default factory."""
-        return f"SectionList({super().__repr__()})"
+        return f"DynamicSectionList({super().__repr__()})"

@@ -76,7 +76,7 @@ from libdebug.utils.thread_exceptions import raise_exception_to_main_thread
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from typing import Any, Dict
+    from typing import Any
 
     from libdebug.commlink.pipe_manager import PipeManager
     from libdebug.data.env_dict import EnvDict
@@ -223,7 +223,7 @@ class InternalDebugger:
     _has_path_different_from_argv0: bool
     """A flag that indicates if the path to the binary is different from the first argument in argv."""
 
-    _cached_libs: Dict[str, ELF]
+    _cached_libs: dict[str, ELF]
     """A cache of the parsed libraries in the debugged process. Maps backing file path to ELF object."""
 
     def __init__(self: InternalDebugger) -> None:

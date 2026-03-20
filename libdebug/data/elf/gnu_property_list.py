@@ -49,4 +49,4 @@ class GNUPropertyList(list[GNUProperty]):
 
     def __repr__(self: GNUPropertyList) -> str:
         """Returns the string representation of the GNUPropertyList without the default factory."""
-        return f"SectionList({super().__repr__()})"
+        return f"GNUPropertyList({super().__repr__()})"

@@ -30,8 +30,8 @@ if TYPE_CHECKING:
 
     from libdebug.commlink.pipe_manager import PipeManager
     from libdebug.data.breakpoint import Breakpoint
-    from libdebug.data.elf import ELF
-    from libdebug.data.elf_list import ELFList
+    from libdebug.data.elf.elf import ELF
+    from libdebug.data.elf.elf_list import ELFList
     from libdebug.data.gdb_resume_event import GdbResumeEvent
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.memory_map_list import MemoryMapList
