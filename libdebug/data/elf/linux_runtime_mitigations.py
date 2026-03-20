@@ -177,7 +177,7 @@ class LinuxRuntimeMitigations:
 
         # -- BIND_NOW in dynamic flags? --
         try:
-            flags = elf.dynamic_sections.filter("BIND_NOW")[0]
+            flags = elf.dynamic_sections.filter("FLAGS")[0].value
         except IndexError:
             flags = ""
 

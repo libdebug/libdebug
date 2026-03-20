@@ -1471,9 +1471,9 @@ static const char* gnu_property_type_str(uint32_t pr_type, uint16_t e_machine) {
         case GNU_PROPERTY_1_NEEDED:               return "1_NEEDED";
 
         default: {
-            char buf[48];
+            static thread_local char buf[48];
             std::snprintf(buf, sizeof(buf), "UNKNOWN_0x%08x", pr_type);
-            return strdup(buf);
+            return buf;
         }
     }
 }
@@ -1549,6 +1549,7 @@ static void parse_gnu_property_descs(const uint8_t* desc, size_t descsz, int swa
                             std::snprintf(buf, sizeof(buf), "0x%" PRIx32, mask & ~GNU_PROPERTY_1_NEEDED_INDIRECT_EXTERN_ACCESS);
                             pd.bit_mnemonics.append(buf);
                         }
+                        break;
                     default:
                         pd.is_bit_mask = false;
                         pd.bit_mnemonics.assign("UNKNOWN_ARCH_SPECIFIC");
