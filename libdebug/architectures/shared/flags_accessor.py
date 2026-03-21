@@ -56,7 +56,7 @@ class BitfieldRegisterAccessor:
             return int(self) == int(other)
         if isinstance(other, int):
             return int(self) == other
-        raise NotImplemented # noqa: F901
+        return NotImplemented
 
     def _read_raw(self: BitfieldRegisterAccessor) -> int:
         registers = self._registers
