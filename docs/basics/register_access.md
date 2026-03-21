@@ -31,7 +31,7 @@ d.regs.pstate.BTYPE = 0b10
 d.regs.pstate.D = False
 ```
 
-When assigned a plain integer, these registers behave like a regular register assignment. When the mnemonic for a specific flag bit is accessed, the assignment transparently maps to the documented flag bits within the register (e.g., `CF`/`ZF`/... for x86, and `N`/`Z`/`C`/`V`/`BTYPE/... for ARM).
+When assigned a plain integer, these registers behave like a regular register assignment. When the mnemonic for a specific flag bit is accessed, the assignment transparently maps to the documented flag bits within the register (e.g., `CF`/`ZF`/... for x86, and `N`/`Z`/`C`/`V`/`BTYPE`/... for ARM).
 
 To avoid confusion, we list available registers and their types below.
 
