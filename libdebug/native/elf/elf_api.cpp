@@ -1245,6 +1245,7 @@ static std::string join(const std::vector<const char*>& names) {
 
 static std::string decode_aarch64_feature_1_and(uint32_t mask) {
     std::vector<const char*> v;
+    char buf[32];
     if (mask & GNU_PROPERTY_AARCH64_FEATURE_1_BTI) v.push_back("BTI");
     if (mask & GNU_PROPERTY_AARCH64_FEATURE_1_PAC) v.push_back("PAC");
     if (mask & GNU_PROPERTY_AARCH64_FEATURE_1_GCS) v.push_back("GCS");
@@ -1253,7 +1254,6 @@ static std::string decode_aarch64_feature_1_and(uint32_t mask) {
                                      GNU_PROPERTY_AARCH64_FEATURE_1_PAC |
                                      GNU_PROPERTY_AARCH64_FEATURE_1_GCS);
     if (remaining) {
-        char buf[32];
         std::snprintf(buf, sizeof(buf), "0x%" PRIx32, remaining);
         v.push_back(buf);
     }
@@ -1262,6 +1262,7 @@ static std::string decode_aarch64_feature_1_and(uint32_t mask) {
 
 static std::string decode_x86_feature_1_and(uint32_t mask) {
     std::vector<const char*> v;
+    char buf[32];
     if (mask & GNU_PROPERTY_X86_FEATURE_1_IBT)   v.push_back("IBT");
     if (mask & GNU_PROPERTY_X86_FEATURE_1_SHSTK) v.push_back("SHSTK");
     if (mask & GNU_PROPERTY_X86_FEATURE_1_LAM_U48) v.push_back("LAM_U48");
@@ -1271,12 +1272,16 @@ static std::string decode_x86_feature_1_and(uint32_t mask) {
                                      GNU_PROPERTY_X86_FEATURE_1_SHSTK |
                                      GNU_PROPERTY_X86_FEATURE_1_LAM_U48 |
                                      GNU_PROPERTY_X86_FEATURE_1_LAM_U57);
-
+    if (remaining) {
+        std::snprintf(buf, sizeof(buf), "0x%" PRIx32, remaining);
+        v.push_back(buf);
+    }
     return join(v);
 }
 
 static std::string decode_x86_isa_1(uint32_t mask) {
     std::vector<const char*> v;
+    char buf[32];
     if (mask & GNU_PROPERTY_X86_ISA_1_BASELINE) v.push_back("BASELINE");
     if (mask & GNU_PROPERTY_X86_ISA_1_V2)       v.push_back("V2");
     if (mask & GNU_PROPERTY_X86_ISA_1_V3)       v.push_back("V3");
@@ -1286,12 +1291,16 @@ static std::string decode_x86_isa_1(uint32_t mask) {
                                      GNU_PROPERTY_X86_ISA_1_V2 |
                                      GNU_PROPERTY_X86_ISA_1_V3 |
                                      GNU_PROPERTY_X86_ISA_1_V4);
-
+    if (remaining) {
+        std::snprintf(buf, sizeof(buf), "0x%" PRIx32, remaining);
+        v.push_back(buf);
+    }
     return join(v);
 }
 
 static std::string decode_x86_compat_isa_1(uint32_t mask) {
     std::vector<const char*> v;
+    char buf[32];
     if (mask & GNU_PROPERTY_X86_COMPAT_ISA_1_486)      v.push_back("486");
     if (mask & GNU_PROPERTY_X86_COMPAT_ISA_1_586)      v.push_back("586");
     if (mask & GNU_PROPERTY_X86_COMPAT_ISA_1_686)      v.push_back("686");
@@ -1331,7 +1340,6 @@ static std::string decode_x86_compat_isa_1(uint32_t mask) {
                                      GNU_PROPERTY_X86_COMPAT_ISA_1_AVX512BW);
 
     if (remaining) {
-        char buf[32];
         std::snprintf(buf, sizeof(buf), "0x%" PRIx32, remaining);
         v.push_back(buf);
     }
@@ -1341,6 +1349,7 @@ static std::string decode_x86_compat_isa_1(uint32_t mask) {
 
 static std::string decode_x86_feature_2_and(uint32_t mask) {
     std::vector<const char*> v;
+    char buf[32];
     if (mask & GNU_PROPERTY_X86_FEATURE_2_X86) v.push_back("X86");
     if (mask & GNU_PROPERTY_X86_FEATURE_2_X87) v.push_back("X87");
     if (mask & GNU_PROPERTY_X86_FEATURE_2_MMX) v.push_back("MMX");
@@ -1368,7 +1377,6 @@ static std::string decode_x86_feature_2_and(uint32_t mask) {
                                      GNU_PROPERTY_X86_FEATURE_2_MASK);
 
     if (remaining) {
-        char buf[32];
         std::snprintf(buf, sizeof(buf), "0x%" PRIx32, remaining);
         v.push_back(buf);
     }
@@ -1378,6 +1386,7 @@ static std::string decode_x86_feature_2_and(uint32_t mask) {
 
 static std::string decode_x86_compat_2_isa_1(uint32_t mask) {
     std::vector<const char*> v;
+    char buf[32];
     if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_CMOV) v.push_back("CMOV");
     if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_SSE) v.push_back("SSE");
     if (mask & GNU_PROPERTY_X86_COMPAT_2_ISA_1_SSE2) v.push_back("SSE2");
@@ -1431,7 +1440,6 @@ static std::string decode_x86_compat_2_isa_1(uint32_t mask) {
                                      GNU_PROPERTY_X86_COMPAT_2_ISA_1_AVX512_BF16);
 
     if (remaining) {
-        char buf[32];
         std::snprintf(buf, sizeof(buf), "0x%" PRIx32, remaining);
         v.push_back(buf);
     }
