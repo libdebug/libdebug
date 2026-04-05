@@ -2196,3 +2196,23 @@ class ElfApiTest(TestCase):
         self.assertFalse(mitigations.msan)
         self.assertFalse(mitigations.ubsan)
         self.assertFalse(mitigations.pac)
+
+    def test_section_list_getitem_dotless(self):
+        """Tests that SectionList.__getitem__ finds .text when searching for 'text' (without dot)."""
+        rel_path = RESOLVE_EXE_CROSS("sections_test", "amd64")
+        d = debugger(rel_path, aslr=False)
+
+        sections = d.binary.sections
+
+        # Searching with the dot should work
+        result_dot = sections[".text"]
+        self.assertEqual(len(result_dot), 1)
+        self.assertEqual(result_dot[0].name, ".text")
+
+        # Searching WITHOUT the dot should also work (per docstring: . is equivalent to no .)
+        result_no_dot = sections["text"]
+        self.assertEqual(len(result_no_dot), 1)
+        self.assertEqual(result_no_dot[0].name, ".text")
+
+        # Both should return the same section
+        self.assertEqual(result_dot[0].offset, result_no_dot[0].offset)
