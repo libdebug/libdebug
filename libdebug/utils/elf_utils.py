@@ -272,14 +272,14 @@ def resolve_address(path: str, address: int) -> str:
 
 
 @functools.cache
-def parse_elf_characteristics(path: str) -> tuple[bool, int, str]:
-    """Returns a tuple containing the PIE flag, the entry point and the architecture of the specified ELF file.
+def parse_elf_characteristics(path: str) -> tuple[bool, int, str, str]:
+    """Returns a tuple containing the PIE flag, the entry point, the architecture, and the endianness of the specified ELF file.
 
     Args:
         path (str): The path to the ELF file.
 
     Returns:
-        tuple: A tuple containing the PIE flag, the entry point and the architecture of the specified ELF file.
+        tuple: A tuple containing the PIE flag, the entry point, the architecture, and the endianness of the specified ELF file.
     """
     with Path(path).open("rb") as elf_file:
         elf = ELFFile(elf_file)
