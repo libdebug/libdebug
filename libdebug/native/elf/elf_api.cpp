@@ -232,7 +232,7 @@ static void parse_sections_64(const uint8_t *data, size_t sz, int swap, std::vec
         SectionInfo s;
         s.index = i;
         s.type.assign(sh_type_str(sh_type, maybe16(eh->e_machine, swap)));
-        sh_flags_str(sh_flags, s.flags, eh->e_machine); // convert to string
+        sh_flags_str(sh_flags, s.flags, maybe16(eh->e_machine, swap)); // convert to string
         s.addr = sh_addr;
         s.offset = sh_offset;
         s.size = sh_size;
@@ -318,7 +318,7 @@ static void parse_sections_32(const uint8_t *data, size_t sz, int swap, std::vec
         SectionInfo s;
         s.index = i;
         s.type.assign(sh_type_str(sh_type, maybe16(eh->e_machine, swap)));
-        sh_flags_str(sh_flags, s.flags, eh->e_machine); // convert to string
+        sh_flags_str(sh_flags, s.flags, maybe16(eh->e_machine, swap)); // convert to string
         s.addr = sh_addr;
         s.offset = sh_offset;
         s.size = sh_size;

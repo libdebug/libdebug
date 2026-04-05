@@ -2502,3 +2502,54 @@ class ElfApiTest(TestCase):
         finally:
             import os
             os.unlink(tmp_path)
+
+    def test_section_flags_arch_specific_big_endian(self):
+        """Tests that arch-specific section flags are decoded correctly on big-endian ELFs.
+
+        This verifies that e_machine is properly byte-swapped before being passed
+        to the flag decoder. Without correct byte-swapping, arch-specific flags
+        like SHF_X86_64_LARGE would be reported as UNKNOWN_FLAGS.
+        """
+        import shutil
+        import struct
+        import tempfile
+
+        from libdebug.native.libdebug_elf_api import SectionTable
+
+        src = RESOLVE_EXE_CROSS("be_sections_test.o", "amd64")
+
+        with tempfile.NamedTemporaryFile(suffix=".o", delete=False) as tmp:
+            tmp_path = tmp.name
+
+        try:
+            shutil.copy2(src, tmp_path)
+
+            with open(tmp_path, "r+b") as f:
+                data = bytearray(f.read())
+
+                # Patch e_machine to EM_X86_64 (0x3E) in big-endian at offset 0x12
+                struct.pack_into(">H", data, 0x12, 0x3E)
+
+                # Read section header layout
+                e_shoff = struct.unpack_from(">Q", data, 0x28)[0]
+                e_shentsize = struct.unpack_from(">H", data, 0x3A)[0]
+
+                # Patch section 1's sh_flags: add SHF_X86_64_LARGE (0x10000000)
+                flags_off = e_shoff + e_shentsize + 8  # section 1, sh_flags offset
+                old_flags = struct.unpack_from(">Q", data, flags_off)[0]
+                struct.pack_into(">Q", data, flags_off, old_flags | 0x10000000)
+
+                f.seek(0)
+                f.write(data)
+                f.truncate()
+
+            st = SectionTable.from_file(tmp_path)
+
+            # Section 1 (.text) should have LARGE decoded, not UNKNOWN_FLAGS
+            self.assertIn("LARGE", st.sections[1].flags)
+            self.assertIn("A", st.sections[1].flags)
+            self.assertIn("X", st.sections[1].flags)
+            self.assertNotIn("UNKNOWN", st.sections[1].flags)
+        finally:
+            import os
+            os.unlink(tmp_path)
