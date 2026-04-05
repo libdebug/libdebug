@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2025 Francesco Panebianco. All rights reserved.
+# Copyright (c) 2025-2026 Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -92,7 +92,8 @@ class SectionList(list[Section]):
         if not isinstance(key, str):
             return super().__getitem__(key)
 
-        sections = [section for section in self if (section.name == key or section.name == key.lstrip("."))]
+        key_stripped = key.lstrip(".")
+        sections = [section for section in self if (section.name == key or section.name.lstrip(".") == key_stripped)]
         if not sections:
             raise KeyError(f"Section '{key}' not found.")
         return SectionList(sections)
