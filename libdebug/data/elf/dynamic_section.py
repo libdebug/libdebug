@@ -13,7 +13,7 @@ from dataclasses import dataclass
 class DynamicSection:
     """Represents a dynamic section in an ELF file."""
 
-    tag: int
+    tag: str
     """The tag of the dynamic section."""
     value: int | str
     """The value of the dynamic section."""
