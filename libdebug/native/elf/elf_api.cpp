@@ -153,11 +153,11 @@ static void parse_sections_64(const uint8_t *data, size_t sz, int swap, std::vec
     const Elf64_Ehdr *eh = (const Elf64_Ehdr*)data;
 
     uint16_t e_shentsize = maybe16(eh->e_shentsize, swap);
-    uint16_t e_shnum     = maybe16(eh->e_shnum, swap);
+    uint32_t e_shnum     = maybe16(eh->e_shnum, swap);
     uint16_t e_shstrndx  = maybe16(eh->e_shstrndx, swap);
     uint64_t e_shoff     = maybe64(eh->e_shoff, swap);
 
-    if (e_shoff == 0 || e_shnum == 0)
+    if (e_shoff == 0)
         throw std::runtime_error("This ELF has no section header table (stripped?).");
 
     // Correctness: e_shentsize must match Elf64_Shdr
@@ -165,7 +165,7 @@ static void parse_sections_64(const uint8_t *data, size_t sz, int swap, std::vec
         throw std::runtime_error("Unexpected e_shentsize for 64-bit ELF");
 
     // Section 0 may carry extended counts
-    if (e_shnum == 0 || e_shstrndx == SHN_XINDEX) {
+    if ((e_shnum == 0 || e_shstrndx == SHN_XINDEX) && e_shoff != 0) {
         if (!in_bounds((size_t)e_shoff, (size_t)e_shentsize, sz))
             throw std::runtime_error("Bad e_shoff/e_shentsize");
         const Elf64_Shdr *sh0 = (const Elf64_Shdr*)(data + e_shoff);
@@ -173,13 +173,16 @@ static void parse_sections_64(const uint8_t *data, size_t sz, int swap, std::vec
         uint32_t sh0_link = maybe32(sh0->sh_link, swap);
         if (e_shnum == 0) {
             if (sh0_size > 0xFFFFFFFFull) throw std::runtime_error("Extended e_shnum too large");
-            e_shnum = (uint16_t)sh0_size;
+            e_shnum = (uint32_t)sh0_size;
         }
         if (e_shstrndx == SHN_XINDEX) {
             if (sh0_link > 0xFFFFu) throw std::runtime_error("Extended e_shstrndx too large");
             e_shstrndx = (uint16_t)sh0_link;
         }
     }
+
+    if (e_shnum == 0)
+        throw std::runtime_error("This ELF has no section header table (stripped?).");
 
     size_t shdrs_size = (size_t)e_shentsize * (size_t)e_shnum;
     if (!in_bounds((size_t)e_shoff, shdrs_size, sz))
@@ -199,7 +202,7 @@ static void parse_sections_64(const uint8_t *data, size_t sz, int swap, std::vec
 
     out.reserve(out.size() + e_shnum);
 
-    for (uint16_t i = 0; i < e_shnum; ++i){
+    for (uint32_t i = 0; i < e_shnum; ++i){
         const Elf64_Shdr *sh = (const Elf64_Shdr*)((const uint8_t*)shdrs + (size_t)e_shentsize * (size_t)i);
         uint32_t sh_name     = maybe32(sh->sh_name, swap);
         uint32_t sh_type     = maybe32(sh->sh_type, swap);
