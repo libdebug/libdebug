@@ -4,14 +4,29 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-from unittest import TestCase
-from utils.binary_utils import RESOLVE_EXE, RESOLVE_EXE_CROSS
-from libdebug import debugger
+import os
+import shutil
+import struct
+import tempfile
+from collections import Counter
 from pathlib import Path
+from unittest import TestCase
+from unittest.mock import patch
 
-from utils.binary_utils import PLATFORM, BASE
-
+from libdebug import debugger
+from libdebug.architectures.aarch64.aarch64_pac_instruction_detector import (
+    DETECTION_PATTERNS,
+    detect_pac_pattern_in_code,
+)
 from libdebug.data.elf.linux_runtime_mitigations import RelroStatus
+from libdebug.native.libdebug_elf_api import (
+    DynamicSectionTable,
+    GNUPropertyNotesTable,
+    ProgramHeaderTable,
+    SectionTable,
+)
+from libdebug.utils.elf_utils import parse_elf_characteristics
+from utils.binary_utils import BASE, PLATFORM, RESOLVE_EXE, RESOLVE_EXE_CROSS
 
 match PLATFORM:
     case "i386":
@@ -2217,13 +2232,14 @@ class ElfApiTest(TestCase):
         # Both should return the same section
         self.assertEqual(result_dot[0].offset, result_no_dot[0].offset)
 
-    def test_gnu_property_unknown_bits(self):
-        """Tests that unknown bits in GNU property bitmasks are reported as hex, not silently dropped."""
-        import shutil
-        import tempfile
+    def _assert_gnu_property_unknown_bits(self, patches, assertions, min_props=1):
+        """Helper: patch an amd64 ELF's GNU property notes and verify unknown bits are reported.
 
-        from libdebug.native.libdebug_elf_api import GNUPropertyNotesTable, SectionTable, ProgramHeaderTable
-
+        Args:
+            patches: list of (file_offset, bytes) to write into the binary.
+            assertions: list of (prop_index, expected_type, [expected_mnemonics]).
+            min_props: minimum number of properties expected in the result.
+        """
         src = RESOLVE_EXE_CROSS("sections_test", "amd64")
 
         with tempfile.NamedTemporaryFile(suffix=".elf", delete=False) as tmp:
@@ -2232,233 +2248,72 @@ class ElfApiTest(TestCase):
         try:
             shutil.copy2(src, tmp_path)
 
-            # The .note.gnu.property section in the amd64 sections_test binary:
-            #   offset 0x370, size 0x30
-            # Layout (little-endian):
-            #   note header (12 bytes) + name "GNU\0" (4 bytes)
-            #   property 1: X86_FEATURE_1_AND, datasz=4, data=0x03 (IBT|SHSTK) at file offset 0x388
-            #   property 2: X86_ISA_1_NEEDED,  datasz=4, data=0x01 (BASELINE)  at file offset 0x398
-
-            # Patch: set unknown bit 0x80 in both property bitmasks
             with open(tmp_path, "r+b") as f:
-                # Patch X86_FEATURE_1_AND: 0x03 -> 0x83
-                f.seek(0x388)
-                f.write(b"\x83\x00\x00\x00")
+                for offset, data in patches:
+                    f.seek(offset)
+                    f.write(data)
 
-                # Patch X86_ISA_1_NEEDED: 0x01 -> 0x81
-                f.seek(0x398)
-                f.write(b"\x81\x00\x00\x00")
-
-            # Parse the forged binary's sections to find the note section/segment offsets
             section_table = SectionTable.from_file(tmp_path)
             program_headers = ProgramHeaderTable.from_file(tmp_path)
 
-            note_sec = None
-            for s in section_table.sections:
-                if s.name == ".note.gnu.property":
-                    note_sec = s
-                    break
+            note_sec = next((s for s in section_table.sections if s.name == ".note.gnu.property"), None)
+            note_seg = next((ph for ph in program_headers.headers if ph.type == "GNU_PROPERTY"), None)
 
-            note_seg = None
-            for ph in program_headers.headers:
-                if ph.type == "GNU_PROPERTY":
-                    note_seg = ph
-                    break
-
-            sec_off = int(note_sec.offset) if note_sec else 0
-            sec_sz = int(note_sec.size) if note_sec else 0
-            seg_off = int(note_seg.offset) if note_seg else 0
-            seg_sz = int(note_seg.filesz) if note_seg else 0
-
-            result = GNUPropertyNotesTable.from_file(tmp_path, sec_off, sec_sz, seg_off, seg_sz)
+            result = GNUPropertyNotesTable.from_file(
+                tmp_path,
+                int(note_sec.offset) if note_sec else 0,
+                int(note_sec.size) if note_sec else 0,
+                int(note_seg.offset) if note_seg else 0,
+                int(note_seg.filesz) if note_seg else 0,
+            )
             props = result.properties
 
-            self.assertEqual(len(props), 2)
-
-            # X86_FEATURE_1_AND should now include known bits AND the unknown 0x80
-            self.assertEqual(props[0].type, "X86_FEATURE_1_AND")
-            self.assertIn("IBT", props[0].bit_mnemonics)
-            self.assertIn("SHSTK", props[0].bit_mnemonics)
-            self.assertIn("0x80", props[0].bit_mnemonics)
-
-            # X86_ISA_1_NEEDED should include BASELINE AND the unknown 0x80
-            self.assertEqual(props[1].type, "X86_ISA_1_NEEDED")
-            self.assertIn("BASELINE", props[1].bit_mnemonics)
-            self.assertIn("0x80", props[1].bit_mnemonics)
+            self.assertGreaterEqual(len(props), min_props)
+            for prop_idx, expected_type, expected_mnemonics in assertions:
+                self.assertEqual(props[prop_idx].type, expected_type)
+                for mnemonic in expected_mnemonics:
+                    self.assertIn(mnemonic, props[prop_idx].bit_mnemonics)
         finally:
-            import os
             os.unlink(tmp_path)
+
+    def test_gnu_property_unknown_bits(self):
+        """Tests that unknown bits in GNU property bitmasks are reported as hex, not silently dropped."""
+        # Patch X86_FEATURE_1_AND (0x03 -> 0x83) and X86_ISA_1_NEEDED (0x01 -> 0x81)
+        self._assert_gnu_property_unknown_bits(
+            patches=[(0x388, b"\x83\x00\x00\x00"), (0x398, b"\x81\x00\x00\x00")],
+            assertions=[
+                (0, "X86_FEATURE_1_AND", ["IBT", "SHSTK", "0x80"]),
+                (1, "X86_ISA_1_NEEDED", ["BASELINE", "0x80"]),
+            ],
+            min_props=2,
+        )
 
     def test_gnu_property_unknown_bits_x86_compat_isa_1(self):
         """Tests that unknown bits in X86_COMPAT_ISA_1 bitmasks are reported as hex."""
-        import shutil
-        import tempfile
-
-        from libdebug.native.libdebug_elf_api import GNUPropertyNotesTable, SectionTable, ProgramHeaderTable
-
-        src = RESOLVE_EXE_CROSS("sections_test", "amd64")
-
-        with tempfile.NamedTemporaryFile(suffix=".elf", delete=False) as tmp:
-            tmp_path = tmp.name
-
-        try:
-            shutil.copy2(src, tmp_path)
-
-            with open(tmp_path, "r+b") as f:
-                # Patch property 1 pr_type to X86_COMPAT_ISA_1_NEEDED (0xc0000001)
-                f.seek(0x380)
-                f.write(b"\x01\x00\x00\xc0")
-                # Patch data: 486 (0x01) | unknown (0x80000000)
-                f.seek(0x388)
-                f.write(b"\x01\x00\x00\x80")
-
-            section_table = SectionTable.from_file(tmp_path)
-            program_headers = ProgramHeaderTable.from_file(tmp_path)
-
-            note_sec = None
-            for s in section_table.sections:
-                if s.name == ".note.gnu.property":
-                    note_sec = s
-                    break
-
-            note_seg = None
-            for ph in program_headers.headers:
-                if ph.type == "GNU_PROPERTY":
-                    note_seg = ph
-                    break
-
-            sec_off = int(note_sec.offset) if note_sec else 0
-            sec_sz = int(note_sec.size) if note_sec else 0
-            seg_off = int(note_seg.offset) if note_seg else 0
-            seg_sz = int(note_seg.filesz) if note_seg else 0
-
-            result = GNUPropertyNotesTable.from_file(tmp_path, sec_off, sec_sz, seg_off, seg_sz)
-            props = result.properties
-
-            self.assertGreaterEqual(len(props), 1)
-            self.assertEqual(props[0].type, "X86_COMPAT_ISA_1_NEEDED")
-            self.assertIn("486", props[0].bit_mnemonics)
-            self.assertIn("0x80000000", props[0].bit_mnemonics)
-        finally:
-            import os
-            os.unlink(tmp_path)
+        # Patch pr_type to X86_COMPAT_ISA_1_NEEDED, data: 486 | unknown 0x80000000
+        self._assert_gnu_property_unknown_bits(
+            patches=[(0x380, b"\x01\x00\x00\xc0"), (0x388, b"\x01\x00\x00\x80")],
+            assertions=[(0, "X86_COMPAT_ISA_1_NEEDED", ["486", "0x80000000"])],
+        )
 
     def test_gnu_property_unknown_bits_x86_feature_2(self):
         """Tests that unknown bits in X86_FEATURE_2 bitmasks are reported as hex."""
-        import shutil
-        import tempfile
-
-        from libdebug.native.libdebug_elf_api import GNUPropertyNotesTable, SectionTable, ProgramHeaderTable
-
-        src = RESOLVE_EXE_CROSS("sections_test", "amd64")
-
-        with tempfile.NamedTemporaryFile(suffix=".elf", delete=False) as tmp:
-            tmp_path = tmp.name
-
-        try:
-            shutil.copy2(src, tmp_path)
-
-            with open(tmp_path, "r+b") as f:
-                # Patch property 1 pr_type to X86_FEATURE_2_NEEDED (0xc0008001)
-                f.seek(0x380)
-                f.write(b"\x01\x80\x00\xc0")
-                # Patch data: X86 (0x01) | unknown (0x80000000)
-                f.seek(0x388)
-                f.write(b"\x01\x00\x00\x80")
-
-            section_table = SectionTable.from_file(tmp_path)
-            program_headers = ProgramHeaderTable.from_file(tmp_path)
-
-            note_sec = None
-            for s in section_table.sections:
-                if s.name == ".note.gnu.property":
-                    note_sec = s
-                    break
-
-            note_seg = None
-            for ph in program_headers.headers:
-                if ph.type == "GNU_PROPERTY":
-                    note_seg = ph
-                    break
-
-            sec_off = int(note_sec.offset) if note_sec else 0
-            sec_sz = int(note_sec.size) if note_sec else 0
-            seg_off = int(note_seg.offset) if note_seg else 0
-            seg_sz = int(note_seg.filesz) if note_seg else 0
-
-            result = GNUPropertyNotesTable.from_file(tmp_path, sec_off, sec_sz, seg_off, seg_sz)
-            props = result.properties
-
-            self.assertGreaterEqual(len(props), 1)
-            self.assertEqual(props[0].type, "X86_FEATURE_2_NEEDED")
-            self.assertIn("X86", props[0].bit_mnemonics)
-            self.assertIn("0x80000000", props[0].bit_mnemonics)
-        finally:
-            import os
-            os.unlink(tmp_path)
+        # Patch pr_type to X86_FEATURE_2_NEEDED, data: X86 | unknown 0x80000000
+        self._assert_gnu_property_unknown_bits(
+            patches=[(0x380, b"\x01\x80\x00\xc0"), (0x388, b"\x01\x00\x00\x80")],
+            assertions=[(0, "X86_FEATURE_2_NEEDED", ["X86", "0x80000000"])],
+        )
 
     def test_gnu_property_unknown_bits_x86_compat_2_isa_1(self):
         """Tests that unknown bits in X86_COMPAT_2_ISA_1 bitmasks are reported as hex."""
-        import shutil
-        import tempfile
-
-        from libdebug.native.libdebug_elf_api import GNUPropertyNotesTable, SectionTable, ProgramHeaderTable
-
-        src = RESOLVE_EXE_CROSS("sections_test", "amd64")
-
-        with tempfile.NamedTemporaryFile(suffix=".elf", delete=False) as tmp:
-            tmp_path = tmp.name
-
-        try:
-            shutil.copy2(src, tmp_path)
-
-            with open(tmp_path, "r+b") as f:
-                # Patch property 1 pr_type to X86_COMPAT_2_ISA_1_NEEDED (0xc0008000)
-                f.seek(0x380)
-                f.write(b"\x00\x80\x00\xc0")
-                # Patch data: CMOV (0x01) | unknown (0x80000000)
-                f.seek(0x388)
-                f.write(b"\x01\x00\x00\x80")
-
-            section_table = SectionTable.from_file(tmp_path)
-            program_headers = ProgramHeaderTable.from_file(tmp_path)
-
-            note_sec = None
-            for s in section_table.sections:
-                if s.name == ".note.gnu.property":
-                    note_sec = s
-                    break
-
-            note_seg = None
-            for ph in program_headers.headers:
-                if ph.type == "GNU_PROPERTY":
-                    note_seg = ph
-                    break
-
-            sec_off = int(note_sec.offset) if note_sec else 0
-            sec_sz = int(note_sec.size) if note_sec else 0
-            seg_off = int(note_seg.offset) if note_seg else 0
-            seg_sz = int(note_seg.filesz) if note_seg else 0
-
-            result = GNUPropertyNotesTable.from_file(tmp_path, sec_off, sec_sz, seg_off, seg_sz)
-            props = result.properties
-
-            self.assertGreaterEqual(len(props), 1)
-            self.assertEqual(props[0].type, "X86_COMPAT_2_ISA_1_NEEDED")
-            self.assertIn("CMOV", props[0].bit_mnemonics)
-            self.assertIn("0x80000000", props[0].bit_mnemonics)
-        finally:
-            import os
-            os.unlink(tmp_path)
+        # Patch pr_type to X86_COMPAT_2_ISA_1_NEEDED, data: CMOV | unknown 0x80000000
+        self._assert_gnu_property_unknown_bits(
+            patches=[(0x380, b"\x00\x80\x00\xc0"), (0x388, b"\x01\x00\x00\x80")],
+            assertions=[(0, "X86_COMPAT_2_ISA_1_NEEDED", ["CMOV", "0x80000000"])],
+        )
 
     def test_gnu_property_unknown_bits_aarch64(self):
         """Tests that unknown bits in AARCH64_FEATURE_1_AND bitmasks are reported as hex."""
-        import shutil
-        import struct
-        import tempfile
-
-        from libdebug.native.libdebug_elf_api import GNUPropertyNotesTable
-
         src = RESOLVE_EXE_CROSS("sections_test", "aarch64")
 
         with tempfile.NamedTemporaryFile(suffix=".elf", delete=False) as tmp:
@@ -2468,9 +2323,6 @@ class ElfApiTest(TestCase):
             shutil.copy2(src, tmp_path)
 
             # The aarch64 binary has no .note.gnu.property section, so we append one.
-            # GNU property note layout (little-endian, 64-bit):
-            #   namesz(4) + descsz(4) + type(4) + name("GNU\0", 4 bytes)
-            #   descriptor: pr_type(4) + pr_datasz(4) + data(4) + padding(4)
             note_data = struct.pack(
                 "<III4s II I I",
                 4,          # namesz
@@ -2484,7 +2336,7 @@ class ElfApiTest(TestCase):
             )
 
             with open(tmp_path, "r+b") as f:
-                f.seek(0, 2)  # end of file
+                f.seek(0, 2)
                 note_offset = f.tell()
                 f.write(note_data)
 
@@ -2500,7 +2352,6 @@ class ElfApiTest(TestCase):
             self.assertIn("BTI", props[0].bit_mnemonics)
             self.assertIn("0x80", props[0].bit_mnemonics)
         finally:
-            import os
             os.unlink(tmp_path)
 
     def test_section_flags_arch_specific_big_endian(self):
@@ -2510,12 +2361,6 @@ class ElfApiTest(TestCase):
         to the flag decoder. Without correct byte-swapping, arch-specific flags
         like SHF_X86_64_LARGE would be reported as UNKNOWN_FLAGS.
         """
-        import shutil
-        import struct
-        import tempfile
-
-        from libdebug.native.libdebug_elf_api import SectionTable
-
         src = RESOLVE_EXE_CROSS("be_sections_test.o", "amd64")
 
         with tempfile.NamedTemporaryFile(suffix=".o", delete=False) as tmp:
@@ -2551,12 +2396,10 @@ class ElfApiTest(TestCase):
             self.assertIn("X", st.sections[1].flags)
             self.assertNotIn("UNKNOWN", st.sections[1].flags)
         finally:
-            import os
             os.unlink(tmp_path)
 
     def test_pac_detection_patterns_fit_32_bits(self):
         """Tests that all PAC detection patterns fit within 32-bit instruction width."""
-        from libdebug.architectures.aarch64.aarch64_pac_instruction_detector import DETECTION_PATTERNS
 
         for i, pattern in enumerate(DETECTION_PATTERNS):
             value = pattern["value"]
@@ -2578,9 +2421,6 @@ class ElfApiTest(TestCase):
                 -o pac_test pac_test.c
         It contains paciasp (0xD503233F) and retaa (0xD65F0BFF) instructions.
         """
-        from libdebug.architectures.aarch64.aarch64_pac_instruction_detector import detect_pac_pattern_in_code
-        from libdebug.native.libdebug_elf_api import SectionTable
-
         binary = RESOLVE_EXE_CROSS("pac_test", "aarch64")
 
         with open(binary, "rb") as f:
@@ -2620,9 +2460,6 @@ class ElfApiTest(TestCase):
         14 FEAT_PAuth_LR (ARMv9.5+) patterns cannot be assembled with current toolchains, so they
         are excluded from this check.
         """
-        from libdebug.architectures.aarch64.aarch64_pac_instruction_detector import DETECTION_PATTERNS
-        from libdebug.native.libdebug_elf_api import SectionTable
-
         binary = RESOLVE_EXE_CROSS("pac_coverage", "aarch64")
 
         with open(binary, "rb") as f:
@@ -2664,8 +2501,6 @@ class ElfApiTest(TestCase):
         did not update `last_path`, causing subsequent segments of the same file to be
         re-checked instead of skipped.
         """
-        from unittest.mock import patch
-
         d = debugger(RESOLVE_EXE("sections_test"), aslr=False)
         d.run()
 
@@ -2680,7 +2515,6 @@ class ElfApiTest(TestCase):
             d._internal_debugger._find_libraries_in_traced_process()
 
         # Count how many times each path was checked with samefile
-        from collections import Counter
         counts = Counter(samefile_paths)
 
         for path, count in counts.items():
@@ -2694,8 +2528,6 @@ class ElfApiTest(TestCase):
         When ELF.parse fails for a library (e.g., corrupted ELF mapping), the
         failed entry should be skipped rather than appending None to the list.
         """
-        from unittest.mock import patch
-
         d = debugger(RESOLVE_EXE("sections_test"), aslr=False)
         d.run()
 
@@ -2758,11 +2590,6 @@ class ElfApiTest(TestCase):
         (i.e., in the BSS / zero-fill region, not backed by file data), it must
         NOT be resolved to a file offset.
         """
-        import struct
-        import tempfile
-        import os
-        from libdebug.native.libdebug_elf_api import DynamicSectionTable
-
         # ---- layout constants ----
         VADDR = 0x400000
         EHDR_SZ = 64
