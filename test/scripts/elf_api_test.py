@@ -2655,3 +2655,35 @@ class ElfApiTest(TestCase):
             mask = pattern["mask"]
             matched = any((instr & mask) == (value & mask) for instr in instructions)
             self.assertTrue(matched, f"Pattern {idx} (value=0x{value:08x}, mask=0x{mask:08x}) did not match any real instruction")
+
+    def test_find_libraries_no_redundant_samefile_checks(self):
+        """Tests that _find_libraries_in_traced_process doesn't redundantly check
+        the same backing file with Path.samefile multiple times.
+
+        Before the fix, early `continue` paths (file not found, is main binary, not ELF)
+        did not update `last_path`, causing subsequent segments of the same file to be
+        re-checked instead of skipped.
+        """
+        from unittest.mock import patch
+
+        d = debugger(RESOLVE_EXE("sections_test"), aslr=False)
+        d.run()
+
+        original_samefile = Path.samefile
+        samefile_paths = []
+
+        def tracking_samefile(a, b):
+            samefile_paths.append(str(a))
+            return original_samefile(a, b)
+
+        with patch.object(Path, "samefile", tracking_samefile):
+            d._internal_debugger._find_libraries_in_traced_process()
+
+        # Count how many times each path was checked with samefile
+        from collections import Counter
+        counts = Counter(samefile_paths)
+
+        for path, count in counts.items():
+            self.assertEqual(count, 1, f"Path.samefile called {count} times for {path} (expected 1)")
+
+        d.terminate()

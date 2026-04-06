@@ -2129,6 +2129,7 @@ class InternalDebugger:
         last_path = None
         collected_libs = []
         has_parsed_file = False
+        seen_files: set[str] = set()
 
         for curr_map in self.maps:
             if has_parsed_file:
@@ -2145,8 +2146,10 @@ class InternalDebugger:
                 has_parsed_file = True
                 continue
 
-            if last_path != curr_map.backing_file:
+            if curr_map.backing_file not in seen_files:
                 has_parsed_file = True
+                last_path = curr_map.backing_file
+                seen_files.add(curr_map.backing_file)
                 start_segment = curr_map
 
                 p_backing = Path(curr_map.backing_file)
@@ -2173,8 +2176,6 @@ class InternalDebugger:
                     continue
 
                 collected_libs.append((curr_map.backing_file, start_segment.start))
-
-            last_path = curr_map.backing_file
 
         return collected_libs
 
