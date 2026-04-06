@@ -2553,3 +2553,105 @@ class ElfApiTest(TestCase):
         finally:
             import os
             os.unlink(tmp_path)
+
+    def test_pac_detection_patterns_fit_32_bits(self):
+        """Tests that all PAC detection patterns fit within 32-bit instruction width."""
+        from libdebug.architectures.aarch64.aarch64_pac_instruction_detector import DETECTION_PATTERNS
+
+        for i, pattern in enumerate(DETECTION_PATTERNS):
+            value = pattern["value"]
+            mask = pattern["mask"]
+            self.assertLessEqual(
+                value.bit_length(), 32,
+                f"Pattern {i}: value 0x{value:x} exceeds 32 bits ({value.bit_length()} bits)",
+            )
+            self.assertLessEqual(
+                mask.bit_length(), 32,
+                f"Pattern {i}: mask 0x{mask:x} exceeds 32 bits ({mask.bit_length()} bits)",
+            )
+
+    def test_pac_detection_on_real_binary(self):
+        """Tests PAC detection against a real aarch64 binary compiled with -mbranch-protection=pac-ret+bti.
+
+        The binary was compiled with:
+            aarch64-linux-gnu-gcc -march=armv8.3-a -mbranch-protection=pac-ret+bti -O1 -nostdlib \
+                -o pac_test pac_test.c
+        It contains paciasp (0xD503233F) and retaa (0xD65F0BFF) instructions.
+        """
+        from libdebug.architectures.aarch64.aarch64_pac_instruction_detector import detect_pac_pattern_in_code
+        from libdebug.native.libdebug_elf_api import SectionTable
+
+        binary = RESOLVE_EXE_CROSS("pac_test", "aarch64")
+
+        with open(binary, "rb") as f:
+            data = f.read()
+
+        st = SectionTable.from_file(binary)
+        text_section = None
+        for s in st.sections:
+            if s.name == ".text":
+                text_section = s
+                break
+
+        self.assertIsNotNone(text_section, ".text section not found")
+
+        text_code = data[int(text_section.offset):int(text_section.offset) + int(text_section.size)]
+
+        # The .text section should contain PAC instructions
+        self.assertTrue(detect_pac_pattern_in_code(text_code), "PAC instructions not detected in .text")
+
+        # Verify specific known instructions match individually
+        # paciasp = 0xD503233F
+        paciasp_bytes = (0xD503233F).to_bytes(4, byteorder="little")
+        self.assertTrue(detect_pac_pattern_in_code(paciasp_bytes), "paciasp should be detected")
+
+        # retaa = 0xD65F0BFF
+        retaa_bytes = (0xD65F0BFF).to_bytes(4, byteorder="little")
+        self.assertTrue(detect_pac_pattern_in_code(retaa_bytes), "retaa should be detected")
+
+        # A non-PAC instruction should NOT be detected
+        add_bytes = (0x11000400).to_bytes(4, byteorder="little")  # add w0, w0, #1
+        self.assertFalse(detect_pac_pattern_in_code(add_bytes), "non-PAC instruction should not be detected")
+
+    def test_pac_all_patterns_match_real_instructions(self):
+        """Verifies every assemblable PAC detection pattern matches at least one real instruction.
+
+        Uses pac_coverage, a binary containing one representative of every ARMv8.3-a PAC instruction.
+        14 FEAT_PAuth_LR (ARMv9.5+) patterns cannot be assembled with current toolchains, so they
+        are excluded from this check.
+        """
+        from libdebug.architectures.aarch64.aarch64_pac_instruction_detector import DETECTION_PATTERNS
+        from libdebug.native.libdebug_elf_api import SectionTable
+
+        binary = RESOLVE_EXE_CROSS("pac_coverage", "aarch64")
+
+        with open(binary, "rb") as f:
+            data = f.read()
+
+        st = SectionTable.from_file(binary)
+        text_section = None
+        for s in st.sections:
+            if s.name == ".text":
+                text_section = s
+                break
+
+        self.assertIsNotNone(text_section, ".text section not found")
+
+        text_code = data[int(text_section.offset):int(text_section.offset) + int(text_section.size)]
+
+        # Extract all 4-byte instructions
+        instructions = []
+        for i in range(0, len(text_code) - 3, 4):
+            instructions.append(int.from_bytes(text_code[i:i + 4], "little"))
+
+        # FEAT_PAuth_LR pattern indices — ARMv9.5+, not assemblable with current toolchains
+        feat_pauth_lr_indices = {4, 5, 6, 9, 10, 11, 21, 22, 25, 26, 27, 28, 29, 31}
+
+        for idx, pattern in enumerate(DETECTION_PATTERNS):
+            if idx in feat_pauth_lr_indices:
+                continue
+
+            value = pattern["value"]
+            mask = pattern["mask"]
+            matched = any((instr & mask) == (value & mask) for instr in instructions)
+            self.assertTrue(matched, f"Pattern {idx} (value=0x{value:08x}, mask=0x{mask:08x}) did not match any real instruction")
