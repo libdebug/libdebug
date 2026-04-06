@@ -251,6 +251,9 @@ static void parse_sections_32(const uint8_t *data, size_t sz, int swap, std::vec
     uint16_t e_shstrndx  = maybe16(eh->e_shstrndx, swap);
     uint32_t e_shoff     = maybe32(eh->e_shoff, swap);
 
+    if (e_shoff == 0)
+        throw std::runtime_error("This ELF has no section header table (stripped?).");
+
     if (e_shentsize != sizeof(Elf32_Shdr))
         throw std::runtime_error("Unexpected e_shentsize for 32-bit ELF");
 
@@ -270,6 +273,9 @@ static void parse_sections_32(const uint8_t *data, size_t sz, int swap, std::vec
             e_shstrndx = (uint16_t)sh0_link;
         }
     }
+
+    if (e_shnum == 0)
+        throw std::runtime_error("This ELF has no section header table (stripped?).");
 
     size_t shdrs_size = (size_t)e_shentsize * (size_t)e_shnum;
     if (!in_bounds((size_t)e_shoff, shdrs_size, sz))
