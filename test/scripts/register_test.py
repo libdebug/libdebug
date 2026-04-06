@@ -281,6 +281,29 @@ class RegisterTest(TestCase):
         self.assertEqual(d.regs.eflags.CF, 1)
         self.assertEqual(d.regs.eflags.SF, 0)
 
+        # Numeric protocol: __bool__
+        d.regs.eflags = 0
+        self.assertFalse(bool(d.regs.eflags))
+        d.regs.eflags = 1
+        self.assertTrue(bool(d.regs.eflags))
+
+        # Numeric protocol: bitwise operators
+        d.regs.eflags = 0xFF
+        self.assertEqual(d.regs.eflags & 0x0F, 0x0F)
+        self.assertEqual(d.regs.eflags | 0x100, 0x1FF)
+        self.assertEqual(d.regs.eflags ^ 0x0F, 0xF0)
+        self.assertEqual(~d.regs.eflags, ~0xFF)
+        self.assertEqual(d.regs.eflags << 1, 0x1FE)
+        self.assertEqual(d.regs.eflags >> 1, 0x7F)
+
+        # Numeric protocol: reverse bitwise operators
+        self.assertEqual(0x0F & d.regs.eflags, 0x0F)
+        self.assertEqual(0x100 | d.regs.eflags, 0x1FF)
+
+        # Numeric protocol: __hash__
+        d.regs.eflags = 0xFF
+        self.assertEqual(hash(d.regs.eflags), hash(0xFF))
+
         d.kill()
         d.terminate()
 

@@ -50,12 +50,63 @@ class BitfieldRegisterAccessor:
         """Allow direct usage in slicing or other index contexts."""
         return self._read_raw()
 
+    def __bool__(self: BitfieldRegisterAccessor) -> bool:
+        """Return False when the register value is zero."""
+        return self._read_raw() != 0
+
+    def __hash__(self: BitfieldRegisterAccessor) -> int:
+        """Hash based on the current register value."""
+        return hash(self._read_raw())
+
     def __eq__(self: BitfieldRegisterAccessor, other: object) -> bool:
         """Compare the register value against ints or other accessors."""
         if isinstance(other, BitfieldRegisterAccessor):
             return int(self) == int(other)
         if isinstance(other, int):
             return int(self) == other
+        return NotImplemented
+
+    def __and__(self: BitfieldRegisterAccessor, other: object) -> int:
+        if isinstance(other, BitfieldRegisterAccessor | int):
+            return int(self) & int(other)
+        return NotImplemented
+
+    def __rand__(self: BitfieldRegisterAccessor, other: object) -> int:
+        if isinstance(other, BitfieldRegisterAccessor | int):
+            return int(other) & int(self)
+        return NotImplemented
+
+    def __or__(self: BitfieldRegisterAccessor, other: object) -> int:
+        if isinstance(other, BitfieldRegisterAccessor | int):
+            return int(self) | int(other)
+        return NotImplemented
+
+    def __ror__(self: BitfieldRegisterAccessor, other: object) -> int:
+        if isinstance(other, BitfieldRegisterAccessor | int):
+            return int(other) | int(self)
+        return NotImplemented
+
+    def __xor__(self: BitfieldRegisterAccessor, other: object) -> int:
+        if isinstance(other, BitfieldRegisterAccessor | int):
+            return int(self) ^ int(other)
+        return NotImplemented
+
+    def __rxor__(self: BitfieldRegisterAccessor, other: object) -> int:
+        if isinstance(other, BitfieldRegisterAccessor | int):
+            return int(other) ^ int(self)
+        return NotImplemented
+
+    def __invert__(self: BitfieldRegisterAccessor) -> int:
+        return ~int(self)
+
+    def __lshift__(self: BitfieldRegisterAccessor, other: object) -> int:
+        if isinstance(other, int):
+            return int(self) << other
+        return NotImplemented
+
+    def __rshift__(self: BitfieldRegisterAccessor, other: object) -> int:
+        if isinstance(other, int):
+            return int(self) >> other
         return NotImplemented
 
     def _read_raw(self: BitfieldRegisterAccessor) -> int:
