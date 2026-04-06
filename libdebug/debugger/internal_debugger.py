@@ -2141,7 +2141,9 @@ class InternalDebugger:
                 has_parsed_file = False
 
             if curr_map.backing_file in self._cached_libs:
-                collected_libs.append((curr_map.backing_file, -1))  # Base address is already cached
+                if curr_map.backing_file not in seen_files:
+                    collected_libs.append((curr_map.backing_file, -1))  # Base address is already cached
+                    seen_files.add(curr_map.backing_file)
                 last_path = curr_map.backing_file
                 has_parsed_file = True
                 continue
@@ -2216,6 +2218,7 @@ class InternalDebugger:
                         liblog.debugger(f"Parsed library {lib_path} at base address {hex(base)}.")
                 except Exception as e:
                     liblog.error(f"Could not parse library {lib_path}: {e}")
+                    continue
 
             parsed_libs.append(curr)
         return parsed_libs

@@ -2038,7 +2038,7 @@ class ElfApiTest(TestCase):
 
         self.assertEqual(mitigations.relro, RelroStatus.NONE)
         self.assertFalse(mitigations.stack_guard)
-        self.assertEqual(mitigations.nx, None) # Depends on READ_IMPLIES_EXEC
+        self.assertFalse(mitigations.nx) # NX is off when GNU_STACK is executable
         self.assertTrue(mitigations.stack_executable)
         self.assertFalse(mitigations.pie)
         self.assertFalse(mitigations.shstk)
@@ -2112,7 +2112,7 @@ class ElfApiTest(TestCase):
 
         self.assertEqual(mitigations.relro, RelroStatus.NONE)
         self.assertFalse(mitigations.stack_guard)
-        self.assertEqual(mitigations.nx, None) # Depends on READ_IMPLIES_EXEC
+        self.assertFalse(mitigations.nx) # NX is off when GNU_STACK is executable
         self.assertTrue(mitigations.stack_executable)
         self.assertFalse(mitigations.pie)
         self.assertFalse(mitigations.shstk)
@@ -2186,7 +2186,7 @@ class ElfApiTest(TestCase):
 
         self.assertEqual(mitigations.relro, RelroStatus.NONE)
         self.assertFalse(mitigations.stack_guard)
-        self.assertEqual(mitigations.nx, None) # Depends on READ_IMPLIES_EXEC
+        self.assertFalse(mitigations.nx) # NX is off when GNU_STACK is executable
         self.assertTrue(mitigations.stack_executable)
         self.assertFalse(mitigations.pie)
         self.assertFalse(mitigations.shstk)
@@ -2687,3 +2687,368 @@ class ElfApiTest(TestCase):
             self.assertEqual(count, 1, f"Path.samefile called {count} times for {path} (expected 1)")
 
         d.terminate()
+
+    def test_libraries_no_none_on_parse_failure(self):
+        """Tests that the libraries list never contains None entries.
+
+        When ELF.parse fails for a library (e.g., corrupted ELF mapping), the
+        failed entry should be skipped rather than appending None to the list.
+        """
+        from unittest.mock import patch
+
+        d = debugger(RESOLVE_EXE("sections_test"), aslr=False)
+        d.run()
+
+        original_parse = d._internal_debugger.binary.__class__.parse
+
+        call_count = [0]
+
+        def failing_parse(path, base, internal_debugger):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                raise RuntimeError("Simulated parse failure")
+            return original_parse(path, base, internal_debugger)
+
+        with patch.object(d._internal_debugger.binary.__class__, "parse", staticmethod(failing_parse)):
+            # Clear cached libs so everything is re-parsed
+            d._internal_debugger._cached_libs.clear()
+            if "libraries" in d._internal_debugger.__dict__:
+                del d._internal_debugger.__dict__["libraries"]
+
+            libs = d._internal_debugger.libraries
+
+        # No entry should be None
+        for i, lib in enumerate(libs):
+            self.assertIsNotNone(lib, f"Library at index {i} is None (parse failure was not handled)")
+
+        d.terminate()
+
+    def test_cached_libraries_no_duplicates(self):
+        """Tests that cached libraries with non-contiguous segments aren't duplicated.
+
+        When a cached library has segments separated by anonymous maps, the
+        deduplication logic must prevent it from appearing multiple times.
+        """
+        d = debugger(RESOLVE_EXE("sections_test"), aslr=False)
+        d.run()
+
+        # Force population of the library cache
+        _ = d._internal_debugger.libraries
+
+        # Clear only the cached_property so it re-evaluates, but keep _cached_libs
+        if "libraries" in d._internal_debugger.__dict__:
+            del d._internal_debugger.__dict__["libraries"]
+
+        libs = d._internal_debugger.libraries
+
+        # Check that no library path appears more than once
+        paths = [lib.path for lib in libs]
+        for path in paths:
+            self.assertEqual(
+                paths.count(path), 1,
+                f"Library '{path}' appears {paths.count(path)} times in the libraries list",
+            )
+
+        d.terminate()
+
+    def test_vaddr_to_offset_boundary(self):
+        """Tests that vaddr_to_offset rejects addresses at the exact filesz boundary.
+
+        When DT_STRTAB's vaddr falls exactly at vaddr+filesz of a LOAD segment
+        (i.e., in the BSS / zero-fill region, not backed by file data), it must
+        NOT be resolved to a file offset.
+        """
+        import struct
+        import tempfile
+        import os
+        from libdebug.native.libdebug_elf_api import DynamicSectionTable
+
+        # ---- layout constants ----
+        VADDR = 0x400000
+        EHDR_SZ = 64
+        PHENT_SZ = 56
+        DYN_ENT_SZ = 16
+        PHDR_OFF = EHDR_SZ                      # 0x040
+        DYN_OFF = PHDR_OFF + 2 * PHENT_SZ       # 0x0B0
+        DYN_ENTRIES = 4  # STRTAB, STRSZ, NEEDED, NULL
+        DYN_SZ = DYN_ENTRIES * DYN_ENT_SZ        # 64
+        STRTAB_OFF = DYN_OFF + DYN_SZ            # 0x0F0
+
+        # Key: PT_LOAD filesz == STRTAB_OFF so the strtab vaddr sits exactly
+        # at vaddr + filesz — one byte past the file-backed region.
+        PT_LOAD_FILESZ = STRTAB_OFF              # 0x0F0
+        PT_LOAD_MEMSZ = PT_LOAD_FILESZ + 0x100
+
+        strtab_data = b"libtest.so.1\x00\x00\x00\x00"  # 16 bytes
+        FILE_SZ = STRTAB_OFF + len(strtab_data)          # 0x100
+
+        buf = bytearray(FILE_SZ)
+
+        # ---- ELF64 header ----
+        buf[0:4] = b'\x7fELF'
+        buf[4] = 2       # ELFCLASS64
+        buf[5] = 1       # ELFDATA2LSB
+        buf[6] = 1       # EV_CURRENT
+        struct.pack_into('<HH', buf, 0x10, 3, 62)         # ET_DYN, EM_X86_64
+        struct.pack_into('<I', buf, 0x14, 1)               # e_version
+        struct.pack_into('<Q', buf, 0x18, VADDR)           # e_entry
+        struct.pack_into('<Q', buf, 0x20, PHDR_OFF)        # e_phoff
+        struct.pack_into('<Q', buf, 0x28, 0)               # e_shoff (none)
+        struct.pack_into('<I', buf, 0x30, 0)               # e_flags
+        struct.pack_into('<HHH', buf, 0x34, EHDR_SZ, PHENT_SZ, 2)  # ehsize, phentsize, phnum
+        struct.pack_into('<HHH', buf, 0x3A, 64, 0, 0)     # shentsize, shnum, shstrndx
+
+        # ---- PT_LOAD (covers whole file except strtab is at the boundary) ----
+        off = PHDR_OFF
+        struct.pack_into('<II', buf, off, 1, 5)                                 # PT_LOAD, PF_R|PF_X
+        struct.pack_into('<QQQ', buf, off + 8, 0, VADDR, VADDR)                # p_offset, p_vaddr, p_paddr
+        struct.pack_into('<QQQ', buf, off + 32, PT_LOAD_FILESZ, PT_LOAD_MEMSZ, 0x1000)  # p_filesz, p_memsz, p_align
+
+        # ---- PT_DYNAMIC ----
+        off = PHDR_OFF + PHENT_SZ
+        struct.pack_into('<II', buf, off, 2, 4)                                 # PT_DYNAMIC, PF_R
+        struct.pack_into('<QQQ', buf, off + 8, DYN_OFF, VADDR + DYN_OFF, VADDR + DYN_OFF)
+        struct.pack_into('<QQQ', buf, off + 32, DYN_SZ, DYN_SZ, 8)
+
+        # ---- Dynamic entries ----
+        off = DYN_OFF
+        # DT_STRTAB = vaddr + STRTAB_OFF  (exactly at the filesz boundary!)
+        struct.pack_into('<qQ', buf, off, 5, VADDR + STRTAB_OFF); off += DYN_ENT_SZ
+        # DT_STRSZ
+        struct.pack_into('<qQ', buf, off, 10, len(strtab_data)); off += DYN_ENT_SZ
+        # DT_NEEDED (val=0 → index 0 in strtab)
+        struct.pack_into('<qQ', buf, off, 1, 0); off += DYN_ENT_SZ
+        # DT_NULL
+        struct.pack_into('<qQ', buf, off, 0, 0)
+
+        # ---- String table (past the PT_LOAD filesz boundary) ----
+        buf[STRTAB_OFF:STRTAB_OFF + len(strtab_data)] = strtab_data
+
+        # Write to temp file and parse
+        fd, path = tempfile.mkstemp(suffix=".elf")
+        try:
+            os.write(fd, bytes(buf))
+            os.close(fd)
+
+            table = DynamicSectionTable.from_file(path)
+
+            needed = [e for e in table.entries if e.tag == "NEEDED"]
+            self.assertTrue(len(needed) > 0, "DT_NEEDED entry not found")
+
+            # With the fix: strtab is unreachable (in BSS region), so val_str must be empty.
+            # With the bug: strtab is incorrectly resolved, val_str would be "libtest.so.1".
+            self.assertEqual(
+                needed[0].val_str, "",
+                f"DT_NEEDED val_str should be empty (strtab at filesz boundary is in BSS), "
+                f"got {needed[0].val_str!r}",
+            )
+        finally:
+            os.unlink(path)
+
+    def test_parse_sections_32_rejects_zero_shoff(self):
+        """Tests that a 32-bit ELF with e_shoff=0 and e_shnum>0 is rejected with a clear message.
+
+        Without the guard, parse_sections_32 would interpret the ELF header
+        bytes as section headers (garbage), instead of raising a clear error.
+        """
+        EHDR_SZ = 52  # sizeof(Elf32_Ehdr)
+        SHENT_SZ = 40  # sizeof(Elf32_Shdr)
+
+        buf = bytearray(EHDR_SZ + SHENT_SZ * 3)  # room for "ghost" sections
+
+        # ---- ELF32 header ----
+        buf[0:4] = b'\x7fELF'
+        buf[4] = 1       # ELFCLASS32
+        buf[5] = 1       # ELFDATA2LSB
+        buf[6] = 1       # EV_CURRENT
+        struct.pack_into('<HH', buf, 0x10, 2, 3)       # ET_EXEC, EM_386
+        struct.pack_into('<I', buf, 0x14, 1)            # e_version
+        struct.pack_into('<I', buf, 0x18, 0x08048000)   # e_entry
+        struct.pack_into('<I', buf, 0x1C, 0)            # e_phoff (none)
+        struct.pack_into('<I', buf, 0x20, 0)            # e_shoff = 0  (BUG TRIGGER)
+        struct.pack_into('<I', buf, 0x24, 0)            # e_flags
+        struct.pack_into('<HHH', buf, 0x28, EHDR_SZ, 0, 0)        # ehsize, phentsize, phnum
+        struct.pack_into('<HHH', buf, 0x2E, SHENT_SZ, 3, 0)       # shentsize, shnum=3, shstrndx=0
+
+        fd, path = tempfile.mkstemp(suffix=".elf")
+        try:
+            os.write(fd, bytes(buf))
+            os.close(fd)
+
+            with self.assertRaises(RuntimeError) as ctx:
+                SectionTable.from_file(path)
+            self.assertIn("no section header table", str(ctx.exception).lower())
+        finally:
+            os.unlink(path)
+
+    def test_parse_sections_32_rejects_extended_zero_shnum(self):
+        """Tests that a 32-bit ELF using extended numbering that resolves to e_shnum=0 is rejected.
+
+        When e_shnum in the header is 0, the real count comes from section 0's sh_size.
+        If that is also 0, the ELF truly has no sections and should be rejected cleanly.
+        """
+        EHDR_SZ = 52
+        SHENT_SZ = 40
+
+        # Place one section header (section 0) right after the ELF header
+        SH_OFF = EHDR_SZ
+        FILE_SZ = EHDR_SZ + SHENT_SZ
+
+        buf = bytearray(FILE_SZ)
+
+        # ---- ELF32 header ----
+        buf[0:4] = b'\x7fELF'
+        buf[4] = 1       # ELFCLASS32
+        buf[5] = 1       # ELFDATA2LSB
+        buf[6] = 1       # EV_CURRENT
+        struct.pack_into('<HH', buf, 0x10, 2, 3)       # ET_EXEC, EM_386
+        struct.pack_into('<I', buf, 0x14, 1)            # e_version
+        struct.pack_into('<I', buf, 0x18, 0x08048000)   # e_entry
+        struct.pack_into('<I', buf, 0x1C, 0)            # e_phoff (none)
+        struct.pack_into('<I', buf, 0x20, SH_OFF)       # e_shoff → section 0
+        struct.pack_into('<I', buf, 0x24, 0)            # e_flags
+        struct.pack_into('<HHH', buf, 0x28, EHDR_SZ, 0, 0)        # ehsize, phentsize, phnum
+        struct.pack_into('<HHH', buf, 0x2E, SHENT_SZ, 0, 0)       # shentsize, shnum=0 (extended), shstrndx=0
+
+        # ---- Section 0 (SHT_NULL, extended numbering carrier) ----
+        sh0_off = SH_OFF
+        struct.pack_into('<I', buf, sh0_off + 0, 0)     # sh_name
+        struct.pack_into('<I', buf, sh0_off + 4, 0)     # sh_type = SHT_NULL
+        struct.pack_into('<I', buf, sh0_off + 8, 0)     # sh_flags
+        struct.pack_into('<I', buf, sh0_off + 12, 0)    # sh_addr
+        struct.pack_into('<I', buf, sh0_off + 16, 0)    # sh_offset
+        struct.pack_into('<I', buf, sh0_off + 20, 0)    # sh_size = 0 (extended e_shnum = 0!)
+        struct.pack_into('<I', buf, sh0_off + 24, 0)    # sh_link
+        struct.pack_into('<I', buf, sh0_off + 28, 0)    # sh_info
+        struct.pack_into('<I', buf, sh0_off + 32, 0)    # sh_addralign
+        struct.pack_into('<I', buf, sh0_off + 36, 0)    # sh_entsize
+
+        fd, path = tempfile.mkstemp(suffix=".elf")
+        try:
+            os.write(fd, bytes(buf))
+            os.close(fd)
+
+            with self.assertRaises(RuntimeError) as ctx:
+                SectionTable.from_file(path)
+            self.assertIn("no section header table", str(ctx.exception).lower())
+        finally:
+            os.unlink(path)
+
+    @staticmethod
+    def _strip_gnu_stack(path):
+        """Patch a binary to remove its PT_GNU_STACK program header (set p_type to PT_NULL).
+
+        Works for both ELF32 and ELF64, little- and big-endian.
+        """
+        with open(path, "r+b") as f:
+            data = f.read()
+
+        ei_class = data[4]   # 1 = 32-bit, 2 = 64-bit
+        ei_data = data[5]    # 1 = little-endian, 2 = big-endian
+        endian = "<" if ei_data == 1 else ">"
+
+        PT_GNU_STACK = 0x6474e551
+        PT_NULL = 0
+
+        if ei_class == 2:  # ELF64
+            e_phoff = struct.unpack_from(f"{endian}Q", data, 0x20)[0]
+            e_phentsize = struct.unpack_from(f"{endian}H", data, 0x36)[0]
+            e_phnum = struct.unpack_from(f"{endian}H", data, 0x38)[0]
+        else:  # ELF32
+            e_phoff = struct.unpack_from(f"{endian}I", data, 0x1C)[0]
+            e_phentsize = struct.unpack_from(f"{endian}H", data, 0x2A)[0]
+            e_phnum = struct.unpack_from(f"{endian}H", data, 0x2C)[0]
+
+        buf = bytearray(data)
+        for i in range(e_phnum):
+            off = e_phoff + i * e_phentsize
+            p_type = struct.unpack_from(f"{endian}I", buf, off)[0]
+            if p_type == PT_GNU_STACK:
+                struct.pack_into(f"{endian}I", buf, off, PT_NULL)
+
+        with open(path, "wb") as f:
+            f.write(buf)
+
+    def test_nx_missing_gnu_stack(self):
+        """Tests NX value when GNU_STACK is absent, for each architecture.
+
+        Patches real binaries to remove PT_GNU_STACK and verifies NX through
+        the full ELF parsing pipeline (not mocks).
+
+        Expected per-arch behavior:
+        - aarch64: NX=None  (depends on kernel version: False pre-5.8, True post-5.8)
+        - i386:    NX=False (kernel defaults to executable stack on all versions)
+        - amd64:   NX=None  (depends on kernel version: False pre-5.8, True post-5.8)
+        """
+        cases = {
+            "aarch64": ("mitigationsv1", None),
+            "i386": ("mitigationsv1", False),
+            "amd64": ("mitigationsv1", None),
+        }
+
+        for arch, (binary, expected_nx) in cases.items():
+            rel_path = RESOLVE_EXE_CROSS(binary, arch)
+            if not Path(rel_path).exists():
+                continue
+
+            with tempfile.NamedTemporaryFile(suffix=".elf", delete=False) as tmp:
+                tmp_path = tmp.name
+
+            try:
+                shutil.copy2(rel_path, tmp_path)
+                self._strip_gnu_stack(tmp_path)
+
+                # Clear the functools.cache so the patched file is re-parsed
+                parse_elf_characteristics.cache_clear()
+
+                d = debugger(tmp_path, aslr=False)
+                mitigations = d.binary.runtime_mitigations
+
+                if expected_nx is None:
+                    self.assertIsNone(
+                        mitigations.nx,
+                        f"[{arch}] NX should be None when GNU_STACK is missing, got {mitigations.nx!r}",
+                    )
+                elif expected_nx:
+                    self.assertTrue(
+                        mitigations.nx,
+                        f"[{arch}] NX should be True when GNU_STACK is missing, got {mitigations.nx!r}",
+                    )
+                else:
+                    self.assertFalse(
+                        mitigations.nx,
+                        f"[{arch}] NX should be False when GNU_STACK is missing, got {mitigations.nx!r}",
+                    )
+            finally:
+                parse_elf_characteristics.cache_clear()
+                os.unlink(tmp_path)
+
+    def test_nx_for_executable_stack(self):
+        """Tests NX when GNU_STACK is explicitly executable.
+
+        The exec case is kernel-version-dependent on all architectures:
+        - Pre-5.8: READ_IMPLIES_EXEC was set for exec GNU_STACK → NX disabled (False)
+        - Post-5.8: READ_IMPLIES_EXEC only set for EXSTACK_DEFAULT → NX enabled (True)
+        Since we can't know the kernel version statically:
+        - i386:    NX=None (version-dependent)
+        - amd64:   NX=None (version-dependent)
+        - aarch64: NX=None (version-dependent)
+        """
+        exec_stack_binaries = {
+            "amd64": "mitigationsv3",
+            "i386": "mitigationsv3",
+            "aarch64": "mitigationsv4",  # aarch64 v3 has RW (no X), v4 has RWE
+        }
+        for arch, binary in exec_stack_binaries.items():
+            rel_path = RESOLVE_EXE_CROSS(binary, arch)
+
+            if not Path(rel_path).exists():
+                continue
+
+            d = debugger(rel_path, aslr=False)
+            mitigations = d.binary.runtime_mitigations
+
+            self.assertIsNone(
+                mitigations.nx,
+                f"[{arch}] NX should be None for executable stack (kernel-version-dependent), got {mitigations.nx!r}",
+            )

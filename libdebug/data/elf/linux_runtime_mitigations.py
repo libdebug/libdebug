@@ -212,14 +212,18 @@ class LinuxRuntimeMitigations:
         non_exec = exec_bit is False
         missing = exec_bit is None
 
-        if elf.arch in ["i386", "aarch64"]:
+        if elf.arch == "i386":
             if non_exec:
                 return True
             elif missing:
                 return False
             return None
-        elif elf.arch == "amd64":
-            return True if non_exec else None
+        elif elf.arch in ["aarch64", "amd64"]:
+            if non_exec:
+                return True
+            elif missing:
+                return None
+            return None
 
         return True
 

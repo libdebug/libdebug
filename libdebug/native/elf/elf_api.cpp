@@ -753,7 +753,7 @@ static bool vaddr_to_offset(uint64_t vaddr,
     for (const auto& s : loads) {
         if (vaddr >= s.vaddr && vaddr < s.vaddr + s.memsz) {
             uint64_t delta = vaddr - s.vaddr;
-            if (delta <= s.filesz) {
+            if (delta < s.filesz) {
                 out_off = s.off + delta;
                 return true;
             }
