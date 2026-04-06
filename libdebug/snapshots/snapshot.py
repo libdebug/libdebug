@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from libdebug.snapshots.memory.snapshot_memory_view import SnapshotMemoryView
     from libdebug.state.thread_context import ThreadContext
 
+from libdebug.architectures.shared.flags_accessor import BitfieldRegisterAccessor
 from libdebug.architectures.stack_unwinding_provider import stack_unwinding_provider
 from libdebug.liblog import liblog
 from libdebug.snapshots.memory.memory_map_snapshot import MemoryMapSnapshot
@@ -50,11 +51,11 @@ class Snapshot:
 
         # Set all registers in the field
         all_regs = dir(thread.regs)
-        all_regs = [reg for reg in all_regs if isinstance(thread.regs.__getattribute__(reg), int | float)]
+        all_regs = [reg for reg in all_regs if isinstance(thread.regs.__getattribute__(reg), int | float | BitfieldRegisterAccessor)]
 
         for reg_name in all_regs:
             reg_value = thread.regs.__getattribute__(reg_name)
-            self.regs.__setattr__(reg_name, reg_value)
+            self.regs.__setattr__(reg_name, int(reg_value))
 
     def _save_memory_maps(self: Snapshot, debugger: InternalDebugger, writable_only: bool) -> None:
         """Saves memory maps of the process to the snapshot."""
