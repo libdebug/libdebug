@@ -54,6 +54,7 @@ dev = [
     "rich",
 ]
 
+
 [project.urls]
 homepage = "https://libdebug.org"
 repository = "https://github.com/libdebug/libdebug/"

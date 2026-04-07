@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2025 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
+# Copyright (c) 2023-2026 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -30,6 +30,8 @@ from libdebug.builtin.pretty_print_syscall_handler import (
 )
 from libdebug.data.argument_list import ArgumentList
 from libdebug.data.breakpoint import Breakpoint
+from libdebug.data.elf.elf import ELF
+from libdebug.data.elf.elf_list import ELFList
 from libdebug.data.gdb_resume_event import GdbResumeEvent
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
@@ -49,6 +51,7 @@ from libdebug.utils.debugger_wrappers import (
     background_alias,
     change_state_function_process,
     change_state_function_thread,
+    invalidates_volatile,
 )
 from libdebug.utils.debugging_utils import (
     normalize_and_validate_address,
@@ -58,7 +61,7 @@ from libdebug.utils.elf_utils import get_all_symbols
 from libdebug.utils.file_utils import ensure_file_executable
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.platform_utils import get_platform_gp_register_size
-from libdebug.utils.pprint_primitives import pprint_maps_util, pprint_memory_util
+from libdebug.utils.pprint_primitives import pprint_maps_util, pprint_memory_util, pprint_mitigations
 from libdebug.utils.safe_tcsetpgrp import safe_tcsetpgrp
 from libdebug.utils.signal_utils import (
     resolve_signal_name,
@@ -220,6 +223,9 @@ class InternalDebugger:
     _has_path_different_from_argv0: bool
     """A flag that indicates if the path to the binary is different from the first argument in argv."""
 
+    _cached_libs: dict[str, ELF]
+    """A cache of the parsed libraries in the debugged process. Maps backing file path to ELF object."""
+
     def __init__(self: InternalDebugger) -> None:
         """Initialize the context."""
         # These must be reinitialized on every call to "debugger"
@@ -255,6 +261,7 @@ class InternalDebugger:
         self._snapshot_count = 0
         self.serialization_helper = SerializationHelper()
         self.children = []
+        self._cached_libs = {}
 
         # We register this debugger so that we can clean it up on exit.
         register_internal_debugger(self)
@@ -323,6 +330,7 @@ class InternalDebugger:
         if not self.path:
             raise RuntimeError("No binary file specified.")
 
+        self.clear_elf_caches()
         if timeout <= 0 and timeout != -1:
             raise ValueError("Timeout must be a positive number or -1.")
         if 0 < timeout <= 0.01:
@@ -376,6 +384,8 @@ class InternalDebugger:
         if self.threads:
             self.clear()
             self.debugging_interface.reset()
+
+        self.clear_elf_caches()
 
         self.instanced = True
         self.is_debugging = True
@@ -530,6 +540,7 @@ class InternalDebugger:
 
     @background_alias(_background_invalid_call)
     @change_state_function_process
+    @invalidates_volatile
     def cont(self: InternalDebugger) -> None:
         """Continues the process."""
         self.__polling_thread_command_queue.put((self.__threaded_cont, ()))
@@ -979,6 +990,7 @@ class InternalDebugger:
         return handler
 
     @change_state_function_process
+    @invalidates_volatile
     def gdb(
         self: InternalDebugger,
         migrate_breakpoints: bool = True,
@@ -1222,6 +1234,7 @@ class InternalDebugger:
         self._is_migrated_to_gdb = False
 
     @change_state_function_thread
+    @invalidates_volatile
     def step(self: InternalDebugger, thread: ThreadContext) -> None:
         """Executes a single instruction of the process.
 
@@ -1241,6 +1254,7 @@ class InternalDebugger:
             self.resume_context.resume = True
 
     @change_state_function_thread
+    @invalidates_volatile
     def step_until(
         self: InternalDebugger,
         thread: ThreadContext,
@@ -1277,6 +1291,7 @@ class InternalDebugger:
             self.resume_context.resume = True
 
     @change_state_function_thread
+    @invalidates_volatile
     def finish(self: InternalDebugger, thread: ThreadContext, heuristic: str = "backtrace") -> None:
         """Continues execution until the current function returns or the process stops.
 
@@ -1301,6 +1316,7 @@ class InternalDebugger:
             self.resume_context.resume = True
 
     @change_state_function_thread
+    @invalidates_volatile
     def next(self: InternalDebugger, thread: ThreadContext) -> None:
         """Executes the next instruction of the process. If the instruction is a call, the debugger will continue until the called function returns."""
         if not self._is_in_background():
@@ -2081,3 +2097,167 @@ class InternalDebugger:
 
         if "_process_name" in self.__dict__:
             del self._process_name
+
+        self.clear_elf_caches()
+
+    def clear_elf_caches(self: InternalDebugger) -> None:
+        """Clears all the ELF caches of the internal debugger."""
+        if "binary" in self.__dict__:
+            del self.binary
+
+        if "libraries" in self.__dict__:
+            del self.libraries
+
+        self._cached_libs.clear()
+
+    def clear_volatile_caches(self: InternalDebugger) -> None:
+        """
+        Clears all caches that require revalidation once the process state changes.
+
+        This function should be called whenever the debugger performs a step, continue, or any similar operation.
+        """
+        if "libraries" in self.__dict__:
+            del self.libraries
+
+    def _find_libraries_in_traced_process(self: InternalDebugger) -> list[tuple[str, int]]:
+        """Finds all the loaded shared libraries and their base addresses from the live process.
+
+        Returns:
+            list[tuple[str, int]]: A list of tuples containing the path and base address of each loaded shared library.
+        """
+        start_segment = None
+        last_path = None
+        collected_libs = []
+        has_parsed_file = False
+        seen_files: set[str] = set()
+
+        for curr_map in self.maps:
+            if has_parsed_file:
+                if curr_map.backing_file == last_path:
+                    # We already parsed this file, skip it
+                    continue
+
+                # New file
+                has_parsed_file = False
+
+            if curr_map.backing_file in self._cached_libs:
+                if curr_map.backing_file not in seen_files:
+                    collected_libs.append((curr_map.backing_file, -1))  # Base address is already cached
+                    seen_files.add(curr_map.backing_file)
+                last_path = curr_map.backing_file
+                has_parsed_file = True
+                continue
+
+            if curr_map.backing_file not in seen_files:
+                has_parsed_file = True
+                last_path = curr_map.backing_file
+                seen_files.add(curr_map.backing_file)
+                start_segment = curr_map
+
+                p_backing = Path(curr_map.backing_file)
+                file_exists = p_backing.exists()
+
+                if not file_exists:
+                    # The backing file does not exist, skip it
+                    continue
+
+                p_main = Path(self.path)
+
+                if Path.samefile(p_backing, p_main):
+                    # Skip the main binary
+                    continue
+
+                # Check if the segment is from a parsable ELF file
+                is_parsable_lib = (
+                    "r" in start_segment.permissions
+                    and self.memory[start_segment.start : start_segment.start + 4] == b"\x7fELF"
+                )
+
+                # We found a mapped file but it is not a parsable ELF, skip it
+                if not is_parsable_lib:
+                    continue
+
+                collected_libs.append((curr_map.backing_file, start_segment.start))
+
+        return collected_libs
+
+    def _find_linked_libraries(self: InternalDebugger) -> list[str]:
+        """Finds all the linked shared libraries from the binary file.
+
+        Returns:
+            list[str]: A list of paths of each linked shared library.
+        """
+        needed_entries = self.binary.dynamic_sections.filter("NEEDED")
+        return [entry.value for entry in needed_entries]
+
+    @functools.cached_property
+    def binary(self: InternalDebugger) -> ELF:
+        """The ELF object representing the debugged binary."""
+        base = self.maps.filter("binary")[0].start if self.is_debugging else 0
+        return ELF.parse(self.path, base, self)
+
+    @functools.cached_property
+    def libraries(self: InternalDebugger) -> ELFList:
+        """A list of the ELF objects representing the loaded shared libraries."""
+        if not self.is_debugging:
+            raise RuntimeError("Process not traced, cannot parse libraries.")
+
+        found_libs = self._find_libraries_in_traced_process()
+
+        parsed_libs = ELFList()
+
+        for lib_path, base in found_libs:
+            curr = self._cached_libs.get(lib_path)
+            if curr is None:
+                try:
+                    curr = ELF.parse(lib_path, base, self)
+
+                    if curr.soname is not None:
+                        # Cache the parsed library
+                        self._cached_libs[lib_path] = curr
+                        liblog.debugger(f"Parsed library {lib_path} at base address {hex(base)}.")
+                except Exception as e:
+                    liblog.error(f"Could not parse library {lib_path}: {e}")
+                    continue
+
+            parsed_libs.append(curr)
+        return parsed_libs
+
+    def pprint_binary_report(self: InternalDebugger) -> None:
+        """Prints a report of the binary."""
+        libcontext.require_rich()
+
+        from rich.console import Console  # noqa: PLC0415
+        from rich.table import Column, Table  # noqa: PLC0415
+
+        console = Console()
+
+        table = Table(
+            Column("Attribute", justify="right", style="cyan", no_wrap=True),
+            Column("Value", style="magenta"),
+            title="Binary Report",
+        )
+
+        table.add_row("Path", self.path)
+        table.add_section()
+        table.add_row("Architecture", self.binary.architecture)
+        table.add_row("Endianness", self.binary.endianness)
+        table.add_row("PIE", str(self.binary.is_pie))
+        table.add_row("Base Address", hex(self.binary.base_address) if self.is_debugging else "Process not yet traced")
+        table.add_row("Build ID", self.binary.build_id if self.binary.build_id else "N/A")
+        table.add_section()
+
+        if self.is_debugging:
+            libs = "\n".join(f"{lib.soname} ({lib.path})" for lib in self.libraries)
+            table.add_row("Loaded Libraries", libs)
+        else:
+            linked_libs = "\n".join(self._find_linked_libraries())
+            table.add_row("Linked Libraries", linked_libs if linked_libs else "None")
+
+        # Render the mitigations as a compact panel under the main table
+        console.print(table)
+
+        # ──────────────────────────────
+        # Runtime mitigations (compact)
+        # ──────────────────────────────
+        pprint_mitigations(self.binary, console=console)
