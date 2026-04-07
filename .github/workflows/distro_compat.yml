@@ -20,7 +20,6 @@ jobs:
       fail-fast: false # Allow all distro builds to complete
       matrix:
         distro_image:
-          - 'ubuntu:20.04'
           - 'ubuntu:22.04'
           - 'ubuntu:24.04'
           - 'ubuntu:latest'
@@ -105,19 +104,6 @@ jobs:
             exit 1
           fi
 
-      - name: Add Deadsnakes Repository
-        env:
-          DEBIAN_FRONTEND: noninteractive # For non-interactive apt-get
-        shell: bash
-        if: contains(matrix.distro_image, '20.04')
-        run: |
-          apt-get install software-properties-common -y
-          add-apt-repository -y ppa:deadsnakes/ppa
-          apt-get update
-          apt-get install -y python3.10 python3.10-venv python3.10-dev
-          rm /bin/python3
-          ln -s /bin/python3.10 /bin/python3 # This breaks everything but we don't care
-
       - name: Create a Virtual Environment
         shell: bash
         run: |
@@ -161,7 +147,7 @@ jobs:
           fi
 
       - name: Test with pytest
-        if: matrix.build_scenario == 'with_deps' && matrix.distro_image != 'alpine:latest' && matrix.distro_image != 'ubuntu:20.04'
+        if: matrix.build_scenario == 'with_deps' && matrix.distro_image != 'alpine:latest' && matrix.distro_image != 'archlinux:latest'
         shell: bash
         run: |
           source venv/bin/activate

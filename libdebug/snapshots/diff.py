@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024-2025 Francesco Panebianco, Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2024-2026 Francesco Panebianco, Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -300,23 +300,14 @@ class Diff:
         print()
 
         # Log all vector changes
-        for attr1_name, attr2_name, *rest in self.regs._vec_fp_regs:
-            attr1 = self.regs.__getattribute__(attr1_name)
-            attr2 = self.regs.__getattribute__(attr2_name)
-            attr3 = self.regs.__getattribute__(rest[0]) if rest else None
+        for reg_group in self.regs._vec_fp_regs:
+            attrs = [self.regs.__getattribute__(name) for name in reg_group]
 
-            if attr3 is None:
-                if attr1.has_changed or attr2.has_changed:
-                    pprint_reg_diff_large_util(
-                        (attr1_name, attr2_name),
-                        (attr1.old_value, attr2.old_value),
-                        (attr1.new_value, attr2.new_value),
-                    )
-            elif attr1.has_changed or attr2.has_changed or attr3.has_changed:
+            if any(attr.has_changed for attr in attrs):
                 pprint_reg_diff_large_util(
-                    (attr1_name, attr2_name, rest[0]),
-                    (attr1.old_value, attr2.old_value, attr3.old_value),
-                    (attr1.new_value, attr2.new_value, attr3.new_value),
+                    reg_group,
+                    tuple(attr.old_value for attr in attrs),
+                    tuple(attr.new_value for attr in attrs),
                 )
 
     def pprint_registers(self: Diff) -> None:

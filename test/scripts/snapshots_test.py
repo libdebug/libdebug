@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2025 Francesco Panebianco, Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2025-2026 Francesco Panebianco, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -612,6 +612,17 @@ class SnapshotsTest(TestCase):
         # pprint_regs_all must not crash — it iterates _special_regs
         diff.pprint_regs_all()
 
+        # Simulate SSE-only machine: inject single-element register groups
+        # into _vec_fp_regs to verify pprint handles variable-length tuples
+        original_vec_fp = diff.regs._vec_fp_regs
+        first_reg = original_vec_fp[0][0]  # e.g. "mm0" — guaranteed to exist in the diff
+        diff.regs._vec_fp_regs = [
+            (first_reg,),           # single-element (SSE-only xmm case)
+            original_vec_fp[0],     # original 2-element
+        ]
+        diff.pprint_regs_all()
+        diff.regs._vec_fp_regs = original_vec_fp
+
         d.terminate()
 
     def test_symbol_permanence_test(self):
@@ -647,4 +658,3 @@ class SnapshotsTest(TestCase):
         d.terminate()
 
         tmp_file.close()
-
