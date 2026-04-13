@@ -11,6 +11,8 @@
 #include <sys/wait.h>
 #include <algorithm>
 #include <unordered_set>
+#include <fstream>
+#include <sstream>
 
 
 #include "libdebug_ptrace_base.h"
@@ -59,8 +61,9 @@ void LibdebugPtraceInterface::check_and_set_fpregs(Thread &t)
 
 void LibdebugPtraceInterface::cont_thread(Thread &t)
 {
+
     if (ptrace(handle_syscall ? PTRACE_SYSCALL : PTRACE_CONT, t.tid, NULL, t.signal_to_forward) == -1) {
-        throw std::runtime_error("ptrace cont failed");
+        throw std::runtime_error("ptrace cont failed on thread " + std::to_string(t.tid));
     }
 
     t.signal_to_forward = 0;
@@ -312,16 +315,130 @@ void LibdebugPtraceInterface::set_tracing_options()
     }
 }
 
+bool LibdebugPtraceInterface::is_default_fatal(int sig)
+{
+    switch (sig) {
+        case SIGSEGV:
+        case SIGILL:
+        case SIGFPE:
+        case SIGABRT:
+        case SIGBUS:
+        case SIGSYS:
+        case SIGXCPU:
+        case SIGXFSZ:
+        case SIGQUIT:
+        case SIGTERM:
+        case SIGKILL: // always fatal
+            return true;
+        default:
+            return false;
+    }
+}
+
+void LibdebugPtraceInterface::parse_hex_sigset(const std::string &hex, sigset_t &out)
+{
+    sigemptyset(&out);
+    unsigned long long bits = 0;
+    std::stringstream ss(hex);
+    ss >> std::hex >> bits;
+
+    for (int s = 1; s < NSIG; s++) {
+        if (bits & (1ULL << (s - 1)))
+            sigaddset(&out, s);
+    }
+}
+
+void LibdebugPtraceInterface::read_siginfo_from_proc(pid_t tid,
+                                   sigset_t &ignored,
+                                   sigset_t &caught,
+                                   sigset_t &blocked)
+{
+    std::string path = "/proc/" + std::to_string(tid) + "/status";
+    std::ifstream in(path);
+    if (!in) {
+        throw std::runtime_error("failed to open " + path);
+    }
+
+    std::string line;
+    std::string ign_hex, cgt_hex, blk_hex;
+
+    while (std::getline(in, line)) {
+        if (line.rfind("SigIgn:", 0) == 0) {
+            std::istringstream iss(line.substr(7));
+            iss >> ign_hex;
+        } else if (line.rfind("SigCgt:", 0) == 0) {
+            std::istringstream iss(line.substr(7));
+            iss >> cgt_hex;
+        } else if (line.rfind("SigBlk:", 0) == 0) {
+            std::istringstream iss(line.substr(7));
+            iss >> blk_hex;
+        }
+    }
+
+    if (ign_hex.empty() || cgt_hex.empty() || blk_hex.empty())
+        throw std::runtime_error("missing SigIgn/SigCgt/SigBlk");
+
+    parse_hex_sigset(ign_hex, ignored);
+    parse_hex_sigset(cgt_hex, caught);
+    parse_hex_sigset(blk_hex, blocked);
+}
+
+bool LibdebugPtraceInterface::signal_will_kill_process(pid_t tid, int sig)
+{
+    if (sig <= 0 || sig >= NSIG)
+        return false;
+
+    if (sig == SIGKILL)
+        return true; // always fatal
+
+    sigset_t ignored, caught, blocked = {};
+    read_siginfo_from_proc(tid, ignored, caught, blocked);
+
+    // Ignored → not fatal
+    if (sigismember(&ignored, sig))
+        return false;
+
+    // Caught (custom handler installed) → not fatal
+    if (sigismember(&caught, sig))
+        return false;
+
+    // Default disposition → check if default is fatal
+    if (!is_default_fatal(sig))
+        return false;
+
+    // Fatal-by-default but blocked → delivery deferred → not fatal now
+    if (sigismember(&blocked, sig))
+        return false;
+
+    // Default fatal + unblocked + not caught + not ignored → fatal
+    return true;
+}
+
 void LibdebugPtraceInterface::cont_all_and_set_bps(bool handle_syscalls)
 {
-    // Set the handle_syscall flag
     handle_syscall = handle_syscalls;
-
     prepare_for_run();
 
-    // Continue all the threads
-    for (auto &t : threads) {
-        cont_thread(t.second);
+    Thread* fatal_thread = nullptr;
+
+    for (auto &kv : threads) {
+        Thread &t = kv.second;
+        if (t.signal_to_forward != 0 &&
+            signal_will_kill_process(t.tid, t.signal_to_forward)) {
+            fatal_thread = &t;
+            break; // one is enough; group will die
+        }
+    }
+
+    if (fatal_thread) {
+        // Deliver only the fatal signal; keep all others stopped.
+        cont_thread(*fatal_thread);
+        return;
+    }
+
+    // No fatal signals: resume everyone normally.
+    for (auto &kv : threads) {
+        cont_thread(kv.second);
     }
 }
 

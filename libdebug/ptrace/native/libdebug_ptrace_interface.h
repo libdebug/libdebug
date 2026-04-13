@@ -52,6 +52,13 @@ private:
     // Utility methods
     Thread &try_get_thread(const pid_t);
 
+    // Fatal signal handling
+    void parse_hex_sigset(const std::string &hex_sigset, sigset_t &sigset);
+    void read_siginfo_from_proc(const pid_t, sigset_t &, sigset_t &, sigset_t &);
+    sigset_t read_sigmask(const pid_t);
+    bool signal_will_kill_process(pid_t tid, int sig);
+    bool is_default_fatal(int sig);
+
 public:
     LibdebugPtraceInterface(PtraceFPRegsStructDefinition fpregs_def);
 
