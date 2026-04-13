@@ -55,7 +55,7 @@ try:
 except ImportError:
     pass
 else:
-    install()
+    install(show_locals=True)
 
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.data.signal_catcher import SignalCatcher
