@@ -471,6 +471,13 @@ unsigned long LibdebugPtraceInterface::get_thread_event_msg(const pid_t tid)
 
 std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_regs(const bool all_zombies)
 {
+    // Check if the list of threads is empty. If it is, we raise an error
+    // This should never happen, but some corner cases in the past have shown that it can actually happen if 
+    // we have skill issues in other parts of the code, so we want to be sure that we handle it gracefully
+    if (threads.empty()) {
+        throw std::runtime_error("No threads to wait for. This should not happen. Please, open an issue if you see this error.");
+    }
+    
     if (all_zombies) {
         // All threads are zombies, we might be in the case of a fatal signal
         // that killed all the threads
