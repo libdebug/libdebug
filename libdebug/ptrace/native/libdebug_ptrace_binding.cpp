@@ -580,7 +580,7 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_
     // zombies. This means that the other threads will not receive the PTRACE_EVENT_EXIT event.
     
     std::vector<std::pair<pid_t, int>> thread_statuses;
-    int tid, status, main_status;
+    int tid, status, main_status = 0;
     
     std::unordered_set<pid_t> tids_with_event = {};
     int main_tid = threads.begin()->first;
@@ -593,7 +593,7 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_
             tid = waitpid(t.first, &status, WNOHANG);
             return (tid == main_tid);
         });
-
+        
         if (tid > 0) {
             // Record the PID and its status
             thread_statuses.push_back({tid, status});
