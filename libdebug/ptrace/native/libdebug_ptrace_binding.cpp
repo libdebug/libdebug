@@ -1,6 +1,6 @@
 //
 // This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-// Copyright (c) 2024-2025 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
+// Copyright (c) 2024-2026 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for details.
 //
 
@@ -471,6 +471,13 @@ unsigned long LibdebugPtraceInterface::get_thread_event_msg(const pid_t tid)
 
 std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_regs(const bool all_zombies)
 {
+    // Check if the list of threads is empty. If it is, we raise an error
+    // This should never happen, but some corner cases in the past have shown that it can actually happen if 
+    // we have skill issues in other parts of the code, so we want to be sure that we handle it gracefully
+    if (threads.empty()) {
+        throw std::runtime_error("No threads to wait for. This should not happen. Please, open an issue if you see this error.");
+    }
+    
     if (all_zombies) {
         // All threads are zombies, we might be in the case of a fatal signal
         // that killed all the threads
@@ -484,7 +491,7 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_
 {
     std::vector<std::pair<pid_t, int>> thread_statuses;
 
-    int tid, status;
+    int tid = -1, status = -1;
 
     while (true) {
         // Check if any thread has finished
@@ -573,7 +580,7 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_
     // zombies. This means that the other threads will not receive the PTRACE_EVENT_EXIT event.
     
     std::vector<std::pair<pid_t, int>> thread_statuses;
-    int tid, status, main_status;
+    int tid = -1, status = -1, main_status = -1;
     
     std::unordered_set<pid_t> tids_with_event = {};
     int main_tid = threads.begin()->first;
@@ -586,7 +593,7 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_
             tid = waitpid(t.first, &status, WNOHANG);
             return (tid == main_tid);
         });
-
+        
         if (tid > 0) {
             // Record the PID and its status
             thread_statuses.push_back({tid, status});

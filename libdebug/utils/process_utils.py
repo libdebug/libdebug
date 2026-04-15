@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2023-2025 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2023-2026 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -61,6 +61,11 @@ def get_process_tasks(process_id: int) -> list[int]:
     tids = []
     if Path(f"/proc/{process_id}/task").exists():
         tids = [int(task) for task in os.listdir(f"/proc/{process_id}/task")]
+    else:
+        raise RuntimeError(
+            f"Failed to get tasks for process {process_id}. The /proc/{process_id}/task directory does not exist. "
+            f"Are you sure that the process is still running?",
+        )
     return tids
 
 
