@@ -54,7 +54,7 @@ def resolve_symbol_in_maps(symbol: str, maps: MemoryMapList[MemoryMap]) -> int:
 
     if "+" in symbol:
         symbol, offset_str = symbol.split("+")
-        offset = int(offset_str, 16)
+        offset = int(offset_str, 0)
     else:
         offset = 0
 
