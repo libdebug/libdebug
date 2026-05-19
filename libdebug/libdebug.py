@@ -12,6 +12,12 @@ from libdebug.data.env_dict import EnvDict
 from libdebug.debugger.debugger import Debugger
 from libdebug.debugger.internal_debugger import InternalDebugger
 from libdebug.liblog import liblog
+from libdebug.utils.container import (
+    detect_runtime,
+    discard_tempfile,
+    extract_container_binary,
+    get_container_init_pid,
+)
 from libdebug.utils.elf_utils import elf_architecture, resolve_argv_path
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.thread_exceptions import setup_signal_handler
@@ -29,6 +35,8 @@ def debugger(
     fast_memory: bool = True,
     kill_on_exit: bool = True,
     follow_children: bool = True,
+    container: str | None = None,
+    runtime: str | None = None,
 ) -> Debugger:
     """This function is used to create a new `Debugger` object. It returns a `Debugger` object.
 
@@ -43,6 +51,8 @@ def debugger(
         fast_memory (bool, optional): Whether to use a faster memory reading method. Defaults to True.
         kill_on_exit (bool, optional): Whether to kill the debugged process when the debugger exits. Defaults to True.
         follow_children (bool, optional): Whether to follow child processes. Defaults to True, which means that a new debugger will be created for each child process automatically.
+        container (str, optional): If set, spawn and trace the target inside the named, already-running container (Docker or Podman). The `path` argument is then interpreted as an absolute path *inside the container*. Defaults to None (host-side debugging).
+        runtime (str, optional): Force a specific container runtime ("docker" or "podman"). Defaults to None (auto-detect which runtime knows the named container).
 
     Returns:
         Debugger: The `Debugger` object.
@@ -58,10 +68,38 @@ def debugger(
     # We use this parameter to determine if we need to resolve the path again
     has_path_different_from_argv0 = path is not None
 
-    if path:
-        path = resolve_argv_path(path)
-    elif argv:
-        path = resolve_argv_path(argv[0])
+    container_path: str | None = None
+    resolved_runtime: str | None = None
+    container_init_pid: int = 0
+
+    if container is not None:
+        # ASLR is governed by the container's personality, not the host's. Refusing here avoids
+        # the surprising "aslr=False but addresses still randomize" outcome.
+        if not aslr:
+            raise ValueError(
+                "aslr=False is not supported when container= is set; ASLR inside the container is "
+                "governed by the container, not the host's personality flags.",
+            )
+
+        container_path = path if path is not None else (argv[0] if argv else None)
+        if container_path is None:
+            raise ValueError("container= requires either path= or argv[0] to point at the in-container binary.")
+
+        resolved_runtime = detect_runtime(container, runtime)
+        container_init_pid = get_container_init_pid(resolved_runtime, container)
+        path = extract_container_binary(resolved_runtime, container, container_path)
+        # In container mode the argv[0] convention cannot be preserved by POSIX sh, so the binary
+        # always sees argv[0] == container_path. Flag this so downstream re-resolution paths don't
+        # try to interpret argv[0] as a host filesystem path.
+        has_path_different_from_argv0 = True
+    else:
+        if runtime is not None:
+            raise ValueError("runtime= is only meaningful together with container=.")
+
+        if path:
+            path = resolve_argv_path(path)
+        elif argv:
+            path = resolve_argv_path(argv[0])
 
     if env is not None:
         if not isinstance(env, dict):
@@ -80,6 +118,10 @@ def debugger(
     internal_debugger.kill_on_exit = kill_on_exit
     internal_debugger.follow_children = follow_children
     internal_debugger._has_path_different_from_argv0 = has_path_different_from_argv0
+    internal_debugger.container = container
+    internal_debugger.runtime = resolved_runtime
+    internal_debugger.container_init_pid = container_init_pid
+    internal_debugger.container_path = container_path
 
     debugger = Debugger()
     debugger.post_init_(internal_debugger)
@@ -87,13 +129,23 @@ def debugger(
     internal_debugger.debugger = debugger
 
     # If we are attaching, we assume the architecture is the same as the current platform
-    if argv:
+    if argv or container is not None:
         try:
             debugger.arch = elf_architecture(path)
         except (ValueError, ELFError) as e:
             liblog.error(f"Failed to get the architecture of the binary: {e} "
                         "Assuming the architecture is the same as the current platform.")
             debugger.arch = libcontext.platform
+
+        # Tracing across CPU architectures is not possible with ptrace; fail fast with a clear
+        # message instead of letting the user discover this via a confusing ptrace error. In
+        # container mode, also delete the docker-cp'd tempfile so it doesn't linger.
+        if container is not None and debugger.arch != libcontext.platform:
+            discard_tempfile(path)
+            raise ValueError(
+                f"Container binary architecture ({debugger.arch}) does not match the host "
+                f"({libcontext.platform}). ptrace cannot cross architectures.",
+            )
 
     return debugger
 

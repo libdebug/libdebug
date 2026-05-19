@@ -220,6 +220,18 @@ class InternalDebugger:
     _has_path_different_from_argv0: bool
     """A flag that indicates if the path to the binary is different from the first argument in argv."""
 
+    container: str | None
+    """The name of the container the debuggee runs inside, or None for host-side debugging."""
+
+    runtime: str | None
+    """Resolved container runtime CLI name (\"docker\" or \"podman\"), or None for host-side debugging."""
+
+    container_init_pid: int
+    """Host-visible PID of the container init process, used to resolve in-container paths and PIDs."""
+
+    container_path: str | None
+    """The path to the binary as it appears *inside* the container, or None for host-side debugging."""
+
     def __init__(self: InternalDebugger) -> None:
         """Initialize the context."""
         # These must be reinitialized on every call to "debugger"
@@ -255,6 +267,10 @@ class InternalDebugger:
         self._snapshot_count = 0
         self.serialization_helper = SerializationHelper()
         self.children = []
+        self.container = None
+        self.runtime = None
+        self.container_init_pid = 0
+        self.container_path = None
 
         # We register this debugger so that we can clean it up on exit.
         register_internal_debugger(self)
@@ -328,7 +344,12 @@ class InternalDebugger:
         if 0 < timeout <= 0.01:
             liblog.warning("Timeout is set to a very low value. This may cause issues.")
 
-        ensure_file_executable(self.path)
+        # In container mode self.path points to a docker-cp'd temp copy of the binary, which
+        # tempfile.mkstemp creates at 0600 — not executable. The in-container kernel enforces
+        # execute permission at execve time, so the host-side check would only produce a
+        # misleading failure here.
+        if self.container is None:
+            ensure_file_executable(self.path)
 
         if self.is_debugging:
             liblog.debugger("Process already running, stopping it before restarting.")
@@ -430,6 +451,10 @@ class InternalDebugger:
         child_internal_debugger.fast_memory = self.fast_memory
         child_internal_debugger.kill_on_exit = self.kill_on_exit
         child_internal_debugger.follow_children = self.follow_children
+        child_internal_debugger.container = self.container
+        child_internal_debugger.runtime = self.runtime
+        child_internal_debugger.container_init_pid = self.container_init_pid
+        child_internal_debugger.container_path = self.container_path
 
         # Create the new Debugger instance for the child process
         child_debugger = Debugger()
