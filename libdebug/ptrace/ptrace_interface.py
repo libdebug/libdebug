@@ -6,9 +6,12 @@
 
 from __future__ import annotations
 
+import contextlib
 import errno
 import os
 import pty
+import signal
+import subprocess
 import sys
 import tty
 from fcntl import F_GETFL, F_SETFL, fcntl
@@ -27,6 +30,7 @@ from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_native_interface_provider import provide_new_interface
 from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
 from libdebug.utils.arch_mappings import map_arch
+from libdebug.utils.container import ContainerError, kill_in_container, spawn_in_container
 from libdebug.utils.debugging_utils import normalize_and_validate_address
 from libdebug.utils.elf_utils import (
     elf_architecture,
@@ -85,6 +89,8 @@ class PtraceInterface(DebuggingInterface):
         self.process_id = 0
         self.detached = False
         self._disabled_aslr = False
+        self._container_popen = None
+        self._container_ns_pid = 0
 
     def reset(self: PtraceInterface) -> None:
         """Resets the state of the interface."""
@@ -96,6 +102,10 @@ class PtraceInterface(DebuggingInterface):
 
     def run(self: PtraceInterface, redirect_pipes: bool) -> None:
         """Runs the specified process."""
+        if self._internal_debugger.container is not None:
+            self._run_in_container(redirect_pipes)
+            return
+
         if not self._disabled_aslr and not self._internal_debugger.aslr_enabled:
             disable_self_aslr()
             self._disabled_aslr = True
@@ -190,6 +200,146 @@ class PtraceInterface(DebuggingInterface):
             except OSError as e:
                 liblog.debugger("Failed to set the foreground process group: %r", e)
 
+    def _run_in_container(self: PtraceInterface, redirect_pipes: bool) -> None:
+        """Spawn the target inside a Docker/Podman container, then attach via ptrace.
+
+        State machine:
+          1. Create plain pipes for stdio (not PTYs — docker exec gives pipes).
+          2. `docker exec -i ... sh -c '<wrapper>' -- <target>` via subprocess; the wrapper prints
+             its in-container PID, then `kill -STOP $$`s itself.
+          3. Read the PID from the pipe, resolve to the host-visible PID via /proc walk.
+          4. PTRACE_ATTACH all tasks. The tracee is in real group-stop (from `kill -STOP $$`),
+             so PTRACE_CONT alone cannot wake it — only SIGCONT can clear group-stop.
+          5. Consume the attach-stop notification (delivered as SIGSTOP).
+          6. Install ptrace options (TRACEEXEC etc) BEFORE the wrapper exec's, so exec generates
+             PTRACE_EVENT_EXEC we can cleanly catch.
+          7. `kill(host_pid, SIGCONT)` to clear group-stop. The SIGCONT queues as a ptrace
+             signal-delivery-stop on the next cont.
+          8. CONT + wait — consume the SIGCONT signal-delivery-stop.
+          9. CONT + wait — wrapper resumes, exec's, PTRACE_EVENT_EXEC fires. Now address space
+             is the target binary's.
+          10. Pursue the entry point — identical to the host run path.
+        """
+        if not redirect_pipes:
+            raise NotImplementedError(
+                "redirect_pipes=False is not currently supported in container mode; "
+                "the wrapper needs a captured stdout to report its in-container PID.",
+            )
+
+        internal_debugger = self._internal_debugger
+        liblog.debugger("Running %s inside container %s", internal_debugger.argv, internal_debugger.container)
+
+        # Pipe fds are tracked so the failure path below can close all six even when spawn or
+        # attach raises before _setup_pipe takes ownership of the parent-side ends.
+        self.stdin_read = self.stdin_write = -1
+        self.stdout_read = self.stdout_write = -1
+        self.stderr_read = self.stderr_write = -1
+
+        try:
+            # Plain pipes, not PTYs — docker exec re-opens stdio on the in-container side, and
+            # PTY semantics (line discipline, isatty) don't survive the docker daemon hop.
+            self.stdin_read, self.stdin_write = os.pipe()
+            self.stdout_read, self.stdout_write = os.pipe()
+            self.stderr_read, self.stderr_write = os.pipe()
+
+            # The PID line read tolerates BlockingIOError, and PipeManager expects nonblocking
+            # reads on stdout/stderr.
+            flags = fcntl(self.stdout_read, F_GETFL)
+            fcntl(self.stdout_read, F_SETFL, flags | os.O_NONBLOCK)
+            flags = fcntl(self.stderr_read, F_GETFL)
+            fcntl(self.stderr_read, F_SETFL, flags | os.O_NONBLOCK)
+
+            self.status_handler = PtraceStatusHandler(internal_debugger)
+
+            env_dict = dict(internal_debugger.env) if internal_debugger.env is not None else None
+
+            host_pid, ns_pid, popen = spawn_in_container(
+                runtime=internal_debugger.runtime,
+                container=internal_debugger.container,
+                container_path=internal_debugger.container_path,
+                argv=list(internal_debugger.argv),
+                env=env_dict,
+                init_pid=internal_debugger.container_init_pid,
+                stdin_child_fd=self.stdin_read,
+                stdout_child_fd=self.stdout_write,
+                stderr_child_fd=self.stderr_write,
+                pid_read_fd=self.stdout_read,
+            )
+            self._container_popen = popen
+            self._container_ns_pid = ns_pid
+
+            try:
+                self._attach_to_all_tasks(host_pid)
+            except PermissionError as e:
+                # Preserve the original errno and strerror so callers branching on .errno keep
+                # working; the original cause is still available via __cause__.
+                raise PermissionError(
+                    e.errno,
+                    e.strerror,
+                    "PTRACE_ATTACH was rejected. Container debugging usually requires "
+                    "`--cap-add=SYS_PTRACE` and `--security-opt apparmor=unconfined` on the target "
+                    "container, plus `sysctl kernel.yama.ptrace_scope=0` on the host.",
+                ) from e
+
+            self.process_id = host_pid
+            self.detached = False
+            internal_debugger.process_id = host_pid
+
+            # is_startup=True across all the post-attach state-machine waits so the status
+            # handler skips signal-forwarding bookkeeping; signal_to_forward stays at 0 and
+            # each PTRACE_CONT suppresses the held signal rather than re-delivering it.
+            internal_debugger.resume_context.is_startup = True
+
+            # Step 5: consume the attach-stop notification (delivered as SIGSTOP because the
+            # wrapper was already in group-stop from `kill -STOP $$`).
+            self.wait()
+
+            # Step 6: install ptrace options BEFORE the exec so the kernel converts the post-
+            # execve SIGTRAP into a clean PTRACE_EVENT_EXEC. set_tracing_options sets
+            # TRACEEXEC|TRACEFORK|TRACECLONE|TRACEVFORK|TRACESYSGOOD|TRACEEXIT.
+            self._set_options()
+
+            # Step 7: clear the real group-stop. PTRACE_CONT alone cannot wake a process from
+            # group-stop — only SIGCONT can. We send SIGCONT here; the kernel will surface it
+            # as a signal-delivery-stop on the next cont, which we consume below.
+            os.kill(host_pid, signal.SIGCONT)
+
+            # Step 8: cont through the SIGCONT signal-delivery-stop.
+            self.lib_trace.cont_all_and_set_bps(False)
+            self.wait()
+
+            # Step 9: cont — wrapper resumes, runs `exec`, kernel fires PTRACE_EVENT_EXEC.
+            self.lib_trace.cont_all_and_set_bps(False)
+            self.wait()
+
+            internal_debugger.resume_context.is_startup = False
+
+            # Step 10: pursue entry point. Address space is now the target binary's.
+            self._pursue_entry_point(internal_debugger.autoreach_entrypoint)
+
+            internal_debugger.pipe_manager = self._setup_pipe()
+        except (OSError, RuntimeError, ContainerError, subprocess.SubprocessError):
+            # Failure after spawn: kill the wrapper inside the container (only if we have a
+            # real NS pid — `kill 0` inside the container would target the entire process
+            # group), reap the docker-exec client, and close every pipe fd we opened so the
+            # caller doesn't leak fds on retry.
+            if self._container_ns_pid > 0:
+                kill_in_container(
+                    internal_debugger.runtime,
+                    internal_debugger.container,
+                    self._container_ns_pid,
+                )
+            self._reap_container_popen()
+            for fd in (
+                self.stdin_read, self.stdin_write,
+                self.stdout_read, self.stdout_write,
+                self.stderr_read, self.stderr_write,
+            ):
+                if fd != -1:
+                    with contextlib.suppress(OSError):
+                        os.close(fd)
+            raise
+
     def attach(self: PtraceInterface, pid: int) -> None:
         """Attaches to the specified process.
 
@@ -244,15 +394,50 @@ class PtraceInterface(DebuggingInterface):
         # Reset the breakpoint hit
         self._internal_debugger.resume_context.event_hit_ref.clear()
 
+        # Detach leaves the in-container process running, but the host-side `docker exec` client
+        # is no longer useful — reap it so dockerd doesn't accumulate state.
+        self._reap_container_popen()
+
     def kill(self: PtraceInterface) -> None:
         """Instantly terminates the process."""
         if not self.detached:
-            self.lib_trace.detach_for_kill()
+            try:
+                self.lib_trace.detach_for_kill()
+            except (RuntimeError, OSError) as e:
+                # In container mode the in-NS process can become unreachable if the container
+                # exited under us; fall back to `<runtime> exec kill -KILL`.
+                if self._internal_debugger.container is not None and self._container_ns_pid > 0:
+                    liblog.debugger("detach_for_kill failed in container mode, falling back: %r", e)
+                    kill_in_container(
+                        self._internal_debugger.runtime,
+                        self._internal_debugger.container,
+                        self._container_ns_pid,
+                    )
+                else:
+                    raise
         else:
             # If we detached from the process, there's no reason to attempt to detach again
             # We can just kill the process
             os.kill(self.process_id, 9)
             os.waitpid(self.process_id, 0)
+
+        self._reap_container_popen()
+
+    def _reap_container_popen(self: PtraceInterface) -> None:
+        """Reap the `<runtime> exec` client process if container mode is active.
+
+        Idempotent: safe to call from kill(), detach(), and failure-path cleanup. Bounded with a
+        5s timeout — if the client doesn't exit cleanly (e.g. the daemon is stuck), we hard-kill
+        the local process.
+        """
+        if self._container_popen is None:
+            return
+        try:
+            self._container_popen.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            self._container_popen.kill()
+            self._container_popen.wait()
+        self._container_popen = None
 
     def cont(self: PtraceInterface) -> None:
         """Continues the execution of the process."""
@@ -477,8 +662,16 @@ class PtraceInterface(DebuggingInterface):
         self._set_options()
         liblog.debugger("Options set")
 
+        self._pursue_entry_point(continue_to_entry_point)
+
+    def _pursue_entry_point(self: PtraceInterface, continue_to_entry_point: bool) -> None:
+        """Optionally set a one-shot HW breakpoint at the binary's entry point and run to it.
+
+        Precondition: the tracee is paused at post-exec SIGTRAP (address space = target binary)
+        and ptrace options have already been set. Both the host and container run paths converge
+        here once that precondition is met.
+        """
         if continue_to_entry_point:
-            # Now that the process is running, we must continue until we have reached the entry point
             try:
                 entry_point = get_entry_point(self._internal_debugger.path)
 
@@ -488,7 +681,6 @@ class PtraceInterface(DebuggingInterface):
                 # Possibly the ELF is corrupt, or something else went wrong
                 liblog.error(f"Failed to get the entry point for the given binary: {e}")
             else:
-                # Only if we think we have found a valid entry point location, we attempt to reach it
                 bp = Breakpoint(entry_point, hardware=True, _internal_debugger=self._internal_debugger)
                 self.set_breakpoint(bp)
                 self.cont()
