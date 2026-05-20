@@ -85,12 +85,23 @@ def debugger(
         if container_path is None:
             raise ValueError("container= requires either path= or argv[0] to point at the in-container binary.")
 
+        # The POSIX-sh wrapper we use to spawn inside the container has no portable way to set
+        # argv[0] independently of the executable path. Rather than silently replacing the
+        # user's argv[0], we refuse the combination — they can drop argv[0] (we'll synthesize
+        # container_path) or fix it to match.
+        if argv and len(argv) >= 1 and argv[0] != container_path:
+            raise ValueError(
+                f"Custom argv[0] is not supported in container mode: argv[0]={argv[0]!r} != "
+                f"path={container_path!r}. POSIX sh cannot preserve a distinct argv[0] across the "
+                "in-container exec. Either set argv[0] to the binary path, or omit it entirely.",
+            )
+
         resolved_runtime = detect_runtime(container, runtime)
         container_init_pid = get_container_init_pid(resolved_runtime, container)
         path = extract_container_binary(resolved_runtime, container, container_path)
-        # In container mode the argv[0] convention cannot be preserved by POSIX sh, so the binary
-        # always sees argv[0] == container_path. Flag this so downstream re-resolution paths don't
-        # try to interpret argv[0] as a host filesystem path.
+        # In container mode the on-host binary path (a docker-cp'd tempfile) differs from
+        # argv[0] (the container-internal path) by construction. Flag this so downstream
+        # re-resolution paths don't try to interpret argv[0] as a host filesystem path.
         has_path_different_from_argv0 = True
     else:
         if runtime is not None:

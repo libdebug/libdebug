@@ -184,6 +184,8 @@ def get_all_symbols(backing_files: set[str], internal_debugger: InternalDebugger
     Returns:
         SymbolList[Symbol]: A list of all the symbols in the target process.
     """
+    from libdebug.utils.container import host_path_for_backing_file  # noqa: PLC0415 — avoid circular import at module load
+
     symbols = SymbolList([], internal_debugger)
 
     if libcontext.sym_lvl == 0:
@@ -191,17 +193,31 @@ def get_all_symbols(backing_files: set[str], internal_debugger: InternalDebugger
             "Symbol resolution is disabled. Please enable it by setting the sym_lvl libcontext parameter to a value greater than 0.",
         )
 
+    runtime = internal_debugger.runtime
+    container = internal_debugger.container
+
     for file in backing_files:
+        # In container mode, translate the container-internal path to a host-readable
+        # docker-cp'd copy. host_path_for_backing_file is identity in host mode.
+        host_file = host_path_for_backing_file(runtime, container, file)
+
         # Do not parse non-ELF files
-        if not is_elf(file):
+        if not is_elf(host_file):
             continue
 
-        # Retrieve the symbols from the SymbolTableSection
+        # Retrieve the symbols from the SymbolTableSection.
         try:
-            new_symbols, buildid, debug_file = _parse_elf_file(file, libcontext.sym_lvl)
+            new_symbols, buildid, debug_file = _parse_elf_file(host_file, libcontext.sym_lvl)
         except RuntimeError as e:
             liblog.error(f"Failed to parse ELF file {file}: {e}")
             continue
+
+        # In container mode the parser saw the host tempfile; rewrite the recorded paths back
+        # to the container-internal `file` so user-facing Symbol records stay in container terms.
+        if host_file != file:
+            for sym in new_symbols:
+                sym.backing_file = file
+                sym.reference_file = file
 
         symbols += new_symbols
 
