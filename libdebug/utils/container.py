@@ -150,6 +150,69 @@ def discard_tempfile(path: str) -> None:
         Path(path).unlink()
 
 
+# Cache of (runtime, container, container_path) → host_tempfile (or None on cached failure),
+# populated lazily by `cache_container_path`. Each successful entry is also tracked in
+# _TEMPFILES so the atexit sweep removes the on-disk file at interpreter exit. We never
+# invalidate — within a single libdebug session we assume container filesystems are stable.
+_PATH_CACHE: dict[tuple[str, str, str], str | None] = {}
+
+
+def cache_container_path(runtime: str, container: str, container_path: str) -> str | None:
+    """Return a host-readable copy of an in-container file, ``docker cp``ing it on first access.
+
+    Memoized per (runtime, container, container_path) to avoid repeated copies. Returns None
+    when the path cannot be copied — e.g. anonymous mappings like ``[heap]``/``[stack]`` and
+    libdebug's own ``anon_<addr>`` placeholders, both of which have no on-disk backing — so
+    callers can simply skip those entries. Failed copies are also cached as None so we don't
+    retry on every symbol lookup.
+    """
+    if not container_path or not container_path.startswith("/"):
+        return None
+    if container_path.startswith("[") or container_path.startswith("/proc/"):
+        return None
+
+    key = (runtime, container, container_path)
+    if key in _PATH_CACHE:
+        return _PATH_CACHE[key]
+
+    fd, host_path = tempfile.mkstemp(prefix="libdebug-container-", suffix="-" + Path(container_path).name)
+    os.close(fd)
+    _register_tempfile(host_path)
+
+    result = subprocess.run(
+        [runtime, "cp", f"{container}:{container_path}", host_path],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0 or not Path(host_path).is_file():
+        # The mapped path may not exist (e.g. unlinked-while-mapped) or may be unreadable.
+        # Discard the empty tempfile and remember the failure so we don't retry on every lookup.
+        discard_tempfile(host_path)
+        _PATH_CACHE[key] = None
+        return None
+
+    _PATH_CACHE[key] = host_path
+    return host_path
+
+
+def host_path_for_backing_file(
+    runtime: str | None,
+    container: str | None,
+    backing_file: str,
+) -> str:
+    """Return the path to open for ELF/symbol parsing of a memory map's backing file.
+
+    In host mode (``container is None``) this is identity. In container mode it returns the
+    cached docker-cp'd copy on the host. Falls back to the original path when we cannot copy
+    (anon mappings, unreadable paths) so callers see no behavior change for those entries.
+    """
+    if container is None or runtime is None:
+        return backing_file
+    cached = cache_container_path(runtime, container, backing_file)
+    return cached if cached else backing_file
+
+
 def extract_container_binary(runtime: str, container: str, container_path: str) -> str:
     """Copy a binary out of the container to a host temp file so libdebug can parse its ELF.
 
@@ -218,15 +281,61 @@ def _read_cgroup(pid: int) -> bytes | None:
         return None
 
 
+def _cgroup_v2_path(cgroup_content: bytes) -> str | None:
+    """Extract the cgroup v2 unified-hierarchy path from /proc/<pid>/cgroup content.
+
+    cgroup v2 format is one line: ``0::<path>``. Returns None for cgroup v1 (multiple lines
+    with ``numeric:controller:path``) so callers can fall back to the full /proc scan.
+    """
+    for line in cgroup_content.split(b"\n"):
+        line = line.strip()
+        if line.startswith(b"0::"):
+            path = line[3:].decode(errors="replace")
+            return path if path.startswith("/") else None
+    return None
+
+
+def _candidates_from_cgroup(expected_cgroup: bytes) -> list[int] | None:
+    """Return host PIDs in the container's cgroup, or None if the fast path is unavailable.
+
+    Reads ``/sys/fs/cgroup<path>/cgroup.procs`` where ``<path>`` comes from the cgroup v2 line
+    in /proc/<init>/cgroup. This is O(processes-in-container) — typically 1-50 entries —
+    instead of O(all-host-processes). Returns None for cgroup v1, missing cgroup fs,
+    restricted permissions, or any parse failure, so the caller can transparently fall back
+    to the full /proc walk.
+    """
+    cgroup_path = _cgroup_v2_path(expected_cgroup)
+    if cgroup_path is None:
+        return None
+
+    procs_file = Path(f"/sys/fs/cgroup{cgroup_path}/cgroup.procs")
+    try:
+        with procs_file.open("rb") as f:
+            content = f.read()
+    except (FileNotFoundError, PermissionError, OSError):
+        return None
+
+    try:
+        return [int(line) for line in content.split() if line]
+    except ValueError:
+        return None
+
+
 def resolve_ns_pid_to_host_pid(init_pid: int, ns_pid: int, timeout: float = _NS_PID_RESOLVE_TIMEOUT) -> int:
     """Locate the host-visible PID of a process whose innermost-namespace PID is ``ns_pid``.
 
-    Walks /proc/<pid>/status looking for a process whose ``NSpid:`` row last column matches
-    ``ns_pid`` AND whose /proc/<pid>/cgroup is identical to the container init's cgroup. The
-    cgroup check disambiguates between unrelated containers that share a numeric NS pid: every
-    process inside a given container shares its cgroup path (e.g. ``docker-<id>.scope``).
-    We cannot use the ns/pid symlink for disambiguation because reading it requires
-    CAP_SYS_PTRACE on the target process; cgroup is world-readable and equally unique.
+    Inspects /proc/<pid>/status for processes whose ``NSpid:`` row last column matches
+    ``ns_pid``, verifying via /proc/<pid>/cgroup that the candidate really belongs to the
+    target container (different containers can share an in-NS PID; the cgroup uniquely
+    identifies a container). We cannot use the ns/pid symlink for disambiguation because
+    reading it requires CAP_SYS_PTRACE on the target; cgroup is world-readable and equally
+    unique.
+
+    Fast path: on cgroup v2 hosts (the modern default) we read the container's
+    ``cgroup.procs`` directly — that's the exact set of in-container PIDs, no scan needed —
+    and skip the per-candidate cgroup verification since membership is already guaranteed.
+    Fallback path: full /proc walk with per-candidate cgroup verification, used for cgroup v1
+    or restricted setups.
 
     Args:
         init_pid: Host-visible PID of the container init.
@@ -242,10 +351,16 @@ def resolve_ns_pid_to_host_pid(init_pid: int, ns_pid: int, timeout: float = _NS_
 
     deadline = time.monotonic() + timeout
     while True:
-        for entry in os.listdir("/proc"):
-            if not entry.isdigit():
-                continue
-            host_pid = int(entry)
+        fast_candidates = _candidates_from_cgroup(expected_cgroup)
+        if fast_candidates is not None:
+            # cgroup.procs guarantees membership; skip per-candidate cgroup re-read.
+            candidates: object = fast_candidates
+            verify_cgroup = False
+        else:
+            candidates = (int(e) for e in os.listdir("/proc") if e.isdigit())
+            verify_cgroup = True
+
+        for host_pid in candidates:
             status = _read_status(host_pid)
             if status is None:
                 continue
@@ -258,7 +373,9 @@ def resolve_ns_pid_to_host_pid(init_pid: int, ns_pid: int, timeout: float = _NS_
             # Innermost-namespace pid is the last column; host pid is the first.
             if int(columns[-1]) != ns_pid:
                 continue
-            if _read_cgroup(host_pid) != expected_cgroup:
+            # Deferred verification: only read /proc/<host>/cgroup after NSpid matches, and
+            # only on the fallback path where membership isn't already guaranteed.
+            if verify_cgroup and _read_cgroup(host_pid) != expected_cgroup:
                 continue
             return host_pid
 
@@ -272,9 +389,9 @@ def resolve_ns_pid_to_host_pid(init_pid: int, ns_pid: int, timeout: float = _NS_
 def _build_target_argv(container_path: str, user_argv: list[str]) -> list[str]:
     """Build the positional args the wrapper passes to `exec`.
 
-    POSIX `sh` has no portable way to override argv[0]; the target receives argv[0] == container_path.
-    If the user supplied a custom argv[0] that differs from container_path, it is dropped — argv[1:]
-    is preserved.
+    POSIX `sh` has no portable way to override argv[0], so the target receives argv[0] ==
+    container_path. The factory enforces argv[0] == container_path (or argv empty) before we
+    get here, so the drop is purely cosmetic — argv[1:] is what carries actual user args.
     """
     return [container_path, *user_argv[1:]] if len(user_argv) > 1 else [container_path]
 

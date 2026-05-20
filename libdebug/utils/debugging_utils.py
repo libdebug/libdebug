@@ -8,6 +8,7 @@ from libdebug.data.memory_map import MemoryMap
 from libdebug.data.memory_map_list import MemoryMapList
 from libdebug.data.symbol_list import SymbolList
 from libdebug.liblog import liblog
+from libdebug.utils.container import host_path_for_backing_file
 from libdebug.utils.elf_utils import is_pie, resolve_address, resolve_symbol
 
 
@@ -58,20 +59,27 @@ def resolve_symbol_in_maps(symbol: str, maps: MemoryMapList[MemoryMap]) -> int:
     else:
         offset = 0
 
+    internal_debugger = maps._internal_debugger
+    runtime = internal_debugger.runtime
+    container = internal_debugger.container
+
     for vmap in maps:
         if vmap.backing_file and vmap.backing_file not in mapped_files and vmap.backing_file[0] != "[":
-            mapped_files[vmap.backing_file] = vmap.start
+            # `file_key` keeps the container-internal path so error messages stay meaningful;
+            # the host-side ELF parser opens `host_file` instead.
+            host_file = host_path_for_backing_file(runtime, container, vmap.backing_file)
+            mapped_files[vmap.backing_file] = (vmap.start, host_file)
 
-    for file, base_address in mapped_files.items():
+    for file_key, (base_address, host_file) in mapped_files.items():
         try:
-            address = resolve_symbol(file, symbol)
+            address = resolve_symbol(host_file, symbol)
 
-            if is_pie(file):
+            if is_pie(host_file):
                 address += base_address
 
             return address + offset
         except (OSError, RuntimeError) as e:
-            liblog.debugger(f"Error while resolving symbol {symbol} in {file}: {e}")
+            liblog.debugger(f"Error while resolving symbol {symbol} in {file_key}: {e}")
         except ValueError:
             pass
 
@@ -93,25 +101,35 @@ def resolve_address_in_maps(address: int, maps: MemoryMapList[MemoryMap]) -> str
     """
     mapped_files = {}
 
+    internal_debugger = maps._internal_debugger
+    runtime = internal_debugger.runtime
+    container = internal_debugger.container
+
     for vmap in maps:
         file = vmap.backing_file
         if not file or file[0] == "[":
             continue
 
         if file not in mapped_files:
-            mapped_files[file] = (vmap.start, vmap.end)
+            host_file = host_path_for_backing_file(runtime, container, file)
+            mapped_files[file] = (vmap.start, vmap.end, host_file)
         else:
-            mapped_files[file] = (mapped_files[file][0], vmap.end)
+            base, _, host_file = mapped_files[file]
+            mapped_files[file] = (base, vmap.end, host_file)
 
-    for file, (base_address, top_address) in mapped_files.items():
+    for file_key, (base_address, top_address, host_file) in mapped_files.items():
         # Check if the address is in the range of the current section
         if address < base_address or address >= top_address:
             continue
 
         try:
-            return resolve_address(file, address - base_address) if is_pie(file) else resolve_address(file, address)
+            return (
+                resolve_address(host_file, address - base_address)
+                if is_pie(host_file)
+                else resolve_address(host_file, address)
+            )
         except OSError as e:
-            liblog.debugger(f"Error while resolving address {hex(address)} in {file}: {e}")
+            liblog.debugger(f"Error while resolving address {hex(address)} in {file_key}: {e}")
         except ValueError:
             pass
 
