@@ -23,6 +23,7 @@ def fast_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.BacktraceTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.BreakpointTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.CallbackTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.ContainerUtilsUnitTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.ControlFlowTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.CorruptedELFTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.CursedBinariesTest))
