@@ -33,7 +33,7 @@ If you want to stay up to date with the most cutting-edge features (and you don'
 python3 -m pip install git+https://github.com/libdebug/libdebug.git@dev
 ```
 
-Please visit the [build guide](https://docs.libdebug.org/development/building_libdebug/) for more information on how to manually build libdebug from source.
+Please visit the [build guide](https://docs.libdebug.org/latest/development/building_libdebug/) for more information on how to manually build libdebug from source.
 
 ## Your first script
 
@@ -70,8 +70,13 @@ print(f"RAX is {hex(d.regs.rax)}")
 # Write to memory
 d.memory[0x10ad, 8, "binary"] = b"Hello!\x00\x00"
 
-# Continue the execution
+# Continue the execution (non-blocking!)
 d.cont()
+# Wait for the process to stop
+d.wait()
+
+# Kill the process
+d.kill()
 ```
 
 The above script will run the binary `test` in the working directory and set two breakpoints: one at the function `function` and another at `function2`. 
@@ -150,6 +155,8 @@ d.cont()
 d.wait()
 
 d.gdb()
+
+d.kill()
 ```
 
 ## Auto Interrupt on Command

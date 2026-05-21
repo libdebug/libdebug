@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024-2025 Roberto Alessandro Bertolini, Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2024-2026 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -11,6 +11,9 @@ from unittest import TestCase
 from utils.binary_utils import RESOLVE_EXE
 from time import sleep
 from pwn import process
+import io
+import logging
+import sys
 
 
 from libdebug import debugger
@@ -19,6 +22,30 @@ from multiprocessing import Process, Queue
 
 
 class AtexitHandlerTest(TestCase):
+    def setUp(self):
+        # Redirect stdout
+        self.capturedOutput = io.StringIO()
+        sys.stdout = self.capturedOutput
+        sys.stderr = self.capturedOutput
+
+        self.log_capture_string = io.StringIO()
+        self.log_handler = logging.StreamHandler(self.log_capture_string)
+        self.log_handler.setLevel(logging.WARNING)
+
+        self.logger = logging.getLogger("libdebug")
+        self.original_handlers = self.logger.handlers
+        self.logger.handlers = []
+        self.logger.addHandler(self.log_handler)
+        self.logger.setLevel(logging.WARNING)
+
+    def tearDown(self):
+        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
+
+        self.logger.removeHandler(self.log_handler)
+        self.logger.handlers = self.original_handlers
+        self.log_handler.close()
+
     def test_run_1(self):
         def provola(queue):
             d = debugger(RESOLVE_EXE("infinite_loop_test"))
@@ -316,3 +343,31 @@ class AtexitHandlerTest(TestCase):
 
         p.close()
         del p
+
+    def test_warning_nonblocking(self):
+        d = debugger(RESOLVE_EXE("infinite_loop_test"))
+
+        d.run()
+        d.cont()
+
+        # Simulate atexit handler
+        _cleanup_internal_debugger()
+
+        self.assertIn("WARNING", self.log_capture_string.getvalue())
+        self.assertIn(
+            "Script terminated while the debuggee is still running. Is your last statement non-blocking?",
+            self.log_capture_string.getvalue(),
+        )
+
+    def test_no_warning_correct_usage(self):
+        d = debugger(RESOLVE_EXE("infinite_loop_test"))
+
+        d.run()
+
+        # Simulate atexit handler
+        _cleanup_internal_debugger()
+
+        self.assertNotIn(
+            "Script terminated while the debuggee is still running. Is your last statement non-blocking?",
+            self.log_capture_string.getvalue(),
+        )
