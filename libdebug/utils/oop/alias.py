@@ -6,13 +6,16 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Generic, ParamSpec, TypeVar, overload
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+P = ParamSpec("P")
+T = TypeVar("T")
 
-class AliasedProperty(property):
+
+class AliasedProperty(property, Generic[T]):
     """A property subclass that can store alias information.
 
     This class extends the built-in property to support the __aliases__ attribute
@@ -21,9 +24,9 @@ class AliasedProperty(property):
 
     def __init__(
         self,
-        fget: Callable | None = None,
-        fset: Callable | None = None,
-        fdel: Callable | None = None,
+        fget: Callable[[Any], T] | None = None,
+        fset: Callable[[Any, T], None] | None = None,
+        fdel: Callable[[Any], None] | None = None,
         doc: str | None = None,
     ) -> None:
         """Initialize an aliased property.
@@ -37,8 +40,17 @@ class AliasedProperty(property):
         super().__init__(fget, fset, fdel, doc)
         self.__aliases__: tuple[str, ...] = ()
 
+    if TYPE_CHECKING:
+        @overload
+        def __get__(self, instance: None, owner: type | None = ..., /) -> AliasedProperty[T]: ...
+        @overload
+        def __get__(self, instance: object, owner: type | None = ..., /) -> T: ...
+        def __get__(self, instance: object | None, owner: type | None = ..., /) -> AliasedProperty[T] | T:
+            """Descriptor accessor; implementation inherited from `property`."""
+            ...
 
-def check_alias(*alias_names: str) -> Callable:
+
+def check_alias(*alias_names: str) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """Decorator to register alternate names for a function or method.
 
     This helper exists solely for `alias_test`, where we verify that alias
@@ -50,7 +62,7 @@ def check_alias(*alias_names: str) -> Callable:
         *alias_names: One or more alias names to associate with the decorated object.
     """
 
-    def decorator(obj: Callable) -> Callable:
+    def decorator(obj: Callable[P, T]) -> Callable[P, T]:
         if not alias_names:
             raise ValueError("alias(): at least one alias name is required")
         obj.__aliases__ = (*getattr(obj, "__aliases__", ()), *alias_names)
@@ -59,7 +71,7 @@ def check_alias(*alias_names: str) -> Callable:
     return decorator
 
 
-def check_aliased_property(*alias_names: str) -> Callable:
+def check_aliased_property(*alias_names: str) -> Callable[[Callable[..., T]], AliasedProperty[T]]:
     """Decorator to record alternate names for a property.
 
     It builds an AliasedProperty containing those aliases solely for
@@ -74,9 +86,9 @@ def check_aliased_property(*alias_names: str) -> Callable:
     if not alias_names:
         raise ValueError("aliased_property(): at least one alias name is required")
 
-    def decorator(func: Callable) -> AliasedProperty:
+    def decorator(func: Callable[..., T]) -> AliasedProperty[T]:
         """Create an AliasedProperty with the specified aliases."""
-        prop = AliasedProperty(func, doc=func.__doc__)
+        prop: AliasedProperty[T] = AliasedProperty(func, doc=func.__doc__)
         prop.__aliases__ = alias_names
         return prop
 
