@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+from typing import TypeVar
+
 from elftools.common.exceptions import ELFError
 
 from libdebug.data.argument_list import ArgumentList
@@ -22,6 +24,8 @@ from libdebug.utils.elf_utils import elf_architecture, resolve_argv_path
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.thread_exceptions import setup_signal_handler
 
+DebuggerT = TypeVar("DebuggerT", bound=Debugger)
+
 
 def debugger(
     argv: str | list[str] | None = None,
@@ -37,7 +41,8 @@ def debugger(
     follow_children: bool = True,
     container: str | None = None,
     runtime: str | None = None,
-) -> Debugger:
+    cls: type[DebuggerT] = Debugger,
+) -> DebuggerT:
     """This function is used to create a new `Debugger` object. It returns a `Debugger` object.
 
     Args:
@@ -53,9 +58,16 @@ def debugger(
         follow_children (bool, optional): Whether to follow child processes. Defaults to True, which means that a new debugger will be created for each child process automatically.
         container (str, optional): If set, spawn and trace the target inside the named, already-running container (Docker or Podman). The `path` argument is then interpreted as an absolute path *inside the container*. Defaults to None (host-side debugging).
         runtime (str, optional): Force a specific container runtime ("docker" or "podman"). Defaults to None (auto-detect which runtime knows the named container).
+        cls (type[DebuggerT], optional): The `Debugger` subclass to instantiate. Defaults to `Debugger`.
 
     Returns:
-        Debugger: The `Debugger` object.
+        DebuggerT: The `Debugger` object (or subclass if `cls` is provided).
+
+    Notes:
+        The public constructor is the `debugger` factory. The `Debugger` class itself is
+        composed of mixins and expects an `InternalDebugger` when instantiated; this keeps
+        advanced users free to subclass with their own mixins while everyday users rely on
+        the factory for setup. Use `cls` to inject a custom subclass with extra mixins.
     """
     if isinstance(argv, str):
         argv = ArgumentList([argv])
@@ -134,9 +146,7 @@ def debugger(
     internal_debugger.container_init_pid = container_init_pid
     internal_debugger.container_path = container_path
 
-    debugger = Debugger()
-    debugger.post_init_(internal_debugger)
-
+    debugger = cls(internal_debugger)
     internal_debugger.debugger = debugger
 
     # If we are attaching, we assume the architecture is the same as the current platform
