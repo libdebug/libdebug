@@ -180,7 +180,7 @@ def cache_container_path(runtime: str, container: str, container_path: str) -> s
     _register_tempfile(host_path)
 
     result = subprocess.run(
-        [runtime, "cp", f"{container}:{container_path}", host_path],
+        [runtime, "cp", "-L", f"{container}:{container_path}", host_path],
         capture_output=True,
         text=True,
         check=False,
@@ -244,7 +244,7 @@ def extract_container_binary(runtime: str, container: str, container_path: str) 
     _register_tempfile(host_path)
 
     result = subprocess.run(
-        [runtime, "cp", f"{container}:{container_path}", host_path],
+        [runtime, "cp", "-L", f"{container}:{container_path}", host_path],
         capture_output=True,
         text=True,
         check=False,
@@ -410,18 +410,18 @@ def spawn_in_container(
 ) -> tuple[int, int, subprocess.Popen]:
     """Spawn the target inside the container in a paused state and resolve its host PID.
 
-    Issues ``<runtime> exec -i [--env K=V]... <container> sh -c '<wrapper>' -- <target>...``. The wrapper:
-    prints its in-container PID on stdout, ``kill -STOP``s itself, then ``exec``s the target. We read
-    the first stdout line to recover the in-container PID, then resolve it to a host-visible PID.
-    The caller is responsible for ``PTRACE_ATTACH``ing on the returned host PID before resuming the
-    wrapper.
+    Issues ``<runtime> exec -i <container> [env -i K=V...] /bin/sh -c '<wrapper>' -- <target>...``.
+    The wrapper prints its in-container PID on stdout, ``kill -STOP``s itself, then ``exec``s the
+    target. We read the first stdout line to recover the in-container PID, then resolve it to a
+    host-visible PID. The caller is responsible for ``PTRACE_ATTACH``ing on the returned host PID
+    before resuming the wrapper.
 
     Args:
         runtime: Resolved runtime CLI name.
         container: Container name or ID.
         container_path: Absolute path of the target binary inside the container.
         argv: User-supplied argv list. argv[0] is dropped (see ``_build_target_argv``).
-        env: Environment variables to pass via ``--env`` flags. None means no overrides.
+        env: Complete target environment. None means inherit the container's configured environment.
         init_pid: Host-visible PID of container init (for NS pid resolution).
         stdin_child_fd: Read end of the stdin pipe, handed to the child as fd 0. None means inherit.
         stdout_child_fd: Write end of the stdout pipe, handed to the child as fd 1.
@@ -431,11 +431,22 @@ def spawn_in_container(
     Returns:
         Tuple of (host_pid, ns_pid, popen). The Popen is the docker-exec client process; caller must reap it.
     """
-    cmd: list[str] = [runtime, "exec", "-i"]
-    for key, value in (env or {}).items():
-        cmd += ["--env", f"{key}={value}"]
-    cmd.append(container)
-    cmd += ["sh", "-c", _WRAPPER_SCRIPT, "--"]
+    cmd: list[str] = [runtime, "exec", "-i", container]
+    if env is None:
+        cmd += ["/bin/sh", "-c", _WRAPPER_SCRIPT, "--"]
+    else:
+        # Match host-mode `env=` semantics: None inherits, any dict is the complete
+        # target environment. Starting the wrapper shell through `env -i` keeps the
+        # first traced exec as the target binary, not `/usr/bin/env`.
+        cmd += [
+            "env",
+            "-i",
+            *[f"{key}={value}" for key, value in env.items()],
+            "/bin/sh",
+            "-c",
+            _WRAPPER_SCRIPT,
+            "--",
+        ]
     cmd += _build_target_argv(container_path, argv)
 
     popen = subprocess.Popen(

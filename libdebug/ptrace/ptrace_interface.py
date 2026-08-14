@@ -394,9 +394,9 @@ class PtraceInterface(DebuggingInterface):
         # Reset the breakpoint hit
         self._internal_debugger.resume_context.event_hit_ref.clear()
 
-        # Detach leaves the in-container process running, but the host-side `docker exec` client
-        # is no longer useful — reap it so dockerd doesn't accumulate state.
-        self._reap_container_popen()
+        # In container mode, detach intentionally leaves the target running. The local
+        # `docker exec` client owns that exec session's stdio and should exit naturally
+        # when the detached target exits.
 
     def kill(self: PtraceInterface) -> None:
         """Instantly terminates the process."""

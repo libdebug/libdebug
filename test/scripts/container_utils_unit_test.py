@@ -9,6 +9,21 @@ import os
 from unittest import TestCase
 from unittest.mock import patch
 
+from libdebug.utils.container import (
+    ContainerError,
+    SUPPORTED_RUNTIMES,
+    _PATH_CACHE,
+    _build_target_argv,
+    _read_pid_line,
+    cache_container_path,
+    detect_runtime,
+    extract_container_binary,
+    host_path_for_backing_file,
+    resolve_ns_pid_to_host_pid,
+    spawn_in_container,
+)
+from utils.container_fixture_utils import SYMLINK_TARGET_BYTES, symlink_cp_container
+
 
 def _make_pipe(nonblocking=True):
     """Return (r, w) with the read end set to non-blocking — mirrors `_run_in_container`."""
@@ -18,27 +33,44 @@ def _make_pipe(nonblocking=True):
         fcntl.fcntl(r, fcntl.F_SETFL, flags | os.O_NONBLOCK)
     return r, w
 
-from libdebug.utils.container import (
-    ContainerError,
-    SUPPORTED_RUNTIMES,
-    _PATH_CACHE,
-    _build_target_argv,
-    _read_pid_line,
-    cache_container_path,
-    detect_runtime,
-    host_path_for_backing_file,
-    resolve_ns_pid_to_host_pid,
-)
-
 
 class _FakePopen:
     """Minimal Popen stand-in for _read_pid_line tests."""
 
     def __init__(self, returncode=None):
         self.returncode = returncode
+        self.wait_called = False
+        self.kill_called = False
 
     def poll(self):
         return self.returncode
+
+    def wait(self, timeout=None):
+        self.wait_called = True
+        return self.returncode
+
+    def kill(self):
+        self.kill_called = True
+
+
+def _effective_env_from_fake_exec_cmd(cmd):
+    """Return the environment a fake container wrapper would observe."""
+    container_env = {"PATH": "/usr/bin", "KEEP": "container-default"}
+
+    if "env" not in cmd:
+        return container_env
+
+    env_index = cmd.index("env")
+    if cmd[env_index + 1] != "-i":
+        return container_env
+
+    effective = {}
+    for token in cmd[env_index + 2:]:
+        if token == "/bin/sh":
+            break
+        key, value = token.split("=", 1)
+        effective[key] = value
+    return effective
 
 
 class ContainerUtilsUnitTest(TestCase):
@@ -272,7 +304,7 @@ class ContainerUtilsUnitTest(TestCase):
         def fake_run(cmd, **kw):
             run_calls.append(cmd)
             # docker cp writes some bytes to the dest path so Path.is_file() returns True
-            dest = cmd[3]
+            dest = cmd[-1]
             with open(dest, "wb") as f:
                 f.write(b"\x7fELF fake")
             return completed
@@ -321,7 +353,7 @@ class ContainerUtilsUnitTest(TestCase):
         completed = type("R", (), {"returncode": 0, "stderr": "", "stdout": ""})()
 
         def fake_run(cmd, **kw):
-            dest = cmd[3]
+            dest = cmd[-1]
             with open(dest, "wb") as f:
                 f.write(b"\x7fELF fake")
             return completed
@@ -335,7 +367,8 @@ class ContainerUtilsUnitTest(TestCase):
             self.assertTrue(host_path.endswith("libc.so.6"))
         finally:
             from libdebug.utils.container import discard_tempfile
-            discard_tempfile(host_path)
+            if host_path != "/bin/sh":
+                discard_tempfile(host_path)
             _PATH_CACHE.clear()
 
     def test_host_path_falls_back_when_cp_fails(self):
@@ -359,3 +392,115 @@ class ContainerUtilsUnitTest(TestCase):
                 host_path_for_backing_file("docker", "ctr", anon),
                 anon,
             )
+
+    def test_extract_container_binary_resolves_container_symlink_to_regular_file(self):
+        """The main binary copy must be usable even when the container path is a symlink."""
+        with symlink_cp_container(self) as (runtime, container):
+            host_path = extract_container_binary(runtime, container, "/bin/sh")
+
+        try:
+            self.assertTrue(os.path.isfile(host_path))
+            with open(host_path, "rb") as f:
+                self.assertEqual(f.read(), SYMLINK_TARGET_BYTES)
+        finally:
+            from libdebug.utils.container import discard_tempfile
+            discard_tempfile(host_path)
+
+    def test_cache_container_path_resolves_container_symlink_to_regular_file(self):
+        """Mapped library copies must not cache a broken host symlink for symlinked container files."""
+        _PATH_CACHE.clear()
+
+        with symlink_cp_container(self) as (runtime, container):
+            host_path = host_path_for_backing_file(runtime, container, "/bin/sh")
+
+        try:
+            self.assertNotEqual(host_path, "/bin/sh")
+            self.assertTrue(os.path.isfile(host_path))
+            with open(host_path, "rb") as f:
+                self.assertEqual(f.read(), SYMLINK_TARGET_BYTES)
+        finally:
+            from libdebug.utils.container import discard_tempfile
+            discard_tempfile(host_path)
+            _PATH_CACHE.clear()
+
+    def test_spawn_container_env_none_inherits_container_environment(self):
+        """env=None should keep the container's default environment, matching host-mode inheritance."""
+        popen_calls = []
+
+        def fake_popen(cmd, **kw):
+            popen_calls.append(cmd)
+            return _FakePopen()
+
+        with patch("libdebug.utils.container.subprocess.Popen", fake_popen), \
+             patch("libdebug.utils.container._read_pid_line", return_value=11), \
+             patch("libdebug.utils.container.resolve_ns_pid_to_host_pid", return_value=111):
+            spawn_in_container(
+                "docker", "ctr", "/bin/echo", ["/bin/echo", "x"], None, 1, None, 2, 3, 2,
+            )
+
+        self.assertEqual(
+            _effective_env_from_fake_exec_cmd(popen_calls[0]),
+            {"PATH": "/usr/bin", "KEEP": "container-default"},
+        )
+
+    def test_spawn_container_env_dict_starts_wrapper_with_empty_environment(self):
+        """env={} must not inherit the container's configured environment."""
+        popen_calls = []
+
+        def fake_popen(cmd, **kw):
+            popen_calls.append(cmd)
+            return _FakePopen()
+
+        with patch("libdebug.utils.container.subprocess.Popen", fake_popen), \
+             patch("libdebug.utils.container._read_pid_line", return_value=11), \
+             patch("libdebug.utils.container.resolve_ns_pid_to_host_pid", return_value=111):
+            spawn_in_container(
+                "docker", "ctr", "/bin/echo", ["/bin/echo"], {}, 1, None, 2, 3, 2,
+            )
+
+        self.assertEqual(_effective_env_from_fake_exec_cmd(popen_calls[0]), {})
+
+    def test_spawn_container_env_dict_passes_only_requested_variables(self):
+        """Container mode should treat env={...} as the target environment, not as runtime overrides."""
+        popen_calls = []
+
+        def fake_popen(cmd, **kw):
+            popen_calls.append(cmd)
+            return _FakePopen()
+
+        with patch("libdebug.utils.container.subprocess.Popen", fake_popen), \
+             patch("libdebug.utils.container._read_pid_line", return_value=11), \
+             patch("libdebug.utils.container.resolve_ns_pid_to_host_pid", return_value=111):
+            spawn_in_container(
+                "docker", "ctr", "/bin/echo", ["/bin/echo"], {"A": "B", "C": "D"}, 1, None, 2, 3, 2,
+            )
+
+        self.assertEqual(_effective_env_from_fake_exec_cmd(popen_calls[0]), {"A": "B", "C": "D"})
+
+    def test_detach_does_not_wait_for_long_lived_container_exec_client(self):
+        """Detach intentionally leaves the in-container target running, so it must not reap docker exec."""
+        from libdebug.ptrace.ptrace_interface import PtraceInterface
+
+        iface = object.__new__(PtraceInterface)
+        iface._container_popen = _FakePopen()
+        iface._internal_debugger = type(
+            "D",
+            (),
+            {
+                "breakpoints": {},
+                "resume_context": type(
+                    "R",
+                    (),
+                    {
+                        "event_type": set(),
+                        "event_hit_ref": set(),
+                    },
+                )(),
+            },
+        )()
+        iface.lib_trace = type("L", (), {"detach_and_cont": lambda self: None})()
+
+        PtraceInterface.detach(iface)
+
+        self.assertFalse(iface._container_popen.wait_called)
+        self.assertFalse(iface._container_popen.kill_called)
