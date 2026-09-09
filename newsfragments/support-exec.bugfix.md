@@ -1,0 +1,1 @@
+- Avoid waiting twice for an already collected clone stop.

@@ -104,7 +104,7 @@ class PtraceStatusHandler:
         # Check if we received the SIGSTOP notification for the new thread
         # If not, we need to wait for it
         # 4991 == (WIFSTOPPED && WSTOPSIG(status) == SIGSTOP)
-        if (thread_id, 4991) not in results:
+        if not any(tid == thread_id and status == 4991 for tid, status, _ in results):
             os.waitpid(thread_id, 0)
         self.ptrace_interface.register_new_thread(thread_id)
 
