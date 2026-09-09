@@ -6,6 +6,17 @@ on:
     types: [published]
   push:
     branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main", "dev" ]
+    paths:
+      - "pyproject.toml"
+      - "CMakeLists.txt"
+      - "cmake/**"
+      - "libdebug/native/**"
+      - "libdebug/ptrace/**"
+      - "test/packaging/**"
+      - "test/scripts/native_bindings_test.py"
+      - ".github/workflows/wheels.yml"
   workflow_dispatch:
 
 jobs:
@@ -23,6 +34,20 @@ jobs:
       - name: Build Wheels
         uses: pypa/cibuildwheel@v3.2.1
 
+      - name: Verify wheel contents and stable ABI
+        run: |
+          python -m pip install abi3audit
+          for wheel in wheelhouse/*.whl; do
+            case "$wheel" in
+              *cp310-abi3*) mode=split ;;
+              *) mode=linked ;;
+            esac
+            python test/packaging/check_wheel.py --mode "$mode" "$wheel"
+            case "$wheel" in
+              *-abi3-*) abi3audit --strict "$wheel" ;;
+            esac
+          done
+
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -30,6 +55,9 @@ jobs:
           path: ./wheelhouse/*.whl
 
   test_wheels:
+    # Retain the broad distro matrix for releases and manual runs. PRs exercise
+    # every Python version through test_same_wheel and every wheel via cibuildwheel.
+    if: github.event_name != 'pull_request'
     needs: build_wheels
     runs-on: ${{ matrix.os }}
     strategy:
@@ -251,101 +279,15 @@ jobs:
           fi
           python${{ matrix.python_version }} -m venv venv
 
-      - name: Install and test wheel (All other distros - manylinux)
+      - name: Install compatible wheel and its runtime dependencies
         shell: bash
-        if: "!contains(matrix.distro, 'alpine')"
         run: |
           source venv/bin/activate
-          #
-          # Get Python version without dot (e.g., "3.11" -> "311")
-          PY_VER_NODOT=$(echo "${{ matrix.python_version }}" | tr -d '.')
-          #
-          # Get architecture mapping
-          ARCH=$(uname -m)
-          if [ "$ARCH" = "x86_64" ]; then
-            WHEEL_ARCH="x86_64"
-          elif [ "$ARCH" = "i686" ] || [ "$ARCH" = "i386" ]; then
-            WHEEL_ARCH="i686"
-          elif [ "$ARCH" = "aarch64" ]; then
-            WHEEL_ARCH="aarch64"
-          else
-            echo "Unsupported architecture: $ARCH"
-            exit 1
-          fi
-          #
-          echo "Looking for wheel with Python ${{ matrix.python_version }} (${PY_VER_NODOT}) on ${WHEEL_ARCH}"
-          #
-          # Try to find specific Python version wheel first (cp310, cp311, etc.)
-          WHEEL_FILE=$(find ./wheels/ -name "*manylinux*" -name "*cp${PY_VER_NODOT}-cp${PY_VER_NODOT}*" -name "*${WHEEL_ARCH}*" -type f | head -1)
-          #
-          # If not found, try to find abi3 wheel that's compatible (cp312-abi3 works for Python 3.12+)
-          if [ -z "$WHEEL_FILE" ] && [ "${{ matrix.python_version }}" != "3.10" ] && [ "${{ matrix.python_version }}" != "3.11" ]; then
-            echo "Specific wheel not found, trying abi3 wheel..."
-            WHEEL_FILE=$(find ./wheels/ -name "*manylinux*" -name "*cp312-abi3*" -name "*${WHEEL_ARCH}*" -type f | head -1)
-          fi
-          #
-          if [ -z "$WHEEL_FILE" ]; then
-            echo "No compatible manylinux wheel found for Python ${{ matrix.python_version }} on ${WHEEL_ARCH}"
-            echo "Available wheels:"
-            ls -la ./wheels/
-            exit 1
-          fi
-          #
-          echo "Installing manylinux wheel: $WHEEL_FILE"
-          python${{ matrix.python_version }} -m pip install "$WHEEL_FILE"
-          #
-          # Change Directory
-          cd test
-          # Basic import test
-          python${{ matrix.python_version }} -c "import libdebug; print('libdebug imported successfully on glibc-based distro')"
-
-      - name: Install and test wheel (Alpine - musllinux)
-        shell: bash
-        if: contains(matrix.distro, 'alpine')
-        run: |
-          source venv/bin/activate
-          #
-          # Get Python version without dot (e.g., "3.11" -> "311")
-          PY_VER_NODOT=$(echo "${{ matrix.python_version }}" | tr -d '.')
-          #
-          # Get architecture mapping
-          ARCH=$(uname -m)
-          if [ "$ARCH" = "x86_64" ]; then
-            WHEEL_ARCH="x86_64"
-          elif [ "$ARCH" = "i686" ] || [ "$ARCH" = "i386" ]; then
-            WHEEL_ARCH="i686"
-          elif [ "$ARCH" = "aarch64" ]; then
-            WHEEL_ARCH="aarch64"
-          else
-            echo "Unsupported architecture: $ARCH"
-            exit 1
-          fi
-          #
-          echo "Looking for musllinux wheel with Python ${{ matrix.python_version }} (${PY_VER_NODOT}) on ${WHEEL_ARCH}"
-          #
-          # Try to find specific Python version wheel first (cp310, cp311, etc.)
-          WHEEL_FILE=$(find ./wheels/ -name "*musllinux*" -name "*cp${PY_VER_NODOT}-cp${PY_VER_NODOT}*" -name "*${WHEEL_ARCH}*" -type f | head -1)
-          #
-          # If not found, try to find abi3 wheel that's compatible (cp312-abi3 works for Python 3.12+)
-          if [ -z "$WHEEL_FILE" ] && [ "${{ matrix.python_version }}" != "3.10" ] && [ "${{ matrix.python_version }}" != "3.11" ]; then
-            echo "Specific wheel not found, trying abi3 wheel..."
-            WHEEL_FILE=$(find ./wheels/ -name "*musllinux*" -name "*cp312-abi3*" -name "*${WHEEL_ARCH}*" -type f | head -1)
-          fi
-          #
-          if [ -z "$WHEEL_FILE" ]; then
-            echo "No compatible musllinux wheel found for Python ${{ matrix.python_version }} on ${WHEEL_ARCH}"
-            echo "Available wheels:"
-            ls -la ./wheels/
-            exit 1
-          fi
-          #
-          echo "Installing musllinux wheel: $WHEEL_FILE"
-          python3 -m pip install "$WHEEL_FILE"
-          #
-          # Change Directory
-          cd test
-          # Basic import test
-          python3 -c "import libdebug; print('libdebug imported successfully on Alpine/musl')"
+          # Let pip select the platform and ABI. The first install cannot fall
+          # back to PyPI or an sdist; the second resolves runtime dependencies.
+          python -m pip install --no-index --no-deps --find-links ./wheels libdebug
+          python -m pip install libdebug
+          python -I -c "import libdebug; print(libdebug.__file__)"
 
       - name: Install Python build tools and test dependencies
         shell: bash
@@ -363,7 +305,7 @@ jobs:
           else
             python3 -m pip install pytest pwntools requests objgraph
           fi
-          if [[ "${{ matrix.distro_image }}" == "opensuse/tumbleweed:latest" ]]; then
+          if [[ "${{ matrix.distro }}" == "opensuse/tumbleweed:latest" ]]; then
             zypper --non-interactive install -y python313-curses
           fi
 
@@ -382,3 +324,100 @@ jobs:
             cat /etc/os-release
           fi
           cd test && python3 -m pytest --ignore=other_tests --ignore scripts/atexit_handler_test.py
+
+  test_same_wheel:
+    needs: build_wheels
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+        python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: libdebug-manylinux-wheels-${{ runner.arch }}
+          path: wheels
+      - name: Install the single split wheel
+        run: |
+          python -m pip install --no-index --no-deps --find-links wheels libdebug
+          python -m pip install libdebug pytest pwntools objgraph typing_extensions mypy pyright
+          sha256sum wheels/*cp310-abi3*manylinux*.whl
+          python -I -c "import libdebug; print(libdebug.__file__)"
+          python test/packaging/missing_backend.py
+          if [ "${{ runner.arch }}" = "X64" ]; then sudo dpkg --add-architecture i386; fi
+          sudo apt-get update
+          sudo apt-get install -y libc6-dbg
+          if [ "${{ runner.arch }}" = "X64" ]; then sudo apt-get install -y libc6:i386 libc6-dbg:i386; fi
+      - name: Check installed stubs
+        run: |
+          cp test/packaging/typing_consumer.py "$RUNNER_TEMP/typing_consumer.py"
+          cd "$RUNNER_TEMP"
+          python -m mypy --follow-imports=silent typing_consumer.py
+          pyright --pythonpath "$(command -v python)" typing_consumer.py
+      - name: Test installed wheel
+        run: |
+          cd test
+          python -m pytest --ignore=other_tests
+          if [ "${{ runner.arch }}" = "X64" ]; then
+            PLATFORM=i386 python -m pytest --ignore=other_tests
+          fi
+
+  test_source_builds:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        split: ["0", "1"]
+        symbols: ["ON", "OFF"]
+    env:
+      LIBDEBUG_NANOBIND_SPLIT: ${{ matrix.split }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libdwarf-dev libelf-dev libiberty-dev
+          python -m pip install build "scikit-build-core>=1.0.3"
+      - name: Check metadata and build through sdist
+        run: |
+          python test/packaging/check_build_metadata.py
+          python -m build -Ccmake.define.USE_LIBDWARF=${{ matrix.symbols }}
+          if [ "${{ matrix.split }}" = "1" ]; then mode=split; else mode=linked; fi
+          python test/packaging/check_wheel.py --mode "$mode" dist/*.whl
+          python -m pip install dist/*.whl
+          python -I -c "from libdebug.native import libdebug_debug_sym_parser as m; assert m.HAS_SYMBOL_SUPPORT == ('${{ matrix.symbols }}' == 'ON')"
+          if [ "${{ matrix.symbols }}" = "ON" ]; then python test/packaging/smoke.py; fi
+      - name: Check clean editable installation
+        run: |
+          # Checkout contains no generated helpers; only the installation does.
+          python -m pip install -e . -Ccmake.define.USE_LIBDWARF=${{ matrix.symbols }}
+          python -I -c "from libdebug.native import libdebug_debug_sym_parser as m; assert m.HAS_SYMBOL_SUPPORT == ('${{ matrix.symbols }}' == 'ON')"
+          if [ "${{ matrix.symbols }}" = "ON" ]; then python test/packaging/smoke.py; fi
+
+  probe_python315:
+    needs: build_wheels
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.15"
+          allow-prereleases: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: libdebug-manylinux-wheels-X64
+          path: wheels
+      - name: Probe the existing split artifact on Python 3.15
+        run: |
+          python -m pip install --no-index --no-deps --find-links wheels libdebug
+          python -m pip install libdebug
+          python test/packaging/smoke.py
