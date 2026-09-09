@@ -1,0 +1,61 @@
+name: Docker integration
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  docker:
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends g++ libdwarf-dev libelf-dev libiberty-dev linux-headers-generic
+      - name: Build checkout in a virtual environment
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/python -m pip install . pytest pwntools objgraph
+      - name: Run real Docker tests with host tracing privileges
+        working-directory: test
+        run: |
+          mkdir -p ../test-results
+          sudo ../.venv/bin/python -m pytest --docker scripts/container_test.py -v --junitxml=../test-results/docker.xml
+      - name: Collect failure diagnostics
+        if: failure()
+        run: |
+          mkdir -p test-results
+          sudo docker info > test-results/docker-info.txt 2>&1 || true
+          sudo docker ps -a --no-trunc > test-results/docker-ps.txt 2>&1 || true
+          ps -ef > test-results/processes.txt
+          sudo journalctl -u docker --no-pager -n 300 > test-results/docker-journal.txt 2>&1 || true
+          for id in $(sudo docker ps -aq --filter label=org.libdebug.test=docker); do
+            sudo docker inspect "$id" > "test-results/container-$id.json" 2>&1 || true
+            sudo docker logs "$id" > "test-results/container-$id.log" 2>&1 || true
+          done
+      - name: Clean test resources
+        if: always()
+        run: |
+          sudo docker ps -aq --filter label=org.libdebug.test=docker | xargs -r sudo docker rm -f
+          sudo docker images -q --filter label=org.libdebug.test=docker | sort -u | xargs -r sudo docker image rm -f
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: docker-results-${{ matrix.runner }}
+          path: test-results/

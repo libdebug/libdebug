@@ -478,24 +478,29 @@ class PtraceInterface(DebuggingInterface):
         liblog.debugger("Options set")
 
         if continue_to_entry_point:
-            # Now that the process is running, we must continue until we have reached the entry point
-            try:
-                entry_point = get_entry_point(self._internal_debugger.path)
-
-                # For PIE binaries, the entry point is a relative address
-                entry_point = normalize_and_validate_address(entry_point, self.get_maps())
-            except (ValueError, ELFError) as e:
-                # Possibly the ELF is corrupt, or something else went wrong
-                liblog.error(f"Failed to get the entry point for the given binary: {e}")
-            else:
-                # Only if we think we have found a valid entry point location, we attempt to reach it
-                bp = Breakpoint(entry_point, hardware=True, _internal_debugger=self._internal_debugger)
-                self.set_breakpoint(bp)
-                self.cont()
-                self.wait()
-                self.unset_breakpoint(bp)
-
+            self._continue_to_entry_point()
         invalidate_process_cache()
+
+    def _continue_to_entry_point(self: PtraceInterface) -> None:
+        """Set a one-shot hardware breakpoint at the binary's entry point and run to it.
+
+        Precondition: the tracee is paused at post-exec SIGTRAP (address space = target binary)
+        and ptrace options have already been set.
+        """
+        try:
+            entry_point = get_entry_point(self._internal_debugger.path)
+
+            # For PIE binaries, the entry point is a relative address
+            entry_point = normalize_and_validate_address(entry_point, self.get_maps())
+        except (ValueError, ELFError) as e:
+            # Possibly the ELF is corrupt, or something else went wrong
+            liblog.error(f"Failed to get the entry point for the given binary: {e}")
+        else:
+            bp = Breakpoint(entry_point, hardware=True, _internal_debugger=self._internal_debugger)
+            self.set_breakpoint(bp)
+            self.cont()
+            self.wait()
+            self.unset_breakpoint(bp)
 
     def wait(self: PtraceInterface) -> None:
         """Waits for the process to stop. Returns True if the wait has to be repeated."""

@@ -103,12 +103,17 @@ def _collect_external_info(debug_path: str, reference_path: str, build_id: str) 
 
 
 @functools.cache
-def _parse_elf_file(path: str, debug_info_level: int) -> tuple[list[Symbol], str | None, str | None]:
+def _parse_elf_file(
+    path: str,
+    debug_info_level: int,
+    reference_path: str | None = None,
+) -> tuple[list[Symbol], str | None, str | None]:
     """Returns a dictionary containing the symbols of the specified ELF file and the buildid.
 
     Args:
         path (str): The path to the ELF file.
         debug_info_level (int): The debug info level.
+        reference_path (str, optional): The target-visible path recorded on returned symbols.
 
     Returns:
         symbols (list[Symbol): A list containing the symbols of the specified ELF file.
@@ -122,8 +127,9 @@ def _parse_elf_file(path: str, debug_info_level: int) -> tuple[list[Symbol], str
 
     elfinfo = libdebug_debug_sym_parser.read_elf_info(path, debug_info_level)
 
+    symbol_path = path if reference_path is None else reference_path
     symbols = [
-        Symbol(symbol.low_pc, symbol.high_pc, symbol.name, path, path, elfinfo.build_id, False)
+        Symbol(symbol.low_pc, symbol.high_pc, symbol.name, symbol_path, symbol_path, elfinfo.build_id, False)
         for symbol in elfinfo.symbols
     ]
 
@@ -192,13 +198,17 @@ def get_all_symbols(backing_files: set[str], internal_debugger: InternalDebugger
         )
 
     for file in backing_files:
-        # Do not parse non-ELF files
-        if not is_elf(file):
+        host_file = internal_debugger._host_path_from_target_path(file)
+        if host_file is None:
             continue
 
-        # Retrieve the symbols from the SymbolTableSection
+        # Do not parse non-ELF files
+        if not is_elf(host_file):
+            continue
+
+        # Retrieve the symbols from the SymbolTableSection.
         try:
-            new_symbols, buildid, debug_file = _parse_elf_file(file, libcontext.sym_lvl)
+            new_symbols, buildid, debug_file = _parse_elf_file(host_file, libcontext.sym_lvl, file)
         except RuntimeError as e:
             liblog.error(f"Failed to parse ELF file {file}: {e}")
             continue

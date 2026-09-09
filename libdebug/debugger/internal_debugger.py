@@ -31,13 +31,13 @@ from libdebug.builtin.pretty_print_syscall_handler import (
 )
 from libdebug.data.argument_list import ArgumentList
 from libdebug.data.breakpoint import Breakpoint
+from libdebug.data.env_dict import EnvDict
 from libdebug.data.event_hook import EventHook
 from libdebug.data.event_type import EventType
 from libdebug.data.gdb_resume_event import GdbResumeEvent
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
 from libdebug.data.terminals import TerminalTypes
-from libdebug.debugger.debugger import Debugger
 from libdebug.debugger.internal_debugger_holder import (
     register_internal_debugger,
     remove_internal_debugger_refs,
@@ -60,7 +60,7 @@ from libdebug.utils.debugging_utils import (
     normalize_and_validate_address,
     resolve_symbol_in_maps,
 )
-from libdebug.utils.elf_utils import get_all_symbols
+from libdebug.utils.elf_utils import get_all_symbols, resolve_argv_path
 from libdebug.utils.file_utils import ensure_file_executable
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.platform_utils import get_platform_gp_register_size
@@ -82,12 +82,12 @@ if TYPE_CHECKING:
     from typing import Any
 
     from libdebug.commlink.pipe_manager import PipeManager
-    from libdebug.data.env_dict import EnvDict
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.memory_map_list import MemoryMapList
     from libdebug.data.registers import Registers
     from libdebug.data.symbol import Symbol
     from libdebug.data.symbol_list import SymbolList
+    from libdebug.debugger.debugger import Debugger
     from libdebug.interfaces.debugging_interface import DebuggingInterface
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
     from libdebug.snapshots.snapshot import Snapshot
@@ -99,6 +99,23 @@ GDB_GOBACK_LOCATION = str((Path(__file__).parent.parent / "utils" / "gdb.py").re
 
 class InternalDebugger:
     """A class that holds the global debugging state."""
+
+    _child_configuration_attributes = (
+        "path",
+        "_has_path_different_from_argv0",
+        "aslr_enabled",
+        "autoreach_entrypoint",
+        "auto_interrupt_on_command",
+        "escape_antidebug",
+        "fast_memory",
+        "kill_on_exit",
+        "follow_children",
+        "pprint_syscalls",
+        "stop_on_fork",
+        "stop_on_exec",
+        "stop_on_clone",
+        "preserve_event_hooks_on_exec",
+    )
 
     aslr_enabled: bool
     """A flag that indicates if ASLR is enabled or not."""
@@ -249,7 +266,6 @@ class InternalDebugger:
 
     preserve_event_hooks_on_exec: bool = True
     """Whether user event hooks survive exec after its callbacks complete."""
-
     def __init__(self: InternalDebugger) -> None:
         """Initialize the context."""
         # These must be reinitialized on every call to "debugger"
@@ -324,7 +340,7 @@ class InternalDebugger:
     def start_up(self: InternalDebugger) -> None:
         """Starts up the context."""
         self.start_processing_thread()
-        self.debugging_interface = provide_debugging_interface(self)
+        self.debugging_interface = self._provide_debugging_interface()
         self._fast_memory = DirectMemoryView(
             self,
             self._fast_read_memory,
@@ -336,6 +352,33 @@ class InternalDebugger:
             self._poke_memory,
             unit_size=get_platform_gp_register_size(libcontext.platform),
         )
+
+    def _provide_debugging_interface(self: InternalDebugger) -> DebuggingInterface:
+        """Create the debugging interface for this debugger."""
+        return provide_debugging_interface(self)
+
+    def _ensure_file_executable(self: InternalDebugger) -> None:
+        """Check that the target is executable on the host."""
+        ensure_file_executable(self.path)
+
+    def _host_path_from_target_path(self: InternalDebugger, path: str) -> str | None:
+        """Translate a target path into a host-readable path."""
+        return path
+
+    def _get_target_path(self: InternalDebugger) -> str:
+        return self.path
+
+    def _resolve_target_path(self: InternalDebugger, path: str) -> str:
+        return resolve_argv_path(path)
+
+    def _commit_target_path(self: InternalDebugger, path: str, host_path: str) -> None:
+        """Commit the host path; container implementations also retain the target path."""
+        self.clear_all_caches()
+        self.path = host_path
+
+    def _new_child_internal_debugger(self: InternalDebugger) -> InternalDebugger:
+        """Create internal state for a followed child process."""
+        return InternalDebugger()
 
     def start_processing_thread(self: InternalDebugger) -> None:
         """Starts the thread that will poll the traced process for state change."""
@@ -378,7 +421,7 @@ class InternalDebugger:
         if 0 < timeout <= 0.01:
             liblog.warning("Timeout is set to a very low value. This may cause issues.")
 
-        ensure_file_executable(self.path)
+        self._ensure_file_executable()
 
         if self.is_debugging:
             liblog.debugger("Process already running, stopping it before restarting.")
@@ -470,29 +513,16 @@ class InternalDebugger:
         Args:
             child_pid (int): The PID of the child process.
         """
-        # Create a new InternalDebugger instance for the child process with the same configuration
-        # of the parent debugger
-        child_internal_debugger = InternalDebugger()
-        child_internal_debugger.argv = self.argv
-        child_internal_debugger.path = self.path
-        child_internal_debugger._has_path_different_from_argv0 = self._has_path_different_from_argv0
-        child_internal_debugger.env = self.env
-        child_internal_debugger.aslr_enabled = self.aslr_enabled
-        child_internal_debugger.autoreach_entrypoint = self.autoreach_entrypoint
-        child_internal_debugger.auto_interrupt_on_command = self.auto_interrupt_on_command
-        child_internal_debugger.escape_antidebug = self.escape_antidebug
-        child_internal_debugger.fast_memory = self.fast_memory
-        child_internal_debugger.kill_on_exit = self.kill_on_exit
-        child_internal_debugger.follow_children = self.follow_children
-        child_internal_debugger.pprint_syscalls = self.pprint_syscalls
-        child_internal_debugger.stop_on_fork = self.stop_on_fork
-        child_internal_debugger.stop_on_exec = self.stop_on_exec
-        child_internal_debugger.stop_on_clone = self.stop_on_clone
-        child_internal_debugger.preserve_event_hooks_on_exec = self.preserve_event_hooks_on_exec
+        child_internal_debugger = self._new_child_internal_debugger()
+
+        for attribute in self._child_configuration_attributes:
+            setattr(child_internal_debugger, attribute, getattr(self, attribute))
+
+        child_internal_debugger.argv = ArgumentList(self.argv)
+        child_internal_debugger.env = EnvDict(self.env) if self.env is not None else None
 
         # Create the new Debugger instance for the child process
-        debugger_cls = self.debugger.__class__
-        child_debugger = debugger_cls(child_internal_debugger)
+        child_debugger = type(self.debugger)(child_internal_debugger)
         child_internal_debugger.debugger = child_debugger
         child_debugger.arch = self.arch
 

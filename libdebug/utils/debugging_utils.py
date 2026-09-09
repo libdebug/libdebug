@@ -58,20 +58,25 @@ def resolve_symbol_in_maps(symbol: str, maps: MemoryMapList[MemoryMap]) -> int:
     else:
         offset = 0
 
+    internal_debugger = maps._internal_debugger
+
     for vmap in maps:
         if vmap.backing_file and vmap.backing_file not in mapped_files and vmap.backing_file[0] != "[":
-            mapped_files[vmap.backing_file] = vmap.start
+            host_file = internal_debugger._host_path_from_target_path(vmap.backing_file)
+            if host_file is None:
+                continue
+            mapped_files[vmap.backing_file] = (vmap.start, host_file)
 
-    for file, base_address in mapped_files.items():
+    for file_key, (base_address, host_file) in mapped_files.items():
         try:
-            address = resolve_symbol(file, symbol)
+            address = resolve_symbol(host_file, symbol)
 
-            if is_pie(file):
+            if is_pie(host_file):
                 address += base_address
 
             return address + offset
         except (OSError, RuntimeError) as e:
-            liblog.debugger(f"Error while resolving symbol {symbol} in {file}: {e}")
+            liblog.debugger(f"Error while resolving symbol {symbol} in {file_key}: {e}")
         except ValueError:
             pass
 
@@ -93,25 +98,35 @@ def resolve_address_in_maps(address: int, maps: MemoryMapList[MemoryMap]) -> str
     """
     mapped_files = {}
 
+    internal_debugger = maps._internal_debugger
+
     for vmap in maps:
         file = vmap.backing_file
         if not file or file[0] == "[":
             continue
 
         if file not in mapped_files:
-            mapped_files[file] = (vmap.start, vmap.end)
+            host_file = internal_debugger._host_path_from_target_path(file)
+            if host_file is None:
+                continue
+            mapped_files[file] = (vmap.start, vmap.end, host_file)
         else:
-            mapped_files[file] = (mapped_files[file][0], vmap.end)
+            base, _, host_file = mapped_files[file]
+            mapped_files[file] = (base, vmap.end, host_file)
 
-    for file, (base_address, top_address) in mapped_files.items():
+    for file_key, (base_address, top_address, host_file) in mapped_files.items():
         # Check if the address is in the range of the current section
         if address < base_address or address >= top_address:
             continue
 
         try:
-            return resolve_address(file, address - base_address) if is_pie(file) else resolve_address(file, address)
+            return (
+                resolve_address(host_file, address - base_address)
+                if is_pie(host_file)
+                else resolve_address(host_file, address)
+            )
         except OSError as e:
-            liblog.debugger(f"Error while resolving address {hex(address)} in {file}: {e}")
+            liblog.debugger(f"Error while resolving address {hex(address)} in {file_key}: {e}")
         except ValueError:
             pass
 

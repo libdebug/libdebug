@@ -8,10 +8,11 @@ from .backtrace_test import BacktraceTest
 from .breakpoint_test import BreakpointTest
 from .brute_test import BruteTest
 from .callback_test import CallbackTest
+from .debugger_mixin_test import DebuggerMixinTest
+from .container_test import ContainerTest
 from .control_flow_test import ControlFlowTest
 from .corrupted_elf_test import CorruptedELFTest
 from .cursed_binaries_test import CursedBinariesTest
-from .debugger_mixin_test import DebuggerMixinTest
 from .death_test import DeathTest
 from .debugger_argument_test import DebuggerArgumentTest
 from .deep_dive_division_test import DeepDiveDivisionTest
@@ -54,4 +55,4 @@ from .multiprocessing_test import MultiprocessingTest
 from .memory_leak_test import MemoryLeakTest
 
 
-__all__ = ["AliasTest", "AntidebugEscapingTest", "ArgumentListTest", "AtexitHandlerTest", "AttachDetachTest", "AutoWaitingTest", "BacktraceTest", "BreakpointTest", "BruteTest", "CallbackTest", "ControlFlowTest", "CorruptedELFTest", "CursedBinariesTest", "DebuggerMixinTest", "DeathTest", "DebuggerArgumentTest", "DeepDiveDivisionTest", "ELFUtilsUnitTest", "ExecTest", "FinishTest", "FloatingPointTest", "JumpoutTest", "JumpstartTest", "LargeBinarySymTest", "MemoryTest", "MemoryNoFastTest", "MultipleDebuggersTest", "NextTest", "NlinksTest", "PPrintSyscallsTest", "RegisterTest", "RunPipesTest", "SignalCatchTest", "SignalMultithreadTest", "SpeedTest", "SyscallHandleTest", "SyscallHijackTest", "TimeoutTest", "ThreadTest", "Vmwhere1Test", "WatchpointTest", "FindPointersTest", "SymbolTest", "SnapshotsTest", "MultiprocessingTest", "MemoryLeakTest"]
+__all__ = ["AliasTest", "AntidebugEscapingTest", "ArgumentListTest", "AtexitHandlerTest", "AttachDetachTest", "AutoWaitingTest", "BacktraceTest", "BreakpointTest", "BruteTest", "CallbackTest", "ControlFlowTest", "CorruptedELFTest", "CursedBinariesTest", "DebuggerMixinTest", "DeathTest", "DebuggerArgumentTest", "DeepDiveDivisionTest", "ELFUtilsUnitTest", "ExecTest", "FinishTest", "FloatingPointTest", "JumpoutTest", "JumpstartTest", "LargeBinarySymTest", "MemoryTest", "MemoryNoFastTest", "MultipleDebuggersTest", "NextTest", "NlinksTest", "PPrintSyscallsTest", "RegisterTest", "RunPipesTest", "SignalCatchTest", "SignalMultithreadTest", "SpeedTest", "SyscallHandleTest", "SyscallHijackTest", "TimeoutTest", "ThreadTest", "Vmwhere1Test", "WatchpointTest", "FindPointersTest", "SymbolTest", "SnapshotsTest", "MultiprocessingTest", "MemoryLeakTest", "ContainerTest"]

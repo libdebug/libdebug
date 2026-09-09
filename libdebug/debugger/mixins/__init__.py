@@ -9,6 +9,7 @@ from libdebug.debugger.mixins.breakpoints import BreakpointMixin
 from libdebug.debugger.mixins.configuration import ConfigurationMixin
 from libdebug.debugger.mixins.core import DebuggerCoreMixin
 from libdebug.debugger.mixins.display import DisplayMixin
+from libdebug.debugger.mixins.docker import DockerDebuggerMixin
 from libdebug.debugger.mixins.execution import ExecutionMixin
 from libdebug.debugger.mixins.gdb import GdbMixin
 from libdebug.debugger.mixins.introspection import IntrospectionMixin
@@ -20,6 +21,7 @@ __all__ = [
     "ConfigurationMixin",
     "DebuggerCoreMixin",
     "DisplayMixin",
+    "DockerDebuggerMixin",
     "EngineBoundMixin",
     "ExecutionMixin",
     "GdbMixin",
