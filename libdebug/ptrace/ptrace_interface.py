@@ -24,6 +24,7 @@ from libdebug.commlink.pipe_manager import PipeManager
 from libdebug.data.breakpoint import Breakpoint
 from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.liblog import liblog
+from libdebug.ptrace.native import libdebug_ptrace_binding
 from libdebug.ptrace.ptrace_native_interface_provider import provide_new_interface
 from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
 from libdebug.utils.debugging_utils import normalize_and_validate_address
@@ -37,7 +38,7 @@ from libdebug.utils.process_utils import (
 )
 
 JUMPSTART_LOCATION = str(
-    (Path(__file__) / ".." / ".." / "ptrace" / "jumpstart" / "jumpstart").resolve(),
+    (Path(libdebug_ptrace_binding.__file__).parent.parent / "jumpstart" / "jumpstart").resolve(),
 )
 
 

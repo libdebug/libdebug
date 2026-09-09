@@ -9,10 +9,11 @@ from pathlib import Path
 from subprocess import check_output
 
 from libdebug.liblog import liblog
+from libdebug.ptrace.native import libdebug_ptrace_binding
 from libdebug.ptrace.native.libdebug_ptrace_binding import LibdebugPtraceInterface, PtraceFPRegsStructDefinition
 
 PTRACE_FPREGS_DEFINITION_LOCATION = (Path.home() / ".cache" / "libdebug" / "fpregs.json").resolve()
-PTRACE_FPREGS_AUTODETECT_LOCATION = Path(__file__).parent / "native" / "autodetect_fpregs_layout"
+PTRACE_FPREGS_AUTODETECT_LOCATION = Path(libdebug_ptrace_binding.__file__).parent / "autodetect_fpregs_layout"
 
 if PTRACE_FPREGS_DEFINITION_LOCATION.exists():
     with PTRACE_FPREGS_DEFINITION_LOCATION.open() as f:
