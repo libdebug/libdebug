@@ -46,13 +46,15 @@ class PtraceStatusHandler:
         )
 
     def _get_pre_event_hooks(self: PtraceStatusHandler, event_type: EventType) -> Iterable[EventHook]:
-        for hook in self.internal_debugger.event_hooks[event_type]:
-            if hook._enabled and not hook.is_post_hook:
+        candidates = tuple(hook for hook in self.internal_debugger.event_hooks[event_type] if not hook.is_post_hook)
+        for hook in candidates:
+            if hook in self.internal_debugger.event_hooks[event_type] and hook._enabled:
                 yield hook
 
     def _get_post_event_hooks(self: PtraceStatusHandler, event_type: EventType) -> Iterable[EventHook]:
-        for hook in self.internal_debugger.event_hooks[event_type]:
-            if hook._enabled and hook.is_post_hook:
+        candidates = tuple(hook for hook in self.internal_debugger.event_hooks[event_type] if hook.is_post_hook)
+        for hook in candidates:
+            if hook in self.internal_debugger.event_hooks[event_type] and hook._enabled:
                 yield hook
 
     def _execute_pre_hooks(self: PtraceStatusHandler, event_type: EventType, thread: ThreadContext) -> None:

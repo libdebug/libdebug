@@ -1,1 +1,2 @@
 - Avoid waiting twice for an already collected clone stop.
+- Dispatch event hooks consistently when callbacks remove, disable, or add hooks.

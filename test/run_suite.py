@@ -31,6 +31,7 @@ def fast_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.ELFUtilsUnitTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.ExecTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.ExecStatusTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.EventDispatchTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.FindPointersTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.FinishTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.FloatingPointTest))
