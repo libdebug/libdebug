@@ -19,6 +19,7 @@
 #include <map>
 #include <algorithm>
 #include <climits>
+#include <cstdint>
 
 void add_symbol_info(SymbolVector &symbols, const char *name, const Dwarf_Addr low_pc, const Dwarf_Addr high_pc)
 {
@@ -41,8 +42,6 @@ void add_symbol_info(SymbolVector &symbols, const char *name, const Dwarf_Addr l
     symbol_info.name = name;
     symbols.push_back(symbol_info);
 };
-
-
 
 // Only use complete, file-backed data with the expected libelf representation.
 static Elf_Data *section_data(Elf *elf, Elf_Scn *scn, const GElf_Shdr &sh, Elf_Type type)
@@ -173,11 +172,11 @@ static bool plt_target(const unsigned char *p, size_t size, GElf_Addr pc, int ma
 void process_plt_relocations(Elf *elf, const GElf_Ehdr &ehdr, SymbolVector &symbols)
 {
     if (ehdr.e_ident[EI_DATA] != ELFDATA2LSB) return;
-    unsigned jump_slot;
+    unsigned jump_slot, glob_dat;
     switch (ehdr.e_machine) {
-        case EM_X86_64: jump_slot = R_X86_64_JUMP_SLOT; break;
-        case EM_386: jump_slot = R_386_JMP_SLOT; break;
-        case EM_AARCH64: jump_slot = R_AARCH64_JUMP_SLOT; break;
+        case EM_X86_64: jump_slot = R_X86_64_JUMP_SLOT; glob_dat = R_X86_64_GLOB_DAT; break;
+        case EM_386: jump_slot = R_386_JMP_SLOT; glob_dat = R_386_GLOB_DAT; break;
+        case EM_AARCH64: jump_slot = R_AARCH64_JUMP_SLOT; glob_dat = R_AARCH64_GLOB_DAT; break;
         default: return;
     }
     const size_t slot_size = ehdr.e_ident[EI_CLASS] == ELFCLASS64 ? 8 : 4;
@@ -191,6 +190,7 @@ void process_plt_relocations(Elf *elf, const GElf_Ehdr &ehdr, SymbolVector &symb
     std::map<std::string, PLTSection> sections;
     struct Relocation {
         std::string name;
+        bool jump_slot;
         bool matched = false;
         bool ambiguous = false;
     };
@@ -200,12 +200,11 @@ void process_plt_relocations(Elf *elf, const GElf_Ehdr &ehdr, SymbolVector &symb
         if (!gelf_getshdr(scn, &sh)) continue;
         const char *name = symbol_name(section_names, sh.sh_name);
         if (sh.sh_type == SHT_PROGBITS && (sh.sh_flags & SHF_EXECINSTR) && name &&
-            (strcmp(name, ".plt") == 0 || strcmp(name, ".plt.sec") == 0)) {
+            (strcmp(name, ".plt") == 0 || strcmp(name, ".plt.sec") == 0 || strcmp(name, ".plt.got") == 0)) {
             Elf_Data *data = section_data(elf, scn, sh, ELF_T_BYTE);
             if (data && sh.sh_addr <= UINT64_MAX - sh.sh_size) sections[name] = {sh, data};
         }
         if (sh.sh_type != SHT_REL && sh.sh_type != SHT_RELA) continue;
-        if (!name || !strstr(name, ".plt")) continue;
         Elf_Data *data = table_data(elf, scn, sh, sh.sh_type == SHT_RELA ? ELF_T_RELA : ELF_T_REL);
         Elf_Scn *sym_scn = elf_getscn(elf, sh.sh_link);
         GElf_Shdr sym_sh{};
@@ -229,7 +228,7 @@ void process_plt_relocations(Elf *elf, const GElf_Ehdr &ehdr, SymbolVector &symb
                 address = rel.r_offset;
                 info = rel.r_info;
             }
-            if (GELF_R_TYPE(info) != jump_slot || address > UINT64_MAX - slot_size ||
+            if ((GELF_R_TYPE(info) != jump_slot && GELF_R_TYPE(info) != glob_dat) || address > UINT64_MAX - slot_size ||
                 !allocated_address(elf, address, slot_size)) continue;
             const size_t index = GELF_R_SYM(info);
             if (index > INT_MAX || index >= sym_data->d_size / sym_sh.sh_entsize) continue;
@@ -237,22 +236,31 @@ void process_plt_relocations(Elf *elf, const GElf_Ehdr &ehdr, SymbolVector &symb
             if (!gelf_getsym(sym_data, static_cast<int>(index), &sym)) continue;
             const char *symbol = symbol_name(strings, sym.st_name);
             if (!symbol) continue;
-            auto [it, inserted] = relocations.emplace(address, Relocation{symbol});
-            if (!inserted && it->second.name != symbol) it->second.ambiguous = true;
+            auto [it, inserted] = relocations.emplace(address, Relocation{symbol, GELF_R_TYPE(info) == jump_slot});
+            if (!inserted && (it->second.name != symbol ||
+                              it->second.jump_slot != (GELF_R_TYPE(info) == jump_slot))) {
+                it->second.ambiguous = true;
+            }
         }
     }
     for (const auto &[address, rel] : relocations) {
-        if (!rel.ambiguous) add_symbol_info(symbols, (rel.name + "@got.plt").c_str(), address, address + slot_size);
+        if (!rel.ambiguous && rel.jump_slot) {
+            add_symbol_info(symbols, (rel.name + "@got.plt").c_str(), address, address + slot_size);
+        }
     }
     GElf_Addr pltgot = 0;
     const bool have_pltgot = ehdr.e_machine == EM_386 && pltgot_address(elf, pltgot);
     // Prefer the callable CET entry over a lazy entry referencing the same slot.
-    for (const char *name : {".plt.sec", ".plt"}) {
+    for (const char *name : {".plt.sec", ".plt.got", ".plt"}) {
         auto section = sections.find(name);
         if (section == sections.end()) continue;
         const auto &plt = section->second;
         const size_t header = strcmp(name, ".plt") == 0 ? (ehdr.e_machine == EM_AARCH64 ? 32 : 16) : 0;
-        const size_t entry = 16;
+        // GNU x86 .plt.got has 8-byte entries, or 16-byte entries for CET.
+        // Its entry size is meaningful (unlike the historical i386 .plt value of 4).
+        const bool got_section = strcmp(name, ".plt.got") == 0;
+        const size_t entry = got_section && ehdr.e_machine != EM_AARCH64 ? plt.sh.sh_entsize : 16;
+        if (entry != 8 && entry != 16) continue;
         if (plt.data->d_size < header) continue;
         const auto *bytes = static_cast<const unsigned char *>(plt.data->d_buf);
         for (size_t offset = header; entry <= plt.data->d_size - offset; offset += entry) {
@@ -263,6 +271,9 @@ void process_plt_relocations(Elf *elf, const GElf_Ehdr &ehdr, SymbolVector &symb
             if (it == relocations.end() || it->second.ambiguous || it->second.matched) continue;
             auto &rel = it->second;
             add_symbol_info(symbols, (rel.name + "@plt").c_str(), pc, pc + entry);
+            if (!rel.jump_slot) {
+                add_symbol_info(symbols, (rel.name + "@got").c_str(), target, target + slot_size);
+            }
             rel.matched = true;
         }
     }

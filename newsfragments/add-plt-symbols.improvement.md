@@ -1,0 +1,3 @@
+- Add verified `name@plt` symbols for supported amd64, i386, and ordinary AArch64 PLT stubs, with `name@got.plt` symbols for jump slots.
+- Resolve CET and ordinary `.plt.got` entries, including matched `name@got` symbols, by their GOT targets.
+- Preserve valid symbols when relocation metadata or individual records are malformed, and omit unknown stub forms.

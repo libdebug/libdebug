@@ -107,6 +107,50 @@ class CorruptedELFTest(TestCase):
                     symbols = self._parse_mutated(arch, mutate)
                     self.assertEqual({name: lo for name, lo, _ in symbols if name.endswith("@got.plt")}, expected)
 
+    def test_invalid_dynamic_relocations_preserve_plt(self):
+        for arch in ("amd64", "i386"):
+            with self.subTest(arch=arch):
+                def mutate(elf, contents):
+                    dynamic = elf.get_section_by_name(".rela.dyn" if arch == "amd64" else ".rel.dyn")
+                    self._patch_section(elf, contents, dynamic, sh_entsize=0)
+                symbols = self._parse_mutated(arch, mutate)
+                puts = [lo for name, lo, _ in symbols if name == "puts@plt"]
+                self.assertEqual(puts, [0x1080])
+                self.assertFalse(any(name == "__cxa_finalize@plt" for name, _, _ in symbols))
+
+    def test_invalid_i386_pltgot(self):
+        for fault in ("missing", "unmapped", "entsize"):
+            with self.subTest(fault=fault):
+                def mutate(elf, contents):
+                    dynamic = elf.get_section_by_name(".dynamic")
+                    if fault == "entsize":
+                        self._patch_section(elf, contents, dynamic, sh_entsize=0)
+                        return
+                    index = next(i for i, tag in enumerate(dynamic.iter_tags()) if tag.entry.d_tag == "DT_PLTGOT")
+                    offset = dynamic["sh_offset"] + index * dynamic["sh_entsize"]
+                    struct.pack_into("<II", contents, offset, 21 if fault == "missing" else 3, 0xffffffff)
+                symbols = self._parse_mutated("i386", mutate)
+                self.assertFalse(any(name.endswith("@plt") for name, _, _ in symbols))
+                self.assertTrue(any(name == "puts@got.plt" for name, _, _ in symbols))
+
+    def test_invalid_plt_section_bounds(self):
+        for fault in ("truncated", "outside", "short", "overflow"):
+            with self.subTest(fault=fault):
+                def mutate(elf, contents):
+                    section = elf.get_section_by_name(".plt.sec")
+                    changes = {
+                        "truncated": {"sh_size": section["sh_size"] - 1},
+                        "outside": {"sh_offset": len(contents) - 1},
+                        "short": {"sh_size": 1},
+                        "overflow": {"sh_addr": 0xfffffffffffffff0},
+                    }
+                    self._patch_section(elf, contents, section, **changes[fault])
+                symbols = self._parse_mutated("amd64", mutate)
+                stubs = {name: lo for name, lo, _ in symbols if name.endswith("@plt")}
+                self.assertEqual(stubs.pop("__cxa_finalize@plt"), 0x1070)
+                expected = {"puts@plt": 0x1080, "__stack_chk_fail@plt": 0x1090, "printf@plt": 0x10a0}
+                self.assertEqual(stubs, expected if fault == "truncated" else {})
+
     def setUp(self):
         # Redirect logging to a string buffer
         self.log_capture_string = io.StringIO()

@@ -98,6 +98,58 @@ class SymbolTest(TestCase):
                     "getchar@plt": 0x780, "printf@plt": 0x790}
         self.assertEqual({s.name: s.low_pc for s in symbols if s.name.endswith("@plt")}, expected)
 
+    def test_multiple_plt_got_entries(self):
+        for arch in ("amd64", "i386"):
+            for cet in (False, True):
+                for reordered in (False, True):
+                    with self.subTest(arch=arch, cet=cet, reordered=reordered):
+                        fixture = "plt_got_cet" if cet else "plt_got"
+                        contents = bytearray(Path(f"binaries/{arch}/{fixture}").read_bytes())
+                        elf = ELFFile(io.BytesIO(contents))
+                        section = elf.get_section_by_name(".plt.got")
+                        entry = 16 if cet else 8
+                        self.assertEqual(section["sh_size"], entry * 3)
+                        names = ("puts", "printf", "__cxa_finalize") if arch == "amd64" else ("printf", "__cxa_finalize", "puts")
+                        addresses = {name + "@plt": section["sh_addr"] + i * entry for i, name in enumerate(names)}
+                        rel = elf.get_section_by_name(".rela.dyn" if arch == "amd64" else ".rel.dyn")
+                        got = {elf.get_section(rel["sh_link"]).get_symbol(r["r_info_sym"]).name + "@got": r["r_offset"]
+                               for r in rel.iter_relocations()
+                               if r["r_info_type"] == 6 and elf.get_section(rel["sh_link"]).get_symbol(r["r_info_sym"]).name in names}
+                        if reordered:
+                            start, size, stride = rel["sh_offset"], rel["sh_size"], rel["sh_entsize"]
+                            contents[start:start + size] = b"".join(reversed(
+                                [contents[i:i + stride] for i in range(start, start + size, stride)]))
+                        with tempfile.NamedTemporaryFile() as target:
+                            target.write(contents)
+                            target.flush()
+                            symbols = read_elf_info(target.name, 1).symbols
+                        stubs = [s for s in symbols if s.name in addresses]
+                        self.assertEqual({s.name: s.low_pc for s in stubs}, addresses)
+                        self.assertEqual(len(stubs), 3)
+                        self.assertTrue(all(s.high_pc - s.low_pc == entry for s in stubs))
+                        slots = [s for s in symbols if s.name.endswith("@got")]
+                        self.assertEqual({s.name: s.low_pc for s in slots}, got)
+                        self.assertTrue(all(s.high_pc - s.low_pc == (8 if arch == "amd64" else 4) for s in slots))
+
+    @skipUnless(PLATFORM in ("amd64", "i386"), "Requires x86")
+    def test_plt_got_breakpoints(self):
+        for fixture in ("plt_got", "plt_got_cet"):
+            with self.subTest(fixture=fixture):
+                d = debugger(RESOLVE_EXE(fixture))
+                try:
+                    pipe = d.run()
+                    puts = d.bp("puts@plt", callback=lambda *_: None)
+                    printf = d.bp("printf@plt", callback=lambda *_: None)
+                    d.cont()
+                    self.assertEqual(pipe.recvline(), b"multiple GOT stubs")
+                    self.assertEqual(pipe.recvline(), b"result: 42")
+                    d.wait()
+                    self.assertEqual(puts.hit_count, 1)
+                    self.assertEqual(printf.hit_count, 1)
+                finally:
+                    d.kill()
+                    d.terminate()
+
     def test_symbol_access(self):
         d = debugger(RESOLVE_EXE("breakpoint_test"))
 
@@ -153,8 +205,17 @@ class SymbolTest(TestCase):
         self.assertEqual(stack_chk_fail_plt[0].start, 0x1070)
         self.assertEqual(puts_plt[0].start, 0x1080)
 
+        finalize = symbols.filter("__cxa_finalize@plt")
+        self.assertEqual(len(finalize), 1)
+        self.assertEqual(finalize[0].start, 0x1090)
+        self.assertEqual(finalize[0].end - finalize[0].start, 8)
+        finalize_got = symbols.filter("__cxa_finalize@got")
+        self.assertEqual(len(finalize_got), 1)
+        self.assertEqual(finalize_got[0].start, 0x3ff0)
+
         # No other plt symbols should be present
         other_plt_symbols = [s for s in symbols if s.name.endswith("@plt") and s.name not in [
+            "__cxa_finalize@plt",
             "__libc_start_main@plt",
             "printf@plt",
             "getchar@plt",
@@ -190,8 +251,17 @@ class SymbolTest(TestCase):
         self.assertEqual(printf_plt[0].start, 0x10a0)
         self.assertEqual(getchar_plt[0].start, 0x10b0)
 
+        finalize = symbols.filter("__cxa_finalize@plt")
+        self.assertEqual(len(finalize), 1)
+        self.assertEqual(finalize[0].start, 0x1070)
+        self.assertEqual(finalize[0].end - finalize[0].start, 16)
+        finalize_got = symbols.filter("__cxa_finalize@got")
+        self.assertEqual(len(finalize_got), 1)
+        self.assertEqual(finalize_got[0].start, 0x3ff8)
+
         # No other plt symbols should be present
         other_plt_symbols = [s for s in symbols if s.name.endswith("@plt") and s.name not in [
+            "__cxa_finalize@plt",
             "puts@plt",
             "__stack_chk_fail@plt",
             "printf@plt",
