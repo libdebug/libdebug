@@ -28,7 +28,11 @@ from libdebug.ptrace.ptrace_native_interface_provider import provide_new_interfa
 from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
 from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.debugging_utils import normalize_and_validate_address
-from libdebug.utils.elf_utils import elf_architecture, get_entry_point, parse_elf_characteristics
+from libdebug.utils.elf_utils import (
+    elf_architecture,
+    get_entry_point,
+    parse_elf_characteristics,
+)
 from libdebug.utils.platform_utils import get_platform_gp_register_size
 from libdebug.utils.process_utils import (
     disable_self_aslr,

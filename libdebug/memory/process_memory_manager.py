@@ -26,7 +26,7 @@ class ProcessMemoryManager:
         self._mem_file = None
 
     def _open(self: ProcessMemoryManager) -> None:
-        # The handle is reused across accesses and released by close().
+        # The handle is reused across accesses and released by close(), including on exec.
         self._mem_file = open(f"/proc/{self.process_id}/mem", "r+b", buffering=0)  # noqa: SIM115
 
     def _split_seek(self: ProcessMemoryManager, file_obj: FileIO, address: int) -> None:
