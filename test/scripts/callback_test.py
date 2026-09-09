@@ -384,11 +384,14 @@ class CallbackTest(TestCase):
         d.catch_signal(50, callback=callback)
         d.handle_syscall("write", on_enter=callback, on_exit=callback)
 
+        # Queue every command before callbacks can raise into the main thread.
+        # Otherwise a callback can interrupt sendline and leave the tracee
+        # waiting forever for the remaining input in the continuation loop.
+        r.sendline(b"3")
+        r.sendline(b"1")
+        r.sendline(b"4")
         with self.assertRaises(Exception):
             d.cont()
-            r.sendline(b"3")
-            r.sendline(b"1")
-            r.sendline(b"4")
             d.wait()
 
         while not d.dead:

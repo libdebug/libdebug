@@ -37,6 +37,7 @@ def fast_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.MemoryNoFastTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.MultipleDebuggersTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.MultiprocessingTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.NativeBindingsTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.NextTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.NlinksTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.PPrintSyscallsTest))
