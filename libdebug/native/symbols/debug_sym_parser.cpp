@@ -79,211 +79,194 @@ static const char *symbol_name(Elf_Data *strings, size_t offset)
     return name;
 }
 
-void process_plt_relocations(Elf *elf,
-                             const GElf_Ehdr &ehdr,
-                             SymbolVector    &symbols)
+// A GOT address must describe a complete slot in an allocated section.
+static bool allocated_address(Elf *elf, GElf_Addr address, size_t size)
 {
-    /* Cache all PLT-related sections */
-    struct PLTSection {
-        Elf_Scn  *scn;
-        GElf_Shdr shdr;
-        std::string name;
-        std::size_t entry_count;  // Track entries per section
-    };
+    for (Elf_Scn *scn = elf_nextscn(elf, nullptr); scn; scn = elf_nextscn(elf, scn)) {
+        GElf_Shdr sh{};
+        if (gelf_getshdr(scn, &sh) && (sh.sh_flags & SHF_ALLOC) && address >= sh.sh_addr &&
+            address - sh.sh_addr <= sh.sh_size && size <= sh.sh_size - (address - sh.sh_addr)) return true;
+    }
+    return false;
+}
 
-    std::map<std::string, PLTSection> plt_sections;
-
-    // First pass: find all PLT sections
-    for (Elf_Scn *sec = elf_nextscn(elf, nullptr); sec;
-         sec = elf_nextscn(elf, sec))
-    {
-        GElf_Shdr sh;
-        if (gelf_getshdr(sec, &sh) != &sh)          continue;
-        if (sh.sh_type != SHT_PROGBITS)            continue;
-        if (!(sh.sh_flags & SHF_EXECINSTR))        continue;
-
-        const char *n = elf_strptr(elf, ehdr.e_shstrndx, sh.sh_name);
-        if (n && strncmp(n, ".plt", 4) == 0) {
-            plt_sections[n] = {sec, sh, n, 0};
+static bool pltgot_address(Elf *elf, GElf_Addr &address)
+{
+    bool found = false;
+    for (Elf_Scn *scn = elf_nextscn(elf, nullptr); scn; scn = elf_nextscn(elf, scn)) {
+        GElf_Shdr sh{};
+        if (!gelf_getshdr(scn, &sh) || sh.sh_type != SHT_DYNAMIC) continue;
+        Elf_Data *data = table_data(elf, scn, sh, ELF_T_DYN);
+        if (!data) continue;
+        const size_t count = std::min<size_t>(data->d_size / sh.sh_entsize, INT_MAX);
+        for (size_t i = 0; i < count; ++i) {
+            GElf_Dyn dyn{};
+            if (!gelf_getdyn(data, static_cast<int>(i), &dyn)) continue;
+            if (dyn.d_tag == DT_NULL) break;
+            if (dyn.d_tag != DT_PLTGOT) continue;
+            if (dyn.d_un.d_ptr > UINT32_MAX || !allocated_address(elf, dyn.d_un.d_ptr, 12) ||
+                (found && address != dyn.d_un.d_ptr)) return false;
+            address = dyn.d_un.d_ptr;
+            found = true;
         }
     }
+    return found;
+}
 
-    /* Architecture and section-specific parameters */
-    auto get_plt_params = [&](const std::string& plt_name)
-        -> std::pair<std::size_t, std::size_t> {
+static uint32_t read_le32(const unsigned char *p)
+{
+    return uint32_t(p[0]) | (uint32_t(p[1]) << 8) | (uint32_t(p[2]) << 16) | (uint32_t(p[3]) << 24);
+}
 
-        std::size_t header_size = 0;
-        std::size_t entry_size = 16;  // default
+static bool relative_address(GElf_Addr base, int64_t displacement, GElf_Addr &target)
+{
+    if (displacement < 0) {
+        const uint64_t magnitude = static_cast<uint64_t>(-displacement);
+        if (base < magnitude) return false;
+        target = base - magnitude;
+    } else {
+        if (base > UINT64_MAX - static_cast<uint64_t>(displacement)) return false;
+        target = base + displacement;
+    }
+    return true;
+}
 
-        if (plt_name == ".plt") {
-            // Traditional PLT with header
-            switch (ehdr.e_machine) {
-                case EM_386:     header_size = 16; entry_size = 16; break;
-                case EM_X86_64:  header_size = 16; entry_size = 16; break;
-                case EM_AARCH64: header_size = 32; entry_size = 16; break;
-                default:         header_size = 16; entry_size = 16; break;
+// Decode only the supported entry forms, never search inside arbitrary code.
+static bool plt_target(const unsigned char *p, size_t size, GElf_Addr pc, int machine,
+                       bool have_pltgot, GElf_Addr pltgot, GElf_Addr &target)
+{
+    if (machine == EM_X86_64 || machine == EM_386) {
+        size_t offset = 0;
+        const unsigned char endbr = machine == EM_X86_64 ? 0xfa : 0xfb;
+        if (size >= 4 && p[0] == 0xf3 && p[1] == 0x0f && p[2] == 0x1e && p[3] == endbr) offset = 4;
+        if (offset < size && p[offset] == 0xf2) ++offset; // BND
+        if (size - offset < 6 || p[offset] != 0xff) return false;
+        const uint32_t operand = read_le32(p + offset + 2);
+        if (p[offset + 1] == 0x25) {
+            if (machine == EM_386) {
+                target = operand;
+                return true;
             }
-        } else if (plt_name == ".plt.sec") {
-            // Secondary PLT - no header
-            header_size = 0;
-            entry_size = 16;
-        } else if (plt_name == ".plt.got") {
-            // Direct GOT PLT - no header, smaller entries
-            header_size = 0;
-            entry_size = (ehdr.e_machine == EM_X86_64) ? 8 : 16;
+            const int64_t displacement = operand & 0x80000000U ? int64_t(operand) - 0x100000000LL : operand;
+            return relative_address(pc + offset + 6, displacement, target);
         }
+        if (machine == EM_386 && p[offset + 1] == 0xa3 && have_pltgot) {
+            target = static_cast<uint32_t>(pltgot + operand);
+            return true;
+        }
+        return false;
+    }
+    if (machine == EM_AARCH64 && size >= 16) {
+        const uint32_t adrp = read_le32(p), ldr = read_le32(p + 4);
+        const uint32_t add = read_le32(p + 8), branch = read_le32(p + 12);
+        if ((adrp & 0x9f00001fU) != 0x90000010U || (ldr & 0xffc003ffU) != 0xf9400211U ||
+            (add & 0xffc003ffU) != 0x91000210U || branch != 0xd61f0220U) return false;
+        const uint32_t slot_offset = ((ldr >> 10) & 0xfff) * 8;
+        if (((add >> 10) & 0xfff) != slot_offset) return false;
+        const uint32_t immediate = ((adrp >> 29) & 3) | (((adrp >> 5) & 0x7ffff) << 2);
+        const int64_t pages = immediate & 0x100000 ? int64_t(immediate) - 0x200000 : immediate;
+        return relative_address(pc & ~GElf_Addr(0xfff), pages * 4096 + slot_offset, target);
+    }
+    return false;
+}
 
-        return {header_size, entry_size};
-    };
-
-    const std::size_t got_slot_sz = (ehdr.e_ident[EI_CLASS] == ELFCLASS64) ? 8 : 4;
-
-    // Map to track which PLT section each symbol belongs to
-    struct RelocationInfo {
-        std::string symbol_name;
-        Dwarf_Addr got_addr;
-        std::string plt_section;
-    };
-    std::vector<RelocationInfo> relocations;
-
-    /* Second pass: collect all PLT relocations */
-    for (Elf_Scn *sec = elf_nextscn(elf, nullptr); sec;
-         sec = elf_nextscn(elf, sec))
-    {
+void process_plt_relocations(Elf *elf, const GElf_Ehdr &ehdr, SymbolVector &symbols)
+{
+    if (ehdr.e_ident[EI_DATA] != ELFDATA2LSB) return;
+    unsigned jump_slot;
+    switch (ehdr.e_machine) {
+        case EM_X86_64: jump_slot = R_X86_64_JUMP_SLOT; break;
+        case EM_386: jump_slot = R_386_JMP_SLOT; break;
+        case EM_AARCH64: jump_slot = R_AARCH64_JUMP_SLOT; break;
+        default: return;
+    }
+    const size_t slot_size = ehdr.e_ident[EI_CLASS] == ELFCLASS64 ? 8 : 4;
+    size_t shstrndx;
+    if (elf_getshdrstrndx(elf, &shstrndx) != 0) return;
+    Elf_Data *section_names = string_table(elf, shstrndx);
+    struct PLTSection {
         GElf_Shdr sh;
-        if (gelf_getshdr(sec, &sh) != &sh)                       continue;
-        if (sh.sh_type != SHT_RELA && sh.sh_type != SHT_REL)     continue;
-
-        const char *secname = elf_strptr(elf, ehdr.e_shstrndx, sh.sh_name);
-        if (!secname || strncmp(secname, ".rel", 4) != 0)        continue;
-
-        // Skip if not a PLT relocation section
-        if (!strstr(secname, ".plt")) continue;
-
-        /* Get dynsym and relocation data */
-        Elf_Scn *dynsym_sec = elf_getscn(elf, sh.sh_link);
-        if (!dynsym_sec) continue;
-
-        GElf_Shdr dynsym_sh;
-        if (!gelf_getshdr(dynsym_sec, &dynsym_sh) ||
-            (dynsym_sh.sh_type != SHT_DYNSYM && dynsym_sh.sh_type != SHT_SYMTAB) ||
-            !string_table(elf, dynsym_sh.sh_link)) continue;
-
-        Elf_Data *dynsym_data = table_data(elf, dynsym_sec, dynsym_sh, ELF_T_SYM);
-        Elf_Data *rel_data = table_data(elf, sec, sh, sh.sh_type == SHT_RELA ? ELF_T_RELA : ELF_T_REL);
-        if (!dynsym_data || !rel_data)                           continue;
-
-        const std::size_t nrel = std::min<size_t>(rel_data->d_size / sh.sh_entsize, INT_MAX);
-
-        for (std::size_t idx = 0; idx < nrel; ++idx) {
-            /* Extract relocation fields */
-            std::size_t sym_idx;
-            Dwarf_Addr  r_off;
-
+        Elf_Data *data;
+    };
+    std::map<std::string, PLTSection> sections;
+    struct Relocation {
+        std::string name;
+        bool matched = false;
+        bool ambiguous = false;
+    };
+    std::map<GElf_Addr, Relocation> relocations;
+    for (Elf_Scn *scn = elf_nextscn(elf, nullptr); scn; scn = elf_nextscn(elf, scn)) {
+        GElf_Shdr sh{};
+        if (!gelf_getshdr(scn, &sh)) continue;
+        const char *name = symbol_name(section_names, sh.sh_name);
+        if (sh.sh_type == SHT_PROGBITS && (sh.sh_flags & SHF_EXECINSTR) && name &&
+            (strcmp(name, ".plt") == 0 || strcmp(name, ".plt.sec") == 0)) {
+            Elf_Data *data = section_data(elf, scn, sh, ELF_T_BYTE);
+            if (data && sh.sh_addr <= UINT64_MAX - sh.sh_size) sections[name] = {sh, data};
+        }
+        if (sh.sh_type != SHT_REL && sh.sh_type != SHT_RELA) continue;
+        if (!name || !strstr(name, ".plt")) continue;
+        Elf_Data *data = table_data(elf, scn, sh, sh.sh_type == SHT_RELA ? ELF_T_RELA : ELF_T_REL);
+        Elf_Scn *sym_scn = elf_getscn(elf, sh.sh_link);
+        GElf_Shdr sym_sh{};
+        if (!data || !sym_scn || !gelf_getshdr(sym_scn, &sym_sh) ||
+            (sym_sh.sh_type != SHT_DYNSYM && sym_sh.sh_type != SHT_SYMTAB)) continue;
+        Elf_Data *sym_data = table_data(elf, sym_scn, sym_sh, ELF_T_SYM);
+        Elf_Data *strings = string_table(elf, sym_sh.sh_link);
+        if (!sym_data || !strings) continue;
+        const size_t count = std::min<size_t>(data->d_size / sh.sh_entsize, INT_MAX);
+        for (size_t i = 0; i < count; ++i) {
+            GElf_Addr address;
+            GElf_Xword info;
             if (sh.sh_type == SHT_RELA) {
-                GElf_Rela rela{};
-                if (!gelf_getrela(rel_data, static_cast<int>(idx), &rela)) continue;
-                sym_idx = GELF_R_SYM(rela.r_info);
-                r_off   = rela.r_offset;
+                GElf_Rela rel{};
+                if (!gelf_getrela(data, static_cast<int>(i), &rel)) continue;
+                address = rel.r_offset;
+                info = rel.r_info;
             } else {
                 GElf_Rel rel{};
-                if (!gelf_getrel(rel_data, static_cast<int>(idx), &rel)) continue;
-                sym_idx = GELF_R_SYM(rel.r_info);
-                r_off   = rel.r_offset;
+                if (!gelf_getrel(data, static_cast<int>(i), &rel)) continue;
+                address = rel.r_offset;
+                info = rel.r_info;
             }
-
-            /* Get symbol name */
-            if (sym_idx > INT_MAX || sym_idx >= dynsym_data->d_size / dynsym_sh.sh_entsize) continue;
-            GElf_Sym dsym{};
-            if (!gelf_getsym(dynsym_data, static_cast<int>(sym_idx), &dsym)) continue;
-            const char *name = symbol_name(string_table(elf, dynsym_sh.sh_link), dsym.st_name);
-            if (!name || !*name) continue;
-
-            relocations.push_back({name, r_off, ""});
+            if (GELF_R_TYPE(info) != jump_slot || address > UINT64_MAX - slot_size ||
+                !allocated_address(elf, address, slot_size)) continue;
+            const size_t index = GELF_R_SYM(info);
+            if (index > INT_MAX || index >= sym_data->d_size / sym_sh.sh_entsize) continue;
+            GElf_Sym sym{};
+            if (!gelf_getsym(sym_data, static_cast<int>(index), &sym)) continue;
+            const char *symbol = symbol_name(strings, sym.st_name);
+            if (!symbol) continue;
+            auto [it, inserted] = relocations.emplace(address, Relocation{symbol});
+            if (!inserted && it->second.name != symbol) it->second.ambiguous = true;
         }
     }
-
-    // Now we need to determine which PLT section each symbol uses
-    // This typically requires analyzing the GOT entries and PLT code
-
-    // For .plt.got entries, check if GOT entry points directly to function
-    auto plt_got_it = plt_sections.find(".plt.got");
-    if (plt_got_it != plt_sections.end()) {
-        Elf_Data *got_data = elf_getdata(plt_got_it->second.scn, nullptr);
-        if (got_data) {
-            // Analyze .plt.got entries to match with relocations
-            auto [hdr_sz, ent_sz] = get_plt_params(".plt.got");
-            std::size_t num_entries = (plt_got_it->second.shdr.sh_size - hdr_sz) / ent_sz;
-
-            // Match relocations that use .plt.got based on relocation type or other heuristics
-            for (auto& rel : relocations) {
-                // This is where you'd check if this relocation uses .plt.got
-                // For now, let's use a simple heuristic: __cxa_finalize often uses .plt.got
-                if (rel.symbol_name == "__cxa_finalize") {
-                    rel.plt_section = ".plt.got";
-
-                    // Record GOT entry
-                    std::string got_name = rel.symbol_name + "@got";
-                    add_symbol_info(symbols, got_name.c_str(), rel.got_addr, rel.got_addr + got_slot_sz);
-
-                    // Record PLT entry in .plt.got
-                    Dwarf_Addr plt_addr = plt_got_it->second.shdr.sh_addr;
-                    std::string plt_name = rel.symbol_name + "@plt";
-                    add_symbol_info(symbols, plt_name.c_str(), plt_addr, plt_addr + ent_sz);
-                }
-            }
-        }
+    for (const auto &[address, rel] : relocations) {
+        if (!rel.ambiguous) add_symbol_info(symbols, (rel.name + "@got.plt").c_str(), address, address + slot_size);
     }
-
-    // For .plt.sec entries
-    auto plt_sec_it = plt_sections.find(".plt.sec");
-    if (plt_sec_it != plt_sections.end()) {
-        auto [hdr_sz, ent_sz] = get_plt_params(".plt.sec");
-        std::size_t entry_idx = 0;
-
-        for (auto& rel : relocations) {
-            if (rel.plt_section.empty()) {  // Not yet assigned
-                rel.plt_section = ".plt.sec";
-
-                // Record GOT entry
-                std::string got_name = rel.symbol_name + "@got.plt";
-                add_symbol_info(symbols, got_name.c_str(), rel.got_addr, rel.got_addr + got_slot_sz);
-
-                // Record PLT entry in .plt.sec
-                Dwarf_Addr plt_addr = plt_sec_it->second.shdr.sh_addr + entry_idx * ent_sz;
-                std::string plt_name = rel.symbol_name + "@plt";
-                add_symbol_info(symbols, plt_name.c_str(), plt_addr, plt_addr + ent_sz);
-
-                entry_idx++;
-            }
-        }
-    }
-
-    // Traditional .plt entries (if any remain)
-    auto plt_it = plt_sections.find(".plt");
-    if (plt_it != plt_sections.end()) {
-        auto [hdr_sz, ent_sz] = get_plt_params(".plt");
-        std::size_t entry_idx = 0;
-
-        for (auto& rel : relocations) {
-            if (rel.plt_section.empty()) {  // Not yet assigned
-                rel.plt_section = ".plt";
-
-                // Record GOT entry
-                std::string got_name = rel.symbol_name + "@got.plt";
-                add_symbol_info(symbols, got_name.c_str(), rel.got_addr, rel.got_addr + got_slot_sz);
-
-                // Record PLT entry in .plt (after header)
-                Dwarf_Addr plt_addr = plt_it->second.shdr.sh_addr + hdr_sz + entry_idx * ent_sz;
-                std::string plt_name = rel.symbol_name + "@plt";
-                add_symbol_info(symbols, plt_name.c_str(), plt_addr, plt_addr + ent_sz);
-
-                entry_idx++;
-            }
+    GElf_Addr pltgot = 0;
+    const bool have_pltgot = ehdr.e_machine == EM_386 && pltgot_address(elf, pltgot);
+    // Prefer the callable CET entry over a lazy entry referencing the same slot.
+    for (const char *name : {".plt.sec", ".plt"}) {
+        auto section = sections.find(name);
+        if (section == sections.end()) continue;
+        const auto &plt = section->second;
+        const size_t header = strcmp(name, ".plt") == 0 ? (ehdr.e_machine == EM_AARCH64 ? 32 : 16) : 0;
+        const size_t entry = 16;
+        if (plt.data->d_size < header) continue;
+        const auto *bytes = static_cast<const unsigned char *>(plt.data->d_buf);
+        for (size_t offset = header; entry <= plt.data->d_size - offset; offset += entry) {
+            GElf_Addr target;
+            const GElf_Addr pc = plt.sh.sh_addr + offset;
+            if (!plt_target(bytes + offset, entry, pc, ehdr.e_machine, have_pltgot, pltgot, target)) continue;
+            auto it = relocations.find(target);
+            if (it == relocations.end() || it->second.ambiguous || it->second.matched) continue;
+            auto &rel = it->second;
+            add_symbol_info(symbols, (rel.name + "@plt").c_str(), pc, pc + entry);
+            rel.matched = true;
         }
     }
 }
-
 
 void process_symbol_tables(Elf *elf, SymbolVector &symbols)
 {
