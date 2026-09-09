@@ -71,6 +71,14 @@ static Elf_Data *string_table(Elf *elf, size_t index)
     return section_data(elf, scn, sh, ELF_T_BYTE);
 }
 
+static const char *symbol_name(Elf_Data *strings, size_t offset)
+{
+    if (!strings || offset >= strings->d_size) return nullptr;
+    const char *name = static_cast<const char *>(strings->d_buf) + offset;
+    if (!*name || !memchr(name, '\0', strings->d_size - offset)) return nullptr;
+    return name;
+}
+
 void process_plt_relocations(Elf *elf,
                              const GElf_Ehdr &ehdr,
                              SymbolVector    &symbols)
@@ -173,21 +181,22 @@ void process_plt_relocations(Elf *elf,
             Dwarf_Addr  r_off;
 
             if (sh.sh_type == SHT_RELA) {
-                GElf_Rela rela;
-                gelf_getrela(rel_data, idx, &rela);
+                GElf_Rela rela{};
+                if (!gelf_getrela(rel_data, static_cast<int>(idx), &rela)) continue;
                 sym_idx = GELF_R_SYM(rela.r_info);
                 r_off   = rela.r_offset;
             } else {
-                GElf_Rel rel;
-                gelf_getrel(rel_data, idx, &rel);
+                GElf_Rel rel{};
+                if (!gelf_getrel(rel_data, static_cast<int>(idx), &rel)) continue;
                 sym_idx = GELF_R_SYM(rel.r_info);
                 r_off   = rel.r_offset;
             }
 
             /* Get symbol name */
-            GElf_Sym dsym;
-            gelf_getsym(dynsym_data, sym_idx, &dsym);
-            const char *name = elf_strptr(elf, dynsym_sh.sh_link, dsym.st_name);
+            if (sym_idx > INT_MAX || sym_idx >= dynsym_data->d_size / dynsym_sh.sh_entsize) continue;
+            GElf_Sym dsym{};
+            if (!gelf_getsym(dynsym_data, static_cast<int>(sym_idx), &dsym)) continue;
+            const char *name = symbol_name(string_table(elf, dynsym_sh.sh_link), dsym.st_name);
             if (!name || !*name) continue;
 
             relocations.push_back({name, r_off, ""});
@@ -293,10 +302,10 @@ void process_symbol_tables(Elf *elf, SymbolVector &symbols)
             int count = std::min<size_t>(data->d_size / shdr.sh_entsize, INT_MAX);
 
             for (int i = 0; i < count; ++i) {
-                GElf_Sym sym;
-                gelf_getsym(data, i, &sym);
+                GElf_Sym sym{};
+                if (!gelf_getsym(data, i, &sym)) continue;
 
-                const char *name = elf_strptr(elf, shdr.sh_link, sym.st_name);
+                const char *name = symbol_name(string_table(elf, shdr.sh_link), sym.st_name);
 
                 if (name) {
                     Dwarf_Addr low_pc = sym.st_value;

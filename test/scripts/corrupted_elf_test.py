@@ -8,6 +8,7 @@ import io
 import logging
 import json
 import subprocess
+import struct
 import sys
 import tempfile
 from pathlib import Path
@@ -76,6 +77,35 @@ class CorruptedELFTest(TestCase):
                             self._patch_section(elf, contents, elf.get_section(sym["sh_link"]), sh_type="SHT_PROGBITS")
                     symbols = self._parse_mutated(arch, mutate)
                     self.assertFalse(any(name.endswith("@got.plt") for name, _, _ in symbols))
+
+    def test_invalid_plt_records(self):
+        for arch in ("amd64", "i386"):
+            for fault in ("index", "name", "unterminated"):
+                with self.subTest(arch=arch, fault=fault):
+                    expected = {}
+                    def mutate(elf, contents):
+                        rel = elf.get_section_by_name(".rela.plt" if arch == "amd64" else ".rel.plt")
+                        sym = elf.get_section(rel["sh_link"])
+                        records = list(rel.iter_relocations())
+                        for i, record in enumerate(records):
+                            if i != 1:
+                                expected[sym.get_symbol(record["r_info_sym"]).name + "@got.plt"] = record["r_offset"]
+                        bad = records[1]
+                        if fault == "index":
+                            width = 8 if arch == "amd64" else 4
+                            info = (0xffffffff << 32 | 7) if width == 8 else (0xffffff << 8 | 7)
+                            struct.pack_into("<Q" if width == 8 else "<I", contents,
+                                             rel["sh_offset"] + rel["sh_entsize"] + width, info)
+                        else:
+                            strings = elf.get_section(sym["sh_link"])
+                            name = strings["sh_size"] + 10
+                            if fault == "unterminated":
+                                name = strings["sh_size"] - 1
+                                contents[strings["sh_offset"] + name] = ord("X")
+                            struct.pack_into("<I", contents,
+                                             sym["sh_offset"] + bad["r_info_sym"] * sym["sh_entsize"], name)
+                    symbols = self._parse_mutated(arch, mutate)
+                    self.assertEqual({name: lo for name, lo, _ in symbols if name.endswith("@got.plt")}, expected)
 
     def setUp(self):
         # Redirect logging to a string buffer
