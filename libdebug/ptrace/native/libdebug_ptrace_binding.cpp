@@ -494,6 +494,14 @@ unsigned long LibdebugPtraceInterface::get_stop_event_extra_info(const pid_t pid
     // In this case, we return the event message
     if ((status >> 8) != SIGTRAP) {
         unsigned long msg = get_thread_event_msg(pid);
+        if ((status >> 16) == PTRACE_EVENT_EXEC) {
+            // The address space has already changed. Discard old patches before
+            // the collector can restore their saved bytes into the new image.
+            software_breakpoints.clear();
+            for (auto &entry : threads) {
+                entry.second.hardware_breakpoints.clear();
+            }
+        }
         return msg;
     }
 
