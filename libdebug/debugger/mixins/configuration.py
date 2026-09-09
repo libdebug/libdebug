@@ -10,7 +10,6 @@ from libdebug.data.argument_list import ArgumentList
 from libdebug.data.env_dict import EnvDict
 from libdebug.debugger.mixins.base import EngineBoundMixin
 from libdebug.utils.arch_mappings import map_arch
-from libdebug.utils.elf_utils import elf_architecture, resolve_argv_path
 from libdebug.utils.signal_utils import (
     get_all_signal_numbers,
     resolve_signal_name,
@@ -67,13 +66,9 @@ class ConfigurationMixin(EngineBoundMixin):
                 if (
                     not self._internal_debugger._has_path_different_from_argv0
                     and new_argv
-                    and new_argv[0] != self._previous_argv[0]
+                    and (not self._previous_argv or new_argv[0] != self._previous_argv[0])
                 ):
-                    self._internal_debugger.clear_all_caches()
-                    # Changing path can also change the architecture, so we need to update it
-                    resolved_path = resolve_argv_path(new_argv[0])
-                    self.arch = elf_architecture(resolved_path)
-                    self._internal_debugger.path = resolved_path
+                    self._internal_debugger._set_target_path(new_argv[0])
             except Exception:
                 # We revert to the previous argv state if something goes wrong
                 self._internal_debugger.argv = ArgumentList(self._previous_argv)
@@ -113,13 +108,10 @@ class ConfigurationMixin(EngineBoundMixin):
         if (
             not self._internal_debugger._has_path_different_from_argv0
             and self._internal_debugger.argv
+            and value
             and value[0] != self._internal_debugger.argv[0]
         ):
-            self._internal_debugger.clear_all_caches()
-            # Changing path can also change the architecture, so we need to update it
-            resolved_path = resolve_argv_path(value[0])
-            self.arch = elf_architecture(resolved_path)
-            self._internal_debugger.path = resolved_path
+            self._internal_debugger._set_target_path(value[0])
 
         self._internal_debugger.argv = value
 
@@ -163,7 +155,7 @@ class ConfigurationMixin(EngineBoundMixin):
     def path(self: ConfigurationMixin) -> str:
         """The resolved path to the debugged binary."""
         self._internal_debugger._ensure_process_stopped()
-        return self._internal_debugger.path
+        return self._internal_debugger._get_target_path()
 
     @path.setter
     def path(self: ConfigurationMixin, value: str) -> None:
@@ -175,14 +167,7 @@ class ConfigurationMixin(EngineBoundMixin):
         if not isinstance(value, str):
             raise TypeError("path must be a string")
 
-        self._internal_debugger.clear_all_caches()
-
-        # resolve_argv_path can fail if the path is not valid
-        resolved_path = resolve_argv_path(value)
-
-        # Changing path can also change the architecture, so we need to update it
-        self.arch = elf_architecture(resolved_path)
-        self._internal_debugger.path = resolved_path
+        self._internal_debugger._set_target_path(value)
 
         # We can also unfreeze argv[0] if it was frozen
         self._internal_debugger.argv.prevent_empty = False

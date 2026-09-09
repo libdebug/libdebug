@@ -8,7 +8,6 @@ from libdebug.data.memory_map import MemoryMap
 from libdebug.data.memory_map_list import MemoryMapList
 from libdebug.data.symbol_list import SymbolList
 from libdebug.liblog import liblog
-from libdebug.utils.container import host_path_for_backing_file
 from libdebug.utils.elf_utils import is_pie, resolve_address, resolve_symbol
 
 
@@ -60,14 +59,12 @@ def resolve_symbol_in_maps(symbol: str, maps: MemoryMapList[MemoryMap]) -> int:
         offset = 0
 
     internal_debugger = maps._internal_debugger
-    runtime = internal_debugger.runtime
-    container = internal_debugger.container
 
     for vmap in maps:
         if vmap.backing_file and vmap.backing_file not in mapped_files and vmap.backing_file[0] != "[":
-            # `file_key` keeps the container-internal path so error messages stay meaningful;
-            # the host-side ELF parser opens `host_file` instead.
-            host_file = host_path_for_backing_file(runtime, container, vmap.backing_file)
+            host_file = internal_debugger._host_path_from_target_path(vmap.backing_file)
+            if host_file is None:
+                continue
             mapped_files[vmap.backing_file] = (vmap.start, host_file)
 
     for file_key, (base_address, host_file) in mapped_files.items():
@@ -102,8 +99,6 @@ def resolve_address_in_maps(address: int, maps: MemoryMapList[MemoryMap]) -> str
     mapped_files = {}
 
     internal_debugger = maps._internal_debugger
-    runtime = internal_debugger.runtime
-    container = internal_debugger.container
 
     for vmap in maps:
         file = vmap.backing_file
@@ -111,7 +106,9 @@ def resolve_address_in_maps(address: int, maps: MemoryMapList[MemoryMap]) -> str
             continue
 
         if file not in mapped_files:
-            host_file = host_path_for_backing_file(runtime, container, file)
+            host_file = internal_debugger._host_path_from_target_path(file)
+            if host_file is None:
+                continue
             mapped_files[file] = (vmap.start, vmap.end, host_file)
         else:
             base, _, host_file = mapped_files[file]

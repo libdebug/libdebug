@@ -63,6 +63,8 @@ from libdebug.data.event_type import EventType
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
 from libdebug.debugger.debugger import Debugger
+from libdebug.debugger.docker_debugger import DockerDebugger
+from libdebug.debugger.mixins.docker import DockerDebuggerMixin
 from libdebug.libdebug import debugger
 from libdebug.state.resume_context import ResumeContext
 from libdebug.state.thread_context import ThreadContext
@@ -71,6 +73,8 @@ from libdebug.utils.libcontext import libcontext
 __all__ = [
     "Breakpoint",
     "Debugger",
+    "DockerDebugger",
+    "DockerDebuggerMixin",
     "EventHook",
     "EventType",
     "ResumeContext",

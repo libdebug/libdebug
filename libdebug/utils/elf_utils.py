@@ -103,12 +103,17 @@ def _collect_external_info(debug_path: str, reference_path: str, build_id: str) 
 
 
 @functools.cache
-def _parse_elf_file(path: str, debug_info_level: int) -> tuple[list[Symbol], str | None, str | None]:
+def _parse_elf_file(
+    path: str,
+    debug_info_level: int,
+    reference_path: str | None = None,
+) -> tuple[list[Symbol], str | None, str | None]:
     """Returns a dictionary containing the symbols of the specified ELF file and the buildid.
 
     Args:
         path (str): The path to the ELF file.
         debug_info_level (int): The debug info level.
+        reference_path (str, optional): The target-visible path recorded on returned symbols.
 
     Returns:
         symbols (list[Symbol): A list containing the symbols of the specified ELF file.
@@ -122,8 +127,9 @@ def _parse_elf_file(path: str, debug_info_level: int) -> tuple[list[Symbol], str
 
     elfinfo = libdebug_debug_sym_parser.read_elf_info(path, debug_info_level)
 
+    symbol_path = path if reference_path is None else reference_path
     symbols = [
-        Symbol(symbol.low_pc, symbol.high_pc, symbol.name, path, path, elfinfo.build_id, False)
+        Symbol(symbol.low_pc, symbol.high_pc, symbol.name, symbol_path, symbol_path, elfinfo.build_id, False)
         for symbol in elfinfo.symbols
     ]
 
@@ -184,8 +190,6 @@ def get_all_symbols(backing_files: set[str], internal_debugger: InternalDebugger
     Returns:
         SymbolList[Symbol]: A list of all the symbols in the target process.
     """
-    from libdebug.utils.container import host_path_for_backing_file  # noqa: PLC0415 — avoid circular import at module load
-
     symbols = SymbolList([], internal_debugger)
 
     if libcontext.sym_lvl == 0:
@@ -193,13 +197,10 @@ def get_all_symbols(backing_files: set[str], internal_debugger: InternalDebugger
             "Symbol resolution is disabled. Please enable it by setting the sym_lvl libcontext parameter to a value greater than 0.",
         )
 
-    runtime = internal_debugger.runtime
-    container = internal_debugger.container
-
     for file in backing_files:
-        # In container mode, translate the container-internal path to a host-readable
-        # docker-cp'd copy. host_path_for_backing_file is identity in host mode.
-        host_file = host_path_for_backing_file(runtime, container, file)
+        host_file = internal_debugger._host_path_from_target_path(file)
+        if host_file is None:
+            continue
 
         # Do not parse non-ELF files
         if not is_elf(host_file):
@@ -207,17 +208,10 @@ def get_all_symbols(backing_files: set[str], internal_debugger: InternalDebugger
 
         # Retrieve the symbols from the SymbolTableSection.
         try:
-            new_symbols, buildid, debug_file = _parse_elf_file(host_file, libcontext.sym_lvl)
+            new_symbols, buildid, debug_file = _parse_elf_file(host_file, libcontext.sym_lvl, file)
         except RuntimeError as e:
             liblog.error(f"Failed to parse ELF file {file}: {e}")
             continue
-
-        # In container mode the parser saw the host tempfile; rewrite the recorded paths back
-        # to the container-internal `file` so user-facing Symbol records stay in container terms.
-        if host_file != file:
-            for sym in new_symbols:
-                sym.backing_file = file
-                sym.reference_file = file
 
         symbols += new_symbols
 
