@@ -59,6 +59,7 @@ void LibdebugPtraceInterface::check_and_set_fpregs(Thread &t)
 
 void LibdebugPtraceInterface::cont_thread(Thread &t)
 {
+    if (resumed_exits.count(t.tid)) return;
     if (ptrace(handle_syscall ? PTRACE_SYSCALL : PTRACE_CONT, t.tid, NULL, t.signal_to_forward) == -1) {
         throw std::runtime_error("ptrace cont failed");
     }
@@ -70,6 +71,7 @@ int LibdebugPtraceInterface::prepare_for_run()
 {
     // Flush any register changes
     for (auto &t : threads) {
+        if (resumed_exits.count(t.first)) continue;
         if (setregs(t.second))
             throw std::runtime_error("setregs failed");
 
@@ -79,6 +81,7 @@ int LibdebugPtraceInterface::prepare_for_run()
     // Iterate over all the threads and check if any of them has hit a software
     // breakpoint
     for (auto &t : threads) {
+        if (resumed_exits.count(t.first)) continue;
         bool t_hit = false;
         unsigned long ip = INSTRUCTION_POINTER(t.second.regs);
 
@@ -145,6 +148,7 @@ void LibdebugPtraceInterface::cleanup()
 
     process_id = -1;
     pending_child_stops.clear();
+    resumed_exits.clear();
     handle_syscall = false;
 }
 
@@ -184,9 +188,12 @@ std::pair<std::shared_ptr<PtraceRegsStruct>, std::shared_ptr<PtraceFPRegsStruct>
 
 void LibdebugPtraceInterface::unregister_thread(const pid_t tid)
 {
-    // move the dead thread to the dead list
-    dead_threads[tid] = threads[tid];
-    threads.erase(tid);
+    auto entry = threads.find(tid);
+    if (entry != threads.end()) {
+        dead_threads[tid] = entry->second;
+        threads.erase(entry);
+    }
+    resumed_exits.erase(tid);
 }
 
 int LibdebugPtraceInterface::attach(pid_t tid)
@@ -498,9 +505,20 @@ unsigned long LibdebugPtraceInterface::get_stop_event_extra_info(const pid_t pid
             // The address space has already changed. Discard old patches before
             // the collector can restore their saved bytes into the new image.
             software_breakpoints.clear();
+            Thread survivor = try_get_thread(static_cast<pid_t>(msg));
             for (auto &entry : threads) {
-                entry.second.hardware_breakpoints.clear();
+                if (entry.first != static_cast<pid_t>(msg)) dead_threads[entry.first] = entry.second;
             }
+            threads.clear();
+            survivor.tid = pid;
+            survivor.hardware_breakpoints.clear();
+            survivor.signal_to_forward = 0;
+            survivor.fpregs->set_dirty(0);
+            survivor.fpregs->set_fresh(0);
+            threads[pid] = survivor;
+            resumed_exits.clear();
+            pending_child_stops.clear();
+            getregs(threads[pid]);
         }
         return msg;
     }
@@ -611,42 +629,48 @@ ThreadStatusList LibdebugPtraceInterface::wait_all_and_update_regs_standard()
         }
     } while (threads.find(tid) == threads.end());
 
-    // We must interrupt all the other threads with a SIGSTOP
-    int temp_tid, temp_status;
+    // Request all stops first. Waiting for a specific peer can deadlock when
+    // that peer is in exec and needs another thread to leave its exit stop.
+    std::unordered_set<pid_t> pending;
     for (auto &t : threads) {
-        if (t.first != tid) {
-            // If GETREGS succeeds, the thread is already stopped, so we must
-            // not "stop" it again
-            if (getregs(t.second) == -1) {
-                // Stop the thread with a SIGSTOP
-                thread_kill(process_id, t.first, SIGSTOP);
-                // Wait for the thread to stop
-                temp_tid = waitpid(t.first, &temp_status, 0);
-
-                // Register the status of the thread, as it might contain useful
-                // information
-                thread_statuses.push_back({temp_tid, temp_status, get_stop_event_extra_info(temp_tid, temp_status)});
-            }
+        if (t.first != tid && !resumed_exits.count(t.first) && getregs(t.second) == -1) {
+            thread_kill(process_id, t.first, SIGSTOP);
+            pending.insert(t.first);
         }
     }
 
-    // We keep polling but don't block, we want to get all the statuses we can
-    while (true) {
-        bool eventRetrieved = false;
-
-        for (auto &t : threads) {
-            tid = waitpid(t.first, &status, WNOHANG);
-            if (tid > 0) {
-                // Record the PID and its status
-                thread_statuses.push_back({tid, status, get_stop_event_extra_info(tid, status)});
-                eventRetrieved = true;
+    auto release_exit = [&](pid_t stopped_tid, int stopped_status) {
+        if (WIFSTOPPED(stopped_status) && (stopped_status >> 16) == PTRACE_EVENT_EXIT) {
+            if (ptrace(PTRACE_CONT, stopped_tid, NULL, NULL) == -1 && errno != ESRCH) {
+                throw std::runtime_error("ptrace cont at exit failed");
             }
+            resumed_exits.insert(stopped_tid);
         }
+    };
+    if (!pending.empty()) release_exit(tid, status);
 
-        // If we didn't retrieve any new events, we're done
-        if (!eventRetrieved) {
-            break;
+    while (!pending.empty()) {
+        do {
+            tid = waitpid(-1, &status, __WALL | __WNOTHREAD);
+        } while (tid == -1 && errno == EINTR);
+        if (tid == -1) throw std::runtime_error("waitpid in stop barrier failed");
+        thread_statuses.push_back({tid, status, get_stop_event_extra_info(tid, status)});
+        pending.erase(tid);
+        if (WIFSTOPPED(status) && (status >> 16) == PTRACE_EVENT_EXEC) {
+            pending.clear();
+        } else if (threads.find(tid) == threads.end()) {
+            pending_child_stops[tid] = status;
         }
+        if (!pending.empty()) release_exit(tid, status);
+    }
+
+    // Drain available events from this tracer thread, including early child stops.
+    while (true) {
+        tid = waitpid(-1, &status, __WALL | __WNOTHREAD | WNOHANG);
+        if (tid == -1 && errno == EINTR) continue;
+        if (tid <= 0) break;
+        thread_statuses.push_back({tid, status, get_stop_event_extra_info(tid, status)});
+        if (threads.find(tid) == threads.end()) pending_child_stops[tid] = status;
     }
 
     // Update the registers of all the threads

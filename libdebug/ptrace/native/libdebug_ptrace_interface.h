@@ -8,6 +8,7 @@
 
 #include "libdebug_ptrace_base.h"
 #include "fp_regs_definition.h"
+#include <unordered_set>
 
 class LibdebugPtraceInterface
 {
@@ -15,6 +16,7 @@ class LibdebugPtraceInterface
 private:
     pid_t process_id;
     std::map<pid_t, int> pending_child_stops;
+    std::unordered_set<pid_t> resumed_exits;
     bool handle_syscall;
     std::map<pid_t, Thread> threads, dead_threads;
     std::map<unsigned long, SoftwareBreakpoint> software_breakpoints;

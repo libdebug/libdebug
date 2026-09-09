@@ -131,6 +131,24 @@ class PtraceStatusHandler:
         # If fast memory access is needed again, it will be reopened automatically on the next memory access
         self.internal_debugger._process_memory_manager.close()
 
+    def _reconcile_exec_thread(self: PtraceStatusHandler, pid: int, former_tid: int) -> None:
+        """Keep the exec caller's context when Linux renames it to the leader TID."""
+        survivor = self.internal_debugger.get_thread_by_id(former_tid)
+        if survivor is None:
+            raise RuntimeError(f"Exec caller {former_tid} is not registered")
+        for thread in self.internal_debugger.threads:
+            if thread is not survivor:
+                thread.set_as_dead()
+        survivor._thread_id = pid
+        survivor.regs._thread_id = pid
+        survivor._dead = False
+        survivor._zombie = False
+        survivor._exit_code = None
+        survivor._exit_signal = None
+        survivor._signal_number = 0
+        self.internal_debugger.threads[:] = [survivor]
+        self.internal_debugger.resume_context.threads_with_signals_to_forward.clear()
+
     def _handle_exit(
         self: PtraceStatusHandler,
         thread_id: int,
@@ -661,6 +679,9 @@ class PtraceStatusHandler:
                 # The process has just started
                 return
             signum = os.WSTOPSIG(status)
+
+            if status >> 8 == StopEvents.EXEC_EVENT:
+                self._reconcile_exec_thread(pid, extra_info)
 
             if signum != signal.SIGSTOP:
                 self._assume_race_sigstop = False
