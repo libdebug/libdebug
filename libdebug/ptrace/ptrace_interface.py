@@ -454,8 +454,8 @@ class PtraceInterface(DebuggingInterface):
             os.close(self.stdin_read)
             os.close(self.stdout_write)
             os.close(self.stderr_write)
-        except Exception as e:
-            raise Exception("Closing fds failed: %r", e) from e
+        except OSError as e:
+            raise RuntimeError(f"Closing fds failed: {e!r}") from e
 
         return PipeManager(
             self._internal_debugger,
@@ -572,7 +572,7 @@ class PtraceInterface(DebuggingInterface):
         register_file, fp_register_file = self.lib_trace.register_thread(new_thread_id)
 
         register_holder = register_holder_provider(self._internal_debugger.arch, register_file, fp_register_file)
-        ThreadContextImplementation = thread_context_class_provider(self._internal_debugger.arch) # noqa: N806
+        ThreadContextImplementation = thread_context_class_provider(self._internal_debugger.arch)
         thread = ThreadContextImplementation(new_thread_id, register_holder, self._internal_debugger)
 
         self._internal_debugger.insert_new_thread(thread)

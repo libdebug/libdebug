@@ -9,7 +9,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from libdebug.data.memory_map import MemoryMap
-
 from libdebug.liblog import liblog
 
 

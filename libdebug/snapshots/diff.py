@@ -203,7 +203,7 @@ class Diff:
         start: int,
         end: int,
         file: str = "hybrid",
-        override_word_size: int = None,
+        override_word_size: int | None = None,
         integer_mode: bool = False,
     ) -> None:
         """Pretty print the memory diff.

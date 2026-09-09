@@ -11,6 +11,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
 
+    from typing_extensions import Self
+
 
 class ArgumentList(list[str]):
     """A list that behaves like a normal list of strings but provides callbacks for modifications.
@@ -198,7 +200,7 @@ class ArgumentList(list[str]):
         super().__delitem__(index)
         self._call_after_callback()
 
-    def __iadd__(self: ArgumentList, other: Iterable[str]) -> ArgumentList:
+    def __iadd__(self: Self, other: Iterable[str]) -> Self:
         """Implement += operator."""
         validated_other = ArgumentList._validate_string_iterable(other)
         self._call_before_callback()
@@ -206,7 +208,7 @@ class ArgumentList(list[str]):
         self._call_after_callback()
         return self
 
-    def __imul__(self, other: int) -> ArgumentList:
+    def __imul__(self: Self, other: int) -> Self:
         """Implement *= operator."""
         self._call_before_callback()
         super().__imul__(other)

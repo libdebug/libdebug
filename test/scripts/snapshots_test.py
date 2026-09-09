@@ -6,7 +6,11 @@
 
 import io
 import logging
+from types import SimpleNamespace
 from unittest import TestCase
+from unittest.mock import Mock
+
+from libdebug.snapshots.snapshot import Snapshot
 from utils.binary_utils import RESOLVE_EXE
 from libdebug import debugger
 import tempfile
@@ -36,6 +40,22 @@ class SnapshotsTest(TestCase):
         # Close the log capture string buffer
         self.log_capture_string.close()
 
+    def test_snapshot_preserves_float_registers(self):
+        holder = Mock()
+        holder.provide_regs.return_value = ["rax"]
+        holder.provide_special_regs.return_value = []
+        holder.provide_vector_fp_regs.return_value = ["st0"]
+        thread = SimpleNamespace(
+            thread_id=1,
+            regs=SimpleNamespace(rax=42, st0=1.5),
+            _register_holder=holder,
+        )
+        snapshot = Snapshot()
+        snapshot._save_regs(thread)
+        self.assertEqual(snapshot.regs.rax, 42)
+        self.assertIsInstance(snapshot.regs.st0, float)
+        self.assertEqual(snapshot.regs.st0, 1.5)
+
     def test_thread_base_snapshot(self):
         # Create a debugger and start execution
         d = debugger(RESOLVE_EXE("process_snapshot_test"), auto_interrupt_on_command=False, aslr=False)
@@ -56,6 +76,22 @@ class SnapshotsTest(TestCase):
         for reg_name in dir(d.regs):
             if isinstance(getattr(d.regs, reg_name), int | float):
                 self.assertTrue(hasattr(ts1.regs, reg_name) and ts1.regs.__getattribute__(reg_name) == d.regs.__getattribute__(reg_name))
+
+        # Check that flags register (eflags/pstate) is captured as a frozen int
+        flags_reg = "pstate" if d.arch == "aarch64" else "eflags"
+        self.assertTrue(hasattr(ts1.regs, flags_reg), f"Snapshot is missing '{flags_reg}'")
+        snapshot_flags = getattr(ts1.regs, flags_reg)
+        self.assertIsInstance(snapshot_flags, int, f"Snapshot stored {type(snapshot_flags).__name__} instead of int")
+        self.assertEqual(snapshot_flags, int(getattr(d.regs, flags_reg)))
+
+        # Mutate live register and verify snapshot is frozen
+        original_flags = int(getattr(d.regs, flags_reg))
+        setattr(d.regs, flags_reg, original_flags ^ 0x1)
+        self.assertEqual(snapshot_flags, getattr(ts1.regs, flags_reg), "Snapshot flags value is a live reference, not frozen")
+        setattr(d.regs, flags_reg, original_flags)  # restore
+
+        # pprint_registers_all must not crash on snapshots
+        ts1.pprint_registers_all()
 
         # Check that the snapshot correctly throws an exception if we try to access memory
         with self.assertRaises(ValueError):
@@ -90,6 +126,10 @@ class SnapshotsTest(TestCase):
         for reg_name in dir(d.regs):
             if isinstance(getattr(d.regs, reg_name), int | float):
                 self.assertTrue(hasattr(ts1_restored.regs, reg_name) and ts1_restored.regs.__getattribute__(reg_name) == d.regs.__getattribute__(reg_name))
+
+        # Check that flags register survives JSON round-trip
+        self.assertTrue(hasattr(ts1_restored.regs, flags_reg), f"Restored snapshot is missing '{flags_reg}'")
+        self.assertEqual(getattr(ts1_restored.regs, flags_reg), getattr(ts1.regs, flags_reg))
 
         # Check that the snapshot correctly throws an exception if we try to access memory
         with self.assertRaises(ValueError):
@@ -582,7 +622,14 @@ class SnapshotsTest(TestCase):
                 self.assertEqual(reg_diff.new_value, new_val)
                 self.assertEqual(reg_diff.has_changed, has_changed)
 
-        # pprint_regs_all must not crash on diffs
+        # Check that flags register is included in the diff
+        flags_reg = "pstate" if d.arch == "aarch64" else "eflags"
+        self.assertTrue(hasattr(diff.regs, flags_reg), f"Diff is missing '{flags_reg}'")
+        flags_diff = getattr(diff.regs, flags_reg)
+        self.assertEqual(flags_diff.old_value, getattr(ts1.regs, flags_reg))
+        self.assertEqual(flags_diff.new_value, getattr(ts2.regs, flags_reg))
+
+        # pprint_regs_all must not crash — it iterates _special_regs
         diff.pprint_regs_all()
 
         # Simulate SSE-only machine: inject single-element register groups

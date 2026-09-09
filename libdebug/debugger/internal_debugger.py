@@ -35,7 +35,10 @@ from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
 from libdebug.data.terminals import TerminalTypes
 from libdebug.debugger.debugger import Debugger
-from libdebug.debugger.internal_debugger_holder import register_internal_debugger, remove_internal_debugger_refs
+from libdebug.debugger.internal_debugger_holder import (
+    register_internal_debugger,
+    remove_internal_debugger_refs,
+)
 from libdebug.interfaces.interface_helper import provide_debugging_interface
 from libdebug.liblog import liblog
 from libdebug.memory.chunked_memory_view import ChunkedMemoryView
@@ -1756,7 +1759,7 @@ class InternalDebugger:
         int_data = int.from_bytes(data, sys.byteorder)
         try:
             self.debugging_interface.poke_memory(address, int_data)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - Forward any backend failure to the calling thread.
             return e
 
     def __threaded_fetch_fp_registers(self: InternalDebugger, registers: Registers) -> None:
