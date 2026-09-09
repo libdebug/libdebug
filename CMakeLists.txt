@@ -129,7 +129,27 @@ execute_process(
   COMMAND "${Python_EXECUTABLE}" -m nanobind --cmake_dir
   OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE NB_DIR)
 list(APPEND CMAKE_PREFIX_PATH "${NB_DIR}")
-find_package(nanobind CONFIG REQUIRED)
+find_package(nanobind 3.0.1 CONFIG REQUIRED)
+
+# The Python build frontend selects the mode together with wheel metadata.
+# Accept only its documented 0/1 environment switch and matching CMake setting.
+option(LIBDEBUG_NANOBIND_SPLIT "Use the external nanobind backend" OFF)
+if (DEFINED ENV{LIBDEBUG_NANOBIND_SPLIT} AND
+    NOT "$ENV{LIBDEBUG_NANOBIND_SPLIT}" MATCHES "^(0|1)$")
+  message(FATAL_ERROR "LIBDEBUG_NANOBIND_SPLIT must be 0 or 1")
+endif()
+if ((LIBDEBUG_NANOBIND_SPLIT AND NOT "$ENV{LIBDEBUG_NANOBIND_SPLIT}" STREQUAL "1") OR
+    (NOT LIBDEBUG_NANOBIND_SPLIT AND "$ENV{LIBDEBUG_NANOBIND_SPLIT}" STREQUAL "1"))
+  message(FATAL_ERROR "Select split mode with LIBDEBUG_NANOBIND_SPLIT=1, not a CMake override")
+endif()
+if (LIBDEBUG_NANOBIND_SPLIT)
+  if (NOT SKBUILD_SABI_VERSION STREQUAL "3.10")
+    message(FATAL_ERROR "Split wheels must target cp310-abi3")
+  endif()
+  set(LIBDEBUG_NANOBIND_OPTIONS BACKEND_MODULE nanobind_backend)
+else()
+  set(LIBDEBUG_NANOBIND_OPTIONS STABLE_ABI)
+endif()
 
 # Define the sources for the libdebug_ptrace_binding module
 set(LIBDEBUG_PTRACE_BINDING_SOURCES
@@ -171,7 +191,7 @@ endif()
 nanobind_add_module(
   libdebug_ptrace_binding
   LTO
-  STABLE_ABI
+  ${LIBDEBUG_NANOBIND_OPTIONS}
   ${LIBDEBUG_PTRACE_BINDING_SOURCES}
 )
 
@@ -181,14 +201,14 @@ nanobind_add_stub(
   MODULE libdebug_ptrace_binding
   DEPENDS libdebug_ptrace_binding
   OUTPUT libdebug_ptrace_binding.pyi
-  PYTHON_PATH "."
+  PYTHON_PATH "$<TARGET_FILE_DIR:libdebug_ptrace_binding>"
 )
 
 # Add the libdebug_linux_binding module
 nanobind_add_module(
   libdebug_linux_binding
   LTO
-  STABLE_ABI
+  ${LIBDEBUG_NANOBIND_OPTIONS}
   libdebug/native/linux_interface.cpp
 )
 
@@ -198,7 +218,7 @@ nanobind_add_stub(
   MODULE libdebug_linux_binding
   DEPENDS libdebug_linux_binding
   OUTPUT libdebug_linux_binding.pyi
-  PYTHON_PATH "."
+  PYTHON_PATH "$<TARGET_FILE_DIR:libdebug_linux_binding>"
 )
 
 if(BUILD_SYMBOLS)
@@ -231,7 +251,7 @@ if(BUILD_SYMBOLS)
   nanobind_add_module(
     libdebug_debug_sym_parser
     LTO
-    STABLE_ABI
+    ${LIBDEBUG_NANOBIND_OPTIONS}
     libdebug/native/symbols/debug_sym_parser_shared.cpp
   )
 else()
@@ -239,7 +259,7 @@ else()
   nanobind_add_module(
     libdebug_debug_sym_parser
     LTO
-    STABLE_ABI
+    ${LIBDEBUG_NANOBIND_OPTIONS}
     libdebug/native/symbols/debug_sym_parser_dummy.cpp
     libdebug/native/symbols/debug_sym_parser_shared.cpp
   )
@@ -251,7 +271,7 @@ nanobind_add_stub(
   MODULE libdebug_debug_sym_parser
   DEPENDS libdebug_debug_sym_parser
   OUTPUT libdebug_debug_sym_parser.pyi
-  PYTHON_PATH "."
+  PYTHON_PATH "$<TARGET_FILE_DIR:libdebug_debug_sym_parser>"
 )
 
 # Add libdebug/ptrace/native to the include directories

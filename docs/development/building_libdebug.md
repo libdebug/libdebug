@@ -67,6 +67,51 @@ Replace `<branch_or_commit>` with the desired branch or commit hash you want to 
 
     This will ensure that every time you make changes to the source code, they will be immediately available without needing to reinstall the package, even for the compiled C++ extensions.
 
+### Nanobind distribution modes
+
+Source builds use linked nanobind 3 by default. This works on all supported
+architectures, including i386 and Alpine, without a separate nanobind runtime
+dependency. Python 3.10 and 3.11 receive interpreter-specific wheels; linked
+builds on Python 3.12 and newer target `cp312-abi3`.
+
+The published glibc x86_64 and AArch64 wheels use nanobind's split mode. Each
+platform has one `cp310-abi3` libdebug wheel for regular CPython 3.10 and newer.
+Pip also installs `nanobind-backend>=1.0`, which supplies the interpreter-specific
+dispatcher. The wheel remains specific to its architecture and libc; it is not
+a pure-Python wheel and does not support free-threaded Python.
+
+To build a split wheel or editable installation on a supported glibc platform:
+
+```bash
+LIBDEBUG_NANOBIND_SPLIT=1 python3 -m pip wheel .
+LIBDEBUG_NANOBIND_SPLIT=1 python3 -m pip install -e .
+```
+
+Use the environment setting rather than a CMake override: it selects the
+extension ABI, wheel tag, build dependencies and runtime metadata together.
+Leave it unset, or set it to `0`, for linked builds. Build caches are separated
+by mode and interpreter. Isolated builds install their own build dependencies.
+For `--no-build-isolation`, first install the requirements from
+`[build-system]` in `pyproject.toml`, plus `nanobind-backend>=1.0` for split mode.
+
+The external backend does not currently provide i386 or musllinux wheels.
+Those distributions retain linked mode. Split wheels use the manylinux 2.28
+floor and a shared system C++ runtime, as required by the backend.
+
+All three native stubs are generated during compilation and installed beside
+their extensions, together with the package's `py.typed` marker. The wheel CI
+checks their contents and type-checks consumers from outside the source tree.
+It also installs the same split artifact across CPython 3.10–3.14, with a
+separate, non-blocking Python 3.15 probe.
+
+Nanobind 3's STL casters and vector iterators provide the sequence construction
+and iteration optimizations used by these bindings. Existing bindings have no
+custom casters, trampolines, runtime-computed return policies or handwritten
+Python sequence builders requiring migration. Class mutability and GIL
+release behavior are preserved. LTO and nanobind's default size optimization
+remain enabled; forcing `NOMINSIZE` did not consistently improve the measured
+register, symbol and breakpoint workloads.
+
 ### :octicons-gear-24: Build Options
 
 There are some configurable build options that can be set during the installation process, to avoid linking against certain libraries or to enable/disable specific features. These options can be set using environment variables before running the installation command.
