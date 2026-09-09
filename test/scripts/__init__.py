@@ -11,10 +11,20 @@ from .callback_test import CallbackTest
 from .control_flow_test import ControlFlowTest
 from .corrupted_elf_test import CorruptedELFTest
 from .cursed_binaries_test import CursedBinariesTest
+from .debugger_mixin_test import DebuggerMixinTest
 from .death_test import DeathTest
 from .debugger_argument_test import DebuggerArgumentTest
 from .deep_dive_division_test import DeepDiveDivisionTest
 from .elf_utils_unit_test import ELFUtilsUnitTest
+from .exec_test import ExecTest
+from .exec_status_test import ExecStatusTest
+from .event_dispatch_test import EventDispatchTest
+from .stop_options_test import StopOptionsTest
+from .exec_signal_test import ExecSignalTest
+from .exec_wait_test import ExecWaitTest
+from .exec_worker_test import ExecWorkerTest
+from .exec_arch_test import ExecArchTest
+from .exec_hooks_test import ExecHooksTest
 from .finish_test import FinishTest
 from .floating_point_test import FloatingPointTest
 from .jumpout_test import JumpoutTest
@@ -44,4 +54,4 @@ from .multiprocessing_test import MultiprocessingTest
 from .memory_leak_test import MemoryLeakTest
 
 
-__all__ = ["AliasTest", "AntidebugEscapingTest", "ArgumentListTest", "AtexitHandlerTest", "AttachDetachTest", "AutoWaitingTest", "BacktraceTest", "BreakpointTest", "BruteTest", "CallbackTest", "ControlFlowTest", "CorruptedELFTest", "CursedBinariesTest", "DeathTest", "DebuggerArgumentTest", "DeepDiveDivisionTest", "ELFUtilsUnitTest", "FinishTest", "FloatingPointTest", "JumpoutTest", "JumpstartTest", "LargeBinarySymTest", "MemoryTest", "MemoryNoFastTest", "MultipleDebuggersTest", "NextTest", "NlinksTest", "PPrintSyscallsTest", "RegisterTest", "RunPipesTest", "SignalCatchTest", "SignalMultithreadTest", "SpeedTest", "SyscallHandleTest", "SyscallHijackTest", "TimeoutTest", "ThreadTest", "Vmwhere1Test", "WatchpointTest", "FindPointersTest", "SymbolTest", "SnapshotsTest", "MultiprocessingTest", "MemoryLeakTest"]
+__all__ = ["AliasTest", "AntidebugEscapingTest", "ArgumentListTest", "AtexitHandlerTest", "AttachDetachTest", "AutoWaitingTest", "BacktraceTest", "BreakpointTest", "BruteTest", "CallbackTest", "ControlFlowTest", "CorruptedELFTest", "CursedBinariesTest", "DebuggerMixinTest", "DeathTest", "DebuggerArgumentTest", "DeepDiveDivisionTest", "ELFUtilsUnitTest", "ExecTest", "FinishTest", "FloatingPointTest", "JumpoutTest", "JumpstartTest", "LargeBinarySymTest", "MemoryTest", "MemoryNoFastTest", "MultipleDebuggersTest", "NextTest", "NlinksTest", "PPrintSyscallsTest", "RegisterTest", "RunPipesTest", "SignalCatchTest", "SignalMultithreadTest", "SpeedTest", "SyscallHandleTest", "SyscallHijackTest", "TimeoutTest", "ThreadTest", "Vmwhere1Test", "WatchpointTest", "FindPointersTest", "SymbolTest", "SnapshotsTest", "MultiprocessingTest", "MemoryLeakTest"]

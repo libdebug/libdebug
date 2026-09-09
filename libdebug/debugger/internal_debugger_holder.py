@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024-2025 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2024-2026 Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -44,7 +44,7 @@ def _cleanup_internal_debugger() -> None:
         try:
             if debugger.stdin_settings_backup:
                 tcsetattr(sys.stdin.fileno(), TCSANOW, debugger.stdin_settings_backup)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - Terminal restoration must not prevent tracee cleanup.
             liblog.debugger(f"Error while restoring the original stdin settings: {e}")
 
         # The following logic MUST work in any situation. This includes scenarios where the polling thread is stuck
@@ -55,6 +55,9 @@ def _cleanup_internal_debugger() -> None:
         # as only the main thread is aware of the script termination or the user's control-C interruption.
         if debugger.instanced and debugger.kill_on_exit:
             if debugger.is_debugging:
+                # If the debuggee is still running, chances are someone did not add a d.kill(), d.terminate(), d.wait() or similar after a non-blocking action.
+                if debugger.running:
+                    liblog.warning("Script terminated while the debuggee is still running. Is your last statement non-blocking?")
                 # We will leverage the fact that we are in the wrong thread but the same process to kill the debuggee
                 # process without relying on the background thread.
                 try:

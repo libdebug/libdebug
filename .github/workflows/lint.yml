@@ -7,7 +7,6 @@ on:
   push:
     branches: [ "main", "dev" ]
   pull_request:
-    branches: [ "main", "dev" ]
   workflow_dispatch:
 
 permissions:
@@ -37,6 +36,7 @@ jobs:
 
     - name: Lint with Ruff on a basic set of rules
       run: |
+        ruff --version
         ruff check libdebug --output-format=github --config ruff-errors.toml
 
     - name: Lint with Ruff on an extended ruleset but always return success

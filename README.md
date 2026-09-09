@@ -70,8 +70,13 @@ print(f"RAX is {hex(d.regs.rax)}")
 # Write to memory
 d.memory[0x10ad, 8, "binary"] = b"Hello!\x00\x00"
 
-# Continue the execution
+# Continue the execution (non-blocking!)
 d.cont()
+# Wait for the process to stop
+d.wait()
+
+# Kill the process
+d.kill()
 ```
 
 The above script will run the binary `test` in the working directory and set two breakpoints: one at the function `function` and another at `function2`. 
@@ -150,6 +155,8 @@ d.cont()
 d.wait()
 
 d.gdb()
+
+d.kill()
 ```
 
 ## Auto Interrupt on Command
@@ -224,4 +231,3 @@ If you intend to use libdebug in your projects, you can also cite the software u
 	doi = {10.5281/zenodo.13151549},
 }
 ```
-

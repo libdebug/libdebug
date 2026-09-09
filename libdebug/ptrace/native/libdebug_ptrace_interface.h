@@ -8,12 +8,15 @@
 
 #include "libdebug_ptrace_base.h"
 #include "fp_regs_definition.h"
+#include <unordered_set>
 
 class LibdebugPtraceInterface
 {
 
 private:
     pid_t process_id;
+    std::map<pid_t, int> pending_child_stops;
+    std::unordered_set<pid_t> resumed_exits;
     bool handle_syscall;
     std::map<pid_t, Thread> threads, dead_threads;
     std::map<unsigned long, SoftwareBreakpoint> software_breakpoints;
@@ -43,8 +46,8 @@ private:
     void arch_check_if_hit_and_step_over();
 
     // Manage the waitpid and update the registers for all the threads
-    std::vector<std::pair<pid_t, int>> wait_all_and_update_regs_standard();
-    std::vector<std::pair<pid_t, int>> wait_all_and_update_regs_zombies();
+    ThreadStatusList wait_all_and_update_regs_standard();
+    ThreadStatusList wait_all_and_update_regs_zombies();
 
     // Others
     bool check_if_dl_trampoline(unsigned long);
@@ -78,9 +81,10 @@ public:
     void stepping_finish(const pid_t, const bool);
 
     // Debugger status and signal methods
-    std::vector<std::pair<pid_t, int>> wait_all_and_update_regs(const bool);
+    ThreadStatusList wait_all_and_update_regs(const bool);
     unsigned long get_thread_event_msg(const pid_t);
     void forward_signals(const std::vector<std::pair<pid_t, int>>);
+    unsigned long get_stop_event_extra_info(const pid_t, const int);
 
     // Debugger software breakpoint methods
     void register_breakpoint(const unsigned long);

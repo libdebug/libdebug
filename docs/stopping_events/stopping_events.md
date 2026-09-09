@@ -26,3 +26,10 @@ Before we dive into the different stopping events, it is important to understand
     In this example, the script should print `The process is not running`, since the `run()` command gives you control over a stopped process, ready to be debugged.
 
 To know more on how to wait for the process to stop or forcibly cause it to stop, please read about [control flow](../../basics/control_flow_commands/#continuing) commands.
+### Event hook mutation during dispatch
+
+Each pre-hook and post-hook phase snapshots its candidates when that phase
+begins. A callback may remove or disable a pending hook, preventing its
+invocation without skipping unrelated hooks. Hooks added during a phase first
+run on the next dispatch of that phase. Enabled state is checked immediately
+before invocation.

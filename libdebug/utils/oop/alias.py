@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -59,7 +59,7 @@ def check_alias(*alias_names: str) -> Callable:
     return decorator
 
 
-def check_aliased_property(*alias_names: str) -> Callable:
+def check_aliased_property(*alias_names: str) -> Callable[[Callable[..., Any]], property]:
     """Decorator to record alternate names for a property.
 
     It builds an AliasedProperty containing those aliases solely for
@@ -74,7 +74,7 @@ def check_aliased_property(*alias_names: str) -> Callable:
     if not alias_names:
         raise ValueError("aliased_property(): at least one alias name is required")
 
-    def decorator(func: Callable) -> AliasedProperty:
+    def decorator(func: Callable[..., Any]) -> AliasedProperty:
         """Create an AliasedProperty with the specified aliases."""
         prop = AliasedProperty(func, doc=func.__doc__)
         prop.__aliases__ = alias_names

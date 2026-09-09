@@ -9,6 +9,7 @@
 #include "libdebug_ptrace_base.h"
 
 #define BREAKPOINT_SIZE 1
+#define SW_BP_IP_ADJUST BREAKPOINT_SIZE
 #define IS_SW_BREAKPOINT(instruction) ((instruction & 0xff) == 0xCC)
 
 #define DR_BASE offsetof(struct user, u_debugreg[0])

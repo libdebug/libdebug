@@ -26,8 +26,13 @@ from libdebug.interfaces.debugging_interface import DebuggingInterface
 from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_native_interface_provider import provide_new_interface
 from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
+from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.debugging_utils import normalize_and_validate_address
-from libdebug.utils.elf_utils import get_entry_point
+from libdebug.utils.elf_utils import (
+    elf_architecture,
+    get_entry_point,
+    parse_elf_characteristics,
+)
 from libdebug.utils.platform_utils import get_platform_gp_register_size
 from libdebug.utils.process_utils import (
     disable_self_aslr,
@@ -301,8 +306,6 @@ class PtraceInterface(DebuggingInterface):
 
         self.lib_trace.step(thread.thread_id)
 
-        self._internal_debugger.resume_context.is_a_step = True
-
     def step_until(self: PtraceInterface, thread: ThreadContext, address: int, max_steps: int) -> None:
         """Executes instructions of the specified thread until the specified address is reached.
 
@@ -454,8 +457,8 @@ class PtraceInterface(DebuggingInterface):
             os.close(self.stdin_read)
             os.close(self.stdout_write)
             os.close(self.stderr_write)
-        except Exception as e:
-            raise Exception("Closing fds failed: %r", e) from e
+        except OSError as e:
+            raise RuntimeError(f"Closing fds failed: {e!r}") from e
 
         return PipeManager(
             self._internal_debugger,
@@ -467,9 +470,9 @@ class PtraceInterface(DebuggingInterface):
     def _setup_parent(self: PtraceInterface, continue_to_entry_point: bool) -> None:
         """Sets up the parent process after the child process has been created or attached to."""
         liblog.debugger("Polling child process status")
-        self._internal_debugger.resume_context.is_startup = True
+        self._internal_debugger.resume_context._is_startup = True
         self.wait()
-        self._internal_debugger.resume_context.is_startup = False
+        self._internal_debugger.resume_context._is_startup = False
         liblog.debugger("Child process ready, setting options")
         self._set_options()
         liblog.debugger("Options set")
@@ -572,7 +575,7 @@ class PtraceInterface(DebuggingInterface):
         register_file, fp_register_file = self.lib_trace.register_thread(new_thread_id)
 
         register_holder = register_holder_provider(self._internal_debugger.arch, register_file, fp_register_file)
-        ThreadContextImplementation = thread_context_class_provider(self._internal_debugger.arch) # noqa: N806
+        ThreadContextImplementation = thread_context_class_provider(self._internal_debugger.arch)
         thread = ThreadContextImplementation(new_thread_id, register_holder, self._internal_debugger)
 
         self._internal_debugger.insert_new_thread(thread)
@@ -586,6 +589,19 @@ class PtraceInterface(DebuggingInterface):
                     int.from_bytes(bp.condition.encode(), sys.byteorder),
                     bp.length,
                 )
+
+    def refresh_exec_architecture(self: PtraceInterface) -> None:
+        """Rebind the surviving context to the new executable's register views."""
+        # /proc/PID/exe names a different image after each exec.
+        parse_elf_characteristics.cache_clear()
+        architecture = map_arch(elf_architecture(f"/proc/{self.process_id}/exe"))
+        self._internal_debugger.arch = architecture
+        thread = self._internal_debugger.threads[0]
+        register_file, fp_register_file = self.lib_trace.register_thread(thread.thread_id)
+        holder = register_holder_provider(architecture, register_file, fp_register_file)
+        implementation = thread_context_class_provider(architecture)
+        thread.__class__ = implementation
+        implementation.__init__(thread, thread.thread_id, holder, self._internal_debugger)
 
     def unregister_thread(
         self: PtraceInterface,

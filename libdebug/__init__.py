@@ -14,14 +14,14 @@ With libdebug you have full control of your debugged executable:
 - Debug on Linux systems based on AMD64, AArch64, and i386
 
 Classes:
-    Debugger: The main debugger class that provides all methods to run and interact with processes.
+    Debugger: The main debugger class, composed of mixins, that provides all methods to run and interact with processes.
     Breakpoint: Represents a breakpoint that can be set in the debugged process.
     SignalCatcher: Handles signal catching and hijacking functionality.
     SyscallHandler: Manages system call handling and hijacking.
     ThreadContext: Provides access to thread-specific information and state.
 
 Functions:
-    debugger: Factory function to create a Debugger instance with the specified configuration.
+    debugger: Factory function to create a Debugger instance (or subclass via `cls`) with the specified configuration. Prefer this over instantiating Debugger directly (constructor expects an InternalDebugger for mixin composition).
 
 Objects:
     libcontext: Singleton configuration object for libdebug settings and terminal configuration.
@@ -58,11 +58,25 @@ else:
     install()
 
 from libdebug.data.breakpoint import Breakpoint
+from libdebug.data.event_hook import EventHook
+from libdebug.data.event_type import EventType
 from libdebug.data.signal_catcher import SignalCatcher
 from libdebug.data.syscall_handler import SyscallHandler
 from libdebug.debugger.debugger import Debugger
 from libdebug.libdebug import debugger
+from libdebug.state.resume_context import ResumeContext
 from libdebug.state.thread_context import ThreadContext
 from libdebug.utils.libcontext import libcontext
 
-__all__ = ["Breakpoint", "Debugger", "SignalCatcher", "SyscallHandler", "ThreadContext", "debugger", "libcontext"]
+__all__ = [
+    "Breakpoint",
+    "Debugger",
+    "EventHook",
+    "EventType",
+    "ResumeContext",
+    "SignalCatcher",
+    "SyscallHandler",
+    "ThreadContext",
+    "debugger",
+    "libcontext",
+]
