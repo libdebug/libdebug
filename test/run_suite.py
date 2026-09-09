@@ -34,6 +34,7 @@ def fast_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.EventDispatchTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.StopOptionsTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.ExecSignalTest))
+    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.ExecWaitTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.FindPointersTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.FinishTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.FloatingPointTest))

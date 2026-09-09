@@ -133,7 +133,6 @@ Thread& LibdebugPtraceInterface::try_get_thread(const pid_t tid)
 LibdebugPtraceInterface::LibdebugPtraceInterface(PtraceFPRegsStructDefinition definition)
 : fpregs_definition(definition),
   process_id(-1),
-  group_id(-1),
   handle_syscall(false)
 {
 }
@@ -145,7 +144,7 @@ void LibdebugPtraceInterface::cleanup()
     software_breakpoints.clear();
 
     process_id = -1;
-    group_id = -1;
+    pending_child_stops.clear();
     handle_syscall = false;
 }
 
@@ -163,9 +162,7 @@ std::pair<std::shared_ptr<PtraceRegsStruct>, std::shared_ptr<PtraceFPRegsStruct>
         process_id = tid;
     }
 
-    if (group_id == -1) {
-        group_id = getpgid(tid);
-    }
+    pending_child_stops.erase(tid);
 
     Thread t;
     t.tid = tid;
@@ -261,7 +258,9 @@ void LibdebugPtraceInterface::detach_from_child(pid_t pid, bool follow_child)
 {  
     // the child will be in trace stop, we need to sync with it
     int status;
-    waitpid(pid, &status, 0);
+    if (pending_child_stops.erase(pid) == 0) {
+        while (waitpid(pid, &status, __WALL | __WNOTHREAD) == -1 && errno == EINTR) {}
+    }
 
     if (follow_child){
         // send a SIGSTOP to the process to avoid the process to run after the detach
@@ -589,40 +588,20 @@ ThreadStatusList LibdebugPtraceInterface::wait_all_and_update_regs_standard()
 
     int tid, status;
 
-    siginfo_t info{};
-
-    // Wait (non-destructively, because of WNOWAIT) for *any* child in that PGID.
-    // This avoids to burn CPU with the while loop before any event is ready.
-    // However, waiting for any child in the PGID can create some edge cases.
-    // For example, in multiprocess scenarios, we might get events from the other process
-    // that is, however, debugged by another instance of this debugger.
-    if (waitid(P_PGID, group_id, &info, WEXITED | WSTOPPED | WCONTINUED | WNOWAIT) == -1) {
-        throw std::runtime_error("waitid failed");
-    }
-
-    // We cannot assume that the event we received is from a thread we are actually debugging
-    // in this debugger instance. Poll for events from all threads. This will burn CPU cycles.
-    // Hence, if the previous waitid returned an event from a thread/process we are not debugging 
-    // (e.g., child process), we will burn CPU cycles until we receive an event from a thread we 
-    // are debugging. This is not ideal, but it is necessary to ensure we don't miss any events. 
-    // Waiting for a better solution one day (pidfd???)
-    while (true) {
-        // Check if any thread has finished
-        bool anyFinished = std::any_of(threads.begin(), threads.end(), [&](auto &t) {
-            tid = waitpid(t.first, &status, WNOHANG);
-            return (tid != 0);
-        });
-
-        if (anyFinished) {
-            break;
+    // Ptrace ownership belongs to the polling thread, not to a process group.
+    // Keep initial child stops until the parent event registers or detaches them.
+    do {
+        do {
+            tid = waitpid(-1, &status, __WALL | __WNOTHREAD);
+        } while (tid == -1 && errno == EINTR);
+        if (tid == -1) {
+            throw std::runtime_error("waitpid failed");
         }
-    }
-
-    if (tid == -1) {
-        throw std::runtime_error("waitpid failed");
-    }
-
-    thread_statuses.push_back({tid, status, get_stop_event_extra_info(tid, status)});
+        thread_statuses.push_back({tid, status, get_stop_event_extra_info(tid, status)});
+        if (threads.find(tid) == threads.end()) {
+            pending_child_stops[tid] = status;
+        }
+    } while (threads.find(tid) == threads.end());
 
     // We must interrupt all the other threads with a SIGSTOP
     int temp_tid, temp_status;
