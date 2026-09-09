@@ -112,6 +112,32 @@ release behavior are preserved. LTO and nanobind's default size optimization
 remain enabled; forcing `NOMINSIZE` did not consistently improve the measured
 register, symbol and breakpoint workloads.
 
+The internal ptrace and symbol functions accept positional arguments, enabling
+nanobind's [fast dispatcher](https://nanobind.readthedocs.io/en/latest/functions.html#binding-overheads).
+Constructor argument names remain available for the FP layout provider's
+keyword calls. Hot bindings have no default arguments, nullable arguments,
+overload chains or variable argument lists. Indexed FP methods use unnamed
+`nb::arg().noconvert()` annotations for integer indices and `bytes` payloads.
+The public Python debugger and register APIs retain their signatures.
+
+FP access reads or writes one register as bytes instead of converting an entire
+register bank and its byte values into Python lists. Reads return owned,
+immutable storage; writes check the index and exact byte count before copying.
+Symbol parsing moves the collected vector into its result instead of copying
+every symbol. `SymbolVector` remains a bound container, preserving iteration
+without converting the whole vector into a Python list.
+
+STL conversions remain appropriate for small, fully consumed wait-status and
+signal collections. Shared register ownership and reference lifetime policies
+remain necessary because Python register objects can outlive their interface.
+Blocking waits retain their GIL release; adding release/acquire overhead to
+short register accessors would not help. Features for callbacks, trampolines,
+arrays and custom casters are not needed by these bindings. Class freezing is
+not enabled: its dispatch benefit targets Python 3.15+, and it changes class
+mutability. These choices follow the
+[data exchange guidance](https://nanobind.readthedocs.io/en/latest/exchanging.html)
+and preserve the supported Python 3.10+ behavior.
+
 ### :octicons-gear-24: Build Options
 
 There are some configurable build options that can be set during the installation process, to avoid linking against certain libraries or to enable/disable specific features. These options can be set using environment variables before running the installation command.

@@ -64,14 +64,14 @@ def _get_property_fp_st(name: str, index: int) -> property:
         self._internal_debugger._ensure_process_stopped_regs()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        return c_longdouble.from_buffer_copy(bytes(self._fp_register_file.mmx[index].data)).value
+        return c_longdouble.from_buffer_copy(self._fp_register_file.get_mmx(index)).value
 
     def setter(self: I386Registers, value: float) -> None:
         self._internal_debugger._ensure_process_stopped_regs()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         # Only difference from the amd64 version is the padding to 16 bytes
-        self._fp_register_file.mmx[index].data = bytes(c_longdouble(value)).ljust(16, b"\x00")
+        self._fp_register_file.set_mmx(index, bytes(c_longdouble(value)).ljust(16, b"\x00"))
         self._fp_register_file.dirty = True
 
     return property(getter, setter, None, name)
@@ -87,7 +87,7 @@ def _get_property_legacy_fp_st(name: str, index: int) -> property:
             self._internal_debugger._fetch_fp_registers(self)
         # legacy_st_space is a 10-byte wide array
         return c_longdouble.from_buffer_copy(
-            bytes(self._fp_register_file.legacy_st_space[index].data).ljust(12, b"\x00"),
+            self._fp_register_file.get_legacy_st_space(index).ljust(12, b"\x00"),
         ).value
 
     def setter(self: I386Registers, value: float) -> None:
@@ -95,7 +95,7 @@ def _get_property_legacy_fp_st(name: str, index: int) -> property:
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         # Cut it to then bytes, as the last 2 bytes are padding
-        self._fp_register_file.legacy_st_space[index].data = bytes(c_longdouble(value))[:10]
+        self._fp_register_file.set_legacy_st_space(index, bytes(c_longdouble(value))[:10])
         self._fp_register_file.dirty = True
 
     return property(getter, setter, None, name)
@@ -106,13 +106,13 @@ def _get_property_legacy_fp_mmx(name: str, index: int) -> property:
         self._internal_debugger._ensure_process_stopped_regs()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        return int.from_bytes(self._fp_register_file.legacy_st_space[index].data, "little") & ((1 << 64) - 1)
+        return int.from_bytes(self._fp_register_file.get_legacy_st_space(index), "little") & ((1 << 64) - 1)
 
     def setter(self: I386Registers, value: int) -> None:
         self._internal_debugger._ensure_process_stopped_regs()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        self._fp_register_file.legacy_st_space[index].data = (value & ((1 << 64) - 1)).to_bytes(10, "little")
+        self._fp_register_file.set_legacy_st_space(index, (value & ((1 << 64) - 1)).to_bytes(10, "little"))
         self._fp_register_file.dirty = True
 
     return property(getter, setter, None, name)

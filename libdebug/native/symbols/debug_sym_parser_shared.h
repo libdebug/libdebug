@@ -12,5 +12,5 @@
 
 #include "debug_sym_structs.h"
 
-const ElfInfo read_elf_info(const std::string &, const int);
+ElfInfo read_elf_info(const std::string &, const int);
 SymbolVector collect_external_symbols(const std::string &, const int);

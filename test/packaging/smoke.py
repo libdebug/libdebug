@@ -2,6 +2,7 @@
 
 import ast
 import importlib
+import platform
 import sys
 from pathlib import Path
 
@@ -26,6 +27,18 @@ d = debugger([sys.executable, "-c", "print('nanobind-wheel')"])
 try:
     pipe = d.run()
     assert d.instruction_pointer > 0
+    fp = d.threads[0]._register_holder.fp_register_file
+    bank = "vregs" if platform.machine() == "aarch64" else (
+        "xmm0" if fp.has_xsave else "legacy_st_space"
+    )
+    read = getattr(fp, f"get_{bank}")
+    write = getattr(fp, f"set_{bank}")
+    width = len(getattr(fp, bank)[0].data)
+    value = bytes(range(width))
+    write(0, value)
+    assert read(0) == value
+    # This tests the native buffer without flushing synthetic state to the process.
+    assert not fp.dirty
     d.cont()
     assert pipe.recvline() == b"nanobind-wheel"
     d.wait()

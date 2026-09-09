@@ -1,3 +1,4 @@
 - Upgrade native bindings to nanobind 3, with one CPython 3.10+ split wheel per supported glibc x86_64/AArch64 platform and linked wheels for i386 and Alpine.
 - Verify generated stubs, wheel contents, ABI compatibility and native object lifetimes across supported Python versions.
 - Resolve packaged helper executables correctly in clean editable installations.
+- Reduce native dispatch and FP register conversion overhead, and avoid copying collected symbols into parser results.

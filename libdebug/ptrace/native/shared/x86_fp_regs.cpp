@@ -75,10 +75,10 @@ std::array<Reg128, 8> &PtraceFPRegsStruct::mmx()
     return *reinterpret_cast<std::array<Reg128, 8>*>(static_cast<char*>(fpregs_area) + MMX_OFFSET);
 }
 
-std::array<Reg80, 10> &PtraceFPRegsStruct::legacy_st_space()
+std::array<Reg80, 8> &PtraceFPRegsStruct::legacy_st_space()
 {
     // The st_space is located at the start of the fpregs area
-    return *reinterpret_cast<std::array<Reg80, 10>*>(static_cast<char*>(fpregs_area) + MMX_LEGACY_OFFSET);
+    return *reinterpret_cast<std::array<Reg80, 8>*>(static_cast<char*>(fpregs_area) + MMX_LEGACY_OFFSET);
 }
 
 std::array<Reg128, 16> &PtraceFPRegsStruct::xmm0()

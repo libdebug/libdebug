@@ -6,6 +6,7 @@
 
 #include "libdebug_ptrace_interface.h"
 #include "aarch64_ptrace.h"
+#include "fp_register_bytes.h"
 
 #include <elf.h>
 #include <sys/ptrace.h>
@@ -345,10 +346,12 @@ void init_libdebug_ptrace_registers(nb::module_ &m) {
         .def_rw("pstate", &PtraceRegsStruct::pstate)
         .def_rw("override_syscall_number", &PtraceRegsStruct::override_syscall_number);
 
-    nb::class_<PtraceFPRegsStruct>(m, "PtraceFPRegsStruct")
+    auto cls = nb::class_<PtraceFPRegsStruct>(m, "PtraceFPRegsStruct");
+    cls
         .def_prop_rw("dirty", &PtraceFPRegsStruct::is_dirty, &PtraceFPRegsStruct::set_dirty)
         .def_prop_rw("fresh", &PtraceFPRegsStruct::is_fresh, &PtraceFPRegsStruct::set_fresh)
         .def_ro("vregs", &PtraceFPRegsStruct::vregs)
         .def_rw("fpsr", &PtraceFPRegsStruct::fpsr)
         .def_rw("fpcr", &PtraceFPRegsStruct::fpcr);
+    bind_fp_register_bytes<&PtraceFPRegsStruct::vregs>(cls, "get_vregs", "set_vregs");
 }

@@ -843,7 +843,6 @@ NB_MODULE(libdebug_ptrace_binding, m)
         .def(
             "register_thread",
             &LibdebugPtraceInterface::register_thread,
-            nb::arg("tid"),
             "Registers a new thread that must be debugged.\n"
             "\n"
             "Args:\n"
@@ -855,7 +854,6 @@ NB_MODULE(libdebug_ptrace_binding, m)
         .def(
             "unregister_thread",
             &LibdebugPtraceInterface::unregister_thread,
-            nb::arg("tid"),
             "Unregisters a thread that was previously registered.\n"
             "\n"
             "Args:\n"
@@ -864,7 +862,6 @@ NB_MODULE(libdebug_ptrace_binding, m)
         .def(
             "attach",
             &LibdebugPtraceInterface::attach,
-            nb::arg("tid"),
             "Attaches to a process for debugging.\n"
             "\n"
             "Args:\n"
@@ -891,8 +888,6 @@ NB_MODULE(libdebug_ptrace_binding, m)
         .def(
             "detach_from_child",
             &LibdebugPtraceInterface::detach_from_child,
-            nb::arg("pid"),
-            nb::arg("follow_child"),
             "Detaches from a specific child process.\n"
             "\n"
             "Args:\n"
@@ -907,7 +902,6 @@ NB_MODULE(libdebug_ptrace_binding, m)
         .def(
             "get_event_msg",
             &LibdebugPtraceInterface::get_thread_event_msg,
-            nb::arg("tid"),
             "Gets an event message for a thread.\n"
             "\n"
             "Args:\n"
@@ -919,7 +913,6 @@ NB_MODULE(libdebug_ptrace_binding, m)
         .def(
             "wait_all_and_update_regs",
             &LibdebugPtraceInterface::wait_all_and_update_regs,
-            nb::arg("all_zombies"),
             nb::call_guard<nb::gil_scoped_release>(),
             "Waits for any thread to stop, interrupts all the others and updates the registers.\n"
             "\n"
@@ -932,7 +925,6 @@ NB_MODULE(libdebug_ptrace_binding, m)
         .def(
             "cont_all_and_set_bps",
             &LibdebugPtraceInterface::cont_all_and_set_bps,
-            nb::arg("handle_syscalls"),
             "Sets the breakpoints and continues all the threads.\n"
             "\n"
             "Args:\n"
@@ -941,7 +933,6 @@ NB_MODULE(libdebug_ptrace_binding, m)
         .def(
             "step",
             &LibdebugPtraceInterface::step,
-            nb::arg("tid"),
             "Steps a thread by one instruction.\n"
             "\n"
             "Args:\n"
@@ -950,9 +941,6 @@ NB_MODULE(libdebug_ptrace_binding, m)
         .def(
             "step_until",
             &LibdebugPtraceInterface::step_until,
-            nb::arg("tid"),
-            nb::arg("addr"),
-            nb::arg("max_steps"),
             "Steps a thread until a specific address is reached, or for a maximum amount of steps.\n"
             "\n"
             "Args:\n"
@@ -963,8 +951,6 @@ NB_MODULE(libdebug_ptrace_binding, m)
         .def(
             "stepping_finish",
             &LibdebugPtraceInterface::stepping_finish,
-            nb::arg("tid"),
-            nb::arg("use_trampoline_heuristic"),
             "Runs a thread until the end of the current function call, by single-stepping it.\n"
             "\n"
             "Args:\n"
@@ -974,7 +960,6 @@ NB_MODULE(libdebug_ptrace_binding, m)
         .def(
             "forward_signals",
             &LibdebugPtraceInterface::forward_signals,
-            nb::arg("signals"),
             "Forwards signals to the threads.\n"
             "\n"
             "Args:\n"
@@ -983,7 +968,6 @@ NB_MODULE(libdebug_ptrace_binding, m)
         .def(
             "get_remaining_hw_breakpoint_count",
             &LibdebugPtraceInterface::get_remaining_hw_breakpoint_count,
-            nb::arg("tid"),
             "Gets the remaining hardware breakpoint count for a thread.\n"
             "\n"
             "Args:\n"
@@ -992,7 +976,6 @@ NB_MODULE(libdebug_ptrace_binding, m)
         .def(
             "get_remaining_hw_watchpoint_count",
             &LibdebugPtraceInterface::get_remaining_hw_watchpoint_count,
-            nb::arg("tid"),
             "Gets the remaining hardware watchpoint count for a thread.\n"
             "\n"
             "Args:\n"
@@ -1001,10 +984,6 @@ NB_MODULE(libdebug_ptrace_binding, m)
         .def(
             "register_hw_breakpoint",
             &LibdebugPtraceInterface::register_hw_breakpoint,
-            nb::arg("tid"),
-            nb::arg("address"),
-            nb::arg("type"),
-            nb::arg("len"),
             "Registers a hardware breakpoint for a thread.\n"
             "\n"
             "Args:\n"
@@ -1016,8 +995,6 @@ NB_MODULE(libdebug_ptrace_binding, m)
         .def(
             "unregister_hw_breakpoint",
             &LibdebugPtraceInterface::unregister_hw_breakpoint,
-            nb::arg("tid"),
-            nb::arg("address"),
             "Unregisters a hardware breakpoint for a thread.\n"
             "\n"
             "Args:\n"
@@ -1027,7 +1004,6 @@ NB_MODULE(libdebug_ptrace_binding, m)
         .def(
             "get_hit_hw_breakpoint",
             &LibdebugPtraceInterface::get_hit_hw_breakpoint,
-            nb::arg("tid"),
             "Gets the address of the hardware breakpoint hit by a specific thread, if any.\n"
             "\n"
             "Args:\n"
@@ -1039,7 +1015,6 @@ NB_MODULE(libdebug_ptrace_binding, m)
         .def(
             "register_breakpoint",
             &LibdebugPtraceInterface::register_breakpoint,
-            nb::arg("address"),
             "Registers a software breakpoint at a specific address.\n"
             "\n"
             "Args:\n"
@@ -1048,7 +1023,6 @@ NB_MODULE(libdebug_ptrace_binding, m)
         .def(
             "unregister_breakpoint",
             &LibdebugPtraceInterface::unregister_breakpoint,
-            nb::arg("address"),
             "Unregisters a software breakpoint at a specific address.\n"
             "\n"
             "Args:\n"
@@ -1057,7 +1031,6 @@ NB_MODULE(libdebug_ptrace_binding, m)
         .def(
             "enable_breakpoint",
             &LibdebugPtraceInterface::enable_breakpoint,
-            nb::arg("address"),
             "Enables a previously registered software breakpoint at a specific address.\n"
             "\n"
             "Args:\n"
@@ -1066,7 +1039,6 @@ NB_MODULE(libdebug_ptrace_binding, m)
         .def(
             "disable_breakpoint",
             &LibdebugPtraceInterface::disable_breakpoint,
-            nb::arg("address"),
             "Disables a previously registered software breakpoint at a specific address.\n"
             "\n"
             "Args:\n"
@@ -1080,7 +1052,6 @@ NB_MODULE(libdebug_ptrace_binding, m)
         .def(
             "get_fp_regs",
             &LibdebugPtraceInterface::get_fp_regs,
-            nb::arg("tid"),
             "Refreshes the floating point registers for a thread.\n"
             "\n"
             "Args:\n"
@@ -1089,7 +1060,6 @@ NB_MODULE(libdebug_ptrace_binding, m)
         .def(
             "peek_data",
             &LibdebugPtraceInterface::peek_data,
-            nb::arg("addr"),
             "Peeks memory from a specific address.\n"
             "\n"
             "Args:\n"
@@ -1101,8 +1071,6 @@ NB_MODULE(libdebug_ptrace_binding, m)
         .def(
             "poke_data",
             &LibdebugPtraceInterface::poke_data,
-            nb::arg("addr"),
-            nb::arg("data"),
             "Pokes memory at a specific address.\n"
             "\n"
             "Args:\n"

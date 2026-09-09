@@ -16,6 +16,7 @@
 #include <dwarf.h>
 #include <libdwarf.h>
 #include <libelf.h>
+#include <utility>
 
 void add_symbol_info(SymbolVector &symbols, const char *name, const Dwarf_Addr low_pc, const Dwarf_Addr high_pc)
 {
@@ -137,7 +138,7 @@ std::pair<const std::string, const std::string> read_build_id_and_filename(Elf *
     return std::make_pair(build_id_str, debuglink_str);
 }
 
-const ElfInfo read_elf_info(const std::string &elf_file_path, const int debug_info_level)
+ElfInfo read_elf_info(const std::string &elf_file_path, const int debug_info_level)
 {
     int fd;
     Elf *elf;
@@ -186,7 +187,7 @@ const ElfInfo read_elf_info(const std::string &elf_file_path, const int debug_in
     elf_end(elf);
     close(fd);
 
-    return {build_id, debug_file_path, symbols};
+    return {std::move(build_id), std::move(debug_file_path), std::move(symbols)};
 }
 
 SymbolVector collect_external_symbols(const std::string &debug_file_path, const int debug_info_level)

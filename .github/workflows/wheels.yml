@@ -356,9 +356,14 @@ jobs:
       - name: Check installed stubs
         run: |
           cp test/packaging/typing_consumer.py "$RUNNER_TEMP/typing_consumer.py"
+          if [ "${{ runner.arch }}" = "X64" ]; then
+            cp test/packaging/typing_x86.py "$RUNNER_TEMP/typing_fp.py"
+          else
+            cp test/packaging/typing_aarch64.py "$RUNNER_TEMP/typing_fp.py"
+          fi
           cd "$RUNNER_TEMP"
-          python -m mypy --follow-imports=silent typing_consumer.py
-          pyright --pythonpath "$(command -v python)" typing_consumer.py
+          python -m mypy --follow-imports=silent typing_consumer.py typing_fp.py
+          pyright --pythonpath "$(command -v python)" typing_consumer.py typing_fp.py
       - name: Test installed wheel
         run: |
           cd test

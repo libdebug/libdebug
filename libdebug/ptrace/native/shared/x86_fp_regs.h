@@ -10,6 +10,7 @@
 #include <nanobind/stl/array.h>
 
 #include "fp_regs_definition.h"
+#include "fp_register_bytes.h"
 #include "libdebug_ptrace_base.h"
 
 namespace nb = nanobind;
@@ -39,7 +40,7 @@ class PtraceFPRegsStruct
         bool has_xsave();
 
         std::array<Reg128, 8> &mmx();
-        std::array<Reg80, 10> &legacy_st_space();
+        std::array<Reg80, 8> &legacy_st_space();
         std::array<Reg128, 16> &xmm0();
         std::array<Reg128, 16> &ymm0();
         std::array<Reg256, 16> &zmm0();
@@ -49,7 +50,8 @@ class PtraceFPRegsStruct
 #ifdef DECLARE_NANOBIND
 void init_fpregs_struct(nanobind::module_ &m)
 {
-    nb::class_<PtraceFPRegsStruct>(m, "PtraceFPRegsStruct")
+    auto cls = nb::class_<PtraceFPRegsStruct>(m, "PtraceFPRegsStruct");
+    cls
         .def_prop_ro("type", &PtraceFPRegsStruct::get_type, "The type of the fpregs struct.")
         .def_prop_rw("dirty", &PtraceFPRegsStruct::is_dirty, &PtraceFPRegsStruct::set_dirty, "Whether the fpregs struct is dirty (needs to be written back).")
         .def_prop_rw("fresh", &PtraceFPRegsStruct::is_fresh, &PtraceFPRegsStruct::set_fresh, "Whether the fpregs struct is fresh (has been read from the process).")
@@ -60,5 +62,11 @@ void init_fpregs_struct(nanobind::module_ &m)
         .def_prop_ro("ymm0", &PtraceFPRegsStruct::ymm0, "The YMM0 registers as an array of Reg128.")
         .def_prop_ro("zmm0", &PtraceFPRegsStruct::zmm0, "The ZMM0 registers as an array of Reg256.")
         .def_prop_ro("zmm1", &PtraceFPRegsStruct::zmm1, "The ZMM1 registers as an array of Reg512.");
+    bind_fp_register_bytes<&PtraceFPRegsStruct::mmx>(cls, "get_mmx", "set_mmx");
+    bind_fp_register_bytes<&PtraceFPRegsStruct::legacy_st_space>(cls, "get_legacy_st_space", "set_legacy_st_space");
+    bind_fp_register_bytes<&PtraceFPRegsStruct::xmm0>(cls, "get_xmm0", "set_xmm0");
+    bind_fp_register_bytes<&PtraceFPRegsStruct::ymm0>(cls, "get_ymm0", "set_ymm0");
+    bind_fp_register_bytes<&PtraceFPRegsStruct::zmm0>(cls, "get_zmm0", "set_zmm0");
+    bind_fp_register_bytes<&PtraceFPRegsStruct::zmm1>(cls, "get_zmm1", "set_zmm1");
 }
 #endif // DECLARE_NANOBIND

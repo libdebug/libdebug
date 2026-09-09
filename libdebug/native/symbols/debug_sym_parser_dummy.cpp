@@ -6,7 +6,7 @@
 
 #include "debug_sym_parser_shared.h"
 
-const ElfInfo read_elf_info(const std::string &name, const int)
+ElfInfo read_elf_info(const std::string &name, const int)
 {
     // This function is intentionally left empty as a placeholder.
     // It should be implemented in the actual codebase.

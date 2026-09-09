@@ -123,14 +123,14 @@ def _get_property_fp_xmm0(name: str, index: int) -> property:
         self._internal_debugger._ensure_process_stopped_regs()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        return int.from_bytes(self._fp_register_file.xmm0[index].data, "little")
+        return int.from_bytes(self._fp_register_file.get_xmm0(index), "little")
 
     def setter(self: Amd64Registers, value: int) -> None:
         self._internal_debugger._ensure_process_stopped_regs()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         data = value.to_bytes(16, "little")
-        self._fp_register_file.xmm0[index].data = data
+        self._fp_register_file.set_xmm0(index, data)
         self._fp_register_file.dirty = True
 
     return property(getter, setter, None, name)
@@ -141,8 +141,8 @@ def _get_property_fp_ymm0(name: str, index: int) -> property:
         self._internal_debugger._ensure_process_stopped_regs()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        xmm0 = int.from_bytes(self._fp_register_file.xmm0[index].data, "little")
-        ymm0 = int.from_bytes(self._fp_register_file.ymm0[index].data, "little")
+        xmm0 = int.from_bytes(self._fp_register_file.get_xmm0(index), "little")
+        ymm0 = int.from_bytes(self._fp_register_file.get_ymm0(index), "little")
         return (ymm0 << 128) | xmm0
 
     def setter(self: Amd64Registers, value: int) -> None:
@@ -151,8 +151,8 @@ def _get_property_fp_ymm0(name: str, index: int) -> property:
             self._internal_debugger._fetch_fp_registers(self)
         new_xmm0 = value & ((1 << 128) - 1)
         new_ymm0 = value >> 128
-        self._fp_register_file.xmm0[index].data = new_xmm0.to_bytes(16, "little")
-        self._fp_register_file.ymm0[index].data = new_ymm0.to_bytes(16, "little")
+        self._fp_register_file.set_xmm0(index, new_xmm0.to_bytes(16, "little"))
+        self._fp_register_file.set_ymm0(index, new_ymm0.to_bytes(16, "little"))
         self._fp_register_file.dirty = True
 
     return property(getter, setter, None, name)
@@ -163,9 +163,9 @@ def _get_property_fp_zmm0(name: str, index: int) -> property:
         self._internal_debugger._ensure_process_stopped_regs()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        zmm0 = int.from_bytes(self._fp_register_file.zmm0[index].data, "little")
-        ymm0 = int.from_bytes(self._fp_register_file.ymm0[index].data, "little")
-        xmm0 = int.from_bytes(self._fp_register_file.xmm0[index].data, "little")
+        zmm0 = int.from_bytes(self._fp_register_file.get_zmm0(index), "little")
+        ymm0 = int.from_bytes(self._fp_register_file.get_ymm0(index), "little")
+        xmm0 = int.from_bytes(self._fp_register_file.get_xmm0(index), "little")
         return (zmm0 << 256) | (ymm0 << 128) | xmm0
 
     def setter(self: Amd64Registers, value: int) -> None:
@@ -175,9 +175,9 @@ def _get_property_fp_zmm0(name: str, index: int) -> property:
         new_xmm0 = value & ((1 << 128) - 1)
         new_ymm0 = (value >> 128) & ((1 << 128) - 1)
         new_zmm0 = value >> 256
-        self._fp_register_file.xmm0[index].data = new_xmm0.to_bytes(16, "little")
-        self._fp_register_file.ymm0[index].data = new_ymm0.to_bytes(16, "little")
-        self._fp_register_file.zmm0[index].data = new_zmm0.to_bytes(32, "little")
+        self._fp_register_file.set_xmm0(index, new_xmm0.to_bytes(16, "little"))
+        self._fp_register_file.set_ymm0(index, new_ymm0.to_bytes(16, "little"))
+        self._fp_register_file.set_zmm0(index, new_zmm0.to_bytes(32, "little"))
         self._fp_register_file.dirty = True
 
     return property(getter, setter, None, name)
@@ -188,7 +188,7 @@ def _get_property_fp_xmm1(name: str, index: int) -> property:
         self._internal_debugger._ensure_process_stopped_regs()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        zmm1 = int.from_bytes(self._fp_register_file.zmm1[index].data, "little")
+        zmm1 = int.from_bytes(self._fp_register_file.get_zmm1(index), "little")
         return zmm1 & ((1 << 128) - 1)
 
     def setter(self: Amd64Registers, value: int) -> None:
@@ -196,10 +196,10 @@ def _get_property_fp_xmm1(name: str, index: int) -> property:
         self._internal_debugger._ensure_process_stopped_regs()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        previous_value = int.from_bytes(self._fp_register_file.zmm1[index].data, "little")
+        previous_value = int.from_bytes(self._fp_register_file.get_zmm1(index), "little")
 
         new_value = (previous_value & ~((1 << 128) - 1)) | (value & ((1 << 128) - 1))
-        self._fp_register_file.zmm1[index].data = new_value.to_bytes(64, "little")
+        self._fp_register_file.set_zmm1(index, new_value.to_bytes(64, "little"))
         self._fp_register_file.dirty = True
 
     return property(getter, setter, None, name)
@@ -210,7 +210,7 @@ def _get_property_fp_ymm1(name: str, index: int) -> property:
         self._internal_debugger._ensure_process_stopped_regs()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        zmm1 = int.from_bytes(self._fp_register_file.zmm1[index].data, "little")
+        zmm1 = int.from_bytes(self._fp_register_file.get_zmm1(index), "little")
         return zmm1 & ((1 << 256) - 1)
 
     def setter(self: Amd64Registers, value: int) -> None:
@@ -218,10 +218,10 @@ def _get_property_fp_ymm1(name: str, index: int) -> property:
         self._internal_debugger._ensure_process_stopped_regs()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        previous_value = int.from_bytes(self._fp_register_file.zmm1[index].data, "little")
+        previous_value = int.from_bytes(self._fp_register_file.get_zmm1(index), "little")
 
         new_value = (previous_value & ~((1 << 256) - 1)) | (value & ((1 << 256) - 1))
-        self._fp_register_file.zmm1[index].data = new_value.to_bytes(64, "little")
+        self._fp_register_file.set_zmm1(index, new_value.to_bytes(64, "little"))
         self._fp_register_file.dirty = True
 
     return property(getter, setter, None, name)
@@ -232,13 +232,13 @@ def _get_property_fp_zmm1(name: str, index: int) -> property:
         self._internal_debugger._ensure_process_stopped_regs()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        return int.from_bytes(self._fp_register_file.zmm1[index].data, "little")
+        return int.from_bytes(self._fp_register_file.get_zmm1(index), "little")
 
     def setter(self: Amd64Registers, value: int) -> None:
         self._internal_debugger._ensure_process_stopped_regs()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        self._fp_register_file.zmm1[index].data = value.to_bytes(64, "little")
+        self._fp_register_file.set_zmm1(index, value.to_bytes(64, "little"))
         self._fp_register_file.dirty = True
 
     return property(getter, setter, None, name)
@@ -249,13 +249,13 @@ def _get_property_fp_mmx(name: str, index: int) -> property:
         self._internal_debugger._ensure_process_stopped_regs()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        return int.from_bytes(self._fp_register_file.mmx[index].data, "little") & ((1 << 64) - 1)
+        return int.from_bytes(self._fp_register_file.get_mmx(index), "little") & ((1 << 64) - 1)
 
     def setter(self: Amd64Registers, value: int) -> None:
         self._internal_debugger._ensure_process_stopped_regs()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        self._fp_register_file.mmx[index].data = (value & ((1 << 64) - 1)).to_bytes(16, "little")
+        self._fp_register_file.set_mmx(index, (value & ((1 << 64) - 1)).to_bytes(16, "little"))
         self._fp_register_file.dirty = True
 
     return property(getter, setter, None, name)
@@ -269,13 +269,13 @@ def _get_property_fp_st(name: str, index: int) -> property:
         self._internal_debugger._ensure_process_stopped_regs()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        return c_longdouble.from_buffer_copy(bytes(self._fp_register_file.mmx[index].data)).value
+        return c_longdouble.from_buffer_copy(self._fp_register_file.get_mmx(index)).value
 
     def setter(self: Amd64Registers, value: float) -> None:
         self._internal_debugger._ensure_process_stopped_regs()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        self._fp_register_file.mmx[index].data = bytes(c_longdouble(value))
+        self._fp_register_file.set_mmx(index, bytes(c_longdouble(value)))
         self._fp_register_file.dirty = True
 
     return property(getter, setter, None, name)

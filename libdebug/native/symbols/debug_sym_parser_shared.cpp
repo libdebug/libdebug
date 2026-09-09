@@ -25,8 +25,6 @@ NB_MODULE(libdebug_debug_sym_parser, m)
     m.def(
         "read_elf_info",
         &read_elf_info,
-        nb::arg("elf_file_path"),
-        nb::arg("debug_info_level"),
         "Read the symbol table and the build ID from an ELF file\n"
         "\n"
         "Args:\n"
@@ -40,8 +38,6 @@ NB_MODULE(libdebug_debug_sym_parser, m)
     m.def(
         "collect_external_symbols",
         &collect_external_symbols,
-        nb::arg("debug_file_path"),
-        nb::arg("debug_info_level"),
         "Collect the external symbols from a debug file\n"
         "\n"
         "Args:\n"

@@ -63,7 +63,7 @@ def _get_property_fp_8(name: str, index: int) -> property:
         self._internal_debugger._ensure_process_stopped_regs()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        return int.from_bytes(self._fp_register_file.vregs[index].data, sys.byteorder) & 0xFF
+        return int.from_bytes(self._fp_register_file.get_vregs(index), sys.byteorder) & 0xFF
 
     def setter(self: Aarch64Registers, value: int) -> None:
         self._internal_debugger._ensure_process_stopped_regs()
@@ -77,7 +77,7 @@ def _get_property_fp_8(name: str, index: int) -> property:
             raise ValueError("Value is too large for 8-bit register")
 
         data = value.to_bytes(16, sys.byteorder)
-        self._fp_register_file.vregs[index].data = data
+        self._fp_register_file.set_vregs(index, data)
         self._fp_register_file.dirty = True
 
     return property(getter, setter, None, name)
@@ -88,7 +88,7 @@ def _get_property_fp_16(name: str, index: int) -> property:
         self._internal_debugger._ensure_process_stopped_regs()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        return int.from_bytes(self._fp_register_file.vregs[index].data, sys.byteorder) & 0xFFFF
+        return int.from_bytes(self._fp_register_file.get_vregs(index), sys.byteorder) & 0xFFFF
 
     def setter(self: Aarch64Registers, value: int) -> None:
         self._internal_debugger._ensure_process_stopped_regs()
@@ -102,7 +102,7 @@ def _get_property_fp_16(name: str, index: int) -> property:
             raise ValueError("Value is too large for 16-bit register")
 
         data = value.to_bytes(16, sys.byteorder)
-        self._fp_register_file.vregs[index].data = data
+        self._fp_register_file.set_vregs(index, data)
         self._fp_register_file.dirty = True
 
     return property(getter, setter, None, name)
@@ -113,7 +113,7 @@ def _get_property_fp_32(name: str, index: int) -> property:
         self._internal_debugger._ensure_process_stopped_regs()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        return int.from_bytes(self._fp_register_file.vregs[index].data, sys.byteorder) & 0xFFFFFFFF
+        return int.from_bytes(self._fp_register_file.get_vregs(index), sys.byteorder) & 0xFFFFFFFF
 
     def setter(self: Aarch64Registers, value: int) -> None:
         self._internal_debugger._ensure_process_stopped_regs()
@@ -127,7 +127,7 @@ def _get_property_fp_32(name: str, index: int) -> property:
             raise ValueError("Value is too large for 32-bit register")
 
         data = value.to_bytes(16, sys.byteorder)
-        self._fp_register_file.vregs[index].data = data
+        self._fp_register_file.set_vregs(index, data)
         self._fp_register_file.dirty = True
 
     return property(getter, setter, None, name)
@@ -138,7 +138,7 @@ def _get_property_fp_64(name: str, index: int) -> property:
         self._internal_debugger._ensure_process_stopped_regs()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        return int.from_bytes(self._fp_register_file.vregs[index].data, sys.byteorder) & 0xFFFFFFFFFFFFFFFF
+        return int.from_bytes(self._fp_register_file.get_vregs(index), sys.byteorder) & 0xFFFFFFFFFFFFFFFF
 
     def setter(self: Aarch64Registers, value: int) -> None:
         self._internal_debugger._ensure_process_stopped_regs()
@@ -152,7 +152,7 @@ def _get_property_fp_64(name: str, index: int) -> property:
             raise ValueError("Value is too large for 64-bit register")
 
         data = value.to_bytes(16, sys.byteorder)
-        self._fp_register_file.vregs[index].data = data
+        self._fp_register_file.set_vregs(index, data)
         self._fp_register_file.dirty = True
 
     return property(getter, setter, None, name)
@@ -163,14 +163,14 @@ def _get_property_fp_128(name: str, index: int) -> property:
         self._internal_debugger._ensure_process_stopped_regs()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
-        return int.from_bytes(self._fp_register_file.vregs[index].data, sys.byteorder)
+        return int.from_bytes(self._fp_register_file.get_vregs(index), sys.byteorder)
 
     def setter(self: Aarch64Registers, value: int) -> None:
         self._internal_debugger._ensure_process_stopped_regs()
         if not self._fp_register_file.fresh:
             self._internal_debugger._fetch_fp_registers(self)
         data = value.to_bytes(16, sys.byteorder)
-        self._fp_register_file.vregs[index].data = data
+        self._fp_register_file.set_vregs(index, data)
         self._fp_register_file.dirty = True
 
     return property(getter, setter, None, name)
