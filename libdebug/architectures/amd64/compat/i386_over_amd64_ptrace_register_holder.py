@@ -15,7 +15,9 @@ from libdebug.architectures.amd64.amd64_ptrace_register_holder import (
     _get_property_16,
     _get_property_32,
 )
-from libdebug.architectures.amd64.compat.i386_over_amd64_registers import I386OverAMD64Registers
+from libdebug.architectures.amd64.compat.i386_over_amd64_registers import (
+    I386OverAMD64Registers,
+)
 from libdebug.architectures.i386.i386_ptrace_register_holder import (
     I386_BASE_REGS,
     I386_GP_REGS,

@@ -54,7 +54,7 @@ def _download_debuginfod(buildid: str, debuginfod_path: Path) -> None:
         debuginfod_path.parent.mkdir(parents=True, exist_ok=True)
         with debuginfod_path.open("wb") as f:
             f.write(content)
-    except Exception as e:
+    except (OSError, requests.RequestException) as e:
         liblog.debugger(f"Exception {e} occurred while downloading debuginfod symbols")
 
 
@@ -142,7 +142,7 @@ def resolve_symbol(path: str, symbol: str) -> int:
         int: The address of the specified symbol in the specified ELF file.
     """
     if libcontext.sym_lvl == 0:
-        raise Exception(
+        raise RuntimeError(
             "Symbol resolution is disabled. Please enable it by setting the sym_lvl libcontext parameter to a value greater than 0.",
         )
 
@@ -187,7 +187,7 @@ def get_all_symbols(backing_files: set[str], internal_debugger: InternalDebugger
     symbols = SymbolList([], internal_debugger)
 
     if libcontext.sym_lvl == 0:
-        raise Exception(
+        raise RuntimeError(
             "Symbol resolution is disabled. Please enable it by setting the sym_lvl libcontext parameter to a value greater than 0.",
         )
 

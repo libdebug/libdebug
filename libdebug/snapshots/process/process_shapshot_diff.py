@@ -9,7 +9,9 @@ from typing import TYPE_CHECKING
 
 from libdebug.liblog import liblog
 from libdebug.snapshots.diff import Diff
-from libdebug.snapshots.thread.lw_thread_snapshot_diff import LightweightThreadSnapshotDiff
+from libdebug.snapshots.thread.lw_thread_snapshot_diff import (
+    LightweightThreadSnapshotDiff,
+)
 
 if TYPE_CHECKING:
     from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
