@@ -6,6 +6,14 @@
 
 import io
 import logging
+import json
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+from elftools.elf.elffile import ELFFile
+from elftools.construct import Container
 from unittest import TestCase, skipUnless
 from utils.binary_utils import RESOLVE_EXE, PLATFORM
 
@@ -13,6 +21,62 @@ from libdebug import debugger
 
 
 class CorruptedELFTest(TestCase):
+    def _parse_mutated(self, arch, mutate):
+        source = Path(f"binaries/{arch}/telescope_test")
+        contents = bytearray(source.read_bytes())
+        elf = ELFFile(io.BytesIO(contents))
+        mutate(elf, contents)
+        with tempfile.NamedTemporaryFile() as target:
+            target.write(contents)
+            target.flush()
+            result = subprocess.run(
+                [sys.executable, "-c",
+                 "import json, sys; from libdebug.native.libdebug_debug_sym_parser import read_elf_info; "
+                 "print(json.dumps([(s.name, s.low_pc, s.high_pc) for s in read_elf_info(sys.argv[1], 1).symbols]))",
+                 target.name], capture_output=True, text=True, timeout=20,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        symbols = json.loads(result.stdout)
+        self.assertTrue(any(name == "main" for name, _, _ in symbols))
+        synthetic = [tuple(s) for s in symbols if "@plt" in s[0] or "@got" in s[0]]
+        self.assertEqual(len(synthetic), len(set(synthetic)))
+        return symbols
+
+    @staticmethod
+    def _patch_section(elf, contents, section, **changes):
+        index = next(i for i, s in enumerate(elf.iter_sections()) if s.name == section.name)
+        header = Container(**dict(section.header))
+        header.update(changes)
+        offset = elf["e_shoff"] + index * elf["e_shentsize"]
+        contents[offset:offset + elf["e_shentsize"]] = elf.structs.Elf_Shdr.build(header)
+
+    def test_invalid_plt_metadata(self):
+        for arch in ("amd64", "i386"):
+            for fault in ("zero", "small", "large", "partial", "outside", "link", "wrong_link",
+                          "sym_size", "sym_link", "str_type"):
+                with self.subTest(arch=arch, fault=fault):
+                    def mutate(elf, contents):
+                        rel = elf.get_section_by_name(".rela.plt" if arch == "amd64" else ".rel.plt")
+                        sym = elf.get_section(rel["sh_link"])
+                        changes = {
+                            "zero": {"sh_entsize": 0}, "small": {"sh_entsize": 1},
+                            "large": {"sh_entsize": rel["sh_entsize"] * 2},
+                            "partial": {"sh_size": rel["sh_size"] - 1},
+                            "outside": {"sh_offset": len(contents) - 1},
+                            "link": {"sh_link": elf.num_sections() + 1},
+                            "wrong_link": {"sh_link": elf.get_section_index(".text")},
+                        }
+                        if fault in changes:
+                            self._patch_section(elf, contents, rel, **changes[fault])
+                        elif fault == "sym_size":
+                            self._patch_section(elf, contents, sym, sh_entsize=0)
+                        elif fault == "sym_link":
+                            self._patch_section(elf, contents, sym, sh_link=elf.num_sections() + 1)
+                        else:
+                            self._patch_section(elf, contents, elf.get_section(sym["sh_link"]), sh_type="SHT_PROGBITS")
+                    symbols = self._parse_mutated(arch, mutate)
+                    self.assertFalse(any(name.endswith("@got.plt") for name, _, _ in symbols))
+
     def setUp(self):
         # Redirect logging to a string buffer
         self.log_capture_string = io.StringIO()

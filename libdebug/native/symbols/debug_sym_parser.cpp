@@ -17,6 +17,8 @@
 #include <libdwarf.h>
 #include <libelf.h>
 #include <map>
+#include <algorithm>
+#include <climits>
 
 void add_symbol_info(SymbolVector &symbols, const char *name, const Dwarf_Addr low_pc, const Dwarf_Addr high_pc)
 {
@@ -41,6 +43,33 @@ void add_symbol_info(SymbolVector &symbols, const char *name, const Dwarf_Addr l
 };
 
 
+
+// Only use complete, file-backed data with the expected libelf representation.
+static Elf_Data *section_data(Elf *elf, Elf_Scn *scn, const GElf_Shdr &sh, Elf_Type type)
+{
+    size_t file_size = 0;
+    if (!elf_rawfile(elf, &file_size) || sh.sh_type == SHT_NOBITS ||
+        sh.sh_offset > file_size || sh.sh_size > file_size - sh.sh_offset) return nullptr;
+    Elf_Data *data = elf_getdata(scn, nullptr);
+    if (!data || !data->d_buf || data->d_off != 0 || data->d_type != type ||
+        data->d_size != sh.sh_size) return nullptr;
+    return data;
+}
+
+static Elf_Data *table_data(Elf *elf, Elf_Scn *scn, const GElf_Shdr &sh, Elf_Type type)
+{
+    const size_t entry_size = gelf_fsize(elf, type, 1, EV_CURRENT);
+    if (!entry_size || sh.sh_entsize != entry_size || sh.sh_size % entry_size) return nullptr;
+    return section_data(elf, scn, sh, type);
+}
+
+static Elf_Data *string_table(Elf *elf, size_t index)
+{
+    Elf_Scn *scn = elf_getscn(elf, index);
+    GElf_Shdr sh{};
+    if (!scn || !gelf_getshdr(scn, &sh) || sh.sh_type != SHT_STRTAB) return nullptr;
+    return section_data(elf, scn, sh, ELF_T_BYTE);
+}
 
 void process_plt_relocations(Elf *elf,
                              const GElf_Ehdr &ehdr,
@@ -128,13 +157,15 @@ void process_plt_relocations(Elf *elf,
         if (!dynsym_sec) continue;
 
         GElf_Shdr dynsym_sh;
-        if (!gelf_getshdr(dynsym_sec, &dynsym_sh))               continue;
+        if (!gelf_getshdr(dynsym_sec, &dynsym_sh) ||
+            (dynsym_sh.sh_type != SHT_DYNSYM && dynsym_sh.sh_type != SHT_SYMTAB) ||
+            !string_table(elf, dynsym_sh.sh_link)) continue;
 
-        Elf_Data *dynsym_data = elf_getdata(dynsym_sec, nullptr);
-        Elf_Data *rel_data    = elf_getdata(sec,         nullptr);
+        Elf_Data *dynsym_data = table_data(elf, dynsym_sec, dynsym_sh, ELF_T_SYM);
+        Elf_Data *rel_data = table_data(elf, sec, sh, sh.sh_type == SHT_RELA ? ELF_T_RELA : ELF_T_REL);
         if (!dynsym_data || !rel_data)                           continue;
 
-        const std::size_t nrel = sh.sh_size / sh.sh_entsize;
+        const std::size_t nrel = std::min<size_t>(rel_data->d_size / sh.sh_entsize, INT_MAX);
 
         for (std::size_t idx = 0; idx < nrel; ++idx) {
             /* Extract relocation fields */
@@ -257,8 +288,9 @@ void process_symbol_tables(Elf *elf, SymbolVector &symbols)
         }
 
         if (shdr.sh_type == SHT_SYMTAB || shdr.sh_type == SHT_DYNSYM) {
-            data = elf_getdata(scn, NULL);
-            int count = shdr.sh_size / shdr.sh_entsize;
+            data = table_data(elf, scn, shdr, ELF_T_SYM);
+            if (!data || !string_table(elf, shdr.sh_link)) continue;
+            int count = std::min<size_t>(data->d_size / shdr.sh_entsize, INT_MAX);
 
             for (int i = 0; i < count; ++i) {
                 GElf_Sym sym;
