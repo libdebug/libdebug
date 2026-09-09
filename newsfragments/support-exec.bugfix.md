@@ -1,3 +1,4 @@
 - Avoid waiting twice for an already collected clone stop.
 - Dispatch event hooks consistently when callbacks remove, disable, or add hooks.
 - Allow stop-on-exec, fork, and clone options to be changed between runs.
+- Deliver user-generated SIGTRAP signals to catchers and target signal handlers.

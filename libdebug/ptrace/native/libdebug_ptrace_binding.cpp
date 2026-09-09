@@ -504,6 +504,12 @@ unsigned long LibdebugPtraceInterface::get_stop_event_extra_info(const pid_t pid
         throw std::runtime_error("ptrace GETSIGINFO failed");
     }
 
+    // User-generated traps are signal-delivery stops, even when the IP happens
+    // to coincide with a breakpoint. Reserve a zero low byte for these codes.
+    if (si.si_code <= 0) {
+        return static_cast<unsigned long>(static_cast<unsigned int>(si.si_code)) << 8;
+    }
+
     // Now, the si.si_code tells us various info about the stop event
     // If si_code == TRAP_TRACE (2), we did a single step
     if (si.si_code == TRAP_TRACE) {
@@ -515,12 +521,12 @@ unsigned long LibdebugPtraceInterface::get_stop_event_extra_info(const pid_t pid
         // We hit a hardware breakpoint, we can return the TRAP_HWBKPT code as well as the address
         return (unsigned long)si.si_addr << 8 | TRAP_HWBKPT;
     }
-    // If si_code == 0x80 (SI_KERNEL) or si_code == 0x00 (SI_USER)
+    // If si_code == 0x80 (SI_KERNEL)
     // this is not a syscall stop, even though it looks like one
     // The kernel is stupid and doesn't really know what this event is, so we need to handle it ourselves
     // If si_code == TRAP_BRKPT (1), we probably hit a software breakpoint, but the kernel sometimes
     // misreports steps as breakpoints, so we need to check ourselves too (sigh)
-    else if (si.si_code == 0x80 || si.si_code == 0x00 || si.si_code == TRAP_BRKPT) {
+    else if (si.si_code == SI_KERNEL || si.si_code == TRAP_BRKPT) {
         // Let's check if we have hit a software breakpoint
         unsigned long ip;
         Thread &t = try_get_thread(pid);
@@ -562,7 +568,7 @@ unsigned long LibdebugPtraceInterface::get_stop_event_extra_info(const pid_t pid
     // For other si_code values, we don't have extra info to return
     else {
         // Uknown si_code, return it as is
-        return si.si_code << 8;
+        return static_cast<unsigned long>(si.si_code) << 8;
     }
 }
 
