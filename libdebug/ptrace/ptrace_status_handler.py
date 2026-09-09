@@ -130,6 +130,7 @@ class PtraceStatusHandler:
         # We need to close the fast memory manager, as the /proc/pid/mem file descriptor is no longer valid
         # If fast memory access is needed again, it will be reopened automatically on the next memory access
         self.internal_debugger._process_memory_manager.close()
+        self.ptrace_interface.refresh_exec_architecture()
 
     def _reconcile_exec_thread(self: PtraceStatusHandler, pid: int, former_tid: int) -> None:
         """Keep the exec caller's context when Linux renames it to the leader TID."""

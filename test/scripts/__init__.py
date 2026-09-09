@@ -22,6 +22,7 @@ from .stop_options_test import StopOptionsTest
 from .exec_signal_test import ExecSignalTest
 from .exec_wait_test import ExecWaitTest
 from .exec_worker_test import ExecWorkerTest
+from .exec_arch_test import ExecArchTest
 from .finish_test import FinishTest
 from .floating_point_test import FloatingPointTest
 from .jumpout_test import JumpoutTest

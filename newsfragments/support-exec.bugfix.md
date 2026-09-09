@@ -5,3 +5,4 @@
 - Keep tracing processes that change process groups or sessions without consuming other debuggers' events.
 - Discard native breakpoint state before touching the new executable's memory after exec.
 - Allow a worker thread to exec while the leader exits, preserving exit notifications and the surviving thread context.
+- Refresh architecture and register views across amd64 and i386 exec transitions without replacing the surviving context.
