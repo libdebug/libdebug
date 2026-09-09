@@ -229,13 +229,13 @@ class InternalDebugger:
     _has_path_different_from_argv0: bool
     """A flag that indicates if the path to the binary is different from the first argument in argv."""
 
-    stop_on_fork: bool
+    _stop_on_fork: bool
     """A flag that indicates if the debugger should stop on fork events."""
 
-    stop_on_exec: bool
+    _stop_on_exec: bool
     """A flag that indicates if the debugger should stop on exec events."""
 
-    stop_on_clone: bool
+    _stop_on_clone: bool
     """A flag that indicates if the debugger should stop on clone events."""
 
     _stop_on_fork_hook: EventHook | None
@@ -246,6 +246,9 @@ class InternalDebugger:
 
     _stop_on_clone_hook: EventHook | None
     """An internal hook used to track clone events when stop_on_clone is enabled."""
+
+    preserve_event_hooks_on_exec: bool = True
+    """Whether user event hooks survive exec after its callbacks complete."""
 
     def __init__(self: InternalDebugger) -> None:
         """Initialize the context."""
@@ -485,6 +488,7 @@ class InternalDebugger:
         child_internal_debugger.stop_on_fork = self.stop_on_fork
         child_internal_debugger.stop_on_exec = self.stop_on_exec
         child_internal_debugger.stop_on_clone = self.stop_on_clone
+        child_internal_debugger.preserve_event_hooks_on_exec = self.preserve_event_hooks_on_exec
 
         # Create the new Debugger instance for the child process
         child_debugger = Debugger()
@@ -2248,8 +2252,8 @@ class InternalDebugger:
         if "_process_name" in self.__dict__:
             del self._process_name
 
-    def clear_internal_state(self: InternalDebugger) -> None:
-        """Clears the internal state of the debugger."""
+    def clear_image_state(self: InternalDebugger) -> None:
+        """Clear instrumentation belonging to the previous executable image."""
         # Clear the handled syscalls
         self.handled_syscalls.clear()
 
@@ -2258,13 +2262,3 @@ class InternalDebugger:
 
         # Clear the signal catchers
         self.caught_signals.clear()
-
-        # Clear the event hooks
-        self.event_hooks.clear()
-        self._stop_on_fork_hook = None
-        self._stop_on_exec_hook = None
-        self._stop_on_clone_hook = None
-
-        # We actually need to reinstall any utility hooks here, as they have been invalidated
-        # but should be preserved after internal state clearing
-        self._setup_utility_hooks()

@@ -105,8 +105,10 @@ class PtraceStatusHandler:
 
         # Check if we received the SIGSTOP notification for the new thread
         # If not, we need to wait for it
-        # 4991 == (WIFSTOPPED && WSTOPSIG(status) == SIGSTOP)
-        if not any(tid == thread_id and status == 4991 for tid, status, _ in results):
+        if not any(
+            tid == thread_id and os.WIFSTOPPED(status) and os.WSTOPSIG(status) == signal.SIGSTOP
+            for tid, status, _ in results
+        ):
             os.waitpid(thread_id, 0)
         self.ptrace_interface.register_new_thread(thread_id)
 
@@ -125,7 +127,7 @@ class PtraceStatusHandler:
         # At this point, we are already executing the new binary.
         # Breakpoints, syscall hooks, and signal handlers are no longer guaranteed to be valid,
         # so we clear the internal state now.
-        self.internal_debugger.clear_internal_state()
+        self.internal_debugger.clear_image_state()
 
         # We need to close the fast memory manager, as the /proc/pid/mem file descriptor is no longer valid
         # If fast memory access is needed again, it will be reopened automatically on the next memory access
@@ -586,15 +588,27 @@ class PtraceStatusHandler:
             case StopEvents.EXEC_EVENT:
                 # The process has executed a new program
                 liblog.debugger(f"Process {pid} executed a new program")
-                # Execute pre-hooks for exec event
-                self._execute_pre_hooks(EventType.EXEC, thread)
+                # Capture policy and ownership before callbacks can change either.
+                debugger = self.internal_debugger
+                preserve_hooks = debugger.preserve_event_hooks_on_exec
+                utility_hooks = (debugger._stop_on_exec_hook, debugger._stop_on_fork_hook, debugger._stop_on_clone_hook)
+                old_hooks = tuple(
+                    hook for hooks in debugger.event_hooks.values() for hook in hooks if hook not in utility_hooks
+                )
+                # The kernel has already replaced the image. Refresh it before
+                # callbacks so their new instrumentation survives this event.
                 self._handle_exec()
+                self._execute_pre_hooks(EventType.EXEC, thread)
                 # We do not forward the signal, otherwise we would kill the new process
                 self.forward_signal = False
                 # We interrupt the process to allow the user to handle the exec event
                 self.internal_debugger.resume_context.event_type[pid] = EventType.EXEC
                 # Execute post-hooks for exec event
                 self._execute_post_hooks(EventType.EXEC, thread)
+                if not preserve_hooks:
+                    for hook in old_hooks:
+                        if hook in debugger.event_hooks[hook.event]:
+                            debugger.event_hooks[hook.event].remove(hook)
             case _:
                 liblog.debugger(f"Unknown ptrace event {event} on thread {pid}")
 

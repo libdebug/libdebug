@@ -280,6 +280,18 @@ class Debugger:
         self._internal_debugger.unhook_event(hook)
 
     @property
+    def preserve_event_hooks_on_exec(self: Debugger) -> bool:
+        """Whether user event hooks remain registered across exec."""
+        return self._internal_debugger.preserve_event_hooks_on_exec
+
+    @preserve_event_hooks_on_exec.setter
+    def preserve_event_hooks_on_exec(self: Debugger, value: bool) -> None:
+        """Set hook retention for subsequent exec events."""
+        if not isinstance(value, bool):
+            raise TypeError("preserve_event_hooks_on_exec must be a boolean value")
+        self._internal_debugger.preserve_event_hooks_on_exec = value
+
+    @property
     def stop_on_fork(self: Debugger) -> bool:
         """Get whether the debugger stops on fork."""
         return self._internal_debugger.stop_on_fork

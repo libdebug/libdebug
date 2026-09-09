@@ -55,4 +55,3 @@ class EventDispatchTest(TestCase):
                     if mutation == "add":
                         expected.append("added")
                     self.assertEqual(seen, expected)
-
