@@ -24,5 +24,6 @@ def build_container_fixture(image):
     docker_command("info")
     docker_command(
         "build", "-f", str(TEST_ROOT / "dockerfiles" / "container.Dockerfile"),
+        "--label", "org.libdebug.test=docker",
         "-t", image, str(TEST_ROOT), timeout=300,
     )

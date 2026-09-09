@@ -6,11 +6,13 @@
 
 import os
 import uuid
+import platform
+
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
-from libdebug import Debugger, DockerDebugger, DockerDebuggerMixin, debugger
+from libdebug import Debugger, DockerDebugger, DockerDebuggerMixin, EventType, debugger, libcontext
 from libdebug.debugger.mixins.base import EngineBoundMixin
 from libdebug.utils.container import ContainerError
 from utils.container_fixture_utils import build_container_fixture, docker_command
@@ -34,8 +36,13 @@ class CustomDockerDebugger(DockerDebuggerMixin, PluginDebugger):
 
 
 class ContainerTest(TestCase):
+    docker_integration = True
+
     @classmethod
     def setUpClass(cls):
+        previous_sym_lvl = libcontext.sym_lvl
+        libcontext.sym_lvl = 3
+        cls.addClassCleanup(setattr, libcontext, "sym_lvl", previous_sym_lvl)
         cls.image = f"libdebug-container-test:{uuid.uuid4().hex}"
         build_container_fixture(cls.image)
         cls.addClassCleanup(docker_command, "image", "rm", cls.image)
@@ -44,6 +51,7 @@ class ContainerTest(TestCase):
         self.container = f"libdebug-container-test-{uuid.uuid4().hex}"
         docker_command(
             "run", "-d", "--name", self.container,
+            "--label", "org.libdebug.test=docker",
             "--cap-add=SYS_PTRACE", "--security-opt", "apparmor=unconfined", self.image,
         )
         self.addCleanup(docker_command, "rm", "-f", self.container)
@@ -217,3 +225,109 @@ class ContainerTest(TestCase):
         d = self.make_debugger()
         with self.assertRaises(NotImplementedError):
             d.run(redirect_pipes=False)
+
+    def test_exact_environment_and_target_exec(self):
+        for env in (None, {}, {"PWD": "/explicit pwd", "LIBDEBUG_EXTRA": "with spaces", "ENV": "/missing"}):
+            for entrypoint in (False, True):
+                with self.subTest(env=env, entrypoint=entrypoint):
+                    d = self.make_debugger(["/app/program", "environment"], env=env,
+                                           continue_to_binary_entrypoint=entrypoint)
+                    pipe = d.run()
+                    # With entrypoint disabled we must already be past the env helper.
+                    self.assertEqual(Path(f"/proc/{d.pid}/exe").readlink().name, "program")
+                    d.cont()
+                    d.wait()
+                    raw = pipe.recvuntil(b"ENV-END\n", timeout=5).removesuffix(b"ENV-END\n")
+                    actual = dict(entry.split(b"=", 1) for entry in raw.split(b"\0") if entry)
+                    if env is None:
+                        expected = docker_command("exec", self.container, "/bin/sh", "-c", "exec env").encode()
+                        expected = dict(line.split(b"=", 1) for line in expected.splitlines())
+                    else:
+                        expected = {key.encode(): value.encode() for key, value in env.items()}
+                    self.assertEqual(actual, expected)
+
+    def test_unread_output_survives_exit(self):
+        # Large enough to fill the host pipes, small enough to fit Docker's forwarding buffers.
+        size = 128 * 1024
+        d = self.make_debugger(["/app/program", "output", str(size)])
+        pipe = d.run()
+        interface = d._internal_debugger.debugging_interface
+        client = interface._container_popen
+        d.cont()
+        d.wait()
+        self.assertTrue(d.dead)
+        output, errors = bytearray(), bytearray()
+        while len(output) < size or len(errors) < size:
+            if len(output) < size:
+                output.extend(pipe.recv(size - len(output), timeout=10))
+            if len(errors) < size:
+                errors.extend(pipe.recverr(size - len(errors), timeout=10))
+        self.assertEqual(output, b"O" * size)
+        self.assertEqual(errors, b"E" * size)
+        self.assertEqual(client.wait(timeout=10), 0)
+
+    def test_parent_exit_preserves_child_transport(self):
+        d = self.make_debugger(["/app/program", "orphan"])
+        pipe = d.run()
+        bp = d.bp("checkpoint")
+        d.cont()
+        self.assertTrue(bp.hit_on(d))
+        bp.disable()
+        self.assertEqual(len(d.children), 1)
+        child = d.children[0]
+        self.addCleanup(child.terminate)
+        d.cont()
+        d.wait()
+        self.assertTrue(d.dead)
+        child.cont()
+        self.assertEqual(pipe.recvline(timeout=5), b"child-ready")
+        pipe.sendline(b"finish")
+        child.wait()
+        self.assertEqual(pipe.recvline(timeout=5), b"child-done")
+
+    def test_i386_target(self):
+        if platform.machine() != "x86_64":
+            self.skipTest("i386 targets require an amd64 host")
+        d = self.make_debugger("/app/program-i386")
+        self.assertEqual(d.arch, "i386")
+        pipe = d.run()
+        bp = d.bp("checkpoint")
+        d.cont()
+        self.assertTrue(bp.hit_on(d))
+        bp.disable()
+        self.finish(d, pipe, expected_path="/app/program-i386")
+
+    def test_exec_preserves_plugin_and_refreshes_image(self):
+        targets = [("/app/program-other", libcontext.platform)]
+        if platform.machine() == "x86_64":
+            targets.append(("/app/program-i386", "i386"))
+        for target, arch in targets:
+            with self.subTest(target=target):
+                d = self.make_debugger(["/bin/sh", "-c", f"exec {target}"], cls=CustomDockerDebugger,
+                                       stop_on_exec=True, preserve_event_hooks_on_exec=False)
+                pipe = d.run()
+                survivor = d.threads[0]
+                installed = []
+
+                def on_exec(thread, hook):
+                    self.assertEqual(d.arch, arch)
+                    self.assertIs(thread, survivor)
+                    self.assertTrue(d.plugin_initialized)
+                    self.assertEqual(d.fixture_marker(), 42)
+                    installed.append(d.bp("checkpoint", file=target))
+
+                hook = d.hook_event(EventType.EXEC, callback=on_exec)
+                d.cont()
+                d.wait()
+                self.assertIs(type(d), CustomDockerDebugger)
+                self.assertEqual(d.resume_context.event_type[d.pid], EventType.EXEC)
+                self.assertEqual(hook.hit_count, 1)
+                self.assertNotIn(hook, d._internal_debugger.event_hooks[EventType.EXEC])
+                self.assertEqual(d.current_argv, [target])
+                self.assertEqual(d.current_path, target)
+                self.assertEqual(len(installed), 1)
+                d.cont()
+                d.wait()
+                self.assertEqual(installed[0].hit_count, 1)
+                installed[0].disable()
+                self.finish(d, pipe, expected_path=target)
