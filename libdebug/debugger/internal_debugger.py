@@ -516,6 +516,8 @@ class InternalDebugger:
         self.instanced = False
         self.is_debugging = False
 
+        self._clear_utility_hooks()
+
         self.set_all_threads_as_dead()
 
         if self.pipe_manager:
@@ -2014,6 +2016,28 @@ class InternalDebugger:
             t.resume_context.resume = False
         return self.hook_event(event_type, callback=stop_hook, post_hook=True)
 
+    def _clear_utility_hooks(self: InternalDebugger) -> None:
+        """Forget process-owned stop hooks without requiring a live process."""
+        for name in ("fork", "exec", "clone"):
+            attribute = f"_stop_on_{name}_hook"
+            hook = getattr(self, attribute)
+            if hook is not None and hook in self.event_hooks[hook.event]:
+                self.event_hooks[hook.event].remove(hook)
+            setattr(self, attribute, None)
+
+    def _update_stop_hook(self: InternalDebugger, name: str, event: EventType, value: bool) -> None:
+        """Update configuration and synchronize the utility hook when active."""
+        setattr(self, f"_stop_on_{name}", value)
+        attribute = f"_stop_on_{name}_hook"
+        hook = getattr(self, attribute)
+        if not self.instanced:
+            self._clear_utility_hooks()
+        elif not value and hook is not None:
+            self.unhook_event(hook)
+            setattr(self, attribute, None)
+        elif value and hook is None:
+            setattr(self, attribute, self.__set_stop_hook(event))
+
     @property
     def stop_on_fork(self: InternalDebugger) -> bool:
         """Get whether the debugger stops on fork events."""
@@ -2026,12 +2050,7 @@ class InternalDebugger:
         Args:
             value (bool): True to stop on fork events, False otherwise.
         """
-        self._stop_on_fork = value
-        if not value and self._stop_on_fork_hook:
-            self.unhook_event(self._stop_on_fork_hook)
-            self._stop_on_fork_hook = None
-        elif value and not self._stop_on_fork_hook and self.instanced:
-            self._stop_on_fork_hook = self.__set_stop_hook(EventType.FORK)
+        self._update_stop_hook("fork", EventType.FORK, value)
 
     @property
     def stop_on_exec(self: InternalDebugger) -> bool:
@@ -2045,12 +2064,7 @@ class InternalDebugger:
         Args:
             value (bool): True to stop on exec events, False otherwise.
         """
-        self._stop_on_exec = value
-        if not value and self._stop_on_exec_hook:
-            self.unhook_event(self._stop_on_exec_hook)
-            self._stop_on_exec_hook = None
-        elif value and not self._stop_on_exec_hook and self.instanced:
-            self._stop_on_exec_hook = self.__set_stop_hook(EventType.EXEC)
+        self._update_stop_hook("exec", EventType.EXEC, value)
 
     @property
     def stop_on_clone(self: InternalDebugger) -> bool:
@@ -2064,12 +2078,7 @@ class InternalDebugger:
         Args:
             value (bool): True to stop on clone events, False otherwise.
         """
-        self._stop_on_clone = value
-        if not value and self._stop_on_clone_hook:
-            self.unhook_event(self._stop_on_clone_hook)
-            self._stop_on_clone_hook = None
-        elif value and not self._stop_on_clone_hook and self.instanced:
-            self._stop_on_clone_hook = self.__set_stop_hook(EventType.CLONE)
+        self._update_stop_hook("clone", EventType.CLONE, value)
 
     @change_state_function_process
     def create_snapshot(self: Debugger, level: str = "base", name: str | None = None) -> ProcessSnapshot:

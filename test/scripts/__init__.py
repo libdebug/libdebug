@@ -18,6 +18,7 @@ from .elf_utils_unit_test import ELFUtilsUnitTest
 from .exec_test import ExecTest
 from .exec_status_test import ExecStatusTest
 from .event_dispatch_test import EventDispatchTest
+from .stop_options_test import StopOptionsTest
 from .finish_test import FinishTest
 from .floating_point_test import FloatingPointTest
 from .jumpout_test import JumpoutTest
