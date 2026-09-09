@@ -6,7 +6,11 @@
 
 import io
 import logging
+from types import SimpleNamespace
 from unittest import TestCase
+from unittest.mock import Mock
+
+from libdebug.snapshots.snapshot import Snapshot
 from utils.binary_utils import RESOLVE_EXE
 from libdebug import debugger
 import tempfile
@@ -35,6 +39,22 @@ class SnapshotsTest(TestCase):
         self.logger.handlers = self.original_handlers
         # Close the log capture string buffer
         self.log_capture_string.close()
+
+    def test_snapshot_preserves_float_registers(self):
+        holder = Mock()
+        holder.provide_regs.return_value = ["rax"]
+        holder.provide_special_regs.return_value = []
+        holder.provide_vector_fp_regs.return_value = ["st0"]
+        thread = SimpleNamespace(
+            thread_id=1,
+            regs=SimpleNamespace(rax=42, st0=1.5),
+            _register_holder=holder,
+        )
+        snapshot = Snapshot()
+        snapshot._save_regs(thread)
+        self.assertEqual(snapshot.regs.rax, 42)
+        self.assertIsInstance(snapshot.regs.st0, float)
+        self.assertEqual(snapshot.regs.st0, 1.5)
 
     def test_thread_base_snapshot(self):
         # Create a debugger and start execution

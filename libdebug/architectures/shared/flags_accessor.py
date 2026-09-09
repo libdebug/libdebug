@@ -291,7 +291,7 @@ class ArmPstateAccessor(BitfieldRegisterAccessor):
     BTYPE = _build_bitfield_property_by_name("BTYPE")
     D = _build_bitfield_property_by_name("D")
     A = _build_bitfield_property_by_name("A")
-    I = _build_bitfield_property_by_name("I")  # noqa: E741 - architectural name
+    I = _build_bitfield_property_by_name("I")  # Architectural name
     F = _build_bitfield_property_by_name("F")
     M = _build_bitfield_property_by_name("M")
 
