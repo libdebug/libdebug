@@ -10,6 +10,7 @@ from libdebug.data.argument_list import ArgumentList
 from libdebug.data.env_dict import EnvDict
 from libdebug.debugger.mixins.base import EngineBoundMixin
 from libdebug.utils.arch_mappings import map_arch
+from libdebug.utils.elf_utils import elf_architecture
 from libdebug.utils.signal_utils import (
     get_all_signal_numbers,
     resolve_signal_name,
@@ -68,7 +69,7 @@ class ConfigurationMixin(EngineBoundMixin):
                     and new_argv
                     and (not self._previous_argv or new_argv[0] != self._previous_argv[0])
                 ):
-                    self._internal_debugger._set_target_path(new_argv[0])
+                    self._set_target_path(new_argv[0])
             except Exception:
                 # We revert to the previous argv state if something goes wrong
                 self._internal_debugger.argv = ArgumentList(self._previous_argv)
@@ -111,7 +112,7 @@ class ConfigurationMixin(EngineBoundMixin):
             and value
             and value[0] != self._internal_debugger.argv[0]
         ):
-            self._internal_debugger._set_target_path(value[0])
+            self._set_target_path(value[0])
 
         self._internal_debugger.argv = value
 
@@ -151,6 +152,12 @@ class ConfigurationMixin(EngineBoundMixin):
         self._internal_debugger.env = EnvDict(value) if value is not None else None
         self._configure_env_dict()
 
+    def _set_target_path(self: ConfigurationMixin, path: str) -> None:
+        """Resolve and validate architecture through the frontend before committing a path."""
+        host_path = self._internal_debugger._resolve_target_path(path)
+        self.arch = elf_architecture(host_path)
+        self._internal_debugger._commit_target_path(path, host_path)
+
     @property
     def path(self: ConfigurationMixin) -> str:
         """The resolved path to the debugged binary."""
@@ -167,7 +174,7 @@ class ConfigurationMixin(EngineBoundMixin):
         if not isinstance(value, str):
             raise TypeError("path must be a string")
 
-        self._internal_debugger._set_target_path(value)
+        self._set_target_path(value)
 
         # We can also unfreeze argv[0] if it was frozen
         self._internal_debugger.argv.prevent_empty = False

@@ -15,7 +15,6 @@ import shutil
 import subprocess
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from time import monotonic
 
 from libdebug.liblog import liblog
 
@@ -27,6 +26,10 @@ _DEFAULT_CACHE_PATH = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cach
 
 class ContainerError(RuntimeError):
     """Raised when libdebug cannot interact with the container runtime."""
+
+
+class ContainerStartupCancelledError(ContainerError):
+    """Raised internally when the caller cancels the PID handshake."""
 
 
 def detect_runtime(container: str, preferred: str | None) -> str:
@@ -210,13 +213,11 @@ def spawn_in_container(
     container_path: str,
     argv: list[str],
     env: dict[str, str] | None,
-    init_pid: int,
     stdin_child_fd: int | None,
     stdout_child_fd: int | None,
     stderr_child_fd: int | None,
-    pid_read_fd: int,
-) -> tuple[int, int, subprocess.Popen]:
-    """Spawn a stopped container target and return its host PID, namespace PID, and runtime client."""
+) -> subprocess.Popen:
+    """Start the runtime client; the caller owns it before reading the PID handshake."""
     command: list[str] = [runtime, "exec", "-i", container]
     if env is None:
         command += ["/bin/sh", "-c", _WRAPPER_SCRIPT, "--"]
@@ -224,16 +225,18 @@ def spawn_in_container(
         command += [
             "env",
             "-i",
-            *[f"{key}={value}" for key, value in env.items()],
             "/bin/sh",
             "-c",
             _WRAPPER_SCRIPT,
             "--",
+            "/usr/bin/env",
+            "-i",
+            *[f"{key}={value}" for key, value in env.items()],
         ]
     command += _build_target_argv(container_path, argv)
 
     liblog.debugger("Running container command: %s", shlex.join(command))
-    popen = subprocess.Popen(
+    return subprocess.Popen(
         command,
         stdin=stdin_child_fd,
         stdout=stdout_child_fd,
@@ -241,28 +244,15 @@ def spawn_in_container(
         close_fds=True,
     )
 
-    ns_pid = 0
-    try:
-        ns_pid = _read_pid(pid_read_fd, popen)
-        host_pid = resolve_ns_pid_to_host_pid(init_pid, ns_pid)
-    except (OSError, ContainerError):
-        if ns_pid > 0:
-            kill_in_container(runtime, container, ns_pid)
-        if popen.poll() is None:
-            popen.kill()
-        popen.wait()
-        raise
-    return host_pid, ns_pid, popen
 
-
-def _read_pid(read_fd: int, popen: subprocess.Popen, timeout: float = 5.0) -> int:
-    """Read the wrapper's fixed-width PID record."""
-    deadline = monotonic() + timeout
+def read_container_pid(read_fd: int, cancel_fd: int) -> int:
+    """Wait for a complete PID record, EOF, or an explicit cancellation wakeup."""
     record = bytearray()
     while len(record) < _PID_RECORD_SIZE:
-        remaining = deadline - monotonic()
-        if remaining <= 0 or not select.select([read_fd], [], [], remaining)[0]:
-            raise ContainerError(f"Timed out reading container PID (runtime status: {popen.poll()})")
+        readable, _, _ = select.select([read_fd, cancel_fd], [], [])
+        # Consume available PID bytes first so cancellation can clean up a reported target.
+        if read_fd not in readable:
+            raise ContainerStartupCancelledError("Container startup cancelled")
         chunk = os.read(read_fd, _PID_RECORD_SIZE - len(record))
         if not chunk:
             raise ContainerError(f"Container exec closed stdout before reporting its PID: {bytes(record)!r}")

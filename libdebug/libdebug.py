@@ -36,12 +36,12 @@ def _normalize_argv(argv: str | list[str] | None) -> ArgumentList:
 
 
 def _validate_container_options(
-    cls: type[Debugger],
+    cls: type[Debugger | DockerDebuggerMixin],
     container: str | None,
     runtime: str | None,
     cache_path: str | None,
     aslr: bool | None,
-) -> bool:
+) -> None:
     if not isinstance(cls, type) or not issubclass(cls, Debugger):
         raise TypeError("cls must be a Debugger subclass")
     docker_enabled = issubclass(cls, DockerDebuggerMixin)
@@ -51,8 +51,6 @@ def _validate_container_options(
         raise ValueError("A DockerDebuggerMixin class requires a nonempty container name")
     if docker_enabled and aslr is not None:
         raise ValueError("aslr= is not supported for containers; ASLR is controlled by the container")
-
-    return docker_enabled
 
 
 @overload
@@ -136,11 +134,11 @@ def debugger(
     stop_on_exec: bool = False,
     stop_on_clone: bool = False,
     preserve_event_hooks_on_exec: bool = True,
-    cls: type[Debugger] = Debugger,
+    cls: type[Debugger | DockerDebuggerMixin] = Debugger,
     container: str | None = None,
     runtime: str | None = None,
     container_cache_path: str | None = None,
-) -> Debugger:
+) -> Debugger | DockerDebuggerMixin:
     """This function is used to create a new `Debugger` object. It returns a `Debugger` object.
 
     Args:
@@ -171,7 +169,7 @@ def debugger(
     Returns:
         Debugger: The `Debugger` object.
     """
-    docker_enabled = _validate_container_options(cls, container, runtime, container_cache_path, aslr)
+    _validate_container_options(cls, container, runtime, container_cache_path, aslr)
 
     argv = _normalize_argv(argv)
     if env is not None:
@@ -181,7 +179,9 @@ def debugger(
 
     has_path_different_from_argv0 = path is not None
     target_path = path if path is not None else (argv[0] if argv else None)
-    if docker_enabled:
+    if issubclass(cls, DockerDebuggerMixin):
+        if container is None:
+            raise ValueError("Container debugging requires a container")
         if not target_path:
             raise ValueError("Container debugging requires path= or argv[0]")
         if argv and argv[0] != target_path:
@@ -196,6 +196,9 @@ def debugger(
     else:
         path = resolve_argv_path(target_path) if target_path else None
         internal_debugger = InternalDebugger()
+
+    if not issubclass(cls, Debugger):
+        raise TypeError("cls must be a Debugger subclass")
 
     internal_debugger.argv = argv
     internal_debugger.path = path

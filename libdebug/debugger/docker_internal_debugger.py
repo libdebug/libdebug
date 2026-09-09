@@ -6,13 +6,13 @@
 
 from __future__ import annotations
 
+import contextlib
+import os
 from typing import TYPE_CHECKING
 
 from libdebug.debugger.internal_debugger import InternalDebugger
 from libdebug.ptrace.docker_ptrace_interface import DockerPtraceInterface
-from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.container import get_container_init_pid
-from libdebug.utils.elf_utils import elf_architecture
 
 if TYPE_CHECKING:
     from libdebug.commlink.pipe_manager import PipeManager
@@ -62,7 +62,25 @@ class DockerInternalDebugger(InternalDebugger):
         if not redirect_pipes:
             raise NotImplementedError("redirect_pipes=False is not supported for container targets")
         self.container_init_pid = get_container_init_pid(self.runtime, self.container)
-        return super().run(timeout, redirect_pipes)
+        interface = self.debugging_interface
+        if not isinstance(interface, DockerPtraceInterface):
+            raise TypeError("Expected a DockerPtraceInterface")
+        interface.startup_completed = False
+        interface.startup_cancel_read, interface.startup_cancel_write = os.pipe()
+        try:
+            return super().run(timeout, redirect_pipes)
+        except BaseException:
+            os.write(interface.startup_cancel_write, b"x")
+            # Let the polling thread release its owned client and descriptors before returning.
+            with contextlib.suppress(Exception):
+                self._join_and_check_status()
+            if interface.startup_completed and self.is_debugging:
+                self.kill()
+            raise
+        finally:
+            os.close(interface.startup_cancel_read)
+            os.close(interface.startup_cancel_write)
+            interface.startup_cancel_read = interface.startup_cancel_write = -1
 
     def _provide_debugging_interface(self: DockerInternalDebugger) -> DebuggingInterface:
         """Create the container-specific ptrace interface."""
@@ -76,13 +94,12 @@ class DockerInternalDebugger(InternalDebugger):
     def _get_target_path(self: DockerInternalDebugger) -> str:
         return self.container_path
 
-    def _set_target_path(self: DockerInternalDebugger, path: str) -> None:
-        host_path = self.container_file_cache.copy_required_file(path)
-        architecture = elf_architecture(host_path)
-        self.clear_all_caches()
+    def _resolve_target_path(self: DockerInternalDebugger, path: str) -> str:
+        return self.container_file_cache.copy_required_file(path)
+
+    def _commit_target_path(self: DockerInternalDebugger, path: str, host_path: str) -> None:
+        super()._commit_target_path(path, host_path)
         self.container_path = path
-        self.path = host_path
-        self.arch = map_arch(architecture)
 
     def _host_path_from_target_path(self: DockerInternalDebugger, path: str) -> str | None:
         """Return the cached host copy of an in-container path."""

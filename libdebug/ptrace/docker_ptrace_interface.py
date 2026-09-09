@@ -8,19 +8,29 @@ from __future__ import annotations
 
 import contextlib
 import os
+import select
 import signal
-import subprocess
 from threading import Thread
 from typing import TYPE_CHECKING
 
+from libdebug.commlink.pipe_manager import PipeManager
 from libdebug.liblog import liblog
 from libdebug.ptrace.ptrace_constants import StopEvents
 from libdebug.ptrace.ptrace_interface import PtraceInterface
 from libdebug.ptrace.ptrace_status_handler import PtraceStatusHandler
-from libdebug.utils.container import ContainerError, kill_in_container, spawn_in_container
+from libdebug.utils.container import (
+    ContainerError,
+    ContainerStartupCancelledError,
+    kill_in_container,
+    read_container_pid,
+    resolve_ns_pid_to_host_pid,
+    spawn_in_container,
+)
 from libdebug.utils.process_utils import invalidate_process_cache
 
 if TYPE_CHECKING:
+    import subprocess
+
     from libdebug.debugger.docker_internal_debugger import DockerInternalDebugger
 
 
@@ -34,6 +44,9 @@ class DockerPtraceInterface(PtraceInterface):
         super().__init__(internal_debugger)
         self._container_popen: subprocess.Popen | None = None
         self._container_ns_pid = 0
+        self._container_reaping = False
+        self.startup_cancel_read = self.startup_cancel_write = -1
+        self.startup_completed = False
 
     def run(self: DockerPtraceInterface, redirect_pipes: bool) -> None:
         """Start a stopped target in the container and attach to its host PID."""
@@ -58,20 +71,23 @@ class DockerPtraceInterface(PtraceInterface):
             self.status_handler = PtraceStatusHandler(internal_debugger)
             env_dict = dict(internal_debugger.env) if internal_debugger.env is not None else None
 
-            host_pid, ns_pid, popen = spawn_in_container(
+            self._container_reaping = False
+            self._container_popen = spawn_in_container(
                 runtime=internal_debugger.runtime,
                 container=internal_debugger.container,
                 container_path=internal_debugger.container_path,
                 argv=list(internal_debugger.argv),
                 env=env_dict,
-                init_pid=internal_debugger.container_init_pid,
                 stdin_child_fd=self.stdin_read,
                 stdout_child_fd=self.stdout_write,
                 stderr_child_fd=self.stderr_write,
-                pid_read_fd=self.stdout_read,
             )
-            self._container_popen = popen
-            self._container_ns_pid = ns_pid
+            for name in ("stdin_read", "stdout_write", "stderr_write"):
+                os.close(getattr(self, name))
+                setattr(self, name, -1)
+            self._container_ns_pid = read_container_pid(self.stdout_read, self.startup_cancel_read)
+            self._check_startup_cancelled()
+            host_pid = resolve_ns_pid_to_host_pid(internal_debugger.container_init_pid, self._container_ns_pid)
 
             try:
                 self._attach_to_all_tasks(host_pid)
@@ -99,8 +115,14 @@ class DockerPtraceInterface(PtraceInterface):
                 self._continue_to_entry_point()
             invalidate_process_cache()
 
-            internal_debugger.pipe_manager = self._setup_pipe()
-        except BaseException:
+            internal_debugger.pipe_manager = PipeManager(
+                internal_debugger,
+                self.stdin_write,
+                self.stdout_read,
+                self.stderr_read,
+            )
+            self.startup_completed = True
+        except BaseException as error:
             if self.process_id:
                 with contextlib.suppress(OSError, RuntimeError):
                     super().kill()
@@ -111,30 +133,33 @@ class DockerPtraceInterface(PtraceInterface):
                     internal_debugger.container,
                     self._container_ns_pid,
                 )
-            self._reap_container_popen()
+            self._reap_container_popen(terminate=True)
             internal_debugger.is_debugging = False
             internal_debugger.instanced = False
             internal_debugger.resume_context.is_startup = False
             internal_debugger.process_id = self.process_id = 0
             self._close_startup_pipes()
+            if isinstance(error, ContainerStartupCancelledError):
+                return
             raise
 
     def _close_startup_pipes(self: DockerPtraceInterface) -> None:
-        for fd in (
-            self.stdin_read,
-            self.stdin_write,
-            self.stdout_read,
-            self.stdout_write,
-            self.stderr_read,
-            self.stderr_write,
-        ):
+        for name in ("stdin_read", "stdin_write", "stdout_read", "stdout_write", "stderr_read", "stderr_write"):
+            fd = getattr(self, name)
             if fd != -1:
                 with contextlib.suppress(OSError):
                     os.close(fd)
+                setattr(self, name, -1)
+
+    def _check_startup_cancelled(self: DockerPtraceInterface) -> None:
+        if select.select([self.startup_cancel_read], [], [], 0)[0]:
+            raise ContainerStartupCancelledError("Container startup cancelled")
 
     def _wait_for_exec(self: DockerPtraceInterface) -> None:
         """Advance the stopped shell until exec installs the target address space."""
+        execs_remaining = 1 if self._internal_debugger.env is None else 2
         while True:
+            self._check_startup_cancelled()
             self.lib_trace.cont_all_and_set_bps(False)
             statuses = self.lib_trace.wait_all_and_update_regs(False)
             invalidate_process_cache()
@@ -145,7 +170,10 @@ class DockerPtraceInterface(PtraceInterface):
                     continue
                 event = status >> 8
                 if event == StopEvents.EXEC_EVENT:
-                    return
+                    execs_remaining -= 1
+                    if not execs_remaining:
+                        return
+                    continue
                 if event == StopEvents.EXIT_EVENT:
                     raise ContainerError("Container wrapper could not execute the target")
                 signum = os.WSTOPSIG(status)
@@ -161,10 +189,8 @@ class DockerPtraceInterface(PtraceInterface):
     def detach(self: DockerPtraceInterface) -> None:
         """Detach without waiting for or killing the still-running target."""
         super().detach()
-        if self._container_popen is not None:
-            Thread(target=self._container_popen.wait, name="libdebug_container_reaper", daemon=True).start()
-            self._container_popen = None
-        self._container_ns_pid = 0
+        self._reap_container_popen()
+        self._container_popen = None
 
     def kill(self: DockerPtraceInterface) -> None:
         """Instantly terminate the process and reap the container-runtime client."""
@@ -180,16 +206,19 @@ class DockerPtraceInterface(PtraceInterface):
                 self._container_ns_pid,
             )
         finally:
-            self._reap_container_popen()
+            self._reap_container_popen(terminate=True)
 
-    def _reap_container_popen(self: DockerPtraceInterface) -> None:
-        """Reap the local container-runtime client process."""
+    def _reap_container_popen(self: DockerPtraceInterface, *, terminate: bool = False) -> None:
+        """Release the client, preserving its output transport unless explicitly tearing down."""
         self._container_ns_pid = 0
-        if self._container_popen is None:
+        popen = self._container_popen
+        if popen is None:
             return
-        try:
-            self._container_popen.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            self._container_popen.kill()
-            self._container_popen.wait()
-        self._container_popen = None
+        if terminate:
+            if popen.poll() is None:
+                popen.kill()
+            popen.wait()
+            self._container_popen = None
+        elif not self._container_reaping:
+            self._container_reaping = True
+            Thread(target=popen.wait, name="libdebug_container_reaper", daemon=True).start()

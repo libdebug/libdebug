@@ -60,7 +60,7 @@ from libdebug.utils.debugging_utils import (
     normalize_and_validate_address,
     resolve_symbol_in_maps,
 )
-from libdebug.utils.elf_utils import elf_architecture, get_all_symbols, resolve_argv_path
+from libdebug.utils.elf_utils import get_all_symbols, resolve_argv_path
 from libdebug.utils.file_utils import ensure_file_executable
 from libdebug.utils.libcontext import libcontext
 from libdebug.utils.platform_utils import get_platform_gp_register_size
@@ -368,12 +368,13 @@ class InternalDebugger:
     def _get_target_path(self: InternalDebugger) -> str:
         return self.path
 
-    def _set_target_path(self: InternalDebugger, path: str) -> None:
-        resolved_path = resolve_argv_path(path)
-        architecture = elf_architecture(resolved_path)
+    def _resolve_target_path(self: InternalDebugger, path: str) -> str:
+        return resolve_argv_path(path)
+
+    def _commit_target_path(self: InternalDebugger, path: str, host_path: str) -> None:
+        """Commit the host path; container implementations also retain the target path."""
         self.clear_all_caches()
-        self.path = resolved_path
-        self.arch = map_arch(architecture)
+        self.path = host_path
 
     def _new_child_internal_debugger(self: InternalDebugger) -> InternalDebugger:
         """Create internal state for a followed child process."""
