@@ -7,10 +7,12 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from libdebug.data.argument_list import ArgumentList
 from libdebug.data.env_dict import EnvDict
+from libdebug.data.event_type import EventType
 from libdebug.liblog import liblog
 from libdebug.utils.arch_mappings import map_arch
 from libdebug.utils.elf_utils import elf_architecture, resolve_argv_path
@@ -30,6 +32,7 @@ if TYPE_CHECKING:
 
     from libdebug.commlink.pipe_manager import PipeManager
     from libdebug.data.breakpoint import Breakpoint
+    from libdebug.data.event_hook import EventHook
     from libdebug.data.gdb_resume_event import GdbResumeEvent
     from libdebug.data.memory_map import MemoryMap
     from libdebug.data.memory_map_list import MemoryMapList
@@ -42,6 +45,7 @@ if TYPE_CHECKING:
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
     from libdebug.snapshots.process.process_snapshot import ProcessSnapshot
     from libdebug.snapshots.snapshot import Snapshot
+    from libdebug.state.resume_context import ResumeContext
     from libdebug.state.thread_context import ThreadContext
 
 
@@ -58,7 +62,7 @@ class Debugger:
     """A copy of the previous argv state, used internally to detect changes to argv[0]."""
 
     def __init__(self: Debugger) -> None:
-        pass
+        """Do not use this constructor directly. Use the `debugger` function instead."""
 
     def post_init_(self: Debugger, internal_debugger: InternalDebugger) -> None:
         """Do not use this constructor directly. Use the `debugger` function instead."""
@@ -244,6 +248,84 @@ class Debugger:
             SyscallHandler: The SyscallHandler object.
         """
         return self._internal_debugger.handle_syscall(syscall, on_enter, on_exit, recursive)
+
+    def hook_event(
+        self: Debugger,
+        event: EventType,
+        callback: None | bool | Callable[[ThreadContext, EventHook], None] = None,
+        *,
+        post_hook: bool = True,
+    ) -> EventHook:
+        """Hook a callback to a specific resume event type.
+
+        Args:
+            event (EventType): The event type to hook the callback to.
+            callback (Callable[[ThreadContext, EventHook], None] | None, optional): The callback to execute when the event is triggered. If True, an empty callback will be set. Defaults to None.
+            post_hook (bool, optional): Whether the hook is a post-hook or pre-hook. Defaults to True.
+        """
+        if not isinstance(event, EventType):
+            raise TypeError("event must be an instance of EventType")
+        if event in {EventType.STARTUP, EventType.USER_INTERRUPT, EventType.UNKNOWN}:
+            raise ValueError(f"Cannot hook to event type {event.name}")
+        if not post_hook and event in {
+            EventType.STEP,
+            EventType.SECCOMP,
+            EventType.EXIT,
+        }:
+            raise ValueError(f"Cannot set pre-hook for event type {event.name}. Please use post-hook instead.")
+        return self._internal_debugger.hook_event(event, callback=callback, post_hook=post_hook)
+
+    def unhook_event(self: Debugger, hook: EventHook) -> None:
+        """Remove the handler associated with the given hook."""
+        self._internal_debugger.unhook_event(hook)
+
+    @property
+    def preserve_event_hooks_on_exec(self: Debugger) -> bool:
+        """Whether user event hooks remain registered across exec."""
+        return self._internal_debugger.preserve_event_hooks_on_exec
+
+    @preserve_event_hooks_on_exec.setter
+    def preserve_event_hooks_on_exec(self: Debugger, value: bool) -> None:
+        """Set hook retention for subsequent exec events."""
+        if not isinstance(value, bool):
+            raise TypeError("preserve_event_hooks_on_exec must be a boolean value")
+        self._internal_debugger.preserve_event_hooks_on_exec = value
+
+    @property
+    def stop_on_fork(self: Debugger) -> bool:
+        """Get whether the debugger stops on fork."""
+        return self._internal_debugger.stop_on_fork
+
+    @stop_on_fork.setter
+    def stop_on_fork(self: Debugger, value: bool) -> None:
+        """Set whether the debugger stops on fork."""
+        if not isinstance(value, bool):
+            raise TypeError("stop_on_fork must be a boolean value")
+        self._internal_debugger.stop_on_fork = value
+
+    @property
+    def stop_on_exec(self: Debugger) -> bool:
+        """Get whether the debugger stops on exec."""
+        return self._internal_debugger.stop_on_exec
+
+    @stop_on_exec.setter
+    def stop_on_exec(self: Debugger, value: bool) -> None:
+        """Set whether the debugger stops on exec."""
+        if not isinstance(value, bool):
+            raise TypeError("stop_on_exec must be a boolean value")
+        self._internal_debugger.stop_on_exec = value
+
+    @property
+    def stop_on_clone(self: Debugger) -> bool:
+        """Get whether the debugger stops on clone."""
+        return self._internal_debugger.stop_on_clone
+
+    @stop_on_clone.setter
+    def stop_on_clone(self: Debugger, value: bool) -> None:
+        """Set whether the debugger stops on clone."""
+        if not isinstance(value, bool):
+            raise TypeError("stop_on_clone must be a boolean value")
+        self._internal_debugger.stop_on_clone = value
 
     def hijack_syscall(
         self: Debugger,
@@ -465,6 +547,30 @@ class Debugger:
 
         self._internal_debugger.argv = value
 
+    @property
+    def current_argv(self: Debugger) -> list[str]:
+        """The current arguments, as reported by /proc/PID/cmdline."""
+        self._internal_debugger._ensure_process_stopped()
+        pid = self._internal_debugger.process_id
+        if not pid:
+            raise RuntimeError("Process is not running; cannot read /proc/PID/cmdline.")
+
+        try:
+            with Path(f"/proc/{pid}/cmdline").open("rb") as cmdline:
+                argv = cmdline.read().split(b"\0")
+        except OSError as exc:
+            raise RuntimeError("Could not read /proc/PID/cmdline; process might not exist anymore.") from exc
+
+        if argv and argv[-1] == b"":
+            argv = argv[:-1]
+        return [arg.decode("latin-1") for arg in argv]
+
+    @property
+    def resume_context(self: Debugger) -> ResumeContext:
+        """The current resume context of the debugged process."""
+        self._internal_debugger._ensure_process_stopped()
+        return self._internal_debugger.resume_context
+
     def _configure_env_dict(self: Debugger) -> None:
         """Sets up the EnvDict with the before callback."""
 
@@ -533,6 +639,19 @@ class Debugger:
         # This must be done last, otherwise we might get in an inconsistent state
         # if one of the previous checks fails
         self._internal_debugger._has_path_different_from_argv0 = True
+
+    @property
+    def current_path(self: Debugger) -> str | None:
+        """The current binary path, read from /proc/PID/exe if available."""
+        self._internal_debugger._ensure_process_stopped()
+        pid = self._internal_debugger.process_id
+        if not pid:
+            return None
+
+        try:
+            return Path(f"/proc/{pid}/exe").resolve().as_posix()
+        except OSError as exc:
+            raise RuntimeError("Could not resolve /proc/PID/exe; the process may have exited.") from exc
 
     @property
     def kill_on_exit(self: Debugger) -> bool:

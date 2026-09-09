@@ -40,6 +40,9 @@ class Snapshot:
     - full: Registers, all readable memory contents
     """
 
+    arch: str
+    """Architecture captured by process and thread snapshots."""
+
     def _save_regs(self: Snapshot, thread: ThreadContext) -> None:
         # Create a register field for the snapshot
         self.regs = SnapshotRegisters(
@@ -222,4 +225,3 @@ class Snapshot:
             self.maps,
             integer_mode=integer_mode,
         )
-

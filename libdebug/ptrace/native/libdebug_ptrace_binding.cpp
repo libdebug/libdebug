@@ -59,6 +59,7 @@ void LibdebugPtraceInterface::check_and_set_fpregs(Thread &t)
 
 void LibdebugPtraceInterface::cont_thread(Thread &t)
 {
+    if (resumed_exits.count(t.tid)) return;
     if (ptrace(handle_syscall ? PTRACE_SYSCALL : PTRACE_CONT, t.tid, NULL, t.signal_to_forward) == -1) {
         throw std::runtime_error("ptrace cont failed");
     }
@@ -70,6 +71,7 @@ int LibdebugPtraceInterface::prepare_for_run()
 {
     // Flush any register changes
     for (auto &t : threads) {
+        if (resumed_exits.count(t.first)) continue;
         if (setregs(t.second))
             throw std::runtime_error("setregs failed");
 
@@ -79,6 +81,7 @@ int LibdebugPtraceInterface::prepare_for_run()
     // Iterate over all the threads and check if any of them has hit a software
     // breakpoint
     for (auto &t : threads) {
+        if (resumed_exits.count(t.first)) continue;
         bool t_hit = false;
         unsigned long ip = INSTRUCTION_POINTER(t.second.regs);
 
@@ -144,6 +147,8 @@ void LibdebugPtraceInterface::cleanup()
     software_breakpoints.clear();
 
     process_id = -1;
+    pending_child_stops.clear();
+    resumed_exits.clear();
     handle_syscall = false;
 }
 
@@ -160,6 +165,8 @@ std::pair<std::shared_ptr<PtraceRegsStruct>, std::shared_ptr<PtraceFPRegsStruct>
     if (process_id == -1) {
         process_id = tid;
     }
+
+    pending_child_stops.erase(tid);
 
     Thread t;
     t.tid = tid;
@@ -181,9 +188,12 @@ std::pair<std::shared_ptr<PtraceRegsStruct>, std::shared_ptr<PtraceFPRegsStruct>
 
 void LibdebugPtraceInterface::unregister_thread(const pid_t tid)
 {
-    // move the dead thread to the dead list
-    dead_threads[tid] = threads[tid];
-    threads.erase(tid);
+    auto entry = threads.find(tid);
+    if (entry != threads.end()) {
+        dead_threads[tid] = entry->second;
+        threads.erase(entry);
+    }
+    resumed_exits.erase(tid);
 }
 
 int LibdebugPtraceInterface::attach(pid_t tid)
@@ -255,7 +265,9 @@ void LibdebugPtraceInterface::detach_from_child(pid_t pid, bool follow_child)
 {  
     // the child will be in trace stop, we need to sync with it
     int status;
-    waitpid(pid, &status, 0);
+    if (pending_child_stops.erase(pid) == 0) {
+        while (waitpid(pid, &status, __WALL | __WNOTHREAD) == -1 && errno == EINTR) {}
+    }
 
     if (follow_child){
         // send a SIGSTOP to the process to avoid the process to run after the detach
@@ -469,7 +481,123 @@ unsigned long LibdebugPtraceInterface::get_thread_event_msg(const pid_t tid)
     return data;
 }
 
-std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_regs(const bool all_zombies)
+unsigned long LibdebugPtraceInterface::get_stop_event_extra_info(const pid_t pid, const int status)
+{
+    // The current logic is as follows:
+    // If the stop event is not a SIGTRAP, we don't extract any extra info
+    // If the stop event is a SIGTRAP for syscall, we don't extract any extra info
+    // If the stop event is for a breakpoint (software or hardware), we return the address of the breakpoint
+    // If the stop event is for a ptrace event, we return the event message
+    // If the stop event is for a single step, we return 0
+    // For other cases, we return the si_code as is
+
+    // If the stop event is not a SIGTRAP, we don't extract any extra info
+    if (!WIFSTOPPED(status) || WSTOPSIG(status) != SIGTRAP) {
+        return 0;
+    }
+
+    // If the status is in the form (PTRACE_EVENT_* << 8) | SIGTRAP, it means
+    // that the stop event is for a ptrace event, not a breakpoint or single step
+    // In this case, we return the event message
+    if ((status >> 8) != SIGTRAP) {
+        unsigned long msg = get_thread_event_msg(pid);
+        if ((status >> 16) == PTRACE_EVENT_EXEC) {
+            // The address space has already changed. Discard old patches before
+            // the collector can restore their saved bytes into the new image.
+            software_breakpoints.clear();
+            Thread survivor = try_get_thread(static_cast<pid_t>(msg));
+            for (auto &entry : threads) {
+                if (entry.first != static_cast<pid_t>(msg)) dead_threads[entry.first] = entry.second;
+            }
+            threads.clear();
+            survivor.tid = pid;
+            survivor.hardware_breakpoints.clear();
+            survivor.signal_to_forward = 0;
+            survivor.fpregs->set_dirty(0);
+            survivor.fpregs->set_fresh(0);
+            threads[pid] = survivor;
+            resumed_exits.clear();
+            pending_child_stops.clear();
+            getregs(threads[pid]);
+        }
+        return msg;
+    }
+
+    // Else, we call getsiginfo to get the siginfo struct
+    siginfo_t si;
+    if (ptrace(PTRACE_GETSIGINFO, pid, NULL, &si) == -1) {
+        throw std::runtime_error("ptrace GETSIGINFO failed");
+    }
+
+    // User-generated traps are signal-delivery stops, even when the IP happens
+    // to coincide with a breakpoint. Reserve a zero low byte for these codes.
+    if (si.si_code <= 0) {
+        return static_cast<unsigned long>(static_cast<unsigned int>(si.si_code)) << 8;
+    }
+
+    // Now, the si.si_code tells us various info about the stop event
+    // If si_code == TRAP_TRACE (2), we did a single step
+    if (si.si_code == TRAP_TRACE) {
+        // We are stepping, we have no extra info to return
+        return TRAP_TRACE;
+    }
+    // If si_code == TRAP_HWBKPT (4), we hit a hardware breakpoint/watchpoint
+    else if (si.si_code == TRAP_HWBKPT) {
+        // We hit a hardware breakpoint, we can return the TRAP_HWBKPT code as well as the address
+        return (unsigned long)si.si_addr << 8 | TRAP_HWBKPT;
+    }
+    // If si_code == 0x80 (SI_KERNEL)
+    // this is not a syscall stop, even though it looks like one
+    // The kernel is stupid and doesn't really know what this event is, so we need to handle it ourselves
+    // If si_code == TRAP_BRKPT (1), we probably hit a software breakpoint, but the kernel sometimes
+    // misreports steps as breakpoints, so we need to check ourselves too (sigh)
+    else if (si.si_code == SI_KERNEL || si.si_code == TRAP_BRKPT) {
+        // Let's check if we have hit a software breakpoint
+        unsigned long ip;
+        Thread &t = try_get_thread(pid);
+
+        // We need to fetch the current registers, as they might be stale
+        getregs(t);
+
+        // We need to adjust the instruction pointer based on the architecture
+        // On x86, IP points after the INT3, so we decrement. On aarch64, PC points to the BRK instruction.
+        ip = INSTRUCTION_POINTER(t.regs) - SW_BP_IP_ADJUST;
+        auto sw_it = software_breakpoints.find(ip);
+        if (sw_it != software_breakpoints.end() && sw_it->second.enabled) {
+            // We hit a software breakpoint on this thread
+            return (unsigned long)ip << 8 | TRAP_BRKPT;
+        }
+        // Let's check if we have hit a hardware breakpoint
+        ip = INSTRUCTION_POINTER(t.regs);
+        auto hw_it = t.hardware_breakpoints.find(ip);
+        if (hw_it != t.hardware_breakpoints.end() && hw_it->second.enabled) {
+            // We hit a hardware breakpoint on this thread
+            return (unsigned long)ip << 8 | TRAP_HWBKPT;
+        }
+        // We might have hit a software breakpoint that we didn't register
+        // We need to adjust the instruction pointer based on the architecture
+        ip = INSTRUCTION_POINTER(t.regs) - SW_BP_IP_ADJUST;
+        try {
+            unsigned long memory_value = peek_data(ip);
+            if (IS_SW_BREAKPOINT(memory_value)) {
+                return (unsigned long)ip << 8 | TRAP_BRKPT;
+            }
+        } catch (...) {
+            // Could not read memory, just ignore IT
+        }
+
+        // Now the fun part, if si_code was BRKPT but we didn't find any breakpoint,
+        // it means we probably hit a single step that the kernel misreported
+        return TRAP_TRACE;
+    }
+    // For other si_code values, we don't have extra info to return
+    else {
+        // Uknown si_code, return it as is
+        return static_cast<unsigned long>(si.si_code) << 8;
+    }
+}
+
+ThreadStatusList LibdebugPtraceInterface::wait_all_and_update_regs(const bool all_zombies)
 {
     if (all_zombies) {
         // All threads are zombies, we might be in the case of a fatal signal
@@ -480,66 +608,69 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_
     }
 }
 
-std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_regs_standard()
+ThreadStatusList LibdebugPtraceInterface::wait_all_and_update_regs_standard()
 {
-    std::vector<std::pair<pid_t, int>> thread_statuses;
+    ThreadStatusList thread_statuses;
 
     int tid, status;
 
-    while (true) {
-        // Check if any thread has finished
-        bool anyFinished = std::any_of(threads.begin(), threads.end(), [&](auto &t) {
-            tid = waitpid(t.first, &status, WNOHANG);
-            return (tid != 0);
-        });
-
-        if (anyFinished) {
-            break;
+    // Ptrace ownership belongs to the polling thread, not to a process group.
+    // Keep initial child stops until the parent event registers or detaches them.
+    do {
+        do {
+            tid = waitpid(-1, &status, __WALL | __WNOTHREAD);
+        } while (tid == -1 && errno == EINTR);
+        if (tid == -1) {
+            throw std::runtime_error("waitpid failed");
         }
-    }
+        thread_statuses.push_back({tid, status, get_stop_event_extra_info(tid, status)});
+        if (threads.find(tid) == threads.end()) {
+            pending_child_stops[tid] = status;
+        }
+    } while (threads.find(tid) == threads.end());
 
-    if (tid == -1) {
-        throw std::runtime_error("waitpid failed");
-    }
-
-    thread_statuses.push_back({tid, status});
-
-    // We must interrupt all the other threads with a SIGSTOP
-    int temp_tid, temp_status;
+    // Request all stops first. Waiting for a specific peer can deadlock when
+    // that peer is in exec and needs another thread to leave its exit stop.
+    std::unordered_set<pid_t> pending;
     for (auto &t : threads) {
-        if (t.first != tid) {
-            // If GETREGS succeeds, the thread is already stopped, so we must
-            // not "stop" it again
-            if (getregs(t.second) == -1) {
-                // Stop the thread with a SIGSTOP
-                thread_kill(process_id, t.first, SIGSTOP);
-                // Wait for the thread to stop
-                temp_tid = waitpid(t.first, &temp_status, 0);
-
-                // Register the status of the thread, as it might contain useful
-                // information
-                thread_statuses.push_back({temp_tid, temp_status});
-            }
+        if (t.first != tid && !resumed_exits.count(t.first) && getregs(t.second) == -1) {
+            thread_kill(process_id, t.first, SIGSTOP);
+            pending.insert(t.first);
         }
     }
 
-    // We keep polling but don't block, we want to get all the statuses we can
-    while (true) {
-        bool eventRetrieved = false;
-
-        for (auto &t : threads) {
-            tid = waitpid(t.first, &status, WNOHANG);
-            if (tid > 0) {
-                // Record the PID and its status
-                thread_statuses.push_back({tid, status});
-                eventRetrieved = true;
+    auto release_exit = [&](pid_t stopped_tid, int stopped_status) {
+        if (WIFSTOPPED(stopped_status) && (stopped_status >> 16) == PTRACE_EVENT_EXIT) {
+            if (ptrace(PTRACE_CONT, stopped_tid, NULL, NULL) == -1 && errno != ESRCH) {
+                throw std::runtime_error("ptrace cont at exit failed");
             }
+            resumed_exits.insert(stopped_tid);
         }
+    };
+    if (!pending.empty()) release_exit(tid, status);
 
-        // If we didn't retrieve any new events, we're done
-        if (!eventRetrieved) {
-            break;
+    while (!pending.empty()) {
+        do {
+            tid = waitpid(-1, &status, __WALL | __WNOTHREAD);
+        } while (tid == -1 && errno == EINTR);
+        if (tid == -1) throw std::runtime_error("waitpid in stop barrier failed");
+        thread_statuses.push_back({tid, status, get_stop_event_extra_info(tid, status)});
+        pending.erase(tid);
+        if (WIFSTOPPED(status) && (status >> 16) == PTRACE_EVENT_EXEC) {
+            pending.clear();
+        } else if (threads.find(tid) == threads.end()) {
+            pending_child_stops[tid] = status;
         }
+        if (!pending.empty()) release_exit(tid, status);
+    }
+
+    // Drain available events from this tracer thread, including early child stops.
+    while (true) {
+        tid = waitpid(-1, &status, __WALL | __WNOTHREAD | WNOHANG);
+        if (tid == -1 && errno == EINTR) continue;
+        if (tid <= 0) break;
+        thread_statuses.push_back({tid, status, get_stop_event_extra_info(tid, status)});
+        if (threads.find(tid) == threads.end()) pending_child_stops[tid] = status;
     }
 
     // Update the registers of all the threads
@@ -557,7 +688,7 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_
     return thread_statuses;
 }
 
-std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_regs_zombies()
+ThreadStatusList LibdebugPtraceInterface::wait_all_and_update_regs_zombies()
 {   
     // Usually, when one or more threads are zombies, the kernel sends a PTRACE_EVENT_EXIT for each
     // of them. In this case, we can just wait for the event and reap the exit status of the thread.
@@ -572,9 +703,9 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_
     // is received by the main thread and we reap the exit status, the kernel will clean up all the
     // zombies. This means that the other threads will not receive the PTRACE_EVENT_EXIT event.
     
-    std::vector<std::pair<pid_t, int>> thread_statuses;
+    ThreadStatusList thread_statuses;
     int tid, status, main_status;
-    
+
     std::unordered_set<pid_t> tids_with_event = {};
     int main_tid = threads.begin()->first;
 
@@ -589,7 +720,7 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_
 
         if (tid > 0) {
             // Record the PID and its status
-            thread_statuses.push_back({tid, status});
+            thread_statuses.push_back({tid, status, get_stop_event_extra_info(tid, status)});
             tids_with_event.insert(tid);
         }
 
@@ -614,7 +745,7 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_
             tid = waitpid(t.first, &status, WNOHANG);
             if (tid > 0) {
                 // Record the PID and its status
-                thread_statuses.push_back({tid, status});
+                thread_statuses.push_back({tid, status, get_stop_event_extra_info(tid, status)});
                 tids_with_event.insert(tid);
                 eventRetrieved = true;
             }
@@ -636,7 +767,7 @@ std::vector<std::pair<pid_t, int>> LibdebugPtraceInterface::wait_all_and_update_
     // thread status if no status is present
     for (auto &t : threads) {
         if (tids_with_event.find(t.first) == tids_with_event.end()) {
-            thread_statuses.push_back({t.first, main_status});
+            thread_statuses.push_back({t.first, main_status, get_stop_event_extra_info(t.first, main_status)});
         }
     }
 
@@ -815,18 +946,6 @@ NB_MODULE(libdebug_ptrace_binding, m)
             "data",
             &Reg512::bytes,
             "The data of the register, as a byte array."
-        );
-
-    nb::class_<ThreadStatus>(m, "ThreadStatus", "The waitpid result of a specific thread.")
-        .def_ro(
-            "tid",
-            &ThreadStatus::tid,
-            "The thread id."
-        )
-        .def_ro(
-            "status",
-            &ThreadStatus::status,
-            "The waitpid result."
         );
 
     nb::class_<LibdebugPtraceInterface>(m, "LibdebugPtraceInterface", "The native binding for ptrace on Linux.")

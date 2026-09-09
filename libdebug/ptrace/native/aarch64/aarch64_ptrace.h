@@ -15,6 +15,7 @@
 #define INSTRUCTION_POINTER(regs) (regs->pc)
 #define INSTALL_BREAKPOINT(instruction) ((instruction & 0xFFFFFFFF00000000) | 0xD4200000)
 #define BREAKPOINT_SIZE 4
+#define SW_BP_IP_ADJUST 0
 #define IS_SW_BREAKPOINT(instruction) (instruction == 0xD4200000)
 
 #define IS_RET_INSTRUCTION(instruction) (instruction == 0xD65F03C0)

@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2025 Gabriele Digregorio. All rights reserved.
+# Copyright (c) 2025 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -130,9 +130,9 @@ class MultiprocessingTest(TestCase):
         # The process is already at the breakpoint address (after fork), we need to skip it
         # and wait for the next hit
         ddd.step()
-        
+
         ddd.cont()
-        
+
         self.assertTrue(bp_child2.hit_on(ddd))
         self.assertFalse(bp_child2.hit_on(dd))
         self.assertFalse(bp_child2.hit_on(d))
@@ -174,7 +174,7 @@ class MultiprocessingTest(TestCase):
         # The process is already at the breakpoint address (after fork), we need to skip it
         # and wait for the next hit
         ddddd.step()
-        
+
         ddddd.cont()
         
         self.assertTrue(bp_child4.hit_on(ddddd))
@@ -194,7 +194,7 @@ class MultiprocessingTest(TestCase):
         dddddd = ddddd.children[0]
         
         dddddd.cont()
-        
+
         r.sendline(b"Io_no")
         self.assertEqual(r.recvline(), b"Enter your input: You entered: Io_no")
 
@@ -228,7 +228,7 @@ class MultiprocessingTest(TestCase):
         bp_parent = d.bp(AFTER_FORK_STRESS, file="binary", hardware=False)
 
         d.cont()
-        
+
         self.assertTrue(bp_parent.hit_on(d))
         self.assertEqual(len(d.children), 1)
         
@@ -245,7 +245,7 @@ class MultiprocessingTest(TestCase):
         dd.step()
 
         dd.cont()
-        
+
         self.assertTrue(bp_child1.hit_on(dd))
         self.assertFalse(bp_child1.hit_on(d))
         self.assertEqual(len(d.children), 1)
@@ -264,7 +264,7 @@ class MultiprocessingTest(TestCase):
         ddd.step()
         
         ddd.cont()
-        
+
         self.assertTrue(bp_child2.hit_on(ddd))
         self.assertFalse(bp_child2.hit_on(dd))
         self.assertFalse(bp_child2.hit_on(d))
@@ -285,7 +285,7 @@ class MultiprocessingTest(TestCase):
         dddd.step()
         
         dddd.cont()
-        
+
         self.assertTrue(bp_child3.hit_on(dddd))
         self.assertFalse(bp_child3.hit_on(ddd))
         self.assertFalse(bp_child3.hit_on(dd))
@@ -308,7 +308,7 @@ class MultiprocessingTest(TestCase):
         ddddd.step()
         
         ddddd.cont()
-        
+
         self.assertTrue(bp_child4.hit_on(ddddd))
         self.assertFalse(bp_child4.hit_on(ddd))
         self.assertFalse(bp_child4.hit_on(ddd))
@@ -360,7 +360,7 @@ class MultiprocessingTest(TestCase):
         bp = d.bp(AFTER_FORK_BASIC, file="binary", hardware=True)
 
         d.cont()
-        
+
         self.assertTrue(bp.hit_on(d))
         self.assertEqual(len(d.children), 0)
 
@@ -383,7 +383,7 @@ class MultiprocessingTest(TestCase):
         bp_parent = d.bp(AFTER_FORK_STRESS, file="binary", hardware=True)
 
         d.cont()
-        
+
         self.assertTrue(bp_parent.hit_on(d))
         self.assertEqual(len(d.children), 0)
         

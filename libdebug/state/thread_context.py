@@ -1,8 +1,9 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
+# Copyright (c) 2024-2025 Roberto Alessandro Bertolini, Gabriele Digregorio, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
+
 from __future__ import annotations
 
 from abc import ABC
@@ -26,6 +27,7 @@ if TYPE_CHECKING:
     from libdebug.debugger.debugger import Debugger
     from libdebug.debugger.internal_debugger import InternalDebugger
     from libdebug.memory.abstract_memory_view import AbstractMemoryView
+    from libdebug.state.resume_context import ResumeContext
 
 
 class ThreadContext(ABC):
@@ -113,7 +115,14 @@ class ThreadContext(ABC):
     @property
     def debugger(self: ThreadContext) -> Debugger:
         """The debugging context this thread belongs to."""
+        self._internal_debugger._ensure_process_stopped()
         return self._internal_debugger.debugger
+
+    @property
+    def resume_context(self: ThreadContext) -> ResumeContext:
+        """The current resume context of the debugged process."""
+        self._internal_debugger._ensure_process_stopped()
+        return self._internal_debugger.resume_context
 
     @property
     def dead(self: ThreadContext) -> bool:

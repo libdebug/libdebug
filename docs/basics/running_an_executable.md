@@ -134,3 +134,27 @@ from libdebug import debugger
 
 d = debugger(["argv[0]", "argv[1]", ...], path="my_executable")
 ```
+
+## Exec and event hooks
+
+An exec replaces the target's executable image. libdebug discards old breakpoints,
+syscall handlers, and signal catchers, refreshes memory and symbol state, and
+updates architecture and register views before calling exec hooks. The surviving
+`ThreadContext` keeps its identity, including when a worker becomes the leader.
+
+Event hooks are preserved by default, including their enabled states and hit counts:
+
+```python
+d = debugger("program", preserve_event_hooks_on_exec=True)
+```
+
+Set `preserve_event_hooks_on_exec=False` to run the current exec's pre/post hooks
+and then remove the user hooks that were registered when that exec event began.
+Hooks added by those callbacks remain registered. The setting is captured at
+event entry, so changing `d.preserve_event_hooks_on_exec` inside a callback affects
+subsequent execs. Followed children inherit the setting.
+
+The `stop_on_exec`, `stop_on_fork`, and `stop_on_clone` utility hooks continue to
+follow their options under either retention policy. Instrumentation installed by
+exec callbacks belongs to the new image. See [event hook mutation during dispatch](../../stopping_events/stopping_events/#event-hook-mutation-during-dispatch)
+for the rules governing additions, removals, and disabling during callbacks.
