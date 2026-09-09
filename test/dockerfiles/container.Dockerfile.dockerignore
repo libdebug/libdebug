@@ -1,0 +1,4 @@
+**
+!srcs/
+!srcs/container_input.c
+!srcs/container_library.c

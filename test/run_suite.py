@@ -23,7 +23,6 @@ def fast_suite():
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.BacktraceTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.BreakpointTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.CallbackTest))
-    suite.addTest(TestLoader().loadTestsFromTestCase(scripts.ContainerUtilsUnitTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.ControlFlowTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.CorruptedELFTest))
     suite.addTest(TestLoader().loadTestsFromTestCase(scripts.CursedBinariesTest))
@@ -102,6 +101,8 @@ def main(suite: str):
     elif suite == "stress":
         suite = stress_suite()
         runner.verbosity = 1
+    elif suite == "docker":
+        suite = TestLoader().loadTestsFromTestCase(scripts.ContainerTest)
     elif suite == "fast":
         suite = fast_suite()
     elif suite == "memory":
@@ -109,11 +110,13 @@ def main(suite: str):
     else:
         raise ValueError(f"Invalid suite: {suite}")
 
-    runner.run(suite)
+    result = runner.run(suite)
+    if not result.wasSuccessful():
+        raise SystemExit(1)
 
 if __name__ == "__main__":
     parser = ArgumentParser(prog="libdebug Test Suite", description="Run the test suite")
-    parser.add_argument("suite", type=str, help="The suite to run the tests from", choices=["fast", "slow", "stress", "memory"], default="fast", nargs="?")
+    parser.add_argument("suite", type=str, help="The suite to run the tests from", choices=["fast", "slow", "stress", "memory", "docker"], default="fast", nargs="?")
 
     dbg = 'dbg' in sys.argv
     if dbg:
