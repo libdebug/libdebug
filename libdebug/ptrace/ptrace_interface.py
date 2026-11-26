@@ -301,7 +301,7 @@ class PtraceInterface(DebuggingInterface):
 
         self.lib_trace.step(thread.thread_id)
 
-        self._internal_debugger.resume_context.is_a_step = True
+        self._internal_debugger.resume_context._is_a_step = True
 
     def step_until(self: PtraceInterface, thread: ThreadContext, address: int, max_steps: int) -> None:
         """Executes instructions of the specified thread until the specified address is reached.
@@ -467,9 +467,9 @@ class PtraceInterface(DebuggingInterface):
     def _setup_parent(self: PtraceInterface, continue_to_entry_point: bool) -> None:
         """Sets up the parent process after the child process has been created or attached to."""
         liblog.debugger("Polling child process status")
-        self._internal_debugger.resume_context.is_startup = True
+        self._internal_debugger.resume_context._is_startup = True
         self.wait()
-        self._internal_debugger.resume_context.is_startup = False
+        self._internal_debugger.resume_context._is_startup = False
         liblog.debugger("Child process ready, setting options")
         self._set_options()
         liblog.debugger("Options set")
