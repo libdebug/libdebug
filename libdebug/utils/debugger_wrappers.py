@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024 Gabriele Digregorio, Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2024-2026 Gabriele Digregorio, Roberto Alessandro Bertolini, Francesco Panebianco. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -85,3 +85,13 @@ def background_alias(alias_method: callable) -> callable:
         return inner
 
     return _background_alias
+
+def invalidates_volatile(method: callable) -> callable:
+    """Decorator to invalidate volatile caches after executing a method."""
+
+    @wraps(method)
+    def wrapper(self: InternalDebugger, *args: ..., **kwargs: ...) -> ...:
+        self.clear_volatile_caches()
+        return method(self, *args, **kwargs)
+
+    return wrapper

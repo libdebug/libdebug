@@ -1,0 +1,2881 @@
+#
+# This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
+# Copyright (c) 2025-2026 Francesco Panebianco. All rights reserved.
+# Licensed under the MIT license. See LICENSE file in the project root for details.
+#
+
+import os
+import shutil
+import struct
+import tempfile
+from collections import Counter
+from pathlib import Path
+from unittest import TestCase
+from unittest.mock import patch
+
+from libdebug import debugger
+from libdebug.architectures.aarch64.aarch64_pac_instruction_detector import (
+    DETECTION_PATTERNS,
+    detect_pac_pattern_in_code,
+)
+from libdebug.data.elf.linux_runtime_mitigations import RelroStatus
+from libdebug.native.libdebug_elf_api import (
+    DynamicSectionTable,
+    GNUPropertyNotesTable,
+    ProgramHeaderTable,
+    SectionTable,
+)
+from libdebug.utils.elf_utils import parse_elf_characteristics
+from utils.binary_utils import BASE, PLATFORM, RESOLVE_EXE, RESOLVE_EXE_CROSS
+
+match PLATFORM:
+    case "i386":
+        entry_point = 0x1180
+        dl_open_test_bp = 0x74e
+        gt_build_id = "3ffb142e23aeef6017d9cae1e90da130dae0a697"
+        LIBC_SONAME = "libc.so.6"
+        LD_SONAME = "ld-linux.so.2"
+        num_symbols = 50
+    case "aarch64":
+        entry_point = 0x940
+        dl_open_test_bp = 0xa38
+        gt_build_id = "93beda343351604e97878bbb8605dc4a13644d76"
+        LIBC_SONAME = "libc.so.6"
+        LD_SONAME = "ld-linux-aarch64.so.1"
+        num_symbols = 117
+    case "amd64":
+        entry_point = 0x1190
+        dl_open_test_bp = 0x12a5
+        gt_build_id = "de1a4f0ca53a82f9590cc4a3cfaaec5fe86aabaf"
+        LIBC_SONAME = "libc.so.6"
+        LD_SONAME = "ld-linux-x86-64.so.2"
+        num_symbols = 46
+    case _:
+        raise RuntimeError(f"Unsupported platform: {PLATFORM}")
+    
+LIBM_SONAME = "libm.so.6"
+
+class ElfApiTest(TestCase):
+    def test_sections_amd64(self):
+        """Tests the sections API."""
+        # Create a debugger and start execution
+        d = debugger(RESOLVE_EXE_CROSS("sections_test", "amd64"), aslr=False)
+
+        sections = d.binary.sections
+
+        self.assertEqual(len(sections), 37)
+
+        self.assertEqual(sections[0].name, "")
+        self.assertEqual(sections[0].offset, 0x0)
+        self.assertEqual(sections[0].address, 0x0)
+        self.assertEqual(sections[0].size, 0x0)
+        self.assertEqual(sections[0].flags, "")  # None
+        self.assertEqual(sections[0].address_align, 0x0)
+        self.assertEqual(sections[0].section_type, "NULL")
+
+        #.interp
+        self.assertEqual(sections[1].name, ".interp")
+        self.assertEqual(sections[1].offset, 0x350)
+        self.assertEqual(sections[1].address, 0x350)
+        self.assertEqual(sections[1].size, 0x1c)
+        self.assertEqual(sections[1].flags, "A")  # ALLOC
+        self.assertEqual(sections[1].address_align, 0x1)
+        self.assertEqual(sections[1].section_type, "PROGBITS")
+
+        #.note.gnu.property
+        self.assertEqual(sections[2].name, ".note.gnu.property")
+        self.assertEqual(sections[2].offset, 0x370)
+        self.assertEqual(sections[2].address, 0x370)
+        self.assertEqual(sections[2].size, 0x30)
+        self.assertEqual(sections[2].flags, "A")  # ALLOC
+        self.assertEqual(sections[2].address_align, 0x8)
+        self.assertEqual(sections[2].section_type, "NOTE")
+
+        #.note.gnu.build-id
+        self.assertEqual(sections[3].name, ".note.gnu.build-id")
+        self.assertEqual(sections[3].offset, 0x3a0)
+        self.assertEqual(sections[3].address, 0x3a0)
+        self.assertEqual(sections[3].size, 0x24)
+        self.assertEqual(sections[3].flags, "A")  # ALLOC
+        self.assertEqual(sections[3].address_align, 0x4)
+        self.assertEqual(sections[3].section_type, "NOTE")
+
+        #.note.ABI-tag
+        self.assertEqual(sections[4].name, ".note.ABI-tag")
+        self.assertEqual(sections[4].offset, 0x3c4)
+        self.assertEqual(sections[4].address, 0x3c4)
+        self.assertEqual(sections[4].size, 0x20)
+        self.assertEqual(sections[4].flags, "A")  # ALLOC
+        self.assertEqual(sections[4].address_align, 0x4)
+        self.assertEqual(sections[4].section_type, "NOTE")
+
+        #.note.weird
+        self.assertEqual(sections[5].name, ".note.weird")
+        self.assertEqual(sections[5].offset, 0x3e4)
+        self.assertEqual(sections[5].address, 0x3e4)
+        self.assertEqual(sections[5].size, 0x16)
+        self.assertEqual(sections[5].flags, "A")  # ALLOC
+        self.assertEqual(sections[5].address_align, 0x4)
+        self.assertEqual(sections[5].section_type, "NOTE")
+
+        #.gnu.hash
+        self.assertEqual(sections[6].name, ".gnu.hash")
+        self.assertEqual(sections[6].offset, 0x400)
+        self.assertEqual(sections[6].address, 0x400)
+        self.assertEqual(sections[6].size, 0x24)
+        self.assertEqual(sections[6].flags, "A")  # ALLOC
+        self.assertEqual(sections[6].address_align, 0x8)
+        self.assertEqual(sections[6].section_type, "GNU_HASH")
+
+        #.dynsym
+        self.assertEqual(sections[7].name, ".dynsym")
+        self.assertEqual(sections[7].offset, 0x428)
+        self.assertEqual(sections[7].address, 0x428)
+        self.assertEqual(sections[7].size, 0x108)
+        self.assertEqual(sections[7].flags, "A")  # ALLOC
+        self.assertEqual(sections[7].address_align, 0x8)
+        self.assertEqual(sections[7].section_type, "DYNSYM")
+
+        #.dynstr
+        self.assertEqual(sections[8].name, ".dynstr")
+        self.assertEqual(sections[8].offset, 0x530)
+        self.assertEqual(sections[8].address, 0x530)
+        self.assertEqual(sections[8].size, 0xeb)
+        self.assertEqual(sections[8].flags, "A")  # ALLOC
+        self.assertEqual(sections[8].address_align, 0x1)
+        self.assertEqual(sections[8].section_type, "STRTAB")
+
+        #.gnu.version
+        self.assertEqual(sections[9].name, ".gnu.version")
+        self.assertEqual(sections[9].offset, 0x61c)
+        self.assertEqual(sections[9].address, 0x61c)
+        self.assertEqual(sections[9].size, 0x16)
+        self.assertEqual(sections[9].flags, "A")  # ALLOC
+        self.assertEqual(sections[9].address_align, 0x2)
+        self.assertEqual(sections[9].section_type, "GNU_VERSYM")
+
+        #.gnu.version_r
+        self.assertEqual(sections[10].name, ".gnu.version_r")
+        self.assertEqual(sections[10].offset, 0x638)
+        self.assertEqual(sections[10].address, 0x638)
+        self.assertEqual(sections[10].size, 0x60)
+        self.assertEqual(sections[10].flags, "A")  # ALLOC
+        self.assertEqual(sections[10].address_align, 0x8)
+        self.assertEqual(sections[10].section_type, "GNU_VERNEED")
+
+        #.rela.dyn
+        self.assertEqual(sections[11].name, ".rela.dyn")
+        self.assertEqual(sections[11].offset, 0x698)
+        self.assertEqual(sections[11].address, 0x698)
+        self.assertEqual(sections[11].size, 0x138)
+        self.assertEqual(sections[11].flags, "A")  # ALLOC
+        self.assertEqual(sections[11].address_align, 0x8)
+        self.assertEqual(sections[11].section_type, "RELA")
+
+        #.rela.plt
+        self.assertEqual(sections[12].name, ".rela.plt")
+        self.assertEqual(sections[12].offset, 0x7d0)
+        self.assertEqual(sections[12].address, 0x7d0)
+        self.assertEqual(sections[12].size, 0x60)
+        self.assertEqual(sections[12].flags, "AI")  # ALLOC INFOLINK
+        self.assertEqual(sections[12].address_align, 0x8)
+        self.assertEqual(sections[12].section_type, "RELA")
+
+        #.init
+        self.assertEqual(sections[13].name, ".init")
+        self.assertEqual(sections[13].offset, 0x1000)
+        self.assertEqual(sections[13].address, 0x1000)
+        self.assertEqual(sections[13].size, 0x1b)
+        self.assertEqual(sections[13].flags, "AX")  # ALLOC EXEC
+        self.assertEqual(sections[13].address_align, 0x4)
+        self.assertEqual(sections[13].section_type, "PROGBITS")
+
+        #.plt
+        self.assertEqual(sections[14].name, ".plt")
+        self.assertEqual(sections[14].offset, 0x1020)
+        self.assertEqual(sections[14].address, 0x1020)
+        self.assertEqual(sections[14].size, 0x50)
+        self.assertEqual(sections[14].flags, "AX")  # ALLOC EXEC
+        self.assertEqual(sections[14].address_align, 0x10)
+        self.assertEqual(sections[14].section_type, "PROGBITS")
+
+        #.plt.got
+        self.assertEqual(sections[15].name, ".plt.got")
+        self.assertEqual(sections[15].offset, 0x1070)
+        self.assertEqual(sections[15].address, 0x1070)
+        self.assertEqual(sections[15].size, 0x10)
+        self.assertEqual(sections[15].flags, "AX")  # ALLOC EXEC
+        self.assertEqual(sections[15].address_align, 0x10)
+        self.assertEqual(sections[15].section_type, "PROGBITS")
+
+        #.plt.sec
+        self.assertEqual(sections[16].name, ".plt.sec")
+        self.assertEqual(sections[16].offset, 0x1080)
+        self.assertEqual(sections[16].address, 0x1080)
+        self.assertEqual(sections[16].size, 0x40)
+        self.assertEqual(sections[16].flags, "AX")  # ALLOC EXEC
+        self.assertEqual(sections[16].address_align, 0x10)
+        self.assertEqual(sections[16].section_type, "PROGBITS")
+
+        #.text
+        self.assertEqual(sections[17].name, ".text")
+        self.assertEqual(sections[17].offset, 0x10c0)
+        self.assertEqual(sections[17].address, 0x10c0)
+        self.assertEqual(sections[17].size, 0x27a)
+        self.assertEqual(sections[17].flags, "AX")  # ALLOC EXEC
+        self.assertEqual(sections[17].address_align, 0x10)
+        self.assertEqual(sections[17].section_type, "PROGBITS")
+
+        #.fini
+        self.assertEqual(sections[18].name, ".fini")
+        self.assertEqual(sections[18].offset, 0x133c)
+        self.assertEqual(sections[18].address, 0x133c)
+        self.assertEqual(sections[18].size, 0xd)
+        self.assertEqual(sections[18].flags, "AX")  # ALLOC EXEC
+        self.assertEqual(sections[18].address_align, 0x4)
+        self.assertEqual(sections[18].section_type, "PROGBITS")
+
+        #.rodata
+        self.assertEqual(sections[19].name, ".rodata")
+        self.assertEqual(sections[19].offset, 0x2000)
+        self.assertEqual(sections[19].address, 0x2000)
+        self.assertEqual(sections[19].size, 0x96)
+        self.assertEqual(sections[19].flags, "A")  # ALLOC
+        self.assertEqual(sections[19].address_align, 0x8)
+        self.assertEqual(sections[19].section_type, "PROGBITS")
+
+        #.eh_frame_hdr
+        self.assertEqual(sections[20].name, ".eh_frame_hdr")
+        self.assertEqual(sections[20].offset, 0x2098)
+        self.assertEqual(sections[20].address, 0x2098)
+        self.assertEqual(sections[20].size, 0x64)
+        self.assertEqual(sections[20].flags, "A")  # ALLOC
+        self.assertEqual(sections[20].address_align, 0x4)
+        self.assertEqual(sections[20].section_type, "PROGBITS")
+
+        #.eh_frame
+        self.assertEqual(sections[21].name, ".eh_frame")
+        self.assertEqual(sections[21].offset, 0x2100)
+        self.assertEqual(sections[21].address, 0x2100)
+        self.assertEqual(sections[21].size, 0x138)
+        self.assertEqual(sections[21].flags, "A")  # ALLOC
+        self.assertEqual(sections[21].address_align, 0x8)
+        self.assertEqual(sections[21].section_type, "PROGBITS")
+
+        #.tdata
+        self.assertEqual(sections[22].name, ".tdata")
+        self.assertEqual(sections[22].offset, 0x2d64)
+        self.assertEqual(sections[22].address, 0x3d64)
+        self.assertEqual(sections[22].size, 0x4)
+        self.assertEqual(sections[22].flags, "WAT")  # WRITABLE ALLOC TLS
+        self.assertEqual(sections[22].address_align, 0x4)
+        self.assertEqual(sections[22].section_type, "PROGBITS")
+
+        #.tbss
+        self.assertEqual(sections[23].name, ".tbss")
+        self.assertEqual(sections[23].offset, 0x2d68)
+        self.assertEqual(sections[23].address, 0x3d68)
+        self.assertEqual(sections[23].size, 0x4)
+        self.assertEqual(sections[23].flags, "WAT")  # WRITABLE ALLOC TLS
+        self.assertEqual(sections[23].address_align, 0x4)
+        self.assertEqual(sections[23].section_type, "NOBITS")
+
+        #.init_array
+        self.assertEqual(sections[24].name, ".init_array")
+        self.assertEqual(sections[24].offset, 0x2d68)
+        self.assertEqual(sections[24].address, 0x3d68)
+        self.assertEqual(sections[24].size, 0x10)
+        self.assertEqual(sections[24].flags, "WA")  # WRITABLE ALLOC
+        self.assertEqual(sections[24].address_align, 0x8)
+        self.assertEqual(sections[24].section_type, "INIT_ARRAY")
+
+        #.fini_array
+        self.assertEqual(sections[25].name, ".fini_array")
+        self.assertEqual(sections[25].offset, 0x2d78)
+        self.assertEqual(sections[25].address, 0x3d78)
+        self.assertEqual(sections[25].size, 0x10)
+        self.assertEqual(sections[25].flags, "WA")  # WRITABLE ALLOC
+        self.assertEqual(sections[25].address_align, 0x8)
+        self.assertEqual(sections[25].section_type, "FINI_ARRAY")
+
+        #.data.rel.ro
+        self.assertEqual(sections[26].name, ".data.rel.ro")
+        self.assertEqual(sections[26].offset, 0x2d88)
+        self.assertEqual(sections[26].address, 0x3d88)
+        self.assertEqual(sections[26].size, 0x8)
+        self.assertEqual(sections[26].flags, "WA")  # WRITABLE ALLOC
+        self.assertEqual(sections[26].address_align, 0x8)
+        self.assertEqual(sections[26].section_type, "PROGBITS")
+
+        #.dynamic
+        self.assertEqual(sections[27].name, ".dynamic")
+        self.assertEqual(sections[27].offset, 0x2d90)
+        self.assertEqual(sections[27].address, 0x3d90)
+        self.assertEqual(sections[27].size, 0x200)
+        self.assertEqual(sections[27].flags, "WA")  # WRITABLE ALLOC
+        self.assertEqual(sections[27].address_align, 0x8)
+        self.assertEqual(sections[27].section_type, "DYNAMIC")
+
+        #.got
+        self.assertEqual(sections[28].name, ".got")
+        self.assertEqual(sections[28].offset, 0x2f90)
+        self.assertEqual(sections[28].address, 0x3f90)
+        self.assertEqual(sections[28].size, 0x70)
+        self.assertEqual(sections[28].flags, "WA")  # WRITABLE ALLOC
+        self.assertEqual(sections[28].address_align, 0x8)
+        self.assertEqual(sections[28].section_type, "PROGBITS")
+
+        #.data
+        self.assertEqual(sections[29].name, ".data")
+        self.assertEqual(sections[29].offset, 0x3000)
+        self.assertEqual(sections[29].address, 0x4000)
+        self.assertEqual(sections[29].size, 0xa0)
+        self.assertEqual(sections[29].flags, "WA")  # WRITABLE ALLOC
+        self.assertEqual(sections[29].address_align, 0x40)
+        self.assertEqual(sections[29].section_type, "PROGBITS")
+
+        #.extra.data
+        self.assertEqual(sections[30].name, ".extra.data")
+        self.assertEqual(sections[30].offset, 0x30a0)
+        self.assertEqual(sections[30].address, 0x40a0)
+        self.assertEqual(sections[30].size, 0x8)
+        self.assertEqual(sections[30].flags, "WA")  # WRITABLE ALLOC
+        self.assertEqual(sections[30].address_align, 0x10)
+        self.assertEqual(sections[30].section_type, "PROGBITS")
+
+        #.bss
+        self.assertEqual(sections[31].name, ".bss")
+        self.assertEqual(sections[31].offset, 0x30a8)
+        self.assertEqual(sections[31].address, 0x40c0)
+        self.assertEqual(sections[31].size, 0x1140)
+        self.assertEqual(sections[31].flags, "WA")  # WRITABLE ALLOC
+        self.assertEqual(sections[31].address_align, 0x20)
+        self.assertEqual(sections[31].section_type, "NOBITS")
+
+        #.comment
+        self.assertEqual(sections[32].name, ".comment")
+        self.assertEqual(sections[32].offset, 0x30a8)
+        self.assertEqual(sections[32].address, 0x0)
+        self.assertEqual(sections[32].size, 0x2b)
+        self.assertEqual(sections[32].flags, "MS") # MERGE STRINGS
+        self.assertEqual(sections[32].address_align, 0x1)
+        self.assertEqual(sections[32].section_type, "PROGBITS")
+
+        #.weird.debug
+        self.assertEqual(sections[33].name, ".weird.debug")
+        self.assertEqual(sections[33].offset, 0x30d3)
+        self.assertEqual(sections[33].address, 0x0)
+        self.assertEqual(sections[33].size, 0x1f)
+        self.assertEqual(sections[33].flags, "")
+        self.assertEqual(sections[33].address_align, 0x1)
+        self.assertEqual(sections[33].section_type, "PROGBITS")
+
+        #.symtab
+        self.assertEqual(sections[34].name, ".symtab")
+        self.assertEqual(sections[34].offset, 0x30f8)
+        self.assertEqual(sections[34].address, 0x0)
+        self.assertEqual(sections[34].size, 0x5d0)
+        self.assertEqual(sections[34].flags, "")
+        self.assertEqual(sections[34].address_align, 0x8)
+        self.assertEqual(sections[34].section_type, "SYMTAB")
+
+        #.strtab
+        self.assertEqual(sections[35].name, ".strtab")
+        self.assertEqual(sections[35].offset, 0x36c8)
+        self.assertEqual(sections[35].address, 0x0)
+        self.assertEqual(sections[35].size, 0x386)
+        self.assertEqual(sections[35].flags, "")
+        self.assertEqual(sections[35].address_align, 0x1)
+        self.assertEqual(sections[35].section_type, "STRTAB")
+
+        #.shstrtab
+        self.assertEqual(sections[36].name, ".shstrtab")
+        self.assertEqual(sections[36].offset, 0x3a4e)
+        self.assertEqual(sections[36].address, 0x0)
+        self.assertEqual(sections[36].size, 0x153)
+        self.assertEqual(sections[36].flags, "")
+        self.assertEqual(sections[36].address_align, 0x1)
+        self.assertEqual(sections[36].section_type, "STRTAB")
+
+        d.terminate()
+
+    def test_dynamic_sections_amd64(self):
+        """Tests the dynamic entries API for amd64."""
+        # Create a debugger and start execution
+        d = debugger(RESOLVE_EXE_CROSS("sections_test", "amd64"), aslr=False)
+
+        dynamicSections = d.binary.dynamic_sections
+
+        # There should be 28 dynamic entries
+        self.assertEqual(len(dynamicSections), 27)
+
+        # NEEDED libc.so.6
+        self.assertEqual(dynamicSections[0].tag, "NEEDED")
+        self.assertEqual(dynamicSections[0].value, "libc.so.6")
+        self.assertEqual(dynamicSections[0].is_value_address, False)
+        self.assertEqual(dynamicSections[0].reference_file, d.binary.absolute_path)
+
+        # NEEDED ld-linux-x86-64.so.2
+        self.assertEqual(dynamicSections[1].tag, "NEEDED")
+        self.assertEqual(dynamicSections[1].value, "ld-linux-x86-64.so.2")
+        self.assertEqual(dynamicSections[1].is_value_address, False)
+        self.assertEqual(dynamicSections[1].reference_file, d.binary.absolute_path)
+
+        # INIT / FINI
+        self.assertEqual(dynamicSections[2].tag, "INIT")
+        self.assertEqual(dynamicSections[2].value, 0x1000)
+        self.assertTrue(dynamicSections[2].is_value_address)
+
+        self.assertEqual(dynamicSections[3].tag, "FINI")
+        self.assertEqual(dynamicSections[3].value, 0x133c)
+        self.assertTrue(dynamicSections[3].is_value_address)
+
+        # INIT_ARRAY / INIT_ARRAYSZ / FINI_ARRAY / FINI_ARRAYSZ
+        self.assertEqual(dynamicSections[4].tag, "INIT_ARRAY")
+        self.assertEqual(dynamicSections[4].value, 0x3d68)
+        self.assertTrue(dynamicSections[4].is_value_address)
+
+        self.assertEqual(dynamicSections[5].tag, "INIT_ARRAYSZ")
+        self.assertEqual(dynamicSections[5].value, 16)
+
+        self.assertEqual(dynamicSections[6].tag, "FINI_ARRAY")
+        self.assertEqual(dynamicSections[6].value, 0x3d78)
+        self.assertTrue(dynamicSections[6].is_value_address)
+
+        self.assertEqual(dynamicSections[7].tag, "FINI_ARRAYSZ")
+        self.assertEqual(dynamicSections[7].value, 16)
+
+        # GNU_HASH / STRTAB / SYMTAB / STRSZ / SYMENT
+        self.assertEqual(dynamicSections[8].tag, "GNU_HASH")
+        self.assertEqual(dynamicSections[8].value, 0x400)
+        self.assertTrue(dynamicSections[8].is_value_address)
+
+        self.assertEqual(dynamicSections[9].tag, "STRTAB")
+        self.assertEqual(dynamicSections[9].value, 0x530)
+        self.assertTrue(dynamicSections[9].is_value_address)
+
+        self.assertEqual(dynamicSections[10].tag, "SYMTAB")
+        self.assertEqual(dynamicSections[10].value, 0x428)
+        self.assertTrue(dynamicSections[10].is_value_address)
+
+        self.assertEqual(dynamicSections[11].tag, "STRSZ")
+        self.assertEqual(dynamicSections[11].value, 235)
+
+        self.assertEqual(dynamicSections[12].tag, "SYMENT")
+        self.assertEqual(dynamicSections[12].value, 24)
+
+        # DEBUG
+        self.assertEqual(dynamicSections[13].tag, "DEBUG")
+        self.assertEqual(dynamicSections[13].value, 0x0)
+
+        # PLTGOT / PLTRELSZ / PLTREL / JMPREL
+        self.assertEqual(dynamicSections[14].tag, "PLTGOT")
+        self.assertEqual(dynamicSections[14].value, 0x3f90)
+        self.assertTrue(dynamicSections[14].is_value_address)
+
+        self.assertEqual(dynamicSections[15].tag, "PLTRELSZ")
+        self.assertEqual(dynamicSections[15].value, 96)
+
+        self.assertEqual(dynamicSections[16].tag, "PLTREL")
+        self.assertEqual(dynamicSections[16].value, "RELA")
+
+        self.assertEqual(dynamicSections[17].tag, "JMPREL")
+        self.assertEqual(dynamicSections[17].value, 0x7d0)
+        self.assertTrue(dynamicSections[17].is_value_address)
+
+        # RELA / RELASZ / RELAENT
+        self.assertEqual(dynamicSections[18].tag, "RELA")
+        self.assertEqual(dynamicSections[18].value, 0x698)
+        self.assertTrue(dynamicSections[18].is_value_address)
+
+        self.assertEqual(dynamicSections[19].tag, "RELASZ")
+        self.assertEqual(dynamicSections[19].value, 312)
+
+        self.assertEqual(dynamicSections[20].tag, "RELAENT")
+        self.assertEqual(dynamicSections[20].value, 24)
+
+        # FLAGS / FLAGS_1
+        self.assertEqual(dynamicSections[21].tag, "FLAGS")
+        self.assertEqual(dynamicSections[21].value, "BIND_NOW")
+
+        self.assertEqual(dynamicSections[22].tag, "FLAGS_1")
+        self.assertEqual(dynamicSections[22].value, "NOW PIE")
+
+        # VERNEED / VERNEEDNUM / VERSYM
+        self.assertEqual(dynamicSections[23].tag, "VERNEED")
+        self.assertEqual(dynamicSections[23].value, 0x638)
+        self.assertTrue(dynamicSections[23].is_value_address)
+
+        self.assertEqual(dynamicSections[24].tag, "VERNEEDNUM")
+        self.assertEqual(dynamicSections[24].value, 2)
+
+        self.assertEqual(dynamicSections[25].tag, "VERSYM")
+        self.assertEqual(dynamicSections[25].value, 0x61c)
+        self.assertTrue(dynamicSections[25].is_value_address)
+
+        # RELACOUNT
+        self.assertEqual(dynamicSections[26].tag, "RELACOUNT")
+        self.assertEqual(dynamicSections[26].value, 7)
+
+        d.terminate()
+
+    def test_program_headers_amd64(self):
+        """Tests the program headers API."""
+        # Create a debugger and start execution
+        d = debugger(RESOLVE_EXE_CROSS("sections_test", "amd64"), aslr=False)
+
+        program_headers = d.binary.program_headers
+
+        # There should be 14 program headers
+        self.assertEqual(len(program_headers), 14)
+
+        # PHDR
+        self.assertEqual(program_headers[0].header_type, "PHDR")
+        self.assertEqual(program_headers[0].offset, 0x40)
+        self.assertEqual(program_headers[0].vaddr, 0x40)
+        self.assertEqual(program_headers[0].paddr, 0x40)
+        self.assertEqual(program_headers[0].filesz, 0x310)
+        self.assertEqual(program_headers[0].memsz, 0x310)
+        self.assertEqual(program_headers[0].flags, "R")
+        self.assertEqual(program_headers[0].align, 0x8)
+        self.assertEqual(program_headers[0].reference_file, d.binary.absolute_path)
+
+        # INTERP
+        self.assertEqual(program_headers[1].header_type, "INTERP")
+        self.assertEqual(program_headers[1].offset, 0x350)
+        self.assertEqual(program_headers[1].vaddr, 0x350)
+        self.assertEqual(program_headers[1].paddr, 0x350)
+        self.assertEqual(program_headers[1].filesz, 0x1c)
+        self.assertEqual(program_headers[1].memsz, 0x1c)
+        self.assertEqual(program_headers[1].flags, "R")
+        self.assertEqual(program_headers[1].align, 0x1)
+        self.assertEqual(program_headers[1].reference_file, d.binary.absolute_path)
+
+        # LOAD (first)
+        self.assertEqual(program_headers[2].header_type, "LOAD")
+        self.assertEqual(program_headers[2].offset, 0x0)
+        self.assertEqual(program_headers[2].vaddr, 0x0)
+        self.assertEqual(program_headers[2].paddr, 0x0)
+        self.assertEqual(program_headers[2].filesz, 0x830)
+        self.assertEqual(program_headers[2].memsz, 0x830)
+        self.assertEqual(program_headers[2].flags, "R")
+        self.assertEqual(program_headers[2].align, 0x1000)
+        self.assertEqual(program_headers[2].reference_file, d.binary.absolute_path)
+
+        # LOAD (second)
+        self.assertEqual(program_headers[3].header_type, "LOAD")
+        self.assertEqual(program_headers[3].offset, 0x1000)
+        self.assertEqual(program_headers[3].vaddr, 0x1000)
+        self.assertEqual(program_headers[3].paddr, 0x1000)
+        self.assertEqual(program_headers[3].filesz, 0x349)
+        self.assertEqual(program_headers[3].memsz, 0x349)
+        self.assertEqual(program_headers[3].flags, "RX")
+        self.assertEqual(program_headers[3].align, 0x1000)
+        self.assertEqual(program_headers[3].reference_file, d.binary.absolute_path)
+
+        # LOAD (third)
+        self.assertEqual(program_headers[4].header_type, "LOAD")
+        self.assertEqual(program_headers[4].offset, 0x2000)
+        self.assertEqual(program_headers[4].vaddr, 0x2000)
+        self.assertEqual(program_headers[4].paddr, 0x2000)
+        self.assertEqual(program_headers[4].filesz, 0x238)
+        self.assertEqual(program_headers[4].memsz, 0x238)
+        self.assertEqual(program_headers[4].flags, "R")
+        self.assertEqual(program_headers[4].align, 0x1000)
+        self.assertEqual(program_headers[4].reference_file, d.binary.absolute_path)
+
+        # LOAD (fourth)
+        self.assertEqual(program_headers[5].header_type, "LOAD")
+        self.assertEqual(program_headers[5].offset, 0x2d64)
+        self.assertEqual(program_headers[5].vaddr, 0x3d64)
+        self.assertEqual(program_headers[5].paddr, 0x3d64)
+        self.assertEqual(program_headers[5].filesz, 0x344)
+        self.assertEqual(program_headers[5].memsz, 0x149c)
+        self.assertEqual(program_headers[5].flags, "RW")
+        self.assertEqual(program_headers[5].align, 0x1000)
+        self.assertEqual(program_headers[5].reference_file, d.binary.absolute_path)
+
+        # DYNAMIC
+        self.assertEqual(program_headers[6].header_type, "DYNAMIC")
+        self.assertEqual(program_headers[6].offset, 0x2d90)
+        self.assertEqual(program_headers[6].vaddr, 0x3d90)
+        self.assertEqual(program_headers[6].paddr, 0x3d90)
+        self.assertEqual(program_headers[6].filesz, 0x200)
+        self.assertEqual(program_headers[6].memsz, 0x200)
+        self.assertEqual(program_headers[6].flags, "RW")
+        self.assertEqual(program_headers[6].align, 0x8)
+        self.assertEqual(program_headers[6].reference_file, d.binary.absolute_path)
+
+        # NOTE (first)
+        self.assertEqual(program_headers[7].header_type, "NOTE")
+        self.assertEqual(program_headers[7].offset, 0x370)
+        self.assertEqual(program_headers[7].vaddr, 0x370)
+        self.assertEqual(program_headers[7].paddr, 0x370)
+        self.assertEqual(program_headers[7].filesz, 0x30)
+        self.assertEqual(program_headers[7].memsz, 0x30)
+        self.assertEqual(program_headers[7].flags, "R")
+        self.assertEqual(program_headers[7].align, 0x8)
+        self.assertEqual(program_headers[7].reference_file, d.binary.absolute_path)
+
+        # NOTE (second)
+        self.assertEqual(program_headers[8].header_type, "NOTE")
+        self.assertEqual(program_headers[8].offset, 0x3a0)
+        self.assertEqual(program_headers[8].vaddr, 0x3a0)
+        self.assertEqual(program_headers[8].paddr, 0x3a0)
+        self.assertEqual(program_headers[8].filesz, 0x5a)
+        self.assertEqual(program_headers[8].memsz, 0x5a)
+        self.assertEqual(program_headers[8].flags, "R")
+        self.assertEqual(program_headers[8].align, 0x4)
+        self.assertEqual(program_headers[8].reference_file, d.binary.absolute_path)
+
+        # TLS
+        self.assertEqual(program_headers[9].header_type, "TLS")
+        self.assertEqual(program_headers[9].offset, 0x2d64)
+        self.assertEqual(program_headers[9].vaddr, 0x3d64)
+        self.assertEqual(program_headers[9].paddr, 0x3d64)
+        self.assertEqual(program_headers[9].filesz, 0x4)
+        self.assertEqual(program_headers[9].memsz, 0x8)
+        self.assertEqual(program_headers[9].flags, "R")
+        self.assertEqual(program_headers[9].align, 0x4)
+        self.assertEqual(program_headers[9].reference_file, d.binary.absolute_path)
+
+        # GNU_PROPERTY
+        self.assertEqual(program_headers[10].header_type, "GNU_PROPERTY")
+        self.assertEqual(program_headers[10].offset, 0x370)
+        self.assertEqual(program_headers[10].vaddr, 0x370)
+        self.assertEqual(program_headers[10].paddr, 0x370)
+        self.assertEqual(program_headers[10].filesz, 0x30)
+        self.assertEqual(program_headers[10].memsz, 0x30)
+        self.assertEqual(program_headers[10].flags, "R")
+        self.assertEqual(program_headers[10].align, 0x8)
+        self.assertEqual(program_headers[10].reference_file, d.binary.absolute_path)
+
+        # GNU_EH_FRAME
+        self.assertEqual(program_headers[11].header_type, "GNU_EH_FRAME")
+        self.assertEqual(program_headers[11].offset, 0x2098)
+        self.assertEqual(program_headers[11].vaddr, 0x2098)
+        self.assertEqual(program_headers[11].paddr, 0x2098)
+        self.assertEqual(program_headers[11].filesz, 0x64)
+        self.assertEqual(program_headers[11].memsz, 0x64)
+        self.assertEqual(program_headers[11].flags, "R")
+        self.assertEqual(program_headers[11].align, 0x4)
+        self.assertEqual(program_headers[11].reference_file, d.binary.absolute_path)
+
+        # GNU_STACK
+        self.assertEqual(program_headers[12].header_type, "GNU_STACK")
+        self.assertEqual(program_headers[12].offset, 0x0)
+        self.assertEqual(program_headers[12].vaddr, 0x0)
+        self.assertEqual(program_headers[12].paddr, 0x0)
+        self.assertEqual(program_headers[12].filesz, 0x0)
+        self.assertEqual(program_headers[12].memsz, 0x0)
+        self.assertEqual(program_headers[12].flags, "RW")
+        self.assertEqual(program_headers[12].align, 0x10)
+        self.assertEqual(program_headers[12].reference_file, d.binary.absolute_path)
+
+        # GNU_RELRO
+        self.assertEqual(program_headers[13].header_type, "GNU_RELRO")
+        self.assertEqual(program_headers[13].offset, 0x2d64)
+        self.assertEqual(program_headers[13].vaddr, 0x3d64)
+        self.assertEqual(program_headers[13].paddr, 0x3d64)
+        self.assertEqual(program_headers[13].filesz, 0x29c)
+        self.assertEqual(program_headers[13].memsz, 0x29c)
+        self.assertEqual(program_headers[13].flags, "R")
+        self.assertEqual(program_headers[13].align, 0x1)
+        self.assertEqual(program_headers[13].reference_file, d.binary.absolute_path)
+
+        d.terminate()
+    
+    def test_gnu_properties_amd64(self):
+        """Tests the GNU features API for amd64."""
+        # Create a debugger and start execution
+        d = debugger(RESOLVE_EXE_CROSS("sections_test", "amd64"), aslr=False)
+
+        gnu_properties = d.binary.gnu_properties
+
+        # There should be 2 GNU features
+        self.assertEqual(len(gnu_properties), 2)
+
+        # Feature 1
+        self.assertEqual(gnu_properties[0].pr_type, "X86_FEATURE_1_AND")
+        self.assertEqual(gnu_properties[0].value, "IBT SHSTK")
+
+        # Feature 2
+        self.assertEqual(gnu_properties[1].pr_type, "X86_ISA_1_NEEDED")
+        self.assertEqual(gnu_properties[1].value, "BASELINE")
+
+        d.terminate()
+
+    def test_sections_aarch64(self):
+        """Tests the sections API."""
+        # Create a debugger and start execution
+        d = debugger(RESOLVE_EXE_CROSS("sections_test", "aarch64"), aslr=False)
+
+        sections = d.binary.sections
+
+        self.assertEqual(len(sections), 35)
+
+        # NULL
+        self.assertEqual(sections[0].name, "")
+        self.assertEqual(sections[0].offset, 0x0)
+        self.assertEqual(sections[0].address, 0x0)
+        self.assertEqual(sections[0].size, 0x0)
+        self.assertEqual(sections[0].flags, "")  # None
+        self.assertEqual(sections[0].address_align, 0x0)
+        self.assertEqual(sections[0].section_type, "NULL")
+
+        # .interp
+        self.assertEqual(sections[1].name, ".interp")
+        self.assertEqual(sections[1].offset, 0x2a8)
+        self.assertEqual(sections[1].address, 0x2a8)
+        self.assertEqual(sections[1].size, 0x1b)
+        self.assertEqual(sections[1].flags, "A")
+        self.assertEqual(sections[1].address_align, 0x1)
+        self.assertEqual(sections[1].section_type, "PROGBITS")
+
+        # .note.weird
+        self.assertEqual(sections[2].name, ".note.weird")
+        self.assertEqual(sections[2].offset, 0x2d0)
+        self.assertEqual(sections[2].address, 0x2d0)
+        self.assertEqual(sections[2].size, 0x16)
+        self.assertEqual(sections[2].flags, "A")
+        self.assertEqual(sections[2].address_align, 0x10)
+        self.assertEqual(sections[2].section_type, "NOTE")
+
+        # .note.gnu.build-id
+        self.assertEqual(sections[3].name, ".note.gnu.build-id")
+        self.assertEqual(sections[3].offset, 0x2e8)
+        self.assertEqual(sections[3].address, 0x2e8)
+        self.assertEqual(sections[3].size, 0x24)
+        self.assertEqual(sections[3].flags, "A")
+        self.assertEqual(sections[3].address_align, 0x4)
+        self.assertEqual(sections[3].section_type, "NOTE")
+
+        # .note.ABI-tag
+        self.assertEqual(sections[4].name, ".note.ABI-tag")
+        self.assertEqual(sections[4].offset, 0x30c)
+        self.assertEqual(sections[4].address, 0x30c)
+        self.assertEqual(sections[4].size, 0x20)
+        self.assertEqual(sections[4].flags, "A")
+        self.assertEqual(sections[4].address_align, 0x4)
+        self.assertEqual(sections[4].section_type, "NOTE")
+
+        # .gnu.hash
+        self.assertEqual(sections[5].name, ".gnu.hash")
+        self.assertEqual(sections[5].offset, 0x330)
+        self.assertEqual(sections[5].address, 0x330)
+        self.assertEqual(sections[5].size, 0x1c)
+        self.assertEqual(sections[5].flags, "A")
+        self.assertEqual(sections[5].address_align, 0x8)
+        self.assertEqual(sections[5].section_type, "GNU_HASH")
+
+        # .dynsym
+        self.assertEqual(sections[6].name, ".dynsym")
+        self.assertEqual(sections[6].offset, 0x350)
+        self.assertEqual(sections[6].address, 0x350)
+        self.assertEqual(sections[6].size, 0x138)
+        self.assertEqual(sections[6].flags, "A")
+        self.assertEqual(sections[6].address_align, 0x8)
+        self.assertEqual(sections[6].section_type, "DYNSYM")
+
+        # .dynstr
+        self.assertEqual(sections[7].name, ".dynstr")
+        self.assertEqual(sections[7].offset, 0x488)
+        self.assertEqual(sections[7].address, 0x488)
+        self.assertEqual(sections[7].size, 0x0a3)
+        self.assertEqual(sections[7].flags, "A")
+        self.assertEqual(sections[7].address_align, 0x1)
+        self.assertEqual(sections[7].section_type, "STRTAB")
+
+        # .gnu.version
+        self.assertEqual(sections[8].name, ".gnu.version")
+        self.assertEqual(sections[8].offset, 0x52c)
+        self.assertEqual(sections[8].address, 0x52c)
+        self.assertEqual(sections[8].size, 0x1a)
+        self.assertEqual(sections[8].flags, "A")
+        self.assertEqual(sections[8].address_align, 0x2)
+        self.assertEqual(sections[8].section_type, "GNU_VERSYM")
+
+        # .gnu.version_r
+        self.assertEqual(sections[9].name, ".gnu.version_r")
+        self.assertEqual(sections[9].offset, 0x548)
+        self.assertEqual(sections[9].address, 0x548)
+        self.assertEqual(sections[9].size, 0x30)
+        self.assertEqual(sections[9].flags, "A")
+        self.assertEqual(sections[9].address_align, 0x8)
+        self.assertEqual(sections[9].section_type, "GNU_VERNEED")
+
+        # .rela.dyn
+        self.assertEqual(sections[10].name, ".rela.dyn")
+        self.assertEqual(sections[10].offset, 0x578)
+        self.assertEqual(sections[10].address, 0x578)
+        self.assertEqual(sections[10].size, 0x180)
+        self.assertEqual(sections[10].flags, "A")
+        self.assertEqual(sections[10].address_align, 0x8)
+        self.assertEqual(sections[10].section_type, "RELA")
+
+        # .rela.plt
+        self.assertEqual(sections[11].name, ".rela.plt")
+        self.assertEqual(sections[11].offset, 0x6f8)
+        self.assertEqual(sections[11].address, 0x6f8)
+        self.assertEqual(sections[11].size, 0xa8)
+        self.assertEqual(sections[11].flags, "AI")
+        self.assertEqual(sections[11].address_align, 0x8)
+        self.assertEqual(sections[11].section_type, "RELA")
+
+        # .init
+        self.assertEqual(sections[12].name, ".init")
+        self.assertEqual(sections[12].offset, 0x7a0)
+        self.assertEqual(sections[12].address, 0x7a0)
+        self.assertEqual(sections[12].size, 0x18)
+        self.assertEqual(sections[12].flags, "AX")
+        self.assertEqual(sections[12].address_align, 0x4)
+        self.assertEqual(sections[12].section_type, "PROGBITS")
+
+        # .plt
+        self.assertEqual(sections[13].name, ".plt")
+        self.assertEqual(sections[13].offset, 0x7c0)
+        self.assertEqual(sections[13].address, 0x7c0)
+        self.assertEqual(sections[13].size, 0x90)
+        self.assertEqual(sections[13].flags, "AX")
+        self.assertEqual(sections[13].address_align, 0x10)
+        self.assertEqual(sections[13].section_type, "PROGBITS")
+
+        # .text
+        self.assertEqual(sections[14].name, ".text")
+        self.assertEqual(sections[14].offset, 0x880)
+        self.assertEqual(sections[14].address, 0x880)
+        self.assertEqual(sections[14].size, 0x2f8)
+        self.assertEqual(sections[14].flags, "AX")
+        self.assertEqual(sections[14].address_align, 0x40)
+        self.assertEqual(sections[14].section_type, "PROGBITS")
+
+        # .fini
+        self.assertEqual(sections[15].name, ".fini")
+        self.assertEqual(sections[15].offset, 0xb78)
+        self.assertEqual(sections[15].address, 0xb78)
+        self.assertEqual(sections[15].size, 0x14)
+        self.assertEqual(sections[15].flags, "AX")
+        self.assertEqual(sections[15].address_align, 0x4)
+        self.assertEqual(sections[15].section_type, "PROGBITS")
+
+        # .rodata
+        self.assertEqual(sections[16].name, ".rodata")
+        self.assertEqual(sections[16].offset, 0xb90)
+        self.assertEqual(sections[16].address, 0xb90)
+        self.assertEqual(sections[16].size, 0xa6)
+        self.assertEqual(sections[16].flags, "A")
+        self.assertEqual(sections[16].address_align, 0x8)
+        self.assertEqual(sections[16].section_type, "PROGBITS")
+
+        # .eh_frame_hdr
+        self.assertEqual(sections[17].name, ".eh_frame_hdr")
+        self.assertEqual(sections[17].offset, 0xc38)
+        self.assertEqual(sections[17].address, 0xc38)
+        self.assertEqual(sections[17].size, 0x64)
+        self.assertEqual(sections[17].flags, "A")
+        self.assertEqual(sections[17].address_align, 0x4)
+        self.assertEqual(sections[17].section_type, "PROGBITS")
+
+        # .eh_frame
+        self.assertEqual(sections[18].name, ".eh_frame")
+        self.assertEqual(sections[18].offset, 0xca0)
+        self.assertEqual(sections[18].address, 0xca0)
+        self.assertEqual(sections[18].size, 0x124)
+        self.assertEqual(sections[18].flags, "A")
+        self.assertEqual(sections[18].address_align, 0x8)
+        self.assertEqual(sections[18].section_type, "PROGBITS")
+
+        # .tdata
+        self.assertEqual(sections[19].name, ".tdata")
+        self.assertEqual(sections[19].offset, 0xfd84)
+        self.assertEqual(sections[19].address, 0x1fd84)
+        self.assertEqual(sections[19].size, 0x4)
+        self.assertEqual(sections[19].flags, "WAT")
+        self.assertEqual(sections[19].address_align, 0x4)
+        self.assertEqual(sections[19].section_type, "PROGBITS")
+
+        # .tbss
+        self.assertEqual(sections[20].name, ".tbss")
+        self.assertEqual(sections[20].offset, 0xfd88)
+        self.assertEqual(sections[20].address, 0x1fd88)
+        self.assertEqual(sections[20].size, 0x4)
+        self.assertEqual(sections[20].flags, "WAT")
+        self.assertEqual(sections[20].address_align, 0x4)
+        self.assertEqual(sections[20].section_type, "NOBITS")
+
+        # .init_array
+        self.assertEqual(sections[21].name, ".init_array")
+        self.assertEqual(sections[21].offset, 0xfd88)
+        self.assertEqual(sections[21].address, 0x1fd88)
+        self.assertEqual(sections[21].size, 0x10)
+        self.assertEqual(sections[21].flags, "WA")
+        self.assertEqual(sections[21].address_align, 0x8)
+        self.assertEqual(sections[21].section_type, "INIT_ARRAY")
+
+        # .fini_array
+        self.assertEqual(sections[22].name, ".fini_array")
+        self.assertEqual(sections[22].offset, 0xfd98)
+        self.assertEqual(sections[22].address, 0x1fd98)
+        self.assertEqual(sections[22].size, 0x10)
+        self.assertEqual(sections[22].flags, "WA")
+        self.assertEqual(sections[22].address_align, 0x8)
+        self.assertEqual(sections[22].section_type, "FINI_ARRAY")
+
+        # .data.rel.ro
+        self.assertEqual(sections[23].name, ".data.rel.ro")
+        self.assertEqual(sections[23].offset, 0xfda8)
+        self.assertEqual(sections[23].address, 0x1fda8)
+        self.assertEqual(sections[23].size, 0x8)
+        self.assertEqual(sections[23].flags, "WA")
+        self.assertEqual(sections[23].address_align, 0x8)
+        self.assertEqual(sections[23].section_type, "PROGBITS")
+
+        # .dynamic
+        self.assertEqual(sections[24].name, ".dynamic")
+        self.assertEqual(sections[24].offset, 0xfdb0)
+        self.assertEqual(sections[24].address, 0x1fdb0)
+        self.assertEqual(sections[24].size, 0x1e0)
+        self.assertEqual(sections[24].flags, "WA")
+        self.assertEqual(sections[24].address_align, 0x8)
+        self.assertEqual(sections[24].section_type, "DYNAMIC")
+
+        # .got
+        self.assertEqual(sections[25].name, ".got")
+        self.assertEqual(sections[25].offset, 0xff90)
+        self.assertEqual(sections[25].address, 0x1ff90)
+        self.assertEqual(sections[25].size, 0x58)
+        self.assertEqual(sections[25].flags, "WA")
+        self.assertEqual(sections[25].address_align, 0x8)
+        self.assertEqual(sections[25].section_type, "PROGBITS")
+
+        # .got.plt
+        self.assertEqual(sections[26].name, ".got.plt")
+        self.assertEqual(sections[26].offset, 0xffe8)
+        self.assertEqual(sections[26].address, 0x1ffe8)
+        self.assertEqual(sections[26].size, 0x50)
+        self.assertEqual(sections[26].flags, "WA")
+        self.assertEqual(sections[26].address_align, 0x8)
+        self.assertEqual(sections[26].section_type, "PROGBITS")
+
+        # .data
+        self.assertEqual(sections[27].name, ".data")
+        self.assertEqual(sections[27].offset, 0x10040)
+        self.assertEqual(sections[27].address, 0x20040)
+        self.assertEqual(sections[27].size, 0xa0)
+        self.assertEqual(sections[27].flags, "WA")
+        self.assertEqual(sections[27].address_align, 0x40)
+        self.assertEqual(sections[27].section_type, "PROGBITS")
+
+        # .extra.data
+        self.assertEqual(sections[28].name, ".extra.data")
+        self.assertEqual(sections[28].offset, 0x20000)
+        self.assertEqual(sections[28].address, 0x30000)
+        self.assertEqual(sections[28].size, 0x8)
+        self.assertEqual(sections[28].flags, "WA")
+        self.assertEqual(sections[28].address_align, 0x10000)
+        self.assertEqual(sections[28].section_type, "PROGBITS")
+
+        # .bss
+        self.assertEqual(sections[29].name, ".bss")
+        self.assertEqual(sections[29].offset, 0x20008)
+        self.assertEqual(sections[29].address, 0x30008)
+        self.assertEqual(sections[29].size, 0x1120)
+        self.assertEqual(sections[29].flags, "WA")
+        self.assertEqual(sections[29].address_align, 0x8)
+        self.assertEqual(sections[29].section_type, "NOBITS")
+
+        # .comment
+        self.assertEqual(sections[30].name, ".comment")
+        self.assertEqual(sections[30].offset, 0x20008)
+        self.assertEqual(sections[30].address, 0x0)
+        self.assertEqual(sections[30].size, 0x27)
+        self.assertEqual(sections[30].flags, "MS")
+        self.assertEqual(sections[30].address_align, 0x1)
+        self.assertEqual(sections[30].section_type, "PROGBITS")
+
+        # .weird.debug
+        self.assertEqual(sections[31].name, ".weird.debug")
+        self.assertEqual(sections[31].offset, 0x2002f)
+        self.assertEqual(sections[31].address, 0x0)
+        self.assertEqual(sections[31].size, 0x1f)
+        self.assertEqual(sections[31].flags, "")
+        self.assertEqual(sections[31].address_align, 0x1)
+        self.assertEqual(sections[31].section_type, "PROGBITS")
+
+        # .symtab
+        self.assertEqual(sections[32].name, ".symtab")
+        self.assertEqual(sections[32].offset, 0x20050)
+        self.assertEqual(sections[32].address, 0x0)
+        self.assertEqual(sections[32].size, 0x0cd8)
+        self.assertEqual(sections[32].flags, "")
+        self.assertEqual(sections[32].address_align, 0x8)
+        self.assertEqual(sections[32].section_type, "SYMTAB")
+
+        # .strtab
+        self.assertEqual(sections[33].name, ".strtab")
+        self.assertEqual(sections[33].offset, 0x20d28)
+        self.assertEqual(sections[33].address, 0x0)
+        self.assertEqual(sections[33].size, 0x038d)
+        self.assertEqual(sections[33].flags, "")
+        self.assertEqual(sections[33].address_align, 0x1)
+        self.assertEqual(sections[33].section_type, "STRTAB")
+
+        # .shstrtab
+        self.assertEqual(sections[34].name, ".shstrtab")
+        self.assertEqual(sections[34].offset, 0x210b5)
+        self.assertEqual(sections[34].address, 0x0)
+        self.assertEqual(sections[34].size, 0x013c)
+        self.assertEqual(sections[34].flags, "")
+        self.assertEqual(sections[34].address_align, 0x1)
+        self.assertEqual(sections[34].section_type, "STRTAB")
+
+        d.terminate()
+
+    def test_dynamic_sections_aarch64(self):
+        """Tests the dynamic sections API for aarch64."""
+        # Create a debugger and start execution
+        d = debugger(RESOLVE_EXE_CROSS("sections_test", "aarch64"), aslr=False)
+
+        dynamic_sections = d.binary.dynamic_sections
+
+        # There should be 16 dynamic sections
+        self.assertEqual(len(dynamic_sections), 25)
+
+        # Check some dynamic section entries
+        # NEEDED libc.so.6
+        self.assertEqual(dynamic_sections[0].tag, "NEEDED")
+        self.assertEqual(dynamic_sections[0].value, "libc.so.6")
+        self.assertEqual(dynamic_sections[0].is_value_address, False)
+        self.assertEqual(dynamic_sections[0].reference_file, d.binary.absolute_path)
+
+        # INIT / FINI
+        self.assertEqual(dynamic_sections[1].tag, "INIT")
+        self.assertEqual(dynamic_sections[1].value, 0x7a0)
+        self.assertTrue(dynamic_sections[1].is_value_address)
+
+        self.assertEqual(dynamic_sections[2].tag, "FINI")
+        self.assertEqual(dynamic_sections[2].value, 0xb78)
+        self.assertTrue(dynamic_sections[2].is_value_address)
+
+        # INIT_ARRAY / INIT_ARRAYSZ / FINI_ARRAY / FINI_ARRAYSZ
+        self.assertEqual(dynamic_sections[3].tag, "INIT_ARRAY")
+        self.assertEqual(dynamic_sections[3].value, 0x1fd88)
+        self.assertTrue(dynamic_sections[3].is_value_address)
+
+        self.assertEqual(dynamic_sections[4].tag, "INIT_ARRAYSZ")
+        self.assertEqual(dynamic_sections[4].value, 16)
+
+        self.assertEqual(dynamic_sections[5].tag, "FINI_ARRAY")
+        self.assertEqual(dynamic_sections[5].value, 0x1fd98)
+        self.assertTrue(dynamic_sections[5].is_value_address)
+
+        self.assertEqual(dynamic_sections[6].tag, "FINI_ARRAYSZ")
+        self.assertEqual(dynamic_sections[6].value, 16)
+
+        # GNU_HASH / STRTAB / SYMTAB / STRSZ / SYMENT
+        self.assertEqual(dynamic_sections[7].tag, "GNU_HASH")
+        self.assertEqual(dynamic_sections[7].value, 0x330)
+        self.assertTrue(dynamic_sections[7].is_value_address)
+
+        self.assertEqual(dynamic_sections[8].tag, "STRTAB")
+        self.assertEqual(dynamic_sections[8].value, 0x488)
+        self.assertTrue(dynamic_sections[8].is_value_address)
+
+        self.assertEqual(dynamic_sections[9].tag, "SYMTAB")
+        self.assertEqual(dynamic_sections[9].value, 0x350)
+        self.assertTrue(dynamic_sections[9].is_value_address)
+
+        self.assertEqual(dynamic_sections[10].tag, "STRSZ")
+        self.assertEqual(dynamic_sections[10].value, 163)
+
+        self.assertEqual(dynamic_sections[11].tag, "SYMENT")
+        self.assertEqual(dynamic_sections[11].value, 24)
+
+        # DEBUG
+        self.assertEqual(dynamic_sections[12].tag, "DEBUG")
+        self.assertEqual(dynamic_sections[12].value, 0x0)
+
+        # PLTGOT / PLTRELSZ / PLTREL / JMPREL
+        self.assertEqual(dynamic_sections[13].tag, "PLTGOT")
+        self.assertEqual(dynamic_sections[13].value, 0x1ffe8)
+        self.assertTrue(dynamic_sections[13].is_value_address)
+
+        self.assertEqual(dynamic_sections[14].tag, "PLTRELSZ")
+        self.assertEqual(dynamic_sections[14].value, 168)
+
+        self.assertEqual(dynamic_sections[15].tag, "PLTREL")
+        self.assertEqual(dynamic_sections[15].value, "RELA")
+
+        self.assertEqual(dynamic_sections[16].tag, "JMPREL")
+        self.assertEqual(dynamic_sections[16].value, 0x6f8)
+        self.assertTrue(dynamic_sections[16].is_value_address)
+
+        # RELA / RELASZ / RELAENT
+        self.assertEqual(dynamic_sections[17].tag, "RELA")
+        self.assertEqual(dynamic_sections[17].value, 0x578)
+        self.assertTrue(dynamic_sections[17].is_value_address)
+
+        self.assertEqual(dynamic_sections[18].tag, "RELASZ")
+        self.assertEqual(dynamic_sections[18].value, 384)
+
+        self.assertEqual(dynamic_sections[19].tag, "RELAENT")
+        self.assertEqual(dynamic_sections[19].value, 24)
+
+        # FLAGS_1
+        self.assertEqual(dynamic_sections[20].tag, "FLAGS_1")
+        self.assertEqual(dynamic_sections[20].value, "PIE")
+
+        # VERNEED / VERNEEDNUM / VERSYM
+        self.assertEqual(dynamic_sections[21].tag, "VERNEED")
+        self.assertEqual(dynamic_sections[21].value, 0x548)
+        self.assertTrue(dynamic_sections[21].is_value_address)
+
+        self.assertEqual(dynamic_sections[22].tag, "VERNEEDNUM")
+        self.assertEqual(dynamic_sections[22].value, 1)
+
+        self.assertEqual(dynamic_sections[23].tag, "VERSYM")
+        self.assertEqual(dynamic_sections[23].value, 0x52c)
+        self.assertTrue(dynamic_sections[23].is_value_address)
+
+        # RELACOUNT
+        self.assertEqual(dynamic_sections[24].tag, "RELACOUNT")
+        self.assertEqual(dynamic_sections[24].value, 11)
+
+        d.terminate()
+
+    def test_program_headers_aarch64(self):
+        """Tests the program headers API for aarch64."""
+        # Create a debugger and start execution
+        d = debugger(RESOLVE_EXE_CROSS("sections_test", "aarch64"), aslr=False)
+
+        program_headers = d.binary.program_headers
+
+        self.assertEqual(len(program_headers), 11)
+
+        # PT_PHDR
+        self.assertEqual(program_headers[0].header_type, "PHDR")
+        self.assertEqual(program_headers[0].offset, 0x40)
+        self.assertEqual(program_headers[0].vaddr, 0x40)
+        self.assertEqual(program_headers[0].paddr, 0x40)
+        self.assertEqual(program_headers[0].filesz, 0x268)
+        self.assertEqual(program_headers[0].memsz, 0x268)
+        self.assertEqual(program_headers[0].flags, "R")
+        self.assertEqual(program_headers[0].align, 0x8)
+        self.assertEqual(program_headers[0].reference_file, d.binary.absolute_path)
+
+        # INTERP
+        self.assertEqual(program_headers[1].header_type, "INTERP")
+        self.assertEqual(program_headers[1].offset, 0x2a8)
+        self.assertEqual(program_headers[1].vaddr, 0x2a8)
+        self.assertEqual(program_headers[1].paddr, 0x2a8)
+        self.assertEqual(program_headers[1].filesz, 0x1b)
+        self.assertEqual(program_headers[1].memsz, 0x1b)
+        self.assertEqual(program_headers[1].flags, "R")
+        self.assertEqual(program_headers[1].align, 0x1)
+        self.assertEqual(program_headers[1].reference_file, d.binary.absolute_path)
+
+        # LOAD (first)
+        self.assertEqual(program_headers[2].header_type, "LOAD")
+        self.assertEqual(program_headers[2].offset, 0x0)
+        self.assertEqual(program_headers[2].vaddr, 0x0)
+        self.assertEqual(program_headers[2].paddr, 0x0)
+        self.assertEqual(program_headers[2].filesz, 0xdc4)
+        self.assertEqual(program_headers[2].memsz, 0xdc4)
+        self.assertEqual(program_headers[2].flags, "RX")
+        self.assertEqual(program_headers[2].align, 0x10000)
+        self.assertEqual(program_headers[2].reference_file, d.binary.absolute_path)
+
+        # LOAD (second)
+        self.assertEqual(program_headers[3].header_type, "LOAD")
+        self.assertEqual(program_headers[3].offset, 0xfd84)
+        self.assertEqual(program_headers[3].vaddr, 0x1fd84)
+        self.assertEqual(program_headers[3].paddr, 0x1fd84)
+        self.assertEqual(program_headers[3].filesz, 0x10284)
+        self.assertEqual(program_headers[3].memsz, 0x113a4)
+        self.assertEqual(program_headers[3].flags, "RW")
+        self.assertEqual(program_headers[3].align, 0x10000)
+        self.assertEqual(program_headers[3].reference_file, d.binary.absolute_path)
+
+        # DYNAMIC
+        self.assertEqual(program_headers[4].header_type, "DYNAMIC")
+        self.assertEqual(program_headers[4].offset, 0xfdb0)
+        self.assertEqual(program_headers[4].vaddr, 0x1fdb0)
+        self.assertEqual(program_headers[4].paddr, 0x1fdb0)
+        self.assertEqual(program_headers[4].filesz, 0x1e0)
+        self.assertEqual(program_headers[4].memsz, 0x1e0)
+        self.assertEqual(program_headers[4].flags, "RW")
+        self.assertEqual(program_headers[4].align, 0x8)
+        self.assertEqual(program_headers[4].reference_file, d.binary.absolute_path)
+
+        # NOTE (first)
+        self.assertEqual(program_headers[5].header_type, "NOTE")
+        self.assertEqual(program_headers[5].offset, 0x2d0)
+        self.assertEqual(program_headers[5].vaddr, 0x2d0)
+        self.assertEqual(program_headers[5].paddr, 0x2d0)
+        self.assertEqual(program_headers[5].filesz, 0x16)
+        self.assertEqual(program_headers[5].memsz, 0x16)
+        self.assertEqual(program_headers[5].flags, "R")
+        self.assertEqual(program_headers[5].align, 0x10)
+        self.assertEqual(program_headers[5].reference_file, d.binary.absolute_path)
+
+        # NOTE (second)
+        self.assertEqual(program_headers[6].header_type, "NOTE")
+        self.assertEqual(program_headers[6].offset, 0x2e8)
+        self.assertEqual(program_headers[6].vaddr, 0x2e8)
+        self.assertEqual(program_headers[6].paddr, 0x2e8)
+        self.assertEqual(program_headers[6].filesz, 0x44)
+        self.assertEqual(program_headers[6].memsz, 0x44)
+        self.assertEqual(program_headers[6].flags, "R")
+        self.assertEqual(program_headers[6].align, 0x4)
+        self.assertEqual(program_headers[6].reference_file, d.binary.absolute_path)
+
+        # TLS
+        self.assertEqual(program_headers[7].header_type, "TLS")
+        self.assertEqual(program_headers[7].offset, 0xfd84)
+        self.assertEqual(program_headers[7].vaddr, 0x1fd84)
+        self.assertEqual(program_headers[7].paddr, 0x1fd84)
+        self.assertEqual(program_headers[7].filesz, 0x4)
+        self.assertEqual(program_headers[7].memsz, 0x8)
+        self.assertEqual(program_headers[7].flags, "R")
+        self.assertEqual(program_headers[7].align, 0x4)
+        self.assertEqual(program_headers[7].reference_file, d.binary.absolute_path)
+
+        # GNU_EH_FRAME
+        self.assertEqual(program_headers[8].header_type, "GNU_EH_FRAME")
+        self.assertEqual(program_headers[8].offset, 0xc38)
+        self.assertEqual(program_headers[8].vaddr, 0xc38)
+        self.assertEqual(program_headers[8].paddr, 0xc38)
+        self.assertEqual(program_headers[8].filesz, 0x64)
+        self.assertEqual(program_headers[8].memsz, 0x64)
+        self.assertEqual(program_headers[8].flags, "R")
+        self.assertEqual(program_headers[8].align, 0x4)
+        self.assertEqual(program_headers[8].reference_file, d.binary.absolute_path)
+
+        # GNU_STACK
+        self.assertEqual(program_headers[9].header_type, "GNU_STACK")
+        self.assertEqual(program_headers[9].offset, 0x0)
+        self.assertEqual(program_headers[9].vaddr, 0x0)
+        self.assertEqual(program_headers[9].paddr, 0x0)
+        self.assertEqual(program_headers[9].filesz, 0x0)
+        self.assertEqual(program_headers[9].memsz, 0x0)
+        self.assertEqual(program_headers[9].flags, "RW")
+        self.assertEqual(program_headers[9].align, 0x10)
+        self.assertEqual(program_headers[9].reference_file, d.binary.absolute_path)
+
+        # GNU_RELRO
+        self.assertEqual(program_headers[10].header_type, "GNU_RELRO")
+        self.assertEqual(program_headers[10].offset, 0xfd84)
+        self.assertEqual(program_headers[10].vaddr, 0x1fd84)
+        self.assertEqual(program_headers[10].paddr, 0x1fd84)
+        self.assertEqual(program_headers[10].filesz, 0x27c)
+        self.assertEqual(program_headers[10].memsz, 0x27c)
+        self.assertEqual(program_headers[10].flags, "R")
+        self.assertEqual(program_headers[10].align, 0x1)
+        self.assertEqual(program_headers[10].reference_file, d.binary.absolute_path)
+
+        d.terminate()
+
+    def test_gnu_properties_aarch64(self):
+        """Tests the GNU properties API for aarch64."""
+        # Create a debugger and start execution
+        d = debugger(RESOLVE_EXE_CROSS("sections_test", "aarch64"), aslr=False)
+
+        gnu_properties = d.binary.gnu_properties
+
+        self.assertEqual(len(gnu_properties), 0)
+
+        d.terminate()
+
+    def test_sections_i386(self):
+        """Tests the sections API."""
+        # Create a debugger and start execution
+        d = debugger(RESOLVE_EXE_CROSS("sections_test", "i386"), aslr=False)
+
+        sections = d.binary.sections
+
+        self.assertEqual(len(sections), 35)
+
+        # NULL
+        self.assertEqual(sections[0].name, "")
+        self.assertEqual(sections[0].offset, 0x0)
+        self.assertEqual(sections[0].address, 0x0)
+        self.assertEqual(sections[0].size, 0x0)
+        self.assertEqual(sections[0].flags, "")  # None
+        self.assertEqual(sections[0].address_align, 0x0)
+        self.assertEqual(sections[0].section_type, "NULL")
+
+        # .interp
+        self.assertEqual(sections[1].name, ".interp")
+        self.assertEqual(sections[1].offset, 0x1b4)
+        self.assertEqual(sections[1].address, 0x1b4)
+        self.assertEqual(sections[1].size, 0x13)
+        self.assertEqual(sections[1].flags, "A")
+        self.assertEqual(sections[1].address_align, 0x1)
+        self.assertEqual(sections[1].section_type, "PROGBITS")
+
+        # .note.gnu.build-id
+        self.assertEqual(sections[2].name, ".note.gnu.build-id")
+        self.assertEqual(sections[2].offset, 0x1c8)
+        self.assertEqual(sections[2].address, 0x1c8)
+        self.assertEqual(sections[2].size, 0x24)
+        self.assertEqual(sections[2].flags, "A")
+        self.assertEqual(sections[2].address_align, 0x4)
+        self.assertEqual(sections[2].section_type, "NOTE")
+
+        # .note.ABI-tag
+        self.assertEqual(sections[3].name, ".note.ABI-tag")
+        self.assertEqual(sections[3].offset, 0x1ec)
+        self.assertEqual(sections[3].address, 0x1ec)
+        self.assertEqual(sections[3].size, 0x20)
+        self.assertEqual(sections[3].flags, "A")
+        self.assertEqual(sections[3].address_align, 0x4)
+        self.assertEqual(sections[3].section_type, "NOTE")
+
+        # .note.weird
+        self.assertEqual(sections[4].name, ".note.weird")
+        self.assertEqual(sections[4].offset, 0x20c)
+        self.assertEqual(sections[4].address, 0x20c)
+        self.assertEqual(sections[4].size, 0x16)
+        self.assertEqual(sections[4].flags, "A")
+        self.assertEqual(sections[4].address_align, 0x4)
+        self.assertEqual(sections[4].section_type, "NOTE")
+
+        # .gnu.hash
+        self.assertEqual(sections[5].name, ".gnu.hash")
+        self.assertEqual(sections[5].offset, 0x224)
+        self.assertEqual(sections[5].address, 0x224)
+        self.assertEqual(sections[5].size, 0x20)
+        self.assertEqual(sections[5].flags, "A")
+        self.assertEqual(sections[5].address_align, 0x4)
+        self.assertEqual(sections[5].section_type, "GNU_HASH")
+
+        # .dynsym
+        self.assertEqual(sections[6].name, ".dynsym")
+        self.assertEqual(sections[6].offset, 0x244)
+        self.assertEqual(sections[6].address, 0x244)
+        self.assertEqual(sections[6].size, 0xC0)
+        self.assertEqual(sections[6].flags, "A")
+        self.assertEqual(sections[6].address_align, 0x4)
+        self.assertEqual(sections[6].section_type, "DYNSYM")
+
+        # .dynstr
+        self.assertEqual(sections[7].name, ".dynstr")
+        self.assertEqual(sections[7].offset, 0x304)
+        self.assertEqual(sections[7].address, 0x304)
+        self.assertEqual(sections[7].size, 0xFE)
+        self.assertEqual(sections[7].flags, "A")
+        self.assertEqual(sections[7].address_align, 0x1)
+        self.assertEqual(sections[7].section_type, "STRTAB")
+
+        # .gnu.version
+        self.assertEqual(sections[8].name, ".gnu.version")
+        self.assertEqual(sections[8].offset, 0x402)
+        self.assertEqual(sections[8].address, 0x402)
+        self.assertEqual(sections[8].size, 0x18)
+        self.assertEqual(sections[8].flags, "A")
+        self.assertEqual(sections[8].address_align, 0x2)
+        self.assertEqual(sections[8].section_type, "GNU_VERSYM")
+
+        # .gnu.version_r
+        self.assertEqual(sections[9].name, ".gnu.version_r")
+        self.assertEqual(sections[9].offset, 0x41C)
+        self.assertEqual(sections[9].address, 0x41C)
+        self.assertEqual(sections[9].size, 0x70)
+        self.assertEqual(sections[9].flags, "A")
+        self.assertEqual(sections[9].address_align, 0x4)
+        self.assertEqual(sections[9].section_type, "GNU_VERNEED")
+
+        # .rel.dyn
+        self.assertEqual(sections[10].name, ".rel.dyn")
+        self.assertEqual(sections[10].offset, 0x48C)
+        self.assertEqual(sections[10].address, 0x48C)
+        self.assertEqual(sections[10].size, 0x68)
+        self.assertEqual(sections[10].flags, "A")
+        self.assertEqual(sections[10].address_align, 0x4)
+        self.assertEqual(sections[10].section_type, "REL")
+
+        # .rel.plt
+        self.assertEqual(sections[11].name, ".rel.plt")
+        self.assertEqual(sections[11].offset, 0x4F4)
+        self.assertEqual(sections[11].address, 0x4F4)
+        self.assertEqual(sections[11].size, 0x28)
+        self.assertEqual(sections[11].flags, "AI")
+        self.assertEqual(sections[11].address_align, 0x4)
+        self.assertEqual(sections[11].section_type, "REL")
+
+        # .init
+        self.assertEqual(sections[12].name, ".init")
+        self.assertEqual(sections[12].offset, 0x1000)
+        self.assertEqual(sections[12].address, 0x1000)
+        self.assertEqual(sections[12].size, 0x20)
+        self.assertEqual(sections[12].flags, "AX")
+        self.assertEqual(sections[12].address_align, 0x4)
+        self.assertEqual(sections[12].section_type, "PROGBITS")
+
+        # .plt
+        self.assertEqual(sections[13].name, ".plt")
+        self.assertEqual(sections[13].offset, 0x1020)
+        self.assertEqual(sections[13].address, 0x1020)
+        self.assertEqual(sections[13].size, 0x60)
+        self.assertEqual(sections[13].flags, "AX")
+        self.assertEqual(sections[13].address_align, 0x10)
+        self.assertEqual(sections[13].section_type, "PROGBITS")
+
+        # .plt.got
+        self.assertEqual(sections[14].name, ".plt.got")
+        self.assertEqual(sections[14].offset, 0x1080)
+        self.assertEqual(sections[14].address, 0x1080)
+        self.assertEqual(sections[14].size, 0x8)
+        self.assertEqual(sections[14].flags, "AX")
+        self.assertEqual(sections[14].address_align, 0x8)
+        self.assertEqual(sections[14].section_type, "PROGBITS")
+
+        # .text
+        self.assertEqual(sections[15].name, ".text")
+        self.assertEqual(sections[15].offset, 0x1090)
+        self.assertEqual(sections[15].address, 0x1090)
+        self.assertEqual(sections[15].size, 0x2DA)
+        self.assertEqual(sections[15].flags, "AX")
+        self.assertEqual(sections[15].address_align, 0x10)
+        self.assertEqual(sections[15].section_type, "PROGBITS")
+
+        # .fini
+        self.assertEqual(sections[16].name, ".fini")
+        self.assertEqual(sections[16].offset, 0x136C)
+        self.assertEqual(sections[16].address, 0x136C)
+        self.assertEqual(sections[16].size, 0x14)
+        self.assertEqual(sections[16].flags, "AX")
+        self.assertEqual(sections[16].address_align, 0x4)
+        self.assertEqual(sections[16].section_type, "PROGBITS")
+
+        # .rodata
+        self.assertEqual(sections[17].name, ".rodata")
+        self.assertEqual(sections[17].offset, 0x2000)
+        self.assertEqual(sections[17].address, 0x2000)
+        self.assertEqual(sections[17].size, 0x9A)
+        self.assertEqual(sections[17].flags, "A")
+        self.assertEqual(sections[17].address_align, 0x4)
+        self.assertEqual(sections[17].section_type, "PROGBITS")
+
+        # .eh_frame_hdr
+        self.assertEqual(sections[18].name, ".eh_frame_hdr")
+        self.assertEqual(sections[18].offset, 0x209C)
+        self.assertEqual(sections[18].address, 0x209C)
+        self.assertEqual(sections[18].size, 0x5C)
+        self.assertEqual(sections[18].flags, "A")
+        self.assertEqual(sections[18].address_align, 0x4)
+        self.assertEqual(sections[18].section_type, "PROGBITS")
+
+        # .eh_frame
+        self.assertEqual(sections[19].name, ".eh_frame")
+        self.assertEqual(sections[19].offset, 0x20F8)
+        self.assertEqual(sections[19].address, 0x20F8)
+        self.assertEqual(sections[19].size, 0x1A0)
+        self.assertEqual(sections[19].flags, "A")
+        self.assertEqual(sections[19].address_align, 0x4)
+        self.assertEqual(sections[19].section_type, "PROGBITS")
+
+        # .tdata
+        self.assertEqual(sections[20].name, ".tdata")
+        self.assertEqual(sections[20].offset, 0x2EAC)
+        self.assertEqual(sections[20].address, 0x3EAC)
+        self.assertEqual(sections[20].size, 0x4)
+        self.assertEqual(sections[20].flags, "WAT")
+        self.assertEqual(sections[20].address_align, 0x4)
+        self.assertEqual(sections[20].section_type, "PROGBITS")
+
+        # .tbss
+        self.assertEqual(sections[21].name, ".tbss")
+        self.assertEqual(sections[21].offset, 0x2EB0)
+        self.assertEqual(sections[21].address, 0x3EB0)
+        self.assertEqual(sections[21].size, 0x4)
+        self.assertEqual(sections[21].flags, "WAT")
+        self.assertEqual(sections[21].address_align, 0x4)
+        self.assertEqual(sections[21].section_type, "NOBITS")
+
+        # .init_array
+        self.assertEqual(sections[22].name, ".init_array")
+        self.assertEqual(sections[22].offset, 0x2EB0)
+        self.assertEqual(sections[22].address, 0x3EB0)
+        self.assertEqual(sections[22].size, 0x8)
+        self.assertEqual(sections[22].flags, "WA")
+        self.assertEqual(sections[22].address_align, 0x4)
+        self.assertEqual(sections[22].section_type, "INIT_ARRAY")
+
+        # .fini_array
+        self.assertEqual(sections[23].name, ".fini_array")
+        self.assertEqual(sections[23].offset, 0x2EB8)
+        self.assertEqual(sections[23].address, 0x3EB8)
+        self.assertEqual(sections[23].size, 0x8)
+        self.assertEqual(sections[23].flags, "WA")
+        self.assertEqual(sections[23].address_align, 0x4)
+        self.assertEqual(sections[23].section_type, "FINI_ARRAY")
+
+        # .data.rel.ro
+        self.assertEqual(sections[24].name, ".data.rel.ro")
+        self.assertEqual(sections[24].offset, 0x2EC0)
+        self.assertEqual(sections[24].address, 0x3EC0)
+        self.assertEqual(sections[24].size, 0x4)
+        self.assertEqual(sections[24].flags, "WA")
+        self.assertEqual(sections[24].address_align, 0x4)
+        self.assertEqual(sections[24].section_type, "PROGBITS")
+
+        # .dynamic
+        self.assertEqual(sections[25].name, ".dynamic")
+        self.assertEqual(sections[25].offset, 0x2EC4)
+        self.assertEqual(sections[25].address, 0x3EC4)
+        self.assertEqual(sections[25].size, 0x100)
+        self.assertEqual(sections[25].flags, "WA")
+        self.assertEqual(sections[25].address_align, 0x4)
+        self.assertEqual(sections[25].section_type, "DYNAMIC")
+
+        # .got
+        self.assertEqual(sections[26].name, ".got")
+        self.assertEqual(sections[26].offset, 0x2FC4)
+        self.assertEqual(sections[26].address, 0x3FC4)
+        self.assertEqual(sections[26].size, 0x3C)
+        self.assertEqual(sections[26].flags, "WA")
+        self.assertEqual(sections[26].address_align, 0x4)
+        self.assertEqual(sections[26].section_type, "PROGBITS")
+
+        # .data
+        self.assertEqual(sections[27].name, ".data")
+        self.assertEqual(sections[27].offset, 0x3000)
+        self.assertEqual(sections[27].address, 0x4000)
+        self.assertEqual(sections[27].size, 0xA0)
+        self.assertEqual(sections[27].flags, "WA")
+        self.assertEqual(sections[27].address_align, 0x40)
+        self.assertEqual(sections[27].section_type, "PROGBITS")
+
+        # .extra.data
+        self.assertEqual(sections[28].name, ".extra.data")
+        self.assertEqual(sections[28].offset, 0x30A0)
+        self.assertEqual(sections[28].address, 0x40A0)
+        self.assertEqual(sections[28].size, 0x8)
+        self.assertEqual(sections[28].flags, "WA")
+        self.assertEqual(sections[28].address_align, 0x10)
+        self.assertEqual(sections[28].section_type, "PROGBITS")
+
+        # .bss
+        self.assertEqual(sections[29].name, ".bss")
+        self.assertEqual(sections[29].offset, 0x30A8)
+        self.assertEqual(sections[29].address, 0x40C0)
+        self.assertEqual(sections[29].size, 0x1140)
+        self.assertEqual(sections[29].flags, "WA")
+        self.assertEqual(sections[29].address_align, 0x20)
+        self.assertEqual(sections[29].section_type, "NOBITS")
+
+        # .comment
+        self.assertEqual(sections[30].name, ".comment")
+        self.assertEqual(sections[30].offset, 0x30A8)
+        self.assertEqual(sections[30].address, 0x0)
+        self.assertEqual(sections[30].size, 0x2B)
+        self.assertEqual(sections[30].flags, "MS")
+        self.assertEqual(sections[30].address_align, 0x1)
+        self.assertEqual(sections[30].section_type, "PROGBITS")
+
+        # .weird.debug
+        self.assertEqual(sections[31].name, ".weird.debug")
+        self.assertEqual(sections[31].offset, 0x30D3)
+        self.assertEqual(sections[31].address, 0x0)
+        self.assertEqual(sections[31].size, 0x1F)
+        self.assertEqual(sections[31].flags, "")
+        self.assertEqual(sections[31].address_align, 0x1)
+        self.assertEqual(sections[31].section_type, "PROGBITS")
+
+        # .symtab
+        self.assertEqual(sections[32].name, ".symtab")
+        self.assertEqual(sections[32].offset, 0x30F4)
+        self.assertEqual(sections[32].address, 0x0)
+        self.assertEqual(sections[32].size, 0x410)
+        self.assertEqual(sections[32].flags, "")
+        self.assertEqual(sections[32].address_align, 0x4)
+        self.assertEqual(sections[32].section_type, "SYMTAB")
+
+        # .strtab
+        self.assertEqual(sections[33].name, ".strtab")
+        self.assertEqual(sections[33].offset, 0x3504)
+        self.assertEqual(sections[33].address, 0x0)
+        self.assertEqual(sections[33].size, 0x3B6)
+        self.assertEqual(sections[33].flags, "")
+        self.assertEqual(sections[33].address_align, 0x1)
+        self.assertEqual(sections[33].section_type, "STRTAB")
+
+        # .shstrtab
+        self.assertEqual(sections[34].name, ".shstrtab")
+        self.assertEqual(sections[34].offset, 0x38BA)
+        self.assertEqual(sections[34].address, 0x0)
+        self.assertEqual(sections[34].size, 0x135)
+        self.assertEqual(sections[34].flags, "")
+        self.assertEqual(sections[34].address_align, 0x1)
+        self.assertEqual(sections[34].section_type, "STRTAB")
+
+        d.terminate()
+
+    def test_dynamic_sections_i386(self):
+        """Tests the dynamic sections API for i386."""
+        # Create a debugger and start execution
+        d = debugger(RESOLVE_EXE_CROSS("sections_test", "i386"), aslr=False)
+
+        dynamic_sections = d.binary.dynamic_sections
+
+        # There should be 12 dynamic sections
+        self.assertEqual(len(dynamic_sections), 27)
+
+        # There should be 27 dynamic entries (already asserted above), validate them:
+        self.assertEqual(dynamic_sections[0].tag, "NEEDED")
+        self.assertEqual(dynamic_sections[0].value, "libc.so.6")
+        self.assertFalse(dynamic_sections[0].is_value_address)
+        self.assertEqual(dynamic_sections[0].reference_file, d.binary.absolute_path)
+
+        self.assertEqual(dynamic_sections[1].tag, "NEEDED")
+        self.assertEqual(dynamic_sections[1].value, "ld-linux.so.2")
+        self.assertFalse(dynamic_sections[1].is_value_address)
+        self.assertEqual(dynamic_sections[1].reference_file, d.binary.absolute_path)
+
+        self.assertEqual(dynamic_sections[2].tag, "INIT")
+        self.assertEqual(dynamic_sections[2].value, 0x1000)
+        self.assertTrue(dynamic_sections[2].is_value_address)
+
+        self.assertEqual(dynamic_sections[3].tag, "FINI")
+        self.assertEqual(dynamic_sections[3].value, 0x136c)
+        self.assertTrue(dynamic_sections[3].is_value_address)
+
+        self.assertEqual(dynamic_sections[4].tag, "INIT_ARRAY")
+        self.assertEqual(dynamic_sections[4].value, 0x3eb0)
+        self.assertTrue(dynamic_sections[4].is_value_address)
+
+        self.assertEqual(dynamic_sections[5].tag, "INIT_ARRAYSZ")
+        self.assertEqual(dynamic_sections[5].value, 8)
+
+        self.assertEqual(dynamic_sections[6].tag, "FINI_ARRAY")
+        self.assertEqual(dynamic_sections[6].value, 0x3eb8)
+        self.assertTrue(dynamic_sections[6].is_value_address)
+
+        self.assertEqual(dynamic_sections[7].tag, "FINI_ARRAYSZ")
+        self.assertEqual(dynamic_sections[7].value, 8)
+
+        self.assertEqual(dynamic_sections[8].tag, "GNU_HASH")
+        self.assertEqual(dynamic_sections[8].value, 0x224)
+        self.assertTrue(dynamic_sections[8].is_value_address)
+
+        self.assertEqual(dynamic_sections[9].tag, "STRTAB")
+        self.assertEqual(dynamic_sections[9].value, 0x304)
+        self.assertTrue(dynamic_sections[9].is_value_address)
+
+        self.assertEqual(dynamic_sections[10].tag, "SYMTAB")
+        self.assertEqual(dynamic_sections[10].value, 0x244)
+        self.assertTrue(dynamic_sections[10].is_value_address)
+
+        self.assertEqual(dynamic_sections[11].tag, "STRSZ")
+        self.assertEqual(dynamic_sections[11].value, 254)
+
+        self.assertEqual(dynamic_sections[12].tag, "SYMENT")
+        self.assertEqual(dynamic_sections[12].value, 16)
+
+        self.assertEqual(dynamic_sections[13].tag, "DEBUG")
+        self.assertEqual(dynamic_sections[13].value, 0x0)
+
+        self.assertEqual(dynamic_sections[14].tag, "PLTGOT")
+        self.assertEqual(dynamic_sections[14].value, 0x3fc4)
+        self.assertTrue(dynamic_sections[14].is_value_address)
+
+        self.assertEqual(dynamic_sections[15].tag, "PLTRELSZ")
+        self.assertEqual(dynamic_sections[15].value, 40)
+
+        self.assertEqual(dynamic_sections[16].tag, "PLTREL")
+        self.assertEqual(dynamic_sections[16].value, "REL")
+
+        self.assertEqual(dynamic_sections[17].tag, "JMPREL")
+        self.assertEqual(dynamic_sections[17].value, 0x4f4)
+        self.assertTrue(dynamic_sections[17].is_value_address)
+
+        self.assertEqual(dynamic_sections[18].tag, "REL")
+        self.assertEqual(dynamic_sections[18].value, 0x48c)
+        self.assertTrue(dynamic_sections[18].is_value_address)
+
+        self.assertEqual(dynamic_sections[19].tag, "RELSZ")
+        self.assertEqual(dynamic_sections[19].value, 104)
+
+        self.assertEqual(dynamic_sections[20].tag, "RELENT")
+        self.assertEqual(dynamic_sections[20].value, 8)
+
+        self.assertEqual(dynamic_sections[21].tag, "FLAGS")
+        self.assertEqual(dynamic_sections[21].value, "BIND_NOW")
+
+        self.assertEqual(dynamic_sections[22].tag, "FLAGS_1")
+        self.assertEqual(dynamic_sections[22].value, "NOW PIE")
+
+        self.assertEqual(dynamic_sections[23].tag, "VERNEED")
+        self.assertEqual(dynamic_sections[23].value, 0x41c)
+        self.assertTrue(dynamic_sections[23].is_value_address)
+
+        self.assertEqual(dynamic_sections[24].tag, "VERNEEDNUM")
+        self.assertEqual(dynamic_sections[24].value, 2)
+
+        self.assertEqual(dynamic_sections[25].tag, "VERSYM")
+        self.assertEqual(dynamic_sections[25].value, 0x402)
+        self.assertTrue(dynamic_sections[25].is_value_address)
+
+        self.assertEqual(dynamic_sections[26].tag, "RELCOUNT")
+        self.assertEqual(dynamic_sections[26].value, 8)
+
+        d.terminate()
+
+    def test_program_headers_i386(self):
+        """Tests the program headers API for i386."""
+        # Create a debugger and start execution
+        d = debugger(RESOLVE_EXE_CROSS("sections_test", "i386"), aslr=False)
+
+        program_headers = d.binary.program_headers
+        
+        self.assertEqual(len(program_headers), 12)
+        # PHDR
+        self.assertEqual(program_headers[0].header_type, "PHDR")
+        self.assertEqual(program_headers[0].offset, 0x34)
+        self.assertEqual(program_headers[0].vaddr, 0x34)
+        self.assertEqual(program_headers[0].paddr, 0x34)
+        self.assertEqual(program_headers[0].filesz, 0x180)
+        self.assertEqual(program_headers[0].memsz, 0x180)
+        self.assertEqual(program_headers[0].flags, "R")
+        self.assertEqual(program_headers[0].align, 0x4)
+        self.assertEqual(program_headers[0].reference_file, d.binary.absolute_path)
+
+        # INTERP
+        self.assertEqual(program_headers[1].header_type, "INTERP")
+        self.assertEqual(program_headers[1].offset, 0x1b4)
+        self.assertEqual(program_headers[1].vaddr, 0x1b4)
+        self.assertEqual(program_headers[1].paddr, 0x1b4)
+        self.assertEqual(program_headers[1].filesz, 0x13)
+        self.assertEqual(program_headers[1].memsz, 0x13)
+        self.assertEqual(program_headers[1].flags, "R")
+        self.assertEqual(program_headers[1].align, 0x1)
+        self.assertEqual(program_headers[1].reference_file, d.binary.absolute_path)
+
+        # LOAD (first)
+        self.assertEqual(program_headers[2].header_type, "LOAD")
+        self.assertEqual(program_headers[2].offset, 0x0)
+        self.assertEqual(program_headers[2].vaddr, 0x0)
+        self.assertEqual(program_headers[2].paddr, 0x0)
+        self.assertEqual(program_headers[2].filesz, 0x51c)
+        self.assertEqual(program_headers[2].memsz, 0x51c)
+        self.assertEqual(program_headers[2].flags, "R")
+        self.assertEqual(program_headers[2].align, 0x1000)
+        self.assertEqual(program_headers[2].reference_file, d.binary.absolute_path)
+
+        # LOAD (second)
+        self.assertEqual(program_headers[3].header_type, "LOAD")
+        self.assertEqual(program_headers[3].offset, 0x1000)
+        self.assertEqual(program_headers[3].vaddr, 0x1000)
+        self.assertEqual(program_headers[3].paddr, 0x1000)
+        self.assertEqual(program_headers[3].filesz, 0x380)
+        self.assertEqual(program_headers[3].memsz, 0x380)
+        self.assertEqual(program_headers[3].flags, "RX")
+        self.assertEqual(program_headers[3].align, 0x1000)
+        self.assertEqual(program_headers[3].reference_file, d.binary.absolute_path)
+
+        # LOAD (third)
+        self.assertEqual(program_headers[4].header_type, "LOAD")
+        self.assertEqual(program_headers[4].offset, 0x2000)
+        self.assertEqual(program_headers[4].vaddr, 0x2000)
+        self.assertEqual(program_headers[4].paddr, 0x2000)
+        self.assertEqual(program_headers[4].filesz, 0x298)
+        self.assertEqual(program_headers[4].memsz, 0x298)
+        self.assertEqual(program_headers[4].flags, "R")
+        self.assertEqual(program_headers[4].align, 0x1000)
+        self.assertEqual(program_headers[4].reference_file, d.binary.absolute_path)
+
+        # LOAD (fourth)
+        self.assertEqual(program_headers[5].header_type, "LOAD")
+        self.assertEqual(program_headers[5].offset, 0x2eac)
+        self.assertEqual(program_headers[5].vaddr, 0x3eac)
+        self.assertEqual(program_headers[5].paddr, 0x3eac)
+        self.assertEqual(program_headers[5].filesz, 0x1fc)
+        self.assertEqual(program_headers[5].memsz, 0x1354)
+        self.assertEqual(program_headers[5].flags, "RW")
+        self.assertEqual(program_headers[5].align, 0x1000)
+        self.assertEqual(program_headers[5].reference_file, d.binary.absolute_path)
+
+        # DYNAMIC
+        self.assertEqual(program_headers[6].header_type, "DYNAMIC")
+        self.assertEqual(program_headers[6].offset, 0x2ec4)
+        self.assertEqual(program_headers[6].vaddr, 0x3ec4)
+        self.assertEqual(program_headers[6].paddr, 0x3ec4)
+        self.assertEqual(program_headers[6].filesz, 0x100)
+        self.assertEqual(program_headers[6].memsz, 0x100)
+        self.assertEqual(program_headers[6].flags, "RW")
+        self.assertEqual(program_headers[6].align, 0x4)
+        self.assertEqual(program_headers[6].reference_file, d.binary.absolute_path)
+
+        # NOTE
+        self.assertEqual(program_headers[7].header_type, "NOTE")
+        self.assertEqual(program_headers[7].offset, 0x1c8)
+        self.assertEqual(program_headers[7].vaddr, 0x1c8)
+        self.assertEqual(program_headers[7].paddr, 0x1c8)
+        self.assertEqual(program_headers[7].filesz, 0x5a)
+        self.assertEqual(program_headers[7].memsz, 0x5a)
+        self.assertEqual(program_headers[7].flags, "R")
+        self.assertEqual(program_headers[7].align, 0x4)
+        self.assertEqual(program_headers[7].reference_file, d.binary.absolute_path)
+
+        # TLS
+        self.assertEqual(program_headers[8].header_type, "TLS")
+        self.assertEqual(program_headers[8].offset, 0x2eac)
+        self.assertEqual(program_headers[8].vaddr, 0x3eac)
+        self.assertEqual(program_headers[8].paddr, 0x3eac)
+        self.assertEqual(program_headers[8].filesz, 0x4)
+        self.assertEqual(program_headers[8].memsz, 0x8)
+        self.assertEqual(program_headers[8].flags, "R")
+        self.assertEqual(program_headers[8].align, 0x4)
+        self.assertEqual(program_headers[8].reference_file, d.binary.absolute_path)
+
+        # GNU_EH_FRAME
+        self.assertEqual(program_headers[9].header_type, "GNU_EH_FRAME")
+        self.assertEqual(program_headers[9].offset, 0x209c)
+        self.assertEqual(program_headers[9].vaddr, 0x209c)
+        self.assertEqual(program_headers[9].paddr, 0x209c)
+        self.assertEqual(program_headers[9].filesz, 0x5c)
+        self.assertEqual(program_headers[9].memsz, 0x5c)
+        self.assertEqual(program_headers[9].flags, "R")
+        self.assertEqual(program_headers[9].align, 0x4)
+        self.assertEqual(program_headers[9].reference_file, d.binary.absolute_path)
+
+        # GNU_STACK
+        self.assertEqual(program_headers[10].header_type, "GNU_STACK")
+        self.assertEqual(program_headers[10].offset, 0x0)
+        self.assertEqual(program_headers[10].vaddr, 0x0)
+        self.assertEqual(program_headers[10].paddr, 0x0)
+        self.assertEqual(program_headers[10].filesz, 0x0)
+        self.assertEqual(program_headers[10].memsz, 0x0)
+        self.assertEqual(program_headers[10].flags, "RW")
+        self.assertEqual(program_headers[10].align, 0x10)
+        self.assertEqual(program_headers[10].reference_file, d.binary.absolute_path)
+
+        # GNU_RELRO
+        self.assertEqual(program_headers[11].header_type, "GNU_RELRO")
+        self.assertEqual(program_headers[11].offset, 0x2eac)
+        self.assertEqual(program_headers[11].vaddr, 0x3eac)
+        self.assertEqual(program_headers[11].paddr, 0x3eac)
+        self.assertEqual(program_headers[11].filesz, 0x154)
+        self.assertEqual(program_headers[11].memsz, 0x154)
+        self.assertEqual(program_headers[11].flags, "R")
+        self.assertEqual(program_headers[11].align, 0x1)
+        self.assertEqual(program_headers[11].reference_file, d.binary.absolute_path)
+
+        d.terminate()
+
+
+    def test_binary_and_libs_api(self):
+        """Tests the binary and libraries API."""
+        rel_path = RESOLVE_EXE("sections_test")
+
+        # Create a debugger and start execution
+        d = debugger(rel_path, aslr=False)
+
+        self.assertEqual(d.binary.path.split("/")[-1], "sections_test")
+        self.assertEqual(d.binary.absolute_path, str(Path(rel_path).resolve()))
+        self.assertEqual(d.binary.architecture, PLATFORM)
+        self.assertEqual(d.binary.is_pie, True)
+        self.assertEqual(d.binary.entry_point, entry_point)
+        self.assertEqual(d.binary.endianness, "little")
+
+        self.assertEqual(d.binary.build_id, gt_build_id)
+
+        self.assertRaises(ValueError, lambda: d.binary.symbols)
+        self.assertRaises(RuntimeError, lambda: d.libraries)
+        self.assertRaises(RuntimeError, lambda: d.libs)
+
+        d.run()
+
+        self.assertEqual(d.binary.base_address, BASE)
+
+        self.assertEqual(len(d.binary.symbols), num_symbols)
+
+        self.assertEqual(len(d.libraries), 2)
+
+        self.assertEqual(LIBC_SONAME, d.libraries[0].soname)
+        self.assertEqual(LD_SONAME, d.libraries[1].soname)
+ 
+        d.terminate()
+
+    def test_dlopen_libs_api(self):
+        path = RESOLVE_EXE("dynamic_lib_load")
+        d = debugger(path, aslr=False)
+        d.run()
+
+        self.assertEqual(len(d.libs), 2 if PLATFORM != "i386" else 3) # i386 has libdl.so.2 to do dlopen
+
+        # Sort libs by soname for consistency
+        libs = sorted(d.libs, key=lambda lib: lib.soname)
+
+        self.assertEqual(libs[0].soname, LD_SONAME)
+        self.assertEqual(libs[1].soname, LIBC_SONAME)
+
+        d.terminate()
+
+        d = debugger(path, aslr=False)
+        d.run()
+
+        # When breakpoint is reached, the binary will already have called dlopen
+        bp = d.breakpoint(dl_open_test_bp, hardware=True, file="binary")
+
+        d.cont()
+
+        self.assertEqual(bp.hit_on(d), True)
+
+        # Recheck the libs
+        self.assertEqual(len(d.libs), 3 if PLATFORM != "i386" else 4) # i386 has libdl.so.2 to do dlopen
+
+        # Sort libs by soname for consistency
+        libs = sorted(d.libs, key=lambda lib: lib.soname)
+
+        self.assertEqual(libs[0].soname, LD_SONAME)
+        self.assertEqual(libs[1].soname, LIBC_SONAME)
+
+        match PLATFORM:
+            case "i386":
+                self.assertEqual(libs[2].soname, "libdl.so.2")
+                self.assertEqual(libs[3].soname, LIBM_SONAME)
+            case "aarch64" | "amd64":
+                self.assertEqual(libs[2].soname, LIBM_SONAME)
+            case _:
+                raise ValueError(f"Unsupported platform: {PLATFORM}")
+
+        d.terminate()
+
+    def test_dlopen_libs_api_caching(self):
+        path = RESOLVE_EXE("dynamic_lib_load")
+        d = debugger(path, aslr=False)
+
+        # Check for caching of libraries property
+        self.assertFalse("libraries" in d._internal_debugger.__dict__)
+
+        d.run()
+
+        self.assertFalse("libraries" in d._internal_debugger.__dict__)
+
+        self.assertEqual(len(d.libs), 2 if PLATFORM != "i386" else 3) # i386 has libdl.so.2 to do dlopen
+
+        self.assertTrue("libraries" in d._internal_debugger.__dict__)
+
+        # Sort libs by soname for consistency
+        libs = sorted(d.libs, key=lambda lib: lib.soname)
+
+        self.assertEqual(libs[0].soname, LD_SONAME)
+        self.assertEqual(libs[1].soname, LIBC_SONAME)
+
+        d.kill()
+
+        d.run()
+        self.assertFalse("libraries" in d._internal_debugger.__dict__)
+
+        self.assertEqual(len(d.libs), 2 if PLATFORM != "i386" else 3) # i386 has libdl.so.2 to do dlopen
+
+        # When breakpoint is reached, the binary will already have called dlopen
+        bp = d.breakpoint(dl_open_test_bp, hardware=True, file="binary")
+
+        self.assertTrue("libraries" in d._internal_debugger.__dict__)
+        d.cont()
+
+        self.assertEqual(bp.hit_on(d), True)
+        self.assertFalse("libraries" in d._internal_debugger.__dict__)
+
+        # Recheck the libs
+        self.assertEqual(len(d.libs), 3 if PLATFORM != "i386" else 4) # i386 has libdl.so.2 to do dlopen
+
+        # Sort libs by soname for consistency
+        libs = sorted(d.libs, key=lambda lib: lib.soname)
+
+        self.assertEqual(libs[0].soname, LD_SONAME)
+        self.assertEqual(libs[1].soname, LIBC_SONAME)
+
+        match PLATFORM:
+            case "i386":
+                self.assertEqual(libs[2].soname, "libdl.so.2")
+                self.assertEqual(libs[3].soname, LIBM_SONAME)
+            case "aarch64" | "amd64":
+                self.assertEqual(libs[2].soname, LIBM_SONAME)
+            case _:
+                raise ValueError(f"Unsupported platform: {PLATFORM}")
+
+        # dlclose will have been called, so libm should be unloaded    
+        d.finish()
+
+        self.assertFalse("libraries" in d._internal_debugger.__dict__)
+        self.assertEqual(len(d.libs), 2 if PLATFORM != "i386" else 3) # i386 has libdl.so.2 to do dlopen
+        self.assertTrue("libraries" in d._internal_debugger.__dict__)
+
+        d.terminate()
+
+
+    def test_binary_mitigations(self):
+        """Tests the binary mitigations API."""
+        # AMD64 mitigationsv1
+        rel_path = RESOLVE_EXE_CROSS("mitigationsv1", "amd64")
+        d = debugger(rel_path, aslr=False)
+        mitigations = d.binary.runtime_mitigations
+
+        self.assertEqual(mitigations.relro, RelroStatus.FULL)
+        self.assertTrue(mitigations.stack_guard)
+        self.assertTrue(mitigations.nx)
+        self.assertFalse(mitigations.stack_executable)
+        self.assertTrue(mitigations.pie)
+        self.assertTrue(mitigations.shstk)
+        self.assertTrue(mitigations.ibt)
+        self.assertTrue(mitigations.fortify)
+        self.assertFalse(mitigations.asan)
+        self.assertFalse(mitigations.msan)
+        self.assertFalse(mitigations.ubsan)
+        self.assertFalse(mitigations.pac)
+
+        # AMD64 mitigationsv2
+        rel_path = RESOLVE_EXE_CROSS("mitigationsv2", "amd64")
+        d = debugger(rel_path, aslr=False)
+        mitigations = d.binary.runtime_mitigations
+
+        self.assertEqual(mitigations.relro, RelroStatus.PARTIAL)
+        self.assertTrue(mitigations.stack_guard)
+        self.assertTrue(mitigations.nx)
+        self.assertFalse(mitigations.stack_executable)
+        self.assertTrue(mitigations.pie)
+        self.assertFalse(mitigations.shstk)
+        self.assertFalse(mitigations.ibt)
+        self.assertFalse(mitigations.fortify)
+        self.assertFalse(mitigations.asan)
+        self.assertFalse(mitigations.msan)
+        self.assertFalse(mitigations.ubsan)
+        self.assertFalse(mitigations.pac)
+
+        # AMD64 mitigationsv3
+        rel_path = RESOLVE_EXE_CROSS("mitigationsv3", "amd64")
+        d = debugger(rel_path, aslr=False)
+        mitigations = d.binary.runtime_mitigations
+
+        self.assertEqual(mitigations.relro, RelroStatus.NONE)
+        self.assertFalse(mitigations.stack_guard)
+        self.assertFalse(mitigations.nx) # NX is off when GNU_STACK is executable
+        self.assertTrue(mitigations.stack_executable)
+        self.assertFalse(mitigations.pie)
+        self.assertFalse(mitigations.shstk)
+        self.assertFalse(mitigations.ibt)
+        self.assertFalse(mitigations.fortify)
+        self.assertFalse(mitigations.asan)
+        self.assertFalse(mitigations.msan)
+        self.assertFalse(mitigations.ubsan)
+        self.assertFalse(mitigations.pac)
+
+        # AMD64 mitigationsv4
+        rel_path = RESOLVE_EXE_CROSS("mitigationsv4", "amd64")
+        d = debugger(rel_path, aslr=False)
+        mitigations = d.binary.runtime_mitigations
+
+        self.assertEqual(mitigations.relro, RelroStatus.FULL)
+        self.assertTrue(mitigations.stack_guard)
+        self.assertTrue(mitigations.nx)
+        self.assertFalse(mitigations.stack_executable)
+        self.assertTrue(mitigations.pie)
+        self.assertFalse(mitigations.shstk)
+        self.assertFalse(mitigations.ibt)
+        self.assertTrue(mitigations.fortify)
+        self.assertTrue(mitigations.asan)
+        self.assertFalse(mitigations.msan)
+        self.assertFalse(mitigations.ubsan)
+        self.assertFalse(mitigations.pac)
+
+        # -------------------------
+
+        # i386 mitigationsv1
+        rel_path = RESOLVE_EXE_CROSS("mitigationsv1", "i386")
+        d = debugger(rel_path, aslr=False)
+        mitigations = d.binary.runtime_mitigations
+
+        self.assertEqual(mitigations.relro, RelroStatus.FULL)
+        self.assertTrue(mitigations.stack_guard)
+        self.assertTrue(mitigations.nx)
+        self.assertFalse(mitigations.stack_executable)
+        self.assertTrue(mitigations.pie)
+        self.assertFalse(mitigations.shstk)
+        self.assertFalse(mitigations.ibt)
+        self.assertTrue(mitigations.fortify)
+        self.assertFalse(mitigations.asan)
+        self.assertFalse(mitigations.msan)
+        self.assertFalse(mitigations.ubsan)
+        self.assertFalse(mitigations.pac)
+
+        # i386 mitigationsv2
+        rel_path = RESOLVE_EXE_CROSS("mitigationsv2", "i386")
+        d = debugger(rel_path, aslr=False)
+        mitigations = d.binary.runtime_mitigations
+
+        self.assertEqual(mitigations.relro, RelroStatus.PARTIAL)
+        self.assertTrue(mitigations.stack_guard)
+        self.assertTrue(mitigations.nx)
+        self.assertFalse(mitigations.stack_executable)
+        self.assertTrue(mitigations.pie)
+        self.assertFalse(mitigations.shstk)
+        self.assertFalse(mitigations.ibt)
+        self.assertFalse(mitigations.fortify)
+        self.assertFalse(mitigations.asan)
+        self.assertFalse(mitigations.msan)
+        self.assertFalse(mitigations.ubsan)
+        self.assertFalse(mitigations.pac)
+
+        # i386 mitigationsv3
+        rel_path = RESOLVE_EXE_CROSS("mitigationsv3", "i386")
+        d = debugger(rel_path, aslr=False)
+        mitigations = d.binary.runtime_mitigations
+
+        self.assertEqual(mitigations.relro, RelroStatus.NONE)
+        self.assertFalse(mitigations.stack_guard)
+        self.assertFalse(mitigations.nx) # NX is off when GNU_STACK is executable
+        self.assertTrue(mitigations.stack_executable)
+        self.assertFalse(mitigations.pie)
+        self.assertFalse(mitigations.shstk)
+        self.assertFalse(mitigations.ibt)
+        self.assertFalse(mitigations.fortify)
+        self.assertFalse(mitigations.asan)
+        self.assertFalse(mitigations.msan)
+        self.assertFalse(mitigations.ubsan)
+        self.assertFalse(mitigations.pac)
+
+        # -------------------------
+
+        # AArch64 mitigationsv1
+        rel_path = RESOLVE_EXE_CROSS("mitigationsv1", "aarch64")
+        d = debugger(rel_path, aslr=False)
+        mitigations = d.binary.runtime_mitigations
+
+        self.assertEqual(mitigations.relro, RelroStatus.FULL)
+        self.assertTrue(mitigations.stack_guard)
+        self.assertTrue(mitigations.nx)
+        self.assertFalse(mitigations.stack_executable)
+        self.assertTrue(mitigations.pie)
+        self.assertFalse(mitigations.shstk)
+        self.assertFalse(mitigations.ibt)
+        self.assertTrue(mitigations.fortify)
+        self.assertFalse(mitigations.asan)
+        self.assertFalse(mitigations.msan)
+        self.assertFalse(mitigations.ubsan)
+        self.assertFalse(mitigations.pac)
+
+        # AArch64 GCS support is recent and still shaky, using a compiled GLIBC with GCS for the test
+        rel_path = RESOLVE_EXE_CROSS("glibc-2.42-mitigations-gcs.so", "aarch64")
+        d = debugger(rel_path, aslr=False)
+        mitigations = d.binary.runtime_mitigations
+
+        self.assertEqual(mitigations.relro, RelroStatus.PARTIAL)
+        self.assertTrue(mitigations.stack_guard)
+        self.assertTrue(mitigations.nx)
+        self.assertFalse(mitigations.stack_executable)
+        self.assertTrue(mitigations.pie)
+        self.assertTrue(mitigations.shstk)
+        self.assertFalse(mitigations.ibt)
+        self.assertTrue(mitigations.fortify)
+        self.assertFalse(mitigations.asan)
+        self.assertFalse(mitigations.msan)
+        self.assertFalse(mitigations.ubsan)
+        self.assertTrue(mitigations.pac)
+
+        # AArch64 mitigationsv3
+        rel_path = RESOLVE_EXE_CROSS("mitigationsv3", "aarch64")
+        d = debugger(rel_path, aslr=False)
+        mitigations = d.binary.runtime_mitigations
+
+        self.assertEqual(mitigations.relro, RelroStatus.FULL)
+        self.assertTrue(mitigations.stack_guard)
+        self.assertTrue(mitigations.nx)
+        self.assertFalse(mitigations.stack_executable)
+        self.assertTrue(mitigations.pie)
+        self.assertFalse(mitigations.shstk)
+        self.assertTrue(mitigations.ibt)
+        self.assertTrue(mitigations.fortify)
+        self.assertFalse(mitigations.asan)
+        self.assertFalse(mitigations.msan)
+        self.assertFalse(mitigations.ubsan)
+        self.assertTrue(mitigations.pac)
+
+        # AArch64 mitigationsv4
+        rel_path = RESOLVE_EXE_CROSS("mitigationsv4", "aarch64")
+        d = debugger(rel_path, aslr=False)
+        mitigations = d.binary.runtime_mitigations
+
+        self.assertEqual(mitigations.relro, RelroStatus.NONE)
+        self.assertFalse(mitigations.stack_guard)
+        self.assertFalse(mitigations.nx) # NX is off when GNU_STACK is executable
+        self.assertTrue(mitigations.stack_executable)
+        self.assertFalse(mitigations.pie)
+        self.assertFalse(mitigations.shstk)
+        self.assertFalse(mitigations.ibt)
+        self.assertFalse(mitigations.fortify)
+        self.assertFalse(mitigations.asan)
+        self.assertFalse(mitigations.msan)
+        self.assertFalse(mitigations.ubsan)
+        self.assertFalse(mitigations.pac)
+
+    def test_section_list_getitem_dotless(self):
+        """Tests that SectionList.__getitem__ finds .text when searching for 'text' (without dot)."""
+        rel_path = RESOLVE_EXE_CROSS("sections_test", "amd64")
+        d = debugger(rel_path, aslr=False)
+
+        sections = d.binary.sections
+
+        # Searching with the dot should work
+        result_dot = sections[".text"]
+        self.assertEqual(len(result_dot), 1)
+        self.assertEqual(result_dot[0].name, ".text")
+
+        # Searching WITHOUT the dot should also work (per docstring: . is equivalent to no .)
+        result_no_dot = sections["text"]
+        self.assertEqual(len(result_no_dot), 1)
+        self.assertEqual(result_no_dot[0].name, ".text")
+
+        # Both should return the same section
+        self.assertEqual(result_dot[0].offset, result_no_dot[0].offset)
+
+    def _assert_gnu_property_unknown_bits(self, patches, assertions, min_props=1):
+        """Helper: patch an amd64 ELF's GNU property notes and verify unknown bits are reported.
+
+        Args:
+            patches: list of (file_offset, bytes) to write into the binary.
+            assertions: list of (prop_index, expected_type, [expected_mnemonics]).
+            min_props: minimum number of properties expected in the result.
+        """
+        src = RESOLVE_EXE_CROSS("sections_test", "amd64")
+
+        with tempfile.NamedTemporaryFile(suffix=".elf", delete=False) as tmp:
+            tmp_path = tmp.name
+
+        try:
+            shutil.copy2(src, tmp_path)
+
+            with open(tmp_path, "r+b") as f:
+                for offset, data in patches:
+                    f.seek(offset)
+                    f.write(data)
+
+            section_table = SectionTable.from_file(tmp_path)
+            program_headers = ProgramHeaderTable.from_file(tmp_path)
+
+            note_sec = next((s for s in section_table.sections if s.name == ".note.gnu.property"), None)
+            note_seg = next((ph for ph in program_headers.headers if ph.type == "GNU_PROPERTY"), None)
+
+            result = GNUPropertyNotesTable.from_file(
+                tmp_path,
+                int(note_sec.offset) if note_sec else 0,
+                int(note_sec.size) if note_sec else 0,
+                int(note_seg.offset) if note_seg else 0,
+                int(note_seg.filesz) if note_seg else 0,
+            )
+            props = result.properties
+
+            self.assertGreaterEqual(len(props), min_props)
+            for prop_idx, expected_type, expected_mnemonics in assertions:
+                self.assertEqual(props[prop_idx].type, expected_type)
+                for mnemonic in expected_mnemonics:
+                    self.assertIn(mnemonic, props[prop_idx].bit_mnemonics)
+        finally:
+            os.unlink(tmp_path)
+
+    def test_gnu_property_unknown_bits(self):
+        """Tests that unknown bits in GNU property bitmasks are reported as hex, not silently dropped."""
+        # Patch X86_FEATURE_1_AND (0x03 -> 0x83) and X86_ISA_1_NEEDED (0x01 -> 0x81)
+        self._assert_gnu_property_unknown_bits(
+            patches=[(0x388, b"\x83\x00\x00\x00"), (0x398, b"\x81\x00\x00\x00")],
+            assertions=[
+                (0, "X86_FEATURE_1_AND", ["IBT", "SHSTK", "0x80"]),
+                (1, "X86_ISA_1_NEEDED", ["BASELINE", "0x80"]),
+            ],
+            min_props=2,
+        )
+
+    def test_gnu_property_unknown_bits_x86_compat_isa_1(self):
+        """Tests that unknown bits in X86_COMPAT_ISA_1 bitmasks are reported as hex."""
+        # Patch pr_type to X86_COMPAT_ISA_1_NEEDED, data: 486 | unknown 0x80000000
+        self._assert_gnu_property_unknown_bits(
+            patches=[(0x380, b"\x01\x00\x00\xc0"), (0x388, b"\x01\x00\x00\x80")],
+            assertions=[(0, "X86_COMPAT_ISA_1_NEEDED", ["486", "0x80000000"])],
+        )
+
+    def test_gnu_property_unknown_bits_x86_feature_2(self):
+        """Tests that unknown bits in X86_FEATURE_2 bitmasks are reported as hex."""
+        # Patch pr_type to X86_FEATURE_2_NEEDED, data: X86 | unknown 0x80000000
+        self._assert_gnu_property_unknown_bits(
+            patches=[(0x380, b"\x01\x80\x00\xc0"), (0x388, b"\x01\x00\x00\x80")],
+            assertions=[(0, "X86_FEATURE_2_NEEDED", ["X86", "0x80000000"])],
+        )
+
+    def test_gnu_property_unknown_bits_x86_compat_2_isa_1(self):
+        """Tests that unknown bits in X86_COMPAT_2_ISA_1 bitmasks are reported as hex."""
+        # Patch pr_type to X86_COMPAT_2_ISA_1_NEEDED, data: CMOV | unknown 0x80000000
+        self._assert_gnu_property_unknown_bits(
+            patches=[(0x380, b"\x00\x80\x00\xc0"), (0x388, b"\x01\x00\x00\x80")],
+            assertions=[(0, "X86_COMPAT_2_ISA_1_NEEDED", ["CMOV", "0x80000000"])],
+        )
+
+    def test_gnu_property_unknown_bits_aarch64(self):
+        """Tests that unknown bits in AARCH64_FEATURE_1_AND bitmasks are reported as hex."""
+        src = RESOLVE_EXE_CROSS("sections_test", "aarch64")
+
+        with tempfile.NamedTemporaryFile(suffix=".elf", delete=False) as tmp:
+            tmp_path = tmp.name
+
+        try:
+            shutil.copy2(src, tmp_path)
+
+            # The aarch64 binary has no .note.gnu.property section, so we append one.
+            note_data = struct.pack(
+                "<III4s II I I",
+                4,          # namesz
+                16,         # descsz (pr_type + pr_datasz + data + padding = 16)
+                5,          # n_type = NT_GNU_PROPERTY_TYPE_0
+                b"GNU\0",   # name
+                0xc0000000, # pr_type = GNU_PROPERTY_AARCH64_FEATURE_1_AND
+                4,          # pr_datasz
+                0x81,       # data: BTI (0x01) | unknown (0x80)
+                0,          # padding to 8-byte alignment
+            )
+
+            with open(tmp_path, "r+b") as f:
+                f.seek(0, 2)
+                note_offset = f.tell()
+                f.write(note_data)
+
+            note_size = len(note_data)
+
+            result = GNUPropertyNotesTable.from_file(
+                tmp_path, note_offset, note_size, note_offset, note_size,
+            )
+            props = result.properties
+
+            self.assertEqual(len(props), 1)
+            self.assertEqual(props[0].type, "AARCH64_FEATURE_1_AND")
+            self.assertIn("BTI", props[0].bit_mnemonics)
+            self.assertIn("0x80", props[0].bit_mnemonics)
+        finally:
+            os.unlink(tmp_path)
+
+    def test_section_flags_arch_specific_big_endian(self):
+        """Tests that arch-specific section flags are decoded correctly on big-endian ELFs.
+
+        This verifies that e_machine is properly byte-swapped before being passed
+        to the flag decoder. Without correct byte-swapping, arch-specific flags
+        like SHF_X86_64_LARGE would be reported as UNKNOWN_FLAGS.
+        """
+        src = RESOLVE_EXE_CROSS("be_sections_test.o", "amd64")
+
+        with tempfile.NamedTemporaryFile(suffix=".o", delete=False) as tmp:
+            tmp_path = tmp.name
+
+        try:
+            shutil.copy2(src, tmp_path)
+
+            with open(tmp_path, "r+b") as f:
+                data = bytearray(f.read())
+
+                # Patch e_machine to EM_X86_64 (0x3E) in big-endian at offset 0x12
+                struct.pack_into(">H", data, 0x12, 0x3E)
+
+                # Read section header layout
+                e_shoff = struct.unpack_from(">Q", data, 0x28)[0]
+                e_shentsize = struct.unpack_from(">H", data, 0x3A)[0]
+
+                # Patch section 1's sh_flags: add SHF_X86_64_LARGE (0x10000000)
+                flags_off = e_shoff + e_shentsize + 8  # section 1, sh_flags offset
+                old_flags = struct.unpack_from(">Q", data, flags_off)[0]
+                struct.pack_into(">Q", data, flags_off, old_flags | 0x10000000)
+
+                f.seek(0)
+                f.write(data)
+                f.truncate()
+
+            st = SectionTable.from_file(tmp_path)
+
+            # Section 1 (.text) should have LARGE decoded, not UNKNOWN_FLAGS
+            self.assertIn("LARGE", st.sections[1].flags)
+            self.assertIn("A", st.sections[1].flags)
+            self.assertIn("X", st.sections[1].flags)
+            self.assertNotIn("UNKNOWN", st.sections[1].flags)
+        finally:
+            os.unlink(tmp_path)
+
+    def test_pac_detection_patterns_fit_32_bits(self):
+        """Tests that all PAC detection patterns fit within 32-bit instruction width."""
+
+        for i, pattern in enumerate(DETECTION_PATTERNS):
+            value = pattern["value"]
+            mask = pattern["mask"]
+            self.assertLessEqual(
+                value.bit_length(), 32,
+                f"Pattern {i}: value 0x{value:x} exceeds 32 bits ({value.bit_length()} bits)",
+            )
+            self.assertLessEqual(
+                mask.bit_length(), 32,
+                f"Pattern {i}: mask 0x{mask:x} exceeds 32 bits ({mask.bit_length()} bits)",
+            )
+
+    def test_pac_detection_on_real_binary(self):
+        """Tests PAC detection against a real aarch64 binary compiled with -mbranch-protection=pac-ret+bti.
+
+        The binary was compiled with:
+            aarch64-linux-gnu-gcc -march=armv8.3-a -mbranch-protection=pac-ret+bti -O1 -nostdlib \
+                -o pac_test pac_test.c
+        It contains paciasp (0xD503233F) and retaa (0xD65F0BFF) instructions.
+        """
+        binary = RESOLVE_EXE_CROSS("pac_test", "aarch64")
+
+        with open(binary, "rb") as f:
+            data = f.read()
+
+        st = SectionTable.from_file(binary)
+        text_section = None
+        for s in st.sections:
+            if s.name == ".text":
+                text_section = s
+                break
+
+        self.assertIsNotNone(text_section, ".text section not found")
+
+        text_code = data[int(text_section.offset):int(text_section.offset) + int(text_section.size)]
+
+        # The .text section should contain PAC instructions
+        self.assertTrue(detect_pac_pattern_in_code(text_code), "PAC instructions not detected in .text")
+
+        # Verify specific known instructions match individually
+        # paciasp = 0xD503233F
+        paciasp_bytes = (0xD503233F).to_bytes(4, byteorder="little")
+        self.assertTrue(detect_pac_pattern_in_code(paciasp_bytes), "paciasp should be detected")
+
+        # retaa = 0xD65F0BFF
+        retaa_bytes = (0xD65F0BFF).to_bytes(4, byteorder="little")
+        self.assertTrue(detect_pac_pattern_in_code(retaa_bytes), "retaa should be detected")
+
+        # A non-PAC instruction should NOT be detected
+        add_bytes = (0x11000400).to_bytes(4, byteorder="little")  # add w0, w0, #1
+        self.assertFalse(detect_pac_pattern_in_code(add_bytes), "non-PAC instruction should not be detected")
+
+    def test_pac_all_patterns_match_real_instructions(self):
+        """Verifies every assemblable PAC detection pattern matches at least one real instruction.
+
+        Uses pac_coverage, a binary containing one representative of every ARMv8.3-a PAC instruction.
+        14 FEAT_PAuth_LR (ARMv9.5+) patterns cannot be assembled with current toolchains, so they
+        are excluded from this check.
+        """
+        binary = RESOLVE_EXE_CROSS("pac_coverage", "aarch64")
+
+        with open(binary, "rb") as f:
+            data = f.read()
+
+        st = SectionTable.from_file(binary)
+        text_section = None
+        for s in st.sections:
+            if s.name == ".text":
+                text_section = s
+                break
+
+        self.assertIsNotNone(text_section, ".text section not found")
+
+        text_code = data[int(text_section.offset):int(text_section.offset) + int(text_section.size)]
+
+        # Extract all 4-byte instructions
+        instructions = []
+        for i in range(0, len(text_code) - 3, 4):
+            instructions.append(int.from_bytes(text_code[i:i + 4], "little"))
+
+        # FEAT_PAuth_LR pattern indices — ARMv9.5+, not assemblable with current toolchains
+        feat_pauth_lr_indices = {4, 5, 6, 9, 10, 11, 21, 22, 25, 26, 27, 28, 29, 31}
+
+        for idx, pattern in enumerate(DETECTION_PATTERNS):
+            if idx in feat_pauth_lr_indices:
+                continue
+
+            value = pattern["value"]
+            mask = pattern["mask"]
+            matched = any((instr & mask) == (value & mask) for instr in instructions)
+            self.assertTrue(matched, f"Pattern {idx} (value=0x{value:08x}, mask=0x{mask:08x}) did not match any real instruction")
+
+    def test_find_libraries_no_redundant_samefile_checks(self):
+        """Tests that _find_libraries_in_traced_process doesn't redundantly check
+        the same backing file with Path.samefile multiple times.
+
+        Before the fix, early `continue` paths (file not found, is main binary, not ELF)
+        did not update `last_path`, causing subsequent segments of the same file to be
+        re-checked instead of skipped.
+        """
+        d = debugger(RESOLVE_EXE("sections_test"), aslr=False)
+        d.run()
+
+        original_samefile = Path.samefile
+        samefile_paths = []
+
+        def tracking_samefile(a, b):
+            samefile_paths.append(str(a))
+            return original_samefile(a, b)
+
+        with patch.object(Path, "samefile", tracking_samefile):
+            d._internal_debugger._find_libraries_in_traced_process()
+
+        # Count how many times each path was checked with samefile
+        counts = Counter(samefile_paths)
+
+        for path, count in counts.items():
+            self.assertEqual(count, 1, f"Path.samefile called {count} times for {path} (expected 1)")
+
+        d.terminate()
+
+    def test_libraries_no_none_on_parse_failure(self):
+        """Tests that the libraries list never contains None entries.
+
+        When ELF.parse fails for a library (e.g., corrupted ELF mapping), the
+        failed entry should be skipped rather than appending None to the list.
+        """
+        d = debugger(RESOLVE_EXE("sections_test"), aslr=False)
+        d.run()
+
+        original_parse = d._internal_debugger.binary.__class__.parse
+
+        call_count = [0]
+
+        def failing_parse(path, base, internal_debugger):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                raise RuntimeError("Simulated parse failure")
+            return original_parse(path, base, internal_debugger)
+
+        with patch.object(d._internal_debugger.binary.__class__, "parse", staticmethod(failing_parse)):
+            # Clear cached libs so everything is re-parsed
+            d._internal_debugger._cached_libs.clear()
+            if "libraries" in d._internal_debugger.__dict__:
+                del d._internal_debugger.__dict__["libraries"]
+
+            libs = d._internal_debugger.libraries
+
+        # No entry should be None
+        for i, lib in enumerate(libs):
+            self.assertIsNotNone(lib, f"Library at index {i} is None (parse failure was not handled)")
+
+        d.terminate()
+
+    def test_cached_libraries_no_duplicates(self):
+        """Tests that cached libraries with non-contiguous segments aren't duplicated.
+
+        When a cached library has segments separated by anonymous maps, the
+        deduplication logic must prevent it from appearing multiple times.
+        """
+        d = debugger(RESOLVE_EXE("sections_test"), aslr=False)
+        d.run()
+
+        # Force population of the library cache
+        _ = d._internal_debugger.libraries
+
+        # Clear only the cached_property so it re-evaluates, but keep _cached_libs
+        if "libraries" in d._internal_debugger.__dict__:
+            del d._internal_debugger.__dict__["libraries"]
+
+        libs = d._internal_debugger.libraries
+
+        # Check that no library path appears more than once
+        paths = [lib.path for lib in libs]
+        for path in paths:
+            self.assertEqual(
+                paths.count(path), 1,
+                f"Library '{path}' appears {paths.count(path)} times in the libraries list",
+            )
+
+        d.terminate()
+
+    def test_vaddr_to_offset_boundary(self):
+        """Tests that vaddr_to_offset rejects addresses at the exact filesz boundary.
+
+        When DT_STRTAB's vaddr falls exactly at vaddr+filesz of a LOAD segment
+        (i.e., in the BSS / zero-fill region, not backed by file data), it must
+        NOT be resolved to a file offset.
+        """
+        # ---- layout constants ----
+        VADDR = 0x400000
+        EHDR_SZ = 64
+        PHENT_SZ = 56
+        DYN_ENT_SZ = 16
+        PHDR_OFF = EHDR_SZ                      # 0x040
+        DYN_OFF = PHDR_OFF + 2 * PHENT_SZ       # 0x0B0
+        DYN_ENTRIES = 4  # STRTAB, STRSZ, NEEDED, NULL
+        DYN_SZ = DYN_ENTRIES * DYN_ENT_SZ        # 64
+        STRTAB_OFF = DYN_OFF + DYN_SZ            # 0x0F0
+
+        # Key: PT_LOAD filesz == STRTAB_OFF so the strtab vaddr sits exactly
+        # at vaddr + filesz — one byte past the file-backed region.
+        PT_LOAD_FILESZ = STRTAB_OFF              # 0x0F0
+        PT_LOAD_MEMSZ = PT_LOAD_FILESZ + 0x100
+
+        strtab_data = b"libtest.so.1\x00\x00\x00\x00"  # 16 bytes
+        FILE_SZ = STRTAB_OFF + len(strtab_data)          # 0x100
+
+        buf = bytearray(FILE_SZ)
+
+        # ---- ELF64 header ----
+        buf[0:4] = b'\x7fELF'
+        buf[4] = 2       # ELFCLASS64
+        buf[5] = 1       # ELFDATA2LSB
+        buf[6] = 1       # EV_CURRENT
+        struct.pack_into('<HH', buf, 0x10, 3, 62)         # ET_DYN, EM_X86_64
+        struct.pack_into('<I', buf, 0x14, 1)               # e_version
+        struct.pack_into('<Q', buf, 0x18, VADDR)           # e_entry
+        struct.pack_into('<Q', buf, 0x20, PHDR_OFF)        # e_phoff
+        struct.pack_into('<Q', buf, 0x28, 0)               # e_shoff (none)
+        struct.pack_into('<I', buf, 0x30, 0)               # e_flags
+        struct.pack_into('<HHH', buf, 0x34, EHDR_SZ, PHENT_SZ, 2)  # ehsize, phentsize, phnum
+        struct.pack_into('<HHH', buf, 0x3A, 64, 0, 0)     # shentsize, shnum, shstrndx
+
+        # ---- PT_LOAD (covers whole file except strtab is at the boundary) ----
+        off = PHDR_OFF
+        struct.pack_into('<II', buf, off, 1, 5)                                 # PT_LOAD, PF_R|PF_X
+        struct.pack_into('<QQQ', buf, off + 8, 0, VADDR, VADDR)                # p_offset, p_vaddr, p_paddr
+        struct.pack_into('<QQQ', buf, off + 32, PT_LOAD_FILESZ, PT_LOAD_MEMSZ, 0x1000)  # p_filesz, p_memsz, p_align
+
+        # ---- PT_DYNAMIC ----
+        off = PHDR_OFF + PHENT_SZ
+        struct.pack_into('<II', buf, off, 2, 4)                                 # PT_DYNAMIC, PF_R
+        struct.pack_into('<QQQ', buf, off + 8, DYN_OFF, VADDR + DYN_OFF, VADDR + DYN_OFF)
+        struct.pack_into('<QQQ', buf, off + 32, DYN_SZ, DYN_SZ, 8)
+
+        # ---- Dynamic entries ----
+        off = DYN_OFF
+        # DT_STRTAB = vaddr + STRTAB_OFF  (exactly at the filesz boundary!)
+        struct.pack_into('<qQ', buf, off, 5, VADDR + STRTAB_OFF); off += DYN_ENT_SZ
+        # DT_STRSZ
+        struct.pack_into('<qQ', buf, off, 10, len(strtab_data)); off += DYN_ENT_SZ
+        # DT_NEEDED (val=0 → index 0 in strtab)
+        struct.pack_into('<qQ', buf, off, 1, 0); off += DYN_ENT_SZ
+        # DT_NULL
+        struct.pack_into('<qQ', buf, off, 0, 0)
+
+        # ---- String table (past the PT_LOAD filesz boundary) ----
+        buf[STRTAB_OFF:STRTAB_OFF + len(strtab_data)] = strtab_data
+
+        # Write to temp file and parse
+        fd, path = tempfile.mkstemp(suffix=".elf")
+        try:
+            os.write(fd, bytes(buf))
+            os.close(fd)
+
+            table = DynamicSectionTable.from_file(path)
+
+            needed = [e for e in table.entries if e.tag == "NEEDED"]
+            self.assertTrue(len(needed) > 0, "DT_NEEDED entry not found")
+
+            # With the fix: strtab is unreachable (in BSS region), so val_str must be empty.
+            # With the bug: strtab is incorrectly resolved, val_str would be "libtest.so.1".
+            self.assertEqual(
+                needed[0].val_str, "",
+                f"DT_NEEDED val_str should be empty (strtab at filesz boundary is in BSS), "
+                f"got {needed[0].val_str!r}",
+            )
+        finally:
+            os.unlink(path)
+
+    def test_parse_sections_32_rejects_zero_shoff(self):
+        """Tests that a 32-bit ELF with e_shoff=0 and e_shnum>0 is rejected with a clear message.
+
+        Without the guard, parse_sections_32 would interpret the ELF header
+        bytes as section headers (garbage), instead of raising a clear error.
+        """
+        EHDR_SZ = 52  # sizeof(Elf32_Ehdr)
+        SHENT_SZ = 40  # sizeof(Elf32_Shdr)
+
+        buf = bytearray(EHDR_SZ + SHENT_SZ * 3)  # room for "ghost" sections
+
+        # ---- ELF32 header ----
+        buf[0:4] = b'\x7fELF'
+        buf[4] = 1       # ELFCLASS32
+        buf[5] = 1       # ELFDATA2LSB
+        buf[6] = 1       # EV_CURRENT
+        struct.pack_into('<HH', buf, 0x10, 2, 3)       # ET_EXEC, EM_386
+        struct.pack_into('<I', buf, 0x14, 1)            # e_version
+        struct.pack_into('<I', buf, 0x18, 0x08048000)   # e_entry
+        struct.pack_into('<I', buf, 0x1C, 0)            # e_phoff (none)
+        struct.pack_into('<I', buf, 0x20, 0)            # e_shoff = 0  (BUG TRIGGER)
+        struct.pack_into('<I', buf, 0x24, 0)            # e_flags
+        struct.pack_into('<HHH', buf, 0x28, EHDR_SZ, 0, 0)        # ehsize, phentsize, phnum
+        struct.pack_into('<HHH', buf, 0x2E, SHENT_SZ, 3, 0)       # shentsize, shnum=3, shstrndx=0
+
+        fd, path = tempfile.mkstemp(suffix=".elf")
+        try:
+            os.write(fd, bytes(buf))
+            os.close(fd)
+
+            with self.assertRaises(RuntimeError) as ctx:
+                SectionTable.from_file(path)
+            self.assertIn("no section header table", str(ctx.exception).lower())
+        finally:
+            os.unlink(path)
+
+    def test_parse_sections_32_rejects_extended_zero_shnum(self):
+        """Tests that a 32-bit ELF using extended numbering that resolves to e_shnum=0 is rejected.
+
+        When e_shnum in the header is 0, the real count comes from section 0's sh_size.
+        If that is also 0, the ELF truly has no sections and should be rejected cleanly.
+        """
+        EHDR_SZ = 52
+        SHENT_SZ = 40
+
+        # Place one section header (section 0) right after the ELF header
+        SH_OFF = EHDR_SZ
+        FILE_SZ = EHDR_SZ + SHENT_SZ
+
+        buf = bytearray(FILE_SZ)
+
+        # ---- ELF32 header ----
+        buf[0:4] = b'\x7fELF'
+        buf[4] = 1       # ELFCLASS32
+        buf[5] = 1       # ELFDATA2LSB
+        buf[6] = 1       # EV_CURRENT
+        struct.pack_into('<HH', buf, 0x10, 2, 3)       # ET_EXEC, EM_386
+        struct.pack_into('<I', buf, 0x14, 1)            # e_version
+        struct.pack_into('<I', buf, 0x18, 0x08048000)   # e_entry
+        struct.pack_into('<I', buf, 0x1C, 0)            # e_phoff (none)
+        struct.pack_into('<I', buf, 0x20, SH_OFF)       # e_shoff → section 0
+        struct.pack_into('<I', buf, 0x24, 0)            # e_flags
+        struct.pack_into('<HHH', buf, 0x28, EHDR_SZ, 0, 0)        # ehsize, phentsize, phnum
+        struct.pack_into('<HHH', buf, 0x2E, SHENT_SZ, 0, 0)       # shentsize, shnum=0 (extended), shstrndx=0
+
+        # ---- Section 0 (SHT_NULL, extended numbering carrier) ----
+        sh0_off = SH_OFF
+        struct.pack_into('<I', buf, sh0_off + 0, 0)     # sh_name
+        struct.pack_into('<I', buf, sh0_off + 4, 0)     # sh_type = SHT_NULL
+        struct.pack_into('<I', buf, sh0_off + 8, 0)     # sh_flags
+        struct.pack_into('<I', buf, sh0_off + 12, 0)    # sh_addr
+        struct.pack_into('<I', buf, sh0_off + 16, 0)    # sh_offset
+        struct.pack_into('<I', buf, sh0_off + 20, 0)    # sh_size = 0 (extended e_shnum = 0!)
+        struct.pack_into('<I', buf, sh0_off + 24, 0)    # sh_link
+        struct.pack_into('<I', buf, sh0_off + 28, 0)    # sh_info
+        struct.pack_into('<I', buf, sh0_off + 32, 0)    # sh_addralign
+        struct.pack_into('<I', buf, sh0_off + 36, 0)    # sh_entsize
+
+        fd, path = tempfile.mkstemp(suffix=".elf")
+        try:
+            os.write(fd, bytes(buf))
+            os.close(fd)
+
+            with self.assertRaises(RuntimeError) as ctx:
+                SectionTable.from_file(path)
+            self.assertIn("no section header table", str(ctx.exception).lower())
+        finally:
+            os.unlink(path)
+
+    @staticmethod
+    def _strip_gnu_stack(path):
+        """Patch a binary to remove its PT_GNU_STACK program header (set p_type to PT_NULL).
+
+        Works for both ELF32 and ELF64, little- and big-endian.
+        """
+        with open(path, "r+b") as f:
+            data = f.read()
+
+        ei_class = data[4]   # 1 = 32-bit, 2 = 64-bit
+        ei_data = data[5]    # 1 = little-endian, 2 = big-endian
+        endian = "<" if ei_data == 1 else ">"
+
+        PT_GNU_STACK = 0x6474e551
+        PT_NULL = 0
+
+        if ei_class == 2:  # ELF64
+            e_phoff = struct.unpack_from(f"{endian}Q", data, 0x20)[0]
+            e_phentsize = struct.unpack_from(f"{endian}H", data, 0x36)[0]
+            e_phnum = struct.unpack_from(f"{endian}H", data, 0x38)[0]
+        else:  # ELF32
+            e_phoff = struct.unpack_from(f"{endian}I", data, 0x1C)[0]
+            e_phentsize = struct.unpack_from(f"{endian}H", data, 0x2A)[0]
+            e_phnum = struct.unpack_from(f"{endian}H", data, 0x2C)[0]
+
+        buf = bytearray(data)
+        for i in range(e_phnum):
+            off = e_phoff + i * e_phentsize
+            p_type = struct.unpack_from(f"{endian}I", buf, off)[0]
+            if p_type == PT_GNU_STACK:
+                struct.pack_into(f"{endian}I", buf, off, PT_NULL)
+
+        with open(path, "wb") as f:
+            f.write(buf)
+
+    def test_nx_missing_gnu_stack(self):
+        """Tests NX value when GNU_STACK is absent, for each architecture.
+
+        Patches real binaries to remove PT_GNU_STACK and verifies NX through
+        the full ELF parsing pipeline (not mocks).
+
+        Expected per-arch behavior:
+        - aarch64: NX=None  (depends on kernel version: False pre-5.8, True post-5.8)
+        - i386:    NX=False (kernel defaults to executable stack on all versions)
+        - amd64:   NX=None  (depends on kernel version: False pre-5.8, True post-5.8)
+        """
+        cases = {
+            "aarch64": ("mitigationsv1", None),
+            "i386": ("mitigationsv1", False),
+            "amd64": ("mitigationsv1", None),
+        }
+
+        for arch, (binary, expected_nx) in cases.items():
+            rel_path = RESOLVE_EXE_CROSS(binary, arch)
+            if not Path(rel_path).exists():
+                continue
+
+            with tempfile.NamedTemporaryFile(suffix=".elf", delete=False) as tmp:
+                tmp_path = tmp.name
+
+            try:
+                shutil.copy2(rel_path, tmp_path)
+                self._strip_gnu_stack(tmp_path)
+
+                # Clear the functools.cache so the patched file is re-parsed
+                parse_elf_characteristics.cache_clear()
+
+                d = debugger(tmp_path, aslr=False)
+                mitigations = d.binary.runtime_mitigations
+
+                if expected_nx is None:
+                    self.assertIsNone(
+                        mitigations.nx,
+                        f"[{arch}] NX should be None when GNU_STACK is missing, got {mitigations.nx!r}",
+                    )
+                elif expected_nx:
+                    self.assertTrue(
+                        mitigations.nx,
+                        f"[{arch}] NX should be True when GNU_STACK is missing, got {mitigations.nx!r}",
+                    )
+                else:
+                    self.assertFalse(
+                        mitigations.nx,
+                        f"[{arch}] NX should be False when GNU_STACK is missing, got {mitigations.nx!r}",
+                    )
+            finally:
+                parse_elf_characteristics.cache_clear()
+                os.unlink(tmp_path)
+
+    def test_nx_for_executable_stack(self):
+        """Tests NX when GNU_STACK is explicitly executable.
+
+        The exec case is kernel-version-dependent on all architectures:
+        - Pre-5.8: READ_IMPLIES_EXEC was set for exec GNU_STACK → NX disabled (False)
+        - Post-5.8: READ_IMPLIES_EXEC only set for EXSTACK_DEFAULT → NX enabled (True)
+        Since we can't know the kernel version statically:
+        - i386:    NX=None (version-dependent)
+        - amd64:   NX=None (version-dependent)
+        - aarch64: NX=None (version-dependent)
+        """
+        exec_stack_binaries = {
+            "amd64": "mitigationsv3",
+            "i386": "mitigationsv3",
+            "aarch64": "mitigationsv4",  # aarch64 v3 has RW (no X), v4 has RWE
+        }
+        for arch, binary in exec_stack_binaries.items():
+            rel_path = RESOLVE_EXE_CROSS(binary, arch)
+
+            if not Path(rel_path).exists():
+                continue
+
+            d = debugger(rel_path, aslr=False)
+            mitigations = d.binary.runtime_mitigations
+
+            self.assertIsNone(
+                mitigations.nx,
+                f"[{arch}] NX should be None for executable stack (kernel-version-dependent), got {mitigations.nx!r}",
+            )
