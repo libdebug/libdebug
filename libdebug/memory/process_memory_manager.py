@@ -1,6 +1,6 @@
 #
 # This file is part of libdebug Python library (https://github.com/libdebug/libdebug).
-# Copyright (c) 2024-2025 Roberto Alessandro Bertolini. All rights reserved.
+# Copyright (c) 2024-2026 Roberto Alessandro Bertolini. Gabriele Digregorio. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -18,7 +18,12 @@ if TYPE_CHECKING:
 class ProcessMemoryManager:
     """A class that provides accessors to the memory of a process, through /proc/pid/mem."""
 
-    max_size = sys.maxsize
+    max_size: int = sys.maxsize
+
+    def __init__(self: ProcessMemoryManager) -> None:
+        """Initializes the ProcessMemoryManager in a consistent state."""
+        self.process_id = 0
+        self._mem_file = None
 
     def open(self: ProcessMemoryManager, process_id: int) -> None:
         """Initializes the ProcessMemoryManager."""
