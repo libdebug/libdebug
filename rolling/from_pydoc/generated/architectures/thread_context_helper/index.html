@@ -17,7 +17,7 @@
       
       
       <link rel="icon" href="../../../../assets/favicon.ico">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
     
     
       
@@ -25,10 +25,10 @@
       
     
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2277,37 +2277,37 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>libdebug/architectures/thread_context_helper.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-17">17</a></span>
-<span class="normal"><a href="#__codelineno-0-18">18</a></span>
-<span class="normal"><a href="#__codelineno-0-19">19</a></span>
-<span class="normal"><a href="#__codelineno-0-20">20</a></span>
-<span class="normal"><a href="#__codelineno-0-21">21</a></span>
-<span class="normal"><a href="#__codelineno-0-22">22</a></span>
-<span class="normal"><a href="#__codelineno-0-23">23</a></span>
-<span class="normal"><a href="#__codelineno-0-24">24</a></span>
-<span class="normal"><a href="#__codelineno-0-25">25</a></span>
-<span class="normal"><a href="#__codelineno-0-26">26</a></span>
-<span class="normal"><a href="#__codelineno-0-27">27</a></span>
-<span class="normal"><a href="#__codelineno-0-28">28</a></span>
-<span class="normal"><a href="#__codelineno-0-29">29</a></span>
-<span class="normal"><a href="#__codelineno-0-30">30</a></span>
-<span class="normal"><a href="#__codelineno-0-31">31</a></span>
-<span class="normal"><a href="#__codelineno-0-32">32</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="k">def</span><span class="w"> </span><span class="nf">thread_context_class_provider</span><span class="p">(</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18"></a>    <span class="n">architecture</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">type</span><span class="p">[</span><span class="n">ThreadContext</span><span class="p">]:</span>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns the class of the thread context to be used by the `_InternalDebugger` class.&quot;&quot;&quot;</span>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a>    <span class="k">match</span> <span class="n">architecture</span><span class="p">:</span>
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22"></a>        <span class="k">case</span> <span class="s2">&quot;amd64&quot;</span><span class="p">:</span>
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23"></a>            <span class="k">return</span> <span class="n">Amd64ThreadContext</span>
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24"></a>        <span class="k">case</span> <span class="s2">&quot;aarch64&quot;</span><span class="p">:</span>
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a>            <span class="k">return</span> <span class="n">Aarch64ThreadContext</span>
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a>        <span class="k">case</span> <span class="s2">&quot;i386&quot;</span><span class="p">:</span>
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a>            <span class="k">if</span> <span class="n">libcontext</span><span class="o">.</span><span class="n">platform</span> <span class="o">==</span> <span class="s2">&quot;amd64&quot;</span><span class="p">:</span>
-</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a>                <span class="k">return</span> <span class="n">I386OverAMD64ThreadContext</span>
-</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a>            <span class="k">else</span><span class="p">:</span>
-</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a>                <span class="k">return</span> <span class="n">I386ThreadContext</span>
-</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31"></a>        <span class="k">case</span><span class="w"> </span><span class="k">_</span><span class="p">:</span>
-</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32"></a>            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Architecture </span><span class="si">{</span><span class="n">architecture</span><span class="si">}</span><span class="s2"> not available.&quot;</span><span class="p">)</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-17">17</a></span>
+<span class="normal"><a href="#libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-18">18</a></span>
+<span class="normal"><a href="#libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-19">19</a></span>
+<span class="normal"><a href="#libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-20">20</a></span>
+<span class="normal"><a href="#libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-21">21</a></span>
+<span class="normal"><a href="#libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-22">22</a></span>
+<span class="normal"><a href="#libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-23">23</a></span>
+<span class="normal"><a href="#libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-24">24</a></span>
+<span class="normal"><a href="#libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-25">25</a></span>
+<span class="normal"><a href="#libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-26">26</a></span>
+<span class="normal"><a href="#libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-27">27</a></span>
+<span class="normal"><a href="#libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-28">28</a></span>
+<span class="normal"><a href="#libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-29">29</a></span>
+<span class="normal"><a href="#libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-30">30</a></span>
+<span class="normal"><a href="#libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-31">31</a></span>
+<span class="normal"><a href="#libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-32">32</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__span-0-17"><a id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-17" name="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-17"></a><span class="k">def</span><span class="w"> </span><span class="nf">thread_context_class_provider</span><span class="p">(</span>
+</span><span id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__span-0-18"><a id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-18" name="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-18"></a>    <span class="n">architecture</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__span-0-19"><a id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-19" name="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-19"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">type</span><span class="p">[</span><span class="n">ThreadContext</span><span class="p">]:</span>
+</span><span id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__span-0-20"><a id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-20" name="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-20"></a><span class="w">    </span><span class="sd">"""Returns the class of the thread context to be used by the `_InternalDebugger` class."""</span>
+</span><span id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__span-0-21"><a id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-21" name="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-21"></a>    <span class="k">match</span> <span class="n">architecture</span><span class="p">:</span>
+</span><span id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__span-0-22"><a id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-22" name="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-22"></a>        <span class="k">case</span> <span class="s2">"amd64"</span><span class="p">:</span>
+</span><span id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__span-0-23"><a id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-23" name="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-23"></a>            <span class="k">return</span> <span class="n">Amd64ThreadContext</span>
+</span><span id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__span-0-24"><a id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-24" name="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-24"></a>        <span class="k">case</span> <span class="s2">"aarch64"</span><span class="p">:</span>
+</span><span id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__span-0-25"><a id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-25" name="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-25"></a>            <span class="k">return</span> <span class="n">Aarch64ThreadContext</span>
+</span><span id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__span-0-26"><a id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-26" name="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-26"></a>        <span class="k">case</span> <span class="s2">"i386"</span><span class="p">:</span>
+</span><span id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__span-0-27"><a id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-27" name="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-27"></a>            <span class="k">if</span> <span class="n">libcontext</span><span class="o">.</span><span class="n">platform</span> <span class="o">==</span> <span class="s2">"amd64"</span><span class="p">:</span>
+</span><span id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__span-0-28"><a id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-28" name="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-28"></a>                <span class="k">return</span> <span class="n">I386OverAMD64ThreadContext</span>
+</span><span id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__span-0-29"><a id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-29" name="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-29"></a>            <span class="k">else</span><span class="p">:</span>
+</span><span id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__span-0-30"><a id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-30" name="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-30"></a>                <span class="k">return</span> <span class="n">I386ThreadContext</span>
+</span><span id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__span-0-31"><a id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-31" name="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-31"></a>        <span class="k">case</span><span class="w"> </span><span class="k">_</span><span class="p">:</span>
+</span><span id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__span-0-32"><a id="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-32" name="libdebug.architectures.thread_context_helper.thread_context_class_provider--source--__codelineno-0-32"></a>            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Architecture </span><span class="si">{</span><span class="n">architecture</span><span class="si">}</span><span class="s2"> not available."</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2375,10 +2375,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../../../javascripts/mathjax.js"></script>
       

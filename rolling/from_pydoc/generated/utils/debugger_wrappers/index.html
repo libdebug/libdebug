@@ -17,7 +17,7 @@
       
       
       <link rel="icon" href="../../../../assets/favicon.ico">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
     
     
       
@@ -25,10 +25,10 @@
       
     
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2299,33 +2299,33 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>libdebug/utils/debugger_wrappers.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-74">74</a></span>
-<span class="normal"><a href="#__codelineno-0-75">75</a></span>
-<span class="normal"><a href="#__codelineno-0-76">76</a></span>
-<span class="normal"><a href="#__codelineno-0-77">77</a></span>
-<span class="normal"><a href="#__codelineno-0-78">78</a></span>
-<span class="normal"><a href="#__codelineno-0-79">79</a></span>
-<span class="normal"><a href="#__codelineno-0-80">80</a></span>
-<span class="normal"><a href="#__codelineno-0-81">81</a></span>
-<span class="normal"><a href="#__codelineno-0-82">82</a></span>
-<span class="normal"><a href="#__codelineno-0-83">83</a></span>
-<span class="normal"><a href="#__codelineno-0-84">84</a></span>
-<span class="normal"><a href="#__codelineno-0-85">85</a></span>
-<span class="normal"><a href="#__codelineno-0-86">86</a></span>
-<span class="normal"><a href="#__codelineno-0-87">87</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-74"><a id="__codelineno-0-74" name="__codelineno-0-74"></a><span class="k">def</span><span class="w"> </span><span class="nf">background_alias</span><span class="p">(</span><span class="n">alias_method</span><span class="p">:</span> <span class="nb">callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">callable</span><span class="p">:</span>
-</span><span id="__span-0-75"><a id="__codelineno-0-75" name="__codelineno-0-75"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Decorator that automatically resolves the call to a different method if coming from the background thread.&quot;&quot;&quot;</span>
-</span><span id="__span-0-76"><a id="__codelineno-0-76" name="__codelineno-0-76"></a>
-</span><span id="__span-0-77"><a id="__codelineno-0-77" name="__codelineno-0-77"></a>    <span class="c1"># This is the stupidest thing I&#39;ve ever seen. Why Python, why?</span>
-</span><span id="__span-0-78"><a id="__codelineno-0-78" name="__codelineno-0-78"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_background_alias</span><span class="p">(</span><span class="n">method</span><span class="p">:</span> <span class="nb">callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">callable</span><span class="p">:</span>
-</span><span id="__span-0-79"><a id="__codelineno-0-79" name="__codelineno-0-79"></a>        <span class="nd">@wraps</span><span class="p">(</span><span class="n">method</span><span class="p">)</span>
-</span><span id="__span-0-80"><a id="__codelineno-0-80" name="__codelineno-0-80"></a>        <span class="k">def</span><span class="w"> </span><span class="nf">inner</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">InternalDebugger</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="o">...</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="o">...</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="o">...</span><span class="p">:</span>
-</span><span id="__span-0-81"><a id="__codelineno-0-81" name="__codelineno-0-81"></a>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_in_background</span><span class="p">():</span>
-</span><span id="__span-0-82"><a id="__codelineno-0-82" name="__codelineno-0-82"></a>                <span class="k">return</span> <span class="n">alias_method</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-</span><span id="__span-0-83"><a id="__codelineno-0-83" name="__codelineno-0-83"></a>            <span class="k">return</span> <span class="n">method</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-</span><span id="__span-0-84"><a id="__codelineno-0-84" name="__codelineno-0-84"></a>
-</span><span id="__span-0-85"><a id="__codelineno-0-85" name="__codelineno-0-85"></a>        <span class="k">return</span> <span class="n">inner</span>
-</span><span id="__span-0-86"><a id="__codelineno-0-86" name="__codelineno-0-86"></a>
-</span><span id="__span-0-87"><a id="__codelineno-0-87" name="__codelineno-0-87"></a>    <span class="k">return</span> <span class="n">_background_alias</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-74">74</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-75">75</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-76">76</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-77">77</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-78">78</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-79">79</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-80">80</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-81">81</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-82">82</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-83">83</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-84">84</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-85">85</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-86">86</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-87">87</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="libdebug.utils.debugger_wrappers.background_alias--source--__span-0-74"><a id="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-74" name="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-74"></a><span class="k">def</span><span class="w"> </span><span class="nf">background_alias</span><span class="p">(</span><span class="n">alias_method</span><span class="p">:</span> <span class="nb">callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">callable</span><span class="p">:</span>
+</span><span id="libdebug.utils.debugger_wrappers.background_alias--source--__span-0-75"><a id="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-75" name="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-75"></a><span class="w">    </span><span class="sd">"""Decorator that automatically resolves the call to a different method if coming from the background thread."""</span>
+</span><span id="libdebug.utils.debugger_wrappers.background_alias--source--__span-0-76"><a id="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-76" name="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-76"></a>
+</span><span id="libdebug.utils.debugger_wrappers.background_alias--source--__span-0-77"><a id="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-77" name="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-77"></a>    <span class="c1"># This is the stupidest thing I've ever seen. Why Python, why?</span>
+</span><span id="libdebug.utils.debugger_wrappers.background_alias--source--__span-0-78"><a id="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-78" name="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-78"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_background_alias</span><span class="p">(</span><span class="n">method</span><span class="p">:</span> <span class="nb">callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">callable</span><span class="p">:</span>
+</span><span id="libdebug.utils.debugger_wrappers.background_alias--source--__span-0-79"><a id="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-79" name="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-79"></a>        <span class="nd">@wraps</span><span class="p">(</span><span class="n">method</span><span class="p">)</span>
+</span><span id="libdebug.utils.debugger_wrappers.background_alias--source--__span-0-80"><a id="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-80" name="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-80"></a>        <span class="k">def</span><span class="w"> </span><span class="nf">inner</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">InternalDebugger</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="o">...</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="o">...</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="o">...</span><span class="p">:</span>
+</span><span id="libdebug.utils.debugger_wrappers.background_alias--source--__span-0-81"><a id="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-81" name="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-81"></a>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_in_background</span><span class="p">():</span>
+</span><span id="libdebug.utils.debugger_wrappers.background_alias--source--__span-0-82"><a id="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-82" name="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-82"></a>                <span class="k">return</span> <span class="n">alias_method</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span id="libdebug.utils.debugger_wrappers.background_alias--source--__span-0-83"><a id="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-83" name="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-83"></a>            <span class="k">return</span> <span class="n">method</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span id="libdebug.utils.debugger_wrappers.background_alias--source--__span-0-84"><a id="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-84" name="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-84"></a>
+</span><span id="libdebug.utils.debugger_wrappers.background_alias--source--__span-0-85"><a id="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-85" name="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-85"></a>        <span class="k">return</span> <span class="n">inner</span>
+</span><span id="libdebug.utils.debugger_wrappers.background_alias--source--__span-0-86"><a id="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-86" name="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-86"></a>
+</span><span id="libdebug.utils.debugger_wrappers.background_alias--source--__span-0-87"><a id="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-87" name="libdebug.utils.debugger_wrappers.background_alias--source--__codelineno-0-87"></a>    <span class="k">return</span> <span class="n">_background_alias</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2348,53 +2348,53 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>libdebug/utils/debugger_wrappers.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-17">17</a></span>
-<span class="normal"><a href="#__codelineno-0-18">18</a></span>
-<span class="normal"><a href="#__codelineno-0-19">19</a></span>
-<span class="normal"><a href="#__codelineno-0-20">20</a></span>
-<span class="normal"><a href="#__codelineno-0-21">21</a></span>
-<span class="normal"><a href="#__codelineno-0-22">22</a></span>
-<span class="normal"><a href="#__codelineno-0-23">23</a></span>
-<span class="normal"><a href="#__codelineno-0-24">24</a></span>
-<span class="normal"><a href="#__codelineno-0-25">25</a></span>
-<span class="normal"><a href="#__codelineno-0-26">26</a></span>
-<span class="normal"><a href="#__codelineno-0-27">27</a></span>
-<span class="normal"><a href="#__codelineno-0-28">28</a></span>
-<span class="normal"><a href="#__codelineno-0-29">29</a></span>
-<span class="normal"><a href="#__codelineno-0-30">30</a></span>
-<span class="normal"><a href="#__codelineno-0-31">31</a></span>
-<span class="normal"><a href="#__codelineno-0-32">32</a></span>
-<span class="normal"><a href="#__codelineno-0-33">33</a></span>
-<span class="normal"><a href="#__codelineno-0-34">34</a></span>
-<span class="normal"><a href="#__codelineno-0-35">35</a></span>
-<span class="normal"><a href="#__codelineno-0-36">36</a></span>
-<span class="normal"><a href="#__codelineno-0-37">37</a></span>
-<span class="normal"><a href="#__codelineno-0-38">38</a></span>
-<span class="normal"><a href="#__codelineno-0-39">39</a></span>
-<span class="normal"><a href="#__codelineno-0-40">40</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="k">def</span><span class="w"> </span><span class="nf">change_state_function_process</span><span class="p">(</span><span class="n">method</span><span class="p">:</span> <span class="nb">callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">callable</span><span class="p">:</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Decorator to perfom control flow checks before executing a method.&quot;&quot;&quot;</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19"></a>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a>    <span class="nd">@wraps</span><span class="p">(</span><span class="n">method</span><span class="p">)</span>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">InternalDebugger</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="o">...</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="o">...</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="o">...</span><span class="p">:</span>
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">instanced</span><span class="p">:</span>
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23"></a>            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24"></a>                <span class="s2">&quot;Process not running. Did you call run() or attach()?&quot;</span><span class="p">,</span>
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a>            <span class="p">)</span>
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a>
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_debugging</span><span class="p">:</span>
-</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a>            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a>                <span class="s2">&quot;No process is being debugged. Check your script.&quot;</span><span class="p">,</span>
-</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a>            <span class="p">)</span>
-</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31"></a>
-</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32"></a>        <span class="c1"># We have to ensure that the process is stopped before executing the method</span>
-</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_process_stopped</span><span class="p">()</span>
-</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34"></a>
-</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35"></a>        <span class="c1"># We have to ensure that at least one thread is alive before executing the method</span>
-</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">threads</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dead</span><span class="p">:</span>
-</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37"></a>            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;All threads are dead.&quot;</span><span class="p">)</span>
-</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38"></a>        <span class="k">return</span> <span class="n">method</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39"></a>
-</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40"></a>    <span class="k">return</span> <span class="n">wrapper</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-17">17</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-18">18</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-19">19</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-20">20</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-21">21</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-22">22</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-23">23</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-24">24</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-25">25</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-26">26</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-27">27</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-28">28</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-29">29</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-30">30</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-31">31</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-32">32</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-33">33</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-34">34</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-35">35</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-36">36</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-37">37</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-38">38</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-39">39</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-40">40</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__span-0-17"><a id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-17" name="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-17"></a><span class="k">def</span><span class="w"> </span><span class="nf">change_state_function_process</span><span class="p">(</span><span class="n">method</span><span class="p">:</span> <span class="nb">callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">callable</span><span class="p">:</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__span-0-18"><a id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-18" name="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-18"></a><span class="w">    </span><span class="sd">"""Decorator to perfom control flow checks before executing a method."""</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__span-0-19"><a id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-19" name="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-19"></a>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__span-0-20"><a id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-20" name="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-20"></a>    <span class="nd">@wraps</span><span class="p">(</span><span class="n">method</span><span class="p">)</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__span-0-21"><a id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-21" name="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-21"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">InternalDebugger</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="o">...</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="o">...</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="o">...</span><span class="p">:</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__span-0-22"><a id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-22" name="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-22"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">instanced</span><span class="p">:</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__span-0-23"><a id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-23" name="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-23"></a>            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__span-0-24"><a id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-24" name="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-24"></a>                <span class="s2">"Process not running. Did you call run() or attach()?"</span><span class="p">,</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__span-0-25"><a id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-25" name="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-25"></a>            <span class="p">)</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__span-0-26"><a id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-26" name="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-26"></a>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__span-0-27"><a id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-27" name="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-27"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_debugging</span><span class="p">:</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__span-0-28"><a id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-28" name="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-28"></a>            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__span-0-29"><a id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-29" name="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-29"></a>                <span class="s2">"No process is being debugged. Check your script."</span><span class="p">,</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__span-0-30"><a id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-30" name="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-30"></a>            <span class="p">)</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__span-0-31"><a id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-31" name="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-31"></a>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__span-0-32"><a id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-32" name="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-32"></a>        <span class="c1"># We have to ensure that the process is stopped before executing the method</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__span-0-33"><a id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-33" name="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-33"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_process_stopped</span><span class="p">()</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__span-0-34"><a id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-34" name="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-34"></a>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__span-0-35"><a id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-35" name="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-35"></a>        <span class="c1"># We have to ensure that at least one thread is alive before executing the method</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__span-0-36"><a id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-36" name="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-36"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">threads</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dead</span><span class="p">:</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__span-0-37"><a id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-37" name="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-37"></a>            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"All threads are dead."</span><span class="p">)</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__span-0-38"><a id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-38" name="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-38"></a>        <span class="k">return</span> <span class="n">method</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__span-0-39"><a id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-39" name="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-39"></a>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__span-0-40"><a id="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-40" name="libdebug.utils.debugger_wrappers.change_state_function_process--source--__codelineno-0-40"></a>    <span class="k">return</span> <span class="n">wrapper</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2417,63 +2417,63 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>libdebug/utils/debugger_wrappers.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-43">43</a></span>
-<span class="normal"><a href="#__codelineno-0-44">44</a></span>
-<span class="normal"><a href="#__codelineno-0-45">45</a></span>
-<span class="normal"><a href="#__codelineno-0-46">46</a></span>
-<span class="normal"><a href="#__codelineno-0-47">47</a></span>
-<span class="normal"><a href="#__codelineno-0-48">48</a></span>
-<span class="normal"><a href="#__codelineno-0-49">49</a></span>
-<span class="normal"><a href="#__codelineno-0-50">50</a></span>
-<span class="normal"><a href="#__codelineno-0-51">51</a></span>
-<span class="normal"><a href="#__codelineno-0-52">52</a></span>
-<span class="normal"><a href="#__codelineno-0-53">53</a></span>
-<span class="normal"><a href="#__codelineno-0-54">54</a></span>
-<span class="normal"><a href="#__codelineno-0-55">55</a></span>
-<span class="normal"><a href="#__codelineno-0-56">56</a></span>
-<span class="normal"><a href="#__codelineno-0-57">57</a></span>
-<span class="normal"><a href="#__codelineno-0-58">58</a></span>
-<span class="normal"><a href="#__codelineno-0-59">59</a></span>
-<span class="normal"><a href="#__codelineno-0-60">60</a></span>
-<span class="normal"><a href="#__codelineno-0-61">61</a></span>
-<span class="normal"><a href="#__codelineno-0-62">62</a></span>
-<span class="normal"><a href="#__codelineno-0-63">63</a></span>
-<span class="normal"><a href="#__codelineno-0-64">64</a></span>
-<span class="normal"><a href="#__codelineno-0-65">65</a></span>
-<span class="normal"><a href="#__codelineno-0-66">66</a></span>
-<span class="normal"><a href="#__codelineno-0-67">67</a></span>
-<span class="normal"><a href="#__codelineno-0-68">68</a></span>
-<span class="normal"><a href="#__codelineno-0-69">69</a></span>
-<span class="normal"><a href="#__codelineno-0-70">70</a></span>
-<span class="normal"><a href="#__codelineno-0-71">71</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43"></a><span class="k">def</span><span class="w"> </span><span class="nf">change_state_function_thread</span><span class="p">(</span><span class="n">method</span><span class="p">:</span> <span class="nb">callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">callable</span><span class="p">:</span>
-</span><span id="__span-0-44"><a id="__codelineno-0-44" name="__codelineno-0-44"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Decorator to perfom control flow checks before executing a method.&quot;&quot;&quot;</span>
-</span><span id="__span-0-45"><a id="__codelineno-0-45" name="__codelineno-0-45"></a>
-</span><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46"></a>    <span class="nd">@wraps</span><span class="p">(</span><span class="n">method</span><span class="p">)</span>
-</span><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">(</span>
-</span><span id="__span-0-48"><a id="__codelineno-0-48" name="__codelineno-0-48"></a>        <span class="bp">self</span><span class="p">:</span> <span class="n">InternalDebugger</span><span class="p">,</span>
-</span><span id="__span-0-49"><a id="__codelineno-0-49" name="__codelineno-0-49"></a>        <span class="n">thread</span><span class="p">:</span> <span class="n">ThreadContext</span><span class="p">,</span>
-</span><span id="__span-0-50"><a id="__codelineno-0-50" name="__codelineno-0-50"></a>        <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="o">...</span><span class="p">,</span>
-</span><span id="__span-0-51"><a id="__codelineno-0-51" name="__codelineno-0-51"></a>        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="o">...</span><span class="p">,</span>
-</span><span id="__span-0-52"><a id="__codelineno-0-52" name="__codelineno-0-52"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="o">...</span><span class="p">:</span>
-</span><span id="__span-0-53"><a id="__codelineno-0-53" name="__codelineno-0-53"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">instanced</span><span class="p">:</span>
-</span><span id="__span-0-54"><a id="__codelineno-0-54" name="__codelineno-0-54"></a>            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-</span><span id="__span-0-55"><a id="__codelineno-0-55" name="__codelineno-0-55"></a>                <span class="s2">&quot;Process not running. Did you call run() or attach()?&quot;</span><span class="p">,</span>
-</span><span id="__span-0-56"><a id="__codelineno-0-56" name="__codelineno-0-56"></a>            <span class="p">)</span>
-</span><span id="__span-0-57"><a id="__codelineno-0-57" name="__codelineno-0-57"></a>
-</span><span id="__span-0-58"><a id="__codelineno-0-58" name="__codelineno-0-58"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_debugging</span><span class="p">:</span>
-</span><span id="__span-0-59"><a id="__codelineno-0-59" name="__codelineno-0-59"></a>            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-</span><span id="__span-0-60"><a id="__codelineno-0-60" name="__codelineno-0-60"></a>                <span class="s2">&quot;No process is being debugged. Check your script.&quot;</span><span class="p">,</span>
-</span><span id="__span-0-61"><a id="__codelineno-0-61" name="__codelineno-0-61"></a>            <span class="p">)</span>
-</span><span id="__span-0-62"><a id="__codelineno-0-62" name="__codelineno-0-62"></a>
-</span><span id="__span-0-63"><a id="__codelineno-0-63" name="__codelineno-0-63"></a>        <span class="c1"># We have to ensure that the process is stopped before executing the method</span>
-</span><span id="__span-0-64"><a id="__codelineno-0-64" name="__codelineno-0-64"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_process_stopped</span><span class="p">()</span>
-</span><span id="__span-0-65"><a id="__codelineno-0-65" name="__codelineno-0-65"></a>
-</span><span id="__span-0-66"><a id="__codelineno-0-66" name="__codelineno-0-66"></a>        <span class="c1"># We have to ensure that at least one thread is alive before executing the method</span>
-</span><span id="__span-0-67"><a id="__codelineno-0-67" name="__codelineno-0-67"></a>        <span class="k">if</span> <span class="n">thread</span><span class="o">.</span><span class="n">dead</span><span class="p">:</span>
-</span><span id="__span-0-68"><a id="__codelineno-0-68" name="__codelineno-0-68"></a>            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;The thread is dead.&quot;</span><span class="p">)</span>
-</span><span id="__span-0-69"><a id="__codelineno-0-69" name="__codelineno-0-69"></a>        <span class="k">return</span> <span class="n">method</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thread</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-</span><span id="__span-0-70"><a id="__codelineno-0-70" name="__codelineno-0-70"></a>
-</span><span id="__span-0-71"><a id="__codelineno-0-71" name="__codelineno-0-71"></a>    <span class="k">return</span> <span class="n">wrapper</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-43">43</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-44">44</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-45">45</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-46">46</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-47">47</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-48">48</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-49">49</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-50">50</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-51">51</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-52">52</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-53">53</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-54">54</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-55">55</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-56">56</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-57">57</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-58">58</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-59">59</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-60">60</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-61">61</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-62">62</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-63">63</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-64">64</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-65">65</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-66">66</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-67">67</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-68">68</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-69">69</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-70">70</a></span>
+<span class="normal"><a href="#libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-71">71</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-43"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-43" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-43"></a><span class="k">def</span><span class="w"> </span><span class="nf">change_state_function_thread</span><span class="p">(</span><span class="n">method</span><span class="p">:</span> <span class="nb">callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">callable</span><span class="p">:</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-44"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-44" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-44"></a><span class="w">    </span><span class="sd">"""Decorator to perfom control flow checks before executing a method."""</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-45"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-45" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-45"></a>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-46"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-46" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-46"></a>    <span class="nd">@wraps</span><span class="p">(</span><span class="n">method</span><span class="p">)</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-47"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-47" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-47"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">(</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-48"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-48" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-48"></a>        <span class="bp">self</span><span class="p">:</span> <span class="n">InternalDebugger</span><span class="p">,</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-49"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-49" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-49"></a>        <span class="n">thread</span><span class="p">:</span> <span class="n">ThreadContext</span><span class="p">,</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-50"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-50" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-50"></a>        <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="o">...</span><span class="p">,</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-51"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-51" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-51"></a>        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="o">...</span><span class="p">,</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-52"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-52" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-52"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="o">...</span><span class="p">:</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-53"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-53" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-53"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">instanced</span><span class="p">:</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-54"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-54" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-54"></a>            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-55"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-55" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-55"></a>                <span class="s2">"Process not running. Did you call run() or attach()?"</span><span class="p">,</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-56"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-56" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-56"></a>            <span class="p">)</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-57"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-57" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-57"></a>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-58"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-58" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-58"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_debugging</span><span class="p">:</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-59"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-59" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-59"></a>            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-60"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-60" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-60"></a>                <span class="s2">"No process is being debugged. Check your script."</span><span class="p">,</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-61"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-61" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-61"></a>            <span class="p">)</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-62"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-62" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-62"></a>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-63"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-63" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-63"></a>        <span class="c1"># We have to ensure that the process is stopped before executing the method</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-64"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-64" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-64"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_process_stopped</span><span class="p">()</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-65"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-65" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-65"></a>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-66"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-66" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-66"></a>        <span class="c1"># We have to ensure that at least one thread is alive before executing the method</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-67"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-67" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-67"></a>        <span class="k">if</span> <span class="n">thread</span><span class="o">.</span><span class="n">dead</span><span class="p">:</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-68"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-68" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-68"></a>            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"The thread is dead."</span><span class="p">)</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-69"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-69" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-69"></a>        <span class="k">return</span> <span class="n">method</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thread</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-70"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-70" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-70"></a>
+</span><span id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__span-0-71"><a id="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-71" name="libdebug.utils.debugger_wrappers.change_state_function_thread--source--__codelineno-0-71"></a>    <span class="k">return</span> <span class="n">wrapper</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2541,10 +2541,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../../../javascripts/mathjax.js"></script>
       

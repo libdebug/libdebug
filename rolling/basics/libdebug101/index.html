@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../assets/favicon.ico">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
     
     
       
@@ -29,10 +29,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2401,7 +2401,7 @@
 <p>Welcome to <strong>libdebug</strong>! When writing a script to debug a program, the first step is to create a <a href="../../from_pydoc/generated/debugger/debugger/">Debugger</a> object. This object will be your main interface for debugging commands.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">libdebug</span><span class="w"> </span><span class="kn">import</span> <span class="n">debugger</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">debugger</span> <span class="o">=</span> <span class="n">debugger</span><span class="p">(</span><span class="n">argv</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;./program&quot;</span><span class="p">,</span> <span class="s2">&quot;arg1&quot;</span><span class="p">,</span> <span class="s2">&quot;arg2&quot;</span><span class="p">])</span> <span class="c1"># (1)!</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">debugger</span> <span class="o">=</span> <span class="n">debugger</span><span class="p">(</span><span class="n">argv</span><span class="o">=</span><span class="p">[</span><span class="s2">"./program"</span><span class="p">,</span> <span class="s2">"arg1"</span><span class="p">,</span> <span class="s2">"arg2"</span><span class="p">])</span> <span class="c1"># (1)!</span>
 </span></code></pre></div>
 <ol>
 <li><code>argv</code> can either be a string (the name/path of the executable) or an array corresponding to the argument vector of the execution.</li>
@@ -2416,14 +2416,14 @@
 <p>Just as you would expect, you can also pass environment variables to the program using the <code>env</code> parameter. Here, the variables are passed as a string-string dictionary.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">libdebug</span><span class="w"> </span><span class="kn">import</span> <span class="n">debugger</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">debugger</span> <span class="o">=</span> <span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;test&quot;</span><span class="p">,</span> <span class="n">env</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;LD_PRELOAD&quot;</span><span class="p">:</span> <span class="s2">&quot;musl_libc.so&quot;</span><span class="p">})</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">debugger</span> <span class="o">=</span> <span class="n">debugger</span><span class="p">(</span><span class="s2">"test"</span><span class="p">,</span> <span class="n">env</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"LD_PRELOAD"</span><span class="p">:</span> <span class="s2">"musl_libc.so"</span><span class="p">})</span>
 </span></code></pre></div>
 <h3 id="address-space-layout-randomization-aslr"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M141.4 2.3C103-8 63.5 14.8 53.3 53.2L2.5 242.7c-10.3 38.4 12.5 77.9 50.9 88.2l189.5 50.8c38.4 10.3 77.9-12.5 88.2-50.9l50.8-189.5c10.3-38.4-12.5-77.9-50.9-88.2zm23 205.7a32 32 0 1 1 55.4-32 32 32 0 1 1-55.4 32m-85.2 12.3a32 32 0 1 1 32 55.4 32 32 0 1 1-32-55.4m185 96.4a32 32 0 1 1-32-55.4 32 32 0 1 1 32 55.4m9-208.4a32 32 0 1 1 32 55.4 32 32 0 1 1-32-55.4m-121 14.4a32 32 0 1 1-32-55.4 32 32 0 1 1 32 55.4M418 192l-40.6 151.2c-17.2 64-83 102-147 84.9l-38.3-10.3V448c0 35.3 28.7 64 64 64h192c35.3 0 64-28.7 64-64V256c0-35.3-28.7-64-64-64z"/></svg></span> Address Space Layout Randomization (ASLR)</h3>
 <p>Modern operating system kernels implement mitigations against predictable addresses in binary exploitation scenarios. One such feature is <a href="https://en.wikipedia.org/wiki/Address_space_layout_randomization">ASLR</a>, which randomizes the base address of mapped virtual memory pages (e.g., binary, libraries, stack). When debugging, this feature can become a nuisance for the user.</p>
 <p>By default, <strong>libdebug</strong> keeps ASLR enabled. The debugger <code>aslr</code> parameter can be used to change this behavior.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">libdebug</span><span class="w"> </span><span class="kn">import</span> <span class="n">debugger</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">debugger</span> <span class="o">=</span> <span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;test&quot;</span><span class="p">,</span> <span class="n">aslr</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">debugger</span> <span class="o">=</span> <span class="n">debugger</span><span class="p">(</span><span class="s2">"test"</span><span class="p">,</span> <span class="n">aslr</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="binary-entry-point"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M2 3h6v2H4v14h4v2H2zm5 14v-2h2v2zm4 0v-2h2v2zm4 0v-2h2v2z"/></svg></span> Binary Entry Point</h3>
 <p>When a child process is spawned on the Linux kernel through the <a href="https://man7.org/linux/man-pages/man2/ptrace.2.html"><code>ptrace</code></a> system call, it is possible to trace it as soon as the loader has set up your executable. Debugging these first instructions inside the loader library is generally uninteresting.</p>
@@ -2433,7 +2433,7 @@
 </ol>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">libdebug</span><span class="w"> </span><span class="kn">import</span> <span class="n">debugger</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">debugger</span> <span class="o">=</span> <span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;test&quot;</span><span class="p">,</span> <span class="n">continue_to_binary_entrypoint</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">debugger</span> <span class="o">=</span> <span class="n">debugger</span><span class="p">(</span><span class="s2">"test"</span><span class="p">,</span> <span class="n">continue_to_binary_entrypoint</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="admonition warning">
 <p class="admonition-title">What the hell are you debugging?</p>
@@ -2532,7 +2532,7 @@
 <p class="admonition-title">Changing argv and env across runs</p>
 <p>You can change <code>argv</code>, <code>env</code>, and <code>path</code> attributes of the <a href="../../from_pydoc/generated/debugger/debugger/">Debugger</a> object across runs.
 For consistency, you <strong>cannot</strong> change them when you are tracing a process (e.g., after a <a href="../kill_and_post_mortem">forcibly killing</a>) and you <strong>cannot</strong> read them when you are tracing a process that is not stopped. </p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">d</span> <span class="o">=</span> <span class="n">debugger</span><span class="p">(</span><span class="n">argv</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;test&quot;</span><span class="p">,</span> <span class="s2">&quot;argv1&quot;</span><span class="p">])</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">d</span> <span class="o">=</span> <span class="n">debugger</span><span class="p">(</span><span class="n">argv</span><span class="o">=</span><span class="p">[</span><span class="s2">"test"</span><span class="p">,</span> <span class="s2">"argv1"</span><span class="p">])</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="n">candidates</span><span class="p">:</span>
 </span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">d</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
@@ -2633,10 +2633,10 @@ For consistency, you <strong>cannot</strong> change them when you are tracing a 
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../javascripts/mathjax.js"></script>
       

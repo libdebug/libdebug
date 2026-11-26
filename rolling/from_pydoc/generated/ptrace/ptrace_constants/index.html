@@ -17,7 +17,7 @@
       
       
       <link rel="icon" href="../../../../assets/favicon.ico">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
     
     
       
@@ -25,10 +25,10 @@
       
     
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2299,79 +2299,79 @@
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>libdebug/ptrace/ptrace_constants.py</code></summary>
-                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-33">33</a></span>
-<span class="normal"><a href="#__codelineno-0-34">34</a></span>
-<span class="normal"><a href="#__codelineno-0-35">35</a></span>
-<span class="normal"><a href="#__codelineno-0-36">36</a></span>
-<span class="normal"><a href="#__codelineno-0-37">37</a></span>
-<span class="normal"><a href="#__codelineno-0-38">38</a></span>
-<span class="normal"><a href="#__codelineno-0-39">39</a></span>
-<span class="normal"><a href="#__codelineno-0-40">40</a></span>
-<span class="normal"><a href="#__codelineno-0-41">41</a></span>
-<span class="normal"><a href="#__codelineno-0-42">42</a></span>
-<span class="normal"><a href="#__codelineno-0-43">43</a></span>
-<span class="normal"><a href="#__codelineno-0-44">44</a></span>
-<span class="normal"><a href="#__codelineno-0-45">45</a></span>
-<span class="normal"><a href="#__codelineno-0-46">46</a></span>
-<span class="normal"><a href="#__codelineno-0-47">47</a></span>
-<span class="normal"><a href="#__codelineno-0-48">48</a></span>
-<span class="normal"><a href="#__codelineno-0-49">49</a></span>
-<span class="normal"><a href="#__codelineno-0-50">50</a></span>
-<span class="normal"><a href="#__codelineno-0-51">51</a></span>
-<span class="normal"><a href="#__codelineno-0-52">52</a></span>
-<span class="normal"><a href="#__codelineno-0-53">53</a></span>
-<span class="normal"><a href="#__codelineno-0-54">54</a></span>
-<span class="normal"><a href="#__codelineno-0-55">55</a></span>
-<span class="normal"><a href="#__codelineno-0-56">56</a></span>
-<span class="normal"><a href="#__codelineno-0-57">57</a></span>
-<span class="normal"><a href="#__codelineno-0-58">58</a></span>
-<span class="normal"><a href="#__codelineno-0-59">59</a></span>
-<span class="normal"><a href="#__codelineno-0-60">60</a></span>
-<span class="normal"><a href="#__codelineno-0-61">61</a></span>
-<span class="normal"><a href="#__codelineno-0-62">62</a></span>
-<span class="normal"><a href="#__codelineno-0-63">63</a></span>
-<span class="normal"><a href="#__codelineno-0-64">64</a></span>
-<span class="normal"><a href="#__codelineno-0-65">65</a></span>
-<span class="normal"><a href="#__codelineno-0-66">66</a></span>
-<span class="normal"><a href="#__codelineno-0-67">67</a></span>
-<span class="normal"><a href="#__codelineno-0-68">68</a></span>
-<span class="normal"><a href="#__codelineno-0-69">69</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33"></a><span class="k">class</span><span class="w"> </span><span class="nc">Commands</span><span class="p">(</span><span class="n">IntEnum</span><span class="p">):</span>
-</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;An enumeration of the available ptrace commands.&quot;&quot;&quot;</span>
-</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35"></a>
-</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36"></a>    <span class="n">PTRACE_TRACEME</span> <span class="o">=</span> <span class="mi">0</span>
-</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37"></a>    <span class="n">PTRACE_PEEKTEXT</span> <span class="o">=</span> <span class="mi">1</span>
-</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38"></a>    <span class="n">PTRACE_PEEKDATA</span> <span class="o">=</span> <span class="mi">2</span>
-</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39"></a>    <span class="n">PTRACE_PEEKUSER</span> <span class="o">=</span> <span class="mi">3</span>
-</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40"></a>    <span class="n">PTRACE_POKETEXT</span> <span class="o">=</span> <span class="mi">4</span>
-</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41"></a>    <span class="n">PTRACE_POKEDATA</span> <span class="o">=</span> <span class="mi">5</span>
-</span><span id="__span-0-42"><a id="__codelineno-0-42" name="__codelineno-0-42"></a>    <span class="n">PTRACE_POKEUSER</span> <span class="o">=</span> <span class="mi">6</span>
-</span><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43"></a>    <span class="n">PTRACE_CONT</span> <span class="o">=</span> <span class="mi">7</span>
-</span><span id="__span-0-44"><a id="__codelineno-0-44" name="__codelineno-0-44"></a>    <span class="n">PTRACE_KILL</span> <span class="o">=</span> <span class="mi">8</span>
-</span><span id="__span-0-45"><a id="__codelineno-0-45" name="__codelineno-0-45"></a>    <span class="n">PTRACE_SINGLESTEP</span> <span class="o">=</span> <span class="mi">9</span>
-</span><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46"></a>    <span class="n">PTRACE_GETREGS</span> <span class="o">=</span> <span class="mi">12</span>
-</span><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47"></a>    <span class="n">PTRACE_SETREGS</span> <span class="o">=</span> <span class="mi">13</span>
-</span><span id="__span-0-48"><a id="__codelineno-0-48" name="__codelineno-0-48"></a>    <span class="n">PTRACE_GETFPREGS</span> <span class="o">=</span> <span class="mi">14</span>
-</span><span id="__span-0-49"><a id="__codelineno-0-49" name="__codelineno-0-49"></a>    <span class="n">PTRACE_SETFPREGS</span> <span class="o">=</span> <span class="mi">15</span>
-</span><span id="__span-0-50"><a id="__codelineno-0-50" name="__codelineno-0-50"></a>    <span class="n">PTRACE_ATTACH</span> <span class="o">=</span> <span class="mi">16</span>
-</span><span id="__span-0-51"><a id="__codelineno-0-51" name="__codelineno-0-51"></a>    <span class="n">PTRACE_DETACH</span> <span class="o">=</span> <span class="mi">17</span>
-</span><span id="__span-0-52"><a id="__codelineno-0-52" name="__codelineno-0-52"></a>    <span class="n">PTRACE_GETFPXREGS</span> <span class="o">=</span> <span class="mi">18</span>
-</span><span id="__span-0-53"><a id="__codelineno-0-53" name="__codelineno-0-53"></a>    <span class="n">PTRACE_SETFPXREGS</span> <span class="o">=</span> <span class="mi">19</span>
-</span><span id="__span-0-54"><a id="__codelineno-0-54" name="__codelineno-0-54"></a>    <span class="n">PTRACE_SYSCALL</span> <span class="o">=</span> <span class="mi">24</span>
-</span><span id="__span-0-55"><a id="__codelineno-0-55" name="__codelineno-0-55"></a>    <span class="n">PTRACE_SETOPTIONS</span> <span class="o">=</span> <span class="mh">0x4200</span>
-</span><span id="__span-0-56"><a id="__codelineno-0-56" name="__codelineno-0-56"></a>    <span class="n">PTRACE_GETEVENTMSG</span> <span class="o">=</span> <span class="mh">0x4201</span>
-</span><span id="__span-0-57"><a id="__codelineno-0-57" name="__codelineno-0-57"></a>    <span class="n">PTRACE_GETSIGINFO</span> <span class="o">=</span> <span class="mh">0x4202</span>
-</span><span id="__span-0-58"><a id="__codelineno-0-58" name="__codelineno-0-58"></a>    <span class="n">PTRACE_SETSIGINFO</span> <span class="o">=</span> <span class="mh">0x4203</span>
-</span><span id="__span-0-59"><a id="__codelineno-0-59" name="__codelineno-0-59"></a>    <span class="n">PTRACE_GETREGSET</span> <span class="o">=</span> <span class="mh">0x4204</span>
-</span><span id="__span-0-60"><a id="__codelineno-0-60" name="__codelineno-0-60"></a>    <span class="n">PTRACE_SETREGSET</span> <span class="o">=</span> <span class="mh">0x4205</span>
-</span><span id="__span-0-61"><a id="__codelineno-0-61" name="__codelineno-0-61"></a>    <span class="n">PTRACE_SEIZE</span> <span class="o">=</span> <span class="mh">0x4206</span>
-</span><span id="__span-0-62"><a id="__codelineno-0-62" name="__codelineno-0-62"></a>    <span class="n">PTRACE_INTERRUPT</span> <span class="o">=</span> <span class="mh">0x4207</span>
-</span><span id="__span-0-63"><a id="__codelineno-0-63" name="__codelineno-0-63"></a>    <span class="n">PTRACE_LISTEN</span> <span class="o">=</span> <span class="mh">0x4208</span>
-</span><span id="__span-0-64"><a id="__codelineno-0-64" name="__codelineno-0-64"></a>    <span class="n">PTRACE_PEEKSIGINFO</span> <span class="o">=</span> <span class="mh">0x4209</span>
-</span><span id="__span-0-65"><a id="__codelineno-0-65" name="__codelineno-0-65"></a>    <span class="n">PTRACE_GETSIGMASK</span> <span class="o">=</span> <span class="mh">0x420A</span>
-</span><span id="__span-0-66"><a id="__codelineno-0-66" name="__codelineno-0-66"></a>    <span class="n">PTRACE_SETSIGMASK</span> <span class="o">=</span> <span class="mh">0x420B</span>
-</span><span id="__span-0-67"><a id="__codelineno-0-67" name="__codelineno-0-67"></a>    <span class="n">PTRACE_SECCOMP_GET_FILTER</span> <span class="o">=</span> <span class="mh">0x420C</span>
-</span><span id="__span-0-68"><a id="__codelineno-0-68" name="__codelineno-0-68"></a>    <span class="n">PTRACE_SECCOMP_GET_METADATA</span> <span class="o">=</span> <span class="mh">0x420D</span>
-</span><span id="__span-0-69"><a id="__codelineno-0-69" name="__codelineno-0-69"></a>    <span class="n">PTRACE_GET_SYSCALL_INFO</span> <span class="o">=</span> <span class="mh">0x420E</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-33">33</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-34">34</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-35">35</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-36">36</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-37">37</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-38">38</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-39">39</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-40">40</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-41">41</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-42">42</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-43">43</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-44">44</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-45">45</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-46">46</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-47">47</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-48">48</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-49">49</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-50">50</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-51">51</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-52">52</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-53">53</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-54">54</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-55">55</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-56">56</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-57">57</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-58">58</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-59">59</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-60">60</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-61">61</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-62">62</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-63">63</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-64">64</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-65">65</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-66">66</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-67">67</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-68">68</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-69">69</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-33"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-33" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-33"></a><span class="k">class</span><span class="w"> </span><span class="nc">Commands</span><span class="p">(</span><span class="n">IntEnum</span><span class="p">):</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-34"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-34" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-34"></a><span class="w">    </span><span class="sd">"""An enumeration of the available ptrace commands."""</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-35"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-35" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-35"></a>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-36"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-36" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-36"></a>    <span class="n">PTRACE_TRACEME</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-37"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-37" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-37"></a>    <span class="n">PTRACE_PEEKTEXT</span> <span class="o">=</span> <span class="mi">1</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-38"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-38" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-38"></a>    <span class="n">PTRACE_PEEKDATA</span> <span class="o">=</span> <span class="mi">2</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-39"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-39" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-39"></a>    <span class="n">PTRACE_PEEKUSER</span> <span class="o">=</span> <span class="mi">3</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-40"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-40" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-40"></a>    <span class="n">PTRACE_POKETEXT</span> <span class="o">=</span> <span class="mi">4</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-41"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-41" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-41"></a>    <span class="n">PTRACE_POKEDATA</span> <span class="o">=</span> <span class="mi">5</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-42"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-42" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-42"></a>    <span class="n">PTRACE_POKEUSER</span> <span class="o">=</span> <span class="mi">6</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-43"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-43" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-43"></a>    <span class="n">PTRACE_CONT</span> <span class="o">=</span> <span class="mi">7</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-44"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-44" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-44"></a>    <span class="n">PTRACE_KILL</span> <span class="o">=</span> <span class="mi">8</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-45"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-45" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-45"></a>    <span class="n">PTRACE_SINGLESTEP</span> <span class="o">=</span> <span class="mi">9</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-46"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-46" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-46"></a>    <span class="n">PTRACE_GETREGS</span> <span class="o">=</span> <span class="mi">12</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-47"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-47" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-47"></a>    <span class="n">PTRACE_SETREGS</span> <span class="o">=</span> <span class="mi">13</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-48"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-48" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-48"></a>    <span class="n">PTRACE_GETFPREGS</span> <span class="o">=</span> <span class="mi">14</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-49"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-49" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-49"></a>    <span class="n">PTRACE_SETFPREGS</span> <span class="o">=</span> <span class="mi">15</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-50"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-50" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-50"></a>    <span class="n">PTRACE_ATTACH</span> <span class="o">=</span> <span class="mi">16</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-51"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-51" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-51"></a>    <span class="n">PTRACE_DETACH</span> <span class="o">=</span> <span class="mi">17</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-52"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-52" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-52"></a>    <span class="n">PTRACE_GETFPXREGS</span> <span class="o">=</span> <span class="mi">18</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-53"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-53" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-53"></a>    <span class="n">PTRACE_SETFPXREGS</span> <span class="o">=</span> <span class="mi">19</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-54"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-54" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-54"></a>    <span class="n">PTRACE_SYSCALL</span> <span class="o">=</span> <span class="mi">24</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-55"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-55" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-55"></a>    <span class="n">PTRACE_SETOPTIONS</span> <span class="o">=</span> <span class="mh">0x4200</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-56"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-56" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-56"></a>    <span class="n">PTRACE_GETEVENTMSG</span> <span class="o">=</span> <span class="mh">0x4201</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-57"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-57" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-57"></a>    <span class="n">PTRACE_GETSIGINFO</span> <span class="o">=</span> <span class="mh">0x4202</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-58"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-58" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-58"></a>    <span class="n">PTRACE_SETSIGINFO</span> <span class="o">=</span> <span class="mh">0x4203</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-59"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-59" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-59"></a>    <span class="n">PTRACE_GETREGSET</span> <span class="o">=</span> <span class="mh">0x4204</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-60"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-60" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-60"></a>    <span class="n">PTRACE_SETREGSET</span> <span class="o">=</span> <span class="mh">0x4205</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-61"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-61" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-61"></a>    <span class="n">PTRACE_SEIZE</span> <span class="o">=</span> <span class="mh">0x4206</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-62"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-62" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-62"></a>    <span class="n">PTRACE_INTERRUPT</span> <span class="o">=</span> <span class="mh">0x4207</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-63"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-63" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-63"></a>    <span class="n">PTRACE_LISTEN</span> <span class="o">=</span> <span class="mh">0x4208</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-64"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-64" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-64"></a>    <span class="n">PTRACE_PEEKSIGINFO</span> <span class="o">=</span> <span class="mh">0x4209</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-65"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-65" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-65"></a>    <span class="n">PTRACE_GETSIGMASK</span> <span class="o">=</span> <span class="mh">0x420A</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-66"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-66" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-66"></a>    <span class="n">PTRACE_SETSIGMASK</span> <span class="o">=</span> <span class="mh">0x420B</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-67"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-67" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-67"></a>    <span class="n">PTRACE_SECCOMP_GET_FILTER</span> <span class="o">=</span> <span class="mh">0x420C</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-68"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-68" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-68"></a>    <span class="n">PTRACE_SECCOMP_GET_METADATA</span> <span class="o">=</span> <span class="mh">0x420D</span>
+</span><span id="libdebug.ptrace.ptrace_constants.Commands--source--__span-0-69"><a id="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-69" name="libdebug.ptrace.ptrace_constants.Commands--source--__codelineno-0-69"></a>    <span class="n">PTRACE_GET_SYSCALL_INFO</span> <span class="o">=</span> <span class="mh">0x420E</span>
 </span></code></pre></div></td></tr></table></div>
               </details>
 
@@ -2424,25 +2424,25 @@
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>libdebug/ptrace/ptrace_constants.py</code></summary>
-                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-21">21</a></span>
-<span class="normal"><a href="#__codelineno-0-22">22</a></span>
-<span class="normal"><a href="#__codelineno-0-23">23</a></span>
-<span class="normal"><a href="#__codelineno-0-24">24</a></span>
-<span class="normal"><a href="#__codelineno-0-25">25</a></span>
-<span class="normal"><a href="#__codelineno-0-26">26</a></span>
-<span class="normal"><a href="#__codelineno-0-27">27</a></span>
-<span class="normal"><a href="#__codelineno-0-28">28</a></span>
-<span class="normal"><a href="#__codelineno-0-29">29</a></span>
-<span class="normal"><a href="#__codelineno-0-30">30</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="k">class</span><span class="w"> </span><span class="nc">StopEvents</span><span class="p">(</span><span class="n">IntEnum</span><span class="p">):</span>
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;An enumeration of the stop events that ptrace can return.&quot;&quot;&quot;</span>
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23"></a>
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24"></a>    <span class="n">CLONE_EVENT</span> <span class="o">=</span> <span class="n">SIGTRAP</span> <span class="o">|</span> <span class="p">(</span><span class="n">PTRACE_EVENT_CLONE</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">)</span>
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a>    <span class="n">EXEC_EVENT</span> <span class="o">=</span> <span class="n">SIGTRAP</span> <span class="o">|</span> <span class="p">(</span><span class="n">PTRACE_EVENT_EXEC</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">)</span>
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a>    <span class="n">EXIT_EVENT</span> <span class="o">=</span> <span class="n">SIGTRAP</span> <span class="o">|</span> <span class="p">(</span><span class="n">PTRACE_EVENT_EXIT</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">)</span>
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a>    <span class="n">FORK_EVENT</span> <span class="o">=</span> <span class="n">SIGTRAP</span> <span class="o">|</span> <span class="p">(</span><span class="n">PTRACE_EVENT_FORK</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">)</span>
-</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a>    <span class="n">VFORK_EVENT</span> <span class="o">=</span> <span class="n">SIGTRAP</span> <span class="o">|</span> <span class="p">(</span><span class="n">PTRACE_EVENT_VFORK</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">)</span>
-</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a>    <span class="n">VFORK_DONE_EVENT</span> <span class="o">=</span> <span class="n">SIGTRAP</span> <span class="o">|</span> <span class="p">(</span><span class="n">PTRACE_EVENT_VFORK_DONE</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">)</span>
-</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a>    <span class="n">SECCOMP_EVENT</span> <span class="o">=</span> <span class="n">SIGTRAP</span> <span class="o">|</span> <span class="p">(</span><span class="n">PTRACE_EVENT_SECCOMP</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">)</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-21">21</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-22">22</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-23">23</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-24">24</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-25">25</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-26">26</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-27">27</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-28">28</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-29">29</a></span>
+<span class="normal"><a href="#libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-30">30</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="libdebug.ptrace.ptrace_constants.StopEvents--source--__span-0-21"><a id="libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-21" name="libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-21"></a><span class="k">class</span><span class="w"> </span><span class="nc">StopEvents</span><span class="p">(</span><span class="n">IntEnum</span><span class="p">):</span>
+</span><span id="libdebug.ptrace.ptrace_constants.StopEvents--source--__span-0-22"><a id="libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-22" name="libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-22"></a><span class="w">    </span><span class="sd">"""An enumeration of the stop events that ptrace can return."""</span>
+</span><span id="libdebug.ptrace.ptrace_constants.StopEvents--source--__span-0-23"><a id="libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-23" name="libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-23"></a>
+</span><span id="libdebug.ptrace.ptrace_constants.StopEvents--source--__span-0-24"><a id="libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-24" name="libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-24"></a>    <span class="n">CLONE_EVENT</span> <span class="o">=</span> <span class="n">SIGTRAP</span> <span class="o">|</span> <span class="p">(</span><span class="n">PTRACE_EVENT_CLONE</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">)</span>
+</span><span id="libdebug.ptrace.ptrace_constants.StopEvents--source--__span-0-25"><a id="libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-25" name="libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-25"></a>    <span class="n">EXEC_EVENT</span> <span class="o">=</span> <span class="n">SIGTRAP</span> <span class="o">|</span> <span class="p">(</span><span class="n">PTRACE_EVENT_EXEC</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">)</span>
+</span><span id="libdebug.ptrace.ptrace_constants.StopEvents--source--__span-0-26"><a id="libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-26" name="libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-26"></a>    <span class="n">EXIT_EVENT</span> <span class="o">=</span> <span class="n">SIGTRAP</span> <span class="o">|</span> <span class="p">(</span><span class="n">PTRACE_EVENT_EXIT</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">)</span>
+</span><span id="libdebug.ptrace.ptrace_constants.StopEvents--source--__span-0-27"><a id="libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-27" name="libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-27"></a>    <span class="n">FORK_EVENT</span> <span class="o">=</span> <span class="n">SIGTRAP</span> <span class="o">|</span> <span class="p">(</span><span class="n">PTRACE_EVENT_FORK</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">)</span>
+</span><span id="libdebug.ptrace.ptrace_constants.StopEvents--source--__span-0-28"><a id="libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-28" name="libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-28"></a>    <span class="n">VFORK_EVENT</span> <span class="o">=</span> <span class="n">SIGTRAP</span> <span class="o">|</span> <span class="p">(</span><span class="n">PTRACE_EVENT_VFORK</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">)</span>
+</span><span id="libdebug.ptrace.ptrace_constants.StopEvents--source--__span-0-29"><a id="libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-29" name="libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-29"></a>    <span class="n">VFORK_DONE_EVENT</span> <span class="o">=</span> <span class="n">SIGTRAP</span> <span class="o">|</span> <span class="p">(</span><span class="n">PTRACE_EVENT_VFORK_DONE</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">)</span>
+</span><span id="libdebug.ptrace.ptrace_constants.StopEvents--source--__span-0-30"><a id="libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-30" name="libdebug.ptrace.ptrace_constants.StopEvents--source--__codelineno-0-30"></a>    <span class="n">SECCOMP_EVENT</span> <span class="o">=</span> <span class="n">SIGTRAP</span> <span class="o">|</span> <span class="p">(</span><span class="n">PTRACE_EVENT_SECCOMP</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
               </details>
 
@@ -2529,10 +2529,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../../../javascripts/mathjax.js"></script>
       

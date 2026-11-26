@@ -17,7 +17,7 @@
       
       
       <link rel="icon" href="../../../../../assets/favicon.ico">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
     
     
       
@@ -25,10 +25,10 @@
       
     
     
-      <link rel="stylesheet" href="../../../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2277,25 +2277,25 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>libdebug/architectures/aarch64/aarch64_breakpoint_validator.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-15">15</a></span>
-<span class="normal"><a href="#__codelineno-0-16">16</a></span>
-<span class="normal"><a href="#__codelineno-0-17">17</a></span>
-<span class="normal"><a href="#__codelineno-0-18">18</a></span>
-<span class="normal"><a href="#__codelineno-0-19">19</a></span>
-<span class="normal"><a href="#__codelineno-0-20">20</a></span>
-<span class="normal"><a href="#__codelineno-0-21">21</a></span>
-<span class="normal"><a href="#__codelineno-0-22">22</a></span>
-<span class="normal"><a href="#__codelineno-0-23">23</a></span>
-<span class="normal"><a href="#__codelineno-0-24">24</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="k">def</span><span class="w"> </span><span class="nf">validate_breakpoint_aarch64</span><span class="p">(</span><span class="n">bp</span><span class="p">:</span> <span class="n">Breakpoint</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Validate a hardware breakpoint for the AARCH64 architecture.&quot;&quot;&quot;</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17"></a>    <span class="k">if</span> <span class="n">bp</span><span class="o">.</span><span class="n">condition</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="s2">&quot;rw&quot;</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">]:</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid condition for watchpoints. Supported conditions are &#39;r&#39;, &#39;w&#39;, &#39;rw&#39;, &#39;x&#39;.&quot;</span><span class="p">)</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19"></a>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;=</span> <span class="n">bp</span><span class="o">.</span><span class="n">length</span> <span class="o">&lt;=</span> <span class="mi">8</span><span class="p">):</span>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid length for watchpoints. Supported lengths are between 1 and 8.&quot;</span><span class="p">)</span>
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22"></a>
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23"></a>    <span class="k">if</span> <span class="n">bp</span><span class="o">.</span><span class="n">condition</span> <span class="o">!=</span> <span class="s2">&quot;x&quot;</span> <span class="ow">and</span> <span class="n">bp</span><span class="o">.</span><span class="n">address</span> <span class="o">&amp;</span> <span class="mh">0x7</span><span class="p">:</span>
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Watchpoint address must be aligned to 8 bytes on aarch64. This is a kernel limitation.&quot;</span><span class="p">)</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-15">15</a></span>
+<span class="normal"><a href="#libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-16">16</a></span>
+<span class="normal"><a href="#libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-17">17</a></span>
+<span class="normal"><a href="#libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-18">18</a></span>
+<span class="normal"><a href="#libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-19">19</a></span>
+<span class="normal"><a href="#libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-20">20</a></span>
+<span class="normal"><a href="#libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-21">21</a></span>
+<span class="normal"><a href="#libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-22">22</a></span>
+<span class="normal"><a href="#libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-23">23</a></span>
+<span class="normal"><a href="#libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-24">24</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__span-0-15"><a id="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-15" name="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-15"></a><span class="k">def</span><span class="w"> </span><span class="nf">validate_breakpoint_aarch64</span><span class="p">(</span><span class="n">bp</span><span class="p">:</span> <span class="n">Breakpoint</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__span-0-16"><a id="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-16" name="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-16"></a><span class="w">    </span><span class="sd">"""Validate a hardware breakpoint for the AARCH64 architecture."""</span>
+</span><span id="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__span-0-17"><a id="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-17" name="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-17"></a>    <span class="k">if</span> <span class="n">bp</span><span class="o">.</span><span class="n">condition</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"r"</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">,</span> <span class="s2">"rw"</span><span class="p">,</span> <span class="s2">"x"</span><span class="p">]:</span>
+</span><span id="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__span-0-18"><a id="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-18" name="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-18"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Invalid condition for watchpoints. Supported conditions are 'r', 'w', 'rw', 'x'."</span><span class="p">)</span>
+</span><span id="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__span-0-19"><a id="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-19" name="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-19"></a>
+</span><span id="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__span-0-20"><a id="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-20" name="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-20"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;=</span> <span class="n">bp</span><span class="o">.</span><span class="n">length</span> <span class="o">&lt;=</span> <span class="mi">8</span><span class="p">):</span>
+</span><span id="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__span-0-21"><a id="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-21" name="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-21"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Invalid length for watchpoints. Supported lengths are between 1 and 8."</span><span class="p">)</span>
+</span><span id="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__span-0-22"><a id="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-22" name="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-22"></a>
+</span><span id="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__span-0-23"><a id="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-23" name="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-23"></a>    <span class="k">if</span> <span class="n">bp</span><span class="o">.</span><span class="n">condition</span> <span class="o">!=</span> <span class="s2">"x"</span> <span class="ow">and</span> <span class="n">bp</span><span class="o">.</span><span class="n">address</span> <span class="o">&amp;</span> <span class="mh">0x7</span><span class="p">:</span>
+</span><span id="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__span-0-24"><a id="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-24" name="libdebug.architectures.aarch64.aarch64_breakpoint_validator.validate_breakpoint_aarch64--source--__codelineno-0-24"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Watchpoint address must be aligned to 8 bytes on aarch64. This is a kernel limitation."</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2363,10 +2363,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../../../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../../../../javascripts/mathjax.js"></script>
       

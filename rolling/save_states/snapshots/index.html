@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../assets/favicon.ico">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
     
     
       
@@ -29,10 +29,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2547,23 +2547,23 @@
 <p>The following is the signature of the function:</p>
 <div class="admonition abstract">
 <p class="admonition-title">Function Signature</p>
-<p><div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">d</span><span class="o">.</span><span class="n">create_snapshot</span><span class="p">(</span><span class="n">level</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;base&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ProcessSnapshot</span>
+<p><div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">d</span><span class="o">.</span><span class="n">create_snapshot</span><span class="p">(</span><span class="n">level</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"base"</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ProcessSnapshot</span>
 </span></code></pre></div>
 or
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">t</span><span class="o">.</span><span class="n">create_snapshot</span><span class="p">(</span><span class="n">level</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;base&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ThreadSnapshot</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">t</span><span class="o">.</span><span class="n">create_snapshot</span><span class="p">(</span><span class="n">level</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"base"</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ThreadSnapshot</span>
 </span></code></pre></div>
 Where <code>d</code> is a <a href="../../from_pydoc/generated/debugger/debugger/">Debugger</a> object and <code>t</code> is a <a href="../../from_pydoc/generated/state/thread_context">ThreadContext</a> object.</p>
 </div>
 <p>The following is an example usage of the function in both cases:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">d</span> <span class="o">=</span> <span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;program&quot;</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">d</span> <span class="o">=</span> <span class="n">debugger</span><span class="p">(</span><span class="s2">"program"</span><span class="p">)</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">my_thread</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">threads</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 </span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
 </span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1"># Thread Snapshot</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">ts</span> <span class="o">=</span> <span class="n">my_thread</span><span class="o">.</span><span class="n">create_snapshot</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="s2">&quot;full&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;cool snapshot&quot;</span><span class="p">)</span> <span class="c1">#(1)!</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">ts</span> <span class="o">=</span> <span class="n">my_thread</span><span class="o">.</span><span class="n">create_snapshot</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="s2">"full"</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"cool snapshot"</span><span class="p">)</span> <span class="c1">#(1)!</span>
 </span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
 </span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="c1"># Process Snapshot</span>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="n">ps</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">create_snapshot</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="s2">&quot;writable&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;very cool snapshot&quot;</span><span class="p">)</span> <span class="c1">#(2)!</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="n">ps</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">create_snapshot</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="s2">"writable"</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"very cool snapshot"</span><span class="p">)</span> <span class="c1">#(2)!</span>
 </span></code></pre></div>
 <ol>
 <li>This will create a full-level snapshot of the thread <code>my_thread</code> and name it "cool snapshot".</li>
@@ -2577,15 +2577,15 @@ Where <code>d</code> is a <a href="../../from_pydoc/generated/debugger/debugger/
 <p>You can save a snapshot to disk using the <a href="../../from_pydoc/generated/snapshots/snapshot/#libdebug.snapshots.snapshot.Snapshot.save"><code>save()</code></a> method of the <a href="../../from_pydoc/generated/snapshots/snapshot">Snapshot</a> object. The method will create a serializable version of the snapshot and export a json file to the specified path.</p>
 <div class="admonition abstract">
 <p class="admonition-title">Example usage</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">ts</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">threads</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">create_snapshot</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="s2">&quot;full&quot;</span><span class="p">)</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">ts</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">&quot;path/to/save/snapshot.json&quot;</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">ts</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">threads</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">create_snapshot</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="s2">"full"</span><span class="p">)</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">ts</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">"path/to/save/snapshot.json"</span><span class="p">)</span>
 </span></code></pre></div>
 </div>
 <hr />
 <p>You can load a snapshot from disk using the <a href="../../from_pydoc/generated/debugger/debugger#libdebug.debugger.debugger.Debugger.load_snapshot"><code>load_snapshot()</code></a> method of the <a href="../../from_pydoc/generated/debugger/debugger">Debugger</a> object. The method will read the json file from the specified path and create a <a href="../../from_pydoc/generated/snapshots/snapshot">Snapshot</a> object from it.</p>
 <div class="admonition abstract">
 <p class="admonition-title">Example usage</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">ts</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">load_snapshot</span><span class="p">(</span><span class="s2">&quot;path/to/load/snapshot.json&quot;</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">ts</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">load_snapshot</span><span class="p">(</span><span class="s2">"path/to/load/snapshot.json"</span><span class="p">)</span>
 </span></code></pre></div>
 </div>
 <p>The snapshot type will be inferred from the json file, so you can easily load both thread and process snapshots from the same method.</p>
@@ -2594,11 +2594,11 @@ Where <code>d</code> is a <a href="../../from_pydoc/generated/debugger/debugger/
 <p>You can diff a snapshot against another using the <a href="../../from_pydoc/generated/snapshots/snapshot#libdebug.snapshots.snapshot.Snapshot.diff"><code>diff()</code></a> method. The method will return a <a href="../../from_pydoc/generated/snapshots/diff">Diff</a> object that represents the differences between the two snapshots. The diff will be of the lowest level of the two snapshots being compared in terms.</p>
 <div class="admonition abstract">
 <p class="admonition-title">Example usage</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">ts1</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">threads</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">create_snapshot</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="s2">&quot;full&quot;</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">ts1</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">threads</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">create_snapshot</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="s2">"full"</span><span class="p">)</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="p">[</span><span class="o">...</span><span class="p">]</span> <span class="c1"># (1)!</span>
 </span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">ts2</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">threads</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">create_snapshot</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="s2">&quot;full&quot;</span><span class="p">)</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">ts2</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">threads</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">create_snapshot</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="s2">"full"</span><span class="p">)</span>
 </span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
 </span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="n">ts_diff</span> <span class="o">=</span> <span class="n">ts1</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">ts2</span><span class="p">)</span> <span class="c1"># (2)!</span>
 </span></code></pre></div>
@@ -2853,10 +2853,10 @@ Where <code>d</code> is a <a href="../../from_pydoc/generated/debugger/debugger/
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../javascripts/mathjax.js"></script>
       

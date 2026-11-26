@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../assets/favicon.ico">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
     
     
       
@@ -29,10 +29,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2452,15 +2452,15 @@
 </div>
 <div class="tabbed-block">
 <p>Access memory using a symbol name.
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="s2">&quot;function&quot;</span><span class="p">,</span> <span class="mh">0x8</span><span class="p">]</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="s2">"function"</span><span class="p">,</span> <span class="mh">0x8</span><span class="p">]</span>
 </span></code></pre></div></p>
 <p>When specifying a symbol, you can also provide an offset. Contrary to what happens in GDB, the offset is always interpreted as hexadecimal.
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="s2">&quot;function+a8&quot;</span><span class="p">]</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="s2">"function+a8"</span><span class="p">]</span>
 </span></code></pre></div></p>
 </div>
 <div class="tabbed-block">
 <p>Access a range of bytes using a symbol name.
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="s2">&quot;function&quot;</span><span class="p">:</span><span class="s2">&quot;function+0f&quot;</span><span class="p">]</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="s2">"function"</span><span class="p">:</span><span class="s2">"function+0f"</span><span class="p">]</span>
 </span></code></pre></div>
 Please note that contrary to what happens in GDB, the offset is always interpreted as hexadecimal.</p>
 </div>
@@ -2470,18 +2470,18 @@ Please note that contrary to what happens in GDB, the offset is always interpret
 <div class="admonition info">
 <p class="admonition-title">Accessing memory with symbols</p>
 <p>Please note that, unless otherwise specified, symbols are resolved in the debugged binary only. To resolve symbols in shared libraries, you need to indicate it in the third parameter of the function.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="s2">&quot;__libc_start_main&quot;</span><span class="p">,</span> <span class="mh">0x8</span><span class="p">,</span> <span class="s2">&quot;libc&quot;</span><span class="p">]</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="s2">"__libc_start_main"</span><span class="p">,</span> <span class="mh">0x8</span><span class="p">,</span> <span class="s2">"libc"</span><span class="p">]</span>
 </span></code></pre></div>
 </div>
 <p>Writing to memory works similarly. You can write a <a href="https://docs.python.org/3/glossary.html#term-bytes-like-object"><em>bytes-like</em></a> object to memory using the same addressing methods:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">rsp</span><span class="p">,</span> <span class="mh">0x10</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;AAAAAAABC&quot;</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="s2">&quot;main_arena&quot;</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="s2">&quot;libc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;12345678&quot;</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">rsp</span><span class="p">,</span> <span class="mh">0x10</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"AAAAAAABC"</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="s2">"main_arena"</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="s2">"libc"</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"12345678"</span>
 </span></code></pre></div>
 <div class="admonition warning">
 <p class="admonition-title">Length/Slice when writing</p>
 <p>When writing to memory, slices and length are ignored in favor of the length of the specified <a href="https://docs.python.org/3/glossary.html#term-bytes-like-object"><em>bytes-like</em></a> object.</p>
 <p>In the following example, only 4 bytes are written:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="s2">&quot;main_arena&quot;</span><span class="p">,</span> <span class="mi">50</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x0a\xeb\x12\xfc</span><span class="s2">&quot;</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="s2">"main_arena"</span><span class="p">,</span> <span class="mi">50</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"</span><span class="se">\x0a\xeb\x12\xfc</span><span class="s2">"</span>
 </span></code></pre></div>
 </div>
 <h2 id="absolute-and-relative-addressing"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 18H4V6h16m0-2H4c-1.11 0-2 .89-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2m-8 6h-2v2h2m-4-2H6v2h2m8 2h-2v2h2m0-6h-2v2h2z"/></svg></span> Absolute and Relative Addressing</h2>
@@ -2490,14 +2490,14 @@ Please note that contrary to what happens in GDB, the offset is always interpret
 <div class="admonition abstract">
 <p class="admonition-title">Examples of relative and absolute addressing</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Absolute addressing</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="mh">0x7ffff7fcb200</span><span class="p">,</span> <span class="mh">0x10</span><span class="p">,</span> <span class="s2">&quot;absolute&quot;</span><span class="p">]</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="mh">0x7ffff7fcb200</span><span class="p">,</span> <span class="mh">0x10</span><span class="p">,</span> <span class="s2">"absolute"</span><span class="p">]</span>
 </span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
 </span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># Hybrid addressing</span>
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="mh">0x1000</span><span class="p">,</span> <span class="mh">0x10</span><span class="p">,</span> <span class="s2">&quot;hybrid&quot;</span><span class="p">]</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="mh">0x1000</span><span class="p">,</span> <span class="mh">0x10</span><span class="p">,</span> <span class="s2">"hybrid"</span><span class="p">]</span>
 </span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>
 </span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="c1"># Relative addressing</span>
-</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="mh">0x1000</span><span class="p">,</span> <span class="mh">0x10</span><span class="p">,</span> <span class="s2">&quot;binary&quot;</span><span class="p">]</span>
-</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="mh">0x1000</span><span class="p">,</span> <span class="mh">0x10</span><span class="p">,</span> <span class="s2">&quot;libc&quot;</span><span class="p">]</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="mh">0x1000</span><span class="p">,</span> <span class="mh">0x10</span><span class="p">,</span> <span class="s2">"binary"</span><span class="p">]</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="p">[</span><span class="mh">0x1000</span><span class="p">,</span> <span class="mh">0x10</span><span class="p">,</span> <span class="s2">"libc"</span><span class="p">]</span>
 </span></code></pre></div>
 </div>
 <h2 id="searching-inside-memory"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10.25 2a8.25 8.25 0 0 1 6.34 13.53l5.69 5.69a.749.749 0 0 1-.326 1.275.75.75 0 0 1-.734-.215l-5.69-5.69A8.25 8.25 0 1 1 10.25 2M3.5 10.25a6.75 6.75 0 1 0 13.5 0 6.75 6.75 0 0 0-13.5 0"/></svg></span> Searching inside Memory</h2>
@@ -2506,7 +2506,7 @@ Please note that contrary to what happens in GDB, the offset is always interpret
 <p class="admonition-title">Function Signature</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="o">.</span><span class="n">find</span><span class="p">(</span>
 </span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="n">value</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="n">file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;all&quot;</span><span class="p">,</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="n">file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"all"</span><span class="p">,</span>
 </span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">start</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="n">end</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
@@ -2563,9 +2563,9 @@ Please note that contrary to what happens in GDB, the offset is always interpret
 </table>
 <div class="admonition abstract">
 <p class="admonition-title">Usage Example</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">binsh_string_addr</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;/bin/sh&quot;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="s2">&quot;libc&quot;</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">binsh_string_addr</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">"/bin/sh"</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="s2">"libc"</span><span class="p">)</span>
 </span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">value_address</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="mh">0x1234</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="s2">&quot;stack&quot;</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">regs</span><span class="o">.</span><span class="n">rsp</span><span class="p">)</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">value_address</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="mh">0x1234</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="s2">"stack"</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">regs</span><span class="o">.</span><span class="n">rsp</span><span class="p">)</span>
 </span></code></pre></div>
 </div>
 <h3 id="searching-pointers"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m9 13-4 3c-1 .88-1.14 2.12-1 3 .13 1 .91 2.22 2 2.68 1.57.67 3.09.22 4.04-.76L19 13c1.86-1.38 1-4-1-4h-6l7.46-4.39c.44-.32.62-.79.6-1.24C20 2.67 19.46 2 18.6 2h-.06c-.35 0-.68.11-.98.29L5 9c-.81.46-1.06 1.24-1 2 .05 1.03.74 2 2 2m-1 5.5a2.5 2.5 0 0 1 5 0 2.5 2.5 0 0 1-5 0"/></svg></span> Searching Pointers</h3>
@@ -2573,8 +2573,8 @@ Please note that contrary to what happens in GDB, the offset is always interpret
 <div class="admonition abstract">
 <p class="admonition-title">Function Signature</p>
 <div class="language-py highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">find_pointers</span><span class="p">(</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>        <span class="n">where</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;*&quot;</span><span class="p">,</span>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>        <span class="n">target</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;*&quot;</span><span class="p">,</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>        <span class="n">where</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"*"</span><span class="p">,</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>        <span class="n">target</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"*"</span><span class="p">,</span>
 </span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>        <span class="n">step</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
 </span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
 </span></code></pre></div>
@@ -2625,16 +2625,16 @@ Please note that contrary to what happens in GDB, the offset is always interpret
 </table>
 <div class="admonition abstract">
 <p class="admonition-title">Usage Example</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">pointers</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="o">.</span><span class="n">find_pointers</span><span class="p">(</span><span class="s2">&quot;stack&quot;</span><span class="p">,</span> <span class="s2">&quot;heap&quot;</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">pointers</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">memory</span><span class="o">.</span><span class="n">find_pointers</span><span class="p">(</span><span class="s2">"stack"</span><span class="p">,</span> <span class="s2">"heap"</span><span class="p">)</span>
 </span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>
 </span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="k">for</span> <span class="n">src</span><span class="p">,</span> <span class="n">dst</span> <span class="ow">in</span> <span class="n">pointers</span><span class="p">:</span>
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Heap leak to </span><span class="si">{</span><span class="n">dst</span><span class="si">}</span><span class="s2"> found at </span><span class="si">{</span><span class="n">src</span><span class="si">}</span><span class="s2"> points&quot;</span><span class="p">)</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Heap leak to </span><span class="si">{</span><span class="n">dst</span><span class="si">}</span><span class="s2"> found at </span><span class="si">{</span><span class="n">src</span><span class="si">}</span><span class="s2"> points"</span><span class="p">)</span>
 </span></code></pre></div>
 </div>
 <h3 id="telescope"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m21.9 8.9-1.7 1-4-6.9 1.7-1zm-12.1-1 3 5.2 6.1-3.5-3-5.2zm1.6 4.8-2-3.5-4.3 2.5 2 3.5zm-9.3 1.9 1 1.7 2.6-1.5-1-1.7zm10-.6-.3-.4-4.3 2.5.3.4c.2.3.5.6.8.8L7 22h2l1.4-4.3h.1L12 22h2l-1.9-5.6c.5-.7.5-1.6 0-2.4"/></svg></span> Telescope</h3>
 <p>The <code>memory</code> attribute of the <a href="../../from_pydoc/generated/debugger/debugger/">Debugger</a> object also allow you to traverse a chain of pointers in memory, starting from a given address. This is particularly useful for exploring complex data structures or following pointers through multiple levels of indirection.</p>
 <p>For example, let's say the return value of <code>telescope(0x7ffff7fcb200)</code> is:
-<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>[0x7ffff7fcb200, 0x7ffff7fcb208, 0x7ffff7fcb210, &quot;provola&quot;]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>[0x7ffff7fcb200, 0x7ffff7fcb208, 0x7ffff7fcb210, "provola"]
 </span></code></pre></div></p>
 <p>This means that <code>0x7ffff7fcb200</code> (input address) points to <code>0x7ffff7fcb208</code>, which points to <code>0x7ffff7fcb210</code>, which contains the string <code>"provola"</code>.</p>
 <div class="admonition abstract">
@@ -2712,7 +2712,7 @@ Please note that contrary to what happens in GDB, the offset is always interpret
 <div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">When creating the Debugger object</label><label for="__tabbed_2_2">At runtime</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<div class="language-python highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="n">d</span> <span class="o">=</span> <span class="n">debugger</span><span class="p">(</span><span class="s2">&quot;test&quot;</span><span class="p">,</span> <span class="n">fast_memory</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="n">d</span> <span class="o">=</span> <span class="n">debugger</span><span class="p">(</span><span class="s2">"test"</span><span class="p">,</span> <span class="n">fast_memory</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </span></code></pre></div>
 </div>
 <div class="tabbed-block">
@@ -2813,10 +2813,10 @@ Please note that contrary to what happens in GDB, the offset is always interpret
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../javascripts/mathjax.js"></script>
       

@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../assets/favicon.ico">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
     
     
       
@@ -29,10 +29,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2416,7 +2416,7 @@
 <p>The <code>watchpoint()</code> function in the <a href="../../from_pydoc/generated/debugger/debugger/">Debugger</a> object sets a watchpoint at a specific address. While you can also use the <a href="../breakpoints/#libdebug-api-for-breakpoints">breakpoint API</a> to set up a watchpoint, a specific API is provided for your convenience:</p>
 <div class="admonition abstract">
 <p class="admonition-title">Function Signature</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">d</span><span class="o">.</span><span class="n">watchpoint</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="s1">&#39;hybrid&#39;</span><span class="p">)</span> 
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">d</span><span class="o">.</span><span class="n">watchpoint</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="s1">'w'</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="s1">'hybrid'</span><span class="p">)</span> 
 </span></code></pre></div>
 </div>
 <p><strong>Parameters</strong>:</p>
@@ -2576,13 +2576,13 @@
 <div class="admonition abstract">
 <p class="admonition-title">Example usage of asynchronous watchpoints</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">on_watchpoint_hit</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">bp</span><span class="p">):</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;RAX: </span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">regs</span><span class="o">.</span><span class="n">rax</span><span class="si">:</span><span class="s2">#x</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"RAX: </span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">regs</span><span class="o">.</span><span class="n">rax</span><span class="si">:</span><span class="s2">#x</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
 </span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="k">if</span> <span class="n">bp</span><span class="o">.</span><span class="n">hit_count</span> <span class="o">==</span> <span class="mi">100</span><span class="p">:</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hit count reached 100&quot;</span><span class="p">)</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>        <span class="nb">print</span><span class="p">(</span><span class="s2">"Hit count reached 100"</span><span class="p">)</span>
 </span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>        <span class="n">bp</span><span class="o">.</span><span class="n">disable</span><span class="p">()</span>
 </span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">d</span><span class="o">.</span><span class="n">watchpoint</span><span class="p">(</span><span class="mh">0x11f0</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="s2">&quot;rw&quot;</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="n">on_watchpoint_hit</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="s2">&quot;binary&quot;</span><span class="p">)</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">d</span><span class="o">.</span><span class="n">watchpoint</span><span class="p">(</span><span class="mh">0x11f0</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="s2">"rw"</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="n">on_watchpoint_hit</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="s2">"binary"</span><span class="p">)</span>
 </span></code></pre></div>
 </div>
 
@@ -2677,10 +2677,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../javascripts/mathjax.js"></script>
       

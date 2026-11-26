@@ -17,7 +17,7 @@
       
       
       <link rel="icon" href="../../../../assets/favicon.ico">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
     
     
       
@@ -25,10 +25,10 @@
       
     
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2314,57 +2314,57 @@
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>libdebug/data/gdb_resume_event.py</code></summary>
-                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-15">15</a></span>
-<span class="normal"><a href="#__codelineno-0-16">16</a></span>
-<span class="normal"><a href="#__codelineno-0-17">17</a></span>
-<span class="normal"><a href="#__codelineno-0-18">18</a></span>
-<span class="normal"><a href="#__codelineno-0-19">19</a></span>
-<span class="normal"><a href="#__codelineno-0-20">20</a></span>
-<span class="normal"><a href="#__codelineno-0-21">21</a></span>
-<span class="normal"><a href="#__codelineno-0-22">22</a></span>
-<span class="normal"><a href="#__codelineno-0-23">23</a></span>
-<span class="normal"><a href="#__codelineno-0-24">24</a></span>
-<span class="normal"><a href="#__codelineno-0-25">25</a></span>
-<span class="normal"><a href="#__codelineno-0-26">26</a></span>
-<span class="normal"><a href="#__codelineno-0-27">27</a></span>
-<span class="normal"><a href="#__codelineno-0-28">28</a></span>
-<span class="normal"><a href="#__codelineno-0-29">29</a></span>
-<span class="normal"><a href="#__codelineno-0-30">30</a></span>
-<span class="normal"><a href="#__codelineno-0-31">31</a></span>
-<span class="normal"><a href="#__codelineno-0-32">32</a></span>
-<span class="normal"><a href="#__codelineno-0-33">33</a></span>
-<span class="normal"><a href="#__codelineno-0-34">34</a></span>
-<span class="normal"><a href="#__codelineno-0-35">35</a></span>
-<span class="normal"><a href="#__codelineno-0-36">36</a></span>
-<span class="normal"><a href="#__codelineno-0-37">37</a></span>
-<span class="normal"><a href="#__codelineno-0-38">38</a></span>
-<span class="normal"><a href="#__codelineno-0-39">39</a></span>
-<span class="normal"><a href="#__codelineno-0-40">40</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="k">class</span><span class="w"> </span><span class="nc">GdbResumeEvent</span><span class="p">:</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;This class handles the actions needed to resume the debugging session, after returning from GDB.&quot;&quot;&quot;</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17"></a>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19"></a>        <span class="bp">self</span><span class="p">:</span> <span class="n">GdbResumeEvent</span><span class="p">,</span>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a>        <span class="n">internal_debugger</span><span class="p">:</span> <span class="n">InternalDebugger</span><span class="p">,</span>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a>        <span class="n">lambda_function</span><span class="p">:</span> <span class="nb">callable</span><span class="p">[[],</span> <span class="kc">None</span><span class="p">],</span>
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Initializes the GdbResumeEvent.</span>
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24"></a>
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a><span class="sd">        Args:</span>
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="sd">            internal_debugger (InternalDebugger): The internal debugger instance.</span>
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="sd">            lambda_function (callable[[], None]): The blocking lambda function to wait on.</span>
-</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span> <span class="o">=</span> <span class="n">internal_debugger</span>
-</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_lambda_function</span> <span class="o">=</span> <span class="n">lambda_function</span>
-</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_joined</span> <span class="o">=</span> <span class="kc">False</span>
-</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32"></a>
-</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">join</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">GdbResumeEvent</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Resumes the debugging session, blocking the script until GDB terminate and libdebug reattaches.&quot;&quot;&quot;</span>
-</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_joined</span><span class="p">:</span>
-</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36"></a>            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;GdbResumeEvent already joined&quot;</span><span class="p">)</span>
-</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37"></a>
-</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_lambda_function</span><span class="p">()</span>
-</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">_resume_from_gdb</span><span class="p">()</span>
-</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_joined</span> <span class="o">=</span> <span class="kc">True</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-15">15</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-16">16</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-17">17</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-18">18</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-19">19</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-20">20</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-21">21</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-22">22</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-23">23</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-24">24</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-25">25</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-26">26</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-27">27</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-28">28</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-29">29</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-30">30</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-31">31</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-32">32</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-33">33</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-34">34</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-35">35</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-36">36</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-37">37</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-38">38</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-39">39</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-40">40</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__span-0-15"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-15" name="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-15"></a><span class="k">class</span><span class="w"> </span><span class="nc">GdbResumeEvent</span><span class="p">:</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__span-0-16"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-16" name="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-16"></a><span class="w">    </span><span class="sd">"""This class handles the actions needed to resume the debugging session, after returning from GDB."""</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__span-0-17"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-17" name="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-17"></a>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__span-0-18"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-18" name="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-18"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__span-0-19"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-19" name="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-19"></a>        <span class="bp">self</span><span class="p">:</span> <span class="n">GdbResumeEvent</span><span class="p">,</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__span-0-20"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-20" name="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-20"></a>        <span class="n">internal_debugger</span><span class="p">:</span> <span class="n">InternalDebugger</span><span class="p">,</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__span-0-21"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-21" name="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-21"></a>        <span class="n">lambda_function</span><span class="p">:</span> <span class="nb">callable</span><span class="p">[[],</span> <span class="kc">None</span><span class="p">],</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__span-0-22"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-22" name="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-22"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__span-0-23"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-23" name="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-23"></a><span class="w">        </span><span class="sd">"""Initializes the GdbResumeEvent.</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__span-0-24"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-24" name="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-24"></a>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__span-0-25"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-25" name="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-25"></a><span class="sd">        Args:</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__span-0-26"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-26" name="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-26"></a><span class="sd">            internal_debugger (InternalDebugger): The internal debugger instance.</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__span-0-27"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-27" name="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-27"></a><span class="sd">            lambda_function (callable[[], None]): The blocking lambda function to wait on.</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__span-0-28"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-28" name="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-28"></a><span class="sd">        """</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__span-0-29"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-29" name="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-29"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span> <span class="o">=</span> <span class="n">internal_debugger</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__span-0-30"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-30" name="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-30"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_lambda_function</span> <span class="o">=</span> <span class="n">lambda_function</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__span-0-31"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-31" name="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-31"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_joined</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__span-0-32"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-32" name="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-32"></a>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__span-0-33"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-33" name="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-33"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">join</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">GdbResumeEvent</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__span-0-34"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-34" name="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-34"></a><span class="w">        </span><span class="sd">"""Resumes the debugging session, blocking the script until GDB terminate and libdebug reattaches."""</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__span-0-35"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-35" name="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-35"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_joined</span><span class="p">:</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__span-0-36"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-36" name="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-36"></a>            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"GdbResumeEvent already joined"</span><span class="p">)</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__span-0-37"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-37" name="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-37"></a>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__span-0-38"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-38" name="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-38"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_lambda_function</span><span class="p">()</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__span-0-39"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-39" name="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-39"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">_resume_from_gdb</span><span class="p">()</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__span-0-40"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-40" name="libdebug.data.gdb_resume_event.GdbResumeEvent--source--__codelineno-0-40"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_joined</span> <span class="o">=</span> <span class="kc">True</span>
 </span></code></pre></div></td></tr></table></div>
               </details>
 
@@ -2444,33 +2444,33 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>libdebug/data/gdb_resume_event.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-18">18</a></span>
-<span class="normal"><a href="#__codelineno-0-19">19</a></span>
-<span class="normal"><a href="#__codelineno-0-20">20</a></span>
-<span class="normal"><a href="#__codelineno-0-21">21</a></span>
-<span class="normal"><a href="#__codelineno-0-22">22</a></span>
-<span class="normal"><a href="#__codelineno-0-23">23</a></span>
-<span class="normal"><a href="#__codelineno-0-24">24</a></span>
-<span class="normal"><a href="#__codelineno-0-25">25</a></span>
-<span class="normal"><a href="#__codelineno-0-26">26</a></span>
-<span class="normal"><a href="#__codelineno-0-27">27</a></span>
-<span class="normal"><a href="#__codelineno-0-28">28</a></span>
-<span class="normal"><a href="#__codelineno-0-29">29</a></span>
-<span class="normal"><a href="#__codelineno-0-30">30</a></span>
-<span class="normal"><a href="#__codelineno-0-31">31</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19"></a>    <span class="bp">self</span><span class="p">:</span> <span class="n">GdbResumeEvent</span><span class="p">,</span>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a>    <span class="n">internal_debugger</span><span class="p">:</span> <span class="n">InternalDebugger</span><span class="p">,</span>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a>    <span class="n">lambda_function</span><span class="p">:</span> <span class="nb">callable</span><span class="p">[[],</span> <span class="kc">None</span><span class="p">],</span>
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Initializes the GdbResumeEvent.</span>
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24"></a>
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="sd">        internal_debugger (InternalDebugger): The internal debugger instance.</span>
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="sd">        lambda_function (callable[[], None]): The blocking lambda function to wait on.</span>
-</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span> <span class="o">=</span> <span class="n">internal_debugger</span>
-</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_lambda_function</span> <span class="o">=</span> <span class="n">lambda_function</span>
-</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_joined</span> <span class="o">=</span> <span class="kc">False</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-18">18</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-19">19</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-20">20</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-21">21</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-22">22</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-23">23</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-24">24</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-25">25</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-26">26</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-27">27</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-28">28</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-29">29</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-30">30</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-31">31</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__span-0-18"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-18" name="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-18"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__span-0-19"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-19" name="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-19"></a>    <span class="bp">self</span><span class="p">:</span> <span class="n">GdbResumeEvent</span><span class="p">,</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__span-0-20"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-20" name="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-20"></a>    <span class="n">internal_debugger</span><span class="p">:</span> <span class="n">InternalDebugger</span><span class="p">,</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__span-0-21"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-21" name="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-21"></a>    <span class="n">lambda_function</span><span class="p">:</span> <span class="nb">callable</span><span class="p">[[],</span> <span class="kc">None</span><span class="p">],</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__span-0-22"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-22" name="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-22"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__span-0-23"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-23" name="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-23"></a><span class="w">    </span><span class="sd">"""Initializes the GdbResumeEvent.</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__span-0-24"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-24" name="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-24"></a>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__span-0-25"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-25" name="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-25"></a><span class="sd">    Args:</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__span-0-26"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-26" name="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-26"></a><span class="sd">        internal_debugger (InternalDebugger): The internal debugger instance.</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__span-0-27"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-27" name="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-27"></a><span class="sd">        lambda_function (callable[[], None]): The blocking lambda function to wait on.</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__span-0-28"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-28" name="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-28"></a><span class="sd">    """</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__span-0-29"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-29" name="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-29"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span> <span class="o">=</span> <span class="n">internal_debugger</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__span-0-30"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-30" name="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-30"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_lambda_function</span> <span class="o">=</span> <span class="n">lambda_function</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__span-0-31"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-31" name="libdebug.data.gdb_resume_event.GdbResumeEvent.__init__--source--__codelineno-0-31"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_joined</span> <span class="o">=</span> <span class="kc">False</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2493,21 +2493,21 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>libdebug/data/gdb_resume_event.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-33">33</a></span>
-<span class="normal"><a href="#__codelineno-0-34">34</a></span>
-<span class="normal"><a href="#__codelineno-0-35">35</a></span>
-<span class="normal"><a href="#__codelineno-0-36">36</a></span>
-<span class="normal"><a href="#__codelineno-0-37">37</a></span>
-<span class="normal"><a href="#__codelineno-0-38">38</a></span>
-<span class="normal"><a href="#__codelineno-0-39">39</a></span>
-<span class="normal"><a href="#__codelineno-0-40">40</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33"></a><span class="k">def</span><span class="w"> </span><span class="nf">join</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">GdbResumeEvent</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Resumes the debugging session, blocking the script until GDB terminate and libdebug reattaches.&quot;&quot;&quot;</span>
-</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_joined</span><span class="p">:</span>
-</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36"></a>        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;GdbResumeEvent already joined&quot;</span><span class="p">)</span>
-</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37"></a>
-</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_lambda_function</span><span class="p">()</span>
-</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">_resume_from_gdb</span><span class="p">()</span>
-</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_joined</span> <span class="o">=</span> <span class="kc">True</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__codelineno-0-33">33</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__codelineno-0-34">34</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__codelineno-0-35">35</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__codelineno-0-36">36</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__codelineno-0-37">37</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__codelineno-0-38">38</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__codelineno-0-39">39</a></span>
+<span class="normal"><a href="#libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__codelineno-0-40">40</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__span-0-33"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__codelineno-0-33" name="libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__codelineno-0-33"></a><span class="k">def</span><span class="w"> </span><span class="nf">join</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">GdbResumeEvent</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__span-0-34"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__codelineno-0-34" name="libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__codelineno-0-34"></a><span class="w">    </span><span class="sd">"""Resumes the debugging session, blocking the script until GDB terminate and libdebug reattaches."""</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__span-0-35"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__codelineno-0-35" name="libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__codelineno-0-35"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_joined</span><span class="p">:</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__span-0-36"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__codelineno-0-36" name="libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__codelineno-0-36"></a>        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"GdbResumeEvent already joined"</span><span class="p">)</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__span-0-37"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__codelineno-0-37" name="libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__codelineno-0-37"></a>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__span-0-38"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__codelineno-0-38" name="libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__codelineno-0-38"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_lambda_function</span><span class="p">()</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__span-0-39"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__codelineno-0-39" name="libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__codelineno-0-39"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_internal_debugger</span><span class="o">.</span><span class="n">_resume_from_gdb</span><span class="p">()</span>
+</span><span id="libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__span-0-40"><a id="libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__codelineno-0-40" name="libdebug.data.gdb_resume_event.GdbResumeEvent.join--source--__codelineno-0-40"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_joined</span> <span class="o">=</span> <span class="kc">True</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2584,10 +2584,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../../../javascripts/mathjax.js"></script>
       

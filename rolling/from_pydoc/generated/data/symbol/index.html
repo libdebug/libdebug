@@ -17,7 +17,7 @@
       
       
       <link rel="icon" href="../../../../assets/favicon.ico">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
     
     
       
@@ -25,10 +25,10 @@
       
     
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2325,61 +2325,61 @@ is_external (bool): Whether the symbol is external or not.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>libdebug/data/symbol.py</code></summary>
-                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-12">12</a></span>
-<span class="normal"><a href="#__codelineno-0-13">13</a></span>
-<span class="normal"><a href="#__codelineno-0-14">14</a></span>
-<span class="normal"><a href="#__codelineno-0-15">15</a></span>
-<span class="normal"><a href="#__codelineno-0-16">16</a></span>
-<span class="normal"><a href="#__codelineno-0-17">17</a></span>
-<span class="normal"><a href="#__codelineno-0-18">18</a></span>
-<span class="normal"><a href="#__codelineno-0-19">19</a></span>
-<span class="normal"><a href="#__codelineno-0-20">20</a></span>
-<span class="normal"><a href="#__codelineno-0-21">21</a></span>
-<span class="normal"><a href="#__codelineno-0-22">22</a></span>
-<span class="normal"><a href="#__codelineno-0-23">23</a></span>
-<span class="normal"><a href="#__codelineno-0-24">24</a></span>
-<span class="normal"><a href="#__codelineno-0-25">25</a></span>
-<span class="normal"><a href="#__codelineno-0-26">26</a></span>
-<span class="normal"><a href="#__codelineno-0-27">27</a></span>
-<span class="normal"><a href="#__codelineno-0-28">28</a></span>
-<span class="normal"><a href="#__codelineno-0-29">29</a></span>
-<span class="normal"><a href="#__codelineno-0-30">30</a></span>
-<span class="normal"><a href="#__codelineno-0-31">31</a></span>
-<span class="normal"><a href="#__codelineno-0-32">32</a></span>
-<span class="normal"><a href="#__codelineno-0-33">33</a></span>
-<span class="normal"><a href="#__codelineno-0-34">34</a></span>
-<span class="normal"><a href="#__codelineno-0-35">35</a></span>
-<span class="normal"><a href="#__codelineno-0-36">36</a></span>
-<span class="normal"><a href="#__codelineno-0-37">37</a></span>
-<span class="normal"><a href="#__codelineno-0-38">38</a></span>
-<span class="normal"><a href="#__codelineno-0-39">39</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12"></a><span class="nd">@dataclass</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13"></a><span class="k">class</span><span class="w"> </span><span class="nc">Symbol</span><span class="p">:</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;A symbol in the target process.</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15"></a>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16"></a><span class="sd">    start (int): The start address of the symbol in the target process.</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="sd">    end (int): The end address of the symbol in the target process.</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="sd">    name (str): The name of the symbol in the target process.</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19"></a><span class="sd">    backing_file (str): The backing file of the symbol in the target process.</span>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="sd">    reference_file (str): The file that the symbol&#39;s offsets refer to in the target process.</span>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="sd">    reference_build_id (str | None): The build ID of the reference file.</span>
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22"></a><span class="sd">    is_external (bool): Whether the symbol is external or not.</span>
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24"></a>
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a>    <span class="n">start</span><span class="p">:</span> <span class="nb">int</span>
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a>    <span class="n">end</span><span class="p">:</span> <span class="nb">int</span>
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a>    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
-</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a>    <span class="n">backing_file</span><span class="p">:</span> <span class="nb">str</span>
-</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a>    <span class="n">reference_file</span><span class="p">:</span> <span class="nb">str</span>
-</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a>    <span class="n">reference_build_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
-</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31"></a>    <span class="n">is_external</span><span class="p">:</span> <span class="nb">bool</span>
-</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32"></a>
-</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Symbol</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the hash of the symbol.&quot;&quot;&quot;</span>
-</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35"></a>        <span class="k">return</span> <span class="nb">hash</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">backing_file</span><span class="p">))</span>
-</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36"></a>
-</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Symbol</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the string representation of the symbol.&quot;&quot;&quot;</span>
-</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39"></a>        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Symbol(start=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="si">:</span><span class="s2">#x</span><span class="si">}</span><span class="s2">, end=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="si">:</span><span class="s2">#x</span><span class="si">}</span><span class="s2">, name=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, backing_file=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">backing_file</span><span class="si">}</span><span class="s2">, reference_file=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_file</span><span class="si">}</span><span class="s2">, reference_build_id=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_build_id</span><span class="si">}</span><span class="s2">, is_external=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">is_external</span><span class="si">}</span><span class="s2">)&quot;</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-12">12</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-13">13</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-14">14</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-15">15</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-16">16</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-17">17</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-18">18</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-19">19</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-20">20</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-21">21</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-22">22</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-23">23</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-24">24</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-25">25</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-26">26</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-27">27</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-28">28</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-29">29</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-30">30</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-31">31</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-32">32</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-33">33</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-34">34</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-35">35</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-36">36</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-37">37</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-38">38</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol--source--__codelineno-0-39">39</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="libdebug.data.symbol.Symbol--source--__span-0-12"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-12" name="libdebug.data.symbol.Symbol--source--__codelineno-0-12"></a><span class="nd">@dataclass</span>
+</span><span id="libdebug.data.symbol.Symbol--source--__span-0-13"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-13" name="libdebug.data.symbol.Symbol--source--__codelineno-0-13"></a><span class="k">class</span><span class="w"> </span><span class="nc">Symbol</span><span class="p">:</span>
+</span><span id="libdebug.data.symbol.Symbol--source--__span-0-14"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-14" name="libdebug.data.symbol.Symbol--source--__codelineno-0-14"></a><span class="w">    </span><span class="sd">"""A symbol in the target process.</span>
+</span><span id="libdebug.data.symbol.Symbol--source--__span-0-15"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-15" name="libdebug.data.symbol.Symbol--source--__codelineno-0-15"></a>
+</span><span id="libdebug.data.symbol.Symbol--source--__span-0-16"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-16" name="libdebug.data.symbol.Symbol--source--__codelineno-0-16"></a><span class="sd">    start (int): The start address of the symbol in the target process.</span>
+</span><span id="libdebug.data.symbol.Symbol--source--__span-0-17"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-17" name="libdebug.data.symbol.Symbol--source--__codelineno-0-17"></a><span class="sd">    end (int): The end address of the symbol in the target process.</span>
+</span><span id="libdebug.data.symbol.Symbol--source--__span-0-18"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-18" name="libdebug.data.symbol.Symbol--source--__codelineno-0-18"></a><span class="sd">    name (str): The name of the symbol in the target process.</span>
+</span><span id="libdebug.data.symbol.Symbol--source--__span-0-19"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-19" name="libdebug.data.symbol.Symbol--source--__codelineno-0-19"></a><span class="sd">    backing_file (str): The backing file of the symbol in the target process.</span>
+</span><span id="libdebug.data.symbol.Symbol--source--__span-0-20"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-20" name="libdebug.data.symbol.Symbol--source--__codelineno-0-20"></a><span class="sd">    reference_file (str): The file that the symbol's offsets refer to in the target process.</span>
+</span><span id="libdebug.data.symbol.Symbol--source--__span-0-21"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-21" name="libdebug.data.symbol.Symbol--source--__codelineno-0-21"></a><span class="sd">    reference_build_id (str | None): The build ID of the reference file.</span>
+</span><span id="libdebug.data.symbol.Symbol--source--__span-0-22"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-22" name="libdebug.data.symbol.Symbol--source--__codelineno-0-22"></a><span class="sd">    is_external (bool): Whether the symbol is external or not.</span>
+</span><span id="libdebug.data.symbol.Symbol--source--__span-0-23"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-23" name="libdebug.data.symbol.Symbol--source--__codelineno-0-23"></a><span class="sd">    """</span>
+</span><span id="libdebug.data.symbol.Symbol--source--__span-0-24"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-24" name="libdebug.data.symbol.Symbol--source--__codelineno-0-24"></a>
+</span><span id="libdebug.data.symbol.Symbol--source--__span-0-25"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-25" name="libdebug.data.symbol.Symbol--source--__codelineno-0-25"></a>    <span class="n">start</span><span class="p">:</span> <span class="nb">int</span>
+</span><span id="libdebug.data.symbol.Symbol--source--__span-0-26"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-26" name="libdebug.data.symbol.Symbol--source--__codelineno-0-26"></a>    <span class="n">end</span><span class="p">:</span> <span class="nb">int</span>
+</span><span id="libdebug.data.symbol.Symbol--source--__span-0-27"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-27" name="libdebug.data.symbol.Symbol--source--__codelineno-0-27"></a>    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+</span><span id="libdebug.data.symbol.Symbol--source--__span-0-28"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-28" name="libdebug.data.symbol.Symbol--source--__codelineno-0-28"></a>    <span class="n">backing_file</span><span class="p">:</span> <span class="nb">str</span>
+</span><span id="libdebug.data.symbol.Symbol--source--__span-0-29"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-29" name="libdebug.data.symbol.Symbol--source--__codelineno-0-29"></a>    <span class="n">reference_file</span><span class="p">:</span> <span class="nb">str</span>
+</span><span id="libdebug.data.symbol.Symbol--source--__span-0-30"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-30" name="libdebug.data.symbol.Symbol--source--__codelineno-0-30"></a>    <span class="n">reference_build_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
+</span><span id="libdebug.data.symbol.Symbol--source--__span-0-31"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-31" name="libdebug.data.symbol.Symbol--source--__codelineno-0-31"></a>    <span class="n">is_external</span><span class="p">:</span> <span class="nb">bool</span>
+</span><span id="libdebug.data.symbol.Symbol--source--__span-0-32"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-32" name="libdebug.data.symbol.Symbol--source--__codelineno-0-32"></a>
+</span><span id="libdebug.data.symbol.Symbol--source--__span-0-33"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-33" name="libdebug.data.symbol.Symbol--source--__codelineno-0-33"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Symbol</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+</span><span id="libdebug.data.symbol.Symbol--source--__span-0-34"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-34" name="libdebug.data.symbol.Symbol--source--__codelineno-0-34"></a><span class="w">        </span><span class="sd">"""Returns the hash of the symbol."""</span>
+</span><span id="libdebug.data.symbol.Symbol--source--__span-0-35"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-35" name="libdebug.data.symbol.Symbol--source--__codelineno-0-35"></a>        <span class="k">return</span> <span class="nb">hash</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">backing_file</span><span class="p">))</span>
+</span><span id="libdebug.data.symbol.Symbol--source--__span-0-36"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-36" name="libdebug.data.symbol.Symbol--source--__codelineno-0-36"></a>
+</span><span id="libdebug.data.symbol.Symbol--source--__span-0-37"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-37" name="libdebug.data.symbol.Symbol--source--__codelineno-0-37"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Symbol</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="libdebug.data.symbol.Symbol--source--__span-0-38"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-38" name="libdebug.data.symbol.Symbol--source--__codelineno-0-38"></a><span class="w">        </span><span class="sd">"""Returns the string representation of the symbol."""</span>
+</span><span id="libdebug.data.symbol.Symbol--source--__span-0-39"><a id="libdebug.data.symbol.Symbol--source--__codelineno-0-39" name="libdebug.data.symbol.Symbol--source--__codelineno-0-39"></a>        <span class="k">return</span> <span class="sa">f</span><span class="s2">"Symbol(start=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="si">:</span><span class="s2">#x</span><span class="si">}</span><span class="s2">, end=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="si">:</span><span class="s2">#x</span><span class="si">}</span><span class="s2">, name=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, backing_file=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">backing_file</span><span class="si">}</span><span class="s2">, reference_file=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_file</span><span class="si">}</span><span class="s2">, reference_build_id=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_build_id</span><span class="si">}</span><span class="s2">, is_external=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">is_external</span><span class="si">}</span><span class="s2">)"</span>
 </span></code></pre></div></td></tr></table></div>
               </details>
 
@@ -2412,11 +2412,11 @@ is_external (bool): Whether the symbol is external or not.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>libdebug/data/symbol.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-33">33</a></span>
-<span class="normal"><a href="#__codelineno-0-34">34</a></span>
-<span class="normal"><a href="#__codelineno-0-35">35</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33"></a><span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Symbol</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns the hash of the symbol.&quot;&quot;&quot;</span>
-</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35"></a>    <span class="k">return</span> <span class="nb">hash</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">backing_file</span><span class="p">))</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#libdebug.data.symbol.Symbol.__hash__--source--__codelineno-0-33">33</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol.__hash__--source--__codelineno-0-34">34</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol.__hash__--source--__codelineno-0-35">35</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="libdebug.data.symbol.Symbol.__hash__--source--__span-0-33"><a id="libdebug.data.symbol.Symbol.__hash__--source--__codelineno-0-33" name="libdebug.data.symbol.Symbol.__hash__--source--__codelineno-0-33"></a><span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Symbol</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+</span><span id="libdebug.data.symbol.Symbol.__hash__--source--__span-0-34"><a id="libdebug.data.symbol.Symbol.__hash__--source--__codelineno-0-34" name="libdebug.data.symbol.Symbol.__hash__--source--__codelineno-0-34"></a><span class="w">    </span><span class="sd">"""Returns the hash of the symbol."""</span>
+</span><span id="libdebug.data.symbol.Symbol.__hash__--source--__span-0-35"><a id="libdebug.data.symbol.Symbol.__hash__--source--__codelineno-0-35" name="libdebug.data.symbol.Symbol.__hash__--source--__codelineno-0-35"></a>    <span class="k">return</span> <span class="nb">hash</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">backing_file</span><span class="p">))</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2439,11 +2439,11 @@ is_external (bool): Whether the symbol is external or not.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>libdebug/data/symbol.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-37">37</a></span>
-<span class="normal"><a href="#__codelineno-0-38">38</a></span>
-<span class="normal"><a href="#__codelineno-0-39">39</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37"></a><span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Symbol</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns the string representation of the symbol.&quot;&quot;&quot;</span>
-</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39"></a>    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Symbol(start=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="si">:</span><span class="s2">#x</span><span class="si">}</span><span class="s2">, end=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="si">:</span><span class="s2">#x</span><span class="si">}</span><span class="s2">, name=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, backing_file=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">backing_file</span><span class="si">}</span><span class="s2">, reference_file=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_file</span><span class="si">}</span><span class="s2">, reference_build_id=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_build_id</span><span class="si">}</span><span class="s2">, is_external=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">is_external</span><span class="si">}</span><span class="s2">)&quot;</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#libdebug.data.symbol.Symbol.__repr__--source--__codelineno-0-37">37</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol.__repr__--source--__codelineno-0-38">38</a></span>
+<span class="normal"><a href="#libdebug.data.symbol.Symbol.__repr__--source--__codelineno-0-39">39</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="libdebug.data.symbol.Symbol.__repr__--source--__span-0-37"><a id="libdebug.data.symbol.Symbol.__repr__--source--__codelineno-0-37" name="libdebug.data.symbol.Symbol.__repr__--source--__codelineno-0-37"></a><span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Symbol</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="libdebug.data.symbol.Symbol.__repr__--source--__span-0-38"><a id="libdebug.data.symbol.Symbol.__repr__--source--__codelineno-0-38" name="libdebug.data.symbol.Symbol.__repr__--source--__codelineno-0-38"></a><span class="w">    </span><span class="sd">"""Returns the string representation of the symbol."""</span>
+</span><span id="libdebug.data.symbol.Symbol.__repr__--source--__span-0-39"><a id="libdebug.data.symbol.Symbol.__repr__--source--__codelineno-0-39" name="libdebug.data.symbol.Symbol.__repr__--source--__codelineno-0-39"></a>    <span class="k">return</span> <span class="sa">f</span><span class="s2">"Symbol(start=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="si">:</span><span class="s2">#x</span><span class="si">}</span><span class="s2">, end=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="si">:</span><span class="s2">#x</span><span class="si">}</span><span class="s2">, name=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, backing_file=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">backing_file</span><span class="si">}</span><span class="s2">, reference_file=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_file</span><span class="si">}</span><span class="s2">, reference_build_id=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_build_id</span><span class="si">}</span><span class="s2">, is_external=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">is_external</span><span class="si">}</span><span class="s2">)"</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2520,10 +2520,10 @@ is_external (bool): Whether the symbol is external or not.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../../../javascripts/mathjax.js"></script>
       

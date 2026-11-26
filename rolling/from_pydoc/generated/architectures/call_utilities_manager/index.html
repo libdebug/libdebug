@@ -17,7 +17,7 @@
       
       
       <link rel="icon" href="../../../../assets/favicon.ico">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
     
     
       
@@ -25,10 +25,10 @@
       
     
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2327,33 +2327,33 @@
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>libdebug/architectures/call_utilities_manager.py</code></summary>
-                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-12">12</a></span>
-<span class="normal"><a href="#__codelineno-0-13">13</a></span>
-<span class="normal"><a href="#__codelineno-0-14">14</a></span>
-<span class="normal"><a href="#__codelineno-0-15">15</a></span>
-<span class="normal"><a href="#__codelineno-0-16">16</a></span>
-<span class="normal"><a href="#__codelineno-0-17">17</a></span>
-<span class="normal"><a href="#__codelineno-0-18">18</a></span>
-<span class="normal"><a href="#__codelineno-0-19">19</a></span>
-<span class="normal"><a href="#__codelineno-0-20">20</a></span>
-<span class="normal"><a href="#__codelineno-0-21">21</a></span>
-<span class="normal"><a href="#__codelineno-0-22">22</a></span>
-<span class="normal"><a href="#__codelineno-0-23">23</a></span>
-<span class="normal"><a href="#__codelineno-0-24">24</a></span>
-<span class="normal"><a href="#__codelineno-0-25">25</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12"></a><span class="k">class</span><span class="w"> </span><span class="nc">CallUtilitiesManager</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;An architecture-independent interface for call instruction utilities.&quot;&quot;&quot;</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14"></a>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15"></a>    <span class="nd">@abstractmethod</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">is_call</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">CallUtilitiesManager</span><span class="p">,</span> <span class="n">opcode_window</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the current instruction is a call instruction.&quot;&quot;&quot;</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18"></a>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19"></a>    <span class="nd">@abstractmethod</span>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">compute_call_skip</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">CallUtilitiesManager</span><span class="p">,</span> <span class="n">opcode_window</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute the address where to skip after the current call instruction.&quot;&quot;&quot;</span>
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22"></a>
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23"></a>    <span class="nd">@abstractmethod</span>
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_call_and_skip_amount</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">opcode_window</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the current instruction is a call instruction and compute the instruction size.&quot;&quot;&quot;</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-12">12</a></span>
+<span class="normal"><a href="#libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-13">13</a></span>
+<span class="normal"><a href="#libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-14">14</a></span>
+<span class="normal"><a href="#libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-15">15</a></span>
+<span class="normal"><a href="#libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-16">16</a></span>
+<span class="normal"><a href="#libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-17">17</a></span>
+<span class="normal"><a href="#libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-18">18</a></span>
+<span class="normal"><a href="#libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-19">19</a></span>
+<span class="normal"><a href="#libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-20">20</a></span>
+<span class="normal"><a href="#libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-21">21</a></span>
+<span class="normal"><a href="#libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-22">22</a></span>
+<span class="normal"><a href="#libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-23">23</a></span>
+<span class="normal"><a href="#libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-24">24</a></span>
+<span class="normal"><a href="#libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-25">25</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__span-0-12"><a id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-12" name="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-12"></a><span class="k">class</span><span class="w"> </span><span class="nc">CallUtilitiesManager</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+</span><span id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__span-0-13"><a id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-13" name="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-13"></a><span class="w">    </span><span class="sd">"""An architecture-independent interface for call instruction utilities."""</span>
+</span><span id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__span-0-14"><a id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-14" name="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-14"></a>
+</span><span id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__span-0-15"><a id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-15" name="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-15"></a>    <span class="nd">@abstractmethod</span>
+</span><span id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__span-0-16"><a id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-16" name="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-16"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">is_call</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">CallUtilitiesManager</span><span class="p">,</span> <span class="n">opcode_window</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__span-0-17"><a id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-17" name="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-17"></a><span class="w">        </span><span class="sd">"""Check if the current instruction is a call instruction."""</span>
+</span><span id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__span-0-18"><a id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-18" name="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-18"></a>
+</span><span id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__span-0-19"><a id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-19" name="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-19"></a>    <span class="nd">@abstractmethod</span>
+</span><span id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__span-0-20"><a id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-20" name="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-20"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">compute_call_skip</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">CallUtilitiesManager</span><span class="p">,</span> <span class="n">opcode_window</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+</span><span id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__span-0-21"><a id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-21" name="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-21"></a><span class="w">        </span><span class="sd">"""Compute the address where to skip after the current call instruction."""</span>
+</span><span id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__span-0-22"><a id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-22" name="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-22"></a>
+</span><span id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__span-0-23"><a id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-23" name="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-23"></a>    <span class="nd">@abstractmethod</span>
+</span><span id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__span-0-24"><a id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-24" name="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-24"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_call_and_skip_amount</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">opcode_window</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+</span><span id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__span-0-25"><a id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-25" name="libdebug.architectures.call_utilities_manager.CallUtilitiesManager--source--__codelineno-0-25"></a><span class="w">        </span><span class="sd">"""Check if the current instruction is a call instruction and compute the instruction size."""</span>
 </span></code></pre></div></td></tr></table></div>
               </details>
 
@@ -2390,11 +2390,11 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>libdebug/architectures/call_utilities_manager.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-19">19</a></span>
-<span class="normal"><a href="#__codelineno-0-20">20</a></span>
-<span class="normal"><a href="#__codelineno-0-21">21</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19"></a><span class="nd">@abstractmethod</span>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="k">def</span><span class="w"> </span><span class="nf">compute_call_skip</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">CallUtilitiesManager</span><span class="p">,</span> <span class="n">opcode_window</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the address where to skip after the current call instruction.&quot;&quot;&quot;</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#libdebug.architectures.call_utilities_manager.CallUtilitiesManager.compute_call_skip--source--__codelineno-0-19">19</a></span>
+<span class="normal"><a href="#libdebug.architectures.call_utilities_manager.CallUtilitiesManager.compute_call_skip--source--__codelineno-0-20">20</a></span>
+<span class="normal"><a href="#libdebug.architectures.call_utilities_manager.CallUtilitiesManager.compute_call_skip--source--__codelineno-0-21">21</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager.compute_call_skip--source--__span-0-19"><a id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager.compute_call_skip--source--__codelineno-0-19" name="libdebug.architectures.call_utilities_manager.CallUtilitiesManager.compute_call_skip--source--__codelineno-0-19"></a><span class="nd">@abstractmethod</span>
+</span><span id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager.compute_call_skip--source--__span-0-20"><a id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager.compute_call_skip--source--__codelineno-0-20" name="libdebug.architectures.call_utilities_manager.CallUtilitiesManager.compute_call_skip--source--__codelineno-0-20"></a><span class="k">def</span><span class="w"> </span><span class="nf">compute_call_skip</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">CallUtilitiesManager</span><span class="p">,</span> <span class="n">opcode_window</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+</span><span id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager.compute_call_skip--source--__span-0-21"><a id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager.compute_call_skip--source--__codelineno-0-21" name="libdebug.architectures.call_utilities_manager.CallUtilitiesManager.compute_call_skip--source--__codelineno-0-21"></a><span class="w">    </span><span class="sd">"""Compute the address where to skip after the current call instruction."""</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2421,11 +2421,11 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>libdebug/architectures/call_utilities_manager.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-23">23</a></span>
-<span class="normal"><a href="#__codelineno-0-24">24</a></span>
-<span class="normal"><a href="#__codelineno-0-25">25</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23"></a><span class="nd">@abstractmethod</span>
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_call_and_skip_amount</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">opcode_window</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Check if the current instruction is a call instruction and compute the instruction size.&quot;&quot;&quot;</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#libdebug.architectures.call_utilities_manager.CallUtilitiesManager.get_call_and_skip_amount--source--__codelineno-0-23">23</a></span>
+<span class="normal"><a href="#libdebug.architectures.call_utilities_manager.CallUtilitiesManager.get_call_and_skip_amount--source--__codelineno-0-24">24</a></span>
+<span class="normal"><a href="#libdebug.architectures.call_utilities_manager.CallUtilitiesManager.get_call_and_skip_amount--source--__codelineno-0-25">25</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager.get_call_and_skip_amount--source--__span-0-23"><a id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager.get_call_and_skip_amount--source--__codelineno-0-23" name="libdebug.architectures.call_utilities_manager.CallUtilitiesManager.get_call_and_skip_amount--source--__codelineno-0-23"></a><span class="nd">@abstractmethod</span>
+</span><span id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager.get_call_and_skip_amount--source--__span-0-24"><a id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager.get_call_and_skip_amount--source--__codelineno-0-24" name="libdebug.architectures.call_utilities_manager.CallUtilitiesManager.get_call_and_skip_amount--source--__codelineno-0-24"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_call_and_skip_amount</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">opcode_window</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+</span><span id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager.get_call_and_skip_amount--source--__span-0-25"><a id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager.get_call_and_skip_amount--source--__codelineno-0-25" name="libdebug.architectures.call_utilities_manager.CallUtilitiesManager.get_call_and_skip_amount--source--__codelineno-0-25"></a><span class="w">    </span><span class="sd">"""Check if the current instruction is a call instruction and compute the instruction size."""</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2452,11 +2452,11 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>libdebug/architectures/call_utilities_manager.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-15">15</a></span>
-<span class="normal"><a href="#__codelineno-0-16">16</a></span>
-<span class="normal"><a href="#__codelineno-0-17">17</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="nd">@abstractmethod</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16"></a><span class="k">def</span><span class="w"> </span><span class="nf">is_call</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">CallUtilitiesManager</span><span class="p">,</span> <span class="n">opcode_window</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Check if the current instruction is a call instruction.&quot;&quot;&quot;</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#libdebug.architectures.call_utilities_manager.CallUtilitiesManager.is_call--source--__codelineno-0-15">15</a></span>
+<span class="normal"><a href="#libdebug.architectures.call_utilities_manager.CallUtilitiesManager.is_call--source--__codelineno-0-16">16</a></span>
+<span class="normal"><a href="#libdebug.architectures.call_utilities_manager.CallUtilitiesManager.is_call--source--__codelineno-0-17">17</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager.is_call--source--__span-0-15"><a id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager.is_call--source--__codelineno-0-15" name="libdebug.architectures.call_utilities_manager.CallUtilitiesManager.is_call--source--__codelineno-0-15"></a><span class="nd">@abstractmethod</span>
+</span><span id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager.is_call--source--__span-0-16"><a id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager.is_call--source--__codelineno-0-16" name="libdebug.architectures.call_utilities_manager.CallUtilitiesManager.is_call--source--__codelineno-0-16"></a><span class="k">def</span><span class="w"> </span><span class="nf">is_call</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">CallUtilitiesManager</span><span class="p">,</span> <span class="n">opcode_window</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager.is_call--source--__span-0-17"><a id="libdebug.architectures.call_utilities_manager.CallUtilitiesManager.is_call--source--__codelineno-0-17" name="libdebug.architectures.call_utilities_manager.CallUtilitiesManager.is_call--source--__codelineno-0-17"></a><span class="w">    </span><span class="sd">"""Check if the current instruction is a call instruction."""</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2533,10 +2533,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../../../javascripts/mathjax.js"></script>
       

@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../assets/favicon.ico">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
     
     
       
@@ -29,10 +29,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2387,9 +2387,9 @@
 <p>As described in the <a href="../../basics/memory_access/#absolute-and-relative-addressing">memory access</a> section, many functions in <strong>libdebug</strong> accept symbols as an alternative to actual addresses or offsets.</p>
 <p>You can list all resolved symbols in the binary and shared libraries using the <code>symbols</code> attribute of the <a href="../../from_pydoc/generated/debugger/debugger/">Debugger</a> object. This attribute returns a <a href="../../from_pydoc/generated/data/symbol_list/">SymbolList</a> object.</p>
 <p>This object grants the user hybrid access to the symbols: as a dict or as a list. Tor example, the following lines of code all have a valid syntax:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">d</span><span class="o">.</span><span class="n">symbols</span><span class="p">[</span><span class="s1">&#39;printf&#39;</span><span class="p">]</span> <span class="c1">#(1)!</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">d</span><span class="o">.</span><span class="n">symbols</span><span class="p">[</span><span class="s1">'printf'</span><span class="p">]</span> <span class="c1">#(1)!</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">d</span><span class="o">.</span><span class="n">symbols</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="c1">#(2)!</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">d</span><span class="o">.</span><span class="n">symbols</span><span class="p">[</span><span class="s1">&#39;printf&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="c1">#(3)!</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">d</span><span class="o">.</span><span class="n">symbols</span><span class="p">[</span><span class="s1">'printf'</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="c1">#(3)!</span>
 </span></code></pre></div>
 <ol>
 <li>Returns a list of symbols that match the string <code>printf</code> exactly.</li>
@@ -2443,7 +2443,7 @@
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">libdebug</span><span class="w"> </span><span class="kn">import</span> <span class="n">libcontext</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">libcontext</span><span class="o">.</span><span class="n">sym_lvl</span> <span class="o">=</span> <span class="mi">3</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">d</span><span class="o">.</span><span class="n">breakpoint</span><span class="p">(</span><span class="s1">&#39;main&#39;</span><span class="p">)</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">d</span><span class="o">.</span><span class="n">breakpoint</span><span class="p">(</span><span class="s1">'main'</span><span class="p">)</span>
 </span></code></pre></div>
 </div>
 <p>If you want to change the symbol resolution level temporarily, you can use a <code>with</code> statement along with the <code>tmp</code> method of the <code>libcontext</code> module.</p>
@@ -2452,7 +2452,7 @@
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">libdebug</span><span class="w"> </span><span class="kn">import</span> <span class="n">libcontext</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="k">with</span> <span class="n">libcontext</span><span class="o">.</span><span class="n">tmp</span><span class="p">(</span><span class="n">sym_lvl</span> <span class="o">=</span> <span class="mi">5</span><span class="p">):</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">d</span><span class="o">.</span><span class="n">breakpoint</span><span class="p">(</span><span class="s1">&#39;main&#39;</span><span class="p">)</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">d</span><span class="o">.</span><span class="n">breakpoint</span><span class="p">(</span><span class="s1">'main'</span><span class="p">)</span>
 </span></code></pre></div>
 </div>
 <h2 id="symbol-filtering"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14 12v7.88c.04.3-.06.62-.29.83a.996.996 0 0 1-1.41 0l-2.01-2.01a.99.99 0 0 1-.29-.83V12h-.03L4.21 4.62a1 1 0 0 1 .17-1.4c.19-.14.4-.22.62-.22h14c.22 0 .43.08.62.22a1 1 0 0 1 .17 1.4L14.03 12z"/></svg></span> Symbol Filtering</h2>
@@ -2606,10 +2606,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../javascripts/mathjax.js"></script>
       

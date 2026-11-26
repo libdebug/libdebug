@@ -17,7 +17,7 @@
       
       
       <link rel="icon" href="../../../../assets/favicon.ico">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
     
     
       
@@ -25,10 +25,10 @@
       
     
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2316,25 +2316,25 @@
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>libdebug/architectures/stack_unwinding_manager.py</code></summary>
-                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-18">18</a></span>
-<span class="normal"><a href="#__codelineno-0-19">19</a></span>
-<span class="normal"><a href="#__codelineno-0-20">20</a></span>
-<span class="normal"><a href="#__codelineno-0-21">21</a></span>
-<span class="normal"><a href="#__codelineno-0-22">22</a></span>
-<span class="normal"><a href="#__codelineno-0-23">23</a></span>
-<span class="normal"><a href="#__codelineno-0-24">24</a></span>
-<span class="normal"><a href="#__codelineno-0-25">25</a></span>
-<span class="normal"><a href="#__codelineno-0-26">26</a></span>
-<span class="normal"><a href="#__codelineno-0-27">27</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="k">class</span><span class="w"> </span><span class="nc">StackUnwindingManager</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;An architecture-independent interface for stack unwinding.&quot;&quot;&quot;</span>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a>    <span class="nd">@abstractmethod</span>
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">unwind</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StackUnwindingManager</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">ThreadContext</span> <span class="o">|</span> <span class="n">Snapshot</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Unwind the stack of the target process.&quot;&quot;&quot;</span>
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24"></a>
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a>    <span class="nd">@abstractmethod</span>
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_return_address</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StackUnwindingManager</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">ThreadContext</span> <span class="o">|</span> <span class="n">Snapshot</span><span class="p">,</span> <span class="n">vmaps</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MemoryMap</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the return address of the current function.&quot;&quot;&quot;</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-18">18</a></span>
+<span class="normal"><a href="#libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-19">19</a></span>
+<span class="normal"><a href="#libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-20">20</a></span>
+<span class="normal"><a href="#libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-21">21</a></span>
+<span class="normal"><a href="#libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-22">22</a></span>
+<span class="normal"><a href="#libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-23">23</a></span>
+<span class="normal"><a href="#libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-24">24</a></span>
+<span class="normal"><a href="#libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-25">25</a></span>
+<span class="normal"><a href="#libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-26">26</a></span>
+<span class="normal"><a href="#libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-27">27</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__span-0-18"><a id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-18" name="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-18"></a><span class="k">class</span><span class="w"> </span><span class="nc">StackUnwindingManager</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+</span><span id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__span-0-19"><a id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-19" name="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-19"></a><span class="w">    </span><span class="sd">"""An architecture-independent interface for stack unwinding."""</span>
+</span><span id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__span-0-20"><a id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-20" name="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-20"></a>
+</span><span id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__span-0-21"><a id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-21" name="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-21"></a>    <span class="nd">@abstractmethod</span>
+</span><span id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__span-0-22"><a id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-22" name="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-22"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">unwind</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StackUnwindingManager</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">ThreadContext</span> <span class="o">|</span> <span class="n">Snapshot</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+</span><span id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__span-0-23"><a id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-23" name="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-23"></a><span class="w">        </span><span class="sd">"""Unwind the stack of the target process."""</span>
+</span><span id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__span-0-24"><a id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-24" name="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-24"></a>
+</span><span id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__span-0-25"><a id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-25" name="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-25"></a>    <span class="nd">@abstractmethod</span>
+</span><span id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__span-0-26"><a id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-26" name="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-26"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_return_address</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StackUnwindingManager</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">ThreadContext</span> <span class="o">|</span> <span class="n">Snapshot</span><span class="p">,</span> <span class="n">vmaps</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MemoryMap</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+</span><span id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__span-0-27"><a id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-27" name="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager--source--__codelineno-0-27"></a><span class="w">        </span><span class="sd">"""Get the return address of the current function."""</span>
 </span></code></pre></div></td></tr></table></div>
               </details>
 
@@ -2371,11 +2371,11 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>libdebug/architectures/stack_unwinding_manager.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-25">25</a></span>
-<span class="normal"><a href="#__codelineno-0-26">26</a></span>
-<span class="normal"><a href="#__codelineno-0-27">27</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a><span class="nd">@abstractmethod</span>
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_return_address</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StackUnwindingManager</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">ThreadContext</span> <span class="o">|</span> <span class="n">Snapshot</span><span class="p">,</span> <span class="n">vmaps</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MemoryMap</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the return address of the current function.&quot;&quot;&quot;</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#libdebug.architectures.stack_unwinding_manager.StackUnwindingManager.get_return_address--source--__codelineno-0-25">25</a></span>
+<span class="normal"><a href="#libdebug.architectures.stack_unwinding_manager.StackUnwindingManager.get_return_address--source--__codelineno-0-26">26</a></span>
+<span class="normal"><a href="#libdebug.architectures.stack_unwinding_manager.StackUnwindingManager.get_return_address--source--__codelineno-0-27">27</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager.get_return_address--source--__span-0-25"><a id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager.get_return_address--source--__codelineno-0-25" name="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager.get_return_address--source--__codelineno-0-25"></a><span class="nd">@abstractmethod</span>
+</span><span id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager.get_return_address--source--__span-0-26"><a id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager.get_return_address--source--__codelineno-0-26" name="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager.get_return_address--source--__codelineno-0-26"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_return_address</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StackUnwindingManager</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">ThreadContext</span> <span class="o">|</span> <span class="n">Snapshot</span><span class="p">,</span> <span class="n">vmaps</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MemoryMap</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+</span><span id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager.get_return_address--source--__span-0-27"><a id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager.get_return_address--source--__codelineno-0-27" name="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager.get_return_address--source--__codelineno-0-27"></a><span class="w">    </span><span class="sd">"""Get the return address of the current function."""</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2402,11 +2402,11 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>libdebug/architectures/stack_unwinding_manager.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-21">21</a></span>
-<span class="normal"><a href="#__codelineno-0-22">22</a></span>
-<span class="normal"><a href="#__codelineno-0-23">23</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="nd">@abstractmethod</span>
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22"></a><span class="k">def</span><span class="w"> </span><span class="nf">unwind</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StackUnwindingManager</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">ThreadContext</span> <span class="o">|</span> <span class="n">Snapshot</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Unwind the stack of the target process.&quot;&quot;&quot;</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#libdebug.architectures.stack_unwinding_manager.StackUnwindingManager.unwind--source--__codelineno-0-21">21</a></span>
+<span class="normal"><a href="#libdebug.architectures.stack_unwinding_manager.StackUnwindingManager.unwind--source--__codelineno-0-22">22</a></span>
+<span class="normal"><a href="#libdebug.architectures.stack_unwinding_manager.StackUnwindingManager.unwind--source--__codelineno-0-23">23</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager.unwind--source--__span-0-21"><a id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager.unwind--source--__codelineno-0-21" name="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager.unwind--source--__codelineno-0-21"></a><span class="nd">@abstractmethod</span>
+</span><span id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager.unwind--source--__span-0-22"><a id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager.unwind--source--__codelineno-0-22" name="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager.unwind--source--__codelineno-0-22"></a><span class="k">def</span><span class="w"> </span><span class="nf">unwind</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StackUnwindingManager</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">ThreadContext</span> <span class="o">|</span> <span class="n">Snapshot</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+</span><span id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager.unwind--source--__span-0-23"><a id="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager.unwind--source--__codelineno-0-23" name="libdebug.architectures.stack_unwinding_manager.StackUnwindingManager.unwind--source--__codelineno-0-23"></a><span class="w">    </span><span class="sd">"""Unwind the stack of the target process."""</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2483,10 +2483,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../../../javascripts/mathjax.js"></script>
       

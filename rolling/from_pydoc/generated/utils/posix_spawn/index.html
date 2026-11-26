@@ -17,7 +17,7 @@
       
       
       <link rel="icon" href="../../../../assets/favicon.ico">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
     
     
       
@@ -25,10 +25,10 @@
       
     
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2277,43 +2277,43 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>libdebug/utils/posix_spawn.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-14">14</a></span>
-<span class="normal"><a href="#__codelineno-0-15">15</a></span>
-<span class="normal"><a href="#__codelineno-0-16">16</a></span>
-<span class="normal"><a href="#__codelineno-0-17">17</a></span>
-<span class="normal"><a href="#__codelineno-0-18">18</a></span>
-<span class="normal"><a href="#__codelineno-0-19">19</a></span>
-<span class="normal"><a href="#__codelineno-0-20">20</a></span>
-<span class="normal"><a href="#__codelineno-0-21">21</a></span>
-<span class="normal"><a href="#__codelineno-0-22">22</a></span>
-<span class="normal"><a href="#__codelineno-0-23">23</a></span>
-<span class="normal"><a href="#__codelineno-0-24">24</a></span>
-<span class="normal"><a href="#__codelineno-0-25">25</a></span>
-<span class="normal"><a href="#__codelineno-0-26">26</a></span>
-<span class="normal"><a href="#__codelineno-0-27">27</a></span>
-<span class="normal"><a href="#__codelineno-0-28">28</a></span>
-<span class="normal"><a href="#__codelineno-0-29">29</a></span>
-<span class="normal"><a href="#__codelineno-0-30">30</a></span>
-<span class="normal"><a href="#__codelineno-0-31">31</a></span>
-<span class="normal"><a href="#__codelineno-0-32">32</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14"></a><span class="k">def</span><span class="w"> </span><span class="nf">posix_spawn</span><span class="p">(</span><span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">argv</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">env</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">file_actions</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">setpgroup</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Spawn a new process, emulating the POSIX spawn function.&quot;&quot;&quot;</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16"></a>    <span class="n">child_pid</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">fork</span><span class="p">()</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17"></a>    <span class="k">if</span> <span class="n">child_pid</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18"></a>        <span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="n">file_actions</span><span class="p">:</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19"></a>            <span class="k">if</span> <span class="n">element</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">POSIX_SPAWN_CLOSE</span><span class="p">:</span>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a>                <span class="n">os</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">element</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a>            <span class="k">elif</span> <span class="n">element</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">POSIX_SPAWN_DUP2</span><span class="p">:</span>
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22"></a>                <span class="n">os</span><span class="o">.</span><span class="n">dup2</span><span class="p">(</span><span class="n">element</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">element</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23"></a>            <span class="k">elif</span> <span class="n">element</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">POSIX_SPAWN_OPEN</span><span class="p">:</span>
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24"></a>                <span class="n">fd</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">flags</span><span class="p">,</span> <span class="n">mode</span> <span class="o">=</span> <span class="n">element</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a>                <span class="n">os</span><span class="o">.</span><span class="n">dup2</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">flags</span><span class="p">,</span> <span class="n">mode</span><span class="p">),</span> <span class="n">fd</span><span class="p">)</span>
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a>            <span class="k">else</span><span class="p">:</span>
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a>                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid file action&quot;</span><span class="p">)</span>
-</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a>        <span class="k">if</span> <span class="n">setpgroup</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a>            <span class="n">os</span><span class="o">.</span><span class="n">setpgid</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a>        <span class="n">os</span><span class="o">.</span><span class="n">execve</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">argv</span><span class="p">,</span> <span class="n">env</span><span class="p">)</span>
-</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31"></a>
-</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32"></a>    <span class="k">return</span> <span class="n">child_pid</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-14">14</a></span>
+<span class="normal"><a href="#libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-15">15</a></span>
+<span class="normal"><a href="#libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-16">16</a></span>
+<span class="normal"><a href="#libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-17">17</a></span>
+<span class="normal"><a href="#libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-18">18</a></span>
+<span class="normal"><a href="#libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-19">19</a></span>
+<span class="normal"><a href="#libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-20">20</a></span>
+<span class="normal"><a href="#libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-21">21</a></span>
+<span class="normal"><a href="#libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-22">22</a></span>
+<span class="normal"><a href="#libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-23">23</a></span>
+<span class="normal"><a href="#libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-24">24</a></span>
+<span class="normal"><a href="#libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-25">25</a></span>
+<span class="normal"><a href="#libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-26">26</a></span>
+<span class="normal"><a href="#libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-27">27</a></span>
+<span class="normal"><a href="#libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-28">28</a></span>
+<span class="normal"><a href="#libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-29">29</a></span>
+<span class="normal"><a href="#libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-30">30</a></span>
+<span class="normal"><a href="#libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-31">31</a></span>
+<span class="normal"><a href="#libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-32">32</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="libdebug.utils.posix_spawn.posix_spawn--source--__span-0-14"><a id="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-14" name="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-14"></a><span class="k">def</span><span class="w"> </span><span class="nf">posix_spawn</span><span class="p">(</span><span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">argv</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">env</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">file_actions</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">setpgroup</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+</span><span id="libdebug.utils.posix_spawn.posix_spawn--source--__span-0-15"><a id="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-15" name="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-15"></a><span class="w">    </span><span class="sd">"""Spawn a new process, emulating the POSIX spawn function."""</span>
+</span><span id="libdebug.utils.posix_spawn.posix_spawn--source--__span-0-16"><a id="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-16" name="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-16"></a>    <span class="n">child_pid</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">fork</span><span class="p">()</span>
+</span><span id="libdebug.utils.posix_spawn.posix_spawn--source--__span-0-17"><a id="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-17" name="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-17"></a>    <span class="k">if</span> <span class="n">child_pid</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span id="libdebug.utils.posix_spawn.posix_spawn--source--__span-0-18"><a id="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-18" name="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-18"></a>        <span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="n">file_actions</span><span class="p">:</span>
+</span><span id="libdebug.utils.posix_spawn.posix_spawn--source--__span-0-19"><a id="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-19" name="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-19"></a>            <span class="k">if</span> <span class="n">element</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">POSIX_SPAWN_CLOSE</span><span class="p">:</span>
+</span><span id="libdebug.utils.posix_spawn.posix_spawn--source--__span-0-20"><a id="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-20" name="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-20"></a>                <span class="n">os</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">element</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+</span><span id="libdebug.utils.posix_spawn.posix_spawn--source--__span-0-21"><a id="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-21" name="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-21"></a>            <span class="k">elif</span> <span class="n">element</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">POSIX_SPAWN_DUP2</span><span class="p">:</span>
+</span><span id="libdebug.utils.posix_spawn.posix_spawn--source--__span-0-22"><a id="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-22" name="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-22"></a>                <span class="n">os</span><span class="o">.</span><span class="n">dup2</span><span class="p">(</span><span class="n">element</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">element</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+</span><span id="libdebug.utils.posix_spawn.posix_spawn--source--__span-0-23"><a id="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-23" name="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-23"></a>            <span class="k">elif</span> <span class="n">element</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">POSIX_SPAWN_OPEN</span><span class="p">:</span>
+</span><span id="libdebug.utils.posix_spawn.posix_spawn--source--__span-0-24"><a id="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-24" name="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-24"></a>                <span class="n">fd</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">flags</span><span class="p">,</span> <span class="n">mode</span> <span class="o">=</span> <span class="n">element</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+</span><span id="libdebug.utils.posix_spawn.posix_spawn--source--__span-0-25"><a id="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-25" name="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-25"></a>                <span class="n">os</span><span class="o">.</span><span class="n">dup2</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">flags</span><span class="p">,</span> <span class="n">mode</span><span class="p">),</span> <span class="n">fd</span><span class="p">)</span>
+</span><span id="libdebug.utils.posix_spawn.posix_spawn--source--__span-0-26"><a id="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-26" name="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-26"></a>            <span class="k">else</span><span class="p">:</span>
+</span><span id="libdebug.utils.posix_spawn.posix_spawn--source--__span-0-27"><a id="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-27" name="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-27"></a>                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Invalid file action"</span><span class="p">)</span>
+</span><span id="libdebug.utils.posix_spawn.posix_spawn--source--__span-0-28"><a id="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-28" name="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-28"></a>        <span class="k">if</span> <span class="n">setpgroup</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span id="libdebug.utils.posix_spawn.posix_spawn--source--__span-0-29"><a id="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-29" name="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-29"></a>            <span class="n">os</span><span class="o">.</span><span class="n">setpgid</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+</span><span id="libdebug.utils.posix_spawn.posix_spawn--source--__span-0-30"><a id="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-30" name="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-30"></a>        <span class="n">os</span><span class="o">.</span><span class="n">execve</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">argv</span><span class="p">,</span> <span class="n">env</span><span class="p">)</span>
+</span><span id="libdebug.utils.posix_spawn.posix_spawn--source--__span-0-31"><a id="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-31" name="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-31"></a>
+</span><span id="libdebug.utils.posix_spawn.posix_spawn--source--__span-0-32"><a id="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-32" name="libdebug.utils.posix_spawn.posix_spawn--source--__codelineno-0-32"></a>    <span class="k">return</span> <span class="n">child_pid</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2381,10 +2381,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../../../javascripts/mathjax.js"></script>
       
