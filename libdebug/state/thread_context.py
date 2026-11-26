@@ -13,7 +13,11 @@ from libdebug.liblog import liblog
 from libdebug.snapshots.thread.thread_snapshot import ThreadSnapshot
 from libdebug.utils.debugging_utils import resolve_address_in_maps
 from libdebug.utils.oop.alias import check_alias, check_aliased_property
-from libdebug.utils.pprint_primitives import pprint_backtrace_util, pprint_registers_all_util, pprint_registers_util
+from libdebug.utils.pprint_primitives import (
+    pprint_backtrace_util,
+    pprint_registers_all_util,
+    pprint_registers_util,
+)
 from libdebug.utils.signal_utils import resolve_signal_name, resolve_signal_number
 
 if TYPE_CHECKING:
@@ -94,7 +98,7 @@ class ThreadContext(ABC):
         self._internal_debugger = internal_debugger
         self._thread_id = thread_id
         self._register_holder = registers
-        RegsSpecializedClass = self._register_holder.provide_regs_class()  # noqa: N806
+        RegsSpecializedClass = self._register_holder.provide_regs_class()
         self.regs = RegsSpecializedClass(
             thread_id,
             self._register_holder.provide_regs(),

@@ -44,7 +44,7 @@ def _cleanup_internal_debugger() -> None:
         try:
             if debugger.stdin_settings_backup:
                 tcsetattr(sys.stdin.fileno(), TCSANOW, debugger.stdin_settings_backup)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - Terminal restoration must not prevent tracee cleanup.
             liblog.debugger(f"Error while restoring the original stdin settings: {e}")
 
         # The following logic MUST work in any situation. This includes scenarios where the polling thread is stuck

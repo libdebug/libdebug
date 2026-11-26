@@ -155,7 +155,7 @@ class PtraceStatusHandler:
             ]
             try:
                 handler.on_enter_user(thread, handler)
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 liblog.error("Exception raised in on-enter callback for syscall %d: %s", handler.syscall_number, e)
                 raise RuntimeError("Unhandled exception in syscall callback") from e
 
@@ -279,7 +279,7 @@ class PtraceStatusHandler:
 
                 try:
                     handler.on_exit_user(thread, handler)
-                except Exception as e:  # noqa: BLE001
+                except Exception as e:
                     liblog.error("Exception raised in on-exit callback for syscall %d: %s", handler.syscall_number, e)
                     raise RuntimeError("Unhandled exception in syscall callback") from e
 
@@ -533,9 +533,9 @@ class PtraceStatusHandler:
         for tid in tids:
             if not self.internal_debugger.get_thread_by_id(tid):
                 self.ptrace_interface.register_new_thread(tid)
-                liblog.debugger("Manually registered new thread %d" % tid)
+                liblog.debugger("Manually registered new thread %d", tid)
 
         for thread in self.internal_debugger.threads:
             if not thread.dead and thread.thread_id not in tids:
                 self.ptrace_interface.unregister_thread(thread.thread_id, None, None)
-                liblog.debugger("Manually unregistered thread %d" % thread.thread_id)
+                liblog.debugger("Manually unregistered thread %d", thread.thread_id)

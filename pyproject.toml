@@ -74,6 +74,7 @@ ignore = ["D100", "EM", "FBT", "G", "TD", "TRY002", "TRY003", "RET505", "SLF001"
 [tool.ruff.lint.per-file-ignores]
 "libdebug/builtin/pretty_print_syscall_handler.py" = ["T201"]
 "libdebug/architectures/amd64/amd64_stack_unwinder.py" = ["S101"]
+"libdebug/utils/pprint_primitives.py" = ["T201"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

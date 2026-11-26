@@ -8,9 +8,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from libdebug.architectures.aarch64.aarch64_breakpoint_validator import validate_breakpoint_aarch64
-from libdebug.architectures.amd64.amd64_breakpoint_validator import validate_breakpoint_amd64
-from libdebug.architectures.i386.i386_breakpoint_validator import validate_breakpoint_i386
+from libdebug.architectures.aarch64.aarch64_breakpoint_validator import (
+    validate_breakpoint_aarch64,
+)
+from libdebug.architectures.amd64.amd64_breakpoint_validator import (
+    validate_breakpoint_amd64,
+)
+from libdebug.architectures.i386.i386_breakpoint_validator import (
+    validate_breakpoint_i386,
+)
 
 if TYPE_CHECKING:
     from libdebug.data.breakpoint import Breakpoint

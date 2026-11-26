@@ -258,7 +258,7 @@ class AbstractMemoryView(MutableSequence, ABC):
 
         return found_pointers
 
-    def telescope(  # noqa: C901
+    def telescope(
         self: AbstractMemoryView,
         address: int,
         max_depth: int = 10,

@@ -11,6 +11,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Mapping
 
+    from typing_extensions import Self
+
 
 class EnvDict(dict[str, str]):
     """A dict that behaves like a normal dict of strings but provides a callback for modifications.
@@ -149,7 +151,7 @@ class EnvDict(dict[str, str]):
         self._call_update_callback()
         super().update(validated_dict)
 
-    def __ior__(self: EnvDict, other: Mapping[str, str]) -> EnvDict:
+    def __ior__(self: Self, other: Mapping[str, str]) -> Self:
         """Implement |= operator."""
         validated_other = EnvDict._validate_string_mapping(other)
         self._call_update_callback()
