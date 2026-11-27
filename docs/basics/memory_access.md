@@ -54,7 +54,7 @@ In **libdebug**, memory access is performed via the `memory` attribute of the [D
 Writing to memory works similarly. You can write a [*bytes-like*](https://docs.python.org/3/glossary.html#term-bytes-like-object) object to memory using the same addressing methods:
 
 ```python
-d.memory[d.rsp, 0x10] = b"AAAAAAABC"
+d.memory[d.regs.rsp, 0x10] = b"AAAAAAABC"
 d.memory["main_arena", 16, "libc"] = b"12345678"
 ```
 
