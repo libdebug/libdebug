@@ -17,7 +17,6 @@ from typing import TYPE_CHECKING
 from libdebug.commlink.buffer_data import BufferData
 from libdebug.commlink.libterminal import LibTerminal
 from libdebug.liblog import liblog
-from libdebug.utils.search_utils import AhoCorasickMatcher
 
 if TYPE_CHECKING:
     from libdebug.debugger.internal_debugger import InternalDebugger
@@ -601,7 +600,7 @@ class PipeManager:
 
     def _internal_match_recvuntil(
         self: PipeManager,
-        patterns: list[bytes],
+        patterns: list[bytes | str],
         drop: bool = False,
         timeout: int = timeout_default,
         stderr: bool = False,
@@ -610,7 +609,7 @@ class PipeManager:
         """Receives data from the child process until one of the patterns is matched.
 
         Args:
-            patterns (list[bytes]): list of patterns to match.
+            patterns (list[bytes | str]): list of patterns to match.
             drop (bool, optional): drop the matched pattern from the received data. Defaults to False.
             timeout (int, optional): timeout in seconds. Defaults to timeout_default.
             stderr (bool, optional): receive from stderr. Defaults to False.
@@ -630,26 +629,30 @@ class PipeManager:
                 liblog.warning("Found str pattern in match_recv, converting to bytes")
                 patterns[i] = patterns[i].encode()
 
-        matcher = AhoCorasickMatcher(patterns)
-
-        pattern_found = -1
-
         # Setting the alarm
         end_time = time.time() + timeout
 
         buffer = self.__stderr_buffer if stderr else self.__stdout_buffer
+        received_numb = None
 
-        while pattern_found < 0:
-            open_flag = self._stderr_is_open if stderr else self._stdout_is_open
+        while True:
+            stream_buffer_data = buffer.get_data()
+            pattern_found = -1
+            match_end_index = None
+            for i, pattern in enumerate(patterns):
+                if (match_start := stream_buffer_data.find(pattern)) != -1:
+                    pattern_end = match_start + len(pattern)
+                    # Stop at the first completed match, using list order to break ties.
+                    if match_end_index is None or pattern_end < match_end_index:
+                        pattern_found = i
+                        match_end_index = pattern_end
 
-            if (remaining_time := max(0, end_time - time.time())) == 0:
-                raise TimeoutError("Timeout reached")
-
-            if not open_flag:
-                # The delimiters are not in the buffer and the pipe is not available
-                raise RuntimeError(f"Broken {'stderr' if stderr else 'stdout'} pipe. Is the child process still alive?")
-
-            received_numb = self._raw_recv(stderr=stderr, timeout=remaining_time)
+            if pattern_found >= 0:
+                ret_data = stream_buffer_data[:match_end_index]
+                buffer.overwrite(stream_buffer_data[match_end_index:])
+                if drop:
+                    ret_data = ret_data[:match_end_index - len(patterns[pattern_found])]
+                break
 
             if (
                 received_numb == 0
@@ -659,45 +662,33 @@ class PipeManager:
             ):
                 # We will not receive more data, the child process is not running
                 if optional:
-                    return (-1, bytes(matcher.consumed_bytes))
-
-                event = self._internal_debugger.resume_context.get_event_type()
+                    buffer.clear()
+                    return (-1, stream_buffer_data)
 
                 stream_name = "stderr" if stderr else "stdout"
                 raise RuntimeError(
                     f"Match receive until error on {stream_name}. The debugged process has stopped due to the following event(s). {event}",
                 )
 
-            # Check for each pattern if it is in the buffer
-            stream_buffer_data = buffer.get_data()
-            pattern_found, match_end_index = matcher.stateful_search(stream_buffer_data)
+            if (remaining_time := max(0, end_time - time.time())) == 0:
+                raise TimeoutError("Timeout reached")
 
-            if pattern_found >= 0:
-                unused_tail = stream_buffer_data[match_end_index:]
-                buffer.overwrite(unused_tail)  # Remove the matched pattern and the preceding data from the buffer
-                break
+            open_flag = self._stderr_is_open if stderr else self._stdout_is_open
+            if not open_flag:
+                # The delimiters are not in the buffer and the pipe is not available
+                raise RuntimeError(f"Broken {'stderr' if stderr else 'stdout'} pipe. Is the child process still alive?")
 
-            buffer.clear()
+            received_numb = self._raw_recv(stderr=stderr, timeout=remaining_time)
 
-        # Prepare the return values
-        ret_data = bytes(matcher.consumed_bytes)
-
-        if pattern_found >= 0:
-            liblog.info(
-                f"Matched pattern {patterns[pattern_found]!r} (index {pattern_found}) in "
-                f"{'stderr' if stderr else 'stdout'} pipe",
-            )
-            if drop:
-                pattern_len = len(patterns[pattern_found])
-                ret_data = ret_data[:-pattern_len]
-        else:
-            liblog.info("No pattern matched")
-
+        liblog.info(
+            f"Matched pattern {patterns[pattern_found]!r} (index {pattern_found}) in "
+            f"{'stderr' if stderr else 'stdout'} pipe",
+        )
         return pattern_found, ret_data
 
     def match_recvuntil(
         self: PipeManager,
-        patterns: list[bytes],
+        patterns: list[bytes | str],
         drop: bool = False,
         timeout: int = timeout_default,
         optional: bool = False,
@@ -705,7 +696,7 @@ class PipeManager:
         """Receives data from the child process stdout until one of the patterns is matched.
 
         Args:
-            patterns (list[bytes]): list of patterns to match.
+            patterns (list[bytes | str]): list of patterns to match.
             drop (bool, optional): drop the matched pattern from the received data. Defaults to False.
             timeout (int, optional): timeout in seconds. Defaults to timeout_default.
             optional (bool, optional): whether to ignore the wait for the received input if the command is executed when the process is stopped. Defaults to False.
@@ -723,7 +714,7 @@ class PipeManager:
 
     def match_recverruntil(
         self: PipeManager,
-        patterns: list[bytes],
+        patterns: list[bytes | str],
         drop: bool = False,
         timeout: int = timeout_default,
         optional: bool = False,
@@ -731,7 +722,7 @@ class PipeManager:
         """Receives data from the child process stderr until one of the patterns is matched.
 
         Args:
-            patterns (list[bytes]): list of patterns to match.
+            patterns (list[bytes | str]): list of patterns to match.
             drop (bool, optional): drop the matched pattern from the received data. Defaults to False.
             timeout (int, optional): timeout in seconds. Defaults to timeout_default.
             optional (bool, optional): whether to ignore the wait for the received input if the command is executed when the process is stopped. Defaults to False.
